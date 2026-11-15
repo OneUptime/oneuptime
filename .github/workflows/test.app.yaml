@@ -46,8 +46,15 @@ jobs:
       # takes a minute and a half, so three bring each shard to about ten
       # minutes for much the same runner time in all. When a shard passes
       # about 20 minutes, add one here rather than raise the cap.
+      #
+      # Four since 2026-11-14. Shard 3 of 3 had taken 26 and 24 minutes on the
+      # 14.0.109 and 14.0.110 release branches (jest's own time 1,291 s on
+      # 14.0.110, 897 files), and on 14.0.111 it reached the cap after 861 of
+      # its files: the same 846 files as before took a third longer on that
+      # runner, no one of them the cause, while the other two shards took 17
+      # and 23 minutes.
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}
@@ -1776,6 +1783,10 @@ jobs:
           # journeys, the second a long name at 390 pixels: 17 seconds locally
           # (on a loaded machine) - test-journeys-ui planned as 3.2, this group
           # about 16.0 (Ask AI is planned as 4.7 now).
+          # The monitors table in German and Persian (#7394) added 2 tests to
+          # Ask AI, three loads each at 1280, 390 and 360 pixels, light and
+          # dark: 25-27 seconds each locally (48 on a loaded machine) -
+          # test-ask-ai-ui planned as 5.6, this group about 16.9.
           - group: 22
             suites: >-
               test-journeys-ui

@@ -453,6 +453,25 @@ describe("CreateOnCallOverrideScreen project scope", () => {
   });
 });
 
+/*
+ * How the server refuses an override that overlaps another of the same
+ * person in the same scope (OnCallDutyPolicyUserOverrideService): a 400
+ * whose body names who is away, who covers them, when, and what to do.
+ */
+const EVERY_POLICY_OVERLAP_REFUSAL: string =
+  "Ada Lovelace is already covered by Priya Rao on every policy from Nov 20, 2026, 09:00 UTC to Nov 20, 2026, 17:00 UTC. Change the times, or edit that override.";
+
+const ONE_POLICY_OVERLAP_REFUSAL: string =
+  "Ada Lovelace is already covered by Priya Rao on this policy from Nov 20, 2026, 09:00 UTC to Nov 20, 2026, 17:00 UTC. Change the times, or edit that override.";
+
+// As axios rejects a request the server answered with a 400 and a message.
+function serverRefusal(message: string): Error {
+  return Object.assign(new Error("Request failed with status code 400"), {
+    isAxiosError: true,
+    response: { status: 400, data: { message: message } },
+  });
+}
+
 describe("CreateOnCallOverrideScreen refusals", () => {
   beforeEach(() => {
     mockCreateOverride.mockClear();
@@ -497,6 +516,38 @@ describe("CreateOnCallOverrideScreen refusals", () => {
 
     expect(screen.getByText("Start time must be before end time")).toBeTruthy();
     expect(mockGoBack).not.toHaveBeenCalled();
+  });
+
+  test("an override that overlaps one already saved is refused in the server's words, whole, and the screen stays open", async (): Promise<void> => {
+    mockCreateOverride.mockRejectedValueOnce(
+      serverRefusal(EVERY_POLICY_OVERLAP_REFUSAL) as never,
+    );
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    // Who, by whom, when, and what to do - never "Server error (400)".
+    expect(
+      within(screen.getByTestId("override-error")).getByText(
+        EVERY_POLICY_OVERLAP_REFUSAL,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Server error|status code 400/)).toBeNull();
+    expect(mockGoBack).not.toHaveBeenCalled();
+
+    // Times changed, the next Confirm is sent and closes the sheet.
+    await fireEvent.press(screen.getByTestId("duration-12"));
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    const input: CreateOverrideInput = lastCreateInput();
+
+    expect(mockCreateOverride).toHaveBeenCalledTimes(2);
+    expect(
+      (input.endsAt.getTime() - input.startsAt.getTime()) / (60 * 60 * 1000),
+    ).toBe(12);
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
   });
 
   test("a successful create closes the sheet", async (): Promise<void> => {
@@ -1311,6 +1362,55 @@ describe("CreateOnCallOverrideScreen offering the policies someone may cover", (
     expect(
       within(screen.getByTestId("override-error")).getByText(
         "Tick at least one on-call policy.",
+      ),
+    ).toBeTruthy();
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
+
+  test("an overlap refused on one of several policies names that policy, as the server's words do not", async (): Promise<void> => {
+    mockCoverPolicies.current = {
+      status: "offered",
+      policies: [PAYMENTS, CHECKOUT],
+    };
+    mockCreateOverride
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(
+        serverRefusal(ONE_POLICY_OVERLAP_REFUSAL) as never,
+      );
+
+    await render(<CreateOnCallOverrideScreen />);
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([PAYMENTS.policyId, CHECKOUT.policyId]);
+    expect(
+      within(screen.getByTestId("override-error")).getByText(
+        `Checkout: ${ONE_POLICY_OVERLAP_REFUSAL}`,
+      ),
+    ).toBeTruthy();
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
+
+  test("with one policy ticked, its overlap refusal reads as the server words it", async (): Promise<void> => {
+    mockCoverPolicies.current = {
+      status: "offered",
+      policies: [PAYMENTS, CHECKOUT],
+    };
+    mockCreateOverride.mockRejectedValueOnce(
+      serverRefusal(ONE_POLICY_OVERLAP_REFUSAL) as never,
+    );
+
+    await render(<CreateOnCallOverrideScreen />);
+    await fireEvent.press(
+      screen.getByTestId(`cover-policy-${PAYMENTS.policyId}`),
+    );
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([CHECKOUT.policyId]);
+    expect(
+      within(screen.getByTestId("override-error")).getByText(
+        ONE_POLICY_OVERLAP_REFUSAL,
       ),
     ).toBeTruthy();
     expect(mockGoBack).not.toHaveBeenCalled();

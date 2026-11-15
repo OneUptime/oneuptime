@@ -37,7 +37,7 @@ I passaggi vengono eseguiti **in ordine**. Per cambiare l'ordine, trascina un pa
 
 ### Salva i passaggi
 
-Fai clic su **Salva passaggi**. Finché non lo fai, l'editor mostra **Modifiche non salvate**. Una volta salvato, vedi **Salvato** e il runbook è pronto per essere [eseguito](/docs/runbooks/running).
+Fai clic su **Salva passaggi**. Finché non lo fai, l'editor mostra **Modifiche non salvate**. Una volta salvato, vedi **Salvato** e il runbook è pronto per essere [eseguito](/docs/runbooks/running). Lasciare i passaggi prima di salvare chiede prima conferma. Un link nel menu laterale, nel percorso di navigazione o nella barra superiore, o i pulsanti Indietro e Avanti del browser, aprono **Uscire senza salvare?** con due scelte: **Continua a modificare** resta sui passaggi con le tue modifiche, e **Annulla modifiche** prosegue verso la pagina che stavi aprendo. Chiudere o ricaricare la scheda chiede conferma con la finestra di dialogo del browser.
 :::
 
 ## Anatomia di un passaggio

@@ -51,7 +51,7 @@ spec:
                   name: {{ include "kubernetes-agent.apiKeySecretName" . }}
                   key: api-key
             - name: CLUSTER_NAME
-              value: {{ .Values.clusterName | quote }}
+              value: {{ include "kubernetes-agent.clusterName" . | quote }}
             # The external engine when cost.engine.url is set, else the
             # bundled OpenCost Service.
             - name: COST_ENGINE_URL

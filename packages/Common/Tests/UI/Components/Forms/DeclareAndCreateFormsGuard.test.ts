@@ -757,8 +757,17 @@ describe("the monitors apart, and the status they change to right under them", (
 
     expect(notify).toContain("collapsibleSection: advancedSection,");
     expect(notify).toContain('stepId: "resources-affected",');
-    // Still ticked from the start: folding it changes no default.
-    expect(notify).toContain("defaultValue: true,");
+    /*
+     * Folding it changes no default: it starts as the project says
+     * (Incidents > Settings > Subscriber Notifications, #7606) - ticked
+     * unless the project turned that off - and its question says so.
+     */
+    expect(notify).toContain(
+      "defaultValue: newIncidentNotifyDefault.isTickedByDefault,",
+    );
+    expect(notify).toContain(
+      "description: getNotifyBoxDescription( newIncidentNotifyDefault.isTickedByDefault, ),",
+    );
     // Who is emailed, and a preview, on the review even while it is folded.
     expect(notify).toContain("alwaysInSummary: true,");
     expect(notify).toContain("<SubscriberNotificationPreviewButton");

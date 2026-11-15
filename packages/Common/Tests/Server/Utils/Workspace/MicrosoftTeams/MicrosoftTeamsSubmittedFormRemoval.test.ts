@@ -1312,7 +1312,7 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
       endTime: "11:00",
     },
     // The submit names no time zone, so the times are read and shown in UTC.
-    confirmation: `✅ Scheduled maintenance created successfully.\n\n**Starts:** Jun 1, 2099, 10:00 (UTC)\n\n**Ends:** Jun 1, 2099, 11:00 (UTC)\n\n[View scheduled maintenance](${MAINTENANCE_LINK})`,
+    confirmation: `✅ Maintenance event created successfully.\n\n**Starts:** Jun 1, 2099, 10:00 (UTC)\n\n**Ends:** Jun 1, 2099, 11:00 (UTC)\n\n[View maintenance event](${MAINTENANCE_LINK})`,
     failureReply: MAINTENANCE_CREATE_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
       const created: ScheduledMaintenance = new ScheduledMaintenance();

@@ -209,7 +209,9 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
       limit: 3,
     });
 
-    expect(fake.queries).toHaveLength(1);
+    // The claim, then the set-aside of what it stepped over (ClaimSetAside).
+    expect(fake.queries).toHaveLength(2);
+    expect(fake.queries[1]!.sql).toContain('"unclaimable" AS (');
     const select: Query = fake.queries[0]!;
 
     expect(select.parameters[0]).toBe(PROBE_ID.toString());
@@ -228,7 +230,9 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
       'vc."collectionMethod" = $5',
       'vc."isVCenterPasswordSet" = true',
       'vc."deletedAt" IS NULL',
-      '(vc."nextCollectionAt" IS NULL OR vc."nextCollectionAt" <= $2)',
+      // A range of the (collectionProbeId, nextCollectionAt) index, oldest first.
+      'vc."nextCollectionAt" <= $2',
+      'ORDER BY vc."nextCollectionAt" ASC',
       'NOT (vc."_id" = ANY($6::uuid[]))',
       '(pr."isGlobalProbe" = false AND pr."projectId" = vc."projectId")',
       '(pr."isGlobalProbe" = true AND $7::boolean = false)',
@@ -246,6 +250,9 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
      * wait (OneUptime issue #7194).
      */
     expect(select.sql).not.toMatch(/FOR UPDATE/);
+    // NULLS FIRST, and IS NULL OR, no btree can serve.
+    expect(select.sql).not.toContain("NULLS FIRST");
+    expect(select.sql).not.toMatch(/"nextCollectionAt" IS NULL OR/);
   });
 
   test("moves each claimed vCenter's next collection one interval on, in the same statement", async () => {
@@ -260,8 +267,11 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
       limit: 4,
     });
 
-    // One statement locks, moves and answers: nothing waits between them.
-    expect(fake.queries).toHaveLength(1);
+    /*
+     * One statement locks, moves and answers: nothing waits between them.
+     * The set-aside after it is a statement of its own.
+     */
+    expect(fake.queries).toHaveLength(2);
     const claim: Query = fake.queries[0]!;
     const sql: string = claim.sql.replace(/\s+/g, " ");
 
@@ -278,7 +288,7 @@ describe("VMwareProbeCollectionStore.claimDueVCenters", () => {
     ]);
     // Only what the statement wrote is answered, the longest overdue first.
     expect(sql).toContain(
-      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC NULLS FIRST',
+      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC',
     );
   });
 

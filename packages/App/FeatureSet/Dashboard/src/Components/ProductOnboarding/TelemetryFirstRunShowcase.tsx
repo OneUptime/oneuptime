@@ -1,9 +1,12 @@
 import React, {
+  Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   ReactNode,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
@@ -37,7 +40,9 @@ import { ShowcaseAddButton } from "../ResourceShowcase/ResourceShowcaseCard";
  * while the project has never received telemetry: no service has reported.
  * Its button is the first step, "Send your first logs": the setup guide in
  * a dialog, which waits for the data to arrive - the first service that
- * reports - and links to it. Once one has, the page is the explorer alone.
+ * reports, or the first data of the key the guide's snippets carry, for
+ * telemetry that names no service (#7754) - and links to it. Once it has,
+ * the page is the explorer alone, read again as the dialog closes.
  *
  * The explorer stays under it: nothing is hidden on the strength of this
  * check, and a project whose services have reported never sees it. A
@@ -58,6 +63,8 @@ export interface TelemetryFirstRun {
   // A service's page for that telemetry, and the link to it.
   viewPage: PageMap;
   viewText: string;
+  // The product's explorer: where data that names no service shows.
+  dataPage: PageMap;
 }
 
 export const TELEMETRY_FIRST_RUNS: Record<
@@ -74,36 +81,42 @@ export const TELEMETRY_FIRST_RUNS: Record<
     startText: translationKey("Send your first logs"),
     viewPage: PageMap.SERVICE_VIEW_LOGS,
     viewText: translationKey("View logs"),
+    dataPage: PageMap.LOGS,
   },
   [ProductKey.Traces]: {
     telemetryType: "traces",
     startText: translationKey("Send your first traces"),
     viewPage: PageMap.SERVICE_VIEW_TRACES,
     viewText: translationKey("View traces"),
+    dataPage: PageMap.TRACES,
   },
   [ProductKey.Metrics]: {
     telemetryType: "metrics",
     startText: translationKey("Send your first metrics"),
     viewPage: PageMap.SERVICE_VIEW_METRICS,
     viewText: translationKey("View metrics"),
+    dataPage: PageMap.METRICS,
   },
   [ProductKey.Exceptions]: {
     telemetryType: "exceptions",
     startText: translationKey("Send your first exceptions"),
     viewPage: PageMap.SERVICE_VIEW_EXCEPTIONS,
     viewText: translationKey("View exceptions"),
+    dataPage: PageMap.EXCEPTIONS,
   },
   [ProductKey.Profiles]: {
     telemetryType: "profiles",
     startText: translationKey("Send your first profiles"),
     viewPage: PageMap.SERVICE_VIEW_PROFILES,
     viewText: translationKey("View profiles"),
+    dataPage: PageMap.PROFILES,
   },
   [ProductKey.Topology]: {
     telemetryType: "traces",
     startText: translationKey("Send your first traces"),
     viewPage: PageMap.SERVICE_VIEW_TRACES,
     viewText: translationKey("View traces"),
+    dataPage: PageMap.TRACES,
   },
 };
 
@@ -122,6 +135,7 @@ export const TELEMETRY_SETUP_DESCRIPTION: string = translationKey(
 export interface SetupModalProps {
   firstRun: TelemetryFirstRun;
   onClose: () => void;
+  // The first data arrived: a service reported, or the key sent its first.
   onConnected?: (() => void) | undefined;
 }
 
@@ -130,6 +144,9 @@ export const TelemetrySetupModal: FunctionComponent<SetupModalProps> = (
   props: SetupModalProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // The key the guide's snippets carry, which the last step watches too.
+  const [ingestionKey, setIngestionKey] =
+    useState<TelemetryIngestionKey | null>(null);
 
   return (
     <Modal
@@ -143,6 +160,7 @@ export const TelemetrySetupModal: FunctionComponent<SetupModalProps> = (
         <TelemetryDocumentation
           telemetryType={props.firstRun.telemetryType}
           isBare={true}
+          onSelectedKeyChange={setIngestionKey}
         />
         <div className="mt-6">
           <h3 className="mb-2 text-sm font-semibold text-gray-900">
@@ -155,6 +173,16 @@ export const TelemetrySetupModal: FunctionComponent<SetupModalProps> = (
             onConnected={() => {
               props.onConnected?.();
             }}
+            ingestionKey={ingestionKey}
+            dataPage={props.firstRun.dataPage}
+            onDataArrived={() => {
+              props.onConnected?.();
+            }}
+            /*
+             * Its link may be to the explorer this dialog was opened over,
+             * which a link to the page it is on would leave covered.
+             */
+            onView={props.onClose}
           />
         </div>
       </div>
@@ -179,6 +207,13 @@ const TelemetryFirstRunShowcase: FunctionComponent<ComponentProps> = (
    */
   const [hasFirstSteps, setHasFirstSteps] = useState<boolean>(false);
   const [hasData, setHasData] = useState<boolean>(false);
+  /*
+   * The explorer under the dialog read the project before its first data
+   * arrived. Once the dialog has seen it arrive, closing the dialog draws
+   * the explorer afresh, so the data is in it without a reload.
+   */
+  const hasFirstDataRef: MutableRefObject<boolean> = useRef<boolean>(false);
+  const [explorerReads, setExplorerReads] = useState<number>(0);
   // Services that have reported: any telemetry at all.
   const watch: FirstRecordWatch = useFirstRecordWatch({
     modelType: Service,
@@ -213,19 +248,29 @@ const TelemetryFirstRunShowcase: FunctionComponent<ComponentProps> = (
     return { onFirstStepsShown, onDataShown, offersSetup };
   }, [onFirstStepsShown, onDataShown, offersSetup]);
 
+  const closeSetup: () => void = (): void => {
+    setIsSetupOpen(false);
+
+    if (hasFirstDataRef.current) {
+      hasFirstDataRef.current = false;
+      setExplorerReads((value: number): number => {
+        return value + 1;
+      });
+    }
+  };
+
   return (
     <TelemetryFirstRunHostContext.Provider value={host}>
       {isShown && (
         <ProductShowcase product={props.product} startButton={startButton} />
       )}
-      {props.children}
+      <Fragment key={explorerReads}>{props.children}</Fragment>
       {isSetupOpen && (
         <TelemetrySetupModal
           firstRun={firstRun}
-          onClose={() => {
-            setIsSetupOpen(false);
-          }}
+          onClose={closeSetup}
           onConnected={() => {
+            hasFirstDataRef.current = true;
             watch.onRecordCreated();
           }}
         />

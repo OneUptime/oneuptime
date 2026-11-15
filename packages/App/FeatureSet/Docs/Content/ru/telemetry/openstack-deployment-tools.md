@@ -580,7 +580,7 @@ bash install.sh
 
 | Чего не хватает | Почему | Во что это обходится |
 | --- | --- | --- |
-| Всего, что относится к Cinder | Он запрашивает у каталога `volumev3` и не находит такого там, где Cinder зарегистрирован как `block-storage` | **Тома** и **Пулы хранения** остаются пустыми, а в **Службы** нет Block Storage API, `cinder-volume` и `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** и **Volume Stuck** молчат |
+| Всего, что относится к Cinder | Он запрашивает у каталога `volumev3` и не находит такого там, где Cinder зарегистрирован как `block-storage` | **Тома** и **Пулы хранения** остаются пустыми, а в **Сервисы** нет Block Storage API, `cinder-volume` и `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** и **Volume Stuck** молчат |
 | Сколько экземпляров держит гипервизор и его агрегаты | Список гипервизоров Nova завершается ошибкой на новейшей микроверсии, которую запрашивает Kolla-Ansible | Эти два значения в **Гипервизоры** и то, что потеря хоста говорит о том, что он забирает с собой. Его vCPU, память и диск на месте: они берутся из Placement |
 | Домены | У него нет такого ряда | **Домены** остаётся пустым |
 | Статус образа, его видимость и дата создания | У него нет таких меток | Эти столбцы в **Образы**. **Image Stuck** молчит, поэтому образ, застрявший на пути к `active`, остаётся незамеченным |

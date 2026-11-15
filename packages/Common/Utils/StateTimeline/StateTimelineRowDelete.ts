@@ -50,7 +50,7 @@ export const ONLY_STATE_DELETE_MESSAGES: Readonly<
   [StateTimelineRecord.Alert]:
     "The alert's only state can't be deleted: an alert always has a state. To change it, add a new state.",
   [StateTimelineRecord.ScheduledMaintenance]:
-    "The event's only state can't be deleted: a scheduled maintenance event always has a state. To change it, add a new state.",
+    "The event's only state can't be deleted: a maintenance event always has a state. To change it, add a new state.",
   [StateTimelineRecord.IncidentEpisode]:
     "The episode's only state can't be deleted: an episode always has a state. To change it, add a new state.",
   [StateTimelineRecord.AlertEpisode]:

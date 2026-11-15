@@ -427,6 +427,20 @@ export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
 export const BLOCKED_PROJECT_CACHE_TTL_MS: number = 60_000;
 
 /*
+ * How long one server keeps a project's sign-in rule (getRequireSsoForLogin,
+ * getRequireSsoWithSsoProviderId): the longest a change of it takes to reach
+ * a server that was not told of it (forgetSignInRules).
+ */
+export const SIGN_IN_RULE_CACHE_TTL_MS: number = 60_000;
+
+/*
+ * At most how many projects one statement reads the access rules of
+ * (loadAccessRules): someone in more projects than this costs one statement
+ * per this many, never one per project.
+ */
+export const ACCESS_RULES_READ_BATCH_SIZE: number = 1000;
+
+/*
  * How long one server keeps its answer to "is this a sample project?"
  * (isSampleProject, issue #6808). The flag is written when the project is
  * made and never changes, so an answer stays true for the project's whole
@@ -3161,7 +3175,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         new ScheduledMaintenanceState();
       endedScheduledMaintenanceState.name = "Ended";
       endedScheduledMaintenanceState.description =
-        "Scheduled maintenance events switch to this state when they end.";
+        "Maintenance events switch to this state when they end.";
       endedScheduledMaintenanceState.color = new Color("#4A4A4A");
       endedScheduledMaintenanceState.isEndedState = true;
       endedScheduledMaintenanceState.projectId = projectId;
@@ -4338,6 +4352,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
    *
    * A project that does not exist is reported as not blocked: this answers
    * the blocked question only.
+   *
+   * Read with the project's sign-in rule, by the same statement
+   * (readAccessRules): a request in a project asks both at once, and the
+   * row is read once for the two.
    */
   @CaptureSpan()
   public async isProjectBlocked(projectId: ObjectID): Promise<boolean> {
@@ -4356,38 +4374,219 @@ export class ProjectService extends ProjectReferencesService<Model> {
       return inFlight;
     }
 
-    const lookup: Promise<boolean> = this.findOneById({
-      id: projectId,
-      select: { isBlocked: true },
-      props: { isRoot: true, ignoreHooks: true },
-    })
-      .then((project: Model | null): boolean => {
-        const isBlocked: boolean = Boolean(project?.isBlocked);
+    this.readAccessRules([projectId]);
 
-        /*
-         * Only cached if this lookup is still the current one. A block written
-         * while it was on the wire clears the slot (forgetBlockedStatus), and
-         * the answer this lookup read may predate that write.
-         */
-        if (this.blockedProjectLookups.get(key) === lookup) {
-          this.blockedProjectCache.set(
-            key,
-            isBlocked,
-            BLOCKED_PROJECT_CACHE_TTL_MS,
-          );
-        }
+    return this.blockedProjectLookups.get(key)!;
+  }
 
-        return isBlocked;
-      })
-      .finally((): void => {
-        if (this.blockedProjectLookups.get(key) === lookup) {
-          this.blockedProjectLookups.delete(key);
-        }
+  /*
+   * Whether each project is blocked and its sign-in rule, kept on this
+   * server as isProjectBlocked and getRequireSsoForLogin keep them, read by
+   * one statement for every project of the list whose answers are not kept
+   * (one per ACCESS_RULES_READ_BATCH_SIZE projects) - so a request across
+   * someone's projects reads their rows once, however many there are, and
+   * asks each project's questions of this server's memory after.
+   *
+   * A read that fails throws, and keeps nothing: the request is refused
+   * with it, as it is when one project's answer cannot be read. A project
+   * that does not exist is kept as not blocked, and its sign-in rule is not
+   * kept - asked for, it is looked for again (getRequireSsoForLogin).
+   */
+  @CaptureSpan()
+  public async loadAccessRules(projectIds: Array<ObjectID>): Promise<void> {
+    const read: Promise<unknown> | null = this.readAccessRules(projectIds);
+
+    if (read) {
+      await read;
+    }
+  }
+
+  /*
+   * Reads the rows of the projects whose blocked status or sign-in rule
+   * this server neither keeps nor is reading already, and puts a lookup of
+   * each answer still wanted in its slot (blockedProjectLookups,
+   * signInRuleLookups): a question asked while the read is on the wire
+   * shares it, and an answer is kept only while its lookup is still the
+   * project's current one - a block or a rule change written meanwhile
+   * clears the slot (forgetBlockedStatus, forgetSignInRules), and the
+   * answer read may predate that write. A project already being read for
+   * one answer is read again here only for the other.
+   *
+   * Returns the read, or null when nothing needed reading. Every lookup it
+   * puts in a slot is answered by the read: a read that fails fails them,
+   * and whoever asked through one is told.
+   */
+  private readAccessRules(
+    projectIds: Array<ObjectID>,
+  ): Promise<Map<string, Model>> | null {
+    const wanted: Map<
+      string,
+      { projectId: ObjectID; isBlockedWanted: boolean; isRuleWanted: boolean }
+    > = new Map();
+
+    for (const projectId of projectIds) {
+      const key: string = projectId.toString().toLowerCase();
+
+      if (wanted.has(key)) {
+        continue;
+      }
+
+      const isBlockedWanted: boolean =
+        this.blockedProjectCache.get(key) === undefined &&
+        !this.blockedProjectLookups.has(key);
+
+      const isRuleWanted: boolean =
+        !this.signInRuleCache.get(key) && !this.signInRuleLookups.has(key);
+
+      if (isBlockedWanted || isRuleWanted) {
+        wanted.set(key, { projectId, isBlockedWanted, isRuleWanted });
+      }
+    }
+
+    if (wanted.size === 0) {
+      return null;
+    }
+
+    const read: Promise<Map<string, Model>> = this.readAccessRuleRows(
+      Array.from(wanted.values()).map(
+        (entry: { projectId: ObjectID }): ObjectID => {
+          return entry.projectId;
+        },
+      ),
+    );
+
+    for (const [key, entry] of wanted) {
+      if (entry.isBlockedWanted) {
+        const lookup: Promise<boolean> = read
+          .then((rows: Map<string, Model>): boolean => {
+            const isBlocked: boolean = Boolean(rows.get(key)?.isBlocked);
+
+            // Only while this lookup is still the current one (see above).
+            if (this.blockedProjectLookups.get(key) === lookup) {
+              this.blockedProjectCache.set(
+                key,
+                isBlocked,
+                BLOCKED_PROJECT_CACHE_TTL_MS,
+              );
+            }
+
+            return isBlocked;
+          })
+          .finally((): void => {
+            if (this.blockedProjectLookups.get(key) === lookup) {
+              this.blockedProjectLookups.delete(key);
+            }
+          });
+
+        this.blockedProjectLookups.set(key, lookup);
+
+        // Its failure is the read's, told to whoever asked through it.
+        lookup.catch((): void => {});
+      }
+
+      if (entry.isRuleWanted) {
+        const lookup: Promise<ProjectSignInRule> = read
+          .then((rows: Map<string, Model>): ProjectSignInRule => {
+            const project: Model | undefined = rows.get(key);
+
+            if (!project) {
+              // Don't cache "not found" — let the caller decide how to handle it.
+              throw new BadDataException("Project not found");
+            }
+
+            const rule: ProjectSignInRule = {
+              requireSsoForLogin: Boolean(project.requireSsoForLogin),
+              requireSsoWithSsoProviderId: project.requireSsoWithSsoProviderId
+                ? project.requireSsoWithSsoProviderId.toString()
+                : null,
+            };
+
+            // Only while this read is still the current one (see signInRuleLookups).
+            if (this.signInRuleLookups.get(key) === lookup) {
+              this.signInRuleCache.set(key, rule, SIGN_IN_RULE_CACHE_TTL_MS);
+            }
+
+            return rule;
+          })
+          .finally((): void => {
+            if (this.signInRuleLookups.get(key) === lookup) {
+              this.signInRuleLookups.delete(key);
+            }
+          });
+
+        this.signInRuleLookups.set(key, lookup);
+
+        lookup.catch((): void => {});
+      }
+    }
+
+    return read;
+  }
+
+  /*
+   * The rows of these projects that exist, with what isProjectBlocked and
+   * getRequireSsoForLogin answer from - by lower-cased id. One project is
+   * read by its id; more, ACCESS_RULES_READ_BATCH_SIZE at a time by one
+   * statement each.
+   */
+  private async readAccessRuleRows(
+    projectIds: Array<ObjectID>,
+  ): Promise<Map<string, Model>> {
+    const rows: Map<string, Model> = new Map<string, Model>();
+
+    if (projectIds.length === 1) {
+      const projectId: ObjectID = projectIds[0]!;
+
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: {
+          isBlocked: true,
+          requireSsoForLogin: true,
+          requireSsoWithSsoProviderId: true,
+        },
+        props: { isRoot: true, ignoreHooks: true },
       });
 
-    this.blockedProjectLookups.set(key, lookup);
+      if (project) {
+        rows.set(projectId.toString().toLowerCase(), project);
+      }
 
-    return lookup;
+      return rows;
+    }
+
+    for (
+      let start: number = 0;
+      start < projectIds.length;
+      start += ACCESS_RULES_READ_BATCH_SIZE
+    ) {
+      const batch: Array<ObjectID> = projectIds.slice(
+        start,
+        start + ACCESS_RULES_READ_BATCH_SIZE,
+      );
+
+      const projects: Array<Model> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(batch),
+        },
+        select: {
+          _id: true,
+          isBlocked: true,
+          requireSsoForLogin: true,
+          requireSsoWithSsoProviderId: true,
+        },
+        limit: batch.length,
+        skip: 0,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+
+      for (const project of projects) {
+        if (project.id) {
+          rows.set(project.id.toString().toLowerCase(), project);
+        }
+      }
+    }
+
+    return rows;
   }
 
   // Drops this server's answer, so the next request reads the row.
@@ -4507,9 +4706,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A project's sign-in rule, kept for 60s, or read from its row - by one
-   * read for every caller asking at once. A read that fails, or finds no
-   * project, throws to each of them and keeps nothing.
+   * A project's sign-in rule, kept for SIGN_IN_RULE_CACHE_TTL_MS, or read
+   * from its row - with whether it is blocked (readAccessRules), by one read
+   * for every caller asking at once. A read that fails, or finds no project,
+   * throws to each of them and keeps nothing.
    */
   private getSignInRule(projectId: ObjectID): Promise<ProjectSignInRule> {
     const key: string = projectId.toString().toLowerCase();
@@ -4526,40 +4726,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
       return inFlight;
     }
 
-    const lookup: Promise<ProjectSignInRule> = this.findOneById({
-      id: projectId,
-      select: { requireSsoForLogin: true, requireSsoWithSsoProviderId: true },
-      props: { isRoot: true },
-    })
-      .then((project: Model | null): ProjectSignInRule => {
-        if (!project) {
-          // Don't cache "not found" — let the caller decide how to handle it.
-          throw new BadDataException("Project not found");
-        }
+    this.readAccessRules([projectId]);
 
-        const rule: ProjectSignInRule = {
-          requireSsoForLogin: Boolean(project.requireSsoForLogin),
-          requireSsoWithSsoProviderId: project.requireSsoWithSsoProviderId
-            ? project.requireSsoWithSsoProviderId.toString()
-            : null,
-        };
-
-        // Only while this read is still the current one (see signInRuleLookups).
-        if (this.signInRuleLookups.get(key) === lookup) {
-          this.signInRuleCache.set(key, rule, 60_000);
-        }
-
-        return rule;
-      })
-      .finally((): void => {
-        if (this.signInRuleLookups.get(key) === lookup) {
-          this.signInRuleLookups.delete(key);
-        }
-      });
-
-    this.signInRuleLookups.set(key, lookup);
-
-    return lookup;
+    return this.signInRuleLookups.get(key)!;
   }
 
   /*

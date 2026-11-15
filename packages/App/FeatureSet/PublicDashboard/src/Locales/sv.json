@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "Det här behöver den senaste versionen. Spara dina ändringar och ladda sedan om sidan.",
   "This couldn't be loaded.": "Det här kunde inte laddas.",
   "Something went wrong": "Något gick fel",
-  "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Ladda om sidan för att fortsätta"
+  "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Ladda om sidan för att fortsätta",
+  "Click to reveal": "Klicka för att visa",
+  "Click to copy": "Klicka för att kopiera",
+  "Copy": "Kopiera",
+  "Copied!": "Kopierat!",
+  "Copy failed": "Kopieringen misslyckades",
+  "Hide": "Dölj"
 }

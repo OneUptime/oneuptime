@@ -1,4 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
+import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import SavedChatMessage from "../../../Types/Workspace/SavedChatMessage";
 import {
   MessageBlocksByWorkspaceType,
@@ -48,6 +49,13 @@ export interface FeedWorkspaceNotification {
    * the post does not say enough (WorkspacePayload text).
    */
   notificationText?: string | undefined;
+  /*
+   * Which updates the entry is, for the rules that choose the updates they
+   * post (NotificationRuleUpdates), where its feed type alone does not say:
+   * a state change that resolves the incident, an edit that changes its
+   * severity. Left out, it is its feed type's (FeedUpdateKinds).
+   */
+  updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
 }
 
 /*
@@ -118,12 +126,20 @@ export default class FeedWorkspaceNotificationUtil {
   public static toWorkspaceNotification(data: {
     workspaceNotification: FeedWorkspaceNotification;
     author?: FeedWorkspaceAuthor | undefined;
+    /*
+     * Which updates the entry is (FeedUpdateKinds.resolve): it is posted
+     * only where a rule wants one of them. Left out, it is posted wherever
+     * the record's messages go - a monitor's or an on-call policy's entry,
+     * whose rules post every update.
+     */
+    updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
   }): {
     sendWorkspaceNotification: boolean;
     appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
     exceptChannel?: WorkspaceChannelToSkip | undefined;
     authorUserId?: ObjectID | undefined;
     authorApiKeyName?: string | undefined;
+    updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
   } {
     return {
       sendWorkspaceNotification:
@@ -132,6 +148,7 @@ export default class FeedWorkspaceNotificationUtil {
       exceptChannel: data.workspaceNotification.exceptChannel,
       authorUserId: data.author?.authorUserId,
       authorApiKeyName: data.author?.authorApiKeyName,
+      ...(data.updateKinds ? { updateKinds: data.updateKinds } : {}),
     };
   }
 }

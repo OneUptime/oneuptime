@@ -64,6 +64,7 @@ import {
   rotation,
 } from "../../Types/OnCallDutyPolicy/CalendarFeedTestFixtures";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { useUserOverrideTimesInMemory } from "../TestingUtils/UserOverrideTimesInMemory";
 import {
   FakeDb,
   emptyDb,
@@ -292,6 +293,21 @@ async function bookTimeAway(
   });
 }
 
+/*
+ * An override saved before one person's overrides in one scope were kept
+ * from overlapping (issue #7630): written straight into the table, as it
+ * was then. Adding it now is refused.
+ */
+function savedBeforeOverlapsWereRefused(
+  answers: Parameters<typeof fillInForm>[0],
+): void {
+  const override: OnCallDutyPolicyUserOverride = fillInForm(answers);
+  savedCount++;
+  override._id = `0e300000-0000-4000-8000-${String(900 + savedCount).padStart(12, "0")}`;
+  override.createdAt = OneUptimeDate.getCurrentDate();
+  db.overrides.push(override as unknown as Record<string, unknown>);
+}
+
 interface OnCallNow {
   userId: string;
   coveredUserId: string | null;
@@ -409,6 +425,16 @@ beforeEach(() => {
       },
     } as never);
 
+  // Saved under the project's lock on override times, as overlaps are refused.
+  useUserOverrideTimesInMemory({
+    overrides: (): Array<Record<string, unknown>> => {
+      return db.overrides;
+    },
+    users: (): Array<Record<string, unknown>> => {
+      return db.users;
+    },
+  });
+
   jest
     .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyName")
     .mockResolvedValue("Payments");
@@ -520,6 +546,50 @@ describe("Booking time away with nobody picked to cover", () => {
     );
     expect(String(feed[0])).not.toContain("All alerts will be routed to");
   });
+
+  test("its channels hear it in one line: who is away, until when, and where their turns go (#7549)", async () => {
+    await bookTimeAway({
+      signedInAs: ALEX,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const chat: Array<unknown> = (
+      OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as {
+        mock: { calls: Array<Array<{ chatInfoInMarkdown?: string }>> };
+      }
+    ).mock.calls.map((call: Array<{ chatInfoInMarkdown?: string }>) => {
+      return call[0]!.chatInfoInMarkdown;
+    });
+
+    expect(chat).toHaveLength(1);
+    expect(String(chat[0])).toMatch(
+      /^🔁 Added an override on \[Payments\]\(https:\/\/oneuptime\.example\/policy\): user-\S+ is away from \{\{DATE\(\S+, SHORT\)\}\} at \{\{TIME\(\S+\)\}\} to \{\{DATE\(2026-03-06T12:00:00Z, SHORT\)\}\} at \{\{TIME\(2026-03-06T12:00:00Z\)\}\}, and their turns go to the next person in the rotation\.$/,
+    );
+    expect(String(chat[0])).toContain(ALEX);
+  });
+
+  test("with a cover, its channels hear who covers for whom (#7549)", async () => {
+    await bookTimeAway({
+      signedInAs: ALEX,
+      whoCovers: RIA,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const chat: string = String(
+      (
+        OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as {
+          mock: { calls: Array<Array<{ chatInfoInMarkdown?: string }>> };
+        }
+      ).mock.calls[0]![0]!.chatInfoInMarkdown,
+    );
+
+    expect(chat).toContain(
+      `🔁 Added an override on [Payments](https://oneuptime.example/policy): user-${RIA} covers for user-${ALEX} from `,
+    );
+    expect(chat).not.toMatch(/GMT|UTC|routed/);
+  });
 });
 
 describe("A schedule pages the next person in the rotation while somebody is skipped", () => {
@@ -598,9 +668,19 @@ describe("A schedule pages the next person in the rotation while somebody is ski
     );
   });
 
-  test("a cover named for the same time wins over the skip", async () => {
+  test("a cover named for the same time, saved before overlaps were refused, wins over the skip", async () => {
     await bookTimeAway({ signedInAs: ALEX, ends: BACK_ON_FRIDAY });
-    await bookTimeAway({
+
+    // Added now, it is refused: Alex's global overrides may not overlap.
+    await expect(
+      bookTimeAway({
+        signedInAs: ALEX,
+        whoCovers: RIA,
+        ends: at("2026-03-03T18:00:00Z"),
+      }),
+    ).rejects.toThrow("Change the times, or edit that override.");
+
+    savedBeforeOverlapsWereRefused({
       signedInAs: ALEX,
       whoCovers: RIA,
       ends: at("2026-03-03T18:00:00Z"),
@@ -777,9 +857,9 @@ describe("An escalation rule that names somebody away does not page them", () =>
     ).toBeNull();
   });
 
-  test("getAwayOverride: a named cover in the same scope wins over a skip", async () => {
+  test("getAwayOverride: a named cover in the same scope, saved before overlaps were refused, wins over a skip", async () => {
     await bookTimeAway({ signedInAs: ALEX, ends: BACK_ON_FRIDAY });
-    await bookTimeAway({
+    savedBeforeOverlapsWereRefused({
       signedInAs: ALEX,
       whoCovers: RIA,
       ends: at("2026-03-03T18:00:00Z"),

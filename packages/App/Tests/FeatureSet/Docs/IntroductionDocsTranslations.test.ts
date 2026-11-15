@@ -40,7 +40,7 @@ import {
   tableShape,
 } from "./DocsTranslationChecks";
 import { exploreCardLines, exploreSections } from "./GettingStartedPage";
-import { pathWithArrows } from "./DocsPageShape";
+import { lineShape, pathWithArrows } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -390,6 +390,74 @@ function sectionAt(markdown: string, sectionIndex: number): string {
 }
 
 /*
+ * The Quickstart's three sections that walk a guided setup (#7332), by
+ * their English headings. A translation holds them line for line: on each
+ * line, the same Dashboard labels as that language draws them, the same
+ * code, the same screenshot and the same links.
+ */
+const QUICKSTART_GUIDED_SECTIONS: ReadonlyArray<string> = [
+  "Monitor your website",
+  "Get paged when it goes down",
+  "Publish a status page",
+];
+
+// Every bold span of a line, as often as it appears.
+const BOLD_SPAN: RegExp = /\*\*([^*\n]+?)\*\*/g;
+const CODE_SPAN: RegExp = /`([^`\n]+)`/g;
+const SCREEN_ADDRESS: RegExp = /\]\((screen:[a-z0-9-]+)\)/g;
+// A link's target, without its anchor: anchors are localized.
+const LINK_TARGET: RegExp = /\]\((\/docs\/[^)#\s]+)(?:#[^)\s]*)?\)/g;
+
+function matchesOf(line: string, pattern: RegExp): Array<string> {
+  return Array.from(line.matchAll(pattern)).map(
+    (match: RegExpMatchArray): string => {
+      return (match[1] as string).trim();
+    },
+  );
+}
+
+// A bold span as this language's Dashboard draws it: a label, or a menu path.
+function drawnSpan(language: string, english: string): string {
+  if (!english.includes(PATH_SEPARATOR)) {
+    return drawnActionLabel(language, english);
+  }
+
+  return pathWithArrows(
+    english.split(PATH_SEPARATOR).map((segment: string): string => {
+      return drawnActionLabel(language, segment.trim());
+    }),
+    language,
+  );
+}
+
+// What a line names, in a form two languages can be compared by.
+interface QuickstartLineFacts {
+  line: number;
+  bold: Array<string>;
+  code: Array<string>;
+  screens: Array<string>;
+  links: Array<string>;
+}
+
+function quickstartLineFacts(
+  language: string,
+  lines: Array<string>,
+  toDrawn: (span: string) => string,
+): Array<QuickstartLineFacts> {
+  return lines.map((text: string, index: number): QuickstartLineFacts => {
+    return {
+      line: index,
+      bold: matchesOf(text, BOLD_SPAN).map(toDrawn).sort(),
+      code: matchesOf(text, CODE_SPAN).sort(),
+      screens: matchesOf(text, SCREEN_ADDRESS),
+      links: matchesOf(text, LINK_TARGET).map((target: string): string => {
+        return parseDocsLink(target)?.page || `${language}:${target}`;
+      }),
+    };
+  });
+}
+
+/*
  * The lines under the heading a page has where the English Home page has
  * this one, up to the next heading: the headings of a translation sit at the
  * English ones' places (each page's "headings, tables and list items").
@@ -525,6 +593,25 @@ describe("the lists this test keeps", () => {
 describe("the English pages", () => {
   it.each(PAGES)("$page is titled as its nav link", (entry: TranslatedPage) => {
     expect(englishPage(entry.page).split("\n")[0]).toBe(`# ${entry.navTitle}`);
+  });
+
+  it("bold only Dashboard labels, or paths of them, in the Quickstart's guided setup sections", () => {
+    for (const heading of QUICKSTART_GUIDED_SECTIONS) {
+      const section: string = sectionAt(
+        englishPage(QUICKSTART),
+        englishSectionIndex(QUICKSTART, heading),
+      );
+
+      for (const span of matchesOf(section, BOLD_SPAN)) {
+        expect({
+          heading,
+          span,
+          drawn: span.split(PATH_SEPARATOR).every((segment: string) => {
+            return isActionLabel(segment.trim());
+          }),
+        }).toEqual({ heading, span, drawn: true });
+      }
+    }
   });
 
   it.each(PAGES)(
@@ -825,6 +912,52 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
   });
 
+  describe("Quickstart", () => {
+    const translated: string = readPage(language, QUICKSTART);
+
+    it("lays every line beside the English one", () => {
+      expect(lineShape(translated)).toEqual(lineShape(englishPage(QUICKSTART)));
+    });
+
+    it("walks the three guided setups line for line, each Dashboard label as this language's Dashboard draws it", () => {
+      for (const heading of QUICKSTART_GUIDED_SECTIONS) {
+        const index: number = englishSectionIndex(QUICKSTART, heading);
+        const englishLines: Array<string> = sectionAt(
+          englishPage(QUICKSTART),
+          index,
+        ).split("\n");
+        const translatedLines: Array<string> = sectionAt(
+          translated,
+          index,
+        ).split("\n");
+
+        expect({ heading, lines: translatedLines.length }).toEqual({
+          heading,
+          lines: englishLines.length,
+        });
+        expect({
+          heading,
+          facts: quickstartLineFacts(
+            language,
+            translatedLines,
+            (span: string): string => {
+              return span;
+            },
+          ),
+        }).toEqual({
+          heading,
+          facts: quickstartLineFacts(
+            language,
+            englishLines,
+            (span: string): string => {
+              return drawnSpan(language, span);
+            },
+          ),
+        });
+      }
+    });
+  });
+
   describe("Home Page & Shortcuts", () => {
     const translated: string = readPage(language, HOME);
 
@@ -1069,6 +1202,46 @@ describe("the helpers, on these pages' shapes", () => {
       ["Project Settings", "Telemetry & APM", "Ingestion Keys"],
     ]);
     expect(boldLabels(markdown)).toEqual(["Enable AI"]);
+  });
+
+  it("read what a Quickstart line names: every bold span, code, screenshots and the pages it links", () => {
+    const line: string =
+      "![Alt](screen:paging-reach-you) Click **Continue**, type `get paged`, **Continue** again, and follow [Paging](/docs/guides/paging#install-the-app).";
+
+    expect(
+      quickstartLineFacts("de", [line, ""], (span: string): string => {
+        return drawnSpan("de", span);
+      }),
+    ).toEqual([
+      {
+        line: 0,
+        bold: ["Weiter", "Weiter"],
+        code: ["get paged"],
+        screens: ["screen:paging-reach-you"],
+        links: ["guides/paging"],
+      },
+      { line: 1, bold: [], code: [], screens: [], links: [] },
+    ]);
+  });
+
+  it("draw a menu path step by step, its arrows turned where the language reads from the right", () => {
+    const path: string =
+      "Project Settings → Notifications → Notification Channels";
+
+    expect(drawnSpan("de", path)).toBe(
+      "Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle",
+    );
+    expect(drawnSpan("fa", path)).toBe(
+      pathWithArrows(
+        [
+          drawnActionLabel("fa", "Project Settings"),
+          drawnActionLabel("fa", "Notifications"),
+          drawnActionLabel("fa", "Notification Channels"),
+        ],
+        "fa",
+      ),
+    );
+    expect(drawnSpan("fa", path)).toContain("←");
   });
 
   it("read the folded sections of one section only, each with its cards", () => {

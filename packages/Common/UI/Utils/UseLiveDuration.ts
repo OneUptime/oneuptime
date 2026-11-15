@@ -1,4 +1,4 @@
-import OneUptimeDate from "../../Types/Date";
+import OneUptimeDate, { ZERO_FRIENDLY_TIME_TEXT } from "../../Types/Date";
 import useClockTick from "./UseClockTick";
 
 /*
@@ -45,9 +45,10 @@ export interface LiveDuration {
 /*
  * The one duration the timelines' wording leaves blank. A live row is zero
  * seconds old for its whole first second, and a blank cell there reads as
- * "unknown" rather than "just started".
+ * "unknown" rather than "just started". In English; the reader's language
+ * writes its own ("0 秒", "0 Sek.").
  */
-export const ZERO_DURATION_TEXT: string = "0 secs";
+export const ZERO_DURATION_TEXT: string = ZERO_FRIENDLY_TIME_TEXT;
 
 export type ParseLiveDurationDateFunction = (
   date: LiveDurationDate,
@@ -72,16 +73,17 @@ export const parseLiveDurationDate: ParseLiveDurationDateFunction = (
 
 export type FormatDurationInSecondsFunction = (seconds: number) => string;
 
-// "2 mins 54 secs" - OneUptimeDate's wording, which the finished rows use.
+/*
+ * "2 mins 54 secs" - OneUptimeDate's wording, which the finished rows use,
+ * in the reader's language. Nothing (or a value that is no number) reads
+ * as zero seconds.
+ */
 export const formatDurationInSeconds: FormatDurationInSecondsFunction = (
   seconds: number,
 ): string => {
-  if (!isFinite(seconds) || seconds <= 0) {
-    return ZERO_DURATION_TEXT;
-  }
-
   return OneUptimeDate.secondsToFormattedFriendlyTimeString(
-    Math.floor(seconds),
+    isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0,
+    { writesZero: true },
   );
 };
 

@@ -21,7 +21,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 const scheduledMaintenanceLabelDocumentation: string = `
 ### How Scheduled Maintenance Label Rules Work
 
-Scheduled Maintenance Label Rules attach labels to a scheduled maintenance event automatically when it matches your criteria — including labels copied from the event's monitors, hosts, Kubernetes clusters, Docker hosts, and Podman hosts.
+Scheduled Maintenance Label Rules attach labels to a maintenance event automatically when it matches your criteria — including labels copied from the event's monitors, hosts, Kubernetes clusters, Docker hosts, and Podman hosts.
 
 ### Match Criteria
 
@@ -77,7 +77,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
         cardProps={{
           title: "Scheduled Maintenance Label Rules",
           description:
-            "Auto-attach labels to new scheduled maintenance events that match, including labels from their monitors and infrastructure.",
+            "Auto-attach labels to new maintenance events that match, including labels from their monitors and infrastructure.",
         }}
         helpContent={{
           title: "How Scheduled Maintenance Label Rules Work",

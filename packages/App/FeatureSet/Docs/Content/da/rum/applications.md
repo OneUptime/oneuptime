@@ -134,10 +134,10 @@ En længere opbevaring af telemetri bevarer ikke optagelser længere. En session
 
 ## Arkivering og sletning
 
-**Arkiver** skjuler en applikation fra **Alle applikationer**, mens den fortsætter med at indsamle telemetri. Arkivér en applikation, du ikke længere holder øje med, men hvis historik du vil beholde.
+**Arkiver** skjuler en applikation fra **Alle applikationer**, mens den fortsætter med at indsamle telemetri. Arkiver en applikation, du ikke længere holder øje med, men hvis historik du vil beholde.
 
-- Klik på **Arkiver** på applikationens side **Indstillinger**, eller vælg flere applikationer i listen, og arkivér dem samlet.
-- Arkiverede applikationer findes under **Overvågning af reelle brugere → Avanceret → Arkiveret**. **Avanceret** starter sammenklappet i sidemenuen: klik på den for at vise **Arkiveret**. Brug **Fjern fra arkiv** der på én applikation eller på flere ad gangen.
+- Klik på **Arkiver** på applikationens side **Indstillinger**, eller vælg flere applikationer i listen, og arkiver dem samlet.
+- Arkiverede applikationer findes under **Overvågning af reelle brugere → Avanceret → Arkiveret**. **Avanceret** starter sammenklappet i sidemenuen: klik på den for at vise **Arkiveret**. Brug **Fjern fra arkivet** der på én applikation eller på flere ad gangen.
 
 **Slet applikation**, i sektionen **Avanceret** i applikationens sidemenu, sletter applikationen permanent. Hvis appen stadig sender telemetri, genopretter dens næste batch applikationen uden nogen af dens indstillinger, så stop instrumenteringen først.
 

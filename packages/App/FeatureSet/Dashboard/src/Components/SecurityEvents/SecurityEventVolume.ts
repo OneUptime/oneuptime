@@ -9,6 +9,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
+import Timezone from "Common/Types/Timezone";
 import {
   HistogramBucket,
   HistogramSeriesOption,
@@ -112,6 +113,12 @@ export function buildSecurityEventVolumeAggregateBy(data: {
     aggregationTimestampColumnName: "time",
     startTimestamp: data.startDate,
     endTimestamp: data.endDate,
+    /*
+     * UTC's days: buildSecurityEventVolume lays a Day window out on the
+     * epoch grid (GRID_ALIGNED_INTERVALS) and snaps each row onto it, so
+     * its buckets must start where that grid does.
+     */
+    timezone: Timezone.UTC,
     groupBy: { severityName: true },
     // Eight severities over at most a few hundred buckets fits many times over.
     limit: LIMIT_PER_PROJECT,

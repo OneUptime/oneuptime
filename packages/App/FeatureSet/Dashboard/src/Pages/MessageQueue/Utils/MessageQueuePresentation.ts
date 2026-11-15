@@ -20,7 +20,10 @@ import {
   ManualMessageQueueCheck,
   checkManualMessageQueue,
 } from "Common/Types/MessageQueue/MessageQueueManualIdentity";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How the Queues pages describe a MessageQueue row: the options of the
@@ -74,15 +77,38 @@ export function getMessagingSystemOptions(): Array<MessageQueueOption> {
  * never a messaging.system: it is not well formed (it starts with "_"), so
  * the server would refuse it if it were ever sent, and onBeforeCreate
  * replaces it with the typed value first.
+ *
+ * The label and the description are translation keys: the Dropdown and the
+ * form field translate what they are given, but a plain constant is not a
+ * key the extractor sees, so the option read in English in every language
+ * (#7288). The System field's help quotes the label, in each language as
+ * that language words it.
  */
 export const MESSAGE_QUEUE_OTHER_SYSTEM_VALUE: string = "__other__";
-export const MESSAGE_QUEUE_OTHER_SYSTEM_LABEL: string =
-  "Other messaging system...";
+export const MESSAGE_QUEUE_OTHER_SYSTEM_LABEL: string = translationKey(
+  "Other messaging system...",
+);
 // The form-only field the typed messaging.system value is held in.
 export const MESSAGE_QUEUE_OTHER_SYSTEM_FIELD: string = "otherMessagingSystem";
 
-export const MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION: string =
-  "The messaging.system value your spans report for this broker, exactly as written.";
+export const MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION: string = translationKey(
+  "The messaging.system value your spans report for this broker, exactly as written.",
+);
+
+/*
+ * The hints under the create form's fields when a value will be stored
+ * otherwise than typed. They are sentences in the reader's language, as
+ * the fields' help above them is: they read in English in every language.
+ */
+export const MESSAGE_QUEUE_SAVED_AS_HINT: string = translationKey(
+  'Saved as "{{value}}".',
+);
+export const MESSAGE_QUEUE_SAVED_AS_SYSTEM_HINT: string = translationKey(
+  'Saved as "{{value}}", {{name}}.',
+);
+export const MESSAGE_QUEUE_SAVED_AS_DESTINATION_HINT: string = translationKey(
+  'Saved as "{{value}}", the name OneUptime reads from this value in your telemetry.',
+);
 
 /**
  * The create form's System dropdown: every catalog system, then the "Other
@@ -211,8 +237,11 @@ export function getMessageQueueOtherSystemHint(
   }
   const displayName: string = getMessagingSystemDisplayName(system);
   return displayName && displayName !== system
-    ? `Saved as "${system}", ${displayName}.`
-    : `Saved as "${system}".`;
+    ? translateTemplate(MESSAGE_QUEUE_SAVED_AS_SYSTEM_HINT, {
+        value: system,
+        name: displayName,
+      })
+    : translateTemplate(MESSAGE_QUEUE_SAVED_AS_HINT, { value: system });
 }
 
 /**
@@ -443,8 +472,9 @@ export const MESSAGE_QUEUE_NAME_HELP: string =
 export const MESSAGE_QUEUE_DELETE_WARNING: string =
   "A queue discovered from application traces or broker metrics comes back the next time its spans or metrics name it, with a new id and without the name, description, labels and owners people gave it; its traces and metrics are still there. To hide a queue you no longer care about, archive it instead (Settings → Archive).";
 
-export const MESSAGE_QUEUE_DESTINATION_DESCRIPTION: string =
-  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.";
+export const MESSAGE_QUEUE_DESTINATION_DESCRIPTION: string = translationKey(
+  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.",
+);
 
 /*
  * An empty namespace is a real queue: the one spans from the emulator or
@@ -452,8 +482,9 @@ export const MESSAGE_QUEUE_DESTINATION_DESCRIPTION: string =
  * Monitor names the namespace of every metric, so its metrics never reach
  * that queue — which is why the field says when to leave it empty.
  */
-export const MESSAGE_QUEUE_NAMESPACE_DESCRIPTION: string =
-  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.";
+export const MESSAGE_QUEUE_NAMESPACE_DESCRIPTION: string = translationKey(
+  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.",
+);
 
 // ---- manual create ----------------------------------------------------------
 
@@ -578,7 +609,9 @@ export function getMessageQueueDestinationHint(
   if (preview.destination === trimmedText(values.destinationName)) {
     return null;
   }
-  return `Saved as "${preview.destination}", the name OneUptime reads from this value in your telemetry.`;
+  return translateTemplate(MESSAGE_QUEUE_SAVED_AS_DESTINATION_HINT, {
+    value: preview.destination,
+  });
 }
 
 /**
@@ -599,5 +632,5 @@ export function getMessageQueueNamespaceHint(
   if (!canonical || canonical === scope) {
     return null;
   }
-  return `Saved as "${canonical}".`;
+  return translateTemplate(MESSAGE_QUEUE_SAVED_AS_HINT, { value: canonical });
 }

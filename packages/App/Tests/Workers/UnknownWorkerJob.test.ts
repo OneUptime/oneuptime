@@ -30,12 +30,20 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
 });
 
 jest.mock("Common/Server/Infrastructure/QueueWorker", () => {
+  // The job is handed its deadline, as the real time limit hands it.
+  const { default: JobDeadline } = jest.requireActual(
+    "Common/Server/Utils/JobDeadline",
+  );
+
   return {
     __esModule: true,
     default: {
       runJobWithTimeout: jest.fn(
-        async (_timeoutInMs: number, callback: () => Promise<void>) => {
-          await callback();
+        async (
+          _timeoutInMs: number,
+          callback: (deadline: unknown) => Promise<void>,
+        ) => {
+          await callback(new JobDeadline());
         },
       ),
     },
@@ -63,6 +71,7 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 });
 
 import runWorkerJob from "../../FeatureSet/Workers/Utils/RunWorkerJob";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import UnknownWorkerJob from "../../FeatureSet/Workers/Utils/UnknownWorkerJob";
 import JobDictionary from "../../FeatureSet/Workers/Utils/JobDictionary";
 import Queue, { QueueJob } from "Common/Server/Infrastructure/Queue";
@@ -378,7 +387,8 @@ describe("a job this worker has", () => {
       90_000,
       expect.any(Function),
     );
-    expect(handler).toHaveBeenCalledWith(run);
+    // With the deadline its time limit gives it (JobDeadline).
+    expect(handler).toHaveBeenCalledWith(run, expect.any(JobDeadline));
     expect(retireUnclaimedSchedule).not.toHaveBeenCalled();
     expect(run.moveToDelayed).not.toHaveBeenCalled();
   });

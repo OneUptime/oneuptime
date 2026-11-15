@@ -370,17 +370,18 @@ describe("User Flows tables carry their own text", () => {
 
 describe("the User Flows detail panel carries its own text", () => {
   test("every figure in the node and transition panels is paired with its description", () => {
+    // The (i) after the label's last word (WordsWithInfoTooltip, #7348).
     expect(DETAIL_PANEL).toContain(
-      'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
+      'import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";',
     );
     expect(pairs(squash(DETAIL_PANEL), DETAIL_STAT_PATTERN)).toEqual([
       ['"Sessions"', "detailTransitionSessions"],
       [
-        '{translator.translateTemplate("Share of {{page}}", { page: sourceLabel, })}',
+        '{translator.translateTemplate( "Share of {{page}}", { page: sourceLabel }, { setsValuesApart: true }, )}',
         "detailShareOfSource",
       ],
       [
-        '{translator.translateTemplate("Share of {{page}}", { page: targetLabel, })}',
+        '{translator.translateTemplate( "Share of {{page}}", { page: targetLabel }, { setsValuesApart: true }, )}',
         "detailShareOfTarget",
       ],
       ['"Returning to a seen page"', "detailReturning"],
@@ -425,9 +426,14 @@ describe("the User Flows detail panel carries its own text", () => {
     expect(stat).toContain(
       "const label: string = translator.translateText(props.label) || props.label;",
     );
+    /*
+     * Inside the label's own line of text, after its last word (issue
+     * #7348): never a flex sibling pushed to the card's far edge.
+     */
     expect(stat).toContain(
-      "<InfoTooltip label={label} text={props.tooltip} />",
+      '<p className="text-xs font-medium text-gray-500"> <WordsWithInfoTooltip text={label} label={label} description={props.tooltip} /> </p>',
     );
+    expect(stat).not.toContain("<InfoTooltip");
     expect(stat).not.toContain("<button");
     expect(list).toContain("tooltip: string;");
     expect(list).not.toContain("tooltip?:");
@@ -438,8 +444,9 @@ describe("the User Flows detail panel carries its own text", () => {
 
     const info: number = indexOfOrFail(
       list,
-      "<InfoTooltip label={title} text={props.tooltip}",
+      "<WordsWithInfoTooltip text={title} label={title} description={props.tooltip} infoDataTestId={`${props.testId}-info`} />",
     );
+    expect(list).not.toContain("<InfoTooltip");
     const rows: number = indexOfOrFail(list, "props.items.map(");
 
     // The (i) is drawn before, and outside, the list of row buttons.
@@ -825,10 +832,10 @@ describe("User Flows detail panel texts match the map it explains", () => {
     const panel: string = squash(DETAIL_PANEL);
 
     expect(panel).toContain(
-      'label={translator.translateTemplate("Share of {{page}}", { page: sourceLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource} value={formatUserFlowShare( source && source.sessions > 0 ? link.sessions / source.sessions : 0, translator, )}',
+      'label={translator.translateTemplate( "Share of {{page}}", { page: sourceLabel }, { setsValuesApart: true }, )} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource} value={formatUserFlowShare( source && source.sessions > 0 ? link.sessions / source.sessions : 0, translator, )}',
     );
     expect(panel).toContain(
-      'label={translator.translateTemplate("Share of {{page}}", { page: targetLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget} value={formatUserFlowShare( target && target.sessions > 0 ? link.sessions / target.sessions : 0, translator, )}',
+      'label={translator.translateTemplate( "Share of {{page}}", { page: targetLabel }, { setsValuesApart: true }, )} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget} value={formatUserFlowShare( target && target.sessions > 0 ? link.sessions / target.sessions : 0, translator, )}',
     );
     // Source and target are in lived order, whichever way the map runs.
     expect(USER_FLOW_ENGINE).toContain(

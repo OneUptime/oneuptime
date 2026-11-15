@@ -1,8 +1,11 @@
+import { AutoRefreshInterval } from "Common/Types/Dashboard/DashboardViewConfig";
+import { formatAutoRefreshInterval } from "Common/Types/Dashboard/DashboardAutoRefresh";
 import {
-  AutoRefreshInterval,
-  getAutoRefreshIntervalLabel,
-} from "Common/Types/Dashboard/DashboardViewConfig";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+  ComposedValue,
+  Translator,
+  composedValue,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words and test ids of a dashboard's defaults in its toolbar (issue
@@ -69,14 +72,39 @@ export const AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID: string =
 
 /*
  * An interval as the defaults' picker and the "Default (...)" choice name
- * it: Off, or its short form (5s, 1m) - as the auto-refresh button shows it.
+ * it: Off - a key, for the caller to translate - or its short form in
+ * `language` (5s, 1m in English; "5 Sek." in German, "۵ ثانیه" in Persian),
+ * as the auto-refresh button shows it. Without a language, English.
  */
 export const getAutoRefreshChoiceLabel: (
   interval: AutoRefreshInterval,
-) => string = (interval: AutoRefreshInterval): string => {
+  language?: string | undefined,
+) => string = (
+  interval: AutoRefreshInterval,
+  language?: string | undefined,
+): string => {
   if (interval === AutoRefreshInterval.OFF) {
     return translationKey("Off");
   }
 
-  return getAutoRefreshIntervalLabel(interval);
+  return formatAutoRefreshInterval(interval, language || "en") || "";
+};
+
+/*
+ * The value "Default ({{value}})" names for an auto-refresh: Off, a word
+ * the sentence translates with itself, or an interval as its short duration
+ * in that sentence's language ("Default (1m)", "پیش‌فرض (۱ دقیقه)").
+ */
+export const getAutoRefreshDefaultChoiceValue: (
+  interval: AutoRefreshInterval,
+) => string | ComposedValue = (
+  interval: AutoRefreshInterval,
+): string | ComposedValue => {
+  if (interval === AutoRefreshInterval.OFF) {
+    return getAutoRefreshChoiceLabel(interval);
+  }
+
+  return composedValue((sentence: Translator): string => {
+    return getAutoRefreshChoiceLabel(interval, sentence.language);
+  });
 };

@@ -980,6 +980,24 @@ import { AddNetworkDeviceLastPollReceivedAt1809123800000 } from "./1809123800000
 import { AddProxmoxClusterAgentLastSeenAt1809123900000 } from "./1809123900000-AddProxmoxClusterAgentLastSeenAt";
 import { AddGroupByConnectedServicesToGroupingRules1809124000000 } from "./1809124000000-AddGroupByConnectedServicesToGroupingRules";
 import { AddAIRunRecording1809125000000 } from "./1809125000000-AddAIRunRecording";
+import { GlobalConfigCredentialsEncryptedColumns1809126000000 } from "./1809126000000-GlobalConfigCredentialsEncryptedColumns";
+import { AddNotifySubscribersOfNewIncidentsByDefault1809150300000 } from "./1809150300000-AddNotifySubscribersOfNewIncidentsByDefault";
+import { AddProbeCollectionClaimIndexes1809150400000 } from "./1809150400000-AddProbeCollectionClaimIndexes";
+import { DropRedundantMonitorProbeIndexes1809151000000 } from "./1809151000000-DropRedundantMonitorProbeIndexes";
+import { DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000 } from "./1809151100000-DropNetworkDeviceLastSeenAtAndProjectIdIndexes";
+import { SetMonitorProbeAndNetworkDeviceFillfactor1809151200000 } from "./1809151200000-SetMonitorProbeAndNetworkDeviceFillfactor";
+import { AddMonitorNetworkDevice1809163000000 } from "./1809163000000-AddMonitorNetworkDevice";
+import { BackfillMonitorNetworkDevice1809163100000 } from "./1809163100000-BackfillMonitorNetworkDevice";
+import { SetNetworkInterfaceFillfactor1809164000000 } from "./1809164000000-SetNetworkInterfaceFillfactor";
+import { AddInventoryItemMirrorKeysetIndex1809164100000 } from "./1809164100000-AddInventoryItemMirrorKeysetIndex";
+import { MatchMonitorIndexesToTheirReads1809165000000 } from "./1809165000000-MatchMonitorIndexesToTheirReads";
+import { AddOnCallExecutionLogListIndexes1809165100000 } from "./1809165100000-AddOnCallExecutionLogListIndexes";
+import { AddTeamMemberUserProjectIndex1809168000000 } from "./1809168000000-AddTeamMemberUserProjectIndex";
+import { AddAlertAndIncidentListIndexes1809169000000 } from "./1809169000000-AddAlertAndIncidentListIndexes";
+import { SetMonitorFillfactor1809172000000 } from "./1809172000000-SetMonitorFillfactor";
+import { AddNetworkEndpointCoarseLastSeenAt1809173000000 } from "./1809173000000-AddNetworkEndpointCoarseLastSeenAt";
+import { SwapNetworkEndpointLastSeenIndexes1809173100000 } from "./1809173100000-SwapNetworkEndpointLastSeenIndexes";
+import { SetNetworkEndpointFillfactor1809173200000 } from "./1809173200000-SetNetworkEndpointFillfactor";
 
 export default [
   InitialMigration,
@@ -1964,4 +1982,22 @@ export default [
   AddProxmoxClusterAgentLastSeenAt1809123900000,
   AddGroupByConnectedServicesToGroupingRules1809124000000,
   AddAIRunRecording1809125000000,
+  GlobalConfigCredentialsEncryptedColumns1809126000000,
+  AddNotifySubscribersOfNewIncidentsByDefault1809150300000,
+  AddProbeCollectionClaimIndexes1809150400000,
+  DropRedundantMonitorProbeIndexes1809151000000,
+  DropNetworkDeviceLastSeenAtAndProjectIdIndexes1809151100000,
+  SetMonitorProbeAndNetworkDeviceFillfactor1809151200000,
+  AddMonitorNetworkDevice1809163000000,
+  BackfillMonitorNetworkDevice1809163100000,
+  SetNetworkInterfaceFillfactor1809164000000,
+  AddInventoryItemMirrorKeysetIndex1809164100000,
+  MatchMonitorIndexesToTheirReads1809165000000,
+  AddOnCallExecutionLogListIndexes1809165100000,
+  AddTeamMemberUserProjectIndex1809168000000,
+  AddAlertAndIncidentListIndexes1809169000000,
+  SetMonitorFillfactor1809172000000,
+  AddNetworkEndpointCoarseLastSeenAt1809173000000,
+  SwapNetworkEndpointLastSeenIndexes1809173100000,
+  SetNetworkEndpointFillfactor1809173200000,
 ];

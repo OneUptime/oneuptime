@@ -37,7 +37,7 @@ Les étapes s'exécutent **dans l'ordre**. Pour changer l'ordre, faites glisser 
 
 ### Enregistrer les étapes
 
-Cliquez sur **Enregistrer les étapes**. Tant que vous ne l'avez pas fait, l'éditeur affiche **Modifications non enregistrées**. Une fois l'enregistrement fait, vous voyez **Enregistré**, et le runbook est prêt à être [exécuté](/docs/runbooks/running).
+Cliquez sur **Enregistrer les étapes**. Tant que vous ne l'avez pas fait, l'éditeur affiche **Modifications non enregistrées**. Une fois l'enregistrement fait, vous voyez **Enregistré**, et le runbook est prêt à être [exécuté](/docs/runbooks/running). Quitter les étapes avant de les enregistrer demande d'abord confirmation. Un lien du menu latéral, du fil d'Ariane ou de la barre supérieure, ou les boutons Précédent et Suivant de votre navigateur, ouvrent **Quitter sans enregistrer ?** avec deux choix : **Continuer la modification** reste sur les étapes avec vos modifications, et **Annuler les modifications** poursuit vers la page que vous ouvriez. Fermer ou recharger l'onglet demande confirmation dans la boîte de dialogue de votre navigateur.
 :::
 
 ## Anatomie d'une étape

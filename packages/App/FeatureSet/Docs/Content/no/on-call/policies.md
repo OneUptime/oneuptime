@@ -51,7 +51,7 @@ En retningslinje som flere regler legger til, kjører én gang. En alvorlighetsg
 
 **Grunnleggende** er åpen; de andre seksjonene starter sammenslått til du klikker på dem.
 
-- **Oversikt** viser **Detaljer for vaktretningslinje**, deretter **Policyen i korte trekk**: hvor mange nivåer og mottakere retningslinjen har, hvor lang tid det går til det siste nivået, og hvor ofte den gjentas. **Mottakernes beredskap** sier om alle den kan tilkalle, kan nås nå, og **Vaktpolicyens feed** viser hva som er endret: personer, team og vaktplaner som er lagt til eller fjernet, overstyringer og overleveringer.
+- **Oversikt** viser **Detaljer for vaktretningslinje**, deretter **Policyen i korte trekk**: hvor mange nivåer og mottakere retningslinjen har, hvor lang tid det går til det siste nivået, og hvor ofte den gjentas. **Mottakernes beredskap** sier om alle den kan tilkalle, kan nås nå, og **Vaktpolicyens feed** viser hva som er endret: personer, team og vaktplaner som er lagt til eller fjernet, overstyringer og overleveringer. Reglene for Slack, Microsoft Teams og Mattermost publiserer dem i kanalene dine, et vaktskifte i én linje: se [Vaktmeldinger](/docs/workspace-connections/slack#vaktmeldinger).
 - **Eiere** er personene og teamene som er ansvarlige for retningslinjen. Når en tilkalling fra den ikke finner noen regel for noen, eller ikke kan leveres, får de en e-post; en retningslinje uten eiere sender i stedet e-post til prosjektets eiere.
 - **Varsellogger** viser hver melding retningslinjen har sendt, med en fane per kanal.
 - **Brukeroverstyringer** dekker for folk bare i denne retningslinjen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
@@ -130,7 +130,7 @@ Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekrefte
 Arkivering tar en retningslinje ut av drift og beholder alt: åpne **Innstillinger** for retningslinjen og klikk på **Arkiver** på arkivkortet, eller velg retningslinjer i listen og velg **Arkiver**.
 
 - En arkivert retningslinje tilkaller ingen. Hendelser og varsler som bruker den, hopper over den, og en kjøring som fortsatt eskalerer, stopper ved neste steg.
-- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakt → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkiv** setter den i drift igjen.
+- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakt → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkivet** setter den i drift igjen.
 
 **Slett retningslinjer**, under **Avansert**, sletter retningslinjen sammen med eskaleringsreglene og brukeroverstyringene. Sletting fra listen spør først og foreslår å arkivere i stedet.
 

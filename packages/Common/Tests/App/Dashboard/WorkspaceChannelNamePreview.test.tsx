@@ -27,6 +27,7 @@ const JAPANESE: Record<string, string> = {
 const GERMAN: Record<string, string> = {
   "Preview:": "Vorschau:",
   "For incident {{record}}.": "Für Vorfall {{record}}.",
+  "For maintenance event {{record}}.": "Für Wartungsereignis {{record}}.",
   "If Slack already has a channel with this name, OneUptime adds -2 to the end.":
     "Wenn Slack bereits einen Kanal mit diesem Namen hat, hängt OneUptime -2 an.",
 };
@@ -81,6 +82,7 @@ import NotificationRuleEventType from "../../../Types/Workspace/NotificationRule
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WorkspaceChannelNumberPrefixes } from "../../../Utils/Workspace/WorkspaceChannelName";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
 const PREFIXES: WorkspaceChannelNumberPrefixes = {
   [NotificationRuleEventType.Incident]: "INC-",
@@ -321,14 +323,30 @@ describe("the preview under the Channel Name Prefix field", () => {
     });
 
     expect(shownName()).toBe("#maint-42");
-    expect(notes()).toBe("For scheduled maintenance event SM-42.");
+    expect(notes()).toBe("For maintenance event SM-42.");
     expect(
       CHANNEL_NAME_PREFIX_DESCRIPTIONS[
         NotificationRuleEventType.ScheduledMaintenance
       ],
     ).toBe(
-      "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
+      "Each new channel is named after its maintenance event. Anything you write here replaces the event's number prefix.",
     );
+  });
+
+  test("a maintenance event's sentence reads in German with its word for the record (#7824)", () => {
+    const sentence: string = "For maintenance event {{record}}.";
+
+    // The stub's German is the Dashboard's own, from its locale file.
+    expect(readDashboardLocale("de")[sentence]).toBe(GERMAN[sentence]);
+
+    language = "de";
+    renderPreview({
+      prefix: "",
+      eventType: NotificationRuleEventType.ScheduledMaintenance,
+    });
+
+    expect(askedFor).toContain(sentence);
+    expect(notes()).toBe("Für Wartungsereignis SM-42.");
   });
 });
 
@@ -440,7 +458,7 @@ describe("the words", () => {
        */
       expect(CHANNEL_NAME_PREFIX_DESCRIPTIONS[eventType]).toMatch(
         eventType === NotificationRuleEventType.ScheduledMaintenance
-          ? /^Each new channel is named after its scheduled maintenance event\. Anything you write here replaces the event's number prefix\.$/
+          ? /^Each new channel is named after its maintenance event\. Anything you write here replaces the event's number prefix\.$/
           : /^Each new channel is named after its .+\. Anything you write here goes in front of that name\.$/,
       );
       expect(CHANNEL_NAME_EXAMPLE_RECORD_SENTENCES[eventType]).toMatch(

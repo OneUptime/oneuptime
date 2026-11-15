@@ -52,6 +52,7 @@ import {
 import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
 } from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
+import TelemetryIngestionKeyLastUsed from "../Utils/Telemetry/TelemetryIngestionKeyLastUsed";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -743,21 +744,10 @@ export default class TelemetryIngest {
       });
 
       /*
-       * Fire and forget: lastUsedAt is bookkeeping for the dashboard, and the
-       * service already throttles the write and swallows its own errors.
-       * Awaiting it would put a database write on the hot path of every
-       * ingested payload for a column nobody reads in real time. The .catch
-       * is belt and braces so a rejection can never surface as an unhandled
-       * rejection.
+       * The key is now in use. Stamped through the helper every ingest path
+       * shares - the OTLP gRPC server calls it too - fire and forget.
        */
-      TelemetryIngestionKeyService.markUsed(policy.ingestionKeyId).catch(
-        (err: unknown) => {
-          logger.warn(
-            `TelemetryIngest: failed to record last used for ingestion key ${policy.ingestionKeyId.toString()}`,
-          );
-          logger.warn(err);
-        },
-      );
+      TelemetryIngestionKeyLastUsed.stamp(policy);
 
       next();
     } catch (err) {

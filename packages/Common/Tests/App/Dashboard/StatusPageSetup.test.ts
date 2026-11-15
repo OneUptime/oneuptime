@@ -30,6 +30,7 @@ import { getFirstOpenStepKey } from "../../../../App/FeatureSet/Dashboard/src/Co
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { Translator, createTranslator } from "../../../Types/Translator";
+import { getDefaultStatusPageName as getSharedDefaultStatusPageName } from "../../../Utils/GuidedSetup/StatusPageRecords";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -93,6 +94,58 @@ describe("the name", () => {
     expect(
       getDefaultStatusPageName({ translator: english, projectName: "   " }),
     ).toBe("");
+  });
+
+  /*
+   * #7247: Ask AI names a page the person did not name with the same
+   * builder (Common/Utils/GuidedSetup/StatusPageRecords), with the server's
+   * translator for the language the person reads the Dashboard in.
+   */
+  test.each(["en", ...DASHBOARD_LANGUAGES])(
+    "is the one name Ask AI starts a page with too, read in %s",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+
+      expect(
+        getDefaultStatusPageName({
+          translator: translator,
+          projectName: "Acme",
+        }),
+      ).toBe(
+        getSharedDefaultStatusPageName({
+          translator: translator,
+          projectName: "Acme",
+        }),
+      );
+      expect(
+        getDefaultStatusPageName({
+          translator: translator,
+          projectName: "Acme",
+        }),
+      ).toBe(
+        translator.translateTemplate("{{project}} Status", { project: "Acme" }),
+      );
+    },
+  );
+
+  test("with no translator, the shared builder names it in English, and empty with no project's name", () => {
+    expect(getSharedDefaultStatusPageName({ projectName: " Acme Corp " })).toBe(
+      "Acme Corp Status",
+    );
+    expect(
+      getSharedDefaultStatusPageName({
+        translator: undefined,
+        projectName: "Acme",
+      }),
+    ).toBe("Acme Status");
+    expect(getSharedDefaultStatusPageName({ projectName: undefined })).toBe("");
+    expect(getSharedDefaultStatusPageName({ projectName: "  " })).toBe("");
+    expect(
+      getSharedDefaultStatusPageName({
+        translator: dashboardTranslator("de"),
+        projectName: "Acme",
+      }),
+    ).toBe("Status von Acme");
   });
 
   test("needs two characters, as Create Status Page does, spaces not counted", () => {

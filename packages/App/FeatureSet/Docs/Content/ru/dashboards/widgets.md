@@ -189,7 +189,7 @@ window.ONEUPTIME.endDate; // ISO 8601 string, end of it
 | **Хосты** | **Хосты** с их статусом подключения, ОС, CPU и памятью | Любой коллектор OpenTelemetry, который отправляет `host.name` |
 | **Kubernetes** | **Поды**, **Узлы**, **Пространства имен**, **Развертывания**, **StatefulSets**, **DaemonSets**, **Задачи**, **CronJobs** | [Агент Kubernetes](/docs/monitor/kubernetes-agent) |
 | **Docker** | **Хосты**, **Контейнеры**, **Образы**, **Сети**, **Тома** | Агент Docker |
-| **Docker Swarm** | **Узлы**, **Службы** | Агент Docker Swarm |
+| **Docker Swarm** | **Узлы**, **Сервисы** | Агент Docker Swarm |
 | **Podman** | **Хосты**, **Контейнеры**, **Образы**, **Сети**, **Тома** | Агент Podman |
 | **Proxmox** | **Узлы**, **Гостевые системы** | Агент Proxmox |
 | **VMware** | **Хосты**, **Виртуальные машины** | Агент VMware или подключённый вами vCenter |

@@ -9,6 +9,7 @@ import logger from "Common/Server/Utils/Logger";
 import Domain from "Common/Types/Domain";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
 import GreenlockUtil from "Common/Server/Utils/Greenlock/Greenlock";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import { CertificateOrderReason } from "Common/Server/Utils/Greenlock/CertificateOrderBudget";
 import { CertificateOrderOutcome } from "Common/Server/Utils/Greenlock/CertificateOrderOutcome";
 import OneUptimeDate from "Common/Types/Date";
@@ -37,8 +38,13 @@ RunCron(
       return;
     }
 
-    const normalizedHost: string = Host.trim().toLowerCase();
-    const hostnameOnly: string = normalizedHost.split(":")[0] || "";
+    /*
+     * HOST without its port, as CertificateOwners.getPrimaryHostname and
+     * run.sh's PRIMARY_DOMAIN name it: an IPv6 address keeps its brackets.
+     */
+    const hostnameOnly: string = HostAddressUtil.stripPort(
+      Host.trim().toLowerCase(),
+    );
 
     if (!hostnameOnly) {
       logger.warn(

@@ -410,9 +410,9 @@ describe("the banner on a turned-off monitor's pages", () => {
       "We are not monitoring this monitor since it is disabled because of an active incident. To enable active monitoring, please resolve the incident.",
     ],
     [
-      "a scheduled maintenance event",
+      "a maintenance event",
       { disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true },
-      "We are not monitoring this monitor since it is disabled because of an ongoing scheduled maintenance event. To enable active monitoring, please resolve the scheduled maintenance event.",
+      "We are not monitoring this monitor since it is disabled because of an ongoing maintenance event. To enable active monitoring, please end the maintenance event.",
     ],
   ])(
     "a monitor paused by %s keeps its wording, and has no button",

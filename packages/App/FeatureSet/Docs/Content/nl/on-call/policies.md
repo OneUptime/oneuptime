@@ -51,7 +51,7 @@ Open een beleid vanuit de lijst. Het zijmenu ervan bevat alles over het beleid:
 
 **Basis** staat open; de andere secties beginnen ingeklapt tot je erop klikt.
 
-- **Overzicht** toont de **Details bereikbaarheidsbeleid**, dan **Beleid in één oogopslag**: hoeveel niveaus en ontvangers het beleid heeft, hoe lang het duurt tot het laatste niveau en hoe vaak het zich herhaalt. **Gereedheid van ontvangers** zegt of iedereen die het kan oproepen nu bereikbaar is, en **Feed van het bereikbaarheidsbeleid** toont wat er is veranderd: toegevoegde of verwijderde personen, teams en schema's, overschrijvingen en overdrachten.
+- **Overzicht** toont de **Details bereikbaarheidsbeleid**, dan **Beleid in één oogopslag**: hoeveel niveaus en ontvangers het beleid heeft, hoe lang het duurt tot het laatste niveau en hoe vaak het zich herhaalt. **Gereedheid van ontvangers** zegt of iedereen die het kan oproepen nu bereikbaar is, en **Feed van het bereikbaarheidsbeleid** toont wat er is veranderd: toegevoegde of verwijderde personen, teams en schema's, overschrijvingen en overdrachten. Zijn regels voor Slack, Microsoft Teams en Mattermost plaatsen ze in je kanalen, een overdracht in één regel: zie [Dienstberichten](/docs/workspace-connections/slack#dienstberichten).
 - **Eigenaren** zijn de personen en teams die verantwoordelijk zijn voor het beleid. Vindt een oproep van het beleid voor iemand geen regel, of kan die niet worden afgeleverd, dan krijgen zij een e-mail; een beleid zonder eigenaren mailt in plaats daarvan de eigenaren van het project.
 - **Meldingslogboeken** toont elk bericht dat het beleid stuurde, met een tabblad per kanaal.
 - **Gebruikersoverschrijvingen** vervangt personen alleen in dit beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
@@ -130,7 +130,7 @@ Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie ha
 Archiveren neemt een beleid uit dienst en bewaart alles: open de **Instellingen** van het beleid en klik op **Archiveren** op de archiefkaart ervan, of selecteer beleid in de lijst en kies **Archiveren**.
 
 - Een gearchiveerd beleid roept niemand op. Incidenten en waarschuwingen die het gebruiken slaan het over, en een uitvoering die nog escaleert, stopt bij haar volgende stap.
-- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit archief halen** het weer in dienst neemt.
+- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit het archief halen** het weer in dienst neemt.
 
 **Beleid verwijderen**, onder **Geavanceerd**, verwijdert het beleid samen met de escalatieregels en gebruikersoverschrijvingen ervan. Verwijderen vanuit de lijst vraagt eerst om bevestiging en stelt voor om in plaats daarvan te archiveren.
 

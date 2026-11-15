@@ -1,9 +1,11 @@
 import {
+  DOCS_SEARCH_QUESTION_WORDS,
   DOCS_SEARCH_SYNONYMS,
   DocsSearchSynonym,
   DocsVocabulary,
   DocsVocabularyMatch,
   foldDocsSearchWord,
+  getDocsSearchQuestionWords,
   getDocsSearchSynonyms,
   getTypoAllowance,
   isWithinEditDistance,
@@ -216,5 +218,48 @@ describe("the synonyms", () => {
     expect(getDocsSearchSynonyms("xx").get("pager")).toEqual(
       getDocsSearchSynonyms("en").get("pager"),
     );
+  });
+});
+
+/*
+ * The words a question is phrased with, which Ask AI's search and the
+ * docs' search box both leave out of what is asked (#7799, #7874).
+ */
+describe("the question words", () => {
+  it("are a language's own, folded as a typed word is compared", () => {
+    const german: ReadonlySet<string> = getDocsSearchQuestionWords("de");
+
+    for (const word of ["wie", "ich", "meine", "ein"]) {
+      expect({ word, has: german.has(word) }).toEqual({ word, has: true });
+    }
+    // Listed as "für" and "können": typed with or without the accent.
+    expect(german.has("fur")).toBe(true);
+    expect(german.has(foldDocsSearchWord("Können"))).toBe(true);
+  });
+
+  it("are none in a language without a list, or one the docs do not have", () => {
+    // English's are left out of every page and every question, by the reader's tokenizer.
+    expect(getDocsSearchQuestionWords("en").size).toBe(0);
+    expect(getDocsSearchQuestionWords("xx").size).toBe(0);
+    expect(getDocsSearchQuestionWords("constructor").size).toBe(0);
+  });
+
+  it("are listed by docs language, and none is a word a synonym reads", () => {
+    for (const [language, words] of Object.entries(
+      DOCS_SEARCH_QUESTION_WORDS,
+    )) {
+      const synonyms: Map<
+        string,
+        Array<DocsSearchSynonym>
+      > = getDocsSearchSynonyms(language);
+
+      expect(SUPPORTED_DOCS_LANGUAGE_CODES).toContain(language);
+      // A question word is left out before its synonyms are read: they never would be.
+      expect(
+        words.filter((word: string): boolean => {
+          return synonyms.has(foldDocsSearchWord(word));
+        }),
+      ).toEqual([]);
+    }
   });
 });

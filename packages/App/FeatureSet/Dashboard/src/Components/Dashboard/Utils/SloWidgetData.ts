@@ -10,6 +10,7 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -181,10 +182,11 @@ export default class SloWidgetData {
       });
     }
 
+    // In the viewer's zone, which the day buckets follow (issue #7277).
     const body: JSONObject = {
       componentId: data.componentId.toString(),
       aggregateBy: JSONFunctions.serialize(
-        data.aggregateBy as any,
+        AggregationIntervalUtil.withReaderTimezone(data.aggregateBy) as any,
       ) as JSONObject,
     };
 

@@ -265,10 +265,12 @@ function pageHeading(page: Page): Locator {
   return page.getByRole("heading", { level: 1 }).first();
 }
 
-// The trail: its label reads Breadcrumb in most languages, and in Persian in Persian.
+// The trail: its label is the reader's word for it (Navigationspfad in German).
 function trail(page: Page): Locator {
   return page.getByRole("navigation", {
-    name: new RegExp(`^(?:Breadcrumb|${PERSIAN["Breadcrumb"]})$`),
+    name: new RegExp(
+      `^(?:Breadcrumb|${GERMAN["Breadcrumb"]}|${PERSIAN["Breadcrumb"]})$`,
+    ),
   });
 }
 

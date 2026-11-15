@@ -37,7 +37,7 @@ flowchart TB
 
 `IncidentState` モデルは `name`、`description`、`color`、`order` と、3 つのブール値 `isCreatedState`、`isAcknowledgedState`、`isResolvedState` を持ちます。製品が状態に対して行うことはすべて、これらのブール値と `order` に基づいており、状態の名前には決して基づきません。だからこそ、**解決済み** の名前を「Closed」に変えても何も壊れません。フラグは行と一緒に移動します。
 
-`IncidentSeverity` モデルが持つのは `name`、`description`、`color`、`order` だけです。フラグはありません。OneUptime の中に、**Critical Incident** をそれだけで **Minor Incident** と違うように扱うものはありません。重大度が意味を持つのは、オンコールルールの一致条件 **インシデントの重大度** のように、何かを重大度に向けた場合だけです。
+`IncidentSeverity` モデルが持つのは `name`、`description`、`color`、`order` だけです。フラグはありません。OneUptime の中に、**重大インシデント** をそれだけで **軽微なインシデント** と違うように扱うものはありません。重大度が意味を持つのは、オンコールルールの一致条件 **インシデントの重大度** のように、何かを重大度に向けた場合だけです。
 
 いくつかの簡単なルール:
 
@@ -138,9 +138,9 @@ API と Terraform では、順序は `order` 列です。小さい番号が先�
 
 | 重大度                | `order` | 色        | 初期の説明                                                                                                                                                                                |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **重大インシデント** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **主要インシデント**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **軽微なインシデント**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 重大度はインシデントの宣言時に必須で、モニターの条件にある各インシデントの定義でも必須なので、手動でも自動でも、すべてのインシデントには重大度があります。宣言の流れは [インシデントの宣言](/docs/incidents/declaring-incidents) を、モニターから作られる場合は [インシデント & アラート テンプレート](/docs/monitor/incident-alert-templating) を参照してください。
 
@@ -155,7 +155,7 @@ API と Terraform では、順序は `order` 列です。小さい番号が先�
 - **削除の保護はありません。** 初期の 3 つを含め、どの重大度も削除できます。
 - **引き継ぐフラグも「扱い」もありません。** 新しい重大度は初期のものとまったく同じに振る舞います。色と順位を持つラベルです。
 
-重大度が説明以上の働きをする場面: **インシデント → ルール → オンコールルール** では、ルールの **インシデントの重大度** 項目が一致条件になります。そこに **Critical Incident** を指定することで、「重大なものはすべてデータベースチームを呼び出す」を表現します。オンコールポリシーは重大度ではなくルールにあります。
+重大度が説明以上の働きをする場面: **インシデント → ルール → オンコールルール** では、ルールの **インシデントの重大度** 項目が一致条件になります。そこに **重大インシデント** を指定することで、「重大なものはすべてデータベースチームを呼び出す」を表現します。オンコールポリシーは重大度ではなくルールにあります。
 
 **インシデントの重大度の変更**（インシデントの **インシデントの詳細** カードの **編集**、API や Terraform の `incidentSeverityId`、ワークフロー、AI ツールのいずれでも）は、どの方法で送っても同じ 4 つのことを行います。インシデントのフィードに新しい重大度を示す **Incident updated** エントリーが追加され、インシデントの SLA の期限が計算し直され、リマインダールールが照合し直され、インシデントのメトリクスで重大度の変更が 1 回数えられます。インシデントがすでに持っている重大度を保存した場合はどれも行われないので、インシデントのタイトルだけを編集しても、SLA の期限、リマインダー、重大度の変更回数はそのままです。アラートの重大度も、フィードのエントリーとリマインダーについて同じように動作します。
 

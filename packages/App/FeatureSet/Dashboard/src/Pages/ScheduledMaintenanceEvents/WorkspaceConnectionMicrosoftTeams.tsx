@@ -23,7 +23,7 @@ const IncidentsPage: FunctionComponent<
           />
           <WorkspaceReactionNotesTips
             workspaceType={WorkspaceType.MicrosoftTeams}
-            resourceName="scheduled maintenance event"
+            resourceName="maintenance event"
             supportsPublicNotes={true}
           />
         </>

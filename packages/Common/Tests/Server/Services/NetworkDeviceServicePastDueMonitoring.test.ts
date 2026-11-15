@@ -301,10 +301,15 @@ describe("NetworkDeviceService.claimDevicesForPolling keeps past_due projects po
   });
 
   describe("after rows are claimed", () => {
-    test("returns nothing and runs no update when nothing is due", async () => {
+    /*
+     * The claim, then the set-aside of the due devices nothing may poll
+     * (setAsideUnpollable) - which never claims anything itself.
+     */
+    test("returns nothing when nothing is due, and still sets aside what nothing may poll", async () => {
       const { statements, claimed } = await captureClaim([]);
 
-      expect(statements).toHaveLength(1);
+      expect(statements).toHaveLength(2);
+      expect(normalizeSql(statements[1]!.sql)).toContain('"unpollable"');
       expect(claimed).toEqual([]);
     });
 
@@ -317,8 +322,12 @@ describe("NetworkDeviceService.claimDevicesForPolling keeps past_due projects po
         { _id: secondId },
       ]);
 
-      // No second statement: nothing comes back to Node between the two.
-      expect(statements).toHaveLength(1);
+      /*
+       * The claim and the advance are one statement: nothing comes back to
+       * Node between the two. The set-aside after it is a statement of its
+       * own, which claims nothing.
+       */
+      expect(statements).toHaveLength(2);
 
       const sql: string = normalizeSql(statements[0]!.sql);
 

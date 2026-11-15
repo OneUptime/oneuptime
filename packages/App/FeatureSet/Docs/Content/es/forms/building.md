@@ -39,7 +39,7 @@ Arrastra una tarjeta por su asa para moverla, o usa **Subir** y **Bajar** en la 
 
 ### Guardar el formulario
 
-**Guardar cambios** guarda todos los cambios a la vez. Hasta que guardas, el editor dice **Cambios sin guardar** y ofrece **Descartar cambios**, y el navegador pregunta antes de que salgas de la página.
+**Guardar cambios** guarda todos los cambios a la vez. Hasta que guardas, el editor dice **Cambios sin guardar** y ofrece **Descartar cambios**. Salir del editor antes de guardar pregunta primero. Un enlace del menú lateral, de la ruta de navegación o de la barra superior, o los botones Atrás y Adelante de tu navegador, abren **¿Salir sin guardar?** con dos opciones: **Seguir editando** se queda en el editor con tus cambios, y **Descartar cambios** sigue hacia la página que estabas abriendo. Cerrar o recargar la pestaña pregunta con el propio diálogo de tu navegador.
 :::
 
 - **La cabecera del formulario** muestra su nombre y su descripción como los mostrará la página pública. **Editar nombre y descripción** los cambia.

@@ -153,7 +153,32 @@ describe("the empty-state sentence", () => {
   test("names the kind of thing the reader is looking at", () => {
     expect(
       describeMissingLink(EntityType.KubernetesPod, "incidents"),
-    ).toContain("Kubernetes Pod");
+    ).toContain("This Kubernetes pod does not carry its own");
+  });
+
+  /*
+   * The type is a noun in the middle of the sentence (#7862): "This
+   * Kubernetes pod", never a label's "A Kubernetes Pod", and no article
+   * that has to agree with it ("A ESXi Host", "A IoT Device", "A Appliance").
+   * Names keep their capitals: Docker, OpenStack, ESXi, IoT, vCenter.
+   */
+  test.each([
+    [EntityType.Container, "This container does not"],
+    [EntityType.Process, "This process does not"],
+    [EntityType.ServerlessFunction, "This serverless function does not"],
+    [EntityType.VMwareHost, "This ESXi host does not"],
+    [EntityType.IoTDevice, "This IoT device does not"],
+    [EntityType.OpenStackInstance, "This OpenStack instance does not"],
+    [EntityType.ExternalService, "This external service does not"],
+    [EntityType.ExternalDatabase, "This external database does not"],
+    [EntityType.Appliance, "This appliance does not"],
+    [EntityType.DockerHost, "This Docker host does not"],
+    [EntityType.VMwareVCenter, "This vCenter does not"],
+  ])("names a %s mid-sentence: %s", (entityType: string, named: string) => {
+    const sentence: string = describeMissingLink(entityType, "incidents");
+
+    expect(sentence).toContain(named);
+    expect(sentence).not.toMatch(/\. An? /);
   });
 
   test("starts with the signal, capitalised", () => {

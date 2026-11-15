@@ -31,8 +31,9 @@ run on every pull request in "Ops Config Test".
 
 ## Run it locally
 
-Needs docker, kind, kubectl, helm and python3 (standard library only). From the
-repository root:
+Needs docker, kind, kubectl, helm and python3 (standard library only); on kind,
+Docker running containers in the host's user namespace (see "kind and k3s").
+From the repository root:
 
 ```sh
 bash Tests/Ops/agent-ebpf-e2e/run.sh
@@ -86,7 +87,8 @@ python3 Tests/Ops/agent-ebpf-e2e/analyze.py <capture-dir> \
 The capture holds the render, every agent log (and `--previous` log), the pod
 list, the sink's `traces.json`, `metrics.json` and `profiles.json` (OTLP/JSON,
 one export per line), `ctxprobe.log` (the `traces_ctx_v1` entries seen during
-the load), `container-pids.txt`, and on kind `host-profiler/`.
+the load), `container-pids.txt`, and on kind `same-pid.txt` and
+`host-profiler/`.
 
 ### The analyzer's unit tests
 
@@ -135,14 +137,15 @@ OBI discovery.
 5. `helm install`, wait for the DaemonSets and for OBI's "Script successfully
    injected". An agent component that is not Ready within 5 minutes does not
    stop the run: its logs are collected and the checks (OBI-1, PR-1) report
-   it. On kind, with profiling on, start the root-namespace profiler (below)
-   here, so that it has caught up with the processes it samples before the
-   load. Then a 30 s warmup.
+   it. On kind, with profiling on, start the same-PID process and the
+   root-namespace profiler (both below) here, so that the profilers have
+   caught up with the processes they sample before the load. Then a 30 s
+   warmup.
 6. With profiling on, start [`manifests/ctxprobe.yaml`](manifests/ctxprobe.yaml)
    (bpftool on the apps node's pin). Run the load
    ([`apps/loadgen.js`](apps/loadgen.js): one process, 8 loops over the app's 4
-   routes for 90 s), wait 30 s for the exports to flush, collect, and run
-   [`analyze.py`](analyze.py).
+   routes for 90 s), wait 30 s for the exports to flush, stop the same-PID
+   process, collect, and run [`analyze.py`](analyze.py).
 
 ### kind and k3s
 
@@ -159,6 +162,23 @@ to a file, and is removed afterwards. The app's root-namespace PID is the
 process whose cgroup path holds the app container's ID and whose `NSpid` chain
 holds the PID the node gives it. PR-1 to PR-3 still check the chart's own
 profiler pods (health, the pin, the export path).
+
+Those pods resolve a sample only when its PID is the same number in the node
+as in the host, which on kind no process's is, and on arm64 they drop the
+samples they cannot resolve (on amd64 they export them with only
+`process.pid`). Left to that, what PR-3 counted on an arm64 KinD cluster was
+chance: host processes (systemd, containerd, the runner's own threads) whose
+PID number a node happened to use too, in 2 to 99 exports a run. So on kind,
+`run.sh` also starts [`apps/same-pid.pl`](apps/same-pid.pl) in the apps node:
+the node's own shell in a busy loop at nice 19, started by `clone3` with
+`set_tid` under one PID in the node and in the host, which the chart's profiler
+on that node resolves as it resolves every process on a real node. PR-3 then
+also requires that process's samples in at least 3 of the exports. Its
+`same-pid.txt` (`samePid=`, then `ended=` once it has stopped, or `error=`) is
+in the capture and in `analysis.json` under `profiles.samePid`. `clone3` picks
+a PID only in a PID namespace whose user namespace it is privileged in: Docker
+must run the nodes in the host's user namespace, not rootless or with
+`userns-remap`, on Linux 5.5 or later.
 
 With `E2E_PLATFORM=k3s`, k3s is installed on the host itself, so `hostPID`
 pods are in the root PID namespace and bpffs is the host's own, as on a real
@@ -200,7 +220,7 @@ measured 94.2-99.6% and 99.8-100%.
 | TR-13 | the app's background `GET /tick` arrives as a parentless OBI CLIENT span; with `ebpf.dropUnlinkedClientCalls` on, none such does |
 | PR-1  | profiler pods Ready, 0 restarts                                                                                                  |
 | PR-2  | no pin or create failure in the profiler logs                                                                                    |
-| PR-3  | at least 3 profile exports reached `/otlp/v1/profiles`, stamped with `k8s.cluster.name`                                          |
+| PR-3  | at least 3 profile exports reached `/otlp/v1/profiles`, stamped with `k8s.cluster.name`; on kind, 3 hold the same-PID process    |
 | PR-4  | at least 5 distinct `traces_ctx_v1` entries name exported app spans (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT`)                     |
 | PR-5  | at least 50 app samples, at least 20 and 20% of them linked, and at least 80% of the links name app spans                        |
 | PR-6  | no other process's sample links to an app span                                                                                   |

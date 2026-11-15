@@ -199,7 +199,7 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 | **Nalevingsperiode** | **Type venster**, **Venster (dagen)** en **Tijdzone**, met **Periode bewerken**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
 | **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
 | **Evaluatie** | De schakelaar **Dit SLO evalueren**, die opslaat zodra u hem omzet. | Uitzetten vraagt om bevestiging, omdat het ook de open waarschuwingen en incidenten voor verbruikssnelheid van de SLO oplost. |
-| **SLO archiveren** | **Archiveren** of **Uit archief halen**. | Zie [Een SLO archiveren](#een-slo-archiveren). |
+| **SLO archiveren** | **Archiveren** of **Uit het archief halen**. | Zie [Een SLO archiveren](#een-slo-archiveren). |
 
 Na een wijziging van het doel, de periode of de downtimeberekening evalueert OneUptime de SLO opnieuw bij de volgende uitvoering.
 
@@ -214,7 +214,7 @@ Een gearchiveerde SLO:
 - krijgt zijn open waarschuwingen en incidenten voor verbruikssnelheid opgelost;
 - behoudt zijn instellingen, geschiedenis, regels en eigenaren. Zijn monitorregels houden zijn monitorlijst bij, zodat hij met de juiste monitoren verdergaat.
 
-Gearchiveerde SLO's staan op de pagina **Gearchiveerd**, onder **Geavanceerd** in het zijmenu van de SLO-lijst. Selecteer ze daar en kies **Uit archief halen** om ze terug te halen: ze worden bij de volgende uitvoering opnieuw geëvalueerd, met de SLI en het budget herberekend uit de geschiedenis van hun monitoren.
+Gearchiveerde SLO's staan op de pagina **Gearchiveerd**, onder **Geavanceerd** in het zijmenu van de SLO-lijst. Selecteer ze daar en kies **Uit het archief halen** om ze terug te halen: ze worden bij de volgende uitvoering opnieuw geëvalueerd, met de SLI en het budget herberekend uit de geschiedenis van hun monitoren.
 
 Archiveren en evaluatie uitzetten zijn aparte schakelaars. Een SLO die uitgeschakeld was voordat hij werd gearchiveerd, blijft uitgeschakeld als u hem uit het archief haalt: zet hem weer aan met **Evaluatie aanzetten** in zijn banner, of met **Dit SLO evalueren** onder **Instellingen** → **Evaluatie**.
 

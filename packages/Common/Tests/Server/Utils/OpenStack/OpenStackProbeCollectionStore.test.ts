@@ -194,9 +194,9 @@ describe("claiming clouds", () => {
     expect(select?.sql).toContain('c."isArchived" = false');
     expect(select?.sql).toContain('c."isCredentialSet" = true');
     expect(select?.sql).toContain('c."authUrl" IS NOT NULL');
-    expect(select?.sql).toContain(
-      '(c."nextCollectionAt" IS NULL OR c."nextCollectionAt" <= $2)',
-    );
+    // A range of the (collectionProbeId, nextCollectionAt) index, oldest first.
+    expect(select?.sql).toContain('c."nextCollectionAt" <= $2');
+    expect(select?.sql).not.toMatch(/"nextCollectionAt" IS NULL OR/);
     expect(select?.sql).toContain('NOT (c."_id" = ANY($6::uuid[]))');
     /*
      * Two work requests never hand one cloud out twice - with FOR NO KEY
@@ -206,10 +206,9 @@ describe("claiming clouds", () => {
      */
     expect(select?.sql).toContain("FOR NO KEY UPDATE OF c SKIP LOCKED");
     expect(select?.sql).not.toMatch(/FOR UPDATE/);
-    // The longest overdue first.
-    expect(select?.sql).toContain(
-      'ORDER BY c."nextCollectionAt" ASC NULLS FIRST',
-    );
+    // The longest overdue first, in the index's own order: no NULLS FIRST.
+    expect(select?.sql).toContain('ORDER BY c."nextCollectionAt" ASC');
+    expect(select?.sql).not.toContain("NULLS FIRST");
     expect(select?.sql).toContain("LIMIT $3");
   });
 
@@ -272,7 +271,9 @@ describe("claiming clouds", () => {
 
     await expect(claim(fake.service)).resolves.toEqual([]);
 
-    expect(fake.queries).toHaveLength(1);
+    // The claim, and the set-aside of what it stepped over (ClaimSetAside).
+    expect(fake.queries).toHaveLength(2);
+    expect(fake.queries[1]?.sql).toContain('"unclaimable" AS (');
     expect(fake.findByCalls).toEqual([]);
   });
 
@@ -284,8 +285,11 @@ describe("claiming clouds", () => {
 
     await claim(fake.service);
 
-    // One statement locks, moves and answers: nothing waits between them.
-    expect(fake.queries).toHaveLength(1);
+    /*
+     * One statement locks, moves and answers: nothing waits between them.
+     * The set-aside after it is a statement of its own.
+     */
+    expect(fake.queries).toHaveLength(2);
     const statement: Query = fake.queries[0]!;
     const sql: string = statement.sql.replace(/\s+/g, " ");
 
@@ -302,7 +306,7 @@ describe("claiming clouds", () => {
     ]);
     // Only what the statement wrote is answered, the longest overdue first.
     expect(sql).toContain(
-      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC NULLS FIRST',
+      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC',
     );
   });
 

@@ -6,6 +6,7 @@ import MonitorEvaluationDetails, {
   MonitorEvaluationFilterDetails,
 } from "Common/Types/Monitor/MonitorEvaluationDetails";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -226,11 +227,23 @@ const CheckFacts: FunctionComponent<{
   const details: MonitorEvaluationDetails = props.details;
   const facts: Array<Fact> = [];
 
+  /*
+   * Why the check failed: the probe's own timeout sentence in the reader's
+   * language (ProbeFailureReading), any other cause as written, in the
+   * direction of its own words.
+   */
   if (details.response?.failureCause) {
     facts.push({
       key: "failure",
       label: translator.translateText(EVALUATION_FACT_LABELS.failure) || "",
-      value: <span dir="auto">{details.response.failureCause}</span>,
+      value: (
+        <span dir="auto">
+          {getProbeFailureCauseText({
+            translator: translator,
+            failureCause: details.response.failureCause,
+          })}
+        </span>
+      ),
       isWide: true,
     });
   }

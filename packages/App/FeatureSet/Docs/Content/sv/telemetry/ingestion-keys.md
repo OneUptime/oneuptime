@@ -108,7 +108,7 @@ Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.c
 
 ## Byt ut, stäng av eller ta bort en nyckel
 
-En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Click to reveal** och dess **Last Used At**: senaste gången OneUptime tog emot data som skickades med den.
+En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka för att visa** och dess **Last Used At**: senaste gången OneUptime tog emot data som skickades med den.
 
 | För att | Gör så här | Vad avsändare ser |
 | --- | --- | --- |

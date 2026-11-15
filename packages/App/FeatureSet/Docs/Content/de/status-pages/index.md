@@ -241,7 +241,7 @@ Archivieren Sie eine Statusseite, um sie offline zu nehmen, ohne sie zu löschen
 - **Verlässt die Liste der Statusseiten.** Sie finden sie unter **Statusseiten → Erweitert → Archiviert**.
 - **Behält alles.** Ihre Ressourcen, Gruppen, ihr Branding, ihre Domains, privaten Benutzer und Abonnenten bleiben erhalten, sodass das Wiederherstellen aus dem Archiv die Seite genau so wieder online bringt, wie sie war.
 
-Um eine Statusseite zu archivieren, öffnen Sie sie und gehen zu **Erweitert → Erweiterte Einstellungen → Statusseite archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Statusseiten** aus und wählen **Archivieren**. Um eine zurückzuholen, öffnen Sie **Statusseiten → Erweitert → Archiviert**, wählen sie aus und wählen **Aus Archiv entfernen**, oder öffnen Sie sie und klicken Sie auf **Aus Archiv entfernen** im Banner oben auf ihren Seiten.
+Um eine Statusseite zu archivieren, öffnen Sie sie und gehen zu **Erweitert → Erweiterte Einstellungen → Statusseite archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Statusseiten** aus und wählen **Archivieren**. Um eine zurückzuholen, öffnen Sie **Statusseiten → Erweitert → Archiviert**, wählen sie aus und wählen **Aus dem Archiv holen**, oder öffnen Sie sie und klicken Sie auf **Aus dem Archiv holen** im Banner oben auf ihren Seiten.
 
 ## Nächste Schritte
 

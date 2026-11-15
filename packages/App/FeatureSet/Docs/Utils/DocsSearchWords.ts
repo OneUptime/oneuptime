@@ -4,15 +4,18 @@
  * Shared by everything that searches this installation's docs: the docs'
  * own search box and Search (Cmd/Ctrl+K)'s Docs group (Utils/DocsSearch.ts),
  * and Ask AI's search_docs (Utils/AIDocsReader.ts). All three read the same
- * index, built per language by AIDocsReader, so a word is forgiven the same
- * way wherever it is typed:
+ * index, built per language by AIDocsReader, so a word is forgiven, or left
+ * out, the same way wherever it is typed:
  *
  *   - a reader's word for what the docs call otherwise: "pager" finds the
  *     on-call pages, "outage" the incident pages, "2fa" two-factor
  *     authentication (DOCS_SEARCH_SYNONYMS, a short list per language);
  *   - one or two wrong letters: "escalaton" finds "escalation"
  *     (getTypoAllowance, isWithinEditDistance);
- *   - the start of a word: "kube" finds "kubernetes" (DocsVocabulary).
+ *   - the start of a word: "kube" finds "kubernetes" (DocsVocabulary);
+ *   - a word a question is phrased with, not about: "Wie überwache ich
+ *     meine Website?" looks for "überwache" and "Website"
+ *     (DOCS_SEARCH_QUESTION_WORDS, a list per language).
  *
  * Nothing here reads a file or a network: it is the same on an air-gapped
  * server as on OneUptime Cloud.
@@ -291,6 +294,166 @@ export const getDocsSearchSynonyms: (
   synonymCache.set(language, synonyms);
 
   return synonyms;
+};
+
+/*
+ * Words a question is phrased with rather than about, per language (#7799,
+ * #7874): its "how", "I" and "my". Ask AI's search_docs (AIDocsReader's
+ * tokenizeQueryForDocs) and the docs' search box (DocsSearch.readQuery)
+ * both leave them out of what is asked. Read as words, a German
+ * question's "ich" and "meine" counted like what it asks about: the
+ * German docs say "Sie" and "Ihre", so those are on few pages, and "Wie
+ * überwache ich meine Website?" found the pages that quote a question, and
+ * "Wie ich erreichbar bin" (How to Reach Me), not Website-Überwachung.
+ * Only what is asked leaves them out: the index keeps them, so that page
+ * is still found by its name.
+ *
+ * By docs language code (SUPPORTED_DOCS_LANGUAGE_CODES). A language with
+ * no list here is read word for word; one more entry gives a language's
+ * list to both searches. English has none here: AIDocsReader's
+ * QUESTION_WORDS leaves English's out of every page and every question.
+ * Written as a reader types them; compared folded (foldDocsSearchWord).
+ */
+export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  de: [
+    // how, what, where, when, why, who, which
+    "wie",
+    "was",
+    "wo",
+    "wann",
+    "warum",
+    "wieso",
+    "weshalb",
+    "wer",
+    "wen",
+    "wem",
+    "welche",
+    "welcher",
+    "welches",
+    "welchen",
+    "welchem",
+    // I, me, my, we
+    "ich",
+    "mich",
+    "mir",
+    "mein",
+    "meine",
+    "meinen",
+    "meinem",
+    "meiner",
+    "meines",
+    "wir",
+    "uns",
+    "unser",
+    "unsere",
+    "unseren",
+    "unserem",
+    "unserer",
+    "unseres",
+    // you, your, one ("wie richtet man ... ein")
+    "sie",
+    "ihnen",
+    "ihr",
+    "ihre",
+    "ihren",
+    "ihrem",
+    "ihrer",
+    "ihres",
+    "du",
+    "dich",
+    "dir",
+    "dein",
+    "deine",
+    "deinen",
+    "deinem",
+    "deiner",
+    "deines",
+    "man",
+    // a, an, the
+    "der",
+    "die",
+    "das",
+    "den",
+    "dem",
+    "des",
+    "ein",
+    "eine",
+    "einen",
+    "einem",
+    "einer",
+    "eines",
+    // it, this, that, there
+    "es",
+    "dies",
+    "diese",
+    "dieser",
+    "dieses",
+    "diesen",
+    "diesem",
+    "dass",
+    "da",
+    "dort",
+    // and, or, if
+    "und",
+    "oder",
+    "wenn",
+    "ob",
+    // am, is, are, be, can, do
+    "bin",
+    "bist",
+    "ist",
+    "sind",
+    "sein",
+    "kann",
+    "kannst",
+    "können",
+    "tue",
+    "tun",
+    // for, of, on, to, with, in
+    "für",
+    "von",
+    "vom",
+    "auf",
+    "zu",
+    "zum",
+    "zur",
+    "mit",
+    "im",
+    "am",
+  ],
+};
+
+const questionWordCache: Map<string, ReadonlySet<string>> = new Map();
+
+/*
+ * A language's question words (DOCS_SEARCH_QUESTION_WORDS), folded as a
+ * typed word is compared: none for a language without a list.
+ */
+export const getDocsSearchQuestionWords: (
+  language: string,
+) => ReadonlySet<string> = (language: string): ReadonlySet<string> => {
+  const cached: ReadonlySet<string> | undefined =
+    questionWordCache.get(language);
+
+  if (cached) {
+    return cached;
+  }
+
+  const listed: ReadonlyArray<string> = Object.prototype.hasOwnProperty.call(
+    DOCS_SEARCH_QUESTION_WORDS,
+    language,
+  )
+    ? DOCS_SEARCH_QUESTION_WORDS[language] || []
+    : [];
+  const folded: ReadonlySet<string> = new Set<string>(
+    listed.map(foldDocsSearchWord),
+  );
+
+  questionWordCache.set(language, folded);
+
+  return folded;
 };
 
 /*

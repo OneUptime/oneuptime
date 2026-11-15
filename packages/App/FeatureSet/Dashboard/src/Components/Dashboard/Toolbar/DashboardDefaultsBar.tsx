@@ -1,16 +1,16 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import TimeRange from "Common/Types/Time/TimeRange";
-import {
-  AutoRefreshInterval,
-  getAutoRefreshIntervalLabel,
-} from "Common/Types/Dashboard/DashboardViewConfig";
+import { AutoRefreshInterval } from "Common/Types/Dashboard/DashboardViewConfig";
 import { DASHBOARD_TIME_RANGES } from "Common/Types/Dashboard/DashboardTimeRange";
-import { DASHBOARD_AUTO_REFRESH_INTERVALS } from "Common/Types/Dashboard/DashboardAutoRefresh";
+import {
+  DASHBOARD_AUTO_REFRESH_INTERVALS,
+  formatAutoRefreshInterval,
+} from "Common/Types/Dashboard/DashboardAutoRefresh";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { getTimeRangeLabel } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import DashboardStackingLayers from "Common/UI/Utils/DashboardStackingLayers";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -30,6 +30,7 @@ import {
   getDefaultsPickerMenuTestId,
 } from "./DashboardDefaultsCopy";
 import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
+import useMenuKeptOnScreen from "./UseMenuKeptOnScreen";
 
 /*
  * A dashboard's defaults, set on purpose while it is edited (issue #5080):
@@ -78,6 +79,9 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
 
   // Arrows, Home, End, Escape and Tab, as the product's other menus take them.
   useToolbarChoiceMenuKeys({ isOpen, menuRef, buttonRef, close });
+
+  // On the screen, wherever a phone's editing row wraps the button to.
+  useMenuKeptOnScreen({ isOpen, menuRef });
 
   // Closes on a click anywhere else.
   useEffect(() => {
@@ -145,7 +149,9 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
          * As wide as its longest choice, so no choice wraps in a long
          * language, and tall enough for every preset at once; it scrolls
          * only on a screen too short for them. It hangs from the button's
-         * start, its left - its right in a right-to-left language.
+         * start, its left - its right in a right-to-left language - and
+         * moves back onto a phone's screen when that runs past its edge
+         * (useMenuKeptOnScreen).
          */
         <div
           ref={menuRef}
@@ -270,10 +276,25 @@ const DashboardDefaultsBar: FunctionComponent<ComponentProps> = (
                       : translator.translateTemplate(
                           "Refresh every {{interval}}",
                           {
-                            interval: getAutoRefreshIntervalLabel(interval),
+                            interval: composedValue(
+                              (sentence: Translator): string => {
+                                return (
+                                  formatAutoRefreshInterval(
+                                    interval,
+                                    sentence.language,
+                                  ) || ""
+                                );
+                              },
+                            ),
                           },
                         ),
-                  buttonLabel: text(getAutoRefreshChoiceLabel(interval)),
+                  buttonLabel:
+                    interval === AutoRefreshInterval.OFF
+                      ? text(getAutoRefreshChoiceLabel(interval))
+                      : getAutoRefreshChoiceLabel(
+                          interval,
+                          translator.language,
+                        ),
                 };
               },
             )}

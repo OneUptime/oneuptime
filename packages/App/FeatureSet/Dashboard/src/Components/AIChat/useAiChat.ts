@@ -217,6 +217,16 @@ export function useAiChat(options: {
     useRef<AIChatPermissionMode>(permissionMode);
   permissionModeRef.current = permissionMode;
 
+  /*
+   * The language the Dashboard is read in, sent with every question and
+   * every approval: a monitor Ask AI sets up names its criteria, incident
+   * and alert in it, as the guided setup does for the same person (#7247).
+   */
+  const languageRef: React.MutableRefObject<string> = useRef<string>(
+    translator.language,
+  );
+  languageRef.current = translator.language;
+
   const pageContextRef: React.MutableRefObject<DashboardPageContext | null> =
     useRef<DashboardPageContext | null>(null);
   pageContextRef.current = pageContext;
@@ -874,6 +884,7 @@ export function useAiChat(options: {
             data: {
               content: content,
               permissionMode: permissionModeRef.current,
+              language: languageRef.current,
               ...(activeConversationIdRef.current
                 ? { conversationId: activeConversationIdRef.current }
                 : {}),
@@ -1009,6 +1020,8 @@ export function useAiChat(options: {
               conversationId: activeConversationIdRef.current,
               assistantMessageId: assistantMessageId,
               decisions: decisions,
+              // What an approved setup action writes its records in (#7247).
+              language: languageRef.current,
             },
             headers: ModelAPI.getCommonHeaders(),
           });

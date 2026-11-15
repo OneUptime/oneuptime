@@ -130,6 +130,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 })
 @Index(["projectId", "currentAlertStateId"]) // Active-alert counters on dashboard
 /*
+ * The Alerts list, newest first - the order every read of alerts takes
+ * when it asks for none (DatabaseService.getReadSort): the page's ids are
+ * read in this index's order, ten at a time, instead of sorting every
+ * alert of the project. It also serves every read by project and
+ * the ON DELETE CASCADE of a project, which is why the column has no bare
+ * index of its own.
+ */
+@Index(["projectId", "createdAt"])
+/*
  * The alerts an investigation rule makes OneUptime AI wait on: a handful at
  * any moment, so the index holds only them, and the rule-wait job's "wait
  * ended" read (aiInvestigationWaitUntil <= now) implies its predicate.
@@ -210,7 +219,12 @@ export default class Alert extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  /*
+   * No bare @Index() here on purpose: the composites on the class lead with
+   * this column ("projectId", "createdAt" first), and serve every read by it
+   * and the ON DELETE CASCADE of a project. Another would cost every insert
+   * and every state change one more index write for nothing.
+   */
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,

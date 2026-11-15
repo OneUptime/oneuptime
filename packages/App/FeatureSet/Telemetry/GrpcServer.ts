@@ -36,6 +36,7 @@ import { getTelemetryIngestRefusalReasonForBudget } from "Common/Types/Telemetry
 import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestRefusalRecorder";
+import TelemetryIngestionKeyLastUsed from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyLastUsed";
 
 const GRPC_PORT: number = 4317;
 
@@ -562,6 +563,16 @@ export async function handleExport(
       );
       return;
     }
+
+    /*
+     * The key is now in use, so "Last Used At" and the guides' first-data
+     * wait see a key that sends only over gRPC (issue #7887). Stamped through
+     * the helper the HTTP ingest middleware uses, and only here, once the
+     * queue has taken the export: a refused credential, a budget or billing
+     * refusal and a failed enqueue all return before this line or throw past
+     * it. Fire and forget, so the acknowledgement never waits on it.
+     */
+    TelemetryIngestionKeyLastUsed.stamp(authentication.policy);
 
     callback(null, {});
   } catch (err) {

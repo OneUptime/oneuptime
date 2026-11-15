@@ -261,6 +261,8 @@ const NOTIFICATION_SEND_ROUTE: RegExp =
 const GET_REFUSAL_CALL: RegExp = /BlockedProjectNotifications\.getRefusal\(/;
 // A probe's query leaving a blocked project out.
 const BLOCKED_PROJECT_LEFT_OUT: RegExp = /p\."isBlocked" = false/;
+// The end of a claim's rule list: its entries joined with AND.
+const RULE_LIST_JOINED_WITH_AND: RegExp = /^\s*\]\.join\("\\n\s*AND "\);/;
 // A count of people that leaves a sample's people out.
 const SAMPLE_PEOPLE_LEFT_OUT: RegExp =
   /sampleProjectId:\s*QueryHelper\.isNull\(\)/;
@@ -326,14 +328,34 @@ describe("SampleProjectReadersGuard", () => {
 
         claims++;
 
+        /*
+         * A claim writes its conditions inline in its SQL
+         * (`AND p."isBlocked" = false`), or as entries of the one list its
+         * rule joins with AND (MonitorProbeService.getProbeableSql,
+         * NetworkDeviceService.getPollableSql), which the claim and the
+         * statements that set its other rows aside both read. Either way
+         * the very next condition leaves a sample out.
+         */
+        const isRuleListEntry: boolean = lines[index]!.trim().startsWith("`");
+        const listEnd: string = isRuleListEntry
+          ? lines.slice(index).find((line: string): boolean => {
+              return line.includes("].join(");
+            }) || ""
+          : "";
+
         expect({
           file: path.relative(REPO_ROOT, file),
           line: index + 1,
           next: (lines[index + 1] || "").trim(),
+          joinedWithAnd:
+            !isRuleListEntry || RULE_LIST_JOINED_WITH_AND.test(listEnd),
         }).toEqual({
           file: path.relative(REPO_ROOT, file),
           line: index + 1,
-          next: 'AND p."isSampleProject" = false',
+          next: isRuleListEntry
+            ? '`p."isSampleProject" = false`,'
+            : 'AND p."isSampleProject" = false',
+          joinedWithAnd: true,
         });
       }
     }

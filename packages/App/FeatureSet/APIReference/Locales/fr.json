@@ -262,7 +262,7 @@
       "countRequestTitle": "Requête Count",
       "aggregateHeading": "Agrégation",
       "aggregateIntro": "Ce point de terminaison exécute des agrégations côté serveur (somme, moyenne, comptage et centiles) sur vos {{title}} et regroupe les résultats par intervalles de temps. Il alimente les graphiques et les tableaux de bord.",
-      "aggregateByDescription": "L'agrégation à exécuter. Indiquez aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp, ainsi que query et groupBy facultatifs.",
+      "aggregateByDescription": "L'agrégation à exécuter. Indiquez aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp, ainsi que query et groupBy facultatifs. Par défaut, la taille des intervalles de temps est déduite de la fenêtre ; définissez le paramètre facultatif aggregationInterval pour la fixer (Minute, Hour, Day, Week, Month, Year), par exemple des intervalles Day sur une fenêtre d'une semaine, ou sur Total pour renvoyer un seul agrégat par groupe sur toute la fenêtre, sans intervalles de temps. Les intervalles Day, Week, Month et Year commencent à minuit UTC, et les semaines le lundi ; définissez le paramètre facultatif timezone sur le nom d'un fuseau horaire, comme America/New_York, pour qu'ils commencent plutôt à minuit dans ce fuseau. Un nom qui n'est pas un fuseau horaire connu est refusé.",
       "aggregateRequestTitle": "Requête d'agrégation",
       "createHeading": "Créer {{title}}",
       "createIntro": "Ce point de terminaison vous permet de créer un nouvel objet.",

@@ -209,14 +209,14 @@ RunCron(
 
         const sms: SMSMessage = {
           message: buildNotificationSms(
-            `New note posted on scheduled maintenance event - ${scheduledMaintenanceIdentifier}.`,
+            `New note posted on maintenance event - ${scheduledMaintenanceIdentifier}.`,
           ),
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. New note posted on scheduled maintenance event ${scheduledMaintenanceIdentifier}. To view this note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. New note posted on maintenance event ${scheduledMaintenanceIdentifier}. To view this note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
@@ -224,7 +224,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: `Scheduled Maintenance ${scheduledMaintenanceNumberStr} Note Posted`,
-            body: `New note posted on scheduled maintenance: ${scheduledMaintenanceIdentifier}. Click to view details.`,
+            body: `New note posted on maintenance event: ${scheduledMaintenanceIdentifier}. Click to view details.`,
             clickAction: (
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                 scheduledMaintenance.projectId!,
@@ -278,7 +278,7 @@ RunCron(
 
       const scheduledMaintenanceFeedText: string =
         OwnerNotificationFeedText.notePosted({
-          recordNoun: "scheduled maintenance event",
+          recordNoun: "maintenance event",
           isProjectOwners: !doesResourceHasOwners,
           isPrivateNote: isPrivateNote,
         });

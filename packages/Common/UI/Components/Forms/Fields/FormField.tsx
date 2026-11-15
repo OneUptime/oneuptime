@@ -1203,6 +1203,7 @@ const FormField: <T extends GenericObject>(
                   props.currentValues,
                 )}
                 whenNobodyPicked={props.field.peoplePicker.whenNobodyPicked}
+                readOnly={props.field.peoplePicker.isReadOnly}
                 disabled={props.field.disabled}
                 error={props.touched && props.error ? props.error : undefined}
                 ariaLabelledby={fieldLabelId}

@@ -53,7 +53,7 @@ Die nützlichen Spalten eines Inventarelements:
 Eine Synchronisation braucht einen API-Schlüssel, der das Inventar lesen darf. In OneUptime Cloud brauchen API-Schlüssel den Tarif **Growth** oder höher.
 
 :::steps
-### Einen API-Schlüssel anlegen
+### Einen API-Schlüssel erstellen
 
 Öffnen Sie **Projekteinstellungen → Erweitert → API-Schlüssel** und klicken Sie auf **API-Schlüssel erstellen**. Geben Sie ihm einen **Name** und wählen Sie unter **Zugriff** **Betrachter**, um alles im Projekt zu lesen, oder **Berechtigungen später wählen**, um ihm nur zu geben, was eine Synchronisation braucht.
 

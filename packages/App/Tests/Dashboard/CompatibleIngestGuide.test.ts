@@ -13,6 +13,7 @@ import {
   getCompatibleIngestGuide,
   getCompatibleIngestGuides,
   getCompatibleIngestSnippets,
+  getFluentBitHostAndPort,
   getHostAndPort,
   getSentryDsn,
   getUndashedKey,
@@ -275,6 +276,25 @@ describe("each tool's own configuration", () => {
     expect(local).toMatch(/Tls\s+Off/);
   });
 
+  test("an IPv6 host: Fluent Bit gets the bare address, which it can resolve, and Datadog keeps the brackets host:port needs", () => {
+    const ipv6: CompatibleIngestEndpoint = {
+      protocol: "https",
+      host: "[::1]:8443",
+      key: KEY,
+    };
+
+    // Fluent Bit 3.2.10 on "[::1]": "Misformatted domain name", nothing sent.
+    expect(codeOf(CompatibleIngestMethod.Loki, ipv6)).toMatch(
+      /Host\s+::1\n\s+Port\s+8443\n/,
+    );
+    expect(getFluentBitHostAndPort(ipv6).host).toBe("::1");
+    expect(getFluentBitHostAndPort(CLOUD).host).toBe("oneuptime.com");
+    expect(getFluentBitHostAndPort(LOCAL).host).toBe("localhost");
+    expect(codeOf(CompatibleIngestMethod.Datadog, ipv6)).toContain(
+      "logs_dd_url: [::1]:8443",
+    );
+  });
+
   test("Splunk HEC: the Docker driver gets the bare origin, as it adds the path itself", () => {
     const code: string = codeOf(CompatibleIngestMethod.SplunkHec, CLOUD);
 
@@ -359,6 +379,44 @@ describe("helpers", () => {
       expected: { hostname: string; port: string },
     ) => {
       expect(getHostAndPort(endpoint)).toEqual(expected);
+    },
+  );
+
+  /*
+   * What every Fluent Bit file the guides hand out says as Host and Port
+   * (#7889): the port comes off HOST, and an IPv6 address goes without its
+   * brackets, which Fluent Bit cannot resolve.
+   */
+  test.each<[string, string, { host: string; port: string }]>([
+    ["https", "[::1]:8080", { host: "::1", port: "8080" }],
+    ["https", "[::1]", { host: "::1", port: "443" }],
+    ["http", "[2001:db8::1]:8443", { host: "2001:db8::1", port: "8443" }],
+    ["http", "[2001:db8::1]", { host: "2001:db8::1", port: "80" }],
+    ["http", "10.0.0.5:8080", { host: "10.0.0.5", port: "8080" }],
+    ["https", "10.0.0.5", { host: "10.0.0.5", port: "443" }],
+    ["https", "oneuptime.com", { host: "oneuptime.com", port: "443" }],
+    [
+      "http",
+      "oneuptime.internal:8080",
+      { host: "oneuptime.internal", port: "8080" },
+    ],
+    ["http", "localhost:3000", { host: "localhost", port: "3000" }],
+    ["http", "localhost", { host: "localhost", port: "80" }],
+    [
+      "https",
+      "<YOUR_ONEUPTIME_HOST>",
+      { host: "<YOUR_ONEUPTIME_HOST>", port: "443" },
+    ],
+  ])(
+    "getFluentBitHostAndPort, %s://%s",
+    (
+      protocol: string,
+      host: string,
+      expected: { host: string; port: string },
+    ) => {
+      expect(getFluentBitHostAndPort({ protocol, host, key: KEY })).toEqual(
+        expected,
+      );
     },
   );
 });

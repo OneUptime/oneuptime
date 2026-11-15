@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "{{total}} incidenter rapporterade den här dagen",
     "scheduledMaintenance": "Planerat underhåll",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "1 planerat underhåll",
-    "maintenanceEvents": "{{total}} planerade underhåll",
+    "oneMaintenanceEvent": "1 underhållshändelse",
+    "maintenanceEvents": "{{total}} underhållshändelser",
     "moreMaintenance": "+{{total}} till"
   },
   "liveStatus": {
@@ -448,6 +448,17 @@
   "Loading": "Laddar",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} är inte giltig JSON. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} är inte giltig YAML. {{parserMessage}}",
+  "Click to reveal": "Klicka för att visa",
+  "Click to copy": "Klicka för att kopiera",
+  "Main navigation": "Huvudnavigering",
+  "Navigate to": "Navigera till",
+  "Navigation": "Navigering",
+  "Breadcrumb": "Sökväg",
+  "Skip to main content": "Hoppa till huvudinnehåll",
+  "Copy": "Kopiera",
+  "Copied!": "Kopierat!",
+  "Copy failed": "Kopieringen misslyckades",
+  "Hide": "Dölj",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",

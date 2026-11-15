@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { setDateDisplayLanguage } from "../../../../Types/DateLanguage";
 import {
   CONTINUATION_FADE_PX,
   DEFAULT_BAND_WIDTH_PX,
@@ -1307,39 +1308,45 @@ describe("formatStatusTimelineShare", () => {
   });
 });
 
+/*
+ * The legend's duration, from its seconds: the timelines' own wording kept
+ * to its two largest units (each language in
+ * StatusTimelineDurationInLocale.test.tsx).
+ */
 describe("formatStatusTimelineCompactDuration", () => {
   test("keeps the two largest units of the timelines' wording", () => {
     expect(
-      formatStatusTimelineCompactDuration("29 days 23 hours 52 mins 12 secs"),
+      formatStatusTimelineCompactDuration(
+        29 * 86400 + 23 * 3600 + 52 * 60 + 12,
+      ),
     ).toBe("29 days 23 hours");
-    expect(formatStatusTimelineCompactDuration("1 hour 2 mins 3 secs")).toBe(
+    expect(formatStatusTimelineCompactDuration(3600 + 2 * 60 + 3)).toBe(
       "1 hour 2 mins",
     );
   });
 
   /*
    * German lists its units with commas ("26 Tg., 22 Std., 5 Min. und
-   * 3 Sek."): cut to two units, the legend read "26 Tg., 22 Std.,".
+   * 3 Sek."): cut by its words, the legend read "26 Tg., 22 Std.,". Cut by
+   * its units, there is no comma after the second to drop.
    */
-  test("a list comma after the second unit goes with the units cut", () => {
-    expect(
-      formatStatusTimelineCompactDuration("26 Tg., 22 Std., 5 Min. und 3 Sek."),
-    ).toBe("26 Tg., 22 Std.");
-    expect(
-      formatStatusTimelineCompactDuration(
-        "3 \u0623\u064a\u0627\u0645\u060c 4 \u0633\u060c 5 \u062f",
-      ),
-    ).toBe("3 \u0623\u064a\u0627\u0645\u060c 4 \u0633");
-    expect(
-      formatStatusTimelineCompactDuration(
-        "26 \u65e5\u3001 22 \u6642\u9593\u3001 5 \u5206",
-      ),
-    ).toBe("26 \u65e5\u3001 22 \u6642\u9593");
+  test("German keeps no list comma after the second unit", () => {
+    setDateDisplayLanguage("de");
+
+    try {
+      expect(
+        formatStatusTimelineCompactDuration(
+          26 * 86400 + 22 * 3600 + 5 * 60 + 3,
+        ),
+      ).toBe("26 Tg., 22 Std.");
+    } finally {
+      setDateDisplayLanguage("en");
+    }
   });
 
   test("a short duration reads whole", () => {
-    expect(formatStatusTimelineCompactDuration("38 secs")).toBe("38 secs");
-    expect(formatStatusTimelineCompactDuration(" 41 mins 1 sec ")).toBe(
+    expect(formatStatusTimelineCompactDuration(38)).toBe("38 secs");
+    expect(formatStatusTimelineCompactDuration(41 * 60 + 1)).toBe(
       "41 mins 1 sec",
     );
   });

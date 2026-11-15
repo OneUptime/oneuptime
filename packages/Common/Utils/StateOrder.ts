@@ -140,10 +140,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
   [StateListType.ScheduledMaintenanceState]: {
     type: StateListType.ScheduledMaintenanceState,
     orderColumn: "order",
-    subject: {
-      singular: "scheduled maintenance event",
-      plural: "scheduled maintenance events",
-    },
+    subject: { singular: "maintenance event", plural: "maintenance events" },
     builtIns: [
       { flag: "isScheduledState", role: "scheduled state" },
       { flag: "isOngoingState", role: "ongoing state" },

@@ -39,7 +39,7 @@ Dra ett kort i dess handtag för att flytta det, eller använd **Flytta upp** oc
 
 ### Spara formuläret
 
-**Spara ändringar** sparar alla ändringar på en gång. Tills du sparar säger byggaren **Osparade ändringar** och erbjuder **Kasta ändringar**, och webbläsaren frågar innan du lämnar sidan.
+**Spara ändringar** sparar alla ändringar på en gång. Tills du sparar säger byggaren **Osparade ändringar** och erbjuder **Kasta ändringar**. Att lämna byggaren innan du har sparat frågar först. En länk i sidomenyn, brödsmulorna eller det övre fältet, eller webbläsarens bakåt- och framåtknappar, öppnar **Lämna utan att spara?** med två val: **Fortsätt redigera** stannar i byggaren med dina ändringar, och **Kasta ändringar** går vidare till sidan du var på väg till. Stänger eller laddar du om fliken frågar webbläsaren med sin egen dialogruta.
 :::
 
 - **Formulärets sidhuvud** visar dess namn och beskrivning som den offentliga sidan kommer att göra. **Redigera namn och beskrivning** ändrar dem.

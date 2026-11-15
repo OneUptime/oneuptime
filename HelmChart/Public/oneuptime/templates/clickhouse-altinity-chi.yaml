@@ -1,6 +1,7 @@
 {{- $altinity := .Values.clickhouseOperator.altinity }}
 {{- if $altinity.enabled }}
-{{- $username := $altinity.auth.username | default "oneuptime" }}
+{{- /* The user the app connects as (its CLICKHOUSE_USER, which oneuptime.envValue writes without the whitespace around it). */}}
+{{- $username := $altinity.auth.username | default "oneuptime" | toString | trim }}
 apiVersion: clickhouse.altinity.com/v1
 kind: ClickHouseInstallation
 metadata:

@@ -10,7 +10,11 @@ import {
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
-import { getRecordAiTokenLimitMessage } from "../../../../Types/AI/RecordAiTokenLimit";
+import {
+  AiRunRefusalCode,
+  getAiRunRefusalMessage,
+  getRecordAiTokenLimitRefusal,
+} from "../../../../Types/AI/AiRunRefusal";
 import AIRunService from "../../../Services/AIRunService";
 import { AutonomousBudgetStatus } from "../../../Services/AIService";
 import AlertService from "../../../Services/AlertService";
@@ -132,8 +136,10 @@ export interface RuleWaitResult extends RuleWaitSubject {
 }
 
 /*
- * Why someone's "Investigate now" did not start the investigation. Server
- * English, shown as the action's error.
+ * Why someone's "Investigate now" did not start the investigation: the
+ * refusal's code and its English sentence (Types/AI/AiRunRefusal), the
+ * action's error. The Dashboard words the code in the reader's language
+ * (#7359).
  */
 export type StartNowProblem =
   | "not_waiting"
@@ -142,28 +148,32 @@ export type StartNowProblem =
 
 export type StartNowResult =
   | { isStarted: true; runId: ObjectID }
-  | { isStarted: false; problem: StartNowProblem; message: string };
+  | {
+      isStarted: false;
+      problem: StartNowProblem;
+      refusalCode: AiRunRefusalCode;
+      message: string;
+    };
 
-const START_NOW_MESSAGES: Partial<Record<StartNowProblem, string>> = {
-  not_waiting:
-    "OneUptime AI is no longer waiting to investigate this. Refresh to see where it stands.",
-  already_investigated: "OneUptime AI has already started investigating this.",
-  ai_disabled:
-    "AI is turned off for this project (Project Settings → AI → AI Features).",
-  provider_missing:
-    "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
-  insufficient_ai_balance:
-    "This project is out of AI credits (Project Settings → AI → AI Credits).",
-  project_daily_limit_reached:
-    "This project has reached its own daily AI limit. It resets at midnight UTC.",
+/*
+ * What stops OneUptime AI for the project is said as Try again says it
+ * (InvestigationTryAgain): one sentence per cause, naming who can change
+ * it, whichever button was pressed.
+ */
+export const START_NOW_REFUSALS: Partial<
+  Record<StartNowProblem, AiRunRefusalCode>
+> = {
+  not_waiting: AiRunRefusalCode.NotWaiting,
+  already_investigated: AiRunRefusalCode.AlreadyInvestigated,
+  ai_disabled: AiRunRefusalCode.AiOff,
+  provider_missing: AiRunRefusalCode.NoProviderToInvestigate,
+  insufficient_ai_balance: AiRunRefusalCode.AiCreditsUsedUp,
+  project_daily_limit_reached: AiRunRefusalCode.ProjectDailyLimitReached,
   /*
    * daily_budget_exhausted is the record's own limit, worded by its kind
-   * and whether a limit of 0 pauses it (getRecordAiTokenLimitMessage).
+   * and whether a limit of 0 pauses it (getRecordAiTokenLimitRefusal).
    */
 };
-
-const START_NOW_FALLBACK_MESSAGE: string =
-  "The investigation could not be started. Try again in a moment.";
 
 export default class InvestigationRuleWait {
   /*
@@ -849,16 +859,19 @@ function startNowProblem(
     budget?: AutonomousBudgetStatus | undefined;
   },
 ): StartNowResult {
+  const refusalCode: AiRunRefusalCode =
+    problem === "daily_budget_exhausted" && tokenLimit
+      ? getRecordAiTokenLimitRefusal(
+          tokenLimit.lane === "Alert" ? "alert" : "incident",
+          tokenLimit.budget,
+        )
+      : START_NOW_REFUSALS[problem] || AiRunRefusalCode.InvestigationNotStarted;
+
   return {
     isStarted: false,
     problem,
-    message:
-      problem === "daily_budget_exhausted" && tokenLimit
-        ? getRecordAiTokenLimitMessage(
-            tokenLimit.lane === "Alert" ? "alert" : "incident",
-            tokenLimit.budget,
-          )
-        : START_NOW_MESSAGES[problem] || START_NOW_FALLBACK_MESSAGE,
+    refusalCode,
+    message: getAiRunRefusalMessage(refusalCode),
   };
 }
 

@@ -155,9 +155,9 @@ export default class DayUptimeGraphUtil {
     uptimePercent: number;
     incidentCount: number;
     /*
-     * The day's scheduled maintenance events (UptimeMaintenanceUtil), said
-     * after everything else: "Oct 21, 2026: 66.69% uptime, 1 scheduled
-     * maintenance event". A screen reader hears what the bar's mark shows.
+     * The day's maintenance events (UptimeMaintenanceUtil), said after
+     * everything else: "Oct 21, 2026: 66.69% uptime, 1 maintenance event".
+     * A screen reader hears what the bar's mark shows.
      */
     maintenanceCount?: number | undefined;
     labels?: UptimeHistoryLabels | undefined;
@@ -203,8 +203,8 @@ export default class DayUptimeGraphUtil {
   }
 
   /*
-   * "1 scheduled maintenance event", "3 scheduled maintenance events": the
-   * count a day's accessible name and its dialog read out.
+   * "1 maintenance event", "3 maintenance events": the count a day's
+   * accessible name and its dialog read out.
    */
   public static getMaintenanceCountLabel(data: {
     count: number;

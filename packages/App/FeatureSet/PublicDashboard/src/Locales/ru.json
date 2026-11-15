@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "Для этого нужна последняя версия. Сохраните изменения, затем перезагрузите страницу.",
   "This couldn't be loaded.": "Не удалось загрузить.",
   "Something went wrong": "Что-то пошло не так",
-  "An unexpected error has occurred. Please reload the page to continue": "Произошла непредвиденная ошибка. Перезагрузите страницу, чтобы продолжить"
+  "An unexpected error has occurred. Please reload the page to continue": "Произошла непредвиденная ошибка. Перезагрузите страницу, чтобы продолжить",
+  "Click to reveal": "Нажмите, чтобы показать",
+  "Click to copy": "Нажмите, чтобы скопировать",
+  "Copy": "Скопировать",
+  "Copied!": "Скопировано!",
+  "Copy failed": "Не удалось скопировать",
+  "Hide": "Скрыть"
 }

@@ -64,7 +64,7 @@ export const CHANNEL_NAME_PREFIX_DESCRIPTIONS: Record<
     "Each new channel is named after its alert episode. Anything you write here goes in front of that name.",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
+    "Each new channel is named after its maintenance event. Anything you write here replaces the event's number prefix.",
   ),
   [NotificationRuleEventType.Monitor]: translationKey(
     "Each new channel is named after its monitor. Anything you write here goes in front of that name.",
@@ -90,7 +90,7 @@ export const CHANNEL_NAME_EXAMPLE_RECORD_SENTENCES: Record<
     "For alert episode {{record}}.",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "For scheduled maintenance event {{record}}.",
+    "For maintenance event {{record}}.",
   ),
   [NotificationRuleEventType.Monitor]: translationKey(
     "For the monitor {{record}}.",

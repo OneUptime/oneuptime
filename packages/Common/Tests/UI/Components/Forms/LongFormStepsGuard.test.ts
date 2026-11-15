@@ -247,13 +247,14 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
   },
   /*
    * "Adding an on-call override asks who is away and who covers, in plain
-   * words, starting now" (UserOverrideFormGuard).
+   * words, starting now" (UserOverrideFormGuard). The same dialog edits one
+   * (issue #7631), from every list of overrides.
    */
   {
-    file: `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx`,
-    form: "ModelTable: On-Call Policy > User Overrides",
+    file: `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideFormModal.tsx`,
+    form: "ModelFormModal: On-Call Policy > User Overrides",
     reason:
-      "Adding a user override: who is away (you, to start with), who covers, when it starts (now) and when it ends - four short rows, two of them filled in. They are read back together before saving, so nobody books an override the wrong way round or for the wrong week. As two steps (Users, Time Window) the end only came after a Next, a page away from who it was for.",
+      "Adding or editing a user override: who is away (you, to start with), who covers, when it starts (now) and when it ends - four short rows, two of them filled in. They are read back together before saving, so nobody books an override the wrong way round or for the wrong week, and what the times picked overlap is said under Ends as they are picked. As two steps (Users, Time Window) the end only came after a Next, a page away from who it was for.",
   },
   /*
    * "Skip until..." on a person in a schedule layer opens the same form

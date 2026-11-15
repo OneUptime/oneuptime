@@ -322,10 +322,23 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
             continue;
           }
 
-          await overrides.createOverride({
-            ...result.input,
-            onCallDutyPolicyId: policy.policyId,
-          });
+          try {
+            await overrides.createOverride({
+              ...result.input,
+              onCallDutyPolicyId: policy.policyId,
+            });
+          } catch (err: unknown) {
+            /*
+             * With more than one policy ticked, a refusal says which policy
+             * it is about: the server's own words ("already covered ... on
+             * this policy") name none.
+             */
+            throw pickedPolicies.length > 1
+              ? new Error(
+                  `${policy.policyName}: ${getFriendlyErrorMessage(err)}`,
+                )
+              : err;
+          }
           savedPolicyIds.current.add(policy.policyId);
         }
       } else {

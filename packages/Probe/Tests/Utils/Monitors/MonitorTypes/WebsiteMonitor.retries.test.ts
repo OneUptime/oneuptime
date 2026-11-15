@@ -294,6 +294,13 @@ describe("WebsiteMonitor retries", () => {
 
       expect(response!.isOnline).toBe(false);
       expect(response!.isTimeout).toBe(true);
+      /*
+       * Byte for byte the English the probe always stored (monitor
+       * criteria compare it), from ProbeFailureReading's one template.
+       */
+      expect(response!.failureCause).toBe(
+        "Request was tried " + (retries + 1) + " times and it timed out.",
+      );
       expect(response!.totalAttempts).toBe(retries + 1);
       expect(fetchSpy).toHaveBeenCalledTimes(retries + 1);
       expect(sleepSpy).toHaveBeenCalledTimes(retries);

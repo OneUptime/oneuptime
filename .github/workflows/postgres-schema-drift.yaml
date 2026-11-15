@@ -544,6 +544,45 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorProbeClaimPostgres.test.ts --forceExit
 
+      # Checks the migrated MonitorProbe and NetworkDevice tables' indexes and
+      # fillfactor, then clones them (with Project, Probe and Monitor) into an
+      # isolated schema and reads pg_stat_user_tables around each write of a
+      # probe cycle (issue #7921). A probe's result and a reachable poll's
+      # verdict and rate baseline must be HOT updates, which write no index
+      # entry. The claims cannot be, and with lastSeenAt indexed again the
+      # verdict is not either.
+      - name: Test which probe table writes are HOT updates against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_TABLE_HOT_UPDATE_TESTS: "true"
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_TABLE_HOT_UPDATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/ProbeTablesHotUpdatesPostgres.test.ts --forceExit
+
+      # The monitor result path against the migrated tables, cloned into
+      # isolated schemas: a probe result's one statement that stores it as
+      # the probe's last for its step and reads the other probes' result of
+      # the step judged (MonitorProbeLastResults), and how many statements
+      # each kind of result costs - healthy, a status change, one that opens
+      # an incident and an alert, the one that resolves them - pinned.
+      - name: Test the monitor result path's statements against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_RESULT_PATH_TESTS: "true"
+          MONITOR_RESULT_PATH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_RESULT_PATH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_RESULT_PATH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Monitor/MonitorProbeLastResultsPostgres.test.ts
+          Tests/Server/Utils/Monitor/MonitorResultStatementsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write
       # once and let exactly one racing save win, no workflow may take
@@ -609,6 +648,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Runbook/RunbookApprovalsMovePostgres.test.ts --forceExit
+
+      # Checks the migrated Monitor table's indexes (all valid, none on a
+      # column the busiest writes move) and fillfactor (90), then clones it
+      # with Project into an isolated schema: a device delete's count of its
+      # monitors and its foreign key check, the Monitors menu's counts, the
+      # list's first page and a heartbeat sweep's page must each be
+      # answerable from their index, and the telemetry, heartbeat and server
+      # writes must be HOT updates (MatchMonitorIndexesToTheirReads,
+      # SetMonitorFillfactor).
+      - name: Test Monitor's indexes and HOT updates against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_INDEX_TESTS: "true"
+          MONITOR_INDEX_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_INDEX_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_INDEX_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MonitorIndexesPostgres.test.ts --forceExit
 
       # Clones the migrated RunnerJob and Project tables into an isolated
       # schema and runs the global Runners' claim against them: the oldest
@@ -813,6 +872,48 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkDevicePollOrderPostgres.test.ts --forceExit
+
+      # Checks the migrated NetworkInterface table's fillfactor and indexes,
+      # then clones it (with NetworkDevice) into an isolated schema and reads
+      # pg_stat_user_tables around each poll: identical polls write each
+      # interface only at its fifteen-minute refreshes, as HOT updates once
+      # the table has settled, where writing every poll (as before) wrote it
+      # twelve times an hour; a changed port is written on the poll that saw
+      # it; an older walk processed late leaves what a newer one confirmed;
+      # no walk writes isMonitored.
+      - name: Test which network interface writes repeated polls make against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_INTERFACE_WRITE_TESTS: "true"
+          NETWORK_INTERFACE_WRITE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_INTERFACE_WRITE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_INTERFACE_WRITE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkInterfaceWritesPostgres.test.ts --forceExit
+
+      # Clones the migrated NetworkEndpoint table into an isolated schema and
+      # runs the endpoint write's own statements against it, reading
+      # pg_stat_user_tables after each poll (issue #8092): no index names a
+      # column an unchanged endpoint's refresh changes; identical polls write
+      # each endpoint four times an hour, a third of each switch a poll, as
+      # HOT updates once the table has settled into its room (fillfactor
+      # 80), where the walk as it was (every other poll, all at once,
+      # lastSeenAt indexed) wrote it six times and none HOT; coarseLastSeenAt
+      # steps once a day; the backfill copies lastSeenAt into the rows no walk
+      # reached, and leaves a row a walk wrote first.
+      - name: Test which network endpoint writes repeated polls make against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_ENDPOINT_WRITE_TESTS: "true"
+          NETWORK_ENDPOINT_WRITE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_ENDPOINT_WRITE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_ENDPOINT_WRITE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkEndpointWritesPostgres.test.ts --forceExit
 
       # Clones the migrated NetworkEndpoint, NetworkDevice,
       # NetworkTopologySuppression and Project tables into isolated schemas
@@ -1730,6 +1831,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProjectPlanLimitsPostgres.test.ts --forceExit
 
+      # #7630: one person's user overrides may not overlap on one policy, or
+      # when both are global. Clones every migrated table into an isolated
+      # schema and races adds and edits through the real override service:
+      # twelve overlapping adds, held until every one has passed its checks,
+      # save exactly one; an add and an edit, or two edits, that overlap
+      # only with each other cannot both pass (each check is made with its
+      # write under the project's lock on override times); back to back,
+      # other people, other policies and global beside a policy's all save.
+      - name: Test user overrides that may not overlap on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_USER_OVERRIDE_OVERLAP_TESTS: "true"
+          USER_OVERRIDE_OVERLAP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          USER_OVERRIDE_OVERLAP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          USER_OVERRIDE_OVERLAP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserOverrideOverlapPostgres.test.ts --forceExit
+
       # Clones every migrated table into an isolated schema and holds a status
       # page to each contact once, however it is written, through the real
       # subscriber service: twelve creates of one phone number written
@@ -2364,10 +2485,11 @@ jobs:
 
       # DatabaseService takes a page of a joined read in one query where one
       # query gives the same page (PagedFind: every join to-one, or a record
-      # named by its primary key); TypeORM takes it in two. Holds both to
-      # the same pages of monitors, monitor probes and incidents with their
-      # relations, ties and deleted rows. Clones the migrated tables into an
-      # isolated schema.
+      # named by its primary key), and the ids of a page whose to-many joins
+      # are only selected from the table itself; TypeORM takes them in two
+      # over every join. Holds both to the same pages of monitors, monitor
+      # probes and incidents with their relations, ties and deleted rows.
+      # Clones the migrated tables into an isolated schema.
       - name: Test one-query pages of joined reads on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -2379,6 +2501,64 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/PagedFindPostgres.test.ts
+          --forceExit
+
+      # A list's count stops at the cap it asks for (CappedCount: the read's
+      # own query with LIMIT upTo + 1, counted). Holds its answers to
+      # repository.count's, or upTo + 1, for reads by project, through
+      # labels that repeat a record in the join, through a to-one relation,
+      # with deleted rows and alternatives. Clones the migrated tables into
+      # an isolated schema.
+      - name: Test capped list counts on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CAPPED_COUNT_TESTS: "true"
+          CAPPED_COUNT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CAPPED_COUNT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CAPPED_COUNT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/CappedCountPostgres.test.ts
+          --forceExit
+
+      # Checks the migrated Alert and Incident tables carry ("projectId",
+      # "createdAt"), valid, in place of their bare "projectId" index, then
+      # clones them with their labels into an isolated schema: a list's page,
+      # newest first, takes its ids from that index in order with no sort of
+      # the project (first page, a later one, a member's privacy-filtered
+      # one), its rows by primary key, and its capped count stops reading at
+      # the cap (AddAlertAndIncidentListIndexes).
+      - name: Test the Alerts and Incidents lists' indexes on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ALERT_INCIDENT_LIST_INDEX_TESTS: "true"
+          ALERT_INCIDENT_LIST_INDEX_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ALERT_INCIDENT_LIST_INDEX_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ALERT_INCIDENT_LIST_INDEX_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddAlertAndIncidentListIndexesPostgres.test.ts
+          --forceExit
+
+      # The Network Overview counts the fleet in one scan
+      # (NetworkDeviceService.getFleetScan) where it ran four reads: the
+      # summary strip's numbers, the health buckets, the vendor breakdown and
+      # the SNMP-failing count. Holds the folded scan to all four, run as
+      # they were, over a fleet on every health boundary and again after an
+      # outage. Clones the migrated table into an isolated schema.
+      - name: Test the Network Overview's fleet scan on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_FLEET_SCAN_TESTS: "true"
+          NETWORK_FLEET_SCAN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_FLEET_SCAN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_FLEET_SCAN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkFleetScanPostgres.test.ts
           --forceExit
 
       # Clones the migrated alert, note, service, AI insight, team, API key
@@ -2776,6 +2956,47 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/DataStoreProbeClaimPostgres.test.ts --forceExit
 
+      # Clones the migrated Project, Probe, DataSecuritySetting, DataStore,
+      # VMwareVCenter, OpenStackCloud and OpenStackCloudCheck tables, indexes
+      # included, into an isolated schema and runs the set-aside after the
+      # probes' collection and scan claims (issue #7919): a due row nothing
+      # may claim stops being due once a claim has stepped over it, a
+      # claimable one never is, a row with no due time is made due, a row
+      # another writer holds is skipped, and making a row claimable brings it
+      # back at once - winning a race with a set-aside in flight. EXPLAIN
+      # shows each claim's read served by its (probe, due) index.
+      - name: Test the set-aside of the probes' collection and scan claims on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_COLLECTION_SET_ASIDE_TESTS: "true"
+          PROBE_COLLECTION_SET_ASIDE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_COLLECTION_SET_ASIDE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_COLLECTION_SET_ASIDE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProbeCollectionClaimSetAsidePostgres.test.ts --forceExit
+
+      # Clones the migrated Project, MonitorStatus, Monitor and NetworkDevice
+      # tables into an isolated schema and runs AddMonitorNetworkDevice and
+      # BackfillMonitorNetworkDevice there: the table a device's poll and its
+      # traps find their monitors through, and the triggers on "Monitor" that
+      # keep it. The backfill writes the existing monitors' rows; every write
+      # to a monitor's steps, type, project or deletion keeps them right; a
+      # status or heartbeat write never runs the trigger; bad steps still
+      # save; the poll's lookup reads the device index; down() undoes it all.
+      - name: Test the network device monitor links on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_NETWORK_DEVICE_TESTS: "true"
+          MONITOR_NETWORK_DEVICE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_NETWORK_DEVICE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_NETWORK_DEVICE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MonitorNetworkDevicePostgres.test.ts --forceExit
+
       # Clones the migrated InstanceReceivingPeriod table into an isolated
       # schema and runs the receiving ledger's SQL (issue #2825): heartbeats
       # extend a stretch on the database's clock, one after more than the gap
@@ -3142,6 +3363,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
+      # The episode auto-resolve aggregate query (EpisodeAutoResolve) on the
+      # migrated AlertEpisodeMember / Alert / AlertState and incident tables'
+      # structure: one query per page counts each episode's members and the
+      # unresolved ones, as the per-episode reads it replaced counted them -
+      # members that left, deleted records, states that are gone or unset.
+      - name: Test the episode auto-resolve aggregate query on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EPISODE_AUTO_RESOLVE_TESTS: "true"
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_AUTO_RESOLVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/Utils/EpisodeAutoResolvePostgres.test.ts --forceExit
+
       # An Incoming Request monitor's latest request, kept twice (#6402): the
       # column 1809080466402 adds is a nullable jsonb; a request is written
       # as it came and cut in one statement; changing Keep request content
@@ -3201,6 +3439,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ExceptionMergePostgres.test.ts --forceExit
 
+      # A key used only over OTLP gRPC shows as used (#7887), end to end: the
+      # production gRPC server on a loopback port, a real client's OTLP
+      # export, the key resolved from Postgres and its lastUsedAt written by
+      # the throttled stamp the HTTP ingest middleware shares. An accepted
+      # export stamps its own key's row, once per throttle window, leaving
+      # updatedAt alone; a refused key, a blocked or unpaid project, a
+      # budget refusal and a failed enqueue stamp nothing. Clones the
+      # migrated Project and TelemetryIngestionKey into an isolated schema.
+      - name: Test that a key used only over OTLP gRPC is stamped as used on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_GRPC_KEY_LAST_USED_TESTS: "true"
+          GRPC_KEY_LAST_USED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GRPC_KEY_LAST_USED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GRPC_KEY_LAST_USED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/GrpcServerKeyLastUsedPostgres.test.ts --forceExit
+
       # An exception's activity timeline: a triage written through the
       # service's updates leaves its rows (and one that changes nothing
       # leaves none), and a teammate reads only the timelines of the
@@ -3218,6 +3476,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/TelemetryExceptionActivityPostgres.test.ts --forceExit
+
+      # How many statements a sign-in and a request across someone's
+      # projects cost, pinned: a sign-in reads the person's memberships and
+      # their teams' permission rows once however many projects they are in,
+      # and a request across 300 projects reads their rows in one statement.
+      # Every set a sign-in writes is checked row for row against the
+      # per-project path, and the memberships read is checked to use the
+      # ("userId", "projectId") index. Clones the migrated Project, Team,
+      # TeamMember, TeamPermission and label tables into an isolated schema.
+      - name: Test the statements a sign-in and a request across projects cost on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SIGN_IN_STATEMENTS_TESTS: "true"
+          SIGN_IN_STATEMENTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SIGN_IN_STATEMENTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SIGN_IN_STATEMENTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/SignInStatementsPostgres.test.ts --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out

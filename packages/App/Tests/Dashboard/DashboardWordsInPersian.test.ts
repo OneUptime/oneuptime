@@ -703,7 +703,8 @@ describe("the titles every resource repeats, worded alike", () => {
     ["Deleted At", "زمان حذف"],
     ["Executed At", "زمان اجرا"],
     ["Last Active At", "زمان آخرین فعالیت"],
-    ["Enterprise License Expires At", "تاریخ انقضای مجوز سازمانی"],
+    // A license is پروانه, never مجوز (#7340).
+    ["Enterprise License Expires At", "تاریخ انقضای پروانهٔ سازمانی"],
     ["Schedule First Event At", "زمان اولین رویداد زمان‌بندی‌شده"],
     // The titles that were Persian before #7089 read the same way.
     ["Created At", "تاریخ ساخت"],
@@ -1229,6 +1230,95 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
       ),
     ).toEqual([]);
   });
+
+  /*
+   * A time zone is منطقه زمانی, with no ezafe mark (U+0654) on منطقه, as
+   * the glossary writes it (#7866). The Persian docs wrote it with the mark
+   * 31 times on 14 pages, three of them both ways, and so did one Dashboard
+   * text: the description of a product analytics event's daily chart.
+   */
+  const TIME_ZONE_IN_PERSIAN: string = "منطقه زمانی";
+  // A time zone's ezafe written with a hamza: the spelling the glossary does not use.
+  const TIME_ZONE_WITH_HAMZA: string = `منطقه${ch(0x654)} زمانی`;
+
+  const saysTimeZoneWithHamza: (text: string) => boolean = (
+    text: string,
+  ): boolean => {
+    return text.includes(TIME_ZONE_WITH_HAMZA);
+  };
+
+  // The numbers of a docs page's lines, outside fenced code, whose text `isSaid`.
+  const linesOn: (
+    markdown: string,
+    isSaid: (text: string) => boolean,
+  ) => Array<number> = (
+    markdown: string,
+    isSaid: (text: string) => boolean,
+  ): Array<number> => {
+    return proseLinesOf(markdown)
+      .filter(([, text]: [number, string]): boolean => {
+        return isSaid(text);
+      })
+      .map(([line]: [number, string]): number => {
+        return line;
+      });
+  };
+
+  // Every docs line, outside fenced code, whose text `isSaid`: page:line.
+  const docsLinesWhere: (isSaid: (text: string) => boolean) => Array<string> = (
+    isSaid: (text: string) => boolean,
+  ): Array<string> => {
+    return DOCS_PAGES.flatMap(
+      ([page, markdown]: [string, string]): Array<string> => {
+        return linesOn(markdown, isSaid).map((line: number): string => {
+          return `${page}:${line}`;
+        });
+      },
+    );
+  };
+
+  test("a time zone is منطقه زمانی, with no ezafe mark, in every Dashboard text and every Persian docs page", () => {
+    // Many say it, in both: a scan that reads nothing would pass.
+    expect(
+      WORDED.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(TIME_ZONE_IN_PERSIAN);
+      }).length,
+    ).toBeGreaterThan(40);
+    expect(
+      docsLinesWhere((text: string): boolean => {
+        return text.includes(TIME_ZONE_IN_PERSIAN);
+      }).length,
+    ).toBeGreaterThan(50);
+
+    expect({
+      texts: findWrong((_english: string, persian: string): boolean => {
+        return saysTimeZoneWithHamza(persian);
+      }),
+      docs: docsLinesWhere(saysTimeZoneWithHamza),
+    }).toEqual({ texts: [], docs: [] });
+  });
+
+  test("the time zone check finds the ezafe mark in a text and on a docs page, and leaves fenced code alone (control)", () => {
+    expect(
+      saysTimeZoneWithHamza(`روزها در ${TIME_ZONE_WITH_HAMZA} شما هستند.`),
+    ).toBe(true);
+    expect(
+      saysTimeZoneWithHamza(`روزها در ${TIME_ZONE_IN_PERSIAN} شما هستند.`),
+    ).toBe(false);
+    expect(
+      linesOn(
+        [
+          `روزها در ${TIME_ZONE_WITH_HAMZA} شما هستند.`,
+          `روزها در ${TIME_ZONE_IN_PERSIAN} شما هستند.`,
+          "```text",
+          TIME_ZONE_WITH_HAMZA,
+          "```",
+          `**${TIME_ZONE_IN_PERSIAN}** و ${TIME_ZONE_WITH_HAMZA}`,
+        ].join("\n"),
+        saysTimeZoneWithHamza,
+      ),
+    ).toEqual([1, 6]);
+  });
 });
 
 /*
@@ -1619,6 +1709,83 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
       }),
     ).not.toContain(copy);
   });
+
+  /*
+   * The Persian docs spell a load balancer as the Dashboard does (#7866).
+   * They wrote it with the ezafe mark (U+0654) 21 times on 14 pages, and
+   * once, on the self-hosting guide, as a distributor of load: the word
+   * #7679 took out of the Dashboard. Every page is read, not only
+   * PERSIAN_PAGES: a page still in English has no Persian to find, and a
+   * page translated later is read at once.
+   */
+  const DISTRIBUTOR: string = `توزیع${ZERO_WIDTH_NON_JOINER}کننده`;
+  // A load balancer spelt as the glossary does not: with the ezafe mark, or as a distributor.
+  const LOAD_BALANCER_SPELT_OTHERWISE: RegExp = new RegExp(
+    `${LOAD_BALANCER_WITH_HAMZA}|${DISTRIBUTOR}`,
+    "g",
+  );
+
+  // What a docs page says for a load balancer outside fenced code that the glossary does not, each with its line's number.
+  const loadBalancersSpeltOtherwiseOn: (markdown: string) => Array<string> = (
+    markdown: string,
+  ): Array<string> => {
+    return proseLinesOf(markdown).flatMap(
+      ([line, text]: [number, string]): Array<string> => {
+        return (text.match(LOAD_BALANCER_SPELT_OTHERWISE) || []).map(
+          (spelling: string): string => {
+            return `${line}: ${spelling}`;
+          },
+        );
+      },
+    );
+  };
+
+  test("the Persian docs spell a load balancer as the Dashboard does: never with the ezafe mark, never as a distributor", () => {
+    const found: Array<string> = DOCS_PAGES.flatMap(
+      ([page, markdown]: [string, string]): Array<string> => {
+        return loadBalancersSpeltOtherwiseOn(markdown).map(
+          (at: string): string => {
+            return `${page}:${at}`;
+          },
+        );
+      },
+    );
+    const lines: Array<[number, string]> = DOCS_PAGES.flatMap(
+      ([, markdown]: [string, string]): Array<[number, string]> => {
+        return proseLinesOf(markdown);
+      },
+    );
+
+    // Every page, and many lines that say one: a scan that reads none would pass.
+    expect(DOCS_PAGES.length).toBeGreaterThan(300);
+    expect(
+      lines.filter(([, text]: [number, string]): boolean => {
+        return text.includes(LOAD_BALANCER);
+      }).length,
+    ).toBeGreaterThan(30);
+    expect(found).toEqual([]);
+
+    // The pages #7866 named say it as the Dashboard does.
+    expect(persianPage("installation/self-hosting-guide.md")).toContain(
+      LOAD_BALANCER,
+    );
+    expect(persianPage("monitor/ip-monitor.md")).toContain(LOAD_BALANCER);
+  });
+
+  test("the docs check finds a load balancer with the ezafe mark or as a distributor, and leaves fenced code alone (control)", () => {
+    expect(
+      loadBalancersSpeltOtherwiseOn(
+        [
+          `یک ${LOAD_BALANCER_WITH_HAMZA} بیرونی`,
+          `یک ${LOAD_BALANCER} یا ${LOAD_BALANCERS}`,
+          "```text",
+          LOAD_BALANCER_WITH_HAMZA,
+          "```",
+          `پراکسی یا یک ${DISTRIBUTOR}${ch(0x654)} بار`,
+        ].join("\n"),
+      ),
+    ).toEqual([`1: ${LOAD_BALANCER_WITH_HAMZA}`, `6: ${DISTRIBUTOR}`]);
+  });
 });
 
 describe("pages #7089 met in English, in Persian", () => {
@@ -1725,5 +1892,174 @@ describe("the strings other apps share with the Dashboard", () => {
       PERSIAN.get("Twilio Auth Token"),
     );
     expect(admin.get("Twilio Account SID")).not.toBe("Twilio Account SID");
+  });
+});
+
+/*
+ * A PORT IS پورت (#7284).
+ *
+ * Persian names a network port پورت: the Port monitor, a probe's ports, a
+ * receiver's port field. Thirty-five texts said درگاه for one - the word
+ * for a gateway or a portal - ("درگاه TCP یا UDP برای بررسی"), so one page
+ * named the same port both ways. A text whose English says port or ports,
+ * and no gateway, never says درگاه in Persian; a gateway keeps it.
+ */
+describe("a port is پورت, never درگاه (#7284)", () => {
+  const PORT: RegExp = /\bports?\b/i;
+  const GATEWAY: RegExp = /gateway/i;
+  const GATEWAY_WORD: string = "درگاه";
+  const PORT_WORD: string = "پورت";
+
+  // Whether a Persian text names the port its English says as a gateway.
+  function saysPortAsGateway(english: string, persian: string): boolean {
+    return (
+      PORT.test(english) &&
+      !GATEWAY.test(english) &&
+      persian.includes(GATEWAY_WORD)
+    );
+  }
+
+  const PORT_TEXTS: Array<[string, string, string]> = WORDED.filter(
+    ([, english]: [string, string, string]): boolean => {
+      return PORT.test(english) && !GATEWAY.test(english);
+    },
+  );
+
+  test("no Persian Dashboard text about a port says درگاه", () => {
+    expect(findWrong(saysPortAsGateway)).toEqual([]);
+  });
+
+  test("they are hundreds, and almost every one says پورت", () => {
+    expect(PORT_TEXTS.length).toBeGreaterThan(150);
+    expect(
+      PORT_TEXTS.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(PORT_WORD);
+      }).length,
+    ).toBeGreaterThan(150);
+  });
+
+  test("a gateway keeps درگاه (control)", () => {
+    const gateways: Array<[string, string, string]> = WORDED.filter(
+      ([, english]: [string, string, string]): boolean => {
+        return GATEWAY.test(english) && !PORT.test(english);
+      },
+    );
+
+    expect(
+      gateways.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(GATEWAY_WORD);
+      }).length,
+    ).toBeGreaterThan(10);
+    expect(PERSIAN.get("How the gateway config works")).toContain(GATEWAY_WORD);
+  });
+
+  test("the check finds a port worded as a gateway, and nothing else (control)", () => {
+    expect(
+      saysPortAsGateway(
+        "The TCP or UDP port to check, like 443.",
+        "درگاه TCP یا UDP برای بررسی، مثلاً 443.",
+      ),
+    ).toBe(true);
+    expect(saysPortAsGateway("Ports", "درگاه‌ها")).toBe(true);
+    // "Report" and "Export" say no port; a gateway's port is the gateway's.
+    expect(saysPortAsGateway("Export the report", "درگاه")).toBe(false);
+    expect(saysPortAsGateway("The gateway's port", "پورت درگاه")).toBe(false);
+  });
+
+  test.each([
+    [
+      "The TCP or UDP port to check, like 443.",
+      "پورت TCP یا UDP برای بررسی، مثلاً 443.",
+    ],
+    [
+      "The host the port is on, like example.com.",
+      "میزبانی که پورت روی آن است، مثلاً example.com.",
+    ],
+    [
+      "Prometheus scrape: {{exporter}}, port {{port}}, path {{path}}",
+      "اسکرپ Prometheus: {{exporter}}، پورت {{port}}، مسیر {{path}}",
+    ],
+  ])("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
+  });
+
+  test.each(["AdminDashboard", "Accounts", "StatusPage", "PublicDashboard"])(
+    "%s's Persian file says پورت for a port too",
+    (app: string) => {
+      const english: Map<string, string> = leaves(readTree(app, "en"));
+      const persian: Map<string, string> = leaves(readTree(app, "fa"));
+
+      expect(
+        Array.from(english)
+          .filter(([key, text]: [string, string]): boolean => {
+            return saysPortAsGateway(text, persian.get(key) || "");
+          })
+          .map(([key]: [string, string]): string => {
+            return key;
+          }),
+      ).toEqual([]);
+    },
+  );
+
+  test("the Admin Dashboard's port fields say پورت", () => {
+    const english: Map<string, string> = leaves(
+      readTree("AdminDashboard", "en"),
+    );
+    const persian: Map<string, string> = leaves(
+      readTree("AdminDashboard", "fa"),
+    );
+    const ports: Array<string> = Array.from(english.keys()).filter(
+      (key: string): boolean => {
+        return PORT.test(english.get(key) || "");
+      },
+    );
+
+    expect(ports.length).toBeGreaterThan(5);
+    for (const key of ports) {
+      expect({
+        key,
+        says: (persian.get(key) || "").includes(PORT_WORD),
+      }).toEqual({ key, says: true });
+    }
+  });
+
+  /*
+   * The Persian guides for moving from another tool name each of its
+   * monitors in bold beside the OneUptime monitor it becomes: the Port
+   * monitor, which the Dashboard's monitor picker calls پورت.
+   */
+  test("the Persian guides for moving to OneUptime name the Port monitor as the Dashboard does", () => {
+    const guides: string = path.join(
+      APPS,
+      "Docs/Content/fa/moving-to-oneuptime",
+    );
+    const pages: Array<string> = fs
+      .readdirSync(guides)
+      .filter((file: string): boolean => {
+        return file.endsWith(".md");
+      });
+    const read: (page: string) => string = (page: string): string => {
+      return fs.readFileSync(path.join(guides, page), "utf8");
+    };
+
+    expect(PERSIAN.get("Port")).toBe(PORT_WORD);
+    expect(pages.length).toBeGreaterThan(5);
+    expect(
+      pages.filter((page: string): boolean => {
+        return read(page).includes(GATEWAY_WORD);
+      }),
+    ).toEqual([]);
+    for (const page of [
+      "uptimerobot.md",
+      "uptime-kuma.md",
+      "pingdom.md",
+      "statuscake.md",
+      "better-stack.md",
+    ]) {
+      expect({ page, says: read(page).includes(`${PORT_WORD} `) }).toEqual({
+        page,
+        says: true,
+      });
+    }
   });
 });

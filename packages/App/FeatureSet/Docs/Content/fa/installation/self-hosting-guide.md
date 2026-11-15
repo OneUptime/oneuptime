@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-از پیش یک پراکسی معکوس دارید، مانند Caddy، Nginx یا یک توزیع‌کنندهٔ بار؟ `PROVISION_SSL=false` را نگه دارید، `HTTP_PROTOCOL=https` و `TRUSTED_PROXY_HOPS=2` را بگذارید، و [استفاده از پراکسی معکوس خودتان](/docs/installation/docker-compose#استفاده-از-پراکسی-معکوس-خودتان) را ببینید.
+از پیش یک پراکسی معکوس دارید، مانند Caddy، Nginx یا یک متعادل‌کننده بار؟ `PROVISION_SSL=false` را نگه دارید، `HTTP_PROTOCOL=https` و `TRUSTED_PROXY_HOPS=2` را بگذارید، و [استفاده از پراکسی معکوس خودتان](/docs/installation/docker-compose#استفاده-از-پراکسی-معکوس-خودتان) را ببینید.
 @tab Kubernetes
 این مقدارها را در `values.yaml` بگذارید، سپس آن‌ها را اعمال کنید:
 

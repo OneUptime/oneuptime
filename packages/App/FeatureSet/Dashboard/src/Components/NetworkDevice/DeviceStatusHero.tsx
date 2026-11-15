@@ -41,7 +41,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -77,6 +77,11 @@ export interface DeviceHeroTileTitleProps {
  * the monitor that raises incidents. Tiles that only name something (Site,
  * Polled By) pass no description and get no (i). The loading skeleton draws
  * no titles at all, so this is the only branch that needs one.
+ *
+ * The (i) is in the title's own line of text, after its last word
+ * (WordsWithInfoTooltip): a title that wraps - German
+ * "Hardware-Betriebszeit" in a tile two to a row on a phone - keeps it
+ * after the word it ends on, not at the tile's far edge (issue #7348).
  */
 export const DeviceHeroTileTitle: FunctionComponent<
   DeviceHeroTileTitleProps
@@ -84,9 +89,15 @@ export const DeviceHeroTileTitle: FunctionComponent<
   const translator: Translator = useTranslator();
 
   return (
-    <div className="flex items-center gap-1 text-sm font-medium text-gray-500">
-      <span>{translator.translateText(props.title)}</span>
-      <InfoTooltip label={props.title} text={props.description} />
+    <div
+      className="text-sm font-medium text-gray-500"
+      data-testid="device-hero-tile-title"
+    >
+      <WordsWithInfoTooltip
+        text={translator.translateText(props.title) || props.title}
+        label={props.title}
+        description={props.description}
+      />
     </div>
   );
 };
@@ -101,23 +112,35 @@ export interface DeviceMonitorNotCheckedProps {
   readDeviceAgain: () => Promise<void>;
 }
 
+export interface DeviceMonitorNotCheckedActionsProps
+  extends DeviceMonitorNotCheckedProps {
+  // Spacing from what is above it, which differs by surface.
+  className?: string | undefined;
+}
+
 /*
- * The Monitor Status tile of a device whose bound monitor nothing checks
- * (issue #6965). Turned off, it says so in the words the monitor's own
- * pages use and carries their "Turn monitoring on" (useTurnMonitoringOn,
- * gated on the Monitoring switch's column): a one-press fix needs no trip to
- * another page. Archived, it says so and opens the monitor, whose banner
- * unarchives it - archiving is a bigger decision than a switch.
+ * The ways out for a device whose bound monitor nothing checks (issue
+ * #6965): "Turn monitoring on" when its monitoring is off, and "Open
+ * monitor" always. The device Overview hero's Monitor Status tile draws
+ * them under its words (DeviceMonitorNotChecked), and the Network Map's
+ * drawer under the device's status (issue #7346), so the two offer the
+ * same press, gated the same way.
+ *
+ * Turned off, "Turn monitoring on" is the monitor pages' own
+ * (useTurnMonitoringOn, gated on the Monitoring switch's column): a
+ * one-press fix needs no trip to another page. Archived, only the monitor
+ * is opened, whose banner unarchives it - archiving is a bigger decision
+ * than a switch.
  *
  * The save stamps the device with its monitor's status before it answers
  * (MonitorService.onUpdateSuccess), so the device is read again right after
- * it, and the press stays busy until that read is in: the tile moves from
- * "turned off" to the monitor's status, with no moment of a live button
- * beside words that are no longer true.
+ * it, and the press stays busy until that read is in: the surface moves
+ * from "turned off" to the monitor's status, with no moment of a live
+ * button beside words that are no longer true.
  */
-export const DeviceMonitorNotChecked: FunctionComponent<
-  DeviceMonitorNotCheckedProps
-> = (props: DeviceMonitorNotCheckedProps): ReactElement => {
+export const DeviceMonitorNotCheckedActions: FunctionComponent<
+  DeviceMonitorNotCheckedActionsProps
+> = (props: DeviceMonitorNotCheckedActionsProps): ReactElement => {
   const translator: Translator = useTranslator();
   const [isReadingAgain, setIsReadingAgain] = useState<boolean>(false);
 
@@ -128,7 +151,7 @@ export const DeviceMonitorNotChecked: FunctionComponent<
       props
         .readDeviceAgain()
         .catch(() => {
-          // The read keeps the hero as it was when it fails.
+          // A read that fails keeps what the surface shows as it was.
         })
         .finally(() => {
           setIsReadingAgain(false);
@@ -148,15 +171,12 @@ export const DeviceMonitorNotChecked: FunctionComponent<
   const isBusy: boolean = turnMonitoringOn.isSaving || isReadingAgain;
 
   return (
-    <div data-testid="device-hero-monitor-not-checked">
-      <div className="text-sm text-gray-500">
-        {translator.translateText(
-          props.isArchived
-            ? "Its monitor is archived"
-            : MonitoringSwitchCopy.bannerTitle,
-        )}
-      </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs">
+    <>
+      <div
+        className={`flex flex-wrap items-center gap-x-3 text-xs${
+          props.className ? ` ${props.className}` : ""
+        }`}
+      >
         {showsTurnOn && (
           /*
            * A link's look and hover, as the tile's other ways out. Its
@@ -198,6 +218,36 @@ export const DeviceMonitorNotChecked: FunctionComponent<
       ) : (
         <></>
       )}
+    </>
+  );
+};
+
+/*
+ * The Monitor Status tile of a device whose bound monitor nothing checks
+ * (issue #6965): what the monitor is, in the words its own pages use, and
+ * the ways out under it (DeviceMonitorNotCheckedActions).
+ */
+export const DeviceMonitorNotChecked: FunctionComponent<
+  DeviceMonitorNotCheckedProps
+> = (props: DeviceMonitorNotCheckedProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div data-testid="device-hero-monitor-not-checked">
+      <div className="text-sm text-gray-500">
+        {translator.translateText(
+          props.isArchived
+            ? "Its monitor is archived"
+            : MonitoringSwitchCopy.bannerTitle,
+        )}
+      </div>
+      <DeviceMonitorNotCheckedActions
+        monitorId={props.monitorId}
+        isArchived={props.isArchived}
+        monitorRoute={props.monitorRoute}
+        readDeviceAgain={props.readDeviceAgain}
+        className="mt-1"
+      />
     </div>
   );
 };

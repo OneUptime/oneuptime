@@ -254,12 +254,27 @@ function ingressListenEnvironment({
 /**
  * What envsubst-on-templates.sh exports to name the primary server by: HOST
  * without its port, which is all of a Host header that nginx compares with a
- * server name.
+ * server name. A bracketed IPv6 address keeps its brackets, as nginx keeps
+ * them in a Host ("[::1]:8080" is "[::1]"); one without brackets has no port,
+ * as all its colons are its own.
  *
  * PrimaryServerName.test.js runs the real script and holds it to this.
  */
 function primaryServerNameEnvironment(host = "") {
-  return { HOST_WITHOUT_PORT: host.split(":")[0] };
+  const closingBracket = host.indexOf("]");
+
+  if (host.startsWith("[") && closingBracket !== -1) {
+    return { HOST_WITHOUT_PORT: host.slice(0, closingBracket + 1) };
+  }
+
+  const colon = host.indexOf(":");
+
+  return {
+    HOST_WITHOUT_PORT:
+      colon === -1 || colon !== host.lastIndexOf(":")
+        ? host
+        : host.slice(0, colon),
+  };
 }
 
 function readNginxConf() {

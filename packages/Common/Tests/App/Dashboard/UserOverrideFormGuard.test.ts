@@ -30,14 +30,17 @@ import {
  *     away?", routeAlertsToUserId (or routeAlertsToUser) as "Who covers?",
  *     each with a people picker - never under the columns' own titles or
  *     a dropdown of their own;
- *   - the form is the User Overrides table's, one page of four rows: Who is
- *     away?, Who covers?, Starts, Ends - and the same form is the one "Skip
- *     until..." on a person in a schedule layer opens (SkipLayerUserModal),
- *     which only ever adds. For a reader whose permission covers only some
- *     policies it asks one thing more, below the four, when the server
- *     allows several of the schedule's policies: "On-call policies", which
- *     to add the skip on, each ticked - a choice of the form's own, never
- *     sent as a column.
+ *   - the form is the one dialog of an override (UserOverrideFormModal),
+ *     one page of four rows: Who is away?, Who covers?, Starts, Ends. It
+ *     adds one, from the User Overrides tables, and edits one (issue
+ *     #7631), from each of their rows and from a schedule's active
+ *     overrides card - the tables' own create and edit forms are not used.
+ *     The same four rows are the ones "Skip until..." on a person in a
+ *     schedule layer opens (SkipLayerUserModal), which only ever adds. For a
+ *     reader whose permission covers only some policies it asks one thing
+ *     more, below the four, when the server allows several of the
+ *     schedule's policies: "On-call policies", which to add the skip on,
+ *     each ticked - a choice of the form's own, never sent as a column.
  *
  * The detector is pinned on inline snippets first, then run over the real
  * tree with checks that it really read it.
@@ -55,6 +58,14 @@ const REPOSITORY_ROOT: string = path.resolve(
 
 const TABLE_FILE: string =
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx";
+
+// The one dialog that adds an override from the tables, and edits one.
+const DIALOG_FILE: string =
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideFormModal.tsx";
+
+// A schedule's active overrides card: Edit on each of its rows.
+const ACTIVE_OVERRIDES_FILE: string =
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard.tsx";
 
 /*
  * "Skip until..." on a person in a schedule layer: the same form, opened with
@@ -277,7 +288,7 @@ describe("the project's forms", () => {
     ).toEqual([]);
   });
 
-  test("save a user override only on the User Overrides table, and from Skip until... on a person in a layer", () => {
+  test("save a user override only in its one dialog, and from Skip until... on a person in a layer", () => {
     expect(
       overrideForms
         .map((form: FormFacts): string => {
@@ -286,14 +297,34 @@ describe("the project's forms", () => {
         .sort(),
     ).toEqual(
       [
-        `${TABLE_FILE} ModelTable: On-Call Policy > User Overrides`,
+        `${DIALOG_FILE} ModelFormModal: On-Call Policy > User Overrides`,
         `${SKIP_MODAL_FILE} ModelFormModal: Skip in the rotation`,
       ].sort(),
     );
   });
 
+  test("the User Overrides tables open the one dialog for Add and for each row's Edit, as a schedule's active overrides card does", () => {
+    const table: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, TABLE_FILE),
+      "utf8",
+    );
+
+    // The table's own forms are not used: Add and Edit open the dialog.
+    expect(table).toContain("onCreateClick={");
+    expect(table).toContain("isEditable={false}");
+    expect(table).toContain("<UserOverrideFormModal");
+    expect(table).toContain('title: "Edit",');
+
+    expect(
+      fs.readFileSync(
+        path.join(REPOSITORY_ROOT, ACTIVE_OVERRIDES_FILE),
+        "utf8",
+      ),
+    ).toContain("<UserOverrideFormModal");
+  });
+
   describe.each([
-    ["the Add User Override form", TABLE_FILE],
+    ["the User Override dialog", DIALOG_FILE],
     ["Skip until... on a person in a layer", SKIP_MODAL_FILE],
   ])("%s", (_name: string, file: string) => {
     const form: FormFacts | undefined = overrideForms.find(
@@ -302,28 +333,41 @@ describe("the project's forms", () => {
       },
     );
 
-    test("adds overrides, and nothing edits them", () => {
-      expect(form).toBeDefined();
-      expect(form!.hasCreateForm).toBe(true);
+    const source: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, file),
+      "utf8",
+    );
 
-      if (file === TABLE_FILE) {
-        expect(form!.hasEditForm).toBe(false);
-        return;
-      }
+    if (file === DIALOG_FILE) {
+      test("adds an override, and edits one", () => {
+        expect(form).toBeDefined();
+        /*
+         * Which of the two it is depends on how it is opened, so the
+         * scanner cannot say it never adds (null is "it may").
+         */
+        expect(form!.hasCreateForm).not.toBe(false);
+        expect(form!.hasEditForm).toBe(true);
+        expect(source).toContain(
+          "formType: editTarget ? FormType.Update : FormType.Create",
+        );
+        expect(source).toContain("modelIdToEdit={");
+        // An edit never sends who is away, the policy or the project.
+        expect(source).toContain("prepareUserOverrideForUpdate(item, {");
+      });
+    } else {
+      test("adds overrides, and nothing edits them", () => {
+        expect(form).toBeDefined();
+        expect(form!.hasCreateForm).toBe(true);
 
-      /*
-       * The scanner counts any dialog as one that may edit; this one only
-       * ever creates.
-       */
-      const source: string = fs.readFileSync(
-        path.join(REPOSITORY_ROOT, file),
-        "utf8",
-      );
-
-      expect(source).toContain("formType: FormType.Create");
-      expect(source).not.toContain("modelIdToEdit");
-      expect(source).not.toContain("FormType.Update");
-    });
+        /*
+         * The scanner counts any dialog as one that may edit; this one only
+         * ever creates.
+         */
+        expect(source).toContain("formType: FormType.Create");
+        expect(source).not.toContain("modelIdToEdit");
+        expect(source).not.toContain("FormType.Update");
+      });
+    }
 
     // The Skip dialog's own question, below the four: see the top of the file.
     const ownRows: number = file === SKIP_MODAL_FILE ? 1 : 0;
@@ -369,11 +413,6 @@ describe("the project's forms", () => {
             SKIP_MODAL_FILE,
           ],
         ]);
-
-        const source: string = fs.readFileSync(
-          path.join(REPOSITORY_ROOT, file),
-          "utf8",
-        );
 
         // Never sent as a column: what is saved is one override per policy.
         expect(source).toContain("formOnly: true");

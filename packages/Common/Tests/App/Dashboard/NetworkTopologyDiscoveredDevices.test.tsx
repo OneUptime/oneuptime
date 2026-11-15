@@ -49,6 +49,7 @@ interface PanelProps {
   node: NetworkTopologyNode;
   onAddToMonitoring?: ((node: NetworkTopologyNode) => void) | undefined;
   onClose: () => void;
+  readMapAgain?: (() => Promise<void>) | undefined;
 }
 
 interface DialogProps {
@@ -639,5 +640,39 @@ describe("a discovered device's panel", () => {
       "Unmanaged neighbor",
     );
     expect(mockDialogs).toHaveLength(0);
+  });
+});
+
+/*
+ * Issue #7346: the device drawer's "Turn monitoring on" saves the device's
+ * bound monitor, which stamps the device with the monitor's status before
+ * the save answers. The map is read again right after it, so the node and
+ * the drawer move from "unknown" to that status - in the background, the
+ * map staying drawn and the drawer open.
+ */
+describe("the device drawer's way to read the map again", () => {
+  test("is handed to the drawer, and reads the map again in the background", async () => {
+    await renderMap({ siteId: SITE_ID });
+    await selectNode(CAMERA_NODE);
+
+    const panel: PanelProps = mockPanels[mockPanels.length - 1]!;
+    expect(panel.readMapAgain).toBeDefined();
+
+    const mapReads: number = callsTo("/network-device/topology").length;
+
+    await act(async () => {
+      await panel.readMapAgain!();
+    });
+
+    expect(callsTo("/network-device/topology").length).toBe(mapReads + 1);
+    expect(callsTo("/network-device/topology")[mapReads]).toMatchObject({
+      siteId: SITE_ID,
+    });
+    // In the background: the map stays drawn, and the drawer open.
+    expect(screen.getByTestId("live-network-graph")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-recorder")).toHaveAttribute(
+      "data-node",
+      String(CAMERA_NODE["id"]),
+    );
   });
 });

@@ -90,6 +90,20 @@ externalSecrets:
       passwordKey: register-probe-key
 ```
 
+### Keys read from a file
+
+An inline key is used without the whitespace around it, so a key read from a
+file (`helm --set-file encryptionSecret=key.txt`, Terraform's `file()`) works
+without its final newline. That holds for `oneuptimeSecret`,
+`encryptionSecret`, `registerProbeKey`, each probe's `key`, `globalRunner.key`
+and `vllm.apiKey`, and for the copies the chart keeps in its own Secrets.
+
+Older charts stored such a key in `<release>-secrets` with its newline. The
+first upgrade that still sets the inline key stores it without. If you plan to
+take an inline key out of your values, do it on a later upgrade: otherwise the
+pods switch to the copy stored with the newline, which is a different key (for
+`encryptionSecret`, one that cannot read your encrypted data).
+
 ### Probe and Runner identity keys
 
 `PROBE_KEY` and the bundled global Runner's key (`GLOBAL_RUNNER_KEY`) are not

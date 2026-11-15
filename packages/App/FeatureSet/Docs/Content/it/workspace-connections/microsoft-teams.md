@@ -91,13 +91,14 @@ Una regola di notifica dice quali eventi vengono pubblicati in Microsoft Teams, 
 | **Reperibilità** | Un elenco di regole |
 | **SLOs** | Un elenco di regole |
 
-Creare una regola passa per quattro passaggi:
+Creare una regola passa per un massimo di cinque passaggi:
 
 | Passaggio | Cosa imposti |
 | --- | --- |
 | **Base** | **Nome della regola** e **Descrizione della regola**. |
 | **Condizioni** | A quali eventi si applica la regola, per esempio per gravità, stato, etichetta, monitor o parole nel titolo. Vengono verificate quando un evento viene creato e di nuovo a ogni aggiornamento che OneUptime pubblica su di esso, quindi una regola per gli incidenti riconosciuti agisce quando un incidente viene riconosciuto. Una nuova regola vale per ogni evento, per esempio **Tutti gli incidenti**. Per restringerla, scegli **Solo gli incidenti che soddisfano le condizioni** e aggiungi le condizioni. Con due o più, **Condizione di corrispondenza** dice se devono corrispondere tutte o ne basta una. |
 | **Destinazione** | Dove pubblica: un canale esistente di un team che scegli, le chat che scegli, un canale per ogni incidente (o avviso, episodio, evento, monitor o policy di reperibilità) creato in un team che scegli, o più di questi insieme. Sotto il passaggio, **Cosa fa questa regola** lo dice a frasi, come la scheda della regola. |
+| **Aggiornamenti** | Solo incidenti, avvisi, episodi, manutenzioni pianificate e policy di reperibilità: quali aggiornamenti la regola pubblica dopo il primo messaggio del record. **Ogni aggiornamento** li pubblica tutti, e una nuova regola parte da questa scelta, tranne quella di una policy di reperibilità. **Solo aggiornamenti chiave** pubblica quelli che contano di più, che il passaggio elenca per ogni tipo di record: per un incidente, la sua risoluzione o riapertura, i cambiamenti di gravità, le note pubbliche e il post-mortem; per una policy di reperibilità, chi è reperibile ora e quando non lo è nessuno, da cui parte una nuova regola di policy di reperibilità. **Scegli gli aggiornamenti** ti permette di spuntarli uno per uno. Qualunque cosa scegli, la regola pubblica il primo messaggio del record, e una videochiamata quando ne inizia una. Vedi [Messaggi di reperibilità](#messaggi-di-reperibilità). |
 | **Video Call** | Solo incidenti e avvisi: avvia una chiamata per ciascuno. Vedi [Videochiamate](/docs/workspace-connections/video-calls). |
 
 Ogni condizione si legge come una frase: il campo, come si confronta e il valore. I valori da scegliere vengono dagli elenchi del progetto, come i suoi stati, le gravità, le etichette e i monitor. Una regola di reperibilità sceglie le sue policy in **Policy di reperibilità**, che continua a corrispondere a una policy anche dopo che è stata rinominata, mentre **Nome del criterio di reperibilità** cerca parole nel nome di una policy. Ogni tipo di evento che ha proprietari ha una condizione sul proprietario, come **Proprietario dell'incidente**: scegli persone e team, e corrisponde alle persone e ai team registrati come proprietari dell'evento. Far parte di un team proprietario dell'evento non conta. Un proprietario aggiunto in seguito fa corrispondere la regola da quell'aggiornamento in poi, e una regola che crea canali crea il canale in quel momento. Un valore archiviato, come una gravità o una policy di reperibilità, non viene proposto per una nuova condizione. Una regola che ne ha già uno lo mantiene, contrassegnato come **Archiviato**, e continua a corrispondere agli eventi che lo hanno. Una persona, un team o una policy che il progetto non ha più resta nella condizione, e la scheda della regola lo segnala.
@@ -110,7 +111,7 @@ Una regola crea il suo canale la prima volta che un evento le corrisponde: quand
 
 Per coinvolgere chi è reperibile, scegli le pianificazioni di reperibilità sotto **Menziona chi è reperibile**. Quando il canale viene creato, OneUptime vi pubblica un messaggio, subito dopo il primo del record, che menziona con @ chi è reperibile in quelle pianificazioni, così Microsoft Teams invia loro una notifica. Nessuno viene chiamato. OneUptime trova ogni persona nel team dall'account Microsoft Teams che quella persona ha collegato a OneUptime, oppure dal suo indirizzo email. Chi non è nel team non può aprirne i canali, quindi nel messaggio viene invece indicato per nome, con il motivo. In un canale privato, solo i suoi membri possono aprirlo, quindi aggiungi le persone reperibili in Microsoft Teams.
 
-Ogni aggiornamento successivo del record — un cambio di stato, una nota, un nuovo proprietario — viene pubblicato nei suoi canali, e nei canali e nelle chat esistenti indicati dalle sue regole finché le loro condizioni corrispondono. OneUptime non può archiviare un canale di Microsoft Teams, quindi il canale di una regola resta quando il suo record è chiuso; archivialo o eliminalo in Microsoft Teams.
+Ogni aggiornamento successivo del record — un cambio di stato, una nota, un nuovo proprietario — viene pubblicato nei suoi canali, e nei canali e nelle chat esistenti indicati dalle sue regole finché le loro condizioni corrispondono, quando una regola che pubblica lì lo sceglie nel suo passaggio **Aggiornamenti**. OneUptime non può archiviare un canale di Microsoft Teams, quindi il canale di una regola resta quando il suo record è chiuso; archivialo o eliminalo in Microsoft Teams.
 
 Un incidente, un avviso, un episodio o un evento di manutenzione pianificata con un canale tutto suo ha **Apri in Microsoft Teams** nell'intestazione della sua pagina in OneUptime, accanto ai pulsanti di stato. Apre quel canale in una nuova scheda, nell'app di Microsoft Teams o nel browser. Un record con due canali suoi li elenca entrambi sotto il pulsante. Un record con canali sia in Slack sia in Microsoft Teams ha invece un solo pulsante **Apri canale**, che li elenca tutti. I canali e le chat esistenti in cui pubblicano le tue regole non vengono proposti.
 
@@ -121,6 +122,14 @@ I canali e le chat restano leggibili: ogni evento viene pubblicato una volta sol
 **Impostazioni del progetto** > **Area di lavoro** > **Microsoft Teams** elenca i canali che OneUptime vede nei tuoi team, e le chat a cui è stato aggiunto, con **Invia prova** accanto a ciascuno. Una chat compare non appena l'app di OneUptime vi viene aggiunta in Microsoft Teams; **Refresh Chats** recupera le nuove chat e i loro nomi attuali.
 
 Una regola di notifica può appartenere a dei team. **Team responsabili**, sotto **Altri campi**, la riserva ai team che scegli: solo i loro membri e gli amministratori del progetto possono modificarla o eliminarla, e tutti gli altri che vedono le regole la vedono in sola lettura. Vedi [Regole che appartengono a dei team](/docs/permissions/index#regole-che-appartengono-a-dei-team).
+
+### Messaggi di reperibilità
+
+A ogni cambio turno, i canali e le chat di una policy di reperibilità vengono a sapere chi è reperibile, in una riga:
+
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments rimanda alla policy in OneUptime. Una persona viene nominata con il suo nome Microsoft Teams una volta che ha collegato il proprio account Microsoft Teams a OneUptime, e con il suo nome in OneUptime fino ad allora. Gli orari sono mostrati nel fuso orario di ciascun lettore. Il passaggio **Aggiornamenti** di una regola sceglie quali messaggi di reperibilità pubblica, come in Slack, e una nuova regola parte da chi è reperibile ora e quando non lo è nessuno: vedi [Messaggi di reperibilità](/docs/workspace-connections/slack#messaggi-di-reperibilità).
 
 ## Provare una regola
 

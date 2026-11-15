@@ -90,6 +90,7 @@ import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import DashboardWidgetError from "./DashboardWidgetError";
 import {
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
@@ -270,8 +271,9 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
       )}
       {/*
        * The setup line's look for every state's sentence (no SLO picked,
-       * none to follow, could not be read): one widget, one way of saying
-       * what is wrong, dark enough to read.
+       * none to follow): one widget, one way of saying what is wrong, dark
+       * enough to read. A read that failed is every widget's error line
+       * (DashboardWidgetError).
        */}
       <p
         className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
@@ -624,14 +626,14 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────
+  /*
+   * ── Error ──────────────────────────────────────────────────────────────
+   * Every widget's error line (issue #7330): a server's message nobody
+   * explained says why and what to do next, and English from the server
+   * keeps its own reading direction on an Arabic board.
+   */
   if (error) {
-    return getPlaceholder({
-      icon: IconProp.Percent,
-      iconClassName: "text-gray-300",
-      iconBackgroundClassName: "bg-gray-50",
-      message: error,
-    });
+    return <DashboardWidgetError icon={IconProp.Percent} error={error} />;
   }
 
   // ── Not configured ─────────────────────────────────────────────────────

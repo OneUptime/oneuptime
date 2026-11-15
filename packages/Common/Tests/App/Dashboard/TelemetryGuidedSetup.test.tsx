@@ -88,12 +88,17 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (props: { telemetryType?: string; isBare?: boolean }) => {
+      default: (props: {
+        telemetryType?: string;
+        isBare?: boolean;
+        onSelectedKeyChange?: unknown;
+      }) => {
         return (
           <div
             data-testid="telemetry-guide"
             data-type={props.telemetryType}
             data-bare={String(Boolean(props.isBare))}
+            data-reports-key={String(Boolean(props.onSelectedKeyChange))}
           />
         );
       },
@@ -112,11 +117,19 @@ jest.mock(
           _id: string;
           getColumnValue: (name: string) => unknown;
         }) => void;
+        ingestionKey?: unknown;
+        dataPage?: unknown;
+        onDataArrived?: unknown;
       }) => {
         return (
           <button
             type="button"
             data-testid="first-data-arrives"
+            data-watches-key={String(
+              Boolean(
+                props.ingestionKey || props.dataPage || props.onDataArrived,
+              ),
+            )}
             onClick={() => {
               props.onConnected?.({
                 _id: "svc-new",
@@ -385,6 +398,24 @@ describe("1. Send your first data", () => {
     expect(
       screen.queryByTestId("guided-setup-reporting-services"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * Unlike the Setup Guide tabs, whose wait also ends on the key's first
+   * data (#7754): step 2 alerts on the service, and every way this guide
+   * offers names one.
+   */
+  test("waits for a service, not for the key's first data: the next step alerts on that service", async () => {
+    await renderSetup();
+
+    expect(screen.getByTestId("first-data-arrives")).toHaveAttribute(
+      "data-watches-key",
+      "false",
+    );
+    expect(screen.getByTestId("telemetry-guide")).toHaveAttribute(
+      "data-reports-key",
+      "false",
+    );
   });
 });
 

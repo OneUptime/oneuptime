@@ -159,6 +159,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
   /*
+   * A duration in milliseconds in the reader's language ("{{value}} ms"):
+   * the Dashboard's views and the overview's hero write it with one helper.
+   */
+  { directory: "packages/Common/Utils/Milliseconds.ts", kind: "ui" },
+  /*
    * The monitor types' cards in Create Monitor's picker: each type's title
    * and what it alerts on, and the categories More lists them under.
    */
@@ -172,6 +177,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
+    kind: "keys",
+  },
+  /*
+   * The name a guided setup's status page starts with ("Acme Status"), in
+   * the language of the person it is made for - the guided setup's and Ask
+   * AI's alike (#7247). Only the sentence the file marks is read.
+   */
+  {
+    directory: "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
     kind: "keys",
   },
   /*
@@ -307,6 +321,22 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory:
       "packages/Common/Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
+    kind: "keys",
+  },
+  /*
+   * What a user override overlaps (issue #7630) - the server's refusal and
+   * the dialog's words as soon as the times are picked, the notes on an
+   * overlap the rule allows, and the lists' "Overlaps" mark - and why an
+   * edit of one is refused (issue #7631). The server says them in English;
+   * the dashboard in the reader's language. Only the sentences the files
+   * mark are read.
+   */
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/UserOverrideOverlap.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/UserOverrideEdit.ts",
     kind: "keys",
   },
   /*
@@ -563,6 +593,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why OneUptime AI did not start a run someone asked for - Try again,
+   * Investigate now - one sentence per refusal code: the server sends the
+   * code beside its English message and the card says the code's sentence
+   * in the reader's language (#7359).
+   */
+  {
+    directory: "packages/Common/Types/AI/AiRunRefusal.ts",
+    kind: "keys",
+  },
+  /*
    * How an AI remediation round reads on the Remediation step - 'AI
    * remediation for cluster "prod"' - in the reader's language, and the
    * kinds of resource a round runs on.
@@ -763,6 +803,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "meaning",
   "message",
   "moreText",
+  // A stepped dialog's Next button, named for what it does (SteppedFormFooter).
+  "nextButtonText",
   "nextStep",
   "noItemsMessage",
   "noLogsMessage",

@@ -756,9 +756,11 @@ describe("VMware ESXi host page", () => {
       ["VM templates", null],
       ["Inventory ID", null],
     ]);
+    // The (i) after the label's last word (WordsWithInfoTooltip, #7348).
     expect(code).toContain(
-      "<InfoTooltip label={row.label} text={row.description} />",
+      '<WordsWithInfoTooltip className="min-w-0" text={tx(row.label)} label={row.label} description={row.description} />',
     );
+    expect(code).not.toContain("<InfoTooltip");
   });
 
   /*
@@ -852,9 +854,13 @@ describe("VMware part pages: tiles and details", () => {
   });
 
   test("the shared tile and details card turn a text into an (i)", () => {
+    // The tile's (i) follows its title's last word (WordsWithInfoTooltip, #7348).
     expect(
       readCode("Components/Infrastructure/GoldenMetricTile.tsx"),
-    ).toContain("<InfoTooltip label={props.title} text={props.description} />");
+    ).toContain("label={props.title} description={props.description} />");
+    expect(
+      readCode("Components/Infrastructure/GoldenMetricTile.tsx"),
+    ).toContain("<WordsWithInfoTooltip");
     expect(
       readCode("Components/ResourcePart/ResourcePartDetailsCard.tsx"),
     ).toContain(

@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "В этот день зафиксировано инцидентов: {{total}}",
     "scheduledMaintenance": "Запланированное обслуживание",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "1 запланированное обслуживание",
-    "maintenanceEvents": "запланированных работ по обслуживанию: {{total}}",
+    "oneMaintenanceEvent": "1 событие обслуживания",
+    "maintenanceEvents": "событий обслуживания: {{total}}",
     "moreMaintenance": "Ещё {{total}}"
   },
   "liveStatus": {
@@ -448,6 +448,17 @@
   "Loading": "Загрузка",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}: недопустимый JSON. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}: недопустимый YAML. {{parserMessage}}",
+  "Click to reveal": "Нажмите, чтобы показать",
+  "Click to copy": "Нажмите, чтобы скопировать",
+  "Main navigation": "Основная навигация",
+  "Navigate to": "Перейти к",
+  "Navigation": "Навигация",
+  "Breadcrumb": "Навигационная цепочка",
+  "Skip to main content": "Перейти к основному содержанию",
+  "Copy": "Скопировать",
+  "Copied!": "Скопировано!",
+  "Copy failed": "Не удалось скопировать",
+  "Hide": "Скрыть",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

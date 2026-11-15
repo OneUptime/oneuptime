@@ -1,6 +1,6 @@
 # Quickstart
 
-This guide takes you from a new account to a working setup in about fifteen minutes: a monitor that checks your website every five minutes, an on-call policy that pages you when the site goes down, and a status page that tells your customers. It follows the **Welcome to OneUptime 👋** checklist on your project's Home page.
+This guide takes you from a new account to a working setup in about fifteen minutes: a monitor that checks your website every five minutes, an on-call policy that pages you when the site goes down, and a status page that tells your customers. It follows the **Welcome to OneUptime 👋** checklist on your project's Home page, and the guided setups its steps open.
 
 Coming from another tool? [Import it](/docs/introduction/getting-started#coming-from-another-tool) first: your monitors, on-call schedules and status pages come with you.
 
@@ -42,69 +42,87 @@ Click **Create Project**. Your project's Home page opens, with the **Welcome to 
 ## Monitor your website
 
 :::steps
-### Open Create Monitor
+### Open the website setup
 
-In the checklist, click **Create your first monitor**. You can also open **Monitors** from the **Products** menu and click **Create Monitor**.
-
-### Pick Website
-
-Under **Monitor Type**, pick **Website**. Enter a **Name**, such as `Website`, and click **Next**.
+In the checklist, click **Create your first monitor**. It opens the guided setup **Know when my website or API is down**, which checks your site, chooses who is told and sends a test, on one page. Someone who may not create monitors gets the **Monitors** list instead.
 
 ### Enter the address
 
-Enter the full address of your site in **Website URL**, such as `https://example.com`. OneUptime adds the criteria for you: the monitor goes **Offline** and declares an incident when the site does not answer, or answers with an error. Click **Next**.
+![The step "What should we check?", with "Start checking" ringed](screen:website-down-address)
 
-### Create the monitor
+Under **What should we check?**, type the full address of your site in **Website or API address**, such as `https://example.com`, and click **Start checking**. The probes check it at once, then every 5 minutes: when the site does not answer, or answers with an error, the monitor goes **Offline** and declares an incident. Click **Continue**.
 
-Keep the selected **Probes** and the **Monitoring Interval** of **Every 5 Minutes**, and click **Create Monitor**. The monitor's page opens, and the probes start checking your site.
+On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step asks you to [add a payment method](/docs/configuration/billing#payment-methods).
+
+### Choose who is told
+
+Under **Who should be told?**, you are already in **Who is paged**. Click **Save and continue**: this makes `Default on-call policy`, which pages you for every new incident and alert in the project, by email to start with. To page teammates who are already in the project as well, click **Add teammates** first.
+
+### Send yourself a test
+
+Under **Send a test**, click **Send me a test page**, pick a **Severity** and click **Send test page**. Open the link in the email, which says TEST, and acknowledge the page there. Then click **Done** in the dialog, and **Continue**: the setup ends on a summary of what it set up.
 :::
 
-To try the check before you save, click **Test Monitor** on the second step. Every other monitor type is described in [Creating a Monitor](/docs/monitor/create-monitor).
+To set every option yourself, or to check something other than a website, open **Monitors** from the **Products** menu and click **Create Monitor**. [Creating a Monitor](/docs/monitor/create-monitor) describes the form and every monitor type.
 
-To check an API as well, choose who is told and send a test page that proves the message reaches you, follow [Know When Your Website or API Is Down](/docs/guides/website-down).
+To check an API too, and to see what to do when the first check never comes back, follow [Know When Your Website or API Is Down](/docs/guides/website-down).
 
 ## Get paged when it goes down
 
-As it is, an incident with no owners is emailed to the project's owners, and that includes you. To be paged until someone responds, create an on-call policy: the first one in a project pages for every new incident and alert.
+The website setup already made `Default on-call policy`, which pages you by email for every new incident and alert, so the checklist ticks **Set up an on-call policy** as done. Its guided setup still adds your phone, the people paged with you and what happens when nobody answers.
 
 :::steps
-### Create an on-call policy
+### Open the on-call setup
 
-In the checklist, click **Set up an on-call policy**, or open **On-Call** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Leave **Page this policy for every new incident and alert** on, and click **Create On-Call Policy**.
-
-### See the rule that pages it
-
-The switch added an on-call rule for incidents and one for alerts. To see yours, open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**: it matches **All incidents**. To page the policy for only some incidents, such as critical ones, edit the rule there, or click **Create Incident On-Call Rule** to add one of your own.
+Press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose **Page the right person when something breaks**. While the checklist has not ticked **Set up an on-call policy**, that step opens the same guided setup.
 
 ### Choose how you are reached
 
-Your sign-in email is already a way to reach you. To be texted or called too, open **User Settings** in the bar under the top bar, go to **Notification Methods** and, on the **Direct Contact** tab, add your number under **Phone Numbers for SMS Notifications** or **Phone Numbers for Call Notifications**. Click **Verify** and enter the code OneUptime sends you. A verified number is used for on-call pages straight away.
+![The step "How should we reach you?", with "Turn on SMS and phone calls" ringed](screen:paging-reach-you)
+
+Under **How should we reach you?**, your sign-in email is listed already. For push notifications, install the OneUptime On-Call app from the App Store or Google Play, sign in, and click **Recheck**. To be texted and called too, click **Turn on SMS and phone calls**, type your number in **Your phone number** and click **Text me a code**: on OneUptime Cloud, texts and calls are paid from the project's balance, so the step asks you to add some first. Click **Continue**.
+
+### Choose who else is paged
+
+Under **Who else is on call?**, keep `Default on-call policy` under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.
+
+### Decide what happens if nobody answers
+
+Under **What if nobody answers?**, pick **Page the same people again** while you are the only person in the project. Once teammates are in, **Page someone else** pages the person you pick under **Paged next**. On OneUptime Cloud, only paid plans offer that choice. Click **Save and continue**.
+
+### Send a test page
+
+Under **Send a test page**, click **Test this policy**, pick a **Severity** and click **Send test page**. Acknowledge the page from the email, the text message or the call, then click **Done** in the dialog, and **Continue**. The setup ends on **Paging is set up**.
 :::
 
 > [!NOTE]
 > SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.
 
-For more levels, rotations and how long each level waits, see [Escalation Rules](/docs/on-call/escalation-rules) and [On-Call Schedules](/docs/on-call/schedules).
+Two on-call rules run the policy: one for every new incident and one for every new alert. To see the first, open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**: it matches **All incidents**. To page the policy for only some incidents, such as critical ones, edit the rule there, or click **Create Incident On-Call Rule** to add one of your own.
 
-To be paged by SMS, phone call and push, with the next person paged when nobody answers and a test page that proves it, follow [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+To build a policy field by field instead, open **On-Call** from the **Products** menu and click **Create On-Call Policy**. For more levels, rotations and how long each level waits, see [Escalation Rules](/docs/on-call/escalation-rules) and [On-Call Schedules](/docs/on-call/schedules).
+
+For every screen of the setup, and what to do when a page does not arrive, follow [Get Paged by Phone, SMS or Push](/docs/guides/paging).
 
 ## Publish a status page
 
 :::steps
-### Create the status page
+### Open the status page setup
 
-In the checklist, click **Publish a status page**, or open **Status Pages** from the **Products** menu. Click **Create Status Page**, enter a **Name**, such as `Acme Status`, and click **Create Status Page**. The new page opens on its **Overview**.
+In the checklist, click **Publish a status page**. It opens the guided setup **Publish a status page**, which names the page, puts your monitor on it and shows what your customers see. Someone who may not create status pages gets the **Status Pages** list instead. The website setup's summary opens the same setup, as **Show it on a status page**.
 
-### Add your monitor
+### Name it and pick your monitor
 
-Click **Add Monitors** on the **Overview**, or, in the page's side menu, under **Resources**, choose **Monitors**; it reads **Resources** in projects with monitor groups turned on. Click **Add Monitor**, pick your website monitor and click **Add Monitor**. The row shows the monitor's name to visitors; change it under **Display Name** if you like.
+![The step "Name it, and pick what it shows", with "Create the status page" ringed](screen:status-page-pick)
+
+Under **Name it, and pick what it shows**, keep the **Status page name** it suggests, or type your own. Under **What it shows**, tick your website monitor, and click **Create the status page**. The page is public at its link from this moment: anyone with its address can open it.
 
 ### Open the page
 
-Choose **Overview** in the side menu. The **Status Page Link** card links to your status page: open it, and your website is listed as operational.
+Under **This is what your customers see**, open the address under **Public link**: your website is listed as operational. Back in the setup, click **Looks good**. The setup ends on a summary with what to do next.
 :::
 
-A new status page is public: anyone with its address can open it. To give it your own domain, logo and colors, see [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
+To make a page by hand instead, open **Status Pages** from the **Products** menu and click **Create Status Page**, then add your monitor with **Add Monitors** on its **Overview**. To give the page your own logo and colors, see [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
 
 To put the status page on your own domain, over HTTPS, follow [Publish a Status Page](/docs/guides/status-page).
 

@@ -383,6 +383,9 @@ describe("user overrides in German", () => {
       (index: number): OverrideSummaryRow => {
         return {
           key: `row-${index}`,
+          overrideId: `override-${index}`,
+          // Global: the card's count does not depend on the scope.
+          onCallDutyPolicyId: "",
           originalUserId: USER_ALEX,
           originalName: "Alex Chen",
           substituteUserId: USER_SAM,

@@ -2,7 +2,9 @@ import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import Icon from "../../Icon/Icon";
 import CreateNewProjectButton from "./CreateNewProjectButton";
 import ProjectPickerMenu from "./ProjectPickerMenu";
-import ProjectPickerMenuItem from "./ProjectPickerMenuItem";
+import ProjectPickerMenuItem, {
+  openProjectFromPicker,
+} from "./ProjectPickerMenuItem";
 import {
   getProjectPickerMenuPlacement,
   ProjectPickerMenuPlacement,
@@ -13,6 +15,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -54,6 +57,39 @@ export const PROJECT_PICKER_ICON_CLASS_NAME: string =
 export const PROJECT_PICKER_NAME_CLASS_NAME: string =
   "block min-w-0 font-medium text-gray-700 sm:ml-2.5";
 
+/*
+ * The ids of the list's parts, unique on the page (#7487): React's useId
+ * for this picker (without its colons), and a project's own id for its row
+ * - never one shared id, which every row had (listbox-option-0).
+ */
+export interface ProjectPickerIds {
+  listbox: string;
+  search: string;
+  createRow: string;
+  projectRow: (project: Project, index: number) => string;
+}
+
+export const getProjectPickerIds: (reactId: string) => ProjectPickerIds = (
+  reactId: string,
+): ProjectPickerIds => {
+  const base: string = `project-picker-${reactId.split(":").join("")}`;
+
+  return {
+    listbox: `${base}-list`,
+    search: `${base}-search`,
+    createRow: `${base}-create`,
+    projectRow: (project: Project, index: number): string => {
+      return `${base}-project-${project.id?.toString() || `row-${index}`}`;
+    },
+  };
+};
+
+// One row of the list, as the keyboard moves through it.
+interface PickerRow {
+  id: string;
+  open: () => void;
+}
+
 const ProjectPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -64,13 +100,149 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 
   const [filterValue, setFilterValue] = useState<string>("");
 
+  const ids: ProjectPickerIds = getProjectPickerIds(useId());
+
+  /*
+   * The row the arrow keys are on (aria-activedescendant on the search
+   * box): the first row until a key or the pointer moves it, and the first
+   * again whenever the search changes what is listed.
+   */
+  const [activeRowId, setActiveRowId] = useState<string | undefined>(undefined);
+
+  // The list was opened from the keyboard: the search box takes the focus.
+  const [openedFromKeyboard, setOpenedFromKeyboard] = useState<boolean>(false);
+
+  /*
+   * The keyboard's row is drawn only while the search box has the focus:
+   * a list opened with the pointer shows no row picked out before the
+   * pointer is on it.
+   */
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+
   useEffect(() => {
     setDropdownVisible(isComponentVisible);
     setFilterValue("");
+    setActiveRowId(undefined);
+
+    if (!isComponentVisible) {
+      setOpenedFromKeyboard(false);
+      setIsSearchFocused(false);
+    }
   }, [isComponentVisible]);
 
   const buttonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+
+  const listedProjects: Array<Project> = (props.projects || []).filter(
+    (project: Project) => {
+      if (!filterValue) {
+        return true;
+      }
+      return Boolean(
+        project.name && project.name.toLowerCase().startsWith(filterValue),
+      );
+    },
+  );
+
+  const closeList: () => void = (): void => {
+    setIsComponentVisible(false);
+  };
+
+  const rows: Array<PickerRow> = [
+    ...listedProjects.map((project: Project, index: number): PickerRow => {
+      return {
+        id: ids.projectRow(project, index),
+        open: () => {
+          openProjectFromPicker(project, (picked: Project) => {
+            closeList();
+            props.onProjectSelected(picked);
+          });
+        },
+      };
+    }),
+    ...(!props.hideCreateProjectButton
+      ? [
+          {
+            id: ids.createRow,
+            open: () => {
+              closeList();
+              props.onCreateProjectButtonClicked();
+            },
+          },
+        ]
+      : []),
+  ];
+
+  const activeIndex: number = Math.max(
+    0,
+    rows.findIndex((row: PickerRow): boolean => {
+      return row.id === activeRowId;
+    }),
+  );
+  const activeRow: PickerRow | undefined = rows[activeIndex];
+
+  // Keep the keyboard's row in view as it moves through a long list.
+  useEffect(() => {
+    if (!activeRow || !isSearchFocused) {
+      return;
+    }
+
+    const element: HTMLElement | null = document.getElementById(activeRow.id);
+
+    if (element && typeof element.scrollIntoView === "function") {
+      element.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeRow?.id, isSearchFocused]);
+
+  /*
+   * The keys of the list, read in its search box (a combobox: focus stays
+   * there): Down and Up move through the rows, stopping at either end,
+   * Home and End are left to the text, Enter opens the row, Escape puts
+   * the list away and gives the focus back to the picker, and Tab (or
+   * Shift+Tab) moves the focus on as anywhere and puts the list away behind
+   * it - a list left open would cover the page the focus went on to.
+   */
+  const onSearchKeyDown: (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeList();
+      buttonRef.current?.focus();
+      return;
+    }
+
+    if (event.key === "Tab") {
+      /*
+       * Once the browser has moved the focus: the box taken away before
+       * that would leave the focus nowhere.
+       */
+      window.setTimeout(closeList, 0);
+      return;
+    }
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveRowId(rows[Math.min(activeIndex + 1, rows.length - 1)]?.id);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveRowId(rows[Math.max(activeIndex - 1, 0)]?.id);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      activeRow?.open();
+    }
+  };
+
+  // Opens the list from the keyboard, with the focus in its search box.
+  const openFromKeyboard: () => void = (): void => {
+    setOpenedFromKeyboard(true);
+    setIsComponentVisible(true);
+  };
 
   const [menuPlacement, setMenuPlacement] =
     useState<ProjectPickerMenuPlacement | null>(null);
@@ -125,8 +297,30 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
       <div className="relative w-full">
         <button
           ref={buttonRef}
-          onClick={() => {
+          onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+            /*
+             * Enter or Space on the picker clicks it with no pointer
+             * (detail 0): the list then opens with the focus in its search
+             * box, so the arrow keys and typing work at once. A click or a
+             * tap leaves the focus where it was - on a phone, a focused box
+             * would put the keyboard over the list.
+             */
+            if (!isDropdownVisible && event.detail === 0) {
+              openFromKeyboard();
+              return;
+            }
+
             setIsComponentVisible(!isDropdownVisible);
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
+            // Down or Up on the closed picker opens it, as a list button does.
+            if (
+              !isDropdownVisible &&
+              (event.key === "ArrowDown" || event.key === "ArrowUp")
+            ) {
+              event.preventDefault();
+              openFromKeyboard();
+            }
           }}
           type="button"
           className={PROJECT_PICKER_BUTTON_CLASS_NAME}
@@ -166,43 +360,51 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
           {isComponentVisible && (
             <ProjectPickerMenu
               placement={menuPlacement}
+              searchInputId={ids.search}
+              listboxId={ids.listbox}
+              activeOptionId={activeRow?.id}
+              onSearchKeyDown={onSearchKeyDown}
+              focusSearch={openedFromKeyboard}
+              onSearchFocusChange={setIsSearchFocused}
               onFilter={(value: string) => {
                 setFilterValue(value.toLowerCase().trim());
+                // A new search starts on its first row.
+                setActiveRowId(undefined);
               }}
             >
               <>
-                {props.projects && props.projects.length > 0 ? (
-                  props.projects
-                    .filter((project: Project) => {
-                      if (!filterValue) {
-                        return true;
-                      }
-                      return (
-                        project.name &&
-                        project.name.toLowerCase().startsWith(filterValue)
-                      );
-                    })
-                    .map((project: Project, i: number) => {
-                      return (
-                        <ProjectPickerMenuItem
-                          key={i}
-                          project={project}
-                          onProjectSelected={(project: Project) => {
-                            setIsComponentVisible(false);
-                            props.onProjectSelected(project);
-                          }}
-                          icon={IconProp.Folder}
-                        />
-                      );
-                    })
-                ) : (
-                  <></>
-                )}
+                {listedProjects.map((project: Project, i: number) => {
+                  const rowId: string = ids.projectRow(project, i);
+
+                  return (
+                    <ProjectPickerMenuItem
+                      key={rowId}
+                      id={rowId}
+                      isActive={rowId === activeRow?.id}
+                      showsActive={isSearchFocused}
+                      onPointerOver={() => {
+                        setActiveRowId(rowId);
+                      }}
+                      project={project}
+                      onProjectSelected={(project: Project) => {
+                        closeList();
+                        props.onProjectSelected(project);
+                      }}
+                      icon={IconProp.Folder}
+                    />
+                  );
+                })}
               </>
               {!props.hideCreateProjectButton ? (
                 <CreateNewProjectButton
+                  id={ids.createRow}
+                  isActive={ids.createRow === activeRow?.id}
+                  showsActive={isSearchFocused}
+                  onPointerOver={() => {
+                    setActiveRowId(ids.createRow);
+                  }}
                   onCreateButtonClicked={() => {
-                    setIsComponentVisible(false);
+                    closeList();
                     props.onCreateProjectButtonClicked();
                   }}
                 />

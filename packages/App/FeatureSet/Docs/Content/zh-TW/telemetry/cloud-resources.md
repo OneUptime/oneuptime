@@ -39,7 +39,7 @@ flowchart TB
 | 裝有 OpenTelemetry Collector 的虛擬機器 | **主機** | 主機本身的指標與日誌。請參閱 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | 你的應用程式使用的佇列與主題 | **佇列** | span，以及相同的雲端指標。請參閱 [佇列](/docs/telemetry/queues) |
 
-一個資源可能出現在多個地方。裝有 Collector 的虛擬機器是一台 **主機**，而它的平台指標（Hypervisor 看到的 CPU 點數、磁碟與網路）又讓它成為一個 **雲端資源**。SQS 佇列既是 **Queue**，也是 **雲端資源**。每個檢視顯示的是其資料來源所知道的內容。
+一個資源可能出現在多個地方。裝有 Collector 的虛擬機器是一台 **主機**，而它的平台指標（Hypervisor 看到的 CPU 點數、磁碟與網路）又讓它成為一個 **雲端資源**。SQS 佇列既是 **佇列**，也是 **雲端資源**。每個檢視顯示的是其資料來源所知道的內容。
 
 ## 開始之前
 

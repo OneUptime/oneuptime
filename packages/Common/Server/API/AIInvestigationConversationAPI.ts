@@ -11,6 +11,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import { readRequestedReaderLanguage } from "../../Types/ReaderLanguage";
 import {
   assertSubjectReadableInTenant,
   getLoggedInProps,
@@ -163,6 +164,8 @@ router.post(
           content,
           permissionMode:
             typeof permissionMode === "string" ? permissionMode : undefined,
+          // The language the asker reads the Dashboard in (#7247).
+          language: readRequestedReaderLanguage(req.body["language"]),
         });
 
       Response.sendJsonObjectResponse(req, res, {
@@ -217,6 +220,11 @@ router.post(
             typeof req.body["approved"] === "boolean"
               ? (req.body["approved"] as boolean)
               : undefined,
+          /*
+           * The language the decider reads the Dashboard in: what an
+           * approved setup action writes into the records it makes (#7247).
+           */
+          language: readRequestedReaderLanguage(req.body["language"]),
         });
 
       Response.sendJsonObjectResponse(req, res, {

@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "Hierfür wird die neueste Version benötigt. Speichern Sie Ihre Änderungen und laden Sie die Seite dann neu.",
   "This couldn't be loaded.": "Dies konnte nicht geladen werden.",
   "Something went wrong": "Etwas ist schiefgelaufen",
-  "An unexpected error has occurred. Please reload the page to continue": "Ein unerwarteter Fehler ist aufgetreten. Bitte laden Sie die Seite neu, um fortzufahren"
+  "An unexpected error has occurred. Please reload the page to continue": "Ein unerwarteter Fehler ist aufgetreten. Bitte laden Sie die Seite neu, um fortzufahren",
+  "Click to reveal": "Zum Anzeigen klicken",
+  "Click to copy": "Zum Kopieren klicken",
+  "Copy": "Kopieren",
+  "Copied!": "Kopiert!",
+  "Copy failed": "Kopieren fehlgeschlagen",
+  "Hide": "Ausblenden"
 }

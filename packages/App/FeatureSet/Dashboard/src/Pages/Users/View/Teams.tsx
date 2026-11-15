@@ -85,7 +85,7 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
         pluralName=" "
         cardProps={{
           title: "Teams",
-          description: "See a list of teams this user is a members of.",
+          description: "See a list of teams this user is a member of.",
         }}
         noItemsMessage={"This user is not a member of any team."}
         formFields={[

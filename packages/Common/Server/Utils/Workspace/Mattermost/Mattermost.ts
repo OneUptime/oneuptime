@@ -35,6 +35,7 @@ import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelNa
 import { AppApiClientUrl } from "../../../EnvironmentConfig";
 import logger, { LogAttributes } from "../../Logger";
 import SSRFProtection from "../../SSRFProtection";
+import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { NotificationProviderConfig } from "../../Telemetry/NotificationDeliveryMetrics";
 import WorkspaceBase, {
@@ -2186,12 +2187,17 @@ export default class MattermostUtil extends WorkspaceBase {
    * nobody (neutralizeMentions), and held to what a post takes, ending
    * with a note when it was cut (MESSAGE_MAX_LENGTH).
    *
+   * A moment in it is the time in UTC (WorkspaceMessageTime.toPlainText):
+   * Mattermost has no way to show one in each reader's own zone, and showed
+   * "{{TIME(2026-11-13T17:50:00Z)}}" as it was written - an on-call
+   * handoff's "until" among them (issue #7549).
+   *
    * It is cut first and its mentions broken after, in one pass each, so a
    * text of any length is handled in time linear in what is posted.
    */
   public static getMessageText(markdown: string): string {
     const cut: string = fitTextToLength(
-      markdown || "",
+      WorkspaceMessageTime.toPlainText(markdown || ""),
       MattermostUtil.MESSAGE_MAX_LENGTH,
     );
 

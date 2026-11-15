@@ -281,11 +281,11 @@ export async function buildTriggerContext(
           `AI step: scheduled maintenance ${ctx.scheduledMaintenanceId.toString()} does not belong to project ${ctx.projectId.toString()} — refusing to include its context.`,
         );
         sections.push(
-          `(The linked scheduled maintenance event could not be loaded for this project.)`,
+          `(The linked maintenance event could not be loaded for this project.)`,
         );
       } else {
         sections.push(
-          `This execution is linked to a scheduled maintenance event:`,
+          `This execution is linked to a maintenance event:`,
           ScheduledMaintenanceAIContextBuilder.formatScheduledMaintenanceContextForNote(
             { ...contextData, internalNotes: [] },
             "internal",

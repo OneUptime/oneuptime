@@ -276,7 +276,9 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
    * Two things are load-bearing for the optimizer to pick the projection:
    *   1. The time predicates AND the bucket expression must be written
    *      over toStartOfMinute(startTime) — the projection's key
-   *      expression — never raw startTime.
+   *      expression — never raw startTime. (The predicates name the
+   *      column as s.startTime, through the table's alias, since the
+   *      bucket is aliased startTime; the projection still serves it.)
    *   2. The aggregate must byte-match a stored expression: count() (NOT
    *      count(durationUnixNano) — equivalent here since the column is
    *      non-nullable), avg(durationUnixNano) or
@@ -417,17 +419,34 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
      * result parsing applies.
      */
     const statement: Statement = new Statement();
+    statement
+      .append(`SELECT ${aggregateExpression} as durationUnixNano, `)
+      .append(
+        AggregateUtil.buildBucketTimestampStatement(
+          aggregationInterval,
+          "toStartOfMinute(startTime)",
+          aggregateBy.timezone,
+        ),
+      )
+      .append(` as startTime`);
+    /*
+     * The WHERE reads the table's columns through the table's alias (s).
+     * ClickHouse reads a bare name as the SELECT's alias before the
+     * column, so a bare `startTime` here was the bucket above, not the
+     * span's start: the window's first bucket starts before the window,
+     * so all of its spans were filtered out (a day chart lost its first
+     * day), and the last bucket kept spans after the window's end. The
+     * qualified reads are the columns, and the projections still serve
+     * the query.
+     */
     statement.append(
-      `SELECT ${aggregateExpression} as durationUnixNano, ${AggregateUtil.buildBucketTimestampExpression(aggregationInterval, "toStartOfMinute(startTime)")} as startTime`,
-    );
-    statement.append(
-      SQL` FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
+      SQL` FROM ${databaseName}.${this.model.tableName} AS s WHERE s.projectId = ${{
         type: TableColumnType.ObjectID,
         value: projectId,
-      }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
+      }} AND toStartOfMinute(s.startTime) >= toStartOfMinute(${{
         type: TableColumnType.Date,
         value: startValue,
-      }}) AND toStartOfMinute(startTime) <= toStartOfMinute(${{
+      }}) AND toStartOfMinute(s.startTime) <= toStartOfMinute(${{
         type: TableColumnType.Date,
         value: endValue,
       }})`,
@@ -436,14 +455,14 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     const primaryEntityIdValue: unknown = query["primaryEntityId"];
     if (primaryEntityIdValue instanceof ObjectID) {
       statement.append(
-        SQL` AND primaryEntityId = ${{
+        SQL` AND s.primaryEntityId = ${{
           type: TableColumnType.ObjectID,
           value: primaryEntityIdValue,
         }}`,
       );
     } else if (primaryEntityIdValue instanceof Includes) {
       statement.append(
-        SQL` AND primaryEntityId IN (${{
+        SQL` AND s.primaryEntityId IN (${{
           type: TableColumnType.ObjectID,
           value: primaryEntityIdValue,
         }})`,
@@ -460,7 +479,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
      */
     if (query["isRootSpan"] !== undefined) {
       statement.append(
-        SQL` AND isRootSpan = ${{
+        SQL` AND s.isRootSpan = ${{
           type: TableColumnType.Boolean,
           value: Boolean(query["isRootSpan"]),
         }}`,
@@ -470,14 +489,14 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     const statusCodeValue: unknown = query["statusCode"];
     if (typeof statusCodeValue === "number") {
       statement.append(
-        SQL` AND statusCode = ${{
+        SQL` AND s.statusCode = ${{
           type: TableColumnType.Number,
           value: statusCodeValue,
         }}`,
       );
     } else if (statusCodeValue instanceof Includes) {
       statement.append(
-        SQL` AND statusCode IN (${{
+        SQL` AND s.statusCode IN (${{
           type: TableColumnType.Number,
           value: statusCodeValue,
         }})`,

@@ -33,6 +33,7 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
 import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
+import NotificationRuleUpdates from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -516,6 +517,16 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       alertId: createdItem.alertId,
     });
 
+    // Whether the alert was resolved in the state before this one.
+    const previousAlertStateId: ObjectID | undefined =
+      onCreate.carryForward.statusTimelineBeforeThisStatus?.alertStateId;
+    const wasResolved: boolean = previousAlertStateId
+      ? await AlertStateService.isResolvedAlertState({
+          projectId: createdItem.projectId!,
+          alertStateId: previousAlertStateId,
+        })
+      : false;
+
     const projectId: ObjectID = createdItem.projectId!;
     const alertId: ObjectID = createdItem.alertId!;
 
@@ -549,6 +560,16 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
           },
         ),
         leadWithAuthor: true,
+        /*
+         * Resolving it, or reopening it, is an update of its own for the
+         * rules that choose their updates: a quiet channel hears of it.
+         */
+        updateKinds: [
+          NotificationRuleUpdates.getStateChangeKind({
+            isResolved: isResolvedState,
+            wasResolved: wasResolved,
+          }),
+        ],
       },
     });
 

@@ -577,7 +577,7 @@ export function host(kind: PublicNoteKind): PublicNoteApprovalHost<BaseModel> {
       parentIdColumn: PARENT_COLUMNS[kind],
       recordNoun:
         kind === PublicNoteKind.ScheduledMaintenance
-          ? "scheduled maintenance event"
+          ? "maintenance event"
           : kind === PublicNoteKind.IncidentEpisode
             ? "episode"
             : "incident",

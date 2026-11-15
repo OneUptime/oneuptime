@@ -11,6 +11,7 @@ import NotificationRuleCondition, {
   ConditionType,
   NotificationRuleConditionCheckOn,
 } from "../../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceMessagePayload from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceNotificationActionType from "../../../../Types/Workspace/WorkspaceNotificationActionType";
@@ -22,6 +23,7 @@ import WorkspaceRuleWorld, {
   CRITICAL_SEVERITY_ID,
   INCIDENT_ID,
   INCIDENT_LINK,
+  MAINTENANCE_ONGOING_STATE_ID,
   makeRule,
   MINOR_SEVERITY_ID,
   ON_CALL,
@@ -617,5 +619,42 @@ describe("the intro's words", () => {
 
     expect(text).toContain("Acme Paging created it when the incident matched");
     expect(text).not.toContain("OneUptime created it");
+  });
+
+  // A record of Scheduled Maintenance is a maintenance event (#6817).
+  test("call a maintenance event one: a channel opened when it goes ongoing", async () => {
+    world.rules = [
+      makeRule({
+        name: "Ongoing maintenance",
+        eventType: NotificationRuleEventType.ScheduledMaintenance,
+        filters: [
+          {
+            checkOn: NotificationRuleConditionCheckOn.ScheduledMaintenanceState,
+            conditionType: ConditionType.ContainsAny,
+            value: [MAINTENANCE_ONGOING_STATE_ID.toString()],
+          },
+        ],
+      }),
+    ];
+
+    await world.createScheduledMaintenanceChannels();
+
+    expect(world.slackChannelsCreated()).toEqual([]);
+
+    world.scheduledMaintenance.stateId = MAINTENANCE_ONGOING_STATE_ID;
+    await world.postAboutScheduledMaintenance(
+      "⏳ Changed **Scheduled Maintenance SM-5 State** to **Ongoing**",
+    );
+
+    expect(world.slackChannelsCreated()).toHaveLength(1);
+
+    const intro: JSONObject = world.slackRequestsOf("chat.postMessage")[0]!;
+    const text: string = JSON.stringify(intro["blocks"]);
+
+    expect(text).toContain(
+      "OneUptime created it when the maintenance event matched the rule",
+    );
+    expect(text).toContain("posts the maintenance event's updates here.");
+    expect(text).not.toContain("scheduled maintenance event");
   });
 });

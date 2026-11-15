@@ -90,7 +90,7 @@ In een lijst worden de labels van een record onder elkaar getoond; zijn het er m
 
 ### Een label archiveren
 
-Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in plaats van het te verwijderen. Alles wat het label heeft, behoudt het, en u kunt er nog steeds op filteren, maar niemand kan het nog ergens aan toevoegen: elke labelkiezer laat het weg, en de API, Terraform en MCP weigeren het. Het dialoogvenster toont de regels en machtigingen die zijn ingesteld om het label te gebruiken; die blijven het gebruiken tot u ze wijzigt. Gearchiveerde labels staan apart, in de ingeklapte sectie **Gearchiveerde labels**, waar **Uit archief halen** er een terugzet. **Verwijderen** toont eerst alles waar het label vanaf zou gaan, en biedt **In plaats daarvan archiveren** aan.
+Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in plaats van het te verwijderen. Alles wat het label heeft, behoudt het, en u kunt er nog steeds op filteren, maar niemand kan het nog ergens aan toevoegen: elke labelkiezer laat het weg, en de API, Terraform en MCP weigeren het. Het dialoogvenster toont de regels en machtigingen die zijn ingesteld om het label te gebruiken; die blijven het gebruiken tot u ze wijzigt. Gearchiveerde labels staan apart, in de ingeklapte sectie **Gearchiveerde labels**, waar **Uit het archief halen** er een terugzet. **Verwijderen** toont eerst alles waar het label vanaf zou gaan, en biedt **In plaats daarvan archiveren** aan.
 
 ## Meldingen
 

@@ -93,13 +93,14 @@ Une règle de notification dit quels événements sont publiés dans Slack, et o
 | **Astreinte** | Une liste de règles |
 | **SLOs** | Une liste de règles |
 
-Créer une règle passe par quatre étapes :
+Créer une règle passe par cinq étapes au plus :
 
 | Étape | Ce que vous définissez |
 | --- | --- |
 | **Basique** | **Nom de la règle** et **Description de la règle**. |
 | **Conditions** | Pour quels événements est la règle, par exemple selon la gravité, l'état, l'étiquette, le moniteur ou des mots du titre. Elles sont vérifiées à la création d'un événement, puis à chaque mise à jour que OneUptime publie à son sujet : une règle pour les incidents pris en compte agit donc quand un incident est pris en compte. Une nouvelle règle est pour chaque événement, par exemple **Tous les incidents**. Pour la restreindre, choisissez **Uniquement les incidents qui correspondent aux conditions** et ajoutez les conditions. Avec deux ou plus, **Condition de correspondance** dit si toutes doivent correspondre, ou une seule. |
 | **Destination** | Où elle publie : **Publier dans des canaux existants** avec les noms des canaux, **Créer un canal pour chaque incident** (ou alerte, épisode, événement, moniteur ou politique d'astreinte) avec qui le rejoint, ou les deux. Sous l'étape, **Ce que fait cette règle** le dit en phrases, comme la carte de la règle. |
+| **Mises à jour** | Incidents, alertes, épisodes, maintenances planifiées et politiques d'astreinte uniquement : les mises à jour que la règle publie après le premier message de l'enregistrement. **Toutes les mises à jour** les publie toutes, et une nouvelle règle commence par ce choix, sauf celle d'une politique d'astreinte. **Mises à jour clés uniquement** publie celles qui comptent le plus, que l'étape liste pour chaque type d'enregistrement : pour un incident, sa résolution ou sa réouverture, les changements de gravité, les notes publiques et le post-mortem ; pour une politique d'astreinte, qui est d'astreinte maintenant et quand personne ne l'est, le choix par lequel commence une nouvelle règle de politique d'astreinte. **Choisir les mises à jour** vous permet de les cocher une à une. Quel que soit votre choix, la règle publie le premier message de l'enregistrement, et un appel vidéo quand il commence. Voir [Messages d'astreinte](#messages-dastreinte). |
 | **Appel vidéo** | Incidents et alertes uniquement : lancer un appel pour chacun. Voir [Appels vidéo](/docs/workspace-connections/video-calls). |
 
 Chaque condition se lit comme une phrase : le champ, la manière de comparer et la valeur. Les valeurs à choisir viennent des listes du projet, comme ses états, gravités, étiquettes et moniteurs. Une règle d'astreinte choisit ses politiques sous **Politique d'astreinte**, qui continue de correspondre à une politique après son renommage, alors que **Nom de la politique d'astreinte** cherche des mots dans le nom d'une politique. Chaque type d'événement qui a des propriétaires a une condition de propriétaire, comme **Propriétaire de l'incident** : choisissez des personnes et des équipes, et elle correspond aux personnes et aux équipes enregistrées comme propriétaires de l'événement. Faire partie d'une équipe propriétaire de l'événement ne compte pas. Un propriétaire ajouté plus tard fait correspondre la règle à partir de cette mise à jour, et une règle qui crée des canaux crée alors le canal. Une valeur archivée, comme une gravité ou une politique d'astreinte, n'est pas proposée pour une nouvelle condition. Une règle qui en a déjà une la conserve, marquée **Archivé**, et correspond toujours aux événements qui l'ont. Une personne, une équipe ou une politique que le projet n'a plus reste dans la condition, et la carte de la règle le signale.
@@ -114,7 +115,7 @@ Une règle crée son canal la première fois qu'un événement lui correspond : 
 
 Pour un planning d'astreinte de **Inviter aussi**, les personnes d'astreinte dans ce planning à la création du canal le rejoignent, telles que la page du planning les affiche, et ne sont pas alertées. Pour n'ajouter des personnes qu'aux canaux de certains incidents, donnez à une deuxième règle ces conditions et ces personnes, avec le même **Préfixe du nom de canal** que la première : les règles auxquelles un incident correspond à la création de son canal partagent ce canal, et chacune y ajoute ses propres personnes.
 
-Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, une note, un nouveau propriétaire — est publiée dans ses canaux, et dans les canaux existants que ses règles nomment tant que leurs conditions correspondent. Avec **Archiver le canal quand l'incident est résolu** activé, ou son équivalent pour les alertes, épisodes, événements, moniteurs et politiques d'astreinte, la règle qui a créé un canal l'archive quand l'enregistrement est résolu, terminé ou supprimé, quoi que disent alors ses conditions. Un incident, une alerte ou un épisode créé déjà résolu ne reçoit pas de canal à lui ; son message de création va quand même dans les canaux que vos règles nomment. Voir [Déclaré déjà pris en compte ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
+Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, une note, un nouveau propriétaire — est publiée dans ses canaux, et dans les canaux existants que ses règles nomment tant que leurs conditions correspondent, quand une règle qui y publie la choisit à son étape **Mises à jour**. Avec **Archiver le canal quand l'incident est résolu** activé, ou son équivalent pour les alertes, épisodes, événements, moniteurs et politiques d'astreinte, la règle qui a créé un canal l'archive quand l'enregistrement est résolu, terminé ou supprimé, quoi que disent alors ses conditions. Un incident, une alerte ou un épisode créé déjà résolu ne reçoit pas de canal à lui ; son message de création va quand même dans les canaux que vos règles nomment. Voir [Déclaré déjà pris en compte ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
 
 Un incident, une alerte, un épisode ou un événement de maintenance planifiée qui a son propre canal affiche **Ouvrir dans Slack** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, dans l'application Slack ou dans le navigateur. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a des canaux à la fois dans Slack et dans Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux existants où vos règles publient ne sont pas proposés.
 
@@ -123,6 +124,29 @@ Un canal reste lisible : chaque événement est publié une seule fois, et le pr
 **Paramètres du projet** > **Espace de travail** > **Slack** liste les canaux que OneUptime voit, avec **Envoyer le test** à côté de chacun. OneUptime rejoint de lui-même un canal public la première fois qu'il y publie. Un canal privé n'est listé, et ne peut recevoir de publication, qu'après que l'application OneUptime y a été invitée dans Slack.
 
 Une règle de notification peut appartenir à des équipes. **Équipes responsables**, sous **Plus de champs**, la réserve aux équipes que vous choisissez : seuls leurs membres et les administrateurs du projet peuvent la modifier ou la supprimer, et tous les autres qui voient les règles la voient en lecture seule. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
+
+### Messages d'astreinte
+
+À chaque relève, les canaux d'une politique d'astreinte apprennent qui est d'astreinte, en une ligne :
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments renvoie à la politique dans OneUptime. Quand la politique appelle plus d'un planning, la ligne nomme aussi le planning : Payments (Primary).
+- Une personne est nommée par son nom Slack une fois qu'elle a connecté son compte Slack à OneUptime, et par son nom OneUptime jusque-là. Les heures s'affichent dans le fuseau horaire de chaque lecteur.
+- Quand plusieurs règles d'escalade de la politique appellent le même planning, chaque relève est publiée une fois, et non une fois par règle.
+
+Une règle publie ce qu'elle a choisi à son étape **Mises à jour**, et une nouvelle règle commence par **Mises à jour clés uniquement** : qui est d'astreinte maintenant, et quand personne ne l'est.
+
+| Mise à jour | Ce que le canal apprend |
+| --- | --- |
+| **Qui est d'astreinte maintenant** | La ligne ci-dessus, à chaque relève. |
+| **Qui est d'astreinte ensuite** | Qui prend le relais à la prochaine relève, et quand : à la fin de cette ligne, ou dans une ligne à part pour une règle qui ne publie pas qui est d'astreinte maintenant. |
+| **Personne d'astreinte** | Un planning qui se retrouve sans personne d'astreinte, si bien que les alertes qui l'atteignent n'appellent personne : « ⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over. » |
+| **Remplacements d'utilisateur** | Un remplacement ajouté, modifié ou annulé : qui est absent, et qui remplace. |
+| **Modifications de la politique** | Plannings, personnes et équipes ajoutés à ses règles d'escalade ou retirés. |
+| **Propriétaires** | Propriétaires ajoutés et retirés. |
+
+Un canal reçoit un seul message par relève, même quand deux règles y publient. Une règle d'astreinte enregistrée avant que les règles choisissent leurs mises à jour les publie toutes, comme avant.
 
 ## Qui est dans le canal d'un enregistrement
 
