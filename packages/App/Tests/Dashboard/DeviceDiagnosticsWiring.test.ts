@@ -322,9 +322,9 @@ describe("the pure view-model", () => {
     expect(
       importsOf(readRaw(DASHBOARD_SRC, "Utils", "Milliseconds.ts")),
     ).toEqual(["Common/Utils/Milliseconds", "Common/Utils/Milliseconds"]);
-    expect(
-      importsOf(readRaw(COMMON_ROOT, "Utils", "Milliseconds.ts")),
-    ).toEqual(["../Types/DateLanguage", "../Types/Translator"]);
+    expect(importsOf(readRaw(COMMON_ROOT, "Utils", "Milliseconds.ts"))).toEqual(
+      ["../Types/DateLanguage", "../Types/Translator"],
+    );
   });
 
   test("the metric descriptions it reads import only the translation-key marker", () => {
