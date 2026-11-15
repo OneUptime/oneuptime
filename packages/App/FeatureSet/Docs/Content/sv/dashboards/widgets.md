@@ -142,13 +142,13 @@ Den som kan redigera instrumentpanelen bestämmer vad den här widgeten kör, oc
 
 Spårwidgetarna räknar bara rotspann, som spårutforskaren gör, om du inte tar med underordnade spann i deras inställningar. Ett vanligt mönster är ett svarstidsdiagram överst med en lista över långsamma spår under.
 
-## Incidenter, larm och övervakare
+## Incidenter, larm och monitorer
 
 | Widget | Vad den visar | Filter |
 | --- | --- | --- |
-| **Incidentlista** | Incidenter med deras tillstånd och allvarlighetsgrad. | Olösta, bekräftade eller lösta; allvarlighetsgrad, tillstånd, övervakare och etiketter. |
-| **Larmlista** | Larm med deras tillstånd och allvarlighetsgrad. | Olösta, bekräftade eller lösta; allvarlighetsgrad, tillstånd, övervakare och etiketter. |
-| **Övervakningslista** | Övervakare med deras aktuella status. | I drift eller inte, status, övervakartyp och etiketter, eller en **Etikettvariabel** som tittarna väljer i verktygsfältet. |
+| **Incidentlista** | Incidenter med deras tillstånd och allvarlighetsgrad. | Olösta, bekräftade eller lösta; allvarlighetsgrad, tillstånd, monitorer och etiketter. |
+| **Larmlista** | Larm med deras tillstånd och allvarlighetsgrad. | Olösta, bekräftade eller lösta; allvarlighetsgrad, tillstånd, monitorer och etiketter. |
+| **Övervakningslista** | Monitorer med deras aktuella status. | I drift eller inte, status, monitortyp och etiketter, eller en **Etikettvariabel** som tittarna väljer i verktygsfältet. |
 
 Som de flesta listwidgetar kan de här tre rita en bikaka av celler färgade efter status i stället för en tabell: välj det under **Visningsläge**. De visar aktuellt tillstånd, oavsett instrumentpanelens tidsintervall.
 
@@ -165,7 +165,7 @@ Ett servicenivåmål (SLO), ritat antingen som ett enda tal eller som en linje �
 
 Använd den när instrumentpanelen svarar på "håller vi det vi lovat?" snarare än "vad händer just nu?".
 
-SLO-widgeten fungerar på [offentliga instrumentpaneler](/docs/dashboards/sharing). Det som publiceras är SLO:ets nyckeltal (namn, mål, aktuell SLI, återstående felbudget, burn rate och status), oavsett vilket av dem widgeten ritar. Definitionen förblir privat: övervakarna det bevakar, dess etiketter, beskrivning, fråga och utvärderingsschema skickas aldrig till en offentlig tittare. En Tile-widget publicerar bara de aktuella talen; en Diagram-widget publicerar även historiken för den enda serie den ritar, och inget annat.
+SLO-widgeten fungerar på [offentliga instrumentpaneler](/docs/dashboards/sharing). Det som publiceras är SLO:ets nyckeltal (namn, mål, aktuell SLI, återstående felbudget, burn rate och status), oavsett vilket av dem widgeten ritar. Definitionen förblir privat: monitorerna det bevakar, dess etiketter, beskrivning, fråga och utvärderingsschema skickas aldrig till en offentlig tittare. En Tile-widget publicerar bara de aktuella talen; en Diagram-widget publicerar även historiken för den enda serie den ritar, och inget annat.
 
 ### SLO List
 

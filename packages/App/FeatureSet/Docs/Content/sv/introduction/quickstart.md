@@ -44,7 +44,7 @@ Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **V�
 :::steps
 ### Öppna installationen för webbplatsen
 
-Klicka på **Skapa din första övervakare** i checklistan. Den öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, som kontrollerar din webbplats, väljer vem som får veta och skickar ett test, på en sida. Den som inte får skapa monitorer får i stället listan **Monitorer**.
+Klicka på **Skapa din första monitor** i checklistan. Den öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, som kontrollerar din webbplats, väljer vem som får veta och skickar ett test, på en sida. Den som inte får skapa monitorer får i stället listan **Monitorer**.
 
 ### Ange adressen
 

@@ -45,7 +45,7 @@ Ett projekt utan grupperingsregler ser fem färdiga regler i stället för en to
 
 | Mall                                          | Grupperar                                                                     | Tidsfönster |
 | --------------------------------------------- | ----------------------------------------------------------------------------- | ----------- |
-| **Gruppera larm från samma övervakare**       | En episod per monitor                                                         | 30 minuter  |
+| **Gruppera larm från samma monitor**       | En episod per monitor                                                         | 30 minuter  |
 | **Gruppera larm som sker samtidigt**          | En gemensam episod, oavsett monitor                                           | 10 minuter  |
 | **Gruppera larm i anslutna tjänster** | En episod för tjänster som anropar varandra på tjänstekartan | 30 minuter  |
 | **Gruppera larm efter allvarlighetsgrad**     | En episod per allvarlighetsgrad                                               | 30 minuter  |
@@ -79,7 +79,7 @@ Allt annat som en regel kan göra är hopfällt under **Fler fält** i slutet av
 | **Episodens livscykel**   | **Vänta på fler larm**, ett reglage med ett antal, sedan **Återöppna nyligen lösta episoder**, **Vänta innan en episod löses** och **Lös tysta episoder**, vart och ett ett reglage med sina minuter. |
 | **Detaljer**              | Regelns **Beskrivning**, **Mall för episodtitel**, **Mall för episodbeskrivning** och **Episodetiketter**. |
 
-Regler kontrolleras uppifrån och ned i listan, och den första matchningen vinner: Dra en regel för att ändra dess plats. Placera specifika regler ovanför breda. Listans kolumn **Gruppering** säger i en mening vad varje regel gör, till exempel "En episod per övervakare".
+Regler kontrolleras uppifrån och ned i listan, och den första matchningen vinner: Dra en regel för att ändra dess plats. Placera specifika regler ovanför breda. Listans kolumn **Gruppering** säger i en mening vad varje regel gör, till exempel "En episod per monitor".
 
 ### Öppna en episod bara för flera larm
 
