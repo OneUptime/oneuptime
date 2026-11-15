@@ -661,6 +661,7 @@
     "{{duration}} over budget",
     "{{gigabytes}} GB",
     "{{in}} in",
+    "{{name}} (monitor: {{monitor}})",
     "{{online}}/{{count}} node online",
     "{{rate}}/min",
     "{{rate}}/s",

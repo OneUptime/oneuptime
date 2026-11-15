@@ -480,6 +480,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{minutes}} min {{seconds}} s",
+    "{{name}} (monitor: {{monitor}})",
     "{{percent}} full",
     "{{rate}}/min",
     "{{rate}}/s",
