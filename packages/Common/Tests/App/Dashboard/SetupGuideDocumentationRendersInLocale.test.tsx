@@ -303,7 +303,7 @@ function databaseRowGuide(
 
   if (!engine) {
     return getDatabaseOwnCollectorSetupGuide({
-      oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+      oneuptimeUrl: READER_URL,
       apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
       hasApiKey: false,
       database: database,
@@ -312,7 +312,7 @@ function databaseRowGuide(
   }
 
   return getDatabaseAgentSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     engine: engine,
