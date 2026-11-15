@@ -29,7 +29,7 @@ Le chat arrivano come le chiamate di IA delle tue app, quindi regole di scrub, f
 
 ## Prima di iniziare
 
-- Il ruolo Project Owner o Project Admin. Solo loro possono collegare, modificare o rimuovere uno strumento.
+- Il ruolo Proprietario del progetto o Amministratore del progetto. Solo loro possono collegare, modificare o rimuovere uno strumento.
 - Un amministratore dello strumento, per creare la credenziale: la sezione di ogni strumento, più sotto, dice quale.
 - Le tue persone avvisate, e la risposta del tuo ufficio legale o HR.
 

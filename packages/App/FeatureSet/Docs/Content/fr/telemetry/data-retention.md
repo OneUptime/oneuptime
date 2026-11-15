@@ -41,7 +41,7 @@ En détail, OneUptime lit ces paramètres dans cet ordre, et le premier qui est 
 
 ## Avant de commencer
 
-- **Un rôle qui modifie le projet.** Project Owner ou Project Admin changent la rétention du projet. La rétention d'un service ou d'une ressource demande le rôle qui modifie ses autres paramètres.
+- **Un rôle qui modifie le projet.** Propriétaire du projet ou Administrateur du projet changent la rétention du projet. La rétention d'un service ou d'une ressource demande le rôle qui modifie ses autres paramètres.
 - **Pour les remplacements, l'Édition Enterprise ou le plan Scale.** Une installation auto-hébergée a besoin d'une licence Enterprise, et un projet OneUptime Cloud du plan Scale ou supérieur. La rétention par défaut du projet existe dans toutes les éditions et tous les plans.
 
 ## Changer la rétention du projet

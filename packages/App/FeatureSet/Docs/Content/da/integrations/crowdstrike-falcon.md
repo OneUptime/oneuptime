@@ -23,7 +23,7 @@ Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er g�
 
 ## Før du går i gang
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
+- I OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
 - Et Falcon-kunde-ID (CID) og en bruger af Falcon-konsollen, der kan administrere API-klienter: rollen Falcon Administrator eller en brugerdefineret rolle med tilladelsen API clients and keys.
 - Udgående HTTPS fra OneUptime-appen og -workerne til API-værten for din Falcon-sky, angivet under **Falcon-sky** nedenfor.
 

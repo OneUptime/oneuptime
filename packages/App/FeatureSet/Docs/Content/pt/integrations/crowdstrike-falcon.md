@@ -23,7 +23,7 @@ A cada minuto, o OneUptime consulta cada conexão habilitada cujo intervalo de c
 
 ## Antes de começar
 
-- No OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
+- No OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
 - Um ID de cliente do Falcon (CID) e um usuário do console do Falcon que possa gerenciar clientes de API: a função Falcon Administrator, ou uma função personalizada com a permissão API clients and keys.
 - HTTPS de saída do aplicativo e dos workers do OneUptime para o host de API da sua nuvem do Falcon, listado em **Nuvem do Falcon** abaixo.
 

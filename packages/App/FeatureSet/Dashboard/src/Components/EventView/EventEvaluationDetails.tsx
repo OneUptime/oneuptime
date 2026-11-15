@@ -8,7 +8,11 @@ import MonitorEvaluationDetails, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -536,10 +540,11 @@ const FilterRow: FunctionComponent<{
           className="break-words text-sm text-gray-900"
         >
           <span className="sr-only">
-            {translator.translateText(
-              filter.met ? FILTER_MATCHED : FILTER_NOT_MATCHED,
-            )}
-            {": "}
+            {translator.translateTemplate(LABEL_WITH_COLON, {
+              label: translatableTerm(
+                filter.met ? FILTER_MATCHED : FILTER_NOT_MATCHED,
+              ),
+            })}{" "}
           </span>
           <span className="font-medium">
             {translator.translateTerm(filter.checkOn)}

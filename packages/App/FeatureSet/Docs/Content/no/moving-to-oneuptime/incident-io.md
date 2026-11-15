@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **En incident.io-API-nøkkel som bare kan se data.** Importen skriver aldri til incident.io, så nøkkelen trenger ingen tillatelse til å opprette, redigere eller administrere noe.
 
 ## Importer incident.io-kontoen din
@@ -79,7 +79,7 @@ En rotasjon med flere personer på vakt samtidig blir én OneUptime-vaktplan per
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 

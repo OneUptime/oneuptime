@@ -99,6 +99,18 @@ import {
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
 import {
+  AI_READ_CARD_NAME,
+  AIActionSentence,
+  AIActionTerm,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_WIDGET_TITLES,
+  AI_TOOL_CITATIONS,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationOf, windowSentence, windowValues } from "./ReadTableWords";
+import {
   CloudResourceMetricReadAggregation,
   chooseCloudResourceMetricAggregation,
 } from "./CloudResourceMetricAggregation";
@@ -502,9 +514,57 @@ const RESOURCE_SCHEMA_PROPERTIES: JSONObject = {
   },
 };
 
+/*
+ * What a read of one kind of resource, or of one resource's telemetry, is
+ * named by under Sources, in the reader's language (issue #8311): the kind
+ * as the telemetry pages name it, the signal, and the window as moments.
+ */
+function resourceSignalLabel(data: {
+  type: AIResourceType;
+  signal: ResourceSignal;
+  groupBy?: string | undefined;
+  startTime: Date;
+  endTime: Date;
+}): AIActionSentence {
+  // As the telemetry pages name it, cased as they case it.
+  const kind: AIActionTerm = aiActionTerm(
+    getAIResourceDefinition(data.type).label,
+  );
+  const window: ReturnType<typeof windowValues> = windowValues(
+    data.startTime,
+    data.endTime,
+  );
+
+  if (data.signal === "logs") {
+    return aiActionSentence(AI_TOOL_CITATIONS.resourceLogs, {
+      kind,
+      ...window,
+    });
+  }
+
+  if (data.signal === "traces") {
+    return aiActionSentence(AI_TOOL_CITATIONS.resourceTraces, {
+      kind,
+      ...window,
+    });
+  }
+
+  return data.groupBy
+    ? aiActionSentence(AI_TOOL_CITATIONS.resourceMetricsBy, {
+        kind,
+        groupBy: data.groupBy,
+        ...window,
+      })
+    : aiActionSentence(AI_TOOL_CITATIONS.resourceMetrics, {
+        kind,
+        ...window,
+      });
+}
+
 function resultForRows(data: {
   rows: Array<JSONObject>;
-  label: string;
+  // In the reader's language (issue #8311); its English is the chip's label.
+  label: AIActionSentence;
   target: AIChatCitationTarget;
   note: string;
   truncated?: boolean;
@@ -516,7 +576,7 @@ function resultForRows(data: {
   return {
     dataForLlm: `${serialized.text || "No matching data."}\n${data.note}`,
     rowCount: serialized.rowCount,
-    citationLabel: data.label,
+    ...citationOf(data.label),
     citationTarget: data.target,
     redactionCount: serialized.redactionCount,
     isTruncated: serialized.isTruncated || Boolean(data.truncated),
@@ -628,7 +688,10 @@ export const QueryTelemetryResourcesTool: ObservabilityTool = {
     );
     return resultForRows({
       rows,
-      label: getAIResourceDefinition(type).pluralLabel,
+      // The kind's plural, as the telemetry pages name it (issue #8311).
+      label: aiActionSentence(AI_READ_CARD_NAME, {
+        name: aiActionTerm(getAIResourceDefinition(type).pluralLabel),
+      }),
       target: resourceTarget(type, id),
       truncated: !id && rows.length >= limit,
       note:
@@ -975,7 +1038,12 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
     });
     const target: AIChatCitationTarget = resourceTarget(type, id);
     const window: string = `${startTime.toISOString()} – ${endTime.toISOString()}`;
-    const label: string = `${getAIResourceDefinition(type).label} ${signal}, ${window}`;
+    const label: AIActionSentence = resourceSignalLabel({
+      type,
+      signal,
+      startTime,
+      endTime,
+    });
     const note: string = `${scope.note} Requested window: ${window}.`;
     if (signal === "metrics") {
       const name: string | undefined = ToolArgs.getString(args, "metricName");
@@ -1070,7 +1138,13 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
           rows: read.series.map((series: MetricSeries): JSONObject => {
             return GroupedMetricSeries.toLlmRow(series);
           }),
-          label: `${getAIResourceDefinition(type).label} ${signal} by ${by}, ${window}`,
+          label: resourceSignalLabel({
+            type,
+            signal,
+            groupBy: by,
+            startTime,
+            endTime,
+          }),
           target,
           truncated: read.isTruncated,
           widget:
@@ -1080,13 +1154,27 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
                    * For people: what was read and over which window. The
                    * scope note is the model's; it stays in the result.
                    */
-                  title: `${aggregation} of ${name} by ${by}`,
-                  description: window,
+                  words: {
+                    title: aiActionSentence(AI_READ_WIDGET_TITLES.metricBy, {
+                      aggregation: aggregation,
+                      metric: name,
+                      groupBy: by,
+                    }),
+                    description: windowSentence(startTime, endTime),
+                  },
                   series: GroupedMetricSeries.toWidgetSeries(
                     read.series,
                     plan.groupBy,
                   ),
                   link: target,
+                  // The days the read was cut in, to be drawn in (#8206).
+                  bucketTimezone:
+                    AggregationIntervalUtil.getCalendarBucketTimezone({
+                      startDate: startTime,
+                      endDate: endTime,
+                      aggregationInterval: interval,
+                      timezone: ctx.readerTimezone,
+                    }),
                 })
               : undefined,
           note: [
@@ -1191,9 +1279,14 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       const widget: AIChatWidget | undefined =
         name && mode === "trend" && rows.length > 0
           ? WidgetBuilder.timeSeries({
-              // Titled and dated like the grouped chart above.
-              title: `${aggregation} of ${name}`,
-              description: window,
+              // Titled and dated like the grouped chart above (issue #8312).
+              words: {
+                title: aiActionSentence(AI_READ_WIDGET_TITLES.metric, {
+                  aggregation: aggregation,
+                  metric: name,
+                }),
+                description: windowSentence(startTime, endTime),
+              },
               series: [
                 {
                   name,
@@ -1206,6 +1299,15 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
                 },
               ],
               link: target,
+              // The days the read was cut in, to be drawn in (#8206).
+              bucketTimezone: AggregationIntervalUtil.getCalendarBucketTimezone(
+                {
+                  startDate: startTime,
+                  endDate: endTime,
+                  aggregationInterval: interval,
+                  timezone: ctx.readerTimezone,
+                },
+              ),
             })
           : undefined;
       const truncated: boolean = Boolean(

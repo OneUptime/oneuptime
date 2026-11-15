@@ -243,6 +243,7 @@ export function isAIChatReadResourceCard(data: AIChatWidgetData): boolean {
  * - TraceWaterfall: `spans` + `totalDurationMs`
  * - IncidentList / AlertList / ExceptionList: `items`
  * - StatCards: `stats`
+ * - every widget but a ResourceCard: `tableWords`, its title and line
  * - ResourceCard: `resourceType`, `heading`, `subheading`, `fields`, `link`
  *   (+ `origin`, `statusColor`, `words`)
  */
@@ -250,6 +251,18 @@ export interface AIChatWidgetData {
   series?: Array<AIChatWidgetSeries> | undefined;
   stacked?: boolean | undefined;
   xIsTime?: boolean | undefined;
+  /*
+   * A time chart whose buckets are days (or weeks, months, years): the zone
+   * they were cut in, as the tool read them (issue #8206) - the asker's
+   * (ToolContext.readerTimezone), or UTC for a run with no reader, such as
+   * an autonomous investigation. The chart is a snapshot, read later by
+   * whoever opens the thread or the incident; it draws each bucket on the
+   * day it counted in this zone, and says so when that is not the
+   * reader's own (Common/Types/AI/AIChatChartCalendar). Left out for finer
+   * buckets, which are the same instants in every zone, and on a chart
+   * saved before, which is drawn on the reader's calendar as it was.
+   */
+  bucketTimezone?: string | undefined;
   unit?: string | undefined;
   valueLabel?: string | undefined;
   columns?: Array<AIChatWidgetColumn> | undefined;
@@ -275,7 +288,9 @@ export interface AIChatWidgetData {
    * (Types/AI/AIActionWords), which the chat says in the reader's
    * language. The title, description and rows store the same words in
    * English - what the exports print and the model reads, and what a
-   * table saved before it had words reads as.
+   * table saved before it had words reads as. A chart, a list of
+   * incidents, alerts or exceptions, a trace waterfall and stat cards
+   * carry their title and line the same way, with no cells (issue #8312).
    */
   tableWords?: AIActionTableWords | undefined;
   /*

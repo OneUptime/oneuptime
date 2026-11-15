@@ -1669,7 +1669,16 @@ function formatArgument(
 
     return {
       key,
-      label: key === "startTime" ? "From" : key === "endTime" ? "Until" : "At",
+      /*
+       * A window's start alone: a range's start, never a message's sender,
+       * which the bare "From" is in most languages (#8201).
+       */
+      label:
+        key === "startTime"
+          ? "From (range start)"
+          : key === "endTime"
+            ? "Until"
+            : "At",
       value: text,
     };
   }

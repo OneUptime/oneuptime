@@ -468,14 +468,26 @@ describe("a table whose words do not say what it stores reads as stored", () => 
     },
   );
 
-  test("words carried by a widget that is no table are never read", () => {
+  /*
+   * Since #8312 a chart, a list and stat cards say their heading as a table
+   * does; their cells are a table's alone, and a resource card draws its
+   * own words.
+   */
+  test("words carried by a widget that is no table head it, but name no cell; a resource card's are never read", () => {
     const widget: AIChatWidget = {
       ...monitorsTable(),
       type: AIChatWidgetType.StatCards,
     };
+    const card: AIChatWidget = {
+      ...monitorsTable(),
+      type: AIChatWidgetType.ResourceCard,
+    };
 
     expect(getKnownTableWords(widget)).toBeNull();
-    expect(getDrawnWidgetHeading(widget, dashboardTranslator("de"))).toEqual({
+    expect(
+      getDrawnWidgetHeading(widget, dashboardTranslator("de")).title,
+    ).not.toBeNull();
+    expect(getDrawnWidgetHeading(card, dashboardTranslator("de"))).toEqual({
       title: null,
       description: null,
     });

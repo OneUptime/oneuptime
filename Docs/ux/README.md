@@ -612,6 +612,18 @@ work out, starts from a default for everything else, and folds what most people 
   [TwelveHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwelveHourClockLeadingZeroGuard.test.ts)
   and
   [TwentyFourHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwentyFourHourClockLeadingZeroGuard.test.ts).
+- **A date and a time are the reader's, never the browser's:** in the zone they picked in User
+  Settings, on their 12- or 24-hour clock, written by `OneUptimeDate` or
+  `Common/UI/Utils/ReaderMoments` (a moment, a day, a time of day). `toLocaleString`,
+  `toLocaleDateString` and `toLocaleTimeString` with no options write the browser's zone and the
+  language's own clock, with seconds: Topology's "Last refreshed" read "05:14:00" in the browser's
+  zone beside a table's "5:14 AM" in the zone the reader picked (#8231). Enforced by
+  [DatesOnTheReadersClockGuard](../../packages/Common/Tests/Types/DatesOnTheReadersClockGuard.test.ts).
+- **A chart of days names whose days they are when they are not the reader's:** an Ask AI chart is
+  a snapshot, cut in the asker's zone or in UTC, and read later anywhere, so it draws each day where
+  it counted and says "Days are in America/New_York." A New York day sat under the day before in Los
+  Angeles (#8206). Enforced by
+  [AskAiChartDaysWhereTheyWereCut](../../packages/Common/Tests/App/Dashboard/AskAiChartDaysWhereTheyWereCut.test.tsx).
 - **A date and time people fill in shows and keeps hours and minutes, never seconds.** Add User
   Override's Starts read "13/11/2026 11:15:52", and nobody schedules a shift to the second (#7593).
   Draw the field with the shared Input. Only a field read against telemetry's own timestamps, like a
@@ -665,9 +677,13 @@ work out, starts from a default for everything else, and folds what most people 
   translator.formatNumber(index + 1) })`), a `translatePlural` for a count, or a `TranslatedSentence`
   around an element. Two whole sentences side by side, a label that carries its own colon and its
   value, facts set apart by " · ", a path and an aside in brackets are no sentence built from
-  pieces. Enforced by
+  pieces. The same goes for JSX: `{t("Showing")} {n} {t("of")} {total}` read "Page 2 of 5" in
+  English's order in Japanese, and a status page's "posted on" sat before its date in every
+  language (#8290). A label whose colon the code wrote (`{t("Capabilities")}:`) takes it from a key
+  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). Enforced by
   [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
-  which reads template literals, `+` and `join()`.
+  which reads template literals, `+`, `join()` and an element's children, and follows a name that
+  holds a translation (`const label = t("Key")`).
 
 ### In every language
 
@@ -690,9 +706,12 @@ then `npm run i18n:validate` from the root.
   for the import screens (the label rule import, the CSV upload, the JSON import's editor,
   Network's Auto Import Rules) and the docs that name their buttons,
   [ImportScreensInEveryLanguage](../../packages/App/Tests/Dashboard/ImportScreensInEveryLanguage.test.ts),
-  and, for the metric query form (the metric picker, its attribute filter, the series and group
+  for the metric query form (the metric picker, its attribute filter, the series and group
   colour pickers, a formula's row), which was English in twelve languages (#8310),
-  [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts).
+  [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts),
+  and, for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
+  the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
+  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a

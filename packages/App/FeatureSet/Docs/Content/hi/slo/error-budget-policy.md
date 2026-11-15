@@ -295,7 +295,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 | **Edit SLO Error Budget Policy Tier** | स्तर बदलना, और उन्हें चालू या बंद करना। |
 | **Delete SLO Error Budget Policy Tier** | स्तर हटाना। |
 
-ये अनुमतियाँ किसी भूमिका के SLO समूह में हैं। Project Owner और Project Admin भूमिकाओं के पास ये सभी हैं, और Project Member और Viewer भूमिकाएँ स्तर पढ़ सकती हैं।
+ये अनुमतियाँ किसी भूमिका के SLO समूह में हैं। प्रोजेक्ट स्वामी और प्रोजेक्ट एडमिन भूमिकाओं के पास ये सभी हैं, और प्रोजेक्ट सदस्य और दर्शक भूमिकाएँ स्तर पढ़ सकती हैं।
 
 ## अभी उपलब्ध नहीं
 

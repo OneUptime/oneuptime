@@ -25,7 +25,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les propriétaires et administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
+- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les Propriétaires du projet et les Administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
 - **Une clé API Statuspage.** Seul un propriétaire du compte peut en créer une. L'import n'écrit jamais dans Statuspage, et il lit chaque page que la clé peut voir.
 - **De la place pour vos pages, sur OneUptime Cloud.** Votre offre a de la place pour un nombre donné de pages de statut et d'abonnés. Ce qui ne rentre pas est affiché comme non importé. Les composants deviennent des moniteurs manuels, qui sont gratuits.
 
@@ -73,7 +73,7 @@ Un import crée au plus 2 000 enregistrements : au plus 1 000 moniteurs et 50 pa
 
 Sur OneUptime Cloud, les pages de statut et les abonnés pour lesquels votre offre n'a plus de place sont affichés comme non importés, avec ce qu'il leur faut.
 
-Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut cocher et lancer l'import. Les propriétaires et administrateurs du projet voient la progression et le rapport de chaque import.
+Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut cocher et lancer l'import. Les Propriétaires du projet et les Administrateurs du projet voient la progression et le rapport de chaque import.
 
 ## Terminer la migration
 

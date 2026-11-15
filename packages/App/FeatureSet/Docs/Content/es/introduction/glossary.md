@@ -436,7 +436,7 @@ Consulta [Conceptos básicos](/docs/introduction/core-concepts#los-tipos-de-regl
 
 ### Rol
 
-Cuatro cosas distintas: los permisos que concede un equipo, como Project Owner o Project Admin; un **Rol personalizado** que compones a partir de permisos; un **Rol de incidente**, el papel que alguien desempeña en un incidente; y un **Rol del dispositivo de red**, lo que hace un dispositivo de tu red.
+Cuatro cosas distintas: los permisos que concede un equipo, como Propietario del proyecto o Administrador del proyecto; un **Rol personalizado** que compones a partir de permisos; un **Rol de incidente**, el papel que alguien desempeña en un incidente; y un **Rol del dispositivo de red**, lo que hace un dispositivo de tu red.
 
 Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 

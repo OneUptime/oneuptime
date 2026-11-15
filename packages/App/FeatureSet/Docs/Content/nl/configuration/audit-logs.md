@@ -32,7 +32,7 @@ flowchart TB
 
 - **In OneUptime Cloud: het Enterprise-abonnement.** Bij andere abonnementen tonen de pagina's van het auditlogboek wat de functie doet en hoe u die krijgt.
 - **Als u zelf host: de Enterprise Edition**, met een licentie die auditlogboeken omvat. Zie [Enterprise Edition](/docs/self-hosted/enterprise).
-- **Een rol die het auditlogboek mag lezen.** Project Owner, Project Admin, Settings Admin of de machtiging **Read Audit Log**. Auditlogging aanzetten en de instellingen ervan wijzigen vraagt een Project Owner, een Project Admin of de machtiging om het project te bewerken.
+- **Een rol die het auditlogboek mag lezen.** Projecteigenaar, Projectbeheerder, Instellingenbeheerder of de machtiging **Read Audit Log**. Auditlogging aanzetten en de instellingen ervan wijzigen vraagt een Projecteigenaar, een Projectbeheerder of de machtiging om het project te bewerken.
 
 ## Auditlogging aanzetten
 

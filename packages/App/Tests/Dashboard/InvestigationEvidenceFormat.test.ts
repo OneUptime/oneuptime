@@ -1006,6 +1006,7 @@ describe("formatEvidenceArguments", () => {
     expect(valueOf(rows, "Limit")).toBe("25");
   });
 
+  // A lone start is a range's start (#8201): English reads it as "From".
   test("keeps a lone start or end as From / Until", () => {
     const onlyStart: Array<FormattedEvidenceArgument> = argumentsFor(
       "query_metrics",
@@ -1014,7 +1015,7 @@ describe("formatEvidenceArguments", () => {
     expect(onlyStart).toEqual([
       {
         key: "startTime",
-        label: "From",
+        label: "From (range start)",
         value: formatEvidenceDateTime("2026-09-14T17:20:00.000Z"),
       },
     ]);
@@ -1033,7 +1034,7 @@ describe("formatEvidenceArguments", () => {
     });
 
     expect(rows).toEqual([
-      { key: "startTime", label: "From", value: "1h ago" },
+      { key: "startTime", label: "From (range start)", value: "1h ago" },
       { key: "endTime", label: "Until", value: "now" },
     ]);
   });

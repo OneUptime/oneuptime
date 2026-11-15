@@ -497,7 +497,7 @@ Der MCP-Server ist zustandslos: Er vergibt und verfolgt keine Sitzungs-IDs, soda
 | Sicherheit | Security Event, Threat Intel Indicator |
 | Änderungen und Kosten | Change Event, Kubernetes Cost Allocation |
 
-Die Tools heißen in Snake Case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` und `count_incidents`, oder `list_logs` und `count_spans` für Telemetrie.
+Die Tools heißen in Snake Case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` und `count_incidents`, oder `list_logs` und `count_spans` für Telemetrie. `create_incident` und `create_alert` nehmen außerdem `ownerUsers` und `ownerTeams`: die IDs der Benutzer und Teams, denen der Datensatz von Anfang an gehört und die erfahren, dass er erstellt wurde.
 
 ## Nächste Schritte
 

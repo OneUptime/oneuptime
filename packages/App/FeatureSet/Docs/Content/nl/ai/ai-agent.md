@@ -283,7 +283,7 @@ Om een Runner ergens anders te draaien, bijvoorbeeld op een machine dicht bij je
 :::steps
 ### Maak de Runner aan
 
-Maak een Runner aan onder **Runbooks → Runbook-agenten** en klik op **Installatie-instructies weergeven** in zijn rij. De opdracht bevat de geheime sleutel van de Runner, die alleen een Project Owner, Project Admin of Runbook Admin kan lezen. Hij ziet er zo uit:
+Maak een Runner aan onder **Runbooks → Runbook-agenten** en klik op **Installatie-instructies weergeven** in zijn rij. De opdracht bevat de geheime sleutel van de Runner, die alleen een Projecteigenaar, Projectbeheerder of Runbookbeheerder kan lezen. Hij ziet er zo uit:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

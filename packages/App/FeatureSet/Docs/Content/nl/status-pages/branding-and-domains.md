@@ -217,7 +217,7 @@ Klik op **Doorgaan**. Als het project het domein waarop het adres staat al heeft
 
 De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Om een ander adres te gebruiken, voegt u dat toe en verwijdert u het oude. Een naam die een dashboard of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.
 
-Een domein aan het project toevoegen vereist de machtiging om projectdomeinen aan te maken (**Create Domain**, of Project Owner of Project Admin), en het verifiëren vereist **Edit Domain**. Zonder die machtigingen zegt het dialoogvenster wie het kan doen.
+Een domein aan het project toevoegen vereist de machtiging om projectdomeinen aan te maken (**Create Domain**, of Projecteigenaar of Projectbeheerder), en het verifiëren vereist **Edit Domain**. Zonder die machtigingen zegt het dialoogvenster wie het kan doen.
 
 ### DNS-instelling en verificatie
 
@@ -301,9 +301,9 @@ Zoek op uw domein naar een CAA-record dat `letsencrypt.org` buitensluit, en cont
 
 ### Wie mag controleren en opnieuw uitgeven
 
-**Nu controleren**, het bestellen van het certificaat van een domein en **Reissue SSL** wijzigen het domein, dus daarvoor is de machtiging nodig om het te bewerken: **Edit Status Page Domain**, of een rol die die machtiging bevat (Project Owner, Project Admin, Project Member, Status Page Admin of Status Page Member).
+**Nu controleren**, het bestellen van het certificaat van een domein en **Reissue SSL** wijzigen het domein, dus daarvoor is de machtiging nodig om het te bewerken: **Edit Status Page Domain**, of een rol die die machtiging bevat (Projecteigenaar, Projectbeheerder, Projectlid, Statuspaginabeheerder of Statuspaginalid).
 
-Wie het domein alleen mag lezen, zoals een Viewer of een Status Page Viewer, ziet nog steeds de kolom **Status** en het toe te voegen record in **DNS-instelling**. Voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld, en ze zeggen welke machtiging nodig is. OneUptime blijft hoe dan ook elk domein controleren en het certificaat ervan zelf bestellen.
+Wie het domein alleen mag lezen, zoals een Kijker of een Statuspaginakijker, ziet nog steeds de kolom **Status** en het toe te voegen record in **DNS-instelling**. Voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld, en ze zeggen welke machtiging nodig is. OneUptime blijft hoe dan ook elk domein controleren en het certificaat ervan zelf bestellen.
 
 Hetzelfde geldt voor API-sleutels. Een sleutel die domeinen van statuspagina's alleen mag lezen, kan `verify-cname`, `check-dns`, `order-ssl` of `reissue-ssl` op `/status-page-domain` niet aanroepen. Geef hem **Read Status Page Domain** en **Edit Status Page Domain** als hij dat nodig heeft. Als het record niet is gevonden, weigert `verify-cname` met wat het heeft opgezocht en wat er terugkwam, in de woorden die **DNS-instelling** toont; `check-dns` geeft hoe dan ook antwoord voor elk record dat het heeft opgezocht.
 

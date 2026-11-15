@@ -43,7 +43,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Un rol que pueda configurarla.** Los roles Project Owner, Project Admin y Security Admin cambian los ajustes de Seguridad de datos. Los Security Member gestionan problemas y escanean almacenes, y los Security Viewer leen lo que encontró. Los demás roles no ven nada de ella salvo que su equipo reciba sus permisos: qué buckets contienen números de tarjeta es justo lo que quiere saber un atacante. Consulta [Roles](/docs/permissions/reference#roles).
+- **Un rol que pueda configurarla.** Los roles Propietario del proyecto, Administrador del proyecto y Administrador de seguridad cambian los ajustes de Seguridad de datos. Los Miembros de seguridad gestionan problemas y escanean almacenes, y los Visores de seguridad leen lo que encontró. Los demás roles no ven nada de ella salvo que su equipo reciba sus permisos: qué buckets contienen números de tarjeta es justo lo que quiere saber un atacante. Consulta [Roles](/docs/permissions/reference#roles).
 - **Una cuenta en la nube que leer, o una base de datos.** Seguridad de datos lee una cuenta en la nube mediante una [conexión a la nube](/docs/telemetry/cloud-accounts), y una base de datos que gestionas mediante una cadena de conexión de solo lectura. La telemetría no necesita nada: se escanea cada hora.
 
 ## Inicio rápido

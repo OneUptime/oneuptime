@@ -14,6 +14,17 @@ import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
 import { sortByNaturalName } from "../../../Utils/NaturalOrder";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import { translationKey } from "../../Utils/TranslateTemplate";
+
+/*
+ * A change of an event's state, as one sentence with the event's kind and
+ * the new state's pill where the reader's language puts them. It read the
+ * kind, then "state changed to", then the pill, in English's order (#8290).
+ */
+export const EVENT_STATE_CHANGED_TO: string = translationKey(
+  "{{eventType}} state changed to {{state}}",
+);
 
 export enum TimelineItemType {
   StateChange = "StateChange",
@@ -249,44 +260,50 @@ const EventItem: FunctionComponent<ComponentProps> = (
                             </div>
                           </div>
                           <div className="min-w-0 flex-1 py-0">
-                            <div className="text-sm leading-8 text-gray-500">
-                              <span className="mr-2">
-                                <span className="font-medium text-gray-900 mr-1">
-                                  {props.eventType}
-                                </span>
-                                {t(
-                                  "eventItem.stateChangedTo",
-                                  "state changed to",
-                                )}
-                              </span>
-                              <span className="mr-1">
-                                <Pill
-                                  text={
-                                    item.stateDisplayName ||
-                                    (item.state?.getColumnValue(
-                                      "name",
-                                    ) as string)
-                                  }
-                                  /*
-                                   * The page's own words for the state, or
-                                   * its name: OneUptime's default looked
-                                   * up, the project's own as written.
-                                   */
-                                  isUserContent={
-                                    Boolean(item.stateDisplayName) ||
-                                    isRecordNameAsWritten(
-                                      item.state?.tableName,
-                                      item.state?.getColumnValue(
-                                        "name",
-                                      ) as string,
-                                    )
-                                  }
-                                  color={
-                                    item.state?.getColumnValue("color") as Color
-                                  }
-                                  isMinimal={true}
-                                />
-                              </span>
+                            <div
+                              className="text-sm leading-8 text-gray-500"
+                              data-testid="event-item-state-change"
+                            >
+                              <TranslatedSentence
+                                template={EVENT_STATE_CHANGED_TO}
+                                slots={{
+                                  eventType: (
+                                    <span className="font-medium text-gray-900">
+                                      {props.eventType}
+                                    </span>
+                                  ),
+                                  state: (
+                                    <Pill
+                                      text={
+                                        item.stateDisplayName ||
+                                        (item.state?.getColumnValue(
+                                          "name",
+                                        ) as string)
+                                      }
+                                      /*
+                                       * The page's own words for the state, or
+                                       * its name: OneUptime's default looked
+                                       * up, the project's own as written.
+                                       */
+                                      isUserContent={
+                                        Boolean(item.stateDisplayName) ||
+                                        isRecordNameAsWritten(
+                                          item.state?.tableName,
+                                          item.state?.getColumnValue(
+                                            "name",
+                                          ) as string,
+                                        )
+                                      }
+                                      color={
+                                        item.state?.getColumnValue(
+                                          "color",
+                                        ) as Color
+                                      }
+                                      isMinimal={true}
+                                    />
+                                  ),
+                                }}
+                              />
                             </div>
                             <div>
                               <span className="text-sm leading-8 text-gray-500 whitespace-nowrap">
@@ -353,11 +370,21 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                       })}
                                 </span>
                               </div>
-                              <p className="mt-0.5 text-sm text-gray-500">
-                                {t("eventItem.postedOn", "posted on")}{" "}
-                                {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                                  item.date,
-                                )}
+                              {/*
+                               * "posted on {{date}}": one sentence, the date
+                               * where the reader's language puts it. It read
+                               * "posted on" and then the date (#8290).
+                               */}
+                              <p
+                                className="mt-0.5 text-sm text-gray-500"
+                                data-testid="event-item-posted-on"
+                              >
+                                {t("eventItem.postedOnDate", {
+                                  date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                                    item.date,
+                                  ),
+                                  defaultValue: "posted on {{date}}",
+                                })}
                               </p>
                             </div>
                             <div className="mt-2 text-sm text-gray-700">

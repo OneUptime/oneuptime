@@ -24,7 +24,7 @@ flowchart LR
 
 ## Antes de começar
 
-- **Uma função que pode mudar o projeto.** Project Owners e Project Admins mudam a maioria dessas configurações. Cobrança, canais de notificação e a exclusão do projeto exigem mais, como cada seção diz.
+- **Uma função que pode mudar o projeto.** Proprietários do projeto e Administradores do projeto mudam a maioria dessas configurações. Cobrança, canais de notificação e a exclusão do projeto exigem mais, como cada seção diz.
 - **No OneUptime Cloud, o plano que inclui uma configuração.** Algumas configurações precisam de um plano: veja [Configurações que precisam de um plano](/docs/configuration/billing#configurações-que-precisam-de-um-plano).
 
 ## Encontrar uma configuração
@@ -50,11 +50,11 @@ flowchart LR
 
 **Detalhes do projeto** mostra o nome do projeto e o ID dele:
 
-- **Nome do projeto**: clique em **Editar: Projeto** para renomear o projeto. Um nome tem pelo menos 2 caracteres. Renomear exige um Project Owner, ou a permissão para editar o projeto ou para gerenciar a cobrança.
+- **Nome do projeto**: clique em **Editar: Projeto** para renomear o projeto. Um nome tem pelo menos 2 caracteres. Renomear exige um Proprietário do projeto, ou a permissão para editar o projeto ou para gerenciar a cobrança.
 - **ID do Projeto**: copie-o para a API, a CLI e o Terraform, ou quando escrever ao suporte.
 - **Data Residency**: no OneUptime Cloud, onde os dados do seu projeto devem ficar, quando o OneUptime registrou isso. Só o OneUptime define esse valor.
 
-**Acesso do suporte ao cliente**, no OneUptime Cloud, decide se a equipe de suporte do OneUptime pode abrir o projeto. Ative **Permitir que o suporte da OneUptime acesse este projeto** quando quiser ajuda: o OneUptime pergunta antes, porque o suporte poderá ver e mudar tudo no projeto, e você clica em **Deixar o suporte entrar**. Desative quando terminarem: isso é salvo na hora. Project Owners e Project Admins mudam essa opção.
+**Acesso do suporte ao cliente**, no OneUptime Cloud, decide se a equipe de suporte do OneUptime pode abrir o projeto. Ative **Permitir que o suporte da OneUptime acesse este projeto** quando quiser ajuda: o OneUptime pergunta antes, porque o suporte poderá ver e mudar tudo no projeto, e você clica em **Deixar o suporte entrar**. Desative quando terminarem: isso é salvo na hora. Proprietários do projeto e Administradores do projeto mudam essa opção.
 
 ## Produtos
 
@@ -66,9 +66,9 @@ Em um servidor auto-hospedado, um administrador master também pode desativar um
 
 Um projeto novo começa pelo que o proprietário disse no Início que veio fazer: os essenciais, as configurações e o que esses objetivos precisam são mostrados, e o resto fica oculto. Um projeto que pulou a pergunta, ou que foi criado antes dela, mostra todos os produtos. Depois que alguém altera a lista aqui, os objetivos não a alteram mais.
 
-Cada produto diz o que ele é para este projeto: **Em uso**, **Não configurado** ou, no OneUptime Cloud, o plano de que precisa. Quando um produto oculto começa a receber dados, o Início avisa os proprietários e administradores do projeto e oferece **Mostrar** ou **Manter oculto**.
+Cada produto diz o que ele é para este projeto: **Em uso**, **Não configurado** ou, no OneUptime Cloud, o plano de que precisa. Quando um produto oculto começa a receber dados, o Início avisa os Proprietários do projeto e os Administradores do projeto e oferece **Mostrar** ou **Manter oculto**.
 
-Os proprietários do projeto, os administradores e quem pode editar o projeto a alteram; todos os outros no projeto podem vê-la.
+Os Proprietários do projeto, os Administradores do projeto e quem pode editar o projeto a alteram; todos os outros no projeto podem vê-la.
 
 ## Rótulos
 
@@ -96,7 +96,7 @@ Para aposentar um rótulo, arquive-o pelo menu **⋯** da sua linha em vez de ex
 
 **Configurações do projeto → Notificações** reúne como o projeto envia notificações:
 
-- **Canais de notificação**: o cartão **Canais de notificação** ativa ou desativa SMS, chamadas telefônicas, WhatsApp e Telegram para o projeto. Os quatro começam desativados. Quem os ativa é um Project Owner, um **Administrador de cobrança** ou alguém com **Manage Billing**. A página também reúne, recolhidos em **Mais configurações**, os servidores de e-mail próprios do projeto, em **Configurações SMTP Personalizadas** (veja [SMTP](/docs/emails/smtp)), e a conta Twilio própria dele (veja [Integração do Twilio](/docs/self-hosted/twilio-integration)). No OneUptime Cloud, ela mostra o saldo que paga essas mensagens: veja [Saldos pré-pagos](/docs/configuration/billing#saldos-pré-pagos).
+- **Canais de notificação**: o cartão **Canais de notificação** ativa ou desativa SMS, chamadas telefônicas, WhatsApp e Telegram para o projeto. Os quatro começam desativados. Quem os ativa é um Proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing**. A página também reúne, recolhidos em **Mais configurações**, os servidores de e-mail próprios do projeto, em **Configurações SMTP Personalizadas** (veja [SMTP](/docs/emails/smtp)), e a conta Twilio própria dele (veja [Integração do Twilio](/docs/self-hosted/twilio-integration)). No OneUptime Cloud, ela mostra o saldo que paga essas mensagens: veja [Saldos pré-pagos](/docs/configuration/billing#saldos-pré-pagos).
 - **Logs de notificação**: cada notificação que o projeto enviou, com uma aba por canal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Chamada**, **Push** e **Espaço de trabalho**.
 - **Aplicativos móveis**: onde obter os aplicativos para iOS e Android. Veja [Visão geral dos aplicativos](/docs/mobile-desktop-apps/index).
 
@@ -127,7 +127,7 @@ Clique em **Excluir: Projeto**. O OneUptime exclui o projeto e tira você dele.
 :::
 
 > [!CAUTION]
-> A exclusão do projeto não pode ser desfeita. Ela exige um Project Owner, ou a permissão para excluir o projeto.
+> A exclusão do projeto não pode ser desfeita. Ela exige um Proprietário do projeto, ou a permissão para excluir o projeto.
 
 No OneUptime Cloud, excluir o projeto é a forma de cancelar o plano dele: a cobrança para quando o projeto é excluído. Um projeto cobrado por um marketplace de nuvem recebe uma última cobrança pelo uso, e a compra no marketplace continua ativa até você cancelá-la lá.
 
@@ -138,7 +138,7 @@ Todas as seções, exceto **Básico**, começam recolhidas. Clique no título da
 :::
 
 :::details Editar: Projeto está bloqueado
-Renomear o projeto exige um Project Owner, ou a permissão para editar o projeto ou para gerenciar a cobrança. O botão bloqueado indica a permissão de que você precisa.
+Renomear o projeto exige um Proprietário do projeto, ou a permissão para editar o projeto ou para gerenciar a cobrança. O botão bloqueado indica a permissão de que você precisa.
 :::
 
 :::details Excluir: Projeto continua bloqueado na caixa de diálogo

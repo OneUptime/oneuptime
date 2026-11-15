@@ -24,7 +24,7 @@ flowchart LR
 
 ## Før du går i gang
 
-- **En rolle, der må ændre projektet.** Project Owners og Project Admins ændrer de fleste af disse indstillinger. Fakturering, notifikationskanaler og sletning af projektet kræver mere, som hvert afsnit siger.
+- **En rolle, der må ændre projektet.** Projektejere og Projektadministratorer ændrer de fleste af disse indstillinger. Fakturering, notifikationskanaler og sletning af projektet kræver mere, som hvert afsnit siger.
 - **I OneUptime Cloud: den plan, der omfatter en indstilling.** Nogle indstillinger kræver en plan: se [Indstillinger, der kræver en plan](/docs/configuration/billing#indstillinger-der-kræver-en-plan).
 
 ## Find en indstilling
@@ -50,11 +50,11 @@ flowchart LR
 
 **Projektdetaljer** viser projektets navn og ID:
 
-- **Projektnavn**: klik på **Rediger Projekt** for at omdøbe projektet. Et navn har mindst 2 tegn. Omdøbning kræver en Project Owner eller tilladelse til at redigere projektet eller administrere fakturering.
+- **Projektnavn**: klik på **Rediger Projekt** for at omdøbe projektet. Et navn har mindst 2 tegn. Omdøbning kræver en Projektejer eller tilladelse til at redigere projektet eller administrere fakturering.
 - **Projekt-ID**: kopiér det til API'et, CLI'en og Terraform, eller når du skriver til support.
 - **Data Residency**: i OneUptime Cloud, hvor dit projekts data skal ligge, når OneUptime har registreret det. Kun OneUptime angiver det.
 
-**Kundesupportadgang** afgør i OneUptime Cloud, om OneUptimes supportteam må åbne projektet. Slå **Giv OneUptime-support adgang til dette projekt** til, når du vil have hjælp: OneUptime spørger først, fordi support så kan se og ændre alt i projektet, og du klikker på **Giv support adgang**. Slå det fra, når de er færdige: det gemmes med det samme. Project Owners og Project Admins ændrer det.
+**Kundesupportadgang** afgør i OneUptime Cloud, om OneUptimes supportteam må åbne projektet. Slå **Giv OneUptime-support adgang til dette projekt** til, når du vil have hjælp: OneUptime spørger først, fordi support så kan se og ændre alt i projektet, og du klikker på **Giv support adgang**. Slå det fra, når de er færdige: det gemmes med det samme. Projektejere og Projektadministratorer ændrer det.
 
 ## Produkter
 
@@ -66,9 +66,9 @@ På en selv-hostet server kan en masteradministrator også slå et produkt fra f
 
 Et nyt projekt starter med det, ejeren sagde på Hjem, at det skal bruges til: det grundlæggende, indstillingerne og det, de mål kræver, vises, og resten skjules. Et projekt, der sprang spørgsmålet over, eller som blev oprettet før det, viser alle produkter. Så snart nogen ændrer listen her, ændrer målene den ikke længere.
 
-Hvert produkt siger, hvad det er for dette projekt: **I brug**, **Ikke sat op** eller, i OneUptime Cloud, det abonnement, det kræver. Når et skjult produkt begynder at modtage data, siger Hjem det til projektets ejere og administratorer og tilbyder **Vis det** eller **Hold skjult**.
+Hvert produkt siger, hvad det er for dette projekt: **I brug**, **Ikke sat op** eller, i OneUptime Cloud, det abonnement, det kræver. Når et skjult produkt begynder at modtage data, siger Hjem det til Projektejere og Projektadministratorer og tilbyder **Vis det** eller **Hold skjult**.
 
-Projektejere, projektadministratorer og alle, der må redigere projektet, ændrer den; alle andre i projektet kan se den.
+Projektejere, Projektadministratorer og alle, der må redigere projektet, ændrer den; alle andre i projektet kan se den.
 
 ## Etiketter
 
@@ -96,7 +96,7 @@ For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet 
 
 **Projektindstillinger → Notifikationer** rummer, hvordan projektet sender notifikationer:
 
-- **Notifikationskanaler**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Project Owner, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
+- **Notifikationskanaler**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Projektejer, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
 - **Notifikationslogs**: hver notifikation, projektet har sendt, med én fane pr. kanal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Kald**, **Push** og **Arbejdsområde**.
 - **Mobilapps**: hvor du får apps til iOS og Android. Se [Apps – Oversigt](/docs/mobile-desktop-apps/index).
 
@@ -127,7 +127,7 @@ Klik på **Slet Projekt**. OneUptime sletter projektet og tager dig ud af det.
 :::
 
 > [!CAUTION]
-> Sletning af projektet kan ikke fortrydes. Det kræver en Project Owner eller tilladelse til at slette projektet.
+> Sletning af projektet kan ikke fortrydes. Det kræver en Projektejer eller tilladelse til at slette projektet.
 
 I OneUptime Cloud opsiger du et projekts plan ved at slette projektet: faktureringen stopper, når projektet er slettet. Et projekt, der faktureres via en cloud-markedsplads, får en sidste opkrævning for sit forbrug, og købet på markedspladsen forbliver aktivt, indtil du opsiger det dér.
 
@@ -138,7 +138,7 @@ Alle afsnit undtagen **Grundlæggende** er foldet sammen fra start. Klik på afs
 :::
 
 :::details Rediger Projekt er låst
-Omdøbning kræver en Project Owner eller tilladelse til at redigere projektet eller administrere fakturering. Den låste knap nævner den tilladelse, du mangler.
+Omdøbning kræver en Projektejer eller tilladelse til at redigere projektet eller administrere fakturering. Den låste knap nævner den tilladelse, du mangler.
 :::
 
 :::details Slet Projekt forbliver låst i dialogen

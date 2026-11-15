@@ -40,7 +40,7 @@ Et fejlbudget gør pålidelighed til noget, du kan bruge. Er der meget tilbage, 
 
 ## Opret et SLO
 
-Du skal have en rolle, der må oprette SLO'er: Project Owner, Project Admin eller en tilpasset rolle med tilladelsen Create Service Level Objective.
+Du skal have en rolle, der må oprette SLO'er: Projektejer, Projektadministrator eller en tilpasset rolle med tilladelsen Create Service Level Objective.
 
 :::steps
 ### Åbn SLO'er

@@ -15,6 +15,7 @@ import {
   scrubRegExpFromBuiltIn,
 } from "Common/Types/Telemetry/ScrubRule";
 import ScrubNestedValuesUtil from "Common/Utils/Telemetry/ScrubNestedValues";
+import { readOwnValue } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
   rule: LogScrubRule;
@@ -138,7 +139,14 @@ export class LogScrubRuleService {
       return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
-    const builtIn: RegExp | undefined = BUILT_IN_PATTERNS[patternType];
+    /*
+     * The saved rule's own word: a pattern type no table lists matches
+     * nothing (a plain read answered "constructor" with a function).
+     */
+    const builtIn: RegExp | undefined = readOwnValue(
+      BUILT_IN_PATTERNS,
+      patternType,
+    );
     if (builtIn) {
       // An instance of its own, so lastIndex is independent per use.
       return scrubRegExpFromBuiltIn(builtIn);

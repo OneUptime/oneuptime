@@ -19,7 +19,7 @@ Varje roll och varje behörighet har en rad med dessa kolumner:
 
 ## Roller
 
-{{PERMISSION_ROLE_COUNT}} roller. Fyra av dem gäller i hela projektet: Project Owner, Project Admin, Project Member och Viewer. Var och en av de andra täcker ett produktområde, till exempel incidenter eller monitorer, på nivån Admin, Member eller Viewer. Det är dessa som **Lägg till roll** erbjuder på ett teams sida **Behörigheter** och på en API-nyckels sida.
+{{PERMISSION_ROLE_COUNT}} roller. Fyra av dem gäller i hela projektet: Projektägare, Projektadministratör, Projektmedlem och Tittare. Var och en av de andra täcker ett produktområde, till exempel incidenter eller monitorer, på nivån Administratör, Medlem eller Tittare. Det är dessa som **Lägg till roll** erbjuder på ett teams sida **Behörigheter** och på en API-nyckels sida.
 
 {{PERMISSION_ROLE_TABLES}}
 

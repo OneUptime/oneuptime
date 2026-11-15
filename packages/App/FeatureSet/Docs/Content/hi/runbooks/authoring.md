@@ -11,9 +11,9 @@
 
 ## शुरू करने से पहले
 
-- **Runbook लिखने वाली भूमिका।** Project Owner, Project Admin और Runbook Admin Runbook बनाते हैं और उनके चरण सहेजते हैं। विस्तृत अनुमतियों के साथ आपको **Create Runbook** और **Edit Runbook** चाहिए। [अनुमतियाँ](/docs/runbooks/configuration#अनुमतियाँ) देखें।
+- **Runbook लिखने वाली भूमिका।** प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन और रनबुक एडमिन Runbook बनाते हैं और उनके चरण सहेजते हैं। विस्तृत अनुमतियों के साथ आपको **Create Runbook** और **Edit Runbook** चाहिए। [अनुमतियाँ](/docs/runbooks/configuration#अनुमतियाँ) देखें।
 - **Bash, SSH और kubectl चरणों के लिए एक Runner।** ये चरण आपके अपने इंफ्रास्ट्रक्चर में एक [Runner](/docs/runbooks/agents) पर चलते हैं, कभी OneUptime Worker पर नहीं। पहले एक इंस्टॉल करें। जो चरण कोई Runner नहीं चुनता, वह [प्रोजेक्ट के डिफ़ॉल्ट Runner](/docs/runbooks/agents#प्रोजेक्ट-का-डिफ़ॉल्ट-runner) पर चलता है, अगर आपने कोई सेट किया है; वरना JavaScript चरण एक [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner) पर चलता है।
-- **SSH और kubectl चरणों के लिए एक सीक्रेट वेरिएबल।** जिस कुंजी, पासवर्ड या kubeconfig से कोई चरण साइन इन करता है, वह एक सीक्रेट [runbook वेरिएबल](/docs/runbooks/variables) है। वेरिएबल Project Owner और Project Admin बनाते हैं, और Runbook Admin अपने लिखे चरणों में उन्हें चुनता है। kubectl चरण इसके बजाय Runner की अपनी एक्सेस इस्तेमाल कर सकता है।
+- **SSH और kubectl चरणों के लिए एक सीक्रेट वेरिएबल।** जिस कुंजी, पासवर्ड या kubeconfig से कोई चरण साइन इन करता है, वह एक सीक्रेट [runbook वेरिएबल](/docs/runbooks/variables) है। वेरिएबल प्रोजेक्ट स्वामी और प्रोजेक्ट एडमिन बनाते हैं, और रनबुक एडमिन अपने लिखे चरणों में उन्हें चुनता है। kubectl चरण इसके बजाय Runner की अपनी एक्सेस इस्तेमाल कर सकता है।
 - **AI चरणों के लिए एक LLM प्रदाता।** [LLM प्रदाता](/docs/ai/llm-provider) देखें।
 
 ## Runbook बनाना

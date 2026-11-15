@@ -25,7 +25,7 @@ Sonden som kör kontrollen tar emot värdet, så en monitor som använder en hem
 ## Innan du börjar
 
 - **Growth-abonnemanget eller högre**, på OneUptime Cloud. Egna installationer har inga abonnemang.
-- **En roll som kan hantera hemligheter**: Project Owner, Project Admin, eller en anpassad roll med behörigheten Create Monitor Secret.
+- **En roll som kan hantera hemligheter**: Projektägare, Projektadministratör, eller en anpassad roll med behörigheten Create Monitor Secret.
 
 ## Arbeta med hemligheter
 

@@ -29,7 +29,7 @@ De chats komen binnen zoals de AI-aanroepen van je apps, dus scrubregels, dropfi
 
 ## Voordat je begint
 
-- De rol Project Owner of Project Admin. Alleen zij kunnen een tool koppelen, wijzigen of verwijderen.
+- De rol Projecteigenaar of Projectbeheerder. Alleen zij kunnen een tool koppelen, wijzigen of verwijderen.
 - Een beheerder van de tool, om de inloggegevens te maken: de sectie van elke tool hieronder zegt wie.
 - Je mensen geïnformeerd, en het antwoord van je juridische afdeling of HR.
 

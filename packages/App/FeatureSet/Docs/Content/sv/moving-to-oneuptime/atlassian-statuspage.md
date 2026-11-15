@@ -25,7 +25,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
+- **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och Projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
 - **En Statuspage-API-nyckel.** Bara en kontoägare kan skapa en. Importen skriver aldrig till Statuspage, och den läser varje sida nyckeln kan se.
 - **Plats för dina sidor, i OneUptime Cloud.** Ditt abonnemang har plats för ett visst antal statussidor och prenumeranter. Det som inte får plats visas som inte överfört. Komponenterna blir manuella monitorer, som är gratis.
 
@@ -73,7 +73,7 @@ En import skapar högst 2 000 poster: högst 1 000 monitorer och 50 statussidor.
 
 I OneUptime Cloud visas statussidor och prenumeranter som ditt abonnemang inte har plats för som inte överförda, med det som krävs.
 
-En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera objekt och starta importen. Projektägare och projektadministratörer ser förloppet och rapporten för varje import.
+En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera objekt och starta importen. Projektägare och Projektadministratörer ser förloppet och rapporten för varje import.
 
 ## Slutför bytet
 

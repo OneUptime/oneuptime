@@ -497,7 +497,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | 보안 | Security Event, Threat Intel Indicator |
 | 변경과 비용 | Change Event, Kubernetes Cost Allocation |
 
-도구 이름은 스네이크 케이스입니다: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`, 텔레메트리라면 `list_logs` 와 `count_spans` 입니다.
+도구 이름은 스네이크 케이스입니다: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`, 텔레메트리라면 `list_logs` 와 `count_spans` 입니다. `create_incident`와 `create_alert`는 `ownerUsers`와 `ownerTeams`도 받습니다. 처음부터 레코드를 소유하는 사용자와 팀의 ID이며, 이들은 생성되었다는 알림을 받습니다.
 
 ## 다음 단계
 

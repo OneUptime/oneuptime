@@ -188,10 +188,10 @@ Un filtro scritto da te è una riga di al massimo 500 caratteri, fatta di letter
 
 | Autorizzazione | Permette di | Chi la ha per impostazione predefinita |
 | --- | --- | --- |
-| **Start Packet Capture** | Avviare le catture e fermarle | Project Owner, Project Admin |
-| **Download Packet Capture** | Scaricare i file di cattura | Project Owner, Project Admin |
-| **Delete Packet Capture** | Eliminare le catture e i loro file | Project Owner, Project Admin |
-| **Read Packet Capture** | Vedere le catture: quando sono state eseguite, su quale sonda e con quale filtro | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Avviare le catture e fermarle | Proprietario del progetto, Amministratore del progetto |
+| **Download Packet Capture** | Scaricare i file di cattura | Proprietario del progetto, Amministratore del progetto |
+| **Delete Packet Capture** | Eliminare le catture e i loro file | Proprietario del progetto, Amministratore del progetto |
+| **Read Packet Capture** | Vedere le catture: quando sono state eseguite, su quale sonda e con quale filtro | Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore |
 
 Per dare a un team **Start Packet Capture** o **Download Packet Capture**, aprilo in **Impostazioni → Team** e aggiungi l'autorizzazione nella sua pagina **Autorizzazioni**. Vedi [Autorizzazioni](/docs/permissions/index).
 

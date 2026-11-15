@@ -25,7 +25,7 @@ Sonden som kjører sjekken, mottar verdien, så en monitor som bruker en hemmeli
 ## Før du starter
 
 - **Growth-abonnementet eller høyere**, på OneUptime Cloud. Selvdriftede installasjoner har ingen abonnementer.
-- **En rolle som kan administrere hemmeligheter**: Project Owner, Project Admin, eller en egendefinert rolle med tillatelsen Create Monitor Secret.
+- **En rolle som kan administrere hemmeligheter**: Prosjekteier, Prosjektadministrator, eller en egendefinert rolle med tillatelsen Create Monitor Secret.
 
 ## Arbeid med hemmeligheter
 

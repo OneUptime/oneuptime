@@ -74,8 +74,22 @@ import {
   resolveDatabaseServerLink,
 } from "../Inventory/ResolveTypedRowLink";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import { PluralTemplate } from "Common/Types/Translator";
+
+/*
+ * A section's count lines, each one sentence: the count where the reader's
+ * language puts it, in its plural forms and digits. They read "Showing" and
+ * "of" a word at a time, in English's order (#8290).
+ */
+export const NO_LONGER_IN_INVENTORY: PluralTemplate = {
+  one: "{{count}} no longer in inventory",
+  other: "{{count}} no longer in inventory",
+};
+
+export const SHOWING_CONNECTIONS: string = translationKey(
+  "Showing {{shown}} of {{total}}",
+);
 
 /*
  * Right-hand detail drawer for anything on a topology map. It keeps the user
@@ -1055,8 +1069,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         </h3>
         {config.reportsUnknown && section.unknownTotal > 0 && (
           <p className="mt-0.5 text-xs text-gray-500">
-            {section.unknownTotal.toLocaleString(getReaderNumberLocale())}{" "}
-            {t("no longer in inventory")}
+            {translator.translatePlural(
+              NO_LONGER_IN_INVENTORY,
+              section.unknownTotal,
+            )}
           </p>
         )}
         <ul className="mt-1 divide-y divide-gray-100">
@@ -1114,10 +1130,13 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         {section.nextOffset !== null && !isOutdated && (
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="text-xs text-gray-500">
-              {t("Showing")}{" "}
-              {section.rows.length.toLocaleString(getReaderNumberLocale())}{" "}
-              {t("of")}{" "}
-              {formatConnectionTotal(section.total, loaded.isScanLimited)}
+              {translator.translateTemplate(SHOWING_CONNECTIONS, {
+                shown: translator.formatNumber(section.rows.length),
+                total: formatConnectionTotal(
+                  section.total,
+                  loaded.isScanLimited,
+                ),
+              })}
             </p>
             <button
               type="button"

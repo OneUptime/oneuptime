@@ -37,7 +37,7 @@ Därifrån fungerar ett SLO för begäranden som alla andra. Dess status, regler
 ## Innan du börjar
 
 - Tjänsterna skickar spår till OneUptime: se [OpenTelemetry](/docs/telemetry/open-telemetry). Var och en finns i [tjänstekatalogen](/docs/telemetry/services) under sitt `service.name`.
-- En roll som får skapa SLO:er: Project Owner, Project Admin eller en anpassad roll med behörigheten Create Service Level Objective.
+- En roll som får skapa SLO:er: Projektägare, Projektadministratör eller en anpassad roll med behörigheten Create Service Level Objective.
 
 ## Skapa ett SLO för begäranden
 

@@ -440,9 +440,10 @@ describe("the words there are", () => {
     expect(COPY_SENTENCES.length).toBeGreaterThan(80);
     /*
      * With a read's lines left out, and a list's values from its address;
-     * what reads it, its names and how many more as one sentence (#8076).
+     * what reads it, its names and how many more as one sentence (#8076),
+     * and a folded row's "Read by: A, B and 2 more" as one (#8290).
      */
-    expect(PLURALS.length).toBe(14);
+    expect(PLURALS.length).toBe(15);
     expect(MODEL_TEXTS).toEqual(
       expect.arrayContaining([
         "Watchlist",

@@ -430,7 +430,7 @@ De här fungerar utan inloggningsuppgifter, med enbart verktygen för publika st
 | Vad agenten gör | Välj under **Åtkomst** |
 | --- | --- |
 | Läser bara | **Tittare**, eller lägg till läsbehörigheter på nyckelns sida |
-| Skapar, uppdaterar och tar också bort | **Projektadministratör**, eller lägg till rollen Project Admin på nyckelns sida |
+| Skapar, uppdaterar och tar också bort | **Projektadministratör**, eller lägg till rollen Projektadministratör på nyckelns sida |
 
 Ge varje nyckel det minsta den behöver, rotera nycklar regelbundet, ha en separat nyckel för varje miljö och håll koll på vad varje nyckel gör i OneUptime.
 
@@ -497,7 +497,7 @@ MCP-servern är tillståndslös: den varken utfärdar eller spårar sessions-id:
 | Säkerhet | Security Event, Threat Intel Indicator |
 | Ändringar och kostnader | Change Event, Kubernetes Cost Allocation |
 
-Verktygen namnges i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` och `count_incidents`, eller `list_logs` och `count_spans` för telemetri.
+Verktygen namnges i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` och `count_incidents`, eller `list_logs` och `count_spans` för telemetri. `create_incident` och `create_alert` tar också `ownerUsers` och `ownerTeams`: id:n för de användare och team som äger posten från början och som får veta att den skapats.
 
 ## Nästa steg
 

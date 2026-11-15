@@ -58,7 +58,7 @@ Zo start u er een met de hand:
 3. De uitvoeringspagina opent.
 :::
 
-Een uitvoering starten vereist Project Owner, Project Admin, Project Member, Runbook Admin of Runbook Member, of de machtiging **Create Runbook Execution**. Runbook Viewer en Viewer zien **Nu uitvoeren** vergrendeld, met de reden. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
+Een uitvoering starten vereist Projecteigenaar, Projectbeheerder, Projectlid, Runbookbeheerder of Runbooklid, of de machtiging **Create Runbook Execution**. Runbookkijker en Kijker zien **Nu uitvoeren** vergrendeld, met de reden. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
 
 ## De uitvoeringsweergave
 
@@ -128,7 +128,7 @@ Een uitvoering is een eenmalig, onveranderlijk record. Klik om het runbook opnie
 ## Problemen oplossen
 
 :::details Run Now is vergrendeld
-Uw rol leest runbooks maar voert ze niet uit: de knop zegt "Je hebt geen toestemming om in dit project runbook-uitvoeringen te starten." Vraag om Runbook Member, of om de machtiging **Create Runbook Execution**.
+Uw rol leest runbooks maar voert ze niet uit: de knop zegt "Je hebt geen toestemming om in dit project runbook-uitvoeringen te starten." Vraag om Runbooklid, of om de machtiging **Create Runbook Execution**.
 :::
 
 :::details Een uitvoering starten mislukt met "Runbook is disabled" of "Runbook has no steps to run"

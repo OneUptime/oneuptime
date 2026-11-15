@@ -3,7 +3,12 @@ import ObjectID from "Common/Types/ObjectID";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   OpenStackTraceRequest,
@@ -163,11 +168,14 @@ const OpenStackTraceContextCard: FunctionComponent<ComponentProps> = (
         ? routes.getPartRoute(part.resource.kind, part.resource.id)
         : undefined;
     const words: string = KIND_LABELS[part.resource.kind] || part.resource.kind;
-    const label: string = translator.translateText(words) || words;
 
     return (
       <li key={`${part.resource.kind}/${part.resource.id}`}>
-        <span className="text-gray-500">{label}: </span>
+        <span className="text-gray-500">
+          {translator.translateTemplate(LABEL_WITH_COLON, {
+            label: translatableTerm(words),
+          })}{" "}
+        </span>
         {route ? (
           <Link className={LINK_CLASS_NAME} to={route}>
             <bdi>{part.row?.name || part.resource.id}</bdi>

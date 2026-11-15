@@ -11,9 +11,9 @@ Você escreve um runbook como uma lista ordenada de etapas na página **Etapas**
 
 ## Antes de começar
 
-- **Uma função que escreve runbooks.** Project Owner, Project Admin e Runbook Admin criam runbooks e salvam suas etapas. Com permissões granulares, você precisa de **Create Runbook** e **Edit Runbook**. Consulte [Permissões](/docs/runbooks/configuration#permissões).
+- **Uma função que escreve runbooks.** Proprietário do projeto, Administrador do projeto e Administrador de runbooks criam runbooks e salvam suas etapas. Com permissões granulares, você precisa de **Create Runbook** e **Edit Runbook**. Consulte [Permissões](/docs/runbooks/configuration#permissões).
 - **Um Runner, para etapas Bash, SSH e kubectl.** Essas etapas são executadas em um [Runner](/docs/runbooks/agents) dentro da sua própria infraestrutura, nunca no Worker do OneUptime. Instale um primeiro. Uma etapa que não escolhe nenhum Runner roda no [Runner padrão do projeto](/docs/runbooks/agents#o-runner-padrão-do-projeto), se você definiu um; caso contrário, uma etapa JavaScript roda em um [Runner global](/docs/runbooks/agents#runners-globais).
-- **Uma variável secreta, para etapas SSH e kubectl.** A chave, a senha ou o kubeconfig com que uma etapa entra é uma [variável de runbook](/docs/runbooks/variables) secreta. Project Owner e Project Admin criam as variáveis, e Runbook Admin as escolhe nas etapas que escreve. Uma etapa kubectl pode usar, em vez disso, o acesso próprio do Runner.
+- **Uma variável secreta, para etapas SSH e kubectl.** A chave, a senha ou o kubeconfig com que uma etapa entra é uma [variável de runbook](/docs/runbooks/variables) secreta. Proprietário do projeto e Administrador do projeto criam as variáveis, e Administrador de runbooks as escolhe nas etapas que escreve. Uma etapa kubectl pode usar, em vez disso, o acesso próprio do Runner.
 - **Um provedor de LLM, para etapas de IA.** Consulte [Provedores de LLM](/docs/ai/llm-provider).
 
 ## Criar um runbook

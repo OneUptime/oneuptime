@@ -35,7 +35,7 @@ import fs from "fs";
 import path from "path";
 import {
   isPermissionTitleKeptInEnglish,
-  namesRoleAsWritten,
+  namesRoleAsDrawn,
 } from "./DocsRoleNames";
 
 /*
@@ -1462,7 +1462,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     for (const role of WHOLE_PROJECT_ROLES) {
       expect({ role, named: true }).toEqual({
         role,
-        named: namesRoleAsWritten(language, translated, role),
+        named: namesRoleAsDrawn(language, translated, role),
       });
     }
   });

@@ -27,7 +27,7 @@ flowchart TB
 - Para un feed TAXII, un servidor TAXII 2.1 que publique objetos STIX 2.1 de tipo `indicator`, y el ID de la colección que consultar. Un feed TAXII inicia sesión de forma anónima, con un token bearer o con autenticación básica HTTP.
 - Para un feed de Google SecOps, una [conexión de Google SecOps](/docs/integrations/google-secops#configurar-el-conector-gestionado) cuya cuenta de servicio pueda buscar coincidencias de indicadores: el rol `roles/chronicle.viewer` puede.
 - No se admiten los servidores que exigen un certificado de cliente TLS (TLS mutuo), como CISA AIS. El servidor ATT&CK público de MITRE publica técnicas y grupos en lugar de indicadores, así que un feed que apunte a él se queda vacío.
-- Un rol que pueda crear feeds: Project Owner, Project Admin, Security Admin o Security Member. Security Viewer puede leer feeds e indicadores. Consulta [Roles](/docs/permissions/reference#roles).
+- Un rol que pueda crear feeds: Propietario del proyecto, Administrador del proyecto, Administrador de seguridad o Miembro de seguridad. Visor de seguridad puede leer feeds e indicadores. Consulta [Roles](/docs/permissions/reference#roles).
 
 ## Añadir una lista gratuita
 

@@ -3,7 +3,7 @@
 Een monitor controleert iets wat u beheert, zoals een website, een API, een host of een Kubernetes-cluster, en laat het u weten wanneer het niet meer werkt. **Monitor maken** vraagt eerst wat u wilt bewaken, dan wat er gecontroleerd wordt en daarna hoe vaak. Alles behalve het type, de naam en wat er gecontroleerd wordt, begint met standaardwaarden die bij de meeste monitoren passen.
 
 > [!NOTE]
-> Om een monitor te maken hebt u de rol Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member nodig, of een aangepaste rol met de machtiging Create Monitor.
+> Om een monitor te maken hebt u de rol Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid nodig, of een aangepaste rol met de machtiging Create Monitor.
 
 ## Monitorinfo
 

@@ -283,7 +283,7 @@ Sådan kører du en Runner et andet sted, for eksempel på en maskine tæt på d
 :::steps
 ### Opret Runneren
 
-Opret en Runner under **Runbooks → Runbook-agenter**, og klik på **Vis opsætningsvejledning** i dens række. Kommandoen indeholder Runnerens hemmelige nøgle, som kun en Project Owner, Project Admin eller Runbook Admin kan læse. Den ser sådan ud:
+Opret en Runner under **Runbooks → Runbook-agenter**, og klik på **Vis opsætningsvejledning** i dens række. Kommandoen indeholder Runnerens hemmelige nøgle, som kun en Projektejer, Projektadministrator eller Runbook-administrator kan læse. Den ser sådan ud:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

@@ -1092,7 +1092,7 @@ Fordi merkingen når hver tjeneste en nettleserforespørsel gikk gjennom, fjerne
 
 ## Hvem kan se et opptak
 
-Å se et opptak er en annen tillatelse enn å liste opp økter, og ingen av dem gis av Viewer-rollen for hele prosjektet. Prosjekteiere og -administratorer har alle.
+Å se et opptak er en annen tillatelse enn å liste opp økter, og ingen av dem gis av Leser-rollen for hele prosjektet. Prosjekteiere og -administratorer har alle.
 
 | Tillatelse | Låser opp |
 | --- | --- |

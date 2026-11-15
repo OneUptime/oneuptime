@@ -295,7 +295,7 @@ Les paliers eux-mêmes sont une ressource à part entière, `/api/service-level-
 | **Edit SLO Error Budget Policy Tier** | Modifier des paliers, et les activer ou les désactiver. |
 | **Delete SLO Error Budget Policy Tier** | Supprimer des paliers. |
 
-Ces autorisations se trouvent dans le groupe SLO d'un rôle. Les rôles Project Owner et Project Admin les ont toutes, et les rôles Project Member et Viewer peuvent lire les paliers.
+Ces autorisations se trouvent dans le groupe SLO d'un rôle. Les rôles Propriétaire du projet et Administrateur du projet les ont toutes, et les rôles Membre du projet et Lecteur peuvent lire les paliers.
 
 ## Pas encore disponible
 

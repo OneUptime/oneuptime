@@ -67,13 +67,13 @@ flowchart TB
 
 ## Før du begynder
 
-Sikkerhedsdata kan kun læses af rollerne Project Owner og Project Admin og af de tre Security-roller; andre roller ser intet i Security Events. Se [Roller](/docs/permissions/reference#roller).
+Sikkerhedsdata kan kun læses af rollerne Projektejer og Projektadministrator og af de tre Security-roller; andre roller ser intet i Security Events. Se [Roller](/docs/permissions/reference#roller).
 
 | Rolle | Hvad den kan |
 | --- | --- |
-| Security Admin | Alt: begivenheder, sager, playbooks, detektionsregler, threat intel-feeds og forbindelser |
-| Security Member | Læse begivenheder og threat intel, behandle sager, køre playbooks og godkende deres trin samt oprette, ændre og slette detektionsregler og feeds. Den kan ikke sætte playbooks eller forbindelser op eller slette sikkerhedsdata. |
-| Security Viewer | Læse begivenheder, sager, playbooks, regler, feeds, indikatorer og forbindelser |
+| Sikkerhedsadministrator | Alt: begivenheder, sager, playbooks, detektionsregler, threat intel-feeds og forbindelser |
+| Sikkerhedsmedlem | Læse begivenheder og threat intel, behandle sager, køre playbooks og godkende deres trin samt oprette, ændre og slette detektionsregler og feeds. Den kan ikke sætte playbooks eller forbindelser op eller slette sikkerhedsdata. |
+| Sikkerhedsseer | Læse begivenheder, sager, playbooks, regler, feeds, indikatorer og forbindelser |
 
 ## Send sikkerhedsbegivenheder
 
@@ -305,7 +305,7 @@ En hunt er en søgning i dine sikkerhedsbegivenheder, gemt med et navn: søgefel
 
 Søg og filtrér under **Begivenheder**, indtil listen viser det, du leder efter, åbn derefter **Hunts** på værktøjslinjen, og vælg **Gem som hunt**. Giv den et navn, vælg, om den kører efter en tidsplan, og dens side åbnes. **Begivenheder → Hunts** viser projektets hunts, hver med sin søgning, hvor ofte den kører, hvem den giver besked, og hvad dens seneste kørsel fandt; **Opret Hunt** tager der søgningen, som du ville skrive den under **Begivenheder**. Et projekt gemmer op til 200 hunts. En søgning kan læse en [overvågningsliste](#overvågningslister), som `user:%vip_users%` gør, og en hunt, der læser en liste, projektet ikke har, afvises, når du gemmer den.
 
-En hunts side er dens søgning, åbnet i begivenhedsoversigten. Ændr søgningen eller filtrene der, så tilbyder huntens overskrift **Gem ændringer** og **Kassér ændringer**. **Rediger** ændrer dens navn, dens søgning, hvor langt tilbage den ser, dens tidsplan og hvem den giver besked, og **Slet hunt** findes i dens menu. Fra Security Member og op kan man gemme, ændre og slette hunts, og en Security Viewer kan åbne dem.
+En hunts side er dens søgning, åbnet i begivenhedsoversigten. Ændr søgningen eller filtrene der, så tilbyder huntens overskrift **Gem ændringer** og **Kassér ændringer**. **Rediger** ændrer dens navn, dens søgning, hvor langt tilbage den ser, dens tidsplan og hvem den giver besked, og **Slet hunt** findes i dens menu. Fra Sikkerhedsmedlem og op kan man gemme, ændre og slette hunts, og en Sikkerhedsseer kan åbne dem.
 
 En hunt, der er gemt med filtre fra sidepanelet under Begivenheder, viser dem i **Rediger** under **Filtre**, som Begivenheder tegner dem, hvert med et x til at fjerne det. Tilføj filtre på huntens side, fra sidepanelet.
 
@@ -340,7 +340,7 @@ Hver planlagt kørsel gemmes i 90 dage. **Kørselshistorik**, for enden af linje
 
 Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvilket vindue den læste, og linker til huntens side på de begivenheder; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
 
-For at slå det op, hunts finder, i Slack, Microsoft Teams eller Mattermost tilføjer du en regel til **Regler for hunts** under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under de regler, der slår [sikkerhedssager](/docs/telemetry/security-cases#slå-op-i-slack-microsoft-teams-og-mattermost-kanaler) op. En regel angiver de kanaler, der skal slås op i (og i Microsoft Teams chattene), og, hvis du vil, de hunts, den gælder for, efter **Huntens navn**: et navn, der er din tekst, indeholder den, begynder eller slutter med den. Hver gang en planlagt kørsel finder begivenheder, slår den hunten op, dens søgning, hvor mange begivenheder og hvornår, med et link til dem, og ingen af en begivenheds egne ord. En huntregel oprettes af en rolle, der må oprette sikkerheds-playbooks, såsom Project Owner, Project Admin eller Security Admin.
+For at slå det op, hunts finder, i Slack, Microsoft Teams eller Mattermost tilføjer du en regel til **Regler for hunts** under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under de regler, der slår [sikkerhedssager](/docs/telemetry/security-cases#slå-op-i-slack-microsoft-teams-og-mattermost-kanaler) op. En regel angiver de kanaler, der skal slås op i (og i Microsoft Teams chattene), og, hvis du vil, de hunts, den gælder for, efter **Huntens navn**: et navn, der er din tekst, indeholder den, begynder eller slutter med den. Hver gang en planlagt kørsel finder begivenheder, slår den hunten op, dens søgning, hvor mange begivenheder og hvornår, med et link til dem, og ingen af en begivenheds egne ord. En huntregel oprettes af en rolle, der må oprette sikkerheds-playbooks, såsom Projektejer, Projektadministrator eller Sikkerhedsadministrator.
 
 ### Gem begivenheder på en sag
 

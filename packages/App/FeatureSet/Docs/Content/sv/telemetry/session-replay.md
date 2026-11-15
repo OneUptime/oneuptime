@@ -1092,7 +1092,7 @@ Eftersom märkningen når varje tjänst som en webbläsarförfrågan gick igenom
 
 ## Vem kan titta på en inspelning
 
-Att titta på en inspelning är en annan behörighet än att lista sessioner, och ingen av dem ges av Viewer-rollen för hela projektet. Projektägare och -administratörer har alla.
+Att titta på en inspelning är en annan behörighet än att lista sessioner, och ingen av dem ges av Tittare-rollen för hela projektet. Projektägare och -administratörer har alla.
 
 | Behörighet | Låser upp |
 | --- | --- |
