@@ -22,6 +22,7 @@ import {
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
+  formatInline,
   translationKey,
   Translator,
 } from "Common/Types/Translator";
@@ -585,7 +586,10 @@ export interface ReplayUserSessionDescription {
   duration: string;
   /* Where the session started: "/checkout?step=2". */
   path: string;
-  /* "Chrome · desktop"; "" when the row carries neither. */
+  /*
+   * "Chrome · Desktop", the kind of device in the reader's words and the
+   * two set apart the reader's way; "" when the row carries neither.
+   */
   deviceHint: string;
 }
 
@@ -623,12 +627,41 @@ export function describeReplayUserSession(
         REPLAY_USER_SESSION_NO_START_TIME,
     duration: formatReplayDurationInLanguage(item.durationMs, translator),
     path: replayUserSessionPathOf(item.entryUrl),
-    deviceHint: [item.browserName, item.deviceType]
-      .filter((part: string): boolean => {
+    deviceHint: formatInline(
+      [
+        item.browserName,
+        describeReplayDeviceType(item.deviceType, translator),
+      ].filter((part: string): boolean => {
         return part.length > 0;
-      })
-      .join(" · "),
+      }),
+      translator,
+    ),
   };
+}
+
+/*
+ * The kinds of device the recorder reports, named as the session list's
+ * Device filter and the details panel name them, in the reader's words.
+ */
+export const REPLAY_DEVICE_TYPE_LABELS: Readonly<Record<string, string>> = {
+  desktop: translationKey("Desktop"),
+  mobile: translationKey("Mobile"),
+  tablet: translationKey("Tablet"),
+};
+
+/*
+ * "Mobile", "Mobil", "هاتف محمول": a kind of device the recorder reports, in
+ * `translator`'s language. One it does not know is the recorder's own word,
+ * kept as written.
+ */
+export function describeReplayDeviceType(
+  deviceType: string,
+  translator: Translator = ENGLISH,
+): string {
+  const label: string | undefined =
+    REPLAY_DEVICE_TYPE_LABELS[(deviceType || "").trim().toLowerCase()];
+
+  return label ? translator.translateText(label) || label : deviceType || "";
 }
 
 /* ---- Transport. ---- */

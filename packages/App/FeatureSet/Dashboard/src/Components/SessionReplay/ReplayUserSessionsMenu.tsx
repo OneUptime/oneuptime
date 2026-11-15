@@ -349,10 +349,16 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                     }}
                   >
                     <span className="w-28 shrink-0">
-                      <span className="block text-sm font-medium text-gray-900">
+                      <span
+                        data-testid="replay-user-session-when"
+                        className="block text-sm font-medium text-gray-900"
+                      >
                         {description.when}
                       </span>
-                      <span className="block text-[11px] text-gray-500">
+                      <span
+                        data-testid="replay-user-session-absolute"
+                        className="block text-[11px] text-gray-500"
+                      >
                         {description.absolute}
                       </span>
                     </span>
@@ -422,7 +428,10 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                           {translator.formatNumber(item.errorCount)}
                         </span>
                       )}
-                      <span className="font-mono text-xs tabular-nums text-gray-600">
+                      <span
+                        data-testid="replay-user-session-duration"
+                        className="font-mono text-xs tabular-nums text-gray-600"
+                      >
                         {description.duration}
                       </span>
                     </span>

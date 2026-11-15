@@ -575,47 +575,69 @@ export function formatReplayClockSkew(
  * Readable labels for the enum-valued header fields. An unknown value from
  * a newer recorder is humanised rather than dropped, but never rendered as
  * the bare machine token.
+ *
+ * Each known label is a key, looked up in the translator's language where
+ * the details panel draws it: the Privacy tab's Consent and Why recorded
+ * read English on every page beside a translated Masking mode (#8299). An
+ * unknown value, humanised, is the recorder's word and stays as written.
  */
-const TRIGGER_REASON_LABELS: Record<string, string> = {
-  [SessionReplayTriggerReason.Error]: "An error occurred on the page",
-  [SessionReplayTriggerReason.Frustration]:
+export const TRIGGER_REASON_LABELS: Readonly<Record<string, string>> = {
+  [SessionReplayTriggerReason.Error]: translationKey(
+    "An error occurred on the page",
+  ),
+  [SessionReplayTriggerReason.Frustration]: translationKey(
     "A frustration signal (rage, dead or error click)",
-  [SessionReplayTriggerReason.Sampled]: "Picked by the sample percentage",
-  [SessionReplayTriggerReason.Manual]:
+  ),
+  [SessionReplayTriggerReason.Sampled]: translationKey(
+    "Picked by the sample percentage",
+  ),
+  [SessionReplayTriggerReason.Manual]: translationKey(
     "The page called OneUptimeReplay.captureSession()",
-  [SessionReplayTriggerReason.Performance]: "A performance budget was exceeded",
+  ),
+  [SessionReplayTriggerReason.Performance]: translationKey(
+    "A performance budget was exceeded",
+  ),
 };
 
-export function getReplayTriggerReasonLabel(raw: string): string {
+// A known label in `translator`'s language; an unknown value humanised.
+function readEnumLabel(
+  labels: Readonly<Record<string, string>>,
+  raw: string,
+  translator: Translator,
+): string {
   const trimmed: string = (raw || "").trim();
 
   if (trimmed.length === 0) {
     return "";
   }
 
-  return (
-    TRIGGER_REASON_LABELS[trimmed.toLowerCase()] ||
-    Text.fromPascalCaseToReadable(Text.fromDashesToPascalCase(trimmed))
-  );
+  const label: string | undefined = labels[trimmed.toLowerCase()];
+
+  if (label) {
+    return translator.translateText(label) || label;
+  }
+
+  return Text.fromPascalCaseToReadable(Text.fromDashesToPascalCase(trimmed));
 }
 
-const CONSENT_STATE_LABELS: Record<string, string> = {
-  granted: "Granted by the end user",
-  notrequired: "Not required by this application's policy",
-  unknown: "Unknown - the recorder did not report it",
+export function getReplayTriggerReasonLabel(
+  raw: string,
+  translator: Translator = ENGLISH,
+): string {
+  return readEnumLabel(TRIGGER_REASON_LABELS, raw, translator);
+}
+
+export const CONSENT_STATE_LABELS: Readonly<Record<string, string>> = {
+  granted: translationKey("Granted by the end user"),
+  notrequired: translationKey("Not required by this application's policy"),
+  unknown: translationKey("Unknown - the recorder did not report it"),
 };
 
-export function getReplayConsentStateLabel(raw: string): string {
-  const trimmed: string = (raw || "").trim();
-
-  if (trimmed.length === 0) {
-    return "";
-  }
-
-  return (
-    CONSENT_STATE_LABELS[trimmed.toLowerCase()] ||
-    Text.fromPascalCaseToReadable(Text.fromDashesToPascalCase(trimmed))
-  );
+export function getReplayConsentStateLabel(
+  raw: string,
+  translator: Translator = ENGLISH,
+): string {
+  return readEnumLabel(CONSENT_STATE_LABELS, raw, translator);
 }
 
 export const REPLAY_PANEL_DEFAULT_WIDTH_CLASS: string =

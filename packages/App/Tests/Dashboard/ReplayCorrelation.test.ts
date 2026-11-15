@@ -505,6 +505,13 @@ describe("formatReplayMilliseconds", () => {
   test("a non-finite value is unknown rather than NaN", () => {
     expect(formatReplayMilliseconds(NaN)).toBe("unknown");
   });
+
+  // Whole seconds carry into the minute: 119.6 s used to read "1m 60s".
+  test("a length just short of the next minute reads as that minute", () => {
+    expect(formatReplayMilliseconds(119_600)).toBe("2m 00s");
+    expect(formatReplayMilliseconds(119_400)).toBe("1m 59s");
+    expect(formatReplayMilliseconds(-119_600)).toBe("-2m 00s");
+  });
 });
 
 describe("formatReplayClockSkew", () => {
@@ -613,14 +620,20 @@ describe("replay correlation panel wiring", () => {
   });
 
   test("the sub-second formatters and enum labels are what the panel renders", () => {
-    expect(panelSource).toContain("formatReplayClockSkew(d.clockSkewMs)");
+    // In the reader's language, one sentence each way (#8299, #8350).
+    expect(panelSource).toContain(
+      "formatReplayClockSkew(d.clockSkewMs, translator)",
+    );
     // A gap's milliseconds in the language of the sentence that holds them (#7418).
     expect(panelSource).toContain(
       "duration: composedValue( (sentence: Translator): string => { return formatReplayMilliseconds( gap.missingMs, sentence, );",
     );
-    expect(panelSource).toContain("getReplayConsentStateLabel(d.consentState)");
+    // Each label in the reader's language, as Masking mode beside it is (#8299).
     expect(panelSource).toContain(
-      "getReplayTriggerReasonLabel(d.triggerReason)",
+      "getReplayConsentStateLabel(d.consentState, translator)",
+    );
+    expect(panelSource).toContain(
+      "getReplayTriggerReasonLabel(d.triggerReason, translator)",
     );
     expect(panelSource).not.toContain("Math.round(d.clockSkewMs / 1000)");
     expect(panelSource).not.toContain("Math.round(gap.missingMs / 1000)");

@@ -1313,12 +1313,12 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
             />
             <DetailRow
               label="Consent"
-              value={getReplayConsentStateLabel(d.consentState)}
+              value={getReplayConsentStateLabel(d.consentState, translator)}
               testId="replay-details-consent"
             />
             <DetailRow
               label="Why recorded"
-              value={getReplayTriggerReasonLabel(d.triggerReason)}
+              value={getReplayTriggerReasonLabel(d.triggerReason, translator)}
               testId="replay-details-trigger"
             />
           </dl>
