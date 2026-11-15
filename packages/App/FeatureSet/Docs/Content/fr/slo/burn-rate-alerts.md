@@ -132,7 +132,7 @@ Dans **Règle**, saisissez un **Nom**, comme « Fast burn ». Une nouvelle règl
 
 ### Définir la fenêtre de consommation
 
-Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommation** (par exemple `14.4`), la **Fenêtre longue (minutes)** et la **Fenêtre courte (minutes)**, et éventuellement la **Suppression du redéclenchement (minutes)**.
+Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommation** (par exemple `14.4`), la **Fenêtre longue (minutes)** et la **Fenêtre courte (minutes)**, et éventuellement la **Suppression du redéclenchement (minutes)**. La règle d'un SLO de requêtes prend aussi un **Nombre minimal de requêtes**, par exemple `100` : la règle ignore une fenêtre longue qui compte moins de requêtes que cette valeur.
 
 ### Choisir ce qu'elle déclare
 
@@ -151,10 +151,11 @@ OneUptime vérifie les nombres d'une règle quand vous l'enregistrez :
 | **Fenêtre courte (minutes)** | Supérieure à 0. |
 | **Fenêtre longue (minutes)** | Plus longue que la fenêtre courte. |
 | **Suppression du redéclenchement (minutes)** | 0 ou plus. Vide signifie la durée de la fenêtre longue. |
+| **Nombre minimal de requêtes** | Un nombre entier, 0 ou plus. Vide signifie aucun minimum. |
 
 Chaque réponse à **Quand elle se déclenche** ouvre quelque chose. L'API refuse une règle qui ne créerait aucune alerte et ne déclarerait aucun incident, car elle serait vérifiée à chaque évaluation sans jamais rien déclarer.
 
-Le tableau des règles affiche, pour chaque règle, son seuil, ses fenêtres et sa suppression, ce qu'elle déclare (et si l'alerte ou l'incident n'est résolu qu'à la main, ou est privé), ses gravités, ses politiques d'astreinte, ses propriétaires et ses étiquettes.
+Le tableau des règles affiche, pour chaque règle, son seuil, ses fenêtres et sa suppression, ce qu'elle déclare (et si l'alerte ou l'incident n'est résolu qu'à la main, ou est privé), ses gravités, ses politiques d'astreinte, ses propriétaires et ses étiquettes. Pour un SLO de requêtes, il indique aussi le minimum de chaque règle sous ses fenêtres.
 
 > [!TIP]
 > Un bon départ : gardez les trois règles par défaut, envoyez la règle de consommation rapide à votre politique d'astreinte qui alerte, avec une gravité élevée, laissez la règle de consommation lente déclencher une alerte de gravité plus basse pour les heures de bureau, et faites de la règle de fuite lente un ticket pour l'équipe responsable. Si votre équipe gère tout par des incidents, choisissez **Déclarer un incident** pour la règle de consommation rapide, ou **Les deux** pour recevoir aussi une alerte.
@@ -276,7 +277,7 @@ Les règles de taux de consommation restent silencieuses tant que l'un des monit
 :::
 
 :::details Existe-t-il un nombre minimal d'échantillons ?
-Pas pour les SLO mesurés à partir de la disponibilité des moniteurs. La disponibilité se mesure en secondes, chaque seconde de la fenêtre est donc un échantillon, et il n'y a pas de cas de faible trafic à surveiller. Un nombre minimal d'échantillons ne compte que pour les SLI fondés sur des événements, qui ne sont pas encore disponibles.
+Pas pour les SLO mesurés à partir de la disponibilité des moniteurs. La disponibilité se mesure en secondes, chaque seconde de la fenêtre est donc un échantillon, et il n'y a pas de cas de faible trafic à surveiller. La règle d'un SLO de requêtes en a un : définissez son **Nombre minimal de requêtes**, et la règle ignore une fenêtre longue qui compte moins de requêtes que cette valeur, si bien qu'une heure calme avec une requête en échec sur cinq n'alerte personne.
 :::
 
 ## Prochaines étapes

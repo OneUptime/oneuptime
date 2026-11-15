@@ -1,4 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { OverviewSection } from "../../../Utils/OverviewSection";
 import RelativeTime from "../../EpisodeView/RelativeTime";
@@ -142,9 +143,9 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
       count = (
         <span
           data-testid={data.testId}
-          className="mt-0.5 block text-2xl font-semibold tabular-nums text-gray-400"
+          className="mt-0.5 block text-2xl font-semibold tabular-nums"
         >
-          —
+          <EmptyFigure />
         </span>
       );
     }

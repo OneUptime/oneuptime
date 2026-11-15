@@ -492,7 +492,7 @@ describe("the warning and the reset", () => {
 
   test("emails the project's owners", () => {
     expect(METRICS).toContain("ProjectService.sendEmailToProjectOwners(");
-    expect(ENGLISH).toContain("the project's owners get an email");
+    expect(ENGLISH).toContain("the Project Owners get an email");
   });
 
   test("follows the time zone's clock through daylight saving time", () => {

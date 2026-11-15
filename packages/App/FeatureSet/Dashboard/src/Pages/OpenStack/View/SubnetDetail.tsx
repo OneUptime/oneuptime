@@ -130,7 +130,7 @@ const SubnetOverview: FunctionComponent<{
           iconColor="blue"
           value={
             !addresses
-              ? "—"
+              ? undefined
               : addresses.percent === null
                 ? formatOpenStackCount(addresses.used || 0)
                 : formatOpenStackPercent(addresses.percent)

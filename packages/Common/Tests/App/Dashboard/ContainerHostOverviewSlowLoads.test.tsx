@@ -118,6 +118,7 @@ import {
   pickerLabel,
   presetLabel,
 } from "./TimeRangeZoomPageHarness";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const NOW: Date = new Date("2026-09-24T12:00:00.000Z");
 const HOST_ID: string = "5a1b2c3d-4e5f-4061-8273-94a5b6c7d8e9";
@@ -482,7 +483,7 @@ describe.each(RUNTIME_CASES)(
 
       expect(pageWindow()).toBe(windowText(at("11:30"), NOW));
       expect(tileValue("Avg CPU")).toBe("20.0%");
-      expect(tileValue("Processes")).toBe("—");
+      expect(tileValue("Processes")).toBe(QUIET_DASH_TEXT);
       expectRefreshSettled();
     });
 

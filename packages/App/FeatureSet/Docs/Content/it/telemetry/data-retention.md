@@ -64,14 +64,14 @@ Le sostituzioni conservano più a lungo ciò che vi serve e meno a lungo il rest
 
 ### Per l'intero progetto
 
-Sotto il predefinito, chiusa in **Altre impostazioni**, la scheda **Conservazione per tipo di telemetria** imposta i giorni per ogni tipo di telemetria. Fate clic su **Edit Overrides**, compilate i campi che vi servono e lasciate vuoti gli altri:
+Sotto il predefinito, chiusa in **Altre impostazioni**, la scheda **Conservazione per tipo di telemetria** imposta i giorni per ogni tipo di telemetria. Fate clic su **Modifica sostituzioni**, compilate i campi che vi servono e lasciate vuoti gli altri:
 
 | Tipo | Campi |
 | --- | --- |
-| Log | **Logs default (days)**, e un campo per ogni gravità dei log |
-| Tracce | **Traces default (days)**, e un campo per ogni stato degli span: Errore, Ok e Non impostato |
-| Metriche | **Metrics default (days)** |
-| Profili | **Profiles default (days)** |
+| Log | **Predefinito dei log (giorni)**, e un campo per ogni gravità dei log |
+| Tracce | **Predefinito delle tracce (giorni)**, e un campo per ogni stato degli span: Errore, Ok e Non impostato |
+| Metriche | **Predefinito delle metriche (giorni)** |
+| Profili | **Predefinito dei profili (giorni)** |
 
 Un campo lasciato vuoto ricade sull'impostazione successiva nell'ordine sopra, quindi una gravità senza giorni propri conserva i suoi log secondo il predefinito dei log.
 

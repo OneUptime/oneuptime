@@ -596,6 +596,36 @@ describe("one meaning per key", () => {
   });
 
   /*
+   * #8181: the bare "Deleted" and "Undefined" are the whole Dashboard's,
+   * worded masculine ("Eliminado", "Supprimé"), so a deleted invoice read
+   * "Eliminado" under a paid one's "Pagada". An invoice's take keys of
+   * their own, looked up only by the invoices' list, which no longer looks
+   * up the bare words.
+   */
+  test("an invoice's Deleted and Undefined are their own keys, and the invoices' list never looks up the bare words", () => {
+    for (const key of [
+      "Deleted (invoice status)",
+      "Undefined (invoice status)",
+    ]) {
+      expect({ key, files: filesLookingUp(key) }).toEqual({
+        key,
+        files: ["Pages/Settings/Invoices.tsx"],
+      });
+      expect(MEANING_KEYS).toContain(key);
+    }
+
+    for (const word of ["Deleted", "Undefined"]) {
+      expect({
+        word,
+        invoices: filesLookingUp(word).includes("Pages/Settings/Invoices.tsx"),
+      }).toEqual({ word, invoices: false });
+    }
+
+    // The bare words stay the rest of the Dashboard's.
+    expect(filesLookingUp("Deleted").length).toBeGreaterThan(0);
+  });
+
+  /*
    * #8201: the bare "From" and "To" are a message's sender and recipient -
    * the notification logs' columns - so a German date filter read "Von" ...
    * "An" (to someone), a Japanese one 差出人 ... 宛先. A range's two ends

@@ -1981,19 +1981,41 @@ describe("ServiceLevelObjectiveBurnRateRuleService - numeric columns supplied as
     expect(typeof createBy.data.refireSuppressionMinutes).toBe("number");
   });
 
-  it("rejects a non-numeric minimum sample count", async () => {
+  // A count of requests, in an integer column (#8442): whole and not negative.
+  for (const rejected of ["abc", -1, "2.5", 0.5]) {
+    it(`rejects a minimum sample count of ${JSON.stringify(rejected)}`, async () => {
+      await expectBadData(
+        callHook(
+          "onBeforeCreate",
+          makeCreateBy({
+            burnRateThreshold: 6,
+            longWindowInMinutes: 360,
+            shortWindowInMinutes: 30,
+            minimumSampleCount: rejected as unknown as number,
+          }),
+        ),
+        "Minimum sample count must be a whole number greater than or equal to 0.",
+      );
+    });
+  }
+
+  it("rejects a fractional minimum sample count on update too", async () => {
     await expectBadData(
-      callHook(
-        "onBeforeCreate",
-        makeCreateBy({
-          burnRateThreshold: 6,
-          longWindowInMinutes: 360,
-          shortWindowInMinutes: 30,
-          minimumSampleCount: "abc",
-        }),
-      ),
-      "Minimum sample count must be a number greater than or equal to 0.",
+      callHook("onBeforeUpdate", makeUpdateBy({ minimumSampleCount: 99.5 })),
+      "Minimum sample count must be a whole number greater than or equal to 0.",
     );
+  });
+
+  it("accepts a minimum sample count of 0, which is no minimum", async () => {
+    const createBy: CreateBy<ServiceLevelObjectiveBurnRateRule> = makeCreateBy({
+      burnRateThreshold: 6,
+      longWindowInMinutes: 360,
+      shortWindowInMinutes: 30,
+      minimumSampleCount: 0,
+    });
+
+    await expect(callHook("onBeforeCreate", createBy)).resolves.toBeDefined();
+    expect(createBy.data.minimumSampleCount).toBe(0);
   });
 
   it("rejects a negative re-fire suppression window", async () => {

@@ -27,7 +27,7 @@ flowchart TB
 ## Innan du börjar
 
 - **Ett anslutet Google Cloud-projekt.** Anslut det först under **Moln → Anslut**: se [Anslut ett molnkonto](/docs/telemetry/cloud-accounts).
-- **En projektägare eller administratör.** Bara de kan skapa en strömnyckel och sluta strömma.
+- **En Projektägare eller Projektadministratör.** Bara de kan skapa en strömnyckel och sluta strömma.
 - **Google Cloud Shell**, inloggad som **Owner** för projekten, eller som någon som får skapa tjänstkonton, Pub/Sub-ämnen och loggsinkar i dem.
 - **En HTTPS-adress, på en egen OneUptime-installation.** Pub/Sub pushar bara till `https://`-adresser, med ett certifikat som Google litar på, och adressen måste gå att nå från Google Cloud.
 

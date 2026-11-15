@@ -43,7 +43,7 @@ flowchart TB
 
 ### 設定を編集する
 
-**Edit Audit Log Settings** をクリックします。
+**監査ログの設定を編集** をクリックします。
 
 ### 有効にする
 

@@ -151,7 +151,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | 等待建立连接的时间。 |
 | **Statement Timeout (ms)** | `15000` | `60000` | 查询可运行时间的硬性上限。 |
-| **Max Rows** | `100` | `1000` | 从数据库读回的行数上限。 |
+| **最大行数** | `100` | `1000` | 从数据库读回的行数上限。 |
 
 超过最大值的值会被降为最大值。
 

@@ -157,8 +157,8 @@ Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 
 
 :::steps
 1. 連接您自己的 Microsoft Teams 帳戶（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ）。
-2. 前往 **使用者設定** > **通知方式**，開啟 **工作區應用程式** 分頁，然後按一下 **Add Microsoft Teams Account**。
-3. 在其所在列按一下 **Send Test Message**。訊息會送到您的 Microsoft Teams 聊天。
+2. 前往 **使用者設定** > **通知方式**，開啟 **工作區應用程式** 分頁，然後按一下 **新增 Microsoft Teams 帳戶**。
+3. 在其所在列按一下 **傳送測試訊息**。訊息會送到您的 Microsoft Teams 聊天。
 :::
 
 新增後，它會立即加入您的待命規則，因此從那時起呼叫會透過 Microsoft Teams 送達您。在 **使用者設定** > **如何聯絡我** 中變更它接收哪些呼叫。
@@ -279,7 +279,7 @@ Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 
 OneUptime 卡片上的按鈕以按下者的身分執行，無論是在個人聊天、頻道還是群組聊天中：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分，依該帳戶在專案中的權限執行。事件、警示或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及維護事件上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自會做出與 OneUptime 中相同操作一樣的變更，並在那裡記在此人名下：紀錄的狀態時間軸和動態會顯示是誰變更了其狀態，備註也歸此人所有。透過回應從訊息儲存的備註也以同樣方式發布。
 
 - **誰可以使用。** 能在 OneUptime 中做出同樣變更的人。確認、解決事件或變更其狀態需要變更其狀態的權限： **專案擁有者**、 **專案管理員**、 **專案成員**、 **事件管理員** 和 **事件成員**，或自訂角色中的 **Create Incident State Timeline**。警示、片段或維護事件需要其自身類型的同等權限（例如 **Create Alert State Timeline** ），備註需要發布該類備註的權限。與 OneUptime 中的狀態面板一樣，它們不要求編輯事件或警示本身的權限。其他任何人都會收到告知，並且不會有任何變更。
-- **哪些紀錄。** 與在 OneUptime 中一樣，是此人可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄上的按鈕都會說明原因，並且不會有任何變更：對於此人的角色無法觸及的事件，回覆 "your access in this project does not include this incident. Ask a Project Admin for access to it."；對於此人不是負責人的私人事件，回覆 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."；對於之後已刪除的事件，回覆 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
+- **哪些紀錄。** 與在 OneUptime 中一樣，是此人可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄上的按鈕都會說明原因，並且不會有任何變更：對於此人的角色無法觸及的事件，回覆 "your access in this project does not include this incident. Ask a Project Admin for access to it."；對於此人不是負責人的私人事件，回覆 "this incident is private, so only its owners, Project Owners and Project Admins can see it. Ask one of them to add you as an owner."；對於之後已刪除的事件，回覆 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
 - **Change State 提供什麼。** 依專案的順序，提供此人可以讀取、紀錄接下來可以轉入的狀態：不會提供早於其目前狀態的狀態，片段也與事件、警示或維護事件一樣，因為狀態變更永遠不會讓紀錄在其清單中倒退（請參閱 [順序是真正的限制](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好)）。如果此人一個都無法讀取，機器人會說 "No incident states are available to you in this project. Ask a Project Admin for access to them."；如果紀錄處於它能到達的最後一個狀態，則會說 "There is no later state to move this incident to." 這兩種情況都不會顯示空白卡片。
 - **私人事件上的 Add Note。** 私人事件不能新增公開備註，因此它的卡片不會詢問備註類型，而是新增一則私人備註。在它設為私人之前送出的卡片也會新增私人備註，並說明這一點。請參閱[私人事件只能新增私人備註](/docs/incidents/notes-owners-and-feed#私人事件只能新增私人備註)。
 - **Escalate.** 卡片上的 **Escalate** 會針對卡片所涉及的事件、警示或片段執行其待命策略，以按下者的身分，並使用與 **Execute On-Call Policy** 相同的權限。不涉及其中任何一種的卡片會得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回覆，並且不會呼叫任何人。

@@ -5,6 +5,7 @@ import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
 import EnterpriseHealthUpgrade from "./EnterpriseHealthUpgrade";
 import HealthPage from "./HealthPage";
 import Route from "Common/Types/API/Route";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 // PostgreSQL cluster health and its notifications: Enterprise Edition.
@@ -19,8 +20,10 @@ const HealthPostgres: FunctionComponent = (): ReactElement => {
         renderUpsell={(): ReactElement => {
           return (
             <EnterpriseHealthUpgrade
-              featureName="PostgreSQL cluster health"
-              featureDescription="Replication lag, slot health, connection saturation, lock pressure, cache-hit ratio and transaction-ID wraparound headroom for the Postgres backing this instance."
+              featureName={translationKey("PostgreSQL cluster health")}
+              featureDescription={translationKey(
+                "Replication lag, slot health, connection saturation, lock pressure, cache-hit ratio and transaction-ID wraparound headroom for the Postgres backing this instance.",
+              )}
             />
           );
         }}

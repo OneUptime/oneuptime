@@ -30,7 +30,7 @@ flowchart TB
 ## 开始之前
 
 - **一个已连接的 AWS 账户。** 先在 **云 → 连接** 中连接它：请参阅[连接云账户](/docs/telemetry/cloud-accounts)。
-- **项目所有者或管理员。** 只有他们可以创建流密钥并停止流式传输。
+- **项目所有者或项目管理员。** 只有他们可以创建流密钥并停止流式传输。
 - **该账户中的 AWS CloudShell**，以可以创建 CloudFormation 堆栈和 IAM 角色的用户身份登录。
 - **自托管 OneUptime 需要一个 HTTPS 地址。** Firehose 只投递到端口 443 上的 `https://` 地址，需要 AWS 信任的证书，并且该地址必须能从 AWS 访问。
 

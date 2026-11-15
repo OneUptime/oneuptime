@@ -5,6 +5,7 @@ import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
 import EnterpriseHealthUpgrade from "./EnterpriseHealthUpgrade";
 import HealthPage from "./HealthPage";
 import Route from "Common/Types/API/Route";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -23,8 +24,10 @@ const HealthQueues: FunctionComponent = (): ReactElement => {
         renderUpsell={(): ReactElement => {
           return (
             <EnterpriseHealthUpgrade
-              featureName="Background queue health"
-              featureDescription="Job backlog and failures across the BullMQ workers, with a drill-in to the recent failed-job logs for any queue reporting failures."
+              featureName={translationKey("Background queue health")}
+              featureDescription={translationKey(
+                "Job backlog and failures across the BullMQ workers, with a drill-in to the recent failed-job logs for any queue reporting failures.",
+              )}
             />
           );
         }}

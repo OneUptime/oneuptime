@@ -138,7 +138,7 @@ API 密钥需要 Growth 或更高的套餐，而在 Scale 套餐以下，SCIM �
 在**自动充值**卡片上点击**编辑自动充值**，然后打开**启用自动充值**。它默认关闭。打开后，每当余额降到 $10 时，OneUptime 就会充值 $20，金额也可以自行设定。
 :::
 
-当余额不足以支付时，消息不会发送，或 OneUptime AI 会停止，项目的所有者会收到电子邮件。参见[呼叫未发送时](/docs/on-call/escalation-rules#呼叫未发送时)和[AI 积分用完时](/docs/ai/ai-sre#ai-积分用完时)。
+当余额不足以支付时，消息不会发送，或 OneUptime AI 会停止，项目所有者会收到电子邮件。参见[呼叫未发送时](/docs/on-call/escalation-rules#呼叫未发送时)和[AI 积分用完时](/docs/ai/ai-sre#ai-积分用完时)。
 
 ## 谁可以做什么
 

@@ -84,7 +84,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **VMware Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 5 minutter**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 vCenter leses én gang per innsamlingsintervall, 2 minutter som standard, så et vindu på 1 minutt inneholder kanskje ingen prøve i det hele tatt. Hold vinduet på 5 minutter eller mer, og lengre hvis du har økt innsamlingsintervallet for et stort inventar.
 

@@ -35,7 +35,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **En prosjekteier eller -administrator.** Bare de kan koble til, teste og redigere skykontoer.
+- **En Prosjekteier eller Prosjektadministrator.** Bare de kan koble til, teste og redigere skykontoer.
 - **Skyens terminal** (AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell), logget på som noen som kan opprette en IAM-rolle eller -bruker, en appregistrering eller en tjenestekonto.
 
 ## Amazon Web Services

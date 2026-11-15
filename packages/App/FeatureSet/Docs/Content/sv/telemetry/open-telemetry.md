@@ -410,7 +410,7 @@ Varje nyckels sida, under **Projektinställningar → Telemetri och APM → Inta
 | **Aktiverad** | Stäng av den för att genast sluta acceptera data som skickas med nyckeln, utan att radera den. |
 | **Upphör** | Efter detta datum nekas nyckeln. Tomt betyder att den aldrig går ut. |
 | **Requests Per Minute Limit** | Det högsta antalet OTLP/HTTP-begäranden per minut som accepteras med nyckeln, sammanlagt för alla klienter som använder den. Tomt betyder ingen gräns på en servernyckel och 6 000 på en webbläsarnyckel. |
-| **Last Used At** | När data senast accepterades med nyckeln. Använd den för att hitta nycklar som säkert kan roteras eller raderas. |
+| **Senast använd den** | När data senast accepterades med nyckeln. Använd den för att hitta nycklar som säkert kan roteras eller raderas. |
 
 **Återställ hemlig nyckel** på nyckelns sida ersätter hemligheten. Varje applikation och collector som skickar med den gamla nekas tills du uppdaterar den. Om webbläsarnycklar, säkert byte av en nyckel och vad varje avvisning betyder, se [Intagningsnycklar](/docs/telemetry/ingestion-keys).
 

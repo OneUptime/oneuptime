@@ -13,7 +13,11 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValue,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import {
@@ -63,7 +67,19 @@ const TelemetryResourceRetentionSettings: FunctionComponent<
   const isEditable: boolean = !isEnterpriseConfigurationReadOnly(licenseMode);
   const translator: Translator = useTranslator();
 
-  const defaultRetentionDescription: string = `Set the default retention for telemetry collected from this ${props.resourceName}.`;
+  /*
+   * Whole sentences with the resource's kind in them ("this RUM
+   * application"), worded here: the kind is a term, said in the reader's
+   * language with the sentence (#8461). They were English sentences built
+   * around it, which a lookup could never find.
+   */
+  const resource: TemplateValue = translatableTerm(props.resourceName, {
+    inSentence: true,
+  });
+  const defaultRetentionDescription: string = translator.translateTemplate(
+    "Set the default retention for telemetry collected from this {{resource}}.",
+    { resource: resource },
+  );
 
   return (
     <Fragment>
@@ -75,13 +91,13 @@ const TelemetryResourceRetentionSettings: FunctionComponent<
           // Two whole sentences, each looked up on its own.
           description: props.scopeNote ? (
             <Fragment>
-              {translator.translateText(defaultRetentionDescription)}{" "}
+              {defaultRetentionDescription}{" "}
               <span data-testid="telemetry-retention-scope-note">
                 {translator.translateText(props.scopeNote)}
               </span>
             </Fragment>
           ) : (
-            defaultRetentionDescription
+            <Fragment>{defaultRetentionDescription}</Fragment>
           ),
         }}
         isEditable={isEditable}
@@ -132,7 +148,14 @@ const TelemetryResourceRetentionSettings: FunctionComponent<
         name="Retention by Telemetry Type"
         cardProps={{
           title: "Retention by Telemetry Type",
-          description: `Override retention for specific telemetry types collected from this ${props.resourceName}. Any field left blank falls back to the ${props.resourceName}'s default above, then the project's settings.`,
+          description: (
+            <Fragment>
+              {translator.translateTemplate(
+                "Override retention for specific telemetry types collected from this {{resource}}. Any field left blank falls back to the {{resource}}'s default above, then the project's settings.",
+                { resource: resource },
+              )}
+            </Fragment>
+          ),
         }}
         isEditable={isEditable}
         editButtonText="Edit Overrides"

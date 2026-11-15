@@ -2670,3 +2670,229 @@ describe("the guard on the colour square, the header alert and the switch, as th
     ]);
   });
 });
+
+/*
+ * #8586: a permission check's reason (PermissionGate.disabledReason) is in
+ * the reader's words already, so the guard reads it as a looked-up text:
+ * every control that offers a translated flag holds its callers to it.
+ */
+describe("a permission check's reason, handed to a control that looks it up (#8586)", () => {
+  test.each([
+    [
+      "Common/UI/Components/MoreMenu/MoreMenuItem.tsx",
+      "MoreMenuItem",
+      "tooltip",
+    ],
+    [
+      "Common/UI/Components/ChoiceRows/ChoiceRows.tsx",
+      "ChoiceRows",
+      "lockedReason",
+    ],
+    [
+      "Common/UI/Components/ModelSwitch/ModelSwitchRow.tsx",
+      "ModelSwitchRow",
+      "lockedReason",
+    ],
+    // Through the ModelSwitchRow it draws.
+    [
+      "Common/UI/Components/ModelSwitch/ModelSwitchCard.tsx",
+      "ModelSwitchCard",
+      "lockedReason",
+    ],
+  ])(
+    "%s's %s looks up its %s",
+    (file: string, component: string, prop: string) => {
+      expect(checkout.isLookedUpBy(file, component, prop)).toBe(true);
+    },
+  );
+
+  test("holds every locked menu item's reason: the permission checks' all said translated", () => {
+    const reasons: Array<PlaceholderSite> = checkout.sites.filter(
+      (site: PlaceholderSite): boolean => {
+        return site.handedTo === "<MoreMenuItem tooltip>" && site.isLookedUp;
+      },
+    );
+
+    expect(reasons.length).toBeGreaterThanOrEqual(27);
+    expect(
+      reasons.map((site: PlaceholderSite): [string, boolean] => {
+        return [site.where, site.isSaidTranslated];
+      }),
+    ).toEqual(
+      reasons.map((site: PlaceholderSite): [string, boolean] => {
+        return [site.where, true];
+      }),
+    );
+
+    /*
+     * The reasons carried in an object of the page's own (an AI agent's
+     * actions, a calendar feed's, an entity's reset), which the guard
+     * cannot follow: said translated too.
+     */
+    for (const file of [
+      "App/FeatureSet/Dashboard/src/Components/AiAccess/AiAgentActionsMenu.tsx",
+      "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedManageMenu.tsx",
+      "App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskHeader.tsx",
+    ]) {
+      expect(
+        sitesIn(file)
+          .filter((site: PlaceholderSite): boolean => {
+            return site.handedTo === "<MoreMenuItem tooltip>";
+          })
+          .map((site: PlaceholderSite): boolean => {
+            return site.isSaidTranslated;
+          }),
+      ).toEqual([true]);
+    }
+
+    // A case's header: its menu's five locked moves.
+    expect(
+      sitesIn(
+        "App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseHeader.tsx",
+      )
+        .filter((site: PlaceholderSite): boolean => {
+          return site.handedTo === "<MoreMenuItem tooltip>";
+        })
+        .map((site: PlaceholderSite) => {
+          return [site.isLookedUp, site.isSaidTranslated];
+        }),
+    ).toEqual([
+      [true, true],
+      [true, true],
+      [true, true],
+      [true, true],
+      [true, true],
+    ]);
+  });
+
+  test("holds the choices locked by a permission check: the sharing, access and theme cards", () => {
+    for (const file of [
+      "App/FeatureSet/Dashboard/src/Components/Dashboard/Sharing/DashboardSharingCard.tsx",
+      "App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageAccessCard.tsx",
+      "App/FeatureSet/Dashboard/src/Components/PublicPageTheme/PublicPageThemeCard.tsx",
+    ]) {
+      expect(
+        sitesIn(file)
+          .filter((site: PlaceholderSite): boolean => {
+            return site.handedTo === "<ChoiceRows lockedReason>";
+          })
+          .map((site: PlaceholderSite) => {
+            return [site.isLookedUp, site.isSaidTranslated];
+          }),
+      ).toEqual([[true, true]]);
+    }
+  });
+
+  describe("the rule, on a fixture", () => {
+    let root: string;
+    let fixture: PlaceholderScanResult;
+
+    const PAGE: string = path.join(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Pages",
+      "Locks.tsx",
+    );
+
+    const PAGE_LINES: Array<string> = [
+      'import React from "react";',
+      'import Tooltip from "Common/UI/Components/Tooltip/Tooltip";',
+      'import PermissionGate, { PermissionGateResult } from "Common/UI/Utils/PermissionGate";',
+      "const Locks = (props) => {",
+      "  const typed: PermissionGateResult = check();",
+      "  const asked = PermissionGate.check(new Monitor(), ModelAction.Delete);",
+      "  const reason = typed.isAllowed ? undefined : typed.disabledReason;",
+      "  const other = { disabledReason: 'Not yet' };",
+      "  return (",
+      "    <>",
+      "      <Tooltip text={typed.disabledReason}><span /></Tooltip>",
+      "      <Tooltip text={asked.isAllowed ? undefined : asked.disabledReason}><span /></Tooltip>",
+      "      <Tooltip text={reason}><span /></Tooltip>",
+      "      <Tooltip text={typed.disabledReason} isTextTranslated={true}><span /></Tooltip>",
+      // Not a permission check's: a prop, an object of its own.
+      "      <Tooltip text={props.disabledReason}><span /></Tooltip>",
+      "      <Tooltip text={other.disabledReason}><span /></Tooltip>",
+      "    </>",
+      "  );",
+      "};",
+      "export default Locks;",
+    ];
+
+    const at: (code: string) => string = (code: string): string => {
+      return placeOf(PAGE, PAGE_LINES, code);
+    };
+
+    beforeAll(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "gate-reason-scan-"));
+
+      const packages: string = path.join(root, "packages");
+
+      writeFixture(
+        packages,
+        path.join("Common", "UI", "Components", "Tooltip", "Tooltip.tsx"),
+        [
+          'import React from "react";',
+          "const Tooltip = (props) => {",
+          "  const { translateString } = useTranslateValue();",
+          "  return <span>{props.isTextTranslated ? props.text : translateString(props.text)}</span>;",
+          "};",
+          "export default Tooltip;",
+        ],
+      );
+      writeFixture(packages, PAGE, PAGE_LINES);
+
+      fixture = scanPlaceholders(packages);
+    });
+
+    afterAll(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    test("a permission check's reason, typed, asked for, or a constant made of one, is looked up already; any other disabledReason is not", () => {
+      expect(
+        fixture.sites
+          .filter((site: PlaceholderSite): boolean => {
+            return site.where.startsWith(`${PAGE}:`);
+          })
+          .map((site: PlaceholderSite): [string, boolean, boolean] => {
+            return [site.where, site.isLookedUp, site.isSaidTranslated];
+          }),
+      ).toEqual([
+        [at("<Tooltip text={typed.disabledReason}><span />"), true, false],
+        [at("asked.disabledReason"), true, false],
+        [at("<Tooltip text={reason}>"), true, false],
+        [at("isTextTranslated={true}"), true, true],
+        [at("props.disabledReason"), false, false],
+        [at("other.disabledReason}"), false, false],
+      ]);
+    });
+
+    test("fails on each permission check's reason not said translated, and on nothing else", () => {
+      expect(
+        fixture.problems.map((problem: PlaceholderProblem) => {
+          return [problem.where, problem.message];
+        }),
+      ).toEqual([
+        [
+          at("<Tooltip text={typed.disabledReason}><span />"),
+          `${LOOKED_UP_TWICE_MESSAGE}isTextTranslated`,
+        ],
+        [
+          at("asked.disabledReason"),
+          `${LOOKED_UP_TWICE_MESSAGE}isTextTranslated`,
+        ],
+        [
+          at("<Tooltip text={reason}>"),
+          `${LOOKED_UP_TWICE_MESSAGE}isTextTranslated`,
+        ],
+        // A prop of its own handed on: the hand-on rule's (#8423).
+        [
+          at("props.disabledReason"),
+          `${UNFLAGGED_HAND_ON_MESSAGE}isDisabledReasonTranslated for disabledReason, and hand it on as isTextTranslated`,
+        ],
+      ]);
+    });
+  });
+});

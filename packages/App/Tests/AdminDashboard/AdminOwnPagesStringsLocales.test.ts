@@ -49,9 +49,9 @@ import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLangua
  *     shrinks: an entry translated since fails it until it comes off).
  *
  * A text the extractor finds that no lookup reads is NOT_LOOKED_UP, with
- * its reason. An element's text the page draws as written (<th>Shard</th>)
- * is not looked up either, so it is left out (readOwnStrings): routing
- * those through translation is its own work.
+ * its reason. An element's text a page draws as written (<th>Shard</th>)
+ * is not looked up either, so it is left out (readOwnStrings); the Admin's
+ * own pages draw none (AdminOwnPagesDrawnAsWrittenGuard, #8555).
  *
  * Add a new text to en.json as itself and to every language, worded as
  * that language's Dashboard words the same text where it has one, at the
@@ -121,6 +121,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Transport",
     "Teams",
     "Facebook App Secret",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   fr: [
     "Question",
@@ -136,8 +139,11 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Description",
     "Transport",
     "Total",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
-  es: ["No", "Total"],
+  es: ["No", "Total", "Enterprise", "Shard", "Shard {{shard}}"],
   it: [
     "Home",
     "Feedback",
@@ -150,6 +156,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Provider",
     "Facebook App Secret",
     "Password",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   pt: [
     "Feedback",
@@ -158,6 +167,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "OAuth Client ID",
     "Client ID",
     "Total",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   nl: [
     "Feedback",
@@ -174,6 +186,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Model",
     "{{count}} products_one",
     "Facebook App Secret",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   da: [
     "Feedback",
@@ -192,6 +207,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Upload logo",
     "Facebook App Secret",
     "Total",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   no: [
     "Status",
@@ -203,6 +221,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Transport",
     "OAuth Client ID",
     "Test",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   sv: [
     "Version",
@@ -215,15 +236,19 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Transport",
     "OAuth Client ID",
     "Facebook App Secret",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   ru: [
     "Twilio Account SID",
     "Twilio Auth Token",
     "OAuth Client ID",
     "Client ID",
+    "Enterprise",
   ],
-  ja: ["App ID"],
-  ko: [],
+  ja: ["App ID", "Enterprise"],
+  ko: ["Enterprise"],
   "zh-CN": ["Bot Token", "Facebook App Secret"],
   "zh-TW": [
     "OAuth Client ID",
@@ -239,6 +264,7 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Bot Token",
     "Facebook App Secret",
     "App ID",
+    "Enterprise",
   ],
   fa: [],
   ar: [],
@@ -491,12 +517,67 @@ describe("the Admin Dashboard's own pages", () => {
     }
   });
 
-  test("leave out an element's text the page draws as written, which no entry would change", () => {
-    // ClickHouse's capacity table heads its columns as plain <th> text.
-    expect(TEXTS.has("Shard")).toBe(false);
-    expect(TEXTS.has("Active parts")).toBe(false);
-    // The sentence "ClickHouse is {reachable / not reachable} from this instance." is glued from pieces.
+  test("hand over the texts #8555 routed through translation, which they drew as written", () => {
+    for (const text of [
+      // ClickHouse's capacity table headed its columns as plain text.
+      "Shard",
+      "Active parts",
+      // Glued from "ClickHouse is", "reachable" / "not reachable" and "from this instance.".
+      "ClickHouse is reachable from this instance.",
+      "ClickHouse is not reachable from this instance.",
+      "Fullest of {{count}} disks",
+      "Fullest of {{count}} disks_one",
+      "Recorded {{time}}",
+      "Pending migrations (run in order)",
+      "and {{count}} more…",
+      "{{count}} pending · failed",
+      "Loading teams...",
+      "Stuck at: {{step}}.",
+      "{{value}} (default)",
+      "{{feature}} is a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable it.",
+      // Kept in a constant or handed to a helper the extractor did not read.
+      "Disk used",
+      "Capacity before",
+      "PostgreSQL schema migrations",
+      "Instance version & build",
+      "PostgreSQL cluster health",
+      "Waiting for Reclaim",
+    ]) {
+      expect({ text, handedOver: TEXTS.has(text) }).toEqual({
+        text,
+        handedOver: true,
+      });
+    }
+
+    // The pieces it was glued from are no texts of their own.
     expect(TEXTS.has("not reachable")).toBe(false);
+    expect(TEXTS.has("ClickHouse is")).toBe(false);
+  });
+
+  test("leave out an element's text a page draws as written, which no entry would change", () => {
+    const read: { texts: Array<OwnText> } = readOwnStrings(
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/Fixture.tsx",
+      [
+        'import React from "react";',
+        "const Page = (props: { connected: boolean }) => {",
+        "  return (",
+        "    <table>",
+        "      <thead><tr><th>Shard</th></tr></thead>",
+        "      <caption>",
+        '        ClickHouse is {props.connected ? "reachable" : "not reachable"} from',
+        "        this instance.",
+        "      </caption>",
+        "    </table>",
+        "  );",
+        "};",
+      ].join("\n"),
+    );
+
+    expect(
+      read.texts.map((text: OwnText): string => {
+        return text.key;
+      }),
+    ).toEqual([]);
   });
 
   test("every text no lookup reads is one the pages still hand over, with its reason", () => {

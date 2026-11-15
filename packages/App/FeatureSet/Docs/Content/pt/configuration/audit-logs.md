@@ -43,7 +43,7 @@ Acesse **Configurações do projeto → Registros de auditoria → Configuraçõ
 
 ### Editar as configurações
 
-Clique em **Edit Audit Log Settings**.
+Clique em **Editar as configurações dos registros de auditoria**.
 
 ### Ativá-lo
 

@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor`는 통계 뷰와 모니터링 뷰에 대한 읽기 권한을 주는 기본 제공 역할(PostgreSQL 10 이상)입니다. 테이블에 대한 접근 권한은 주지 않습니다.
 
 > [!IMPORTANT]
-> **PostgreSQL에서 `pg_monitor`가 선택 사항이 아닌 이유.** 이 역할이 없으면 `pg_stat_activity`는 실패하지 않습니다. 쿼리는 성공하고, 모니터링 세션 자신의 행만 돌려줍니다. 그러면 실제로는 불이 난 서버에서도 연결 수는 `1`, 차단된 세션은 `0`, 복제 지연은 `0`으로 계속 표시됩니다. 그래서 프로브는 그 쿼리들을 실행하기 **전에** 로그인이 `pg_monitor`(또는 `pg_read_all_stats`)의 멤버이거나 슈퍼유저인지 확인합니다. 어느 쪽도 아니면 프로브는 Connections, Activity, Locks 그룹을 사용할 수 없음으로 보고하고, 필요한 `GRANT`를 함께 보여 줍니다. 아무것도 보고하지 않는 것이 정직한 답이며, `1`을 보고하는 것은 그렇지 않습니다.
+> **PostgreSQL에서 `pg_monitor`가 선택 사항이 아닌 이유.** 이 역할이 없으면 `pg_stat_activity`는 실패하지 않습니다. 쿼리는 성공하고, 모니터링 세션 자신의 행만 돌려줍니다. 그러면 실제로는 불이 난 서버에서도 연결 수는 `1`, 차단된 세션은 `0`, 복제 지연은 `0`으로 계속 표시됩니다. 그래서 프로브는 그 쿼리들을 실행하기 **전에** 로그인이 `pg_monitor`(또는 `pg_read_all_stats`)의 멤버이거나 슈퍼유저인지 확인합니다. 어느 쪽도 아니면 프로브는 **연결**, **활동**, **잠금 및 차단** 그룹을 사용할 수 없음으로 보고하고, 필요한 `GRANT`를 함께 보여 줍니다. 아무것도 보고하지 않는 것이 정직한 답이며, `1`을 보고하는 것은 그렇지 않습니다.
 
 `pg_monitor`를 쓸 수 없는 관리형 서비스에서는 `pg_read_all_stats`가 같은 뷰를 다룹니다. Amazon RDS에서는 `GRANT rds_superuser`가 필요 없으며, `GRANT pg_monitor TO oneuptime_health;`는 `rds_superuser`의 멤버로서 실행할 수 있습니다.
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-MySQL의 `performance_schema`가 켜져 있어야 합니다(`performance_schema = ON`, 5.6부터 기본값). 꺼져 있으면 Connections, Throughput, Locks 그룹이 사용할 수 없음으로 보고되며, 해결 방법은 권한이 아니라 서버 재시작입니다.
+MySQL의 `performance_schema`가 켜져 있어야 합니다(`performance_schema = ON`, 5.6부터 기본값). 꺼져 있으면 **연결**, **처리량**, **잠금 및 차단** 그룹이 사용할 수 없음으로 보고되며, 해결 방법은 권한이 아니라 서버 재시작입니다.
 
 ### Microsoft SQL Server와 Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 다른 데이터베이스에서 실행하면 `GRANT VIEW SERVER STATE`는 Msg 4621 "Permissions at the server scope can only be granted when the current database is master"로 실패합니다.
 
 > [!WARNING]
-> **테이블에 대한 읽기 권한만으로는 부족합니다.** 데이터를 읽기만 할 수 있는 로그인(`db_datareader` 또는 그 밖의 "읽기 권한" 역할)은 연결할 수 있고 데이터베이스 크기는 얻지만, 그 밖에는 아무것도 얻지 못합니다. SQL Server는 모니터가 읽는 뷰를 `The user does not have permission to perform this action.`(Msg 297)으로 거부합니다. 그 앞의 메시지가 무엇이 거부되었는지 알려 줍니다. 서버 뷰(트랜잭션 로그 공간과 tempdb 여유 공간 포함)는 Msg 300 `VIEW SERVER STATE`(2022에서는 `VIEW SERVER PERFORMANCE STATE`), 복제 뷰는 Msg 262 `VIEW DATABASE STATE`(2022에서는 `VIEW DATABASE PERFORMANCE STATE`)입니다. 모니터는 온라인 상태를 유지하고, Connections, Activity, Throughput, Locks, Storage, Replication 그룹에 권한이 없다고 보고하며, 그 옆에 위의 `GRANT`를 보여 줍니다. `VIEW SERVER STATE` 하나로 이 그룹을 모두 다룰 수 있습니다.
+> **테이블에 대한 읽기 권한만으로는 부족합니다.** 데이터를 읽기만 할 수 있는 로그인(`db_datareader` 또는 그 밖의 "읽기 권한" 역할)은 연결할 수 있고 데이터베이스 크기는 얻지만, 그 밖에는 아무것도 얻지 못합니다. SQL Server는 모니터가 읽는 뷰를 `The user does not have permission to perform this action.`(Msg 297)으로 거부합니다. 그 앞의 메시지가 무엇이 거부되었는지 알려 줍니다. 서버 뷰(트랜잭션 로그 공간과 tempdb 여유 공간 포함)는 Msg 300 `VIEW SERVER STATE`(2022에서는 `VIEW SERVER PERFORMANCE STATE`), 복제 뷰는 Msg 262 `VIEW DATABASE STATE`(2022에서는 `VIEW DATABASE PERFORMANCE STATE`)입니다. 모니터는 온라인 상태를 유지하고, **연결**, **활동**, **처리량**, **잠금 및 차단**, **스토리지**, **복제** 그룹에 권한이 없다고 보고하며, 그 옆에 위의 `GRANT`를 보여 줍니다. `VIEW SERVER STATE` 하나로 이 그룹을 모두 다룰 수 있습니다.
 >
 > 거부하지 않는 뷰가 두 개 있습니다. 권한이 없으면 `sys.dm_exec_sessions`와 `sys.dm_exec_requests`는 아무 말 없이 모니터 자신의 세션만 보여 줍니다. 모니터는 이 두 뷰를 단독으로 읽지 않고 항상 거부하는 뷰와 함께 읽으므로, 권한 누락이 "연결 1개"로 기록되는 일은 없습니다.
 
@@ -151,7 +151,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 프로브는 Azure SQL Database를 버전이 아니라 `SERVERPROPERTY('EngineEdition')`로 인식합니다. Azure SQL Database는 실제로 무엇을 실행하든 `12.0.2000.8`을 보고하는데, 이는 SQL Server 2014로 읽히기 때문입니다. 그래서 모니터의 **엔진**에는 `Azure SQL Database 12.0.2000.8`이 표시되고, 권한 누락은 `VIEW SERVER STATE`가 아니라 항상 위의 Azure 문으로 표시됩니다.
 
-- **Azure SQL Database에서는 복제를 수집하지 않습니다.** Azure SQL Database에는 `sys.dm_hadr_database_replica_states`가 없으므로, Replication 그룹은 확인할 때마다 실패로 보고되는 대신 건너뜁니다. Azure 자체의 복제본 뷰(`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`)는 아직 읽지 않습니다.
+- **Azure SQL Database에서는 복제를 수집하지 않습니다.** Azure SQL Database에는 `sys.dm_hadr_database_replica_states`가 없으므로, **복제** 그룹은 확인할 때마다 실패로 보고되는 대신 건너뜁니다. Azure 자체의 복제본 뷰(`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`)는 아직 읽지 않습니다.
 - **연결은 데이터베이스 단위입니다.** `VIEW DATABASE STATE`로는 Azure SQL Database가 모니터링하는 데이터베이스의 세션만 보여 주므로, **연결**은 논리 서버가 아니라 그 데이터베이스를 셉니다. 중요한 데이터베이스는 각각 모니터링하세요.
 - **탄력적 풀에서 "TempDB 여유 공간"은 풀의 값입니다.** 풀의 데이터베이스들은 하나의 tempdb를 공유합니다.
 
@@ -221,17 +221,17 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ## 메트릭 그룹
 
-그룹은 켜고 끄는 단위이자 권한 누락이 보고되는 단위입니다. 그룹이 있기 때문에 권한 하나가 빠져도 모니터 전체가 아니라 그룹 하나만 잃습니다. 그룹의 문은 하나씩 실행되므로 그룹이 일부만 수집될 수 있으며, 이때 그 그룹은 `collectedGroups`와 `unavailableGroups` 양쪽에 나타납니다. 흔한 예는 `VIEW SERVER STATE`가 없는 로그인의 SQL Server Storage 그룹으로, 데이터베이스 크기는 수집되지만 로그 공간과 tempdb 여유 공간은 수집되지 않습니다.
+그룹은 켜고 끄는 단위이자 권한 누락이 보고되는 단위입니다. 그룹이 있기 때문에 권한 하나가 빠져도 모니터 전체가 아니라 그룹 하나만 잃습니다. 그룹의 문은 하나씩 실행되므로 그룹이 일부만 수집될 수 있으며, 이때 그 그룹은 `collectedGroups`와 `unavailableGroups` 양쪽에 나타납니다. 흔한 예는 `VIEW SERVER STATE`가 없는 로그인의 SQL Server **스토리지** 그룹으로, 데이터베이스 크기는 수집되지만 로그 공간과 tempdb 여유 공간은 수집되지 않습니다.
 
 | 그룹 | 수집하는 것 | 필요한 것 |
 |---|---|---|
 | 연결 | 연결 수, 설정된 상한, 중단된 연결, 서버 가동 시간 | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Activity | 가장 오래 실행 중인 쿼리, 가장 오래 열린 트랜잭션, 열린 트랜잭션 | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
+| 활동 | 가장 오래 실행 중인 쿼리, 가장 오래 열린 트랜잭션, 열린 트랜잭션 | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
 | 처리량 | 트랜잭션, 쿼리, 캐시 적중률, 디스크 읽기와 쓰기, I/O 시간 | PostgreSQL: `CONNECT` 외에는 필요 없음. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Locks | 차단된 세션, 잠금 대기, 교착 상태, 테이블 잠금 대기 | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Storage | 데이터베이스 크기, 임시 파일로의 유출, 로그 공간, tempdb 여유 공간 | PostgreSQL: `CONNECT` 외에는 필요 없음. MySQL: 데이터베이스에 대한 `SELECT`. SQL Server: 데이터베이스 크기에는 필요 없음, 로그 공간과 tempdb 여유 공간에는 `VIEW SERVER STATE` |
-| Replication | 연결된 복제본, 초와 바이트 단위의 복제 지연, 비활성 슬롯, 복구 상태 | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`, Azure SQL Database에서는 수집하지 않음 |
-| Maintenance | 트랜잭션 ID 랩어라운드까지의 여유, 죽은 튜플, autovacuum이 한 번도 처리하지 않은 테이블, 체크포인트 | PostgreSQL: `pg_monitor` |
+| 잠금 및 차단 | 차단된 세션, 잠금 대기, 교착 상태, 테이블 잠금 대기 | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| 스토리지 | 데이터베이스 크기, 임시 파일로의 유출, 로그 공간, tempdb 여유 공간 | PostgreSQL: `CONNECT` 외에는 필요 없음. MySQL: 데이터베이스에 대한 `SELECT`. SQL Server: 데이터베이스 크기에는 필요 없음, 로그 공간과 tempdb 여유 공간에는 `VIEW SERVER STATE` |
+| 복제 | 연결된 복제본, 초와 바이트 단위의 복제 지연, 비활성 슬롯, 복구 상태 | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`, Azure SQL Database에서는 수집하지 않음 |
+| 유지 관리 | 트랜잭션 ID 랩어라운드까지의 여유, 죽은 튜플, autovacuum이 한 번도 처리하지 않은 테이블, 체크포인트 | PostgreSQL: `pg_monitor` |
 
 Azure SQL Database에서는 이 표에서 `VIEW SERVER STATE`라고 한 곳을 모두 `VIEW DATABASE STATE`로 읽으세요. Basic, S0, S1과 탄력적 풀에서는 `##MS_ServerStateReader##`입니다. [Azure SQL Database](#azure-sql-database)를 참조하세요.
 
@@ -264,7 +264,7 @@ Azure SQL Database에서는 이 표에서 `VIEW SERVER STATE`라고 한 곳을 �
 - **SQL Server 또는 Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`를 `master`에서 실행합니다(모니터에는 `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`로 표시됩니다).
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`를 모니터링하는 데이터베이스에서 실행합니다. Basic, S0, S1과 탄력적 풀에서는 대신 `##MS_ServerStateReader##` 멤버 자격이 필요합니다. [Azure SQL Database](#azure-sql-database)를 참조하세요.
 
-그동안에도 데이터베이스 크기는 계속 수집됩니다. Storage 그룹에서 어떤 로그인이든 읽을 수 있는 메트릭은 이것 하나뿐이기 때문입니다.
+그동안에도 데이터베이스 크기는 계속 수집됩니다. **스토리지** 그룹에서 어떤 로그인이든 읽을 수 있는 메트릭은 이것 하나뿐이기 때문입니다.
 
 ## 수집되는 메트릭
 
@@ -296,22 +296,22 @@ Azure SQL Database에서는 이 표에서 `VIEW SERVER STATE`라고 한 곳을 �
 | **쿼리** | `oneuptime.monitor.database.queries.total` | 처리량 | MySQL, SQL Server |
 | **느린 쿼리** | `oneuptime.monitor.database.queries.slow.total` | 처리량 | MySQL |
 | **롤백 비율** (%) | `oneuptime.monitor.database.rollback.percent` | 처리량 | PostgreSQL |
-| **가장 오래 실행 중인 쿼리** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **가장 오래 열린 트랜잭션** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **열린 트랜잭션** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **가장 오래 실행 중인 쿼리** (s) | `oneuptime.monitor.database.query.longest.seconds` | 활동 | PostgreSQL, MySQL, SQL Server |
+| **가장 오래 열린 트랜잭션** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | 활동 | PostgreSQL, MySQL, SQL Server |
+| **열린 트랜잭션** | `oneuptime.monitor.database.transaction.open.count` | 활동 | MySQL |
 
-### 잠금과 차단
+### 잠금 및 차단
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **차단된 세션** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **잠금 대기** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **교착 상태** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **테이블 잠금 대기** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **차단된 세션** | `oneuptime.monitor.database.sessions.blocked` | 잠금 및 차단 | PostgreSQL, MySQL, SQL Server |
+| **잠금 대기** | `oneuptime.monitor.database.locks.waiting` | 잠금 및 차단 | PostgreSQL, MySQL, SQL Server |
+| **교착 상태** | `oneuptime.monitor.database.deadlocks.total` | 잠금 및 차단 | PostgreSQL, SQL Server |
+| **테이블 잠금 대기** | `oneuptime.monitor.database.table.locks.waited.total` | 잠금 및 차단 | MySQL |
 
 기본 MySQL에는 어떤 종류의 교착 상태 카운터도 없기 때문에 **교착 상태**는 PostgreSQL과 SQL Server에만 있습니다.
 
-### 캐시와 I/O
+### 캐시 및 I/O
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
@@ -325,25 +325,25 @@ Azure SQL Database에서는 이 표에서 `VIEW SERVER STATE`라고 한 곳을 �
 
 PostgreSQL은 `track_io_timing`이 켜져 있을 때만 I/O 읽기 시간과 쓰기 시간을 측정합니다. 기본값은 꺼짐이며, 이때 PostgreSQL은 둘 다 `0`으로 보고합니다. 그래서 PostgreSQL에서 이 두 시리즈가 평평한 0이면 대개 "빠르다"가 아니라 "측정하지 않았다"는 뜻입니다. 이는 권한 문제가 아니라 서버 설정입니다.
 
-### 저장 공간
+### 스토리지
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **데이터베이스 크기** (바이트) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **쓴 임시 바이트** (바이트) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **디스크의 임시 테이블** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **사용 중인 로그 공간** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB 여유 공간** (바이트) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **데이터베이스 크기** (바이트) | `oneuptime.monitor.database.size.bytes` | 스토리지 | PostgreSQL, MySQL, SQL Server |
+| **쓴 임시 바이트** (바이트) | `oneuptime.monitor.database.temp.bytes.total` | 스토리지 | PostgreSQL |
+| **디스크의 임시 테이블** | `oneuptime.monitor.database.temp.disk.tables.total` | 스토리지 | MySQL |
+| **사용 중인 로그 공간** (%) | `oneuptime.monitor.database.log.space.used.percent` | 스토리지 | SQL Server |
+| **TempDB 여유 공간** (바이트) | `oneuptime.monitor.database.tempdb.free.bytes` | 스토리지 | SQL Server |
 
 ### 복제
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **연결된 복제본** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **복제 지연** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **복제 지연(바이트)** (바이트) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **복구 중** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **비활성 복제 슬롯** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **연결된 복제본** | `oneuptime.monitor.database.replica.count` | 복제 | PostgreSQL, SQL Server |
+| **복제 지연** (s) | `oneuptime.monitor.database.replication.lag.seconds` | 복제 | PostgreSQL, MySQL |
+| **복제 지연(바이트)** (바이트) | `oneuptime.monitor.database.replication.lag.bytes` | 복제 | PostgreSQL, SQL Server |
+| **복구 중** | `oneuptime.monitor.database.is.in.recovery` | 복제 | PostgreSQL |
+| **비활성 복제 슬롯** | `oneuptime.monitor.database.replication.slots.inactive` | 복제 | PostgreSQL |
 
 복제 메트릭은 복제 링크 중 모니터가 연결된 쪽에서 보고됩니다. 연결된 복제본과 전송 대기열을 보려면 모니터를 기본 서버로 향하게 하고, 각 대기 서버가 실제로 얼마나 뒤처졌는지 보려면 대기 서버마다 모니터를 하나씩 향하게 하세요.
 
@@ -353,11 +353,11 @@ PostgreSQL은 `track_io_timing`이 켜져 있을 때만 I/O 읽기 시간과 쓰
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **사용된 트랜잭션 ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **죽은 튜플** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **autovacuum이 한 번도 실행되지 않은 테이블** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **요청된 체크포인트** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **예약된 체크포인트** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **사용된 트랜잭션 ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | 유지 관리 | PostgreSQL |
+| **죽은 튜플** | `oneuptime.monitor.database.dead.tuples` | 유지 관리 | PostgreSQL |
+| **autovacuum이 한 번도 실행되지 않은 테이블** | `oneuptime.monitor.database.tables.never.autovacuumed` | 유지 관리 | PostgreSQL |
+| **요청된 체크포인트** | `oneuptime.monitor.database.checkpoints.requested.total` | 유지 관리 | PostgreSQL |
+| **예약된 체크포인트** | `oneuptime.monitor.database.checkpoints.timed.total` | 유지 관리 | PostgreSQL |
 
 > [!IMPORTANT]
 > **사용된 트랜잭션 ID**는 만드는 모든 PostgreSQL 모니터에 기준을 둘 가치가 있습니다. 이 값이 100%에 이르면 PostgreSQL은 모든 쓰기를 거부하고, 복구하려면 데이터베이스를 내린 채 단일 사용자 모드에서 vacuum을 실행해야 하는데, 이를 지켜보는 사람은 거의 없습니다. 절벽에 닿기 훨씬 전에 알림을 받으세요. 80%면 대부분의 워크로드에서 며칠의 여유가 있습니다.
@@ -371,7 +371,7 @@ PostgreSQL은 `track_io_timing`이 켜져 있을 때만 I/O 읽기 시간과 쓰
 | 필터 유형 | 확인하는 것 |
 |---|---|
 | **데이터베이스 온라인 여부** | 데이터베이스에 접근할 수 있었고 프로브 쿼리가 성공했는지 여부. 모니터를 만들 때 함께 생기는 오프라인 기준이며, 접근 가능성을 반영하는 유일한 확인입니다. |
-| **데이터베이스 메트릭** | 메트릭을 골라 비교합니다: 보다 큼, 보다 작음, 이상, 이하, 같음, 같지 않음. 메트릭 선택기는 선택한 엔진이 만들 수 있는 메트릭만 보여 주므로, 영원히 충족되지 않는 기준을 만들 수는 없습니다(예외가 하나 있는데, Microsoft SQL Server용으로 제공되는 Replication 메트릭은 Azure SQL Database에서 수집되지 않습니다). 어떤 확인에서 메트릭이 수집되지 않았다면(그룹이 실패했거나 엔진이 그 메트릭을 보고하지 않는 경우) 필터는 일치하지 않으며, "false"로도 일치하지 않고 건너뜁니다. 권한 문제로 누군가가 호출되는 일은 없습니다. |
+| **데이터베이스 메트릭** | 메트릭을 골라 비교합니다: 보다 큼, 보다 작음, 이상, 이하, 같음, 같지 않음. 메트릭 선택기는 선택한 엔진이 만들 수 있는 메트릭만 보여 주므로, 영원히 충족되지 않는 기준을 만들 수는 없습니다(예외가 하나 있는데, Microsoft SQL Server용으로 제공되는 **복제** 메트릭은 Azure SQL Database에서 수집되지 않습니다). 어떤 확인에서 메트릭이 수집되지 않았다면(그룹이 실패했거나 엔진이 그 메트릭을 보고하지 않는 경우) 필터는 일치하지 않으며, "false"로도 일치하지 않고 건너뜁니다. 권한 문제로 누군가가 호출되는 일은 없습니다. |
 | **데이터베이스 수집 오류** | 그 확인의 수집 문제 요약으로, 사용할 수 없는 그룹마다 "그룹: 메시지"가 하나씩 들어갑니다. 비어 있지 않을 때 알림을 받으면 가시성 손실을 알아챌 수 있고, 특정 그룹을 지켜보려면 포함을 사용하세요. |
 | **JavaScript 표현식** | 완전한 제어. [JavaScript 표현식](/docs/monitor/javascript-expression)을 참조하세요. |
 
@@ -433,11 +433,11 @@ Database Health 모니터에서 표현식은 다음 변수에 접근할 수 있�
 오프라인은 프로브가 연결하지 못했거나 프로브 쿼리가 실패했다는 뜻입니다. 원인은 프로브에서 호스트나 포트에 접근할 수 없거나, 로그인이 거부되었거나, TLS가 실패했거나, 연결 시간이 초과된 경우입니다. 오류는 모니터 요약에 표시됩니다. 프로브가 데이터베이스에 접근할 수 있는지 확인하고(OneUptime이 호스팅하는 프로브에는 공개 주소가 필요하며, 그렇지 않으면 [사용자 지정 프로브](/docs/probe/custom-probe)를 사용하세요), 사용자 이름과 비밀번호 또는 그 모니터 시크릿을 확인하고, 자체 서명 인증서라면 **Verify server certificate**를 끄세요. 그런 다음 **모니터 테스트**를 클릭해 다시 확인합니다.
 :::
 
-:::details PostgreSQL에서 Connections, Activity, Locks가 없음
+:::details PostgreSQL에서 **연결**, **활동**, **잠금 및 차단**이 없음
 로그인이 `pg_monitor`나 `pg_read_all_stats`의 멤버가 아니고 슈퍼유저도 아니므로, 프로브가 틀린 숫자를 기록하는 대신 그 그룹들을 건너뜁니다. [PostgreSQL](#postgresql)에서 설명한 대로 `GRANT pg_monitor TO oneuptime_health;`를 실행하세요.
 :::
 
-:::details MySQL에서 Connections, Throughput, Locks가 없음
+:::details MySQL에서 **연결**, **처리량**, **잠금 및 차단**이 없음
 로그인에 `performance_schema`에 대한 `SELECT`가 없거나, 서버에서 `performance_schema`가 꺼져 있습니다. 모니터 요약에 MySQL의 메시지가 표시됩니다. 권한이 없다면 [MySQL](#mysql)의 문을 실행하세요. `performance_schema`가 꺼져 있다면 서버 구성에서 `performance_schema = ON`으로 설정하고 재시작해야 합니다.
 :::
 

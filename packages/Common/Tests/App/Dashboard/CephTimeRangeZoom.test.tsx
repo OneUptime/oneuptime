@@ -298,6 +298,14 @@ import { TimeRangeZoomProvider } from "../../../UI/Components/Charts/TimeRangeZo
 import { TimeRangeZoom } from "../../../UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/resource-ai-access/status"]);
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 

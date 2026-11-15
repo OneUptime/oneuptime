@@ -282,6 +282,14 @@ import Validation from "../../../UI/Components/Forms/Validation";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Dictionary from "../../../Types/Dictionary";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/network-device-discovery-import/active"]);
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",

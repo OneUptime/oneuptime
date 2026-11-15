@@ -38,6 +38,8 @@ export function AiAgentActionsMenu(props: {
             icon={action.icon}
             isDisabled={action.isDisabled}
             tooltip={action.disabledReason}
+            // Worded by its permission check (AiAgentActions): drawn as given.
+            isTooltipTranslated={true}
             dataTestId={action.dataTestId}
             onClick={action.onClick}
           />

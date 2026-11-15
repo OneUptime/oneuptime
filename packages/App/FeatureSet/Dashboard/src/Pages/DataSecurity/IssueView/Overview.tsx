@@ -432,6 +432,7 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           icon={ISSUE_MOVE_ICONS[IssueMove.NotAnIssue]}
           isDisabled={isLocked || view.isWorking}
           tooltip={isLocked ? updateGate.disabledReason : undefined}
+          isTooltipTranslated={true}
           onClick={() => {
             setConfirmError("");
             setConfirmMove(IssueMove.NotAnIssue);
@@ -447,6 +448,7 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         icon={ASSIGN_ISSUE_ICON}
         isDisabled={isLocked || view.isWorking}
         tooltip={isLocked ? updateGate.disabledReason : undefined}
+        isTooltipTranslated={true}
         onClick={() => {
           setDialog("assign");
         }}
