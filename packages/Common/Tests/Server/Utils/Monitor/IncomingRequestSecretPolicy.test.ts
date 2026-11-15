@@ -68,7 +68,9 @@ let requireSecret: boolean;
 let storedSecrets: Array<{ id: string; secretValue: string }>;
 
 let projectFindOneById: jest.SpiedFunction<typeof ProjectService.findOneById>;
-let secretFindBy: jest.SpiedFunction<typeof IncomingRequestSecretService.findBy>;
+let secretFindBy: jest.SpiedFunction<
+  typeof IncomingRequestSecretService.findBy
+>;
 let secretUpdateOneById: jest.SpiedFunction<
   typeof IncomingRequestSecretService.updateOneById
 >;
@@ -224,7 +226,10 @@ describe("decide", () => {
     const second: IncomingRequestSecretDecision =
       IncomingRequestSecretPolicy.decide({
         policy: REQUIRED,
-        presentedSecretHashes: [hash("wrong-but-sent-first"), hash(OTHER_SECRET)],
+        presentedSecretHashes: [
+          hash("wrong-but-sent-first"),
+          hash(OTHER_SECRET),
+        ],
       });
 
     expect(second).toEqual({
@@ -402,8 +407,9 @@ describe("recordUse", () => {
 
     expect(secretUpdateOneById).toHaveBeenCalledTimes(1);
 
-    const call: Parameters<typeof IncomingRequestSecretService.updateOneById>[0] =
-      secretUpdateOneById.mock.calls[0]![0];
+    const call: Parameters<
+      typeof IncomingRequestSecretService.updateOneById
+    >[0] = secretUpdateOneById.mock.calls[0]![0];
 
     expect(call.id.toString()).toBe(SECRET_ID);
     expect(call.data.lastUsedAt).toBeInstanceOf(Date);

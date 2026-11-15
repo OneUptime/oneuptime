@@ -138,9 +138,12 @@ describe("IncomingRequestSecretRequest.takePresentedSecrets", () => {
   });
 
   test("hashes at most MAX_PRESENTED_SECRETS, however many commas a header has", () => {
-    const many: string = Array.from({ length: 1000 }, (_v: unknown, i: number) => {
-      return `secret-number-${i}`;
-    }).join(",");
+    const many: string = Array.from(
+      { length: 1000 },
+      (_v: unknown, i: number) => {
+        return `secret-number-${i}`;
+      },
+    ).join(",");
 
     const presented: PresentedIncomingRequestSecrets =
       IncomingRequestSecretRequest.takePresentedSecrets({
@@ -176,9 +179,9 @@ describe("IncomingRequestSecretRequest.takePresentedSecrets", () => {
   });
 
   test("answers an empty request when there are no headers", () => {
-    expect(IncomingRequestSecretRequest.takePresentedSecrets(undefined)).toEqual(
-      { requestHeaders: {}, secretHashes: [] },
-    );
+    expect(
+      IncomingRequestSecretRequest.takePresentedSecrets(undefined),
+    ).toEqual({ requestHeaders: {}, secretHashes: [] });
   });
 });
 

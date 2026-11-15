@@ -125,11 +125,11 @@ beforeEach(() => {
       return isTracked;
     });
 
-  findOneBy = jest.spyOn(MonitorService, "findOneBy").mockImplementation(
-    async () => {
+  findOneBy = jest
+    .spyOn(MonitorService, "findOneBy")
+    .mockImplementation(async () => {
       return lookedUpMonitor;
-    },
-  );
+    });
 
   getPolicy = jest
     .spyOn(IncomingRequestSecretPolicy, "getPolicy")
@@ -220,8 +220,11 @@ describe("decideAtEdge", () => {
     expect(findOneBy).toHaveBeenCalledTimes(1);
     expect(findOneBy.mock.calls[0]![0].props).toEqual({ isRoot: true });
     expect(
-      (findOneBy.mock.calls[0]![0].query as { incomingRequestSecretKey: ObjectID })
-        .incomingRequestSecretKey.toString(),
+      (
+        findOneBy.mock.calls[0]![0].query as {
+          incomingRequestSecretKey: ObjectID;
+        }
+      ).incomingRequestSecretKey.toString(),
     ).toBe(SECRET_KEY);
 
     expect(setMonitor).toHaveBeenCalledTimes(1);

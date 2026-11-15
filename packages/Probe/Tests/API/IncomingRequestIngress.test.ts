@@ -24,6 +24,7 @@ import ingressRouter, {
   createIngressApp,
   getForwardUrl,
   INGRESS_BODY_LIMIT,
+  isRefusalNotWorthRetrying,
 } from "../../API/IncomingRequestIngress";
 import http from "http";
 import { AddressInfo } from "net";
@@ -545,6 +546,48 @@ describe("when the forward fails", () => {
     expect(spy.mock.calls.length).toBeGreaterThan(1);
   });
 
+  /*
+   * A 4xx says the request itself is wrong - most often, now, that its
+   * project requires an incoming request secret and the device sent none
+   * (issue #7526). The same request is refused the same way every time, so
+   * retrying it only keeps the probe busy through every backoff.
+   */
+  test.each([400, 401, 403, 404, 413, 422])(
+    "does not retry a request OneUptime refused with %i",
+    async (status: number) => {
+      const spy: ApiFetchSpy = jest
+        .spyOn(API, "fetch")
+        .mockResolvedValue(
+          new HTTPErrorResponse(
+            status,
+            { message: "This project requires a secret." },
+            {},
+          ) as never,
+        ) as unknown as ApiFetchSpy;
+
+      await callIngress();
+      await flush();
+
+      expect(spy.mock.calls.length).toBe(1);
+    },
+  );
+
+  test.each([408, 429, 500, 502, 503])(
+    "still retries %i, which is about the moment, not the request",
+    async (status: number) => {
+      const spy: ApiFetchSpy = jest
+        .spyOn(API, "fetch")
+        .mockResolvedValue(
+          new HTTPErrorResponse(status, { message: "busy" }, {}) as never,
+        ) as unknown as ApiFetchSpy;
+
+      await callIngress();
+      await flush();
+
+      expect(spy.mock.calls.length).toBe(3);
+    },
+  );
+
   test("stops retrying as soon as one attempt succeeds", async () => {
     let attempt: number = 0;
 
@@ -815,4 +858,18 @@ describe("the listener, over HTTP", () => {
       );
     },
   );
+});
+
+describe("isRefusalNotWorthRetrying", () => {
+  test("is true for a 4xx that would be refused again", () => {
+    for (const status of [400, 401, 403, 404, 405, 413, 415, 422]) {
+      expect(isRefusalNotWorthRetrying(status)).toBe(true);
+    }
+  });
+
+  test("is false for a timeout, rate limiting, a 5xx or a success", () => {
+    for (const status of [200, 204, 302, 408, 429, 500, 502, 503, 504]) {
+      expect(isRefusalNotWorthRetrying(status)).toBe(false);
+    }
+  });
 });

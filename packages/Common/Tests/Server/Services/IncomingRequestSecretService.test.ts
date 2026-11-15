@@ -83,7 +83,9 @@ const hooks: {
   onDeleteSuccess: OnDeleteSuccess;
 };
 
-const createBy: (data: Partial<IncomingRequestSecret>) => CreateBy<IncomingRequestSecret> = (
+const createBy: (
+  data: Partial<IncomingRequestSecret>,
+) => CreateBy<IncomingRequestSecret> = (
   data: Partial<IncomingRequestSecret>,
 ): CreateBy<IncomingRequestSecret> => {
   const secret: IncomingRequestSecret = new IncomingRequestSecret();
@@ -144,7 +146,8 @@ const row: (projectId: ObjectID, id?: ObjectID) => IncomingRequestSecret = (
 
 describe("generateSecretValue", () => {
   test("is 32 random bytes as 64 hex characters, a valid secret", () => {
-    const value: string = IncomingRequestSecretServiceClass.generateSecretValue();
+    const value: string =
+      IncomingRequestSecretServiceClass.generateSecretValue();
 
     expect(value).toMatch(/^[0-9a-f]{64}$/);
     expect(IncomingRequestSecretRules.getValueProblem(value)).toBeNull();
