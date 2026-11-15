@@ -32,6 +32,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * One failure, one incident, without anyone having to set it up: a monitor made from one of
@@ -78,9 +79,7 @@ function monitorOf(templateId: string, cloud: string = CLOUD): Monitor {
 }
 
 // The links written, by the monitor they were written on.
-function linksWritten(
-  update: jest.SpiedFunction<never>,
-): Map<string, Array<string>> {
+function linksWritten(update: SpyInstance<never>): Map<string, Array<string>> {
   const links: Map<string, Array<string>> = new Map();
 
   for (const call of update.mock.calls as unknown as Array<
@@ -305,20 +304,18 @@ describe("who waits for whom", () => {
 });
 
 describe("linking a new monitor", () => {
-  let update: jest.SpiedFunction<never>;
-  let find: jest.SpiedFunction<never>;
+  let update: SpyInstance<never>;
+  let find: SpyInstance<never>;
   let others: Array<Monitor>;
 
   beforeEach(() => {
     others = [];
     find = jest.spyOn(MonitorService, "findBy").mockImplementation((() => {
       return Promise.resolve(others);
-    }) as never) as unknown as jest.SpiedFunction<never>;
+    }) as never) as unknown as SpyInstance<never>;
     update = jest
       .spyOn(MonitorService, "updateOneById")
-      .mockResolvedValue(
-        undefined as never,
-      ) as unknown as jest.SpiedFunction<never>;
+      .mockResolvedValue(undefined as never) as unknown as SpyInstance<never>;
   });
 
   afterEach(() => {

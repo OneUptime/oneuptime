@@ -96,6 +96,12 @@ import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { MetricExplorerUrlParam } from "../../../Utils/Metrics/MetricExplorerUrl";
 import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",

@@ -1534,7 +1534,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/pricing": {
     title: "Pricing: Free Plan, Paid Plans From $22/User | OneUptime",
     description:
-      "OneUptime pricing: start free with no credit card, paid plans from $22 per user per month, and telemetry at $0.10 per GB ingested. Compare every plan.",
+      "OneUptime pricing: sign up free with no card, active monitors at $1 a month, paid plans from $22 per user per month, telemetry at $0.10 per GB ingested.",
     canonicalPath: "/pricing",
     twitterCard: "summary_large_image",
     pageType: "pricing",

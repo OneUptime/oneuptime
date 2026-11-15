@@ -9,7 +9,19 @@ import {
   ON_CALL_DIRECT_PAGE_NOBODY_TO_PAGE_TIMELINE_MESSAGE,
   ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE,
 } from "./OnCallDirectPage";
+import { getOnCallObserverPageSeenMessage } from "./OnCallObserverPage";
 import { ON_CALL_PAGE_SENT_STATUS_MESSAGE } from "./OnCallPageChannel";
+import {
+  getOnCallPageOverRecordDeletedReason,
+  getOnCallPageOverRecordResolvedReason,
+  getUserOnCallLogEndedMessage,
+  getUserOnCallLogRecordAcknowledgedMessage,
+  ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON,
+  ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON,
+  readOnCallPageAcknowledgedByMessage,
+} from "./OnCallPageEnding";
+import { NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE } from "./OnCallPageLine";
+import { ON_CALL_PAGE_NAMES_NO_RECORD_MESSAGE } from "./OnCallPageRecordGone";
 import {
   isOnCallPagePassedOnSkipTimelineMessage,
   isOnCallPagePassedOnStatusMessage,
@@ -34,10 +46,17 @@ import {
   USER_LOG_TIMED_OUT_STATUS_MESSAGE,
 } from "./OnCallRunStart";
 import {
+  CallOutcomeLine,
   EMAIL_SENT_STATUS_MESSAGE,
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
+  ProviderDeliveryStatus,
   PUSH_NOTIFICATION_SENT_MESSAGE,
+  readEmailSentWithoutImagesMessage,
+  readCallOutcomeMessage,
+  readProviderDeliveryStatusMessage,
   readProviderIdStatusMessage,
+  readStuckNotificationMinutes,
   readWorkspaceMessageSentMessage,
   TELEGRAM_MESSAGE_SENT_MESSAGE,
   WHATSAPP_MESSAGE_SENT_MESSAGE,
@@ -114,6 +133,29 @@ export enum OnCallLogLineCode {
   WorkspaceMessageSent = "WorkspaceMessageSent",
   SentWithMessageId = "SentWithMessageId",
   CallPlaced = "CallPlaced",
+  // A person's page that ended (#8551): it, or its page again, acknowledged.
+  PageOverPageAcknowledged = "PageOverPageAcknowledged",
+  PageOverPageAgainAcknowledged = "PageOverPageAgainAcknowledged",
+  // Its record acknowledged, resolved or deleted; or it named none.
+  PageRecordAcknowledged = "PageRecordAcknowledged",
+  PageRecordResolved = "PageRecordResolved",
+  PageRecordDeleted = "PageRecordDeleted",
+  PageNamesNoRecord = "PageNamesNoRecord",
+  // Its person left the project.
+  PageNoLongerProjectMember = "PageNoLongerProjectMember",
+  // Acknowledged by its person, or seen by an observer: who, and the record.
+  PageAcknowledgedBy = "PageAcknowledgedBy",
+  PageSeenByObserver = "PageSeenByObserver",
+  // A notification an observer marked as seen.
+  NotificationSeenAsObserver = "NotificationSeenAsObserver",
+  // A notification the stuck check settled: it may not have gone out.
+  NotificationStuck = "NotificationStuck",
+  // A provider's delivery report on an SMS or a WhatsApp message.
+  ProviderDelivery = "ProviderDelivery",
+  // An email sent without its images, with the mail service's words.
+  EmailSentWithoutImages = "EmailSentWithoutImages",
+  // A call that ended (#8576): how, how long, and its id.
+  CallEnded = "CallEnded",
 }
 
 export interface OnCallLogLine {
@@ -136,6 +178,121 @@ export interface OnCallLogLine {
   name?: string | undefined;
   // The id a provider gave a message or a call.
   id?: string | undefined;
+  // A provider's delivery report: its status and error code, as written.
+  status?: string | undefined;
+  errorCode?: string | undefined;
+  // A call that ended: how (CallOutcome), and how long an answered one lasted.
+  callOutcome?: CallOutcomeLine | undefined;
+  seconds?: number | undefined;
+}
+
+// The records a page names, as a line names each in lower case.
+const RECORD_KIND_OF_LABEL: Readonly<
+  Record<string, OnCallPolicyRunRecordKind>
+> = {
+  Incident: OnCallPolicyRunRecordKind.Incident,
+  Alert: OnCallPolicyRunRecordKind.Alert,
+  "Incident Episode": OnCallPolicyRunRecordKind.IncidentEpisode,
+  "Alert Episode": OnCallPolicyRunRecordKind.AlertEpisode,
+};
+
+/*
+ * How a person's page that is over says why (OnCallPageEnding): its page
+ * or page again acknowledged, its record acknowledged, resolved or deleted,
+ * or no record named.
+ */
+function readPageEnding(message: string): OnCallLogLine | null {
+  if (
+    message ===
+    getUserOnCallLogEndedMessage(ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON)
+  ) {
+    return { code: OnCallLogLineCode.PageOverPageAcknowledged };
+  }
+
+  if (
+    message ===
+    getUserOnCallLogEndedMessage(
+      ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON,
+    )
+  ) {
+    return { code: OnCallLogLineCode.PageOverPageAgainAcknowledged };
+  }
+
+  if (message === ON_CALL_PAGE_NAMES_NO_RECORD_MESSAGE) {
+    return { code: OnCallLogLineCode.PageNamesNoRecord };
+  }
+
+  for (const recordKind of ON_CALL_POLICY_RUN_RECORD_KINDS) {
+    if (message === getUserOnCallLogRecordAcknowledgedMessage(recordKind)) {
+      return {
+        code: OnCallLogLineCode.PageRecordAcknowledged,
+        recordKind: recordKind,
+      };
+    }
+
+    if (
+      message ===
+      getUserOnCallLogEndedMessage(
+        getOnCallPageOverRecordResolvedReason(recordKind),
+      )
+    ) {
+      return {
+        code: OnCallLogLineCode.PageRecordResolved,
+        recordKind: recordKind,
+      };
+    }
+
+    if (
+      message ===
+      getUserOnCallLogEndedMessage(
+        getOnCallPageOverRecordDeletedReason(recordKind),
+      )
+    ) {
+      return {
+        code: OnCallLogLineCode.PageRecordDeleted,
+        recordKind: recordKind,
+      };
+    }
+  }
+
+  return null;
+}
+
+/*
+ * An observer's page they said they have seen
+ * (getOnCallObserverPageSeenMessage): who, as written, and the record.
+ */
+const SEEN_BY_OBSERVER: RegExp = new RegExp(
+  `^Seen by (.+), paged as an observer\\. The (${ON_CALL_POLICY_RUN_RECORD_KINDS.join("|")}) is not acknowledged by this\\.$`,
+);
+
+function readSeenByObserver(message: string): OnCallLogLine | null {
+  const parts: RegExpMatchArray | null = message.match(SEEN_BY_OBSERVER);
+
+  if (!parts) {
+    return null;
+  }
+
+  const who: string = parts[1]!;
+  const recordKind: OnCallPolicyRunRecordKind =
+    parts[2] as OnCallPolicyRunRecordKind;
+
+  // Its builder writes the name and the email as given: read back so.
+  if (
+    getOnCallObserverPageSeenMessage({
+      kind: recordKind,
+      userName: who,
+      userEmail: "",
+    }) !== message
+  ) {
+    return null;
+  }
+
+  return {
+    code: OnCallLogLineCode.PageSeenByObserver,
+    recordKind: recordKind,
+    name: who,
+  };
 }
 
 /*
@@ -349,6 +506,14 @@ const WHOLE_LINES: ReadonlyArray<[string, OnCallLogLineCode]> = [
   [PUSH_NOTIFICATION_SENT_MESSAGE, OnCallLogLineCode.PushSent],
   [TELEGRAM_MESSAGE_SENT_MESSAGE, OnCallLogLineCode.TelegramSent],
   [WHATSAPP_MESSAGE_SENT_MESSAGE, OnCallLogLineCode.WhatsAppSent],
+  [
+    NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+    OnCallLogLineCode.PageNoLongerProjectMember,
+  ],
+  [
+    ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
+    OnCallLogLineCode.NotificationSeenAsObserver,
+  ],
 ];
 
 /*
@@ -424,6 +589,76 @@ export function readOnCallLogLine(
 
   if (workspace) {
     return { code: OnCallLogLineCode.WorkspaceMessageSent, name: workspace };
+  }
+
+  const pageEnding: OnCallLogLine | null = readPageEnding(message);
+
+  if (pageEnding) {
+    return pageEnding;
+  }
+
+  const acknowledgedBy: { recordLabel: string; who: string } | null =
+    readOnCallPageAcknowledgedByMessage(message);
+  const acknowledgedKind: OnCallPolicyRunRecordKind | undefined = acknowledgedBy
+    ? RECORD_KIND_OF_LABEL[acknowledgedBy.recordLabel]
+    : undefined;
+
+  if (acknowledgedBy && acknowledgedKind) {
+    return {
+      code: OnCallLogLineCode.PageAcknowledgedBy,
+      recordKind: acknowledgedKind,
+      name: acknowledgedBy.who,
+    };
+  }
+
+  const seenByObserver: OnCallLogLine | null = readSeenByObserver(message);
+
+  if (seenByObserver) {
+    return seenByObserver;
+  }
+
+  const stuckMinutes: number | null = readStuckNotificationMinutes(message);
+
+  if (stuckMinutes !== null) {
+    return { code: OnCallLogLineCode.NotificationStuck, minutes: stuckMinutes };
+  }
+
+  const delivery: ProviderDeliveryStatus | null =
+    readProviderDeliveryStatusMessage(message);
+
+  if (delivery) {
+    return {
+      code: OnCallLogLineCode.ProviderDelivery,
+      status: delivery.status,
+      ...(delivery.messageId ? { id: delivery.messageId } : {}),
+      ...(delivery.errorCode ? { errorCode: delivery.errorCode } : {}),
+      ...(delivery.providerError ? { words: delivery.providerError } : {}),
+    };
+  }
+
+  const withoutImages: string | null =
+    readEmailSentWithoutImagesMessage(message);
+
+  if (withoutImages) {
+    return {
+      code: OnCallLogLineCode.EmailSentWithoutImages,
+      words: withoutImages,
+    };
+  }
+
+  const call: {
+    outcome: CallOutcomeLine;
+    seconds?: number | undefined;
+    callId?: string | undefined;
+  } | null = readCallOutcomeMessage(message);
+
+  if (call) {
+    return {
+      code: OnCallLogLineCode.CallEnded,
+      callOutcome: call.outcome,
+      ...(call.seconds !== undefined ? { seconds: call.seconds } : {}),
+      ...(call.callId ? { id: call.callId } : {}),
+    };
   }
 
   const providerId: { id: string; isCall: boolean } | null =

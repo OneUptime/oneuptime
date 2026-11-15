@@ -380,9 +380,16 @@ describe.each(LANGUAGES)("a row's age in %s", (language: string) => {
         ),
       );
 
-      // Read as textOf reads it: a no-break space is a space there.
+      /*
+       * Read as textOf reads it: a no-break space is a space there. The
+       * count in the reader's digits, "۵ ثانیه پیش" in Persian (#8455).
+       */
       expect(textOf(ageCell(result))).toBe(
-        sentence(language, phrase, { count }).replace(/\s+/g, " ").trim(),
+        sentence(language, phrase, {
+          count: translatorFor(language).formatNumber(count),
+        })
+          .replace(/\s+/g, " ")
+          .trim(),
       );
     },
   );

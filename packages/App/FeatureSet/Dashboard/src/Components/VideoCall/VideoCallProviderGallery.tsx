@@ -59,6 +59,11 @@ export const VIDEO_CALL_TILE_FOOTER_CLASS_NAME: string =
 export interface ComponentProps {
   connectionCounts: Partial<Record<VideoCallProvider, number>>;
   canConnect: boolean;
+  /*
+   * Why connecting is refused, as the permission check (PermissionGate)
+   * words it: in the reader's language already, so its tooltip draws it as
+   * given (#8423).
+   */
   connectDisabledReason?: string | undefined;
   onConnect: (provider: VideoCallProvider) => void;
 }
@@ -150,7 +155,9 @@ const ProviderTile: FunctionComponent<{
         {props.canConnect || !props.connectDisabledReason ? (
           button
         ) : (
-          <Tooltip text={props.connectDisabledReason}>{button}</Tooltip>
+          <Tooltip text={props.connectDisabledReason} isTextTranslated={true}>
+            {button}
+          </Tooltip>
         )}
       </div>
     </li>

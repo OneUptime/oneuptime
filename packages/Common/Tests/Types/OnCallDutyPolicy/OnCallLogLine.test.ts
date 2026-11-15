@@ -48,13 +48,28 @@ import {
   USER_LOG_TIMED_OUT_STATUS_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallRunStart";
 import {
+  CALL_ANSWERED_MESSAGE,
+  CALL_BUSY_MESSAGE,
+  CALL_NOT_CONNECTED_MESSAGE,
+  CALL_RANG_OUT_MESSAGE,
+  CallOutcomeLine,
   EMAIL_SENT_STATUS_MESSAGE,
+  getCallAnsweredAndLastedMessage,
   getCallIdStatusMessage,
+  getCallOutcomeMessage,
   getMessageIdStatusMessage,
+  getProviderDeliveryStatusMessage,
+  getStuckNotificationStatusMessage,
   getWorkspaceMessageSentMessage,
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
+  ProviderDeliveryStatus,
   PUSH_NOTIFICATION_SENT_MESSAGE,
+  readCallOutcomeMessage,
+  readEmailSentWithoutImagesMessage,
+  readProviderDeliveryStatusMessage,
   readProviderIdStatusMessage,
+  readStuckNotificationMinutes,
   readWorkspaceMessageSentMessage,
   TELEGRAM_MESSAGE_SENT_MESSAGE,
   WHATSAPP_MESSAGE_SENT_MESSAGE,
@@ -65,6 +80,19 @@ import {
   ON_CALL_TEST_PAGE_NOBODY_PAGED_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { readOnCallTestPageStepLine } from "../../../Types/OnCallDutyPolicy/OnCallTestPageLine";
+import { getOnCallObserverPageSeenMessage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import {
+  getOnCallPageAcknowledgedByMessage,
+  getOnCallPageOverRecordDeletedReason,
+  getOnCallPageOverRecordResolvedReason,
+  getUserOnCallLogEndedMessage,
+  getUserOnCallLogRecordAcknowledgedMessage,
+  ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON,
+  ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageEnding";
+import { NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallPageLine";
+import { getOnCallPageRecordDeletedMessage } from "../../../Types/OnCallDutyPolicy/OnCallPageRecordGone";
+import { getSentWithoutImagesStatusMessage } from "../../../../App/FeatureSet/Notification/Utils/EmailStatusMessage";
 
 /*
  * THE REST OF AN ON-CALL LOG'S OWN LINES, READ BACK INTO CODES (#8434),
@@ -474,5 +502,361 @@ describe("any other line is none, to be drawn as written", () => {
         statusMessage: ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
       }),
     ).toBeNull();
+  });
+});
+
+/*
+ * THE LAST OF A LOG'S OWN LINES (#8551): a person's page that ended, was
+ * acknowledged or seen, a notification an observer saw or the stuck check
+ * settled, a provider's delivery report, an email sent without its images.
+ */
+describe("a person's page that ended, or was answered (#8551)", () => {
+  test("the person's-log worker's words are as they always were", () => {
+    expect(getUserOnCallLogRecordAcknowledgedMessage("incident")).toBe(
+      "Execution completed because incident is acknowledged.",
+    );
+    expect(getUserOnCallLogRecordAcknowledgedMessage("alert episode")).toBe(
+      "Execution completed because alert episode is acknowledged.",
+    );
+    expect(
+      getUserOnCallLogEndedMessage(ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON),
+    ).toBe("Execution completed because this page is acknowledged.");
+    expect(
+      getUserOnCallLogEndedMessage(
+        ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON,
+      ),
+    ).toBe("Execution completed because this page again is acknowledged.");
+    // A deleted record reads the same from both builders.
+    for (const kind of ON_CALL_POLICY_RUN_RECORD_KINDS) {
+      expect(
+        getUserOnCallLogEndedMessage(
+          getOnCallPageOverRecordDeletedReason(kind),
+        ),
+      ).toBe(getOnCallPageRecordDeletedMessage(kind));
+    }
+    expect(
+      getOnCallPageAcknowledgedByMessage({
+        recordLabel: "Incident",
+        userName: "Ana Lopez",
+        userEmail: "ana@acme.example",
+      }),
+    ).toBe("Incident acknowledged by Ana Lopez (ana@acme.example)");
+    expect(NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE).toBe(
+      "Stopped because this user is no longer a member of the project. Their remaining notification rules were not run.",
+    );
+  });
+
+  test("it, or its page again, acknowledged", () => {
+    expect(
+      readOnCallLogLine(
+        getUserOnCallLogEndedMessage(
+          ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON,
+        ),
+      ),
+    ).toEqual({ code: OnCallLogLineCode.PageOverPageAcknowledged });
+    expect(
+      readOnCallLogLine(
+        getUserOnCallLogEndedMessage(
+          ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON,
+        ),
+      ),
+    ).toEqual({ code: OnCallLogLineCode.PageOverPageAgainAcknowledged });
+  });
+
+  test.each([...ON_CALL_POLICY_RUN_RECORD_KINDS])(
+    "its %s acknowledged, resolved or deleted",
+    (kind: OnCallPolicyRunRecordKind) => {
+      expect(
+        readOnCallLogLine(getUserOnCallLogRecordAcknowledgedMessage(kind)),
+      ).toEqual({
+        code: OnCallLogLineCode.PageRecordAcknowledged,
+        recordKind: kind,
+      });
+      expect(
+        readOnCallLogLine(
+          getUserOnCallLogEndedMessage(
+            getOnCallPageOverRecordResolvedReason(kind),
+          ),
+        ),
+      ).toEqual({
+        code: OnCallLogLineCode.PageRecordResolved,
+        recordKind: kind,
+      });
+      expect(
+        readOnCallLogLine(getOnCallPageRecordDeletedMessage(kind)),
+      ).toEqual({
+        code: OnCallLogLineCode.PageRecordDeleted,
+        recordKind: kind,
+      });
+    },
+  );
+
+  test("a page that names no record, and a person who left the project", () => {
+    expect(readOnCallLogLine(getOnCallPageRecordDeletedMessage(null))).toEqual({
+      code: OnCallLogLineCode.PageNamesNoRecord,
+    });
+    expect(
+      readOnCallLogLine(NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE),
+    ).toEqual({ code: OnCallLogLineCode.PageNoLongerProjectMember });
+  });
+
+  test.each([
+    ["Incident", OnCallPolicyRunRecordKind.Incident],
+    ["Alert", OnCallPolicyRunRecordKind.Alert],
+    ["Incident Episode", OnCallPolicyRunRecordKind.IncidentEpisode],
+    ["Alert Episode", OnCallPolicyRunRecordKind.AlertEpisode],
+  ] as Array<[string, OnCallPolicyRunRecordKind]>)(
+    "acknowledged by its person, on an %s",
+    (label: string, kind: OnCallPolicyRunRecordKind) => {
+      expect(
+        readOnCallLogLine(
+          getOnCallPageAcknowledgedByMessage({
+            recordLabel: label,
+            userName: "Ana Lopez",
+            userEmail: "ana@acme.example",
+          }),
+        ),
+      ).toEqual({
+        code: OnCallLogLineCode.PageAcknowledgedBy,
+        recordKind: kind,
+        name: "Ana Lopez (ana@acme.example)",
+      });
+    },
+  );
+
+  test("seen by an observer, as the observer's builder writes it", () => {
+    for (const kind of ON_CALL_POLICY_RUN_RECORD_KINDS) {
+      for (const [userName, userEmail, who] of [
+        ["Ana Lopez", "ana@acme.example", "Ana Lopez (ana@acme.example)"],
+        ["Ana Lopez", "", "Ana Lopez"],
+        ["", "ana@acme.example", "ana@acme.example"],
+        ["", "", "somebody"],
+      ] as Array<[string, string, string]>) {
+        expect(
+          readOnCallLogLine(
+            getOnCallObserverPageSeenMessage({
+              kind: kind,
+              userName: userName,
+              userEmail: userEmail,
+            }),
+          ),
+        ).toEqual({
+          code: OnCallLogLineCode.PageSeenByObserver,
+          recordKind: kind,
+          name: who,
+        });
+      }
+    }
+  });
+
+  test("lines that only look like these are none", () => {
+    expect(
+      readOnCallLogLine("Execution completed because it rained."),
+    ).toBeNull();
+    expect(readOnCallLogLine("Incident acknowledged by ")).toBeNull();
+    expect(readOnCallLogLine("Monitor acknowledged by Ana")).toBeNull();
+    expect(
+      readOnCallLogLine(
+        "Seen by Ana, paged as an observer. The monitor is not acknowledged by this.",
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("a notification an observer saw, or the stuck check settled (#8551)", () => {
+  test("an observer's notification marked as seen", () => {
+    expect(ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE).toBe(
+      "Marked as seen, paged as an observer",
+    );
+    expect(
+      readOnCallLogLine(ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE),
+    ).toEqual({ code: OnCallLogLineCode.NotificationSeenAsObserver });
+  });
+
+  test("a stuck notification, by its minutes, in its words as always", () => {
+    // The stuck check waits 15 minutes (OnCallNotificationStatus).
+    expect(getStuckNotificationStatusMessage(15)).toBe(
+      "Sending did not finish within 15 minutes, so this notification may not have been sent.",
+    );
+    expect(readOnCallLogLine(getStuckNotificationStatusMessage(15))).toEqual({
+      code: OnCallLogLineCode.NotificationStuck,
+      minutes: 15,
+    });
+    expect(
+      readStuckNotificationMinutes(getStuckNotificationStatusMessage(1)),
+    ).toBe(1);
+    expect(
+      readStuckNotificationMinutes(
+        "Sending did not finish within fifteen minutes, so this notification may not have been sent.",
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("a provider's delivery report (#8551)", () => {
+  test("an SMS, as Twilio's callback writes it", () => {
+    for (const [report, line] of [
+      [
+        { status: "Delivered", messageId: "SM0123" },
+        "Delivery status: Delivered. Message ID: SM0123.",
+      ],
+      [
+        { status: "Undelivered", messageId: "SM0123", errorCode: "30003" },
+        "Delivery status: Undelivered. Message ID: SM0123. Provider error code: 30003.",
+      ],
+      [{ status: "Failed" }, "Delivery status: Failed."],
+    ] as Array<[ProviderDeliveryStatus, string]>) {
+      expect(getProviderDeliveryStatusMessage(report)).toBe(line);
+      expect(readOnCallLogLine(line)).toEqual({
+        code: OnCallLogLineCode.ProviderDelivery,
+        status: report.status,
+        ...(report.messageId ? { id: report.messageId } : {}),
+        ...(report.errorCode ? { errorCode: report.errorCode } : {}),
+      });
+    }
+  });
+
+  test("a WhatsApp message, with Meta's own words", () => {
+    const line: string = getProviderDeliveryStatusMessage({
+      status: "Failed",
+      messageId: "wamid.HBgL",
+      providerError: "Message undeliverable (code 131026)",
+    });
+
+    expect(line).toBe(
+      "Delivery status: Failed. Message ID: wamid.HBgL. Provider error: Message undeliverable (code 131026).",
+    );
+    expect(readOnCallLogLine(line)).toEqual({
+      code: OnCallLogLineCode.ProviderDelivery,
+      status: "Failed",
+      id: "wamid.HBgL",
+      words: "Message undeliverable (code 131026)",
+    });
+  });
+
+  test("words the builder never writes are none", () => {
+    expect(
+      readProviderDeliveryStatusMessage("Delivery status: Delivered"),
+    ).toBeNull();
+    expect(
+      readProviderDeliveryStatusMessage("Delivery status: Delivered. Thanks."),
+    ).toBeNull();
+  });
+});
+
+describe("an email sent without its images (#8551)", () => {
+  test("the mail service's words, with the note in full or in short", () => {
+    const refusal: string = "Attachment too large";
+
+    expect(
+      readOnCallLogLine(getSentWithoutImagesStatusMessage(refusal)),
+    ).toEqual({
+      code: OnCallLogLineCode.EmailSentWithoutImages,
+      words: "Attachment too large.",
+    });
+
+    // Too long to sit beside the whole note: beside its short form.
+    const longRefusal: string = "x".repeat(20000);
+    const line: OnCallLogLine | null = readOnCallLogLine(
+      getSentWithoutImagesStatusMessage(longRefusal),
+    );
+
+    expect(line?.code).toBe(OnCallLogLineCode.EmailSentWithoutImages);
+    expect(line?.words?.startsWith("xxx")).toBe(true);
+    expect(
+      readEmailSentWithoutImagesMessage("Email sent successfully."),
+    ).toBeNull();
+  });
+});
+
+/*
+ * A CALL'S OUTCOME (#8576), read back from CallOutcome's own builders:
+ * answered - for how long, when Twilio said - rang out, busy or declined,
+ * not connected, after the call's id when Twilio gave one.
+ */
+describe("a call that ended (#8576)", () => {
+  const CALL_SID: string = "CA0123456789abcdef0123456789abcdef";
+
+  test("the words are as Twilio's callback always wrote them", () => {
+    expect(CALL_ANSWERED_MESSAGE).toBe("The call was answered.");
+    expect(getCallAnsweredAndLastedMessage(1)).toBe(
+      "The call was answered and lasted 1 second.",
+    );
+    expect(getCallAnsweredAndLastedMessage(42)).toBe(
+      "The call was answered and lasted 42 seconds.",
+    );
+    expect(CALL_RANG_OUT_MESSAGE).toBe(
+      "The call was not answered: it rang out.",
+    );
+    expect(CALL_BUSY_MESSAGE).toBe(
+      "The call was not answered: the line was busy, or the call was declined.",
+    );
+    expect(CALL_NOT_CONNECTED_MESSAGE).toBe("The call could not be connected.");
+    expect(
+      getCallOutcomeMessage({
+        callId: CALL_SID,
+        sentence: CALL_RANG_OUT_MESSAGE,
+      }),
+    ).toBe(`Call ID: ${CALL_SID}. The call was not answered: it rang out.`);
+  });
+
+  test.each([
+    [CALL_ANSWERED_MESSAGE, CallOutcomeLine.Answered],
+    [CALL_RANG_OUT_MESSAGE, CallOutcomeLine.RangOut],
+    [CALL_BUSY_MESSAGE, CallOutcomeLine.Busy],
+    [CALL_NOT_CONNECTED_MESSAGE, CallOutcomeLine.NotConnected],
+  ] as Array<[string, CallOutcomeLine]>)(
+    "%s, with its id and without",
+    (sentence: string, outcome: CallOutcomeLine) => {
+      expect(
+        readOnCallLogLine(
+          getCallOutcomeMessage({ callId: CALL_SID, sentence: sentence }),
+        ),
+      ).toEqual({
+        code: OnCallLogLineCode.CallEnded,
+        callOutcome: outcome,
+        id: CALL_SID,
+      });
+      expect(
+        readOnCallLogLine(getCallOutcomeMessage({ callId: null, sentence })),
+      ).toEqual({ code: OnCallLogLineCode.CallEnded, callOutcome: outcome });
+    },
+  );
+
+  test.each([0, 1, 42, 3600])(
+    "answered, and lasted %i seconds",
+    (seconds: number) => {
+      expect(
+        readOnCallLogLine(
+          getCallOutcomeMessage({
+            callId: CALL_SID,
+            sentence: getCallAnsweredAndLastedMessage(seconds),
+          }),
+        ),
+      ).toEqual({
+        code: OnCallLogLineCode.CallEnded,
+        callOutcome: CallOutcomeLine.Answered,
+        seconds: seconds,
+        id: CALL_SID,
+      });
+    },
+  );
+
+  test("a call placed is still a call placed, not an outcome", () => {
+    expect(readOnCallLogLine(getCallIdStatusMessage(CALL_SID))).toEqual({
+      code: OnCallLogLineCode.CallPlaced,
+      id: CALL_SID,
+    });
+  });
+
+  test("words the builder never writes are none", () => {
+    expect(
+      readCallOutcomeMessage("The call was answered and lasted 1 seconds."),
+    ).toBeNull();
+    expect(
+      readCallOutcomeMessage("The call was answered and lasted 2 second."),
+    ).toBeNull();
+    expect(readCallOutcomeMessage(`Call ID: ${CALL_SID}. It rang.`)).toBeNull();
+    expect(readCallOutcomeMessage("")).toBeNull();
   });
 });

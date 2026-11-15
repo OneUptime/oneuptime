@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import Host from "../../../Models/DatabaseModels/Host";
 import OpenStackResourceAPI from "../../../Server/API/OpenStackResourceAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
@@ -119,7 +120,7 @@ afterEach(() => {
 function idsReadBy(
   service: { findBy: unknown },
   ids: Array<string>,
-): jest.SpiedFunction<() => Promise<unknown>> {
+): SpyInstance<() => Promise<unknown>> {
   return jest.spyOn(service as never, "findBy" as never).mockResolvedValue(
     ids.map((id: string) => {
       return { id: new ObjectID(id) };
@@ -289,7 +290,7 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
     });
 
     test("is looked for in the cloud being read, and said to someone who can read that cluster", async () => {
-      const read: jest.SpiedFunction<() => Promise<unknown>> = idsReadBy(
+      const read: SpyInstance<() => Promise<unknown>> = idsReadBy(
         KubernetesClusterService,
         [KUBERNETES_CLUSTER_ID.toString()],
       );
@@ -327,7 +328,7 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
       jest
         .spyOn(OpenStackAcrossProducts, "getKubernetesClusterOfMagnumCluster")
         .mockResolvedValue(null as never);
-      const read: jest.SpiedFunction<() => Promise<unknown>> = idsReadBy(
+      const read: SpyInstance<() => Promise<unknown>> = idsReadBy(
         KubernetesClusterService,
         [],
       );

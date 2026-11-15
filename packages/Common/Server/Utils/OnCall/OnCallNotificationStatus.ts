@@ -4,7 +4,11 @@ import ColumnLength from "../../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
-import { ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallSentLine";
+import {
+  getStuckNotificationStatusMessage,
+  ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
+} from "../../../Types/OnCallDutyPolicy/OnCallSentLine";
 
 /*
  * What a person's on-call timeline says of one notification of a page
@@ -67,9 +71,12 @@ export const PROVIDER_REPORT_MOVES_ON_FROM: ReadonlyArray<UserNotificationStatus
  */
 export { ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE };
 
-// What an observer's notification says once they said they have seen it (OnCallObserverPage).
-export const ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE: string =
-  "Marked as seen, paged as an observer";
+/*
+ * What an observer's notification says once they said they have seen it
+ * (OnCallObserverPage): kept with the lines a notification says
+ * (OnCallSentLine), where the on-call logs read it back (#8551).
+ */
+export { ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE };
 
 /*
  * What a press of Acknowledge is told when the acknowledgement could not be
@@ -128,7 +135,8 @@ export const STUCK_NOTIFICATION_AFTER_MINUTES: number = 15;
  * notification may well not have gone out. A send that finishes after all
  * writes its own result over it (recordSendResult).
  */
-export const STUCK_NOTIFICATION_STATUS_MESSAGE: string = `Sending did not finish within ${STUCK_NOTIFICATION_AFTER_MINUTES} minutes, so this notification may not have been sent.`;
+export const STUCK_NOTIFICATION_STATUS_MESSAGE: string =
+  getStuckNotificationStatusMessage(STUCK_NOTIFICATION_AFTER_MINUTES);
 
 /*
  * Whether a notification holds the stuck check's own verdict - and only

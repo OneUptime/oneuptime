@@ -73,6 +73,14 @@ import StatusPageDisplaySettingsCopy, {
   DISPLAY_SECTIONS,
   DisplaySectionDefinition,
 } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
+import {
+  FLUENT_BIT_RETRY_INTERVAL_SECONDS,
+  FLUENT_BIT_RETRY_LIMIT,
+  FLUENT_BIT_STORAGE_PATH,
+  FLUENT_BIT_STORAGE_TOTAL_LIMIT,
+  FLUENT_BIT_TAIL_DB,
+  FLUENTD_RETRYABLE_RESPONSE_CODES,
+} from "../../../FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets";
 import FluentAPI from "../../../FeatureSet/Telemetry/API/Fluent";
 import OTelIngestAPI from "../../../FeatureSet/Telemetry/API/OTelIngest";
 import SyslogAPI from "../../../FeatureSet/Telemetry/API/Syslog";
@@ -1191,6 +1199,211 @@ describe("the Fluent Bit page", () => {
       );
     }
   });
+
+  /*
+   * Fluent Bit's Retry_Limit is 1 by default, its tail keeps no place and
+   * its chunks live in memory (issue #8580): a 503 while OneUptime
+   * restarted lost the chunk, and a restart of Fluent Bit lost what it held
+   * and the lines written while it was down. The guide's file and these
+   * settle both the same way.
+   */
+  it("gives every output the guide's retries and disk limit", () => {
+    const outputs: Array<DocsFence> = codeBlocks(FLUENT_BIT).filter(
+      (fence: DocsFence): boolean => {
+        return OPENTELEMETRY_OUTPUT.test(fence.code);
+      },
+    );
+
+    expect(outputs.length).toBe(3);
+
+    for (const output of outputs) {
+      expect(output.code).toContain(
+        `      retry_limit: ${FLUENT_BIT_RETRY_LIMIT}\n`,
+      );
+      expect(output.code).toContain(
+        `      storage.total_limit_size: ${FLUENT_BIT_STORAGE_TOTAL_LIMIT}`,
+      );
+    }
+
+    expect(FLUENT_BIT_RETRY_LIMIT * FLUENT_BIT_RETRY_INTERVAL_SECONDS).toBe(
+      72 * 60 * 60,
+    );
+    expect(englishPage(FLUENT_BIT)).toContain(
+      "`retry_limit: 8640` sends a chunk again when OneUptime is busy (`429`) or restarting (`502`, `503`, `504`), about every 30 seconds (`scheduler.base` and `scheduler.cap`), for about 72 hours; Fluent Bit's default is to try once more and drop it.",
+    );
+    expect(englishPage(FLUENT_BIT)).toContain(
+      "`storage.total_limit_size: 512M` keeps at most 512 MB for the output; when it is full, the oldest chunks are dropped.",
+    );
+  });
+
+  it("keeps the chunks on disk and tries one again every 30 seconds, wherever a file sets the service", () => {
+    const services: Array<DocsFence> = codeBlocks(FLUENT_BIT).filter(
+      (fence: DocsFence): boolean => {
+        return fence.code.startsWith("service:\n");
+      },
+    );
+
+    // The step's output and the complete example.
+    expect(services.length).toBe(2);
+
+    for (const fence of services) {
+      expect(fence.code).toContain(
+        `  storage.path: ${FLUENT_BIT_STORAGE_PATH}\n  storage.sync: normal\n`,
+      );
+      expect(fence.code).toContain(
+        `  scheduler.base: ${FLUENT_BIT_RETRY_INTERVAL_SECONDS}\n  scheduler.cap: ${FLUENT_BIT_RETRY_INTERVAL_SECONDS}\n`,
+      );
+    }
+  });
+
+  it("keeps every input's chunks on disk, and the tail's place in each file", () => {
+    const inputs: Array<DocsFence> = codeBlocks(FLUENT_BIT).filter(
+      (fence: DocsFence): boolean => {
+        return fence.code.includes("  inputs:\n");
+      },
+    );
+
+    expect(inputs.length).toBe(2);
+
+    for (const fence of inputs) {
+      expect(fence.code).toContain("      storage.type: filesystem\n");
+    }
+
+    expect(inputs[0]!.code).toContain(`      db: ${FLUENT_BIT_TAIL_DB}\n`);
+    // The complete example's http input takes logs from this host alone: it asks for no key.
+    expect(inputs[1]!.code).toContain("      listen: 127.0.0.1\n");
+    expect(inputs[1]!.code).not.toContain("0.0.0.0");
+    expect(englishPage(FLUENT_BIT)).toContain(
+      "`listen: 127.0.0.1` takes logs from this host alone: the `http` input asks for no key",
+    );
+  });
+
+  /*
+   * The page's file is YAML, at /etc/fluent-bit/fluent-bit.yaml, but the
+   * fluent-bit package's service (5.2.0, Debian 12) starts
+   * "ExecStart=/opt/fluent-bit/bin/fluent-bit -c //etc/fluent-bit/fluent-bit.conf",
+   * the package's own example (a cpu input printed to stdout), and the
+   * package puts no fluent-bit on the PATH. "Restart the Fluent Bit
+   * service, or start it with fluent-bit -c ..." ran the example, or
+   * answered "command not found" (issue #8610). The step now points the
+   * service at the page's file with a drop-in; in a run, systemd-analyze
+   * verified the unit with it, and its ExecStart, run as root, sent the
+   * page's tail input to a stub of /otlp/v1/logs.
+   */
+  describe("the Restart Fluent Bit step", () => {
+    // The package's unit, as fluent-bit 5.2.0 installs it.
+    const PACKAGE_BINARY: string = "/opt/fluent-bit/bin/fluent-bit";
+    const PACKAGE_UNIT: string = "fluent-bit";
+    const DROP_IN_FOLDER: string = `/etc/systemd/system/${PACKAGE_UNIT}.service.d`;
+
+    // The step: from its heading to the end of the steps.
+    function step(): string {
+      const page: string = englishPage(FLUENT_BIT);
+      const start: number = page.indexOf("### Restart Fluent Bit\n");
+
+      expect(start).toBeGreaterThan(-1);
+
+      return page.slice(start, page.indexOf("\n:::\n", start));
+    }
+
+    // The file the page says Fluent Bit reads its YAML from.
+    function pageFile(): string {
+      const match: RegExpMatchArray | null = englishPage(FLUENT_BIT).match(
+        /Fluent Bit reads its YAML configuration from a file such as `([^`]+)`/,
+      );
+
+      expect(match).not.toBeNull();
+
+      return (match as RegExpMatchArray)[1] as string;
+    }
+
+    function commands(): Array<string> {
+      const fences: Array<DocsFence> = scanPage("en", FLUENT_BIT).fences.filter(
+        (fence: DocsFence): boolean => {
+          return fence.lang === "bash";
+        },
+      );
+
+      expect(fences.length).toBe(1);
+      expect(step()).toContain(fences[0]!.code);
+
+      return fences[0]!.code.split("\n");
+    }
+
+    it("points the package's service at the page's file with a drop-in, and restarts it", () => {
+      expect(pageFile()).toBe("/etc/fluent-bit/fluent-bit.yaml");
+
+      const [mkdir, dropIn, reload, enable, restart] = commands() as [
+        string,
+        string,
+        string,
+        string,
+        string,
+      ];
+
+      expect(mkdir).toBe(`sudo mkdir -p ${DROP_IN_FOLDER}`);
+
+      // The drop-in, as printf writes it: [Service], ExecStart= cleared, then the page's file.
+      const written: RegExpMatchArray | null = dropIn.match(
+        /^printf '([^']*)' \| sudo tee (\S+)$/,
+      );
+
+      expect(written).not.toBeNull();
+      expect((written as RegExpMatchArray)[1]!.split("\\n")).toEqual([
+        "[Service]",
+        "ExecStart=",
+        `ExecStart=${PACKAGE_BINARY} -c ${pageFile()}`,
+        "",
+      ]);
+
+      const dropInPath: string = (written as RegExpMatchArray)[2] as string;
+
+      expect(path.posix.dirname(dropInPath)).toBe(DROP_IN_FOLDER);
+      // systemd reads only *.conf in a drop-in folder.
+      expect(dropInPath.endsWith(".conf")).toBe(true);
+
+      // systemd reads the drop-in on daemon-reload, before the restart; enable starts it at every boot.
+      expect([reload, enable, restart]).toEqual([
+        "sudo systemctl daemon-reload",
+        `sudo systemctl enable ${PACKAGE_UNIT}`,
+        `sudo systemctl restart ${PACKAGE_UNIT}`,
+      ]);
+    });
+
+    it("says why, and how to try the file by hand with the package's binary", () => {
+      const text: string = step();
+
+      expect(text).toContain(
+        "The `fluent-bit` package's service reads `/etc/fluent-bit/fluent-bit.conf`, the package's own example, not this file.",
+      );
+      expect(text).toContain(
+        `run \`sudo ${PACKAGE_BINARY} -c ${pageFile()}\`: the package puts the binary in \`/opt/fluent-bit/bin\`, which is not on the \`PATH\`.`,
+      );
+      expect(path.posix.dirname(PACKAGE_BINARY)).toBe("/opt/fluent-bit/bin");
+      // Not the old advice: fluent-bit is not on the PATH, and the service read another file.
+      expect(englishPage(FLUENT_BIT)).not.toContain(
+        "`fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`",
+      );
+      expect(text).not.toContain("Restart the Fluent Bit service, or");
+    });
+  });
+
+  it("says which answers Fluent Bit sends again, as it did in a run", () => {
+    const answer: string = detailsAnswer(
+      FLUENT_BIT,
+      "Fluent Bit logs `cannot be retried`",
+    );
+    const retried: Array<number> = codeSpans(
+      answer.match(/OneUptime answers (.*) for again/)?.[1] || "",
+    ).map(Number);
+    const dropped: Array<number> = codeSpans(
+      answer.match(/A (.*) is dropped at once/)?.[1] || "",
+    ).map(Number);
+
+    // Fluent Bit 5.2.0's OpenTelemetry output, against a stub answering each code.
+    expect(retried).toEqual(FLUENTD_RETRYABLE_RESPONSE_CODES);
+    expect(dropped).toEqual([400, 401, 402, 413, 422, 500]);
+  });
 });
 
 interface FluentInternals {
@@ -1538,7 +1751,7 @@ describe("the Fluentd page", () => {
     );
   });
 
-  it("gives files that send each record's Fluentd time, and keep a parser's time field, as the ingest reads them", () => {
+  it("gives files that send each record's Fluentd time, and leave a parser's time field alone, as the ingest reads them", () => {
     for (const output of codeBlockTitled(FLUENTD, "fluentd.conf")) {
       expect(output.code).toContain(
         `    ${FLUENTD_EVENT_TIME_FIELD} \${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}`,
@@ -1556,7 +1769,118 @@ describe("the Fluentd page", () => {
         FLUENTD,
         "Logs show the time OneUptime received them, not their own",
       ),
-    ).toContain("add `keep_time_key true` to it");
+    ).toContain(
+      `add \`time_key ${FLUENTD_EVENT_TIME_FIELD}\` to it, so that it reads no record's time and leaves \`time\` as it is.`,
+    );
+  });
+
+  /*
+   * Fluentd's json parser read a line's "time" itself, and dropped a line
+   * whose "time" was no text and no number, with no warning (issue #8241).
+   * With time_key fluentd_time, it reads none, and the ingest times the
+   * line as the answer says.
+   */
+  it("says which JSON lines Fluentd drops for their time, and how OneUptime times them once kept", () => {
+    const answer: string = detailsAnswer(
+      FLUENTD,
+      "A JSON line whose `time` is `null`, `true`, a list or an object never arrives",
+    );
+    const arrivedAt: Date = new Date("2026-11-15T17:39:33.100Z");
+    const readAt: string = "2026-11-15T17:39:28.041016696Z";
+
+    expect(answer).toContain(
+      `Add \`time_key ${FLUENTD_EVENT_TIME_FIELD}\` to its \`<parse>\` section`,
+    );
+    expect(answer).toContain(
+      "drops a line whose `time` is neither text nor a number, without a warning.",
+    );
+    expect(answer).toContain(
+      "With the `record_transformer` filter above, OneUptime stores the log at the time Fluentd read it, `fluentd_time`; without it, at the time OneUptime receives it.",
+    );
+
+    for (const value of [null, true, [1, 2], { s: 1 }]) {
+      // "at the time Fluentd read it, `fluentd_time`"
+      expect({
+        value,
+        field: FluentRecordTimeUtil.read(
+          { time: value, message: "x", [FLUENTD_EVENT_TIME_FIELD]: readAt },
+          arrivedAt,
+        ).field,
+      }).toEqual({ value, field: FLUENTD_EVENT_TIME_FIELD });
+      // "without it, at the time OneUptime receives it"
+      expect({
+        value,
+        read: FluentRecordTimeUtil.read(
+          { time: value, message: "x" },
+          arrivedAt,
+        ),
+      }).toEqual({
+        value,
+        read: {
+          timeUnixNano: `${arrivedAt.getTime()}000000`,
+          timeDate: arrivedAt,
+          field: null,
+        },
+      });
+    }
+  });
+
+  it("gives files that keep their batches on disk through a restart, at most 512 MB of them", () => {
+    for (const output of codeBlockTitled(FLUENTD, "fluentd.conf")) {
+      expect(output.code).toContain(
+        "    @type file\n    path /var/log/fluent/buffer/oneuptime\n    total_limit_size 512m\n",
+      );
+    }
+
+    const page: string = englishPage(FLUENTD);
+
+    expect(page).toContain(
+      "`@type file` keeps the batches still to send in the folder `path` names, so a restart of Fluentd loses none of them; a buffer in memory, Fluentd's default, loses what it holds.",
+    );
+    expect(page).toContain(
+      "`total_limit_size 512m` keeps at most 512 MB there; when it is full, Fluentd takes no more records until a batch is sent.",
+    );
+    // Fluentd refuses two file buffers on one path ("already use same buffer path").
+    expect(page).toContain(
+      "each with its own `x-oneuptime-service-name` and its own buffer `path`: Fluentd does not start with two buffers on one path.",
+    );
+    expect(
+      detailsAnswer(FLUENTD, "Fluentd logs `429`, `502`, `503` or `504`"),
+    ).toContain(
+      "With `@type file` in the `<buffer>` section, Fluentd also keeps the batch when it restarts.",
+    );
+  });
+
+  it("takes forwarded records from this host alone, and says how to take them from other hosts", () => {
+    const [, complete] = codeBlockTitled(FLUENTD, "fluentd.conf");
+    const receiver: Array<DocsFence> = codeBlockTitled(
+      FLUENTD,
+      "fluentd.conf on this host",
+    );
+    const sender: Array<DocsFence> = codeBlockTitled(
+      FLUENTD,
+      "fluentd.conf on each sender",
+    );
+
+    expect(complete!.code).toContain("  @type forward\n  port 24224\n");
+    expect(complete!.code).toContain("  bind 127.0.0.1\n");
+    expect(complete!.code).not.toContain("bind 0.0.0.0");
+    expect(englishPage(FLUENTD)).toContain(
+      "`bind 127.0.0.1` takes records from this host alone, such as those of Docker's `fluentd` log driver, which sends to `localhost:24224`.",
+    );
+    expect(
+      scanPage("en", FLUENTD).headings.map((heading: DocsHeading): string => {
+        return heading.text;
+      }),
+    ).toContain("Take records from other hosts");
+
+    // This host: every address, a shared key and TLS; each sender: the same key, over TLS.
+    expect(receiver.length).toBe(1);
+    expect(sender.length).toBe(1);
+    expect(receiver[0]!.code).toContain("  bind 0.0.0.0\n  <transport tls>\n");
+    expect(receiver[0]!.code).toContain("    shared_key YOUR_SHARED_KEY\n");
+    expect(sender[0]!.code).toContain("  transport tls\n");
+    expect(sender[0]!.code).toContain("    shared_key YOUR_SHARED_KEY\n");
   });
 
   it("gives files that send a batch again when OneUptime is busy or restarting", () => {

@@ -13,16 +13,19 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import {
   OwnerNotificationDeliveryStatus,
+  OwnerNotificationFeedStatus,
   OwnerNotificationKind,
 } from "../../Types/Notification/OwnerNotificationDelivery";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * ONE OWNER NOTIFICATION, TO ONE OWNER (issue #8199).
+ * ONE OWNER NOTIFICATION, TO ONE OWNER (issues #8199, #8509, #8510).
  *
- * An owner notification job - an incident or an alert created, its state
- * changed, a note posted, an owner added, a reminder that it is still open -
- * takes the record it is about so that no later run reads it again, then
+ * An owner notification job - an incident, an alert, an episode, a monitor,
+ * a scheduled maintenance event, a status page, an SLO or a network device
+ * created, its state changed, a note posted, an owner added, a reminder that
+ * it is still open - takes the record it is about so that no later run reads
+ * it again, then
  * tells each owner. Before the take, it writes a row here for every owner it
  * is about to tell; each owner is then told by the one run that moves their
  * row from Pending to Sending, and their row says Sent once the notification
@@ -35,7 +38,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *     again, even when the run that took it stopped in the middle of their
  *     send - nobody can know whether it went out;
  *   - two workers that read the same record (a run that lost its lock) tell
- *     each owner once between them.
+ *     each owner once between them;
+ *   - the feed item naming whom the notification reached, for the kinds that
+ *     write one, is written by a later run when the run that told the owners
+ *     stopped before it wrote it (feedStatus).
  *
  * One row per notification and owner: the notification is its kind, the
  * record whose notification it is (eventId) and which time it goes out
@@ -61,7 +67,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Owner Notification Deliveries",
   icon: IconProp.Notification,
   tableDescription:
-    "Internal record of each owner an incident's or an alert's owner notification is to reach, and whether it reached them.",
+    "Internal record of each owner a record's owner notification is to reach, and whether it reached them.",
 })
 // One row per notification and owner: what makes each owner told once.
 @Index(["kind", "eventId", "occurrence", "userId"], { unique: true })
@@ -72,6 +78,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  */
 @Index(["kind", "attemptedAt"], {
   where: `"status" = '${OwnerNotificationDeliveryStatus.Pending}'`,
+})
+/*
+ * The notifications whose feed item is still to write, for the read that
+ * writes those a stopped run left (OwnerNotificationDeliveries.resume): the
+ * few in the seconds between the first owner told and the feed item, so the
+ * index holds only them.
+ */
+@Index(["kind", "attemptedAt"], {
+  where: `"feedStatus" = '${OwnerNotificationFeedStatus.Pending}'`,
 })
 export default class OwnerNotificationDelivery extends BaseModel {
   @ColumnAccessControl({
@@ -314,4 +329,24 @@ export default class OwnerNotificationDelivery extends BaseModel {
     type: ColumnType.Date,
   })
   public attemptedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(OwnerNotificationFeedStatus),
+    title: "Feed Status",
+    description:
+      "Whether the feed item naming whom the notification reached is written yet: to write, written, or not written. The same on every row of the notification; none when the notification writes no feed item.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public feedStatus?: OwnerNotificationFeedStatus = undefined;
 }

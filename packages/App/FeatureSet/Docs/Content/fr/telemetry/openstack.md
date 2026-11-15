@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+Archiver le cloud ne désactive rien de tout cela. Un cloud archivé est seulement masqué dans les listes : il est toujours collecté, et ses vérifications d'API et son contrôle du cycle de vie continuent de s'exécuter. Désactivez un contrôle pour l'arrêter.
+
 ## Agent IA
 
 Le `docker-compose.yml` de l'agent exécute aussi l'**Agent IA OpenStack**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Pendant que l'IA de OneUptime investigue un incident ou une alerte sur ce cloud, elle exécute par son intermédiaire des commandes `openstack` en lecture seule — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — et cite ce qu'elle a exécuté. Il n'y a pas de binaire `openstack` dans l'agent et pas de shell : chaque commande devient un `GET` vers le service qui y répond, avec l'identifiant propre à l'agent. L'agent s'enregistre avec le même `OPENSTACK_CLOUD_NAME` que celui que rapporte le collector, il sert donc ce cloud.

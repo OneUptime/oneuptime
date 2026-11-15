@@ -321,16 +321,12 @@ describe("KeyValueParser - attributes the log already has", () => {
   });
 
   /*
-   * Every name an object inherits but __proto__, which the parser never
-   * takes as a key (Common/Utils/Log/KeyValueParser), as a key a line
-   * carries: an attribute like any other. Free on a log without one, and,
-   * with overrideOnConflict off, never written over a log's own one.
+   * Every name an object inherits, as a key a line carries: an attribute
+   * like any other - "__proto__" too since issue #8487, which the parser
+   * left out (Common/Utils/Log/KeyValueParser). Free on a log without one,
+   * and, with overrideOnConflict off, never written over a log's own one.
    */
-  it.each(
-    INHERITED_PROPERTY_NAMES.filter((name: string): boolean => {
-      return name !== "__proto__";
-    }),
-  )(
+  it.each(INHERITED_PROPERTY_NAMES)(
     "writes a key named %s as an attribute, and keeps the log's own one",
     (name: string) => {
       const out: JSONObject = LogPipelineService.processLog(
@@ -373,18 +369,30 @@ describe("KeyValueParser - attributes the log already has", () => {
     },
   );
 
-  it("never takes __proto__ from a line as a key, and the attributes keep their prototype", () => {
+  it("takes __proto__ from a line as an attribute, never as the attributes' prototype", () => {
     const out: JSONObject = LogPipelineService.processLog(
-      syslogRow("__proto__=x other=y"),
+      syslogRow('__proto__={"polluted":"yes"} other=y'),
       keyValuePipeline({ source: "body" }),
     );
+    const attributes: JSONObject = out["attributes"] as JSONObject;
 
-    expect(out["attributes"]).toEqual({
-      "syslog.hostname": "SFW",
-      "networkDevice.name": "hq-firewall",
-      other: "y",
-    });
-    expect(Object.getPrototypeOf(out["attributes"])).toBe(Object.prototype);
+    expect(Object.keys(attributes)).toEqual([
+      "syslog.hostname",
+      "networkDevice.name",
+      "__proto__",
+      "other",
+    ]);
+    // Text, as the line wrote it: never read as an object.
+    expect(readOwnValue(attributes, "__proto__")).toBe('{"polluted":"yes"}');
+    expect(out["attributeKeys"]).toEqual([
+      "syslog.hostname",
+      "networkDevice.name",
+      "__proto__",
+      "other",
+    ]);
+    expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+    expect(attributes["polluted"]).toBeUndefined();
+    expect(({} as JSONObject)["polluted"]).toBeUndefined();
   });
 
   /*

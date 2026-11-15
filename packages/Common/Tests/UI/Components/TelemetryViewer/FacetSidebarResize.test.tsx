@@ -8,7 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -1038,7 +1038,7 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
       roomWidth = 600;
       window.localStorage.setItem(STORAGE_KEY, "300");
       renderSidebar();
-      const setItem: jest.SpiedFunction<typeof window.localStorage.setItem> =
+      const setItem: SpyInstance<typeof window.localStorage.setItem> =
         jest.spyOn(Storage.prototype, "setItem");
       const { handle } = layOutPage();
 

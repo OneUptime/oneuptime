@@ -6,6 +6,7 @@ import {
   OnCallLogLineCode,
   readOnCallLogLine,
 } from "Common/Types/OnCallDutyPolicy/OnCallLogLine";
+import { CallOutcomeLine } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 import {
   OnCallPolicyRunLine,
   OnCallPolicyRunLineCode,
@@ -387,6 +388,325 @@ export const LOG_PAGE_OUT_OF_TRIES_NEXT: Readonly<
   ),
 };
 
+/*
+ * THE LAST OF A LOG'S OWN LINES (#8551): a person's page that ended, or
+ * was acknowledged or seen, a notification an observer saw or the stuck
+ * check settled, a provider's delivery report, an email sent without its
+ * images.
+ */
+export const LOG_PAGE_LINE_SENTENCES: Readonly<{
+  pageOverPageAcknowledged: string;
+  pageOverPageAgainAcknowledged: string;
+  pageNamesNoRecord: string;
+  pageNoLongerProjectMember: string;
+  notificationSeenAsObserver: string;
+  providerReported: string;
+  providerMessageId: string;
+  providerErrorCode: string;
+  providerError: string;
+  emailSentWithoutImages: string;
+  emailDeliveryNotTracked: string;
+}> = {
+  pageOverPageAcknowledged: translationKey(
+    "Execution completed because this page was acknowledged.",
+  ),
+  pageOverPageAgainAcknowledged: translationKey(
+    "Execution completed because this page again was acknowledged.",
+  ),
+  pageNamesNoRecord: translationKey(
+    "Execution completed because this page names no incident, alert or episode.",
+  ),
+  pageNoLongerProjectMember: translationKey(
+    "Stopped because this person is no longer a member of the project. Their remaining notification rules were not run.",
+  ),
+  notificationSeenAsObserver: translationKey(
+    "Marked as seen, paged as an observer.",
+  ),
+  providerReported: translationKey("The provider reported: {{status}}."),
+  providerMessageId: translationKey("Message ID: {{id}}."),
+  providerErrorCode: translationKey("Provider error code: {{code}}."),
+  providerError: translationKey("Provider error: {{error}}"),
+  emailSentWithoutImages: translationKey(
+    "Email sent without its images, which the mail service refused: {{answer}}",
+  ),
+  emailDeliveryNotTracked: translationKey(
+    "OneUptime does not track whether it was delivered.",
+  ),
+};
+
+// A provider's delivery report, by the status it says (SmsStatus, WhatsAppStatus).
+export const LOG_PROVIDER_STATUS_SENTENCES: Readonly<Record<string, string>> = {
+  Delivered: translationKey("The provider delivered it."),
+  Undelivered: translationKey("The provider could not deliver it."),
+  Failed: translationKey("The provider could not send it."),
+  Sent: translationKey("The provider sent it."),
+  Read: translationKey("The person read it."),
+};
+
+// A person's page that stopped because its record was acknowledged.
+export const LOG_PAGE_RECORD_ACKNOWLEDGED_SENTENCES: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "Execution completed because the incident was acknowledged.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "Execution completed because the alert was acknowledged.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "Execution completed because the incident episode was acknowledged.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "Execution completed because the alert episode was acknowledged.",
+  ),
+};
+
+// A person's page that stopped because its record was deleted.
+export const LOG_PAGE_RECORD_DELETED_SENTENCES: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "Execution completed because the incident was deleted.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "Execution completed because the alert was deleted.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "Execution completed because the incident episode was deleted.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "Execution completed because the alert episode was deleted.",
+  ),
+};
+
+// A person's page they acknowledged from one of its notifications.
+export const LOG_PAGE_ACKNOWLEDGED_BY_SENTENCES: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "{{name}} acknowledged the incident.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "{{name}} acknowledged the alert.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "{{name}} acknowledged the incident episode.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "{{name}} acknowledged the alert episode.",
+  ),
+};
+
+// An observer's page they said they have seen.
+export const LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "Seen by {{name}}, paged as an observer. The incident is not acknowledged by this.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "Seen by {{name}}, paged as an observer. The alert is not acknowledged by this.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "Seen by {{name}}, paged as an observer. The incident episode is not acknowledged by this.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "Seen by {{name}}, paged as an observer. The alert episode is not acknowledged by this.",
+  ),
+};
+
+/*
+ * How a call ended (CallOutcome, #8576): answered - for how long, when
+ * Twilio said - rang out, busy or declined, or not connected; after the
+ * call's id when Twilio gave one.
+ */
+export const LOG_CALL_OUTCOME_SENTENCES: Readonly<
+  Record<CallOutcomeLine, string>
+> = {
+  [CallOutcomeLine.Answered]: translationKey("The call was answered."),
+  [CallOutcomeLine.RangOut]: translationKey(
+    "The call was not answered: it rang out.",
+  ),
+  [CallOutcomeLine.Busy]: translationKey(
+    "The call was not answered: the line was busy, or the call was declined.",
+  ),
+  [CallOutcomeLine.NotConnected]: translationKey(
+    "The call could not be connected.",
+  ),
+};
+
+export const LOG_CALL_ANSWERED_AND_LASTED: PluralTemplate = {
+  one: "The call was answered and lasted {{count}} second.",
+  other: "The call was answered and lasted {{count}} seconds.",
+};
+
+export const LOG_CALL_ID: string = translationKey("Call ID: {{id}}.");
+
+// A call's line, its id first: "Call ID: CA…. The call was answered."
+function getCallEndedSentence(
+  translator: Translator,
+  line: OnCallLogLine,
+): string | null {
+  if (!line.callOutcome) {
+    return null;
+  }
+
+  const outcome: string =
+    line.callOutcome === CallOutcomeLine.Answered && line.seconds !== undefined
+      ? translator.translatePlural(LOG_CALL_ANSWERED_AND_LASTED, line.seconds)
+      : translator.translateTemplate(
+          LOG_CALL_OUTCOME_SENTENCES[line.callOutcome],
+        );
+
+  return joinSentences([
+    line.id
+      ? translator.translateTemplate(
+          LOG_CALL_ID,
+          { id: line.id },
+          { setsValuesApart: true },
+        )
+      : "",
+    outcome,
+  ]);
+}
+
+// A notification the stuck check settled, by the minutes it waited.
+export const LOG_NOTIFICATION_STUCK: PluralTemplate = {
+  one: "Sending did not finish within {{count}} minute, so this notification may not have been sent.",
+  other:
+    "Sending did not finish within {{count}} minutes, so this notification may not have been sent.",
+};
+
+// A provider's delivery report: its status, its id and error, each a sentence.
+function getProviderDeliverySentence(
+  translator: Translator,
+  line: OnCallLogLine,
+): string | null {
+  if (!line.status) {
+    return null;
+  }
+
+  const statusSentence: string | undefined =
+    LOG_PROVIDER_STATUS_SENTENCES[line.status];
+
+  return joinSentences([
+    statusSentence
+      ? translator.translateTemplate(statusSentence)
+      : translator.translateTemplate(
+          LOG_PAGE_LINE_SENTENCES.providerReported,
+          { status: translator.translateText(line.status) || line.status },
+          { setsValuesApart: true },
+        ),
+    line.id
+      ? translator.translateTemplate(
+          LOG_PAGE_LINE_SENTENCES.providerMessageId,
+          { id: line.id },
+          { setsValuesApart: true },
+        )
+      : "",
+    line.errorCode
+      ? translator.translateTemplate(
+          LOG_PAGE_LINE_SENTENCES.providerErrorCode,
+          { code: line.errorCode },
+          { setsValuesApart: true },
+        )
+      : "",
+    line.words
+      ? translator.translateTemplate(
+          LOG_PAGE_LINE_SENTENCES.providerError,
+          { error: line.words },
+          { setsValuesApart: true },
+        )
+      : "",
+  ]);
+}
+
+// A person's page's or a notification's line from #8551, in the reader's words.
+function getPageLineSentence(
+  translator: Translator,
+  line: OnCallLogLine,
+): string | null {
+  switch (line.code) {
+    case OnCallLogLineCode.PageOverPageAcknowledged:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.pageOverPageAcknowledged,
+      );
+    case OnCallLogLineCode.PageOverPageAgainAcknowledged:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.pageOverPageAgainAcknowledged,
+      );
+    case OnCallLogLineCode.PageNamesNoRecord:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.pageNamesNoRecord,
+      );
+    case OnCallLogLineCode.PageNoLongerProjectMember:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.pageNoLongerProjectMember,
+      );
+    case OnCallLogLineCode.NotificationSeenAsObserver:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.notificationSeenAsObserver,
+      );
+    case OnCallLogLineCode.PageRecordAcknowledged:
+      return line.recordKind
+        ? translator.translateTemplate(
+            LOG_PAGE_RECORD_ACKNOWLEDGED_SENTENCES[line.recordKind],
+          )
+        : null;
+    case OnCallLogLineCode.PageRecordResolved:
+      return line.recordKind
+        ? translator.translateTemplate(
+            RUN_RECORD_RESOLVED_SENTENCES[line.recordKind],
+          )
+        : null;
+    case OnCallLogLineCode.PageRecordDeleted:
+      return line.recordKind
+        ? translator.translateTemplate(
+            LOG_PAGE_RECORD_DELETED_SENTENCES[line.recordKind],
+          )
+        : null;
+    case OnCallLogLineCode.PageAcknowledgedBy:
+      return line.recordKind && line.name
+        ? translator.translateTemplate(
+            LOG_PAGE_ACKNOWLEDGED_BY_SENTENCES[line.recordKind],
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallLogLineCode.PageSeenByObserver:
+      return line.recordKind && line.name
+        ? translator.translateTemplate(
+            LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES[line.recordKind],
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallLogLineCode.NotificationStuck:
+      return line.minutes
+        ? translator.translatePlural(LOG_NOTIFICATION_STUCK, line.minutes)
+        : null;
+    case OnCallLogLineCode.ProviderDelivery:
+      return getProviderDeliverySentence(translator, line);
+    case OnCallLogLineCode.CallEnded:
+      return getCallEndedSentence(translator, line);
+    case OnCallLogLineCode.EmailSentWithoutImages:
+      return line.words
+        ? joinSentences([
+            translator.translateTemplate(
+              LOG_PAGE_LINE_SENTENCES.emailSentWithoutImages,
+              { answer: line.words },
+              { setsValuesApart: true },
+            ),
+            translator.translateTemplate(
+              LOG_PAGE_LINE_SENTENCES.emailDeliveryNotTracked,
+            ),
+          ])
+        : null;
+    default:
+      return null;
+  }
+}
+
 // The codes each one whole sentence of LOG_OWN_LINE_SENTENCES.
 const WHOLE_LINE_SENTENCES: Readonly<
   Partial<Record<OnCallLogLineCode, keyof typeof LOG_OWN_LINE_SENTENCES>>
@@ -552,7 +872,7 @@ export function getOnCallLogOwnLineSentence(
           )
         : null;
     default:
-      return null;
+      return getPageLineSentence(translator, line);
   }
 }
 
