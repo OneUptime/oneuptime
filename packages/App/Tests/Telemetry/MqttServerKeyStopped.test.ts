@@ -489,7 +489,7 @@ const counted: () => Array<Record<string, string>> = (): Array<
         project: call[0].projectId.toString(),
         key: call[0].ingestionKeyId.toString(),
         reason: call[0].reason,
-        surface: call[0].surface,
+        surface: String(call[0].surface),
       };
     },
   );
