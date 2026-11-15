@@ -30,6 +30,14 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   "Open (status)",
   // An invoice that is issued and not paid yet (Settings > Invoices).
   "Open (invoice status)",
+  /*
+   * An invoice deleted in Stripe, and one with no status: worded for the
+   * invoice, feminine where it is ("Eliminada", "Supprimée"), as Paid and
+   * Void are. The bare "Deleted" and "Undefined" are the whole Dashboard's,
+   * worded masculine (#8181).
+   */
+  "Deleted (invoice status)",
+  "Undefined (invoice status)",
   // What an import did with a row (ImportResultWords).
   "Created (import result)",
   /*
