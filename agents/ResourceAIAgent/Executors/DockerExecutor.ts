@@ -1213,7 +1213,7 @@ export default class DockerExecutor implements ResourceExecutor {
     ) {
       return {
         refusal: `${refused}: "${guarded.displayCommand}" changes the ${
-          AI_RESOURCE_TYPE_INFO[guarded.resourceType].displayName
+          AI_RESOURCE_TYPE_INFO[guarded.resourceType].sentenceName
         }, and the agent has not yet been able to look up its own container (${(
           this.getOwnContainerId() || ""
         ).slice(0, 12)}) on the ${getEngineLabel(
@@ -1833,7 +1833,7 @@ export default class DockerExecutor implements ResourceExecutor {
         this.getDockerHost().dockerHost,
       )} is ${engine === "podman" ? "Podman" : "Docker"}, but this agent serves a ${
         resourceType
-          ? AI_RESOURCE_TYPE_INFO[resourceType].displayName
+          ? AI_RESOURCE_TYPE_INFO[resourceType].sentenceName
           : "container host"
       }. Check ONEUPTIME_AI_AGENT_RESOURCE_TYPE and ${DOCKER_HOST_ENV}.`,
     );

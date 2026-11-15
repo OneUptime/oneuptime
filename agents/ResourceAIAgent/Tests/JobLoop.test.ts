@@ -187,23 +187,23 @@ describe("claimed jobs, before anything runs", () => {
         job({ payload: testPayload({ resourceType: "CephCluster" }) }),
         type,
       )!,
-      /this command is for a Ceph cluster resource, and this agent serves a Docker host/,
+      /this command is for another kind of resource \(Ceph cluster\), and this agent serves only its own Docker host/,
     );
     assert.match(
       getJobRefusal(
         job({ payload: testPayload({ resourceType: "Nope" }) }),
         type,
       )!,
-      /this command is for a "Nope" resource/,
+      /this command is for another kind of resource \("Nope"\)/,
     );
     assert.match(
       getJobRefusal(job({ payload: {} }), type)!,
-      /"\(not specified\)" resource/,
+      /another kind of resource \("\(not specified\)"\)/,
     );
     // The same job, for an agent of another type, is refused in its words.
     assert.match(
       getJobRefusal(job(), AiResourceType.PodmanHost)!,
-      /^Refused by the Podman AI agent: this command is for a Docker host resource, and this agent serves a Podman host\.$/,
+      /^Refused by the Podman AI agent: this command is for another kind of resource \(Docker host\), and this agent serves only its own Podman host\.$/,
     );
   });
 
@@ -653,7 +653,7 @@ describe("the job loop", () => {
       {
         name: "a job for another resource type",
         job: { payload: testPayload({ resourceType: "PodmanHost" }) },
-        message: /this command is for a Podman host resource/,
+        message: /this command is for another kind of resource \(Podman host\)/,
       },
       {
         name: "no command",
