@@ -46,6 +46,21 @@ import {
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AIActionTableCell,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_CONTAINER_STATUSES,
+  AI_READ_TELEMETRY_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import {
+  citationSentence,
+  windowSentence,
+  windowValues,
+} from "./ReadTableWords";
 
 /*
  * query_containers - the containers of one Docker or Podman host, the
@@ -174,9 +189,10 @@ function roundPercent(value: number | null): number | null {
  * lower-case words the model reads ("stopped reporting").
  */
 export const CONTAINER_STATUS_LABELS: Record<ContainerStatus, string> = {
-  [ContainerStatus.StoppedReporting]: "Stopped reporting",
-  [ContainerStatus.StartedInWindow]: "Started in this window",
-  [ContainerStatus.Reporting]: "Reporting",
+  [ContainerStatus.StoppedReporting]:
+    AI_READ_CONTAINER_STATUSES.stoppedReporting,
+  [ContainerStatus.StartedInWindow]: AI_READ_CONTAINER_STATUSES.startedInWindow,
+  [ContainerStatus.Reporting]: AI_READ_CONTAINER_STATUSES.reporting,
 };
 
 export const QueryContainersTool: ObservabilityTool = {
@@ -447,13 +463,18 @@ export const QueryContainersTool: ObservabilityTool = {
     return {
       dataForLlm: `${serialized.text}\n${notes.join(" ")}`,
       rowCount: listed.length,
-      citationLabel: `Containers of ${hostLabel}, ${window}`,
+      // In the reader's language and time (issues #7979, #7980).
+      ...citationSentence(AI_READ_CITATIONS.containersOfHost, {
+        host: hostLabel,
+        ...windowValues(startTime, endTime),
+      }),
       citationTarget: target,
       redactionCount: serialized.redactionCount,
       isTruncated,
       widget: buildContainersWidget({
         hostLabel,
-        window,
+        startTime,
+        endTime,
         containers: listed,
         target,
       }),
@@ -540,7 +561,8 @@ function readPerContainer(result: AggregatedResult): Map<string, number> {
 
 function buildContainersWidget(data: {
   hostLabel: string;
-  window: string;
+  startTime: Date;
+  endTime: Date;
   containers: Array<ContainerActivity>;
   target: AIChatCitationTarget;
 }): AIChatWidget | undefined {
@@ -555,8 +577,21 @@ function buildContainersWidget(data: {
    * chat column.
    */
   return WidgetBuilder.table({
-    title: `Containers of ${data.hostLabel}`,
-    description: data.window,
+    // In the reader's language and time (issue #7979).
+    words: {
+      title: aiActionSentence(AI_READ_TELEMETRY_TABLE_TITLES.containersOfHost, {
+        host: data.hostLabel,
+      }),
+      description: windowSentence(data.startTime, data.endTime),
+      // Each container's status, as the containers table always said it.
+      cells: data.containers.map(
+        (container: ContainerActivity): Record<string, AIActionTableCell> => {
+          return {
+            status: aiActionTerm(CONTAINER_STATUS_LABELS[container.status]),
+          };
+        },
+      ),
+    },
     columns: [
       { key: "container", title: translationKey("Container") },
       { key: "status", title: translationKey("Status") },

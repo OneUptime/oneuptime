@@ -24,6 +24,19 @@ import {
   formatSloNumber,
   formatSloPercent,
 } from "../../Utils/Slo/SloWidgetFormat";
+import {
+  AI_READ_TABLE_AND_CITATION_PLURAL_SENTENCES,
+  AI_READ_TABLE_AND_CITATION_SENTENCES,
+  AI_READ_TABLE_TERMS,
+} from "./AIReadTableWords";
+import {
+  RUM_APPLICATION_NO_RECENT_TRAFFIC_LABEL,
+  RUM_APPLICATION_RECEIVING_DATA_LABEL,
+  RUM_APPLICATION_WAITING_FOR_DATA_LABEL,
+} from "../Rum/RumApplicationStatus";
+import WorkflowStatus, {
+  getWorkflowStatusLabel,
+} from "../Workflow/WorkflowStatus";
 
 /*
  * WHAT AN AI ACTION'S CARD SAYS, IN EVERY READER'S LANGUAGE.
@@ -90,14 +103,17 @@ export interface AIActionMoment {
 
 /*
  * What fills a sentence's {{placeholder}}: data as written, a number, a
- * term, a list, or a figure.
+ * term, a list, a figure, or a moment - the ends of the window a read's
+ * table or source names (issue #7979), which the sentence says as their
+ * ISO text in English and the Dashboard writes in the reader's time.
  */
 export type AIActionSentenceValue =
   | string
   | number
   | AIActionTerm
   | AIActionList
-  | AIActionFigure;
+  | AIActionFigure
+  | AIActionMoment;
 
 export interface AIActionSentence {
   /*
@@ -1260,6 +1276,23 @@ export interface AIActionCardWords {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * A RUM application's status and a workflow run's, as their pages'
+ * pills say them (Types/Rum/RumApplicationStatus, Types/Workflow/
+ * WorkflowStatus): the RUM applications and workflows tables say the
+ * same words.
+ */
+export const AI_READ_RUM_APPLICATION_STATUSES: ReadonlyArray<string> = [
+  RUM_APPLICATION_RECEIVING_DATA_LABEL,
+  RUM_APPLICATION_NO_RECENT_TRAFFIC_LABEL,
+  RUM_APPLICATION_WAITING_FOR_DATA_LABEL,
+];
+
+export const AI_READ_WORKFLOW_RUN_STATUSES: ReadonlyArray<string> =
+  Object.values(WorkflowStatus).map((status: WorkflowStatus): string => {
+    return getWorkflowStatusLabel(status);
+  });
+
 export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_TITLES),
   ...Object.values(AI_ACTION_LINES),
@@ -1276,12 +1309,15 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   AI_READ_CARD_ENTITY,
   ...Object.values(AI_READ_TABLE_TITLES),
   ...Object.values(AI_READ_TABLE_LINES),
+  // Every other read's table, and the chips under Sources (#7977, #7979, #7980).
+  ...AI_READ_TABLE_AND_CITATION_SENTENCES,
 ];
 
 export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
   ...Object.values(AI_ACTION_PLURAL_TITLES),
   ...Object.values(AI_ACTION_PLURAL_LINES),
   ...Object.values(AI_READ_CARD_PLURAL_SENTENCES),
+  ...AI_READ_TABLE_AND_CITATION_PLURAL_SENTENCES,
 ];
 
 // The kinds of resource, by the nouns the server names them by.
@@ -1301,6 +1337,10 @@ export const AI_ACTION_TERM_WORDS: ReadonlyArray<string> = [
   ...Object.values(AI_READ_CARD_SLO_STATUSES),
   ...Object.values(AI_READ_CARD_NOUNS),
   ...AI_READ_CARD_ENTITY_TYPES,
+  // A read's table's cells that are OneUptime's words (#7977, #7979).
+  ...AI_READ_TABLE_TERMS,
+  ...AI_READ_RUM_APPLICATION_STATUSES,
+  ...AI_READ_WORKFLOW_RUN_STATUSES,
 ];
 
 /*
@@ -1476,6 +1516,11 @@ const isKnownValue: (value: unknown, depth: number) => boolean = (
 
   if (isAIActionFigure(value)) {
     return isKnownFigure(value);
+  }
+
+  // A window's end: a date the Dashboard can read (issue #7979).
+  if (isAIActionMoment(value)) {
+    return isKnownMoment(value);
   }
 
   return false;
@@ -1872,6 +1917,13 @@ const toTemplateValues: (
       result[name] = composedValue((sentenceTranslator: Translator): string => {
         return describeAIActionFigure(value, sentenceTranslator);
       });
+    } else if (isAIActionMoment(value)) {
+      /*
+       * Its ISO text, as the table or the chip stores it: the Dashboard
+       * writes a moment in the reader's language and time before it says
+       * the sentence (TableWords' drawReadSentence).
+       */
+      result[name] = value.moment;
     }
   }
 

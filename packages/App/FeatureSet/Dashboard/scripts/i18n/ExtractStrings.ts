@@ -613,6 +613,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/AI/AIActionWords.ts",
     kind: "keys",
   },
+  /*
+   * What Ask AI's tables and its Sources chips say beside their data - a
+   * table's title and line, the cells that are OneUptime's words, a
+   * chip's label (issues #7977, #7979, #7980) - which the chat says in the
+   * reader's language. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIReadTableWords.ts",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/AI/AiAffectedResources.ts",
     kind: "keys",

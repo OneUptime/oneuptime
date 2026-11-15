@@ -195,6 +195,12 @@ export interface ToolExecutionResult {
   dataForLlm: string;
   rowCount: number;
   citationLabel: string;
+  /*
+   * The label as a sentence of Types/AI/AIActionWords (issue #7980), whose
+   * English is citationLabel: the chip under Sources says it in the
+   * reader's language (ReadTableWords' citationOf builds both at once).
+   */
+  citationWords?: AIActionSentence | undefined;
   citationTarget?: AIChatCitationTarget | undefined;
   redactionCount: number;
   isTruncated: boolean;
