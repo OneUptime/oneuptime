@@ -52322,5 +52322,12 @@
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "최대 6개 포트를 다운된 포트, 오류가 있는 포트, 가장 바쁜 포트 순으로 보여 줍니다. 각 행에는 수신 / 송신 Mbps와 사용률(더 바쁜 방향의 트래픽을 링크 속도 대비 비율로 나타낸 값)이 표시되며, 두 SNMP 워크 사이의 평균입니다. 값은 눈에 띄게 바뀔 때, 그리고 적어도 15분마다 갱신됩니다.",
-  "Coarse Last Seen At": "Coarse Last Seen At"
+  "Coarse Last Seen At": "Coarse Last Seen At",
+  "Affects": "영향 대상",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "고치기 전까지는 일부 호출이 받아야 할 사람에게 전달되지 않습니다.",
+  "{{count}} problems would stop people from being told": "사람들이 알림을 받지 못하게 하는 문제가 {{count}}개 있습니다",
+  "{{count}} problems would stop people from being told_one": "사람들이 알림을 받지 못하게 하는 문제가 {{count}}개 있습니다",
+  "{{count}} things in your setup are worth fixing": "설정에서 고칠 만한 항목이 {{count}}개 있습니다",
+  "{{count}} things in your setup are worth fixing_one": "설정에서 고칠 만한 항목이 {{count}}개 있습니다",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "여기에서 각 항목을 고치거나, 팀이 일부러 그대로 두는 항목이면 숨기세요."
 }

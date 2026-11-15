@@ -11,12 +11,15 @@ import ObjectID from "Common/Types/ObjectID";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
   SetupHealthCheck,
+  SetupHealthCounts,
   SetupHealthFinding,
   SetupHealthFix,
   SetupHealthLevel,
+  SetupHealthRecord,
   SetupHealthRecordKind,
 } from "Common/Types/SetupHealth/SetupHealth";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { toHeadline } from "Common/UI/Components/Table/EmptyTableMessage";
 import {
   composedValue,
   PluralTemplate,
@@ -56,7 +59,6 @@ export const LEVEL_WORDS: Readonly<
 };
 
 export const SETUP_HEALTH_WORDS_PAGE: Readonly<{
-  title: string;
   description: string;
   nothingToFix: string;
   nothingToFixDescription: string;
@@ -77,7 +79,7 @@ export const SETUP_HEALTH_WORDS_PAGE: Readonly<{
   dismissedByWithReason: string;
   someone: string;
 }> = {
-  title: translationKey("Setup Health"),
+  // Said under the page's title.
   description: translationKey(
     "What would stop the right people from being told when something breaks, and the fix for each.",
   ),
@@ -111,6 +113,120 @@ export const SETUP_HEALTH_WORDS_PAGE: Readonly<{
   dismissedByWithReason: translationKey("Dismissed by {{name}}: {{reason}}"),
   someone: translationKey("Someone"),
 };
+
+/*
+ * The records a finding reaches beyond its own (SetupHealthFinding.related):
+ * the monitors whose pages a policy, a switched-off channel or the server
+ * would carry, the policies that page a person, the status page a domain
+ * opens. Shown under the sentence, so a reader sees what the break stops.
+ */
+export const SETUP_HEALTH_AFFECTS: string = translationKey("Affects");
+
+// How many of those are named before "+3 more".
+export const RELATED_RECORDS_SHOWN: number = 3;
+
+export const RELATED_RECORDS_MORE: PluralTemplate = {
+  one: "+{{count}} more",
+  other: "+{{count}} more",
+};
+
+/*
+ * THE VERDICT THE PAGE OPENS WITH: is anything in the setup wrong, and how
+ * badly - the worst level with findings, said in one line with how many,
+ * and what that means for the reader. Pure, so every combination of counts
+ * can be tested without a renderer; looked up where it is drawn.
+ */
+export enum SetupHealthVerdictKind {
+  // Something set up to tell people will not: fix these first.
+  PagesWillNotArrive = "pages_will_not_arrive",
+  // Nothing of that, but gaps people rarely mean to leave.
+  WorthFixing = "worth_fixing",
+  // Nothing to fix: at most suggestions, often fine as they are.
+  NothingToFix = "nothing_to_fix",
+}
+
+/*
+ * A fixed sentence, or one that depends on a count. A fixed one is never a
+ * plural: a language whose "one" form also covers 21 (Russian) would read
+ * an English "one" sentence that cannot be right.
+ */
+export type SetupHealthVerdictText =
+  | { text: string }
+  | { plural: PluralTemplate; count: number };
+
+export interface SetupHealthVerdict {
+  kind: SetupHealthVerdictKind;
+  headline: SetupHealthVerdictText;
+  summary: SetupHealthVerdictText;
+}
+
+export const SETUP_HEALTH_VERDICT_WORDS: Readonly<{
+  pagesWillNotArriveHeadline: PluralTemplate;
+  pagesWillNotArriveSummary: string;
+  worthFixingHeadline: PluralTemplate;
+  worthFixingSummary: string;
+}> = {
+  pagesWillNotArriveHeadline: {
+    one: "{{count}} problem would stop people from being told",
+    other: "{{count}} problems would stop people from being told",
+  },
+  pagesWillNotArriveSummary: translationKey(
+    "Until they are fixed, some pages won't reach the people they are meant for.",
+  ),
+  worthFixingHeadline: {
+    one: "{{count}} thing in your setup is worth fixing",
+    other: "{{count}} things in your setup are worth fixing",
+  },
+  worthFixingSummary: translationKey(
+    "Fix each one from here, or dismiss it if your team leaves it that way on purpose.",
+  ),
+};
+
+export function getSetupHealthVerdict(
+  counts: Pick<SetupHealthCounts, "pagesWillNotArrive" | "worthFixing">,
+): SetupHealthVerdict {
+  if (counts.pagesWillNotArrive > 0) {
+    return {
+      kind: SetupHealthVerdictKind.PagesWillNotArrive,
+      headline: {
+        plural: SETUP_HEALTH_VERDICT_WORDS.pagesWillNotArriveHeadline,
+        count: counts.pagesWillNotArrive,
+      },
+      summary: { text: SETUP_HEALTH_VERDICT_WORDS.pagesWillNotArriveSummary },
+    };
+  }
+
+  if (counts.worthFixing > 0) {
+    return {
+      kind: SetupHealthVerdictKind.WorthFixing,
+      headline: {
+        plural: SETUP_HEALTH_VERDICT_WORDS.worthFixingHeadline,
+        count: counts.worthFixing,
+      },
+      summary: { text: SETUP_HEALTH_VERDICT_WORDS.worthFixingSummary },
+    };
+  }
+
+  return {
+    kind: SetupHealthVerdictKind.NothingToFix,
+    headline: { text: SETUP_HEALTH_WORDS_PAGE.nothingToFix },
+    summary: { text: SETUP_HEALTH_WORDS_PAGE.nothingToFixDescription },
+  };
+}
+
+// A verdict's line in the reader's words; a headline without its full stop.
+export function translateSetupHealthVerdictText(
+  translator: Translator,
+  text: SetupHealthVerdictText,
+  options?: { isHeadline?: boolean | undefined },
+): string {
+  const words: string =
+    "plural" in text
+      ? translator.translatePlural(text.plural, text.count)
+      : translator.translateText(text.text) || text.text;
+
+  return options?.isHeadline ? toHeadline(words) : words;
+}
 
 const FIX_WORDS: Readonly<Record<SetupHealthFix, string>> = {
   [SetupHealthFix.MonitorCriteria]: translationKey("Open Criteria"),
@@ -204,16 +320,50 @@ export function getSetupHealthFixLink(data: {
 export const SERVER_FIX_WORDS: string =
   FIX_WORDS[SetupHealthFix.ServerSettings];
 
+// The page of each kind of record a finding reaches, where it has one.
+const RECORD_PAGES: Readonly<Partial<Record<SetupHealthRecordKind, PageMap>>> =
+  {
+    [SetupHealthRecordKind.Monitor]: PageMap.MONITOR_VIEW,
+    [SetupHealthRecordKind.OnCallDutyPolicy]: PageMap.ON_CALL_DUTY_POLICY_VIEW,
+    [SetupHealthRecordKind.OnCallDutyPolicySchedule]:
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+    [SetupHealthRecordKind.StatusPage]: PageMap.STATUS_PAGE_VIEW,
+  };
+
+// Where a record a finding reaches is opened; null for one with no page.
+export function getSetupHealthRecordRoute(
+  record: Pick<SetupHealthRecord, "kind" | "id">,
+): Route | null {
+  const pageMap: PageMap | undefined = RECORD_PAGES[record.kind];
+
+  if (!pageMap || !record.id) {
+    return null;
+  }
+
+  return RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
+    modelId: new ObjectID(record.id),
+  });
+}
+
+export interface SetupHealthSentenceValues {
+  /*
+   * The project's own names, set in as written: a monitor's, a policy's, a
+   * person's. The page draws them in bold, so the record stands out of the
+   * sentence it is named in.
+   */
+  names: Record<string, string>;
+  // The rest, in the sentence's own language: a channel, a time, an amount.
+  values: TemplateValues;
+}
+
 /*
- * ONE FINDING, AS ONE SENTENCE IN THE READER'S LANGUAGE: its template with
- * the names set in as written, and the channel, the time and the amount in
- * the sentence's own language.
+ * ONE FINDING'S SENTENCE, ITS VALUES: the names set in as written, and the
+ * channel, the time and the amount in the sentence's own language.
  */
-export function getSetupHealthSentence(
+export function getSetupHealthSentenceValues(
   finding: SetupHealthFinding,
-  translator: Translator,
-): string {
-  const values: TemplateValues = { ...finding.values };
+): SetupHealthSentenceValues {
+  const values: TemplateValues = {};
 
   if (finding.check === SetupHealthCheck.ChannelOff) {
     values["channel"] = composedValue((sentence: Translator): string => {
@@ -256,7 +406,32 @@ export function getSetupHealthSentence(
     });
   }
 
-  return translator.translateTemplate(finding.words, values);
+  const names: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(finding.values)) {
+    if (!(key in values)) {
+      names[key] = value;
+    }
+  }
+
+  return { names: names, values: values };
+}
+
+/*
+ * ONE FINDING, AS ONE SENTENCE IN THE READER'S LANGUAGE, as text: for the
+ * dismiss dialog and anything else that cannot draw the names in bold.
+ */
+export function getSetupHealthSentence(
+  finding: SetupHealthFinding,
+  translator: Translator,
+): string {
+  const sentence: SetupHealthSentenceValues =
+    getSetupHealthSentenceValues(finding);
+
+  return translator.translateTemplate(finding.words, {
+    ...sentence.names,
+    ...sentence.values,
+  });
 }
 
 // The checks whose findings are about records many of: folded past a few.

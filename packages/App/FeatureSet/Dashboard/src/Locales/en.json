@@ -52322,5 +52322,12 @@
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.",
-  "Coarse Last Seen At": "Coarse Last Seen At"
+  "Coarse Last Seen At": "Coarse Last Seen At",
+  "Affects": "Affects",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Until they are fixed, some pages won't reach the people they are meant for.",
+  "{{count}} problems would stop people from being told": "{{count}} problems would stop people from being told",
+  "{{count}} problems would stop people from being told_one": "{{count}} problem would stop people from being told",
+  "{{count}} things in your setup are worth fixing": "{{count}} things in your setup are worth fixing",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} thing in your setup is worth fixing",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Fix each one from here, or dismiss it if your team leaves it that way on purpose."
 }

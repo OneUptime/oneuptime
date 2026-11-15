@@ -52322,5 +52322,12 @@
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "Upp till sex portar: först de som är nere, sedan portar med fel, sedan de mest belastade. Varje rad visar inkommande / utgående Mbps och användning (den mer belastade riktningen som andel av länkhastigheten), i genomsnitt mellan två SNMP-genomgångar. Värdena uppdateras när de ändras märkbart, och minst var 15:e minut.",
-  "Coarse Last Seen At": "Coarse Last Seen At"
+  "Coarse Last Seen At": "Coarse Last Seen At",
+  "Affects": "Påverkar",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Tills de är åtgärdade når vissa larm inte fram till de personer de är avsedda för.",
+  "{{count}} problems would stop people from being told": "{{count}} problem skulle hindra att folk får veta",
+  "{{count}} problems would stop people from being told_one": "{{count}} problem skulle hindra att folk får veta",
+  "{{count}} things in your setup are worth fixing": "{{count}} saker i dina inställningar är värda att åtgärda",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} sak i dina inställningar är värd att åtgärda",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Åtgärda var och en härifrån, eller dölj den om ditt team låter den vara så med flit."
 }

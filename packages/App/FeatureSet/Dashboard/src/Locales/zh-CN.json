@@ -52322,5 +52322,12 @@
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "最多六个端口：先列出宕机的端口，然后是有错误的端口，再是最繁忙的端口。每行显示入站 / 出站 Mbps 和使用率（较繁忙方向占链路速率的比例），取两次 SNMP 遍历之间的平均值。这些值在明显变化时更新，且至少每 15 分钟更新一次。",
-  "Coarse Last Seen At": "Coarse Last Seen At"
+  "Coarse Last Seen At": "Coarse Last Seen At",
+  "Affects": "影响",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "在修复之前，部分呼叫将无法送达应当接收的人员。",
+  "{{count}} problems would stop people from being told": "有 {{count}} 个问题会让相关人员收不到通知",
+  "{{count}} problems would stop people from being told_one": "有 {{count}} 个问题会让相关人员收不到通知",
+  "{{count}} things in your setup are worth fixing": "你的配置中有 {{count}} 项值得修复",
+  "{{count}} things in your setup are worth fixing_one": "你的配置中有 {{count}} 项值得修复",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐项修复；如果团队有意保持现状，也可以将其隐藏。"
 }

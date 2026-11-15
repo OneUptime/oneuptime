@@ -52322,5 +52322,12 @@
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "Fino a sei porte: prima quelle fuori servizio, poi le porte con errori, poi le più trafficate. Ogni riga mostra i Mbps in ingresso / in uscita e l'utilizzo (la direzione più carica come quota della velocità del collegamento), in media tra due scansioni SNMP. I valori vengono aggiornati quando cambiano in modo sensibile, e almeno ogni 15 minuti.",
-  "Coarse Last Seen At": "Coarse Last Seen At"
+  "Coarse Last Seen At": "Coarse Last Seen At",
+  "Affects": "Riguarda",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Finché non vengono corretti, alcuni avvisi non raggiungeranno le persone a cui sono destinati.",
+  "{{count}} problems would stop people from being told": "{{count}} problemi impedirebbero di avvisare le persone",
+  "{{count}} problems would stop people from being told_one": "{{count}} problema impedirebbe di avvisare le persone",
+  "{{count}} things in your setup are worth fixing": "{{count}} elementi della tua configurazione sono da correggere",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} elemento della tua configurazione è da correggere",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Correggi ciascuno da qui, oppure nascondilo se il tuo team lo lascia così di proposito."
 }
