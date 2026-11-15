@@ -36,11 +36,11 @@ const DockerSwarmMetricPicker: FunctionComponent<ComponentProps> = (
           return m.category === category;
         });
 
+      // The group's heading, a key of the catalog's (#8353).
+      const heading: string = getDockerSwarmMetricCategoryLabel(category);
+
       return {
-        // The group's heading, a key of the catalog's (#8353).
-        label: translator.translateText(
-          getDockerSwarmMetricCategoryLabel(category),
-        ),
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: DockerSwarmMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

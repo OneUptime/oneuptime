@@ -43,9 +43,11 @@ const VMwareMetricPicker: FunctionComponent<ComponentProps> = (
         },
       );
 
+      // The group's heading, a key of the catalog's (#8353).
+      const heading: string = getVMwareMetricCategoryLabel(category);
+
       return {
-        // The group's heading, a key of the catalog's (#8353).
-        label: translator.translateText(getVMwareMetricCategoryLabel(category)),
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: VMwareMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

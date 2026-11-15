@@ -35,9 +35,11 @@ const IoTMetricPicker: FunctionComponent<ComponentProps> = (
         },
       );
 
+      // The group's heading, a key of the catalog's (#8353).
+      const heading: string = getIoTMetricCategoryLabel(category);
+
       return {
-        // The group's heading, a key of the catalog's (#8353).
-        label: translator.translateText(getIoTMetricCategoryLabel(category)),
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: IoTMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

@@ -36,9 +36,11 @@ const DockerMetricPicker: FunctionComponent<ComponentProps> = (
         },
       );
 
+      // The group's heading, a key of the catalog's (#8353).
+      const heading: string = getDockerMetricCategoryLabel(category);
+
       return {
-        // The group's heading, a key of the catalog's (#8353).
-        label: translator.translateText(getDockerMetricCategoryLabel(category)),
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: DockerMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,
