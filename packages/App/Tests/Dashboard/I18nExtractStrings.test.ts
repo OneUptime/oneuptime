@@ -1809,6 +1809,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",
       // The checks a table's columns call for, worded for each reader (#7221).
       "keys packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
+      // Why a data alert most likely happened, worded for each reader (#8343).
+      "keys packages/Common/Types/DataObservability/DataAlertCauseTitles.ts",
     ]);
   });
 
