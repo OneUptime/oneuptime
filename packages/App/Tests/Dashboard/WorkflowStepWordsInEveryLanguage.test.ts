@@ -264,7 +264,7 @@ function unmarkedRecordStepWords(
   model: DatabaseBaseModel,
   steps: Array<ComponentMetadata> = BaseModelComponent.getComponents(model),
 ): Array<string> {
-  const names: Array<string | undefined> = [
+  const names: Array<string | null | undefined> = [
     model.singularName,
     model.pluralName,
   ];

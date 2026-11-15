@@ -186,7 +186,7 @@ function translatorOf(language: string): Translator {
 }
 
 function drawn(language: string, english: string): string {
-  return translatorOf(language).translateText(english);
+  return translatorOf(language).translateText(english) || english;
 }
 
 function nodeOf(metadata: ComponentMetadata): NodeDataProp {
