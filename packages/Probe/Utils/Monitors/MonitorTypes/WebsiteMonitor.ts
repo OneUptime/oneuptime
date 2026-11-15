@@ -13,6 +13,7 @@ import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import API from "Common/Utils/API";
+import RequestFailedDetailsUtil from "Common/Utils/RequestFailedDetailsUtil";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import axios from "axios";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -353,7 +354,7 @@ export default class WebsiteMonitor {
        * being down, and it goes on to be the incident's root cause.
        */
       const failureCauseForAttempt: string =
-        API.getProbeNetworkFailureDescription(err) ||
+        RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
         API.getFriendlyErrorMessage(err as Error);
       const statusCodeForAttempt: number | undefined = axios.isAxiosError(err)
         ? err.response?.status
@@ -416,7 +417,7 @@ export default class WebsiteMonitor {
 
       // Get detailed error information
       const requestFailedDetails: RequestFailedDetails =
-        API.getRequestFailedDetails(err);
+        RequestFailedDetailsUtil.getRequestFailedDetails(err);
 
       if (axios.isAxiosError(err)) {
         probeWebsiteResponse = {

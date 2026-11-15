@@ -7,6 +7,7 @@ import RequestFailedDetails, {
   RequestFailedPhase,
 } from "../../Types/Probe/RequestFailedDetails";
 import API from "../../Utils/API";
+import RequestFailedDetailsUtil from "../../Utils/RequestFailedDetailsUtil";
 import { describe, expect, test } from "@jest/globals";
 import {
   AxiosError,
@@ -16,7 +17,7 @@ import {
 } from "axios";
 
 /*
- * Tests for API.getRequestFailedDetails - the function that turns a thrown
+ * Tests for RequestFailedDetailsUtil.getRequestFailedDetails - the function that turns a thrown
  * request error into the "Request Failed Details" block a user reads on an
  * incident. Common/Tests/Utils/API.test.ts covers the rest of API; this file
  * covers classification only.
@@ -61,7 +62,7 @@ function createAxiosResponseError(status: number): AxiosError {
   );
 }
 
-describe("API.getRequestFailedDetails - egress guard refusals", () => {
+describe("RequestFailedDetailsUtil.getRequestFailedDetails - egress guard refusals", () => {
   /*
    * REGRESSION: the reported incident on https://order.abbeysbakehouse.com/.
    * The guard refused the target before any socket was opened and threw its
@@ -73,12 +74,13 @@ describe("API.getRequestFailedDetails - egress guard refusals", () => {
    * exception TYPE instead.
    */
   test("classifies the customer's sanitized guard failure as Target Resolution, not Unknown", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      new EgressGuardException(
-        CUSTOMER_SANITIZED_MESSAGE,
-        EgressFailureReason.Unreachable,
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        new EgressGuardException(
+          CUSTOMER_SANITIZED_MESSAGE,
+          EgressFailureReason.Unreachable,
+        ),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TargetResolution);
     expect(details.failedPhase).not.toBe(RequestFailedPhase.Unknown);
@@ -124,9 +126,9 @@ describe("API.getRequestFailedDetails - egress guard refusals", () => {
     );
 
     const dnsDetails: RequestFailedDetails =
-      API.getRequestFailedDetails(fromDnsFailure);
+      RequestFailedDetailsUtil.getRequestFailedDetails(fromDnsFailure);
     const policyDetails: RequestFailedDetails =
-      API.getRequestFailedDetails(fromAddressPolicy);
+      RequestFailedDetailsUtil.getRequestFailedDetails(fromAddressPolicy);
 
     expect(dnsDetails).toEqual(policyDetails);
 
@@ -134,12 +136,13 @@ describe("API.getRequestFailedDetails - egress guard refusals", () => {
      * And the classification must not vary with the host either, so an
      * attacker cannot probe one hostname against another and diff the output.
      */
-    const otherHostDetails: RequestFailedDetails = API.getRequestFailedDetails(
-      new EgressGuardException(
-        "Monitor target host internal-billing.corp could not be reached.",
-        EgressFailureReason.Unreachable,
-      ),
-    );
+    const otherHostDetails: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        new EgressGuardException(
+          "Monitor target host internal-billing.corp could not be reached.",
+          EgressFailureReason.Unreachable,
+        ),
+      );
 
     expect(otherHostDetails.failedPhase).toBe(dnsDetails.failedPhase);
     expect(otherHostDetails.errorCode).toBe(dnsDetails.errorCode);
@@ -160,9 +163,10 @@ describe("API.getRequestFailedDetails - egress guard refusals", () => {
     const message: string =
       "Monitor target URL scheme ftp:// is not supported. Only http and https are allowed.";
 
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      new EgressGuardException(message, EgressFailureReason.InvalidTarget),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        new EgressGuardException(message, EgressFailureReason.InvalidTarget),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TargetResolution);
     expect(details.errorCode).toBe("INVALID_TARGET");
@@ -192,9 +196,10 @@ describe("API.getRequestFailedDetails - egress guard refusals", () => {
   ])(
     "reason %s maps to Target Resolution / TARGET_UNREACHABLE and preserves the raw message",
     (reason: EgressFailureReason, message: string) => {
-      const details: RequestFailedDetails = API.getRequestFailedDetails(
-        new EgressGuardException(message, reason),
-      );
+      const details: RequestFailedDetails =
+        RequestFailedDetailsUtil.getRequestFailedDetails(
+          new EgressGuardException(message, reason),
+        );
 
       expect(details.failedPhase).toBe(RequestFailedPhase.TargetResolution);
       expect(details.errorCode).toBe("TARGET_UNREACHABLE");
@@ -209,9 +214,10 @@ describe("API.getRequestFailedDetails - egress guard refusals", () => {
      * new branch is matching text somewhere, which would misclassify unrelated
      * errors.
      */
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      new BadDataException(CUSTOMER_SANITIZED_MESSAGE),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        new BadDataException(CUSTOMER_SANITIZED_MESSAGE),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.Unknown);
     expect(details.errorDescription).toBe(
@@ -219,9 +225,10 @@ describe("API.getRequestFailedDetails - egress guard refusals", () => {
     );
 
     // And a BadDataException that DOES match a string rule is still matched.
-    const dnsDetails: RequestFailedDetails = API.getRequestFailedDetails(
-      new BadDataException("getaddrinfo ENOTFOUND example.com"),
-    );
+    const dnsDetails: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        new BadDataException("getaddrinfo ENOTFOUND example.com"),
+      );
 
     expect(dnsDetails.failedPhase).toBe(RequestFailedPhase.DNSResolution);
     expect(dnsDetails.errorCode).toBe("ENOTFOUND");
@@ -232,7 +239,7 @@ describe("API.getRequestFailedDetails - egress guard refusals", () => {
  * The pre-existing classification behaviour, pinned so the new egress-guard
  * branch (which runs before all of it) cannot shadow anything.
  */
-describe("API.getRequestFailedDetails - existing classification", () => {
+describe("RequestFailedDetailsUtil.getRequestFailedDetails - existing classification", () => {
   test.each([
     [
       "plain ENOTFOUND",
@@ -290,7 +297,8 @@ describe("API.getRequestFailedDetails - existing classification", () => {
       expectedPhase: RequestFailedPhase,
       expectedErrorCode: string,
     ) => {
-      const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+      const details: RequestFailedDetails =
+        RequestFailedDetailsUtil.getRequestFailedDetails(error);
 
       expect(details.failedPhase).toBe(expectedPhase);
       expect(details.errorCode).toBe(expectedErrorCode);
@@ -301,9 +309,10 @@ describe("API.getRequestFailedDetails - existing classification", () => {
   test.each([[500], [404], [403], [401], [400]])(
     "an HTTP %s response is classified as Server Response",
     (status: number) => {
-      const details: RequestFailedDetails = API.getRequestFailedDetails(
-        createAxiosResponseError(status),
-      );
+      const details: RequestFailedDetails =
+        RequestFailedDetailsUtil.getRequestFailedDetails(
+          createAxiosResponseError(status),
+        );
 
       expect(details.failedPhase).toBe(RequestFailedPhase.ServerResponse);
       expect(details.errorCode).toBe(`HTTP_${status}`);
@@ -326,7 +335,8 @@ describe("API.getRequestFailedDetails - existing classification", () => {
     );
     revoked.code = "CERT_REVOKED";
 
-    const details: RequestFailedDetails = API.getRequestFailedDetails(revoked);
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(revoked);
 
     expect(details.failedPhase).toBe(RequestFailedPhase.CertificateError);
     expect(details.errorCode).toBe("CERT_REVOKED");
@@ -335,18 +345,20 @@ describe("API.getRequestFailedDetails - existing classification", () => {
   });
 
   test("the revoked wording is recognised even without the code", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      new Error("certificate has been revoked by its issuer"),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        new Error("certificate has been revoked by its issuer"),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.CertificateError);
     expect(details.errorCode).toBe("CERT_REVOKED");
   });
 
   test("an unrecognised error still falls through to Unknown", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      new Error("something odd"),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        new Error("something odd"),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.Unknown);
     expect(details.errorCode).toBeUndefined();
@@ -475,7 +487,7 @@ function customerAxiosError(): AxiosError {
   );
 }
 
-describe("API.getRequestFailedDetails - failures on the probe itself", () => {
+describe("RequestFailedDetailsUtil.getRequestFailedDetails - failures on the probe itself", () => {
   /*
    * REGRESSION: EADDRNOTAVAIL matched no rule and fell through to the
    * "request was made but no response" branch, which told the customer
@@ -485,7 +497,8 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
   test("the customer's IPv6 URL on a probe with no IPv6 is a probe failure, not a silent server", () => {
     const error: AxiosError = customerAxiosError();
 
-    const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(error);
 
     expect(details).toEqual({
       failedPhase: RequestFailedPhase.TCPConnection,
@@ -509,7 +522,8 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
       `Request failed to ${CUSTOMER_IPV6_URL}. connect EADDRNOTAVAIL ${CUSTOMER_IPV6_ADDRESS}:443 - Local (:::0)`,
     );
 
-    const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(error);
 
     // Used to be phase Unknown, "Request failed: Request failed to ...".
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
@@ -527,7 +541,8 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
       }),
     );
 
-    const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(error);
 
     // Used to be phase Unknown, "Request failed: fetch failed".
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
@@ -538,16 +553,17 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
   });
 
   test("EAFNOSUPPORT (IPv6 switched off in the kernel) is a probe failure", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      axiosConnectError(
-        CUSTOMER_IPV6_URL,
-        connectError({
-          code: "EAFNOSUPPORT",
-          address: CUSTOMER_IPV6_ADDRESS,
-          port: 443,
-        }),
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        axiosConnectError(
+          CUSTOMER_IPV6_URL,
+          connectError({
+            code: "EAFNOSUPPORT",
+            address: CUSTOMER_IPV6_ADDRESS,
+            port: 443,
+          }),
+        ),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
     expect(details.errorCode).toBe("EAFNOSUPPORT");
@@ -555,16 +571,17 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
   });
 
   test("ENETUNREACH towards an IPv6 URL is hedged towards the probe having no IPv6 route", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      axiosConnectError(
-        CUSTOMER_IPV6_URL,
-        connectError({
-          code: "ENETUNREACH",
-          address: CUSTOMER_IPV6_ADDRESS,
-          port: 443,
-        }),
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        axiosConnectError(
+          CUSTOMER_IPV6_URL,
+          connectError({
+            code: "ENETUNREACH",
+            address: CUSTOMER_IPV6_ADDRESS,
+            port: 443,
+          }),
+        ),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
     expect(details.errorCode).toBe("ENETUNREACH");
@@ -579,7 +596,7 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
       connectError({ code: "ENETUNREACH", address: IPV4_ADDRESS, port: 80 }),
     );
 
-    expect(API.getRequestFailedDetails(error)).toEqual({
+    expect(RequestFailedDetailsUtil.getRequestFailedDetails(error)).toEqual({
       failedPhase: RequestFailedPhase.TCPConnection,
       errorCode: "ENETUNREACH",
       errorDescription: NETWORK_UNREACHABLE_DETAILS,
@@ -588,11 +605,16 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
   });
 
   test("ENETUNREACH seen only on fetch's cause gets that same family-neutral description", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      fetchError(
-        connectError({ code: "ENETUNREACH", address: IPV4_ADDRESS, port: 80 }),
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        fetchError(
+          connectError({
+            code: "ENETUNREACH",
+            address: IPV4_ADDRESS,
+            port: 80,
+          }),
+        ),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
     expect(details.errorCode).toBe("ENETUNREACH");
@@ -600,16 +622,17 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
   });
 
   test("EADDRNOTAVAIL towards IPv4 is still the probe's, and says nothing about IPv6", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      axiosConnectError(
-        `http://${IPV4_ADDRESS}/`,
-        connectError({
-          code: "EADDRNOTAVAIL",
-          address: IPV4_ADDRESS,
-          port: 80,
-        }),
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        axiosConnectError(
+          `http://${IPV4_ADDRESS}/`,
+          connectError({
+            code: "EADDRNOTAVAIL",
+            address: IPV4_ADDRESS,
+            port: 80,
+          }),
+        ),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
     expect(details.errorCode).toBe("EADDRNOTAVAIL");
@@ -618,39 +641,41 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
   });
 
   test("a DNS name that only has an IPv6 address is worded as IPv6, from the address the probe dialled", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      axiosConnectError(
-        "https://ipv6only.example.com/",
-        connectError({
-          code: "ENETUNREACH",
-          address: CUSTOMER_IPV6_ADDRESS,
-          port: 443,
-        }),
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        axiosConnectError(
+          "https://ipv6only.example.com/",
+          connectError({
+            code: "ENETUNREACH",
+            address: CUSTOMER_IPV6_ADDRESS,
+            port: 443,
+          }),
+        ),
+      );
 
     expect(details.errorDescription).toBe(IPV6_NO_ROUTE_DETAILS);
   });
 
   test("a dual-stack name whose IPv4 attempt also had no route is not called an IPv6 problem", () => {
     // Captured on a probe with no network at all: both families fail.
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      axiosConnectError(
-        "https://dualstack.example.com/",
-        happyEyeballsError([
-          connectError({
-            code: "EADDRNOTAVAIL",
-            address: CUSTOMER_IPV6_ADDRESS,
-            port: 443,
-          }),
-          connectError({
-            code: "ENETUNREACH",
-            address: IPV4_ADDRESS,
-            port: 443,
-          }),
-        ]),
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        axiosConnectError(
+          "https://dualstack.example.com/",
+          happyEyeballsError([
+            connectError({
+              code: "EADDRNOTAVAIL",
+              address: CUSTOMER_IPV6_ADDRESS,
+              port: 443,
+            }),
+            connectError({
+              code: "ENETUNREACH",
+              address: IPV4_ADDRESS,
+              port: 443,
+            }),
+          ]),
+        ),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
     // The attempt the description is about, not the first one Node copied.
@@ -675,7 +700,8 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
       ]),
     );
 
-    const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(error);
 
     // What it was before: the refused IPv4 attempt decides.
     expect(details.failedPhase).toBe(RequestFailedPhase.TCPConnection);
@@ -695,22 +721,23 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
       {},
     );
 
-    expect(API.getRequestFailedDetails(error).errorDescription).toBe(
-      IPV6_NO_SOURCE_ADDRESS_DETAILS,
-    );
+    expect(
+      RequestFailedDetailsUtil.getRequestFailedDetails(error).errorDescription,
+    ).toBe(IPV6_NO_SOURCE_ADDRESS_DETAILS);
   });
 
   test("the address the probe dialled beats the URL: an IPv4 proxy it could not reach is not an IPv6 problem", () => {
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      axiosConnectError(
-        CUSTOMER_IPV6_URL,
-        connectError({
-          code: "EADDRNOTAVAIL",
-          address: "192.0.2.10",
-          port: 3128,
-        }),
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        axiosConnectError(
+          CUSTOMER_IPV6_URL,
+          connectError({
+            code: "EADDRNOTAVAIL",
+            address: "192.0.2.10",
+            port: 3128,
+          }),
+        ),
+      );
 
     expect(details.errorDescription).toBe(NOT_SENT_DETAILS);
   });
@@ -731,16 +758,17 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
       expectedPhase: RequestFailedPhase,
       expectedStart: string,
     ) => {
-      const details: RequestFailedDetails = API.getRequestFailedDetails(
-        axiosConnectError(
-          CUSTOMER_IPV6_URL,
-          connectError({
-            code: code,
-            address: CUSTOMER_IPV6_ADDRESS,
-            port: 443,
-          }),
-        ),
-      );
+      const details: RequestFailedDetails =
+        RequestFailedDetailsUtil.getRequestFailedDetails(
+          axiosConnectError(
+            CUSTOMER_IPV6_URL,
+            connectError({
+              code: code,
+              address: CUSTOMER_IPV6_ADDRESS,
+              port: 443,
+            }),
+          ),
+        );
 
       expect(details.failedPhase).toBe(expectedPhase);
       expect(details.errorCode).toBe(code);
@@ -749,32 +777,41 @@ describe("API.getRequestFailedDetails - failures on the probe itself", () => {
   );
 });
 
-describe("API.getProbeNetworkFailureDescription", () => {
+describe("RequestFailedDetailsUtil.getProbeNetworkFailureDescription", () => {
   test("gives the customer's IPv6 failure the shared probe-side wording, naming the host", () => {
-    expect(API.getProbeNetworkFailureDescription(customerAxiosError())).toBe(
+    expect(
+      RequestFailedDetailsUtil.getProbeNetworkFailureDescription(
+        customerAxiosError(),
+      ),
+    ).toBe(
       `This probe could not open an IPv6 connection from its own side (connect EADDRNOTAVAIL ${CUSTOMER_IPV6_ADDRESS}:443 - Local (:::0)), so ${CUSTOMER_IPV6_ADDRESS} was never contacted. This usually means the probe has no usable IPv6 address or route (less often, that it has run out of local ports); this says nothing about whether ${CUSTOMER_IPV6_ADDRESS} is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.`,
     );
   });
 
   test("reads through the API monitor's APIException", () => {
     expect(
-      API.getProbeNetworkFailureDescription(
+      RequestFailedDetailsUtil.getProbeNetworkFailureDescription(
         apiMonitorError(customerAxiosError()),
       ),
-    ).toBe(API.getProbeNetworkFailureDescription(customerAxiosError()));
+    ).toBe(
+      RequestFailedDetailsUtil.getProbeNetworkFailureDescription(
+        customerAxiosError(),
+      ),
+    );
   });
 
   test("names the DNS name the monitor uses, not the address it resolved to", () => {
-    const description: string | null = API.getProbeNetworkFailureDescription(
-      axiosConnectError(
-        "https://ipv6only.example.com/health",
-        connectError({
-          code: "EADDRNOTAVAIL",
-          address: CUSTOMER_IPV6_ADDRESS,
-          port: 443,
-        }),
-      ),
-    );
+    const description: string | null =
+      RequestFailedDetailsUtil.getProbeNetworkFailureDescription(
+        axiosConnectError(
+          "https://ipv6only.example.com/health",
+          connectError({
+            code: "EADDRNOTAVAIL",
+            address: CUSTOMER_IPV6_ADDRESS,
+            port: 443,
+          }),
+        ),
+      );
 
     expect(description).toContain(
       "so ipv6only.example.com was never contacted",
@@ -786,7 +823,7 @@ describe("API.getProbeNetworkFailureDescription", () => {
 
   test("hedges ENETUNREACH towards IPv6", () => {
     expect(
-      API.getProbeNetworkFailureDescription(
+      RequestFailedDetailsUtil.getProbeNetworkFailureDescription(
         axiosConnectError(
           CUSTOMER_IPV6_URL,
           connectError({
@@ -803,7 +840,7 @@ describe("API.getProbeNetworkFailureDescription", () => {
 
   test("calls the target 'the server' when the error has no request URL", () => {
     expect(
-      API.getProbeNetworkFailureDescription(
+      RequestFailedDetailsUtil.getProbeNetworkFailureDescription(
         fetchError(
           connectError({
             code: "EADDRNOTAVAIL",
@@ -819,7 +856,7 @@ describe("API.getProbeNetworkFailureDescription", () => {
 
   test("words EADDRNOTAVAIL towards IPv4 without any IPv6 claim", () => {
     expect(
-      API.getProbeNetworkFailureDescription(
+      RequestFailedDetailsUtil.getProbeNetworkFailureDescription(
         axiosConnectError(
           `http://${IPV4_ADDRESS}/`,
           connectError({
@@ -835,23 +872,24 @@ describe("API.getProbeNetworkFailureDescription", () => {
   });
 
   test("a dual-stack name where both attempts could not leave the probe gets no IPv6 claim", () => {
-    const description: string | null = API.getProbeNetworkFailureDescription(
-      axiosConnectError(
-        "https://dualstack.example.com/",
-        happyEyeballsError([
-          connectError({
-            code: "EADDRNOTAVAIL",
-            address: CUSTOMER_IPV6_ADDRESS,
-            port: 443,
-          }),
-          connectError({
-            code: "EADDRNOTAVAIL",
-            address: IPV4_ADDRESS,
-            port: 443,
-          }),
-        ]),
-      ),
-    );
+    const description: string | null =
+      RequestFailedDetailsUtil.getProbeNetworkFailureDescription(
+        axiosConnectError(
+          "https://dualstack.example.com/",
+          happyEyeballsError([
+            connectError({
+              code: "EADDRNOTAVAIL",
+              address: CUSTOMER_IPV6_ADDRESS,
+              port: 443,
+            }),
+            connectError({
+              code: "EADDRNOTAVAIL",
+              address: IPV4_ADDRESS,
+              port: 443,
+            }),
+          ]),
+        ),
+      );
 
     expect(description).toContain(
       "This probe could not send traffic to dualstack.example.com",
@@ -924,7 +962,9 @@ describe("API.getProbeNetworkFailureDescription", () => {
   ])(
     "is null for %s, so the monitor keeps the message it had",
     (_name: string, error: unknown) => {
-      expect(API.getProbeNetworkFailureDescription(error)).toBeNull();
+      expect(
+        RequestFailedDetailsUtil.getProbeNetworkFailureDescription(error),
+      ).toBeNull();
     },
   );
 });

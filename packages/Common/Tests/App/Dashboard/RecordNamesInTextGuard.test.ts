@@ -1,6 +1,9 @@
 // UX rule: Docs/ux/README.md#in-every-language
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
+  REPOSITORY_ROOT,
   RecordNameTextKind,
   RecordNameTextSite,
   readAllRecordNameTextSites,
@@ -203,15 +206,26 @@ describe("the front ends", () => {
     ).toEqual([]);
   });
 
+  /*
+   * ee's screens are read where ee/ is checked out. Common Test deletes it
+   * before it runs (test.common.yaml: core is the Community Edition), so a
+   * place listed in ee/ is held to being there only where ee/ is.
+   */
+  const enterprisePresent: boolean = fs.existsSync(
+    path.join(REPOSITORY_ROOT, "ee"),
+  );
+
   test("list no place that is not there any more", () => {
     expect(
       NOT_A_PROJECT_STATE_NAME.filter(
         (entry: { file: string; text: string }): boolean => {
-          return !sites.some((site: RecordNameTextSite): boolean => {
-            return site.file === entry.file && site.text === entry.text;
-          });
+          return enterprisePresent || !entry.file.startsWith("ee/");
         },
-      ),
+      ).filter((entry: { file: string; text: string }): boolean => {
+        return !sites.some((site: RecordNameTextSite): boolean => {
+          return site.file === entry.file && site.text === entry.text;
+        });
+      }),
     ).toEqual([]);
   });
 

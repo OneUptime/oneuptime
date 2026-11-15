@@ -125,6 +125,7 @@ import {
   Service as IoTDeviceCredentialServiceType,
 } from "../../../Server/Services/IoTDeviceCredentialService";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import SecretDigest from "../../../Server/Utils/Telemetry/SecretDigest";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -648,16 +649,18 @@ describe("resolving a credential to an auth context", () => {
       iotFleetId: FLEET_ID.toString(),
       fleetName: "roof-sensors",
       externalId: "Device-01",
-      secretKey: "66666666-6666-4666-8666-666666666666",
+      secretKeyDigest: SecretDigest.of("66666666-6666-4666-8666-666666666666"),
     });
   });
 
-  test("the secret is returned for the CALLER to compare, not compared here", async () => {
+  test("the secret's digest is returned for the CALLER to compare, not compared here", async () => {
     /*
-     * This method authenticates nothing. The broker compares the presented
-     * MQTT password against context.secretKey - so a context that omitted the
-     * secret would make every device unauthenticatable, and one that resolved
-     * without it would be worse.
+     * This method authenticates nothing. The broker compares the digest of
+     * the presented MQTT password with context.secretKeyDigest - so a context
+     * that omitted it would make every device unauthenticatable, and one that
+     * resolved without it would be worse. The secret itself is never in the
+     * context (issue #8371): every credential that connected in the last
+     * minute is in the cache, where a heap snapshot reads it.
      */
     const harness: Harness = buildService();
     harness.findOneBy.mockResolvedValue(credentialRow());
@@ -665,7 +668,19 @@ describe("resolving a credential to an auth context", () => {
     const context: IoTDeviceCredentialContext | null =
       await harness.service.getCredentialContext(CREDENTIAL_ID.toString());
 
-    expect(context?.secretKey).toBe("66666666-6666-4666-8666-666666666666");
+    expect(context?.secretKeyDigest).toBe(
+      SecretDigest.of("66666666-6666-4666-8666-666666666666"),
+    );
+    expect(
+      SecretDigest.matches(
+        context!.secretKeyDigest,
+        SecretDigest.of("66666666-6666-4666-8666-666666666666".toUpperCase()),
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(context)).not.toContain(
+      "66666666-6666-4666-8666-666666666666",
+    );
+    expect(Object.keys(context!)).not.toContain("secretKey");
   });
 
   test("an unknown credential resolves to null", async () => {

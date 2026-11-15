@@ -22,7 +22,7 @@ import dns from "dns";
  * The host from the customer incident this suite exists for: a single monitor
  * out of ~75 on the same probe reported "could not be reached." with phase
  * "Unknown", because the egress guard's deliberately sanitized sentence
- * matched none of API.getRequestFailedDetails' string patterns.
+ * matched none of RequestFailedDetailsUtil.getRequestFailedDetails' string patterns.
  */
 const TARGET_HOST: string = "order.abbeysbakehouse.test";
 const TARGET_URL: string = `https://${TARGET_HOST}/checkout`;

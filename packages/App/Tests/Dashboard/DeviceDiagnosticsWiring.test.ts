@@ -273,12 +273,24 @@ describe("the pure view-model", () => {
     expect(
       importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "ErrorInSentence.ts")),
     ).toEqual([
+      "../../Types/DataObservability/DataCheckRefusals",
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Exception/UnexplainedError",
       "../../Types/Translator",
       "../../Utils/Monitor/MonitorTemplateLinkRefusal",
       "./SentenceSeparator",
     ]);
+    // A data check's refusals (#7530), said in the reader's words the same way.
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Types",
+          "DataObservability",
+          "DataCheckRefusals.ts",
+        ),
+      ),
+    ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
     expect(
       importsOf(
         readRaw(COMMON_ROOT, "Types", "Exception", "RefusalWithValues.ts"),
