@@ -382,7 +382,10 @@ function isGateReason(node: ts.Node): boolean {
     return false;
   }
 
-  if (declaration.type && declaration.type.getText().includes(GATE_RESULT_TYPE)) {
+  if (
+    declaration.type &&
+    declaration.type.getText().includes(GATE_RESULT_TYPE)
+  ) {
     return true;
   }
 

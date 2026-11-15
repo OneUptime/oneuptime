@@ -2883,7 +2883,10 @@ describe("a permission check's reason, handed to a control that looks it up (#85
           at("asked.disabledReason"),
           `${LOOKED_UP_TWICE_MESSAGE}isTextTranslated`,
         ],
-        [at("<Tooltip text={reason}>"), `${LOOKED_UP_TWICE_MESSAGE}isTextTranslated`],
+        [
+          at("<Tooltip text={reason}>"),
+          `${LOOKED_UP_TWICE_MESSAGE}isTextTranslated`,
+        ],
         // A prop of its own handed on: the hand-on rule's (#8423).
         [
           at("props.disabledReason"),

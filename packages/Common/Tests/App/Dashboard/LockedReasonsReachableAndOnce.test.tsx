@@ -480,7 +480,9 @@ describe("an unlocked tile is as it was", () => {
       screen.getByTestId(`video-call-connect-${VideoCallProvider.Zoom}`),
     ).toBeDisabled();
     expect(
-      screen.queryByTestId(`video-call-connect-locked-${VideoCallProvider.Zoom}`),
+      screen.queryByTestId(
+        `video-call-connect-locked-${VideoCallProvider.Zoom}`,
+      ),
     ).not.toBeInTheDocument();
   });
 });

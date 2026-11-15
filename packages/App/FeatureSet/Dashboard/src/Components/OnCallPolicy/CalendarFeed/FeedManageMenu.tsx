@@ -28,8 +28,10 @@ export interface FeedManageAction {
   onClick: () => void;
   isDestructive?: boolean | undefined;
   isDisabled?: boolean | undefined;
-  // Why the action is locked: read on hover and to screen readers.
-  // Why it is locked: a permission check's reason, in the reader's words.
+  /*
+   * Why the action is locked: read on hover and to screen readers.
+   * Why it is locked: a permission check's reason, in the reader's words.
+   */
   disabledReason?: string | undefined;
   dataTestId: string;
 }

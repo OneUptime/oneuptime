@@ -628,7 +628,8 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
            * check's reason, or the server's message, as they came; the
            * English one of the facts, looked up here (#8586).
            */
-          (facts.templatesUnavailableReason === NO_DEVICE_MONITOR_TEMPLATE_REASON
+          (facts.templatesUnavailableReason ===
+          NO_DEVICE_MONITOR_TEMPLATE_REASON
             ? translator.translateText(NO_DEVICE_MONITOR_TEMPLATE_REASON)
             : facts.templatesUnavailableReason) ||
           (translator.translateText(

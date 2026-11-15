@@ -226,7 +226,12 @@ const StatusPageDaysSetting: FunctionComponent<ComponentProps> = (
               count: updateGate.isAllowed ? (
                 box
               ) : (
-                <Tooltip text={updateGate.disabledReason} isTextTranslated={true}>{box}</Tooltip>
+                <Tooltip
+                  text={updateGate.disabledReason}
+                  isTextTranslated={true}
+                >
+                  {box}
+                </Tooltip>
               ),
             }}
             /*

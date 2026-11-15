@@ -197,7 +197,9 @@ const RetentionSetting: FunctionComponent<SettingProps> = (
         {updateGate.isAllowed ? (
           dropdown
         ) : (
-          <Tooltip text={updateGate.disabledReason} isTextTranslated={true}>{dropdown}</Tooltip>
+          <Tooltip text={updateGate.disabledReason} isTextTranslated={true}>
+            {dropdown}
+          </Tooltip>
         )}
         <SaveStatus
           state={setting.saveState}
