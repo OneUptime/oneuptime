@@ -16,7 +16,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then list your mgr daemons — the agent needs **all** of them, active and standbys:":
     "List deretter mgr-daemonene dine: agenten trenger **alle**, den aktive og standby-ene:",
   "Only the **active** mgr returns metrics — standbys answer with an empty response — so scraping every mgr keeps metrics flowing when the active one fails over.":
-    "Bare den **aktive** mgr-en returnerer metrikker (standby-ene svarer med et tomt svar), så når hver mgr skrapes, fortsetter metrikkene å komme når den aktive bytter.",
+    "Bare den **aktive** mgr-en returnerer målinger (standby-ene svarer med et tomt svar), så når hver mgr skrapes, fortsetter målingene å komme når den aktive bytter.",
   "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:":
     "Skriptet spør etter OneUptime-URL-en og ingestion-nøkkelen din, som begge vises i trinn 1 (velg en nøkkel der for å få dem fylt inn her), og deretter etter:",
   "- **Cluster name** — how the cluster appears in OneUptime. Give every cluster its own and keep it stable: a new name registers a new cluster.":
@@ -42,13 +42,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
     "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Telemetri-ingestion-nøkkelen, den som ble valgt i trinn 1 |",
   "| `CEPH_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `ceph`) |":
-    "| `CEPH_CLUSTER_NAME` | Ja | Klyngens identifikator, som vises i OneUptime. Satt på hver metrikk som ressursattributtet `ceph.cluster.name`. Hold den stabil: endrer du den, registreres en ny klynge (standard: `ceph`) |",
+    "| `CEPH_CLUSTER_NAME` | Ja | Klyngens identifikator, som vises i OneUptime. Satt på hver måling som ressursattributtet `ceph.cluster.name`. Hold den stabil: endrer du den, registreres en ny klynge (standard: `ceph`) |",
   "| `CEPH_MGR_ENDPOINTS` | Yes | Comma-separated `host:port` list of **all** mgr daemons, wrapped in square brackets, e.g. `[ceph-mon-1:9283,ceph-mon-2:9283]`. The install script adds the brackets for you |":
     "| `CEPH_MGR_ENDPOINTS` | Ja | Kommaseparert `host:port`-liste over **alle** mgr-daemoner i hakeparenteser, f.eks. `[ceph-mon-1:9283,ceph-mon-2:9283]`. Installasjonsskriptet legger til parentesene for deg |",
   "The OneUptime AI agent's own settings are under **OneUptime AI agent**.":
     "OneUptime AI-agentens egne innstillinger står under **OneUptime AI-agent**.",
   "- **All mgrs are scraped** (active and standbys), so metrics survive an active-mgr failover.":
-    "- **Alle mgr-er skrapes** (den aktive og standby-ene), så metrikkene overlever et failover av den aktive mgr-en.",
+    "- **Alle mgr-er skrapes** (den aktive og standby-ene), så målingene overlever et failover av den aktive mgr-en.",
   "- **Every 30 seconds.** The mgr prometheus module caches a scrape for `mgr/prometheus/scrape_interval` (15 seconds by default) — never scrape more often than that, you would only re-read the cache.":
     "- **Hvert 30. sekund.** mgr-ens prometheus-modul hurtigbufrer en skraping i `mgr/prometheus/scrape_interval` (15 sekunder som standard): skrap aldri oftere enn det, du ville bare lese hurtigbufferen på nytt.",
   "- **`honor_labels: true`** keeps the labels Ceph exports (`ceph_daemon`, `pool_id`) as they are, so series stay continuous across mgr failovers.":
@@ -71,7 +71,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "Klyngen vises med etikettene `team:storage` og `env:production`. Etiketter sammenlignes uten hensyn til store og små bokstaver, så en eksisterende etikett `Production` gjenbrukes; etiketter som er lagt til i OneUptime-grensesnittet, fjernes aldri av agenten.",
   "The agent ships everything the mgr prometheus module exports. OneUptime's Ceph pages, metric catalog and alert templates are built on:":
-    "Agenten sender alt som mgr-ens prometheus-modul eksporterer. OneUptimes Ceph-sider, metrikkatalog og varselmaler bygger på:",
+    "Agenten sender alt som mgr-ens prometheus-modul eksporterer. OneUptimes Ceph-sider, målingskatalog og varselmaler bygger på:",
   "| Category | Data |": "| Kategori | Data |",
   "| **Cluster Health** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), monitor quorum, total and used raw capacity |":
     "| **Klyngens helse** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), monitorkvorum, total og brukt råkapasitet |",
@@ -103,13 +103,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "If you created the AI agent's Ceph client, remove it on an admin node: `ceph auth del client.oneuptime-ai`.":
     "Har du opprettet AI-agentens Ceph-klient, fjerner du den på en administrasjonsnode: `ceph auth del client.oneuptime-ai`.",
   "`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` sjekker hele kjeden (containerkjøretid, hvert mgr-endepunkt inkludert fellen med aktiv mot standby, påføringen av klyngenavnet, tokenets form, innsamlerens egne metrikker) og spør OneUptime direkte om den godtar ingestion-nøkkelen din. Den siste sjekken betyr mest: OneUptimes OTLP-endepunkter avviser en feil nøkkel med `401` eller `422`, som innsamleren logger som én enkelt `Exporting failed`-linje per batch som er lett å overse, så skriptet spør `GET /otlp/v1/validate` om en direkte avgjørelse 200/401.",
+    "`troubleshoot.sh` sjekker hele kjeden (containerkjøretid, hvert mgr-endepunkt inkludert fellen med aktiv mot standby, påføringen av klyngenavnet, tokenets form, innsamlerens egne målinger) og spør OneUptime direkte om den godtar ingestion-nøkkelen din. Den siste sjekken betyr mest: OneUptimes OTLP-endepunkter avviser en feil nøkkel med `401` eller `422`, som innsamleren logger som én enkelt `Exporting failed`-linje per batch som er lett å overse, så skriptet spør `GET /otlp/v1/validate` om en direkte avgjørelse 200/401.",
   "It ends with a verdict naming the most likely cause.":
     "Det avslutter med en avgjørelse som nevner den mest sannsynlige årsaken.",
   "1. Check the collector logs: `docker logs oneuptime-ceph-agent` — look for export errors (`401` means a bad ingestion key, connection refused means a wrong `ONEUPTIME_URL`).":
     "1. Sjekk innsamlerens logger: `docker logs oneuptime-ceph-agent`; se etter eksportfeil (`401` betyr en feil ingestion-nøkkel, connection refused betyr en feil `ONEUPTIME_URL`).",
   "2. Verify a mgr endpoint serves metrics: `curl http://<active-mgr>:9283/metrics | head` — you should see `ceph_*` metric lines. If not, enable the module: `ceph mgr module enable prometheus`.":
-    "2. Bekreft at et mgr-endepunkt leverer metrikker: `curl http://<active-mgr>:9283/metrics | head`; du bør se linjer med `ceph_*`-metrikker. Hvis ikke, slår du på modulen: `ceph mgr module enable prometheus`.",
+    "2. Bekreft at et mgr-endepunkt leverer målinger: `curl http://<active-mgr>:9283/metrics | head`; du bør se linjer med `ceph_*`-målinger. Hvis ikke, slår du på modulen: `ceph mgr module enable prometheus`.",
   "3. Make sure `CEPH_MGR_ENDPOINTS` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.":
     "3. Sørg for at `CEPH_MGR_ENDPOINTS` står i hakeparenteser: uten dem behandler innsamleren hele den kommaseparerte strengen som ett enkelt (ugyldig) mål.",
   "1. Check that the agent is running: `docker ps --filter name=oneuptime-ceph-agent`":
@@ -125,11 +125,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "Expected if `mgr/prometheus/standby_behaviour` is set to `error` on your cluster — standbys then answer with HTTP 500. The active mgr's scrape still succeeds, so the errors are noise; switch the behaviour back to `default` to silence them.":
     "Det er forventet hvis `mgr/prometheus/standby_behaviour` er satt til `error` på klyngen din: standby-ene svarer da med HTTP 500. Skrapingen av den aktive mgr-en lykkes fortsatt, så feilene er støy; sett atferden tilbake til `default` for å dempe dem.",
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent` — note that a new name registers a new cluster.":
-    "Klyngens identitet kommer fra `CEPH_CLUSTER_NAME`, satt på hver metrikk som `ceph.cluster.name`. Rett den i `.env`, og ta den i bruk med `docker compose up -d` i `/opt/oneuptime-ceph-agent`; merk at et nytt navn registrerer en ny klynge.",
+    "Klyngens identitet kommer fra `CEPH_CLUSTER_NAME`, satt på hver måling som `ceph.cluster.name`. Rett den i `.env`, og ta den i bruk med `docker compose up -d` i `/opt/oneuptime-ceph-agent`; merk at et nytt navn registrerer en ny klynge.",
   "- **Cluster name** — enter **`ceph-1`** exactly; a different name registers a new cluster.":
     "- **Klyngenavn**: skriv inn nøyaktig **`ceph-1`**; et annet navn registrerer en ny klynge.",
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. This cluster is **`ceph-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent` — note that a new name registers a new cluster.":
-    "Klyngens identitet kommer fra `CEPH_CLUSTER_NAME`, satt på hver metrikk som `ceph.cluster.name`. Denne klyngen er **`ceph-1`**. Rett den i `.env`, og ta den i bruk med `docker compose up -d` i `/opt/oneuptime-ceph-agent`; merk at et nytt navn registrerer en ny klynge.",
+    "Klyngens identitet kommer fra `CEPH_CLUSTER_NAME`, satt på hver måling som `ceph.cluster.name`. Denne klyngen er **`ceph-1`**. Rett den i `.env`, og ta den i bruk med `docker compose up -d` i `/opt/oneuptime-ceph-agent`; merk at et nytt navn registrerer en ny klynge.",
   "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:":
     "Kommandoen inneholder allerede OneUptime-URL-en og ingestion-nøkkelen din. Resten spør skriptet om:",
   "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:":
@@ -158,11 +158,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then pull the images and recreate the agent, so the collector reads its new config:":
     "Hent deretter imagene, og gjenopprett agenten, så innsamleren leser den nye konfigurasjonen:",
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. Fix it in `.env` and apply it with `docker compose up -d` in the folder with `docker-compose.yml` — note that a new name registers a new cluster.":
-    "Klyngens identitet kommer fra `CEPH_CLUSTER_NAME`, satt på hver metrikk som `ceph.cluster.name`. Rett den i `.env`, og ta den i bruk med `docker compose up -d` i mappen med `docker-compose.yml`; merk at et nytt navn registrerer en ny klynge.",
+    "Klyngens identitet kommer fra `CEPH_CLUSTER_NAME`, satt på hver måling som `ceph.cluster.name`. Rett den i `.env`, og ta den i bruk med `docker compose up -d` i mappen med `docker-compose.yml`; merk at et nytt navn registrerer en ny klynge.",
   "- This installs the agent for **`ceph-1`** — keep `CEPH_CLUSTER_NAME` exactly as it is, or the data registers as a new cluster.":
     "- Dette installerer agenten for **`ceph-1`**: la `CEPH_CLUSTER_NAME` stå nøyaktig som det er, ellers registreres dataene som en ny klynge.",
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. This cluster is **`ceph-1`**. Fix it in `.env` and apply it with `docker compose up -d` in the folder with `docker-compose.yml` — note that a new name registers a new cluster.":
-    "Klyngens identitet kommer fra `CEPH_CLUSTER_NAME`, satt på hver metrikk som `ceph.cluster.name`. Denne klyngen er **`ceph-1`**. Rett den i `.env`, og ta den i bruk med `docker compose up -d` i mappen med `docker-compose.yml`; merk at et nytt navn registrerer en ny klynge.",
+    "Klyngens identitet kommer fra `CEPH_CLUSTER_NAME`, satt på hver måling som `ceph.cluster.name`. Denne klyngen er **`ceph-1`**. Rett den i `.env`, og ta den i bruk med `docker compose up -d` i mappen med `docker-compose.yml`; merk at et nytt navn registrerer en ny klynge.",
 };
 
 export default TRANSLATION;

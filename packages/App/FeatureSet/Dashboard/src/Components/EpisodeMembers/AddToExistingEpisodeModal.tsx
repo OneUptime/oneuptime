@@ -382,6 +382,7 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
     return (
       <Modal
         title={title}
+        isTitleTranslated={true}
         modalWidth={ModalWidth.Medium}
         onClose={props.onClose}
         closeButtonText="Close"
@@ -398,6 +399,7 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={title}
+      isTitleTranslated={true}
       description={translator.translateTemplate(
         "Pick the episode to add the selected {{itemsName}} to.",
         { itemsName },

@@ -132,7 +132,7 @@ Vul onder **Regel** een **Naam** in, zoals "Fast burn". Een nieuwe regel staat a
 
 ### Het verbruiksvenster instellen
 
-Stel onder **Verbruiksvenster** de **Drempel voor verbruikssnelheid** in (bijvoorbeeld `14.4`), de **Lang venster (minuten)** en de **Kort venster (minuten)**, en eventueel de **Onderdrukking van opnieuw afgaan (minuten)**. De regel van een SLO voor aanvragen heeft ook een **Minimaal aantal aanvragen**, bijvoorbeeld `100`: de regel slaat een lang venster over dat minder aanvragen bevat dan dat.
+Stel onder **Verbruiksvenster** de **Drempel voor verbruikssnelheid** in (bijvoorbeeld `14.4`), de **Lang venster (minuten)** en de **Kort venster (minuten)**, en eventueel de **Onderdrukking van opnieuw afgaan (minuten)**. De regel van een SLO voor aanvragen heeft ook een **Minimaal aantal aanvragen**, bijvoorbeeld `100`: de regel slaat een lang venster over dat minder aanvragen bevat dan dat. De regel van een SLO voor een metriek heeft op dezelfde manier een **Minimaal aantal gebeurtenissen**, in gebeurtenissen van zijn metriek.
 
 ### Kiezen wat hij meldt
 
@@ -152,6 +152,7 @@ OneUptime controleert de getallen van een regel als u hem opslaat:
 | **Lang venster (minuten)** | Langer dan het korte venster. |
 | **Onderdrukking van opnieuw afgaan (minuten)** | 0 of meer. Leeg betekent de lengte van het lange venster. |
 | **Minimaal aantal aanvragen** | Een geheel getal, 0 of meer. Leeg betekent geen minimum. |
+| **Minimaal aantal gebeurtenissen** | Een geheel getal, 0 of meer. Leeg betekent geen minimum. |
 
 Elk antwoord op **Wanneer hij afgaat** opent iets. De API weigert een regel die geen waarschuwing zou maken en geen incident zou melden, omdat hij bij elke evaluatie zou worden gecontroleerd zonder ooit iets te melden.
 

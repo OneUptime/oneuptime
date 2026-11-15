@@ -367,7 +367,8 @@ describe("surfaces that count or offer SLOs leave archived ones out", () => {
     expect(sloCase).toContain(
       squash("pickableQuery: { isArchived: false } as Query<BaseModel>,"),
     );
-    expect(sloCase).toContain('unpickableLabelSuffix: " (archived)",');
+    // An archived SLO reads as one sentence of the reader's language (#8297).
+    expect(sloCase).toContain("unpickableLabelTemplate: ARCHIVED_SLO_LABEL,");
 
     /*
      * Only SLOs narrow what can be picked to the live ones, and a saved

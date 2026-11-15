@@ -306,6 +306,7 @@ const ResendVerificationEmail: (props: ComponentProps) => ReactElement = (
           buttonStyle={ButtonStyleType.NORMAL}
           icon={IconProp.Refresh}
           title={t("resendVerificationEmail.button")}
+          isTitleTranslated={true}
           dataTestId="resend-verification-email"
           className="w-full justify-center gap-1"
           style={{ width: "100%", marginInlineStart: "0px" }}

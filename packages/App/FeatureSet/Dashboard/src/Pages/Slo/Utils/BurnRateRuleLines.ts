@@ -122,9 +122,12 @@ export interface BurnRateRuleWindowsData {
 export const formatBurnRateRuleMinimumRequests: (
   minimumSampleCount: number | string | undefined | null,
   translator: Translator,
+  // A Metric SLO's minimum counts its metric's events (#8445).
+  isMetricSlo?: boolean | undefined,
 ) => string | null = (
   minimumSampleCount: number | string | undefined | null,
   translator: Translator,
+  isMetricSlo?: boolean | undefined,
 ): string | null => {
   if (
     minimumSampleCount === undefined ||
@@ -138,6 +141,16 @@ export const formatBurnRateRuleMinimumRequests: (
 
   if (!Number.isFinite(count) || count <= 0) {
     return null;
+  }
+
+  if (isMetricSlo) {
+    return translator.translatePlural(
+      {
+        one: "At least {{count}} event",
+        other: "At least {{count}} events",
+      },
+      count,
+    );
   }
 
   return translator.translatePlural(

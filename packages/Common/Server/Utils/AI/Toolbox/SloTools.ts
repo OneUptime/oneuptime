@@ -62,7 +62,7 @@ import {
 import {
   formatRequestCount,
   getBadRequestKind,
-  isRequestSliType,
+  isEventSliType,
 } from "../../../../Utils/Slo/SloRequestSli";
 import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 
@@ -142,19 +142,28 @@ export function formatRequestBudgetForAssistant(data: {
     return "";
   }
 
-  const kind: string = getBadRequestKind(data.sliType);
+  // A Metric SLO's events are whatever its metric counts (#8445).
+  const isMetric: boolean = data.sliType === SliType.Metric;
+  const kind: string = isMetric ? "bad" : getBadRequestKind(data.sliType);
+  const nounOf: (count: string) => string = (count: string): string => {
+    if (isMetric) {
+      return count === "1" ? "event" : "events";
+    }
+
+    return count === "1" ? "request" : "requests";
+  };
 
   if (remaining < 0) {
     const over: string = formatRequestCount(remaining);
 
-    return `${over} ${kind} ${over === "1" ? "request" : "requests"} over budget`;
+    return `${over} ${kind} ${nounOf(over)} over budget`;
   }
 
   const total: string = formatRequestCount(toCount(data.total) ?? 0);
 
-  return `${formatRequestCount(remaining)} of ${total} ${kind} ${
-    total === "1" ? "request" : "requests"
-  } left`;
+  return `${formatRequestCount(remaining)} of ${total} ${kind} ${nounOf(
+    total,
+  )} left`;
 }
 
 /*
@@ -531,13 +540,19 @@ export const QuerySlosTool: ObservabilityTool = {
            * the assistant says "120 of 1,000 failed requests left" rather
            * than an empty duration.
            */
-          ...(isRequestSliType(slo.sliType)
+          ...(isEventSliType(slo.sliType)
             ? {
                 services: joinNames(slo.services) || undefined,
+                // Request SLOs only: a Metric SLO says what it counts in metricQueryConfig.
                 latencyThresholdInMilliseconds:
-                  slo.latencyThresholdInMilliseconds ?? undefined,
+                  slo.sliType === SliType.Metric
+                    ? undefined
+                    : slo.latencyThresholdInMilliseconds ?? undefined,
                 // Empty: every request of its services counts.
-                requestFilter: slo.requestFilter || undefined,
+                requestFilter:
+                  slo.sliType === SliType.Metric
+                    ? undefined
+                    : slo.requestFilter || undefined,
                 goodRequestCount: toCount(slo.goodEventCount),
                 totalRequestCount: toCount(slo.totalEventCount),
                 errorBudgetRemainingRequests: toCount(

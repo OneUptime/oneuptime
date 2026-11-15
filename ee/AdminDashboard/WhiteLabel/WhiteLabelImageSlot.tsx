@@ -226,6 +226,7 @@ const WhiteLabelImageSlot: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate("Remove the {{image}}?", {
             image: translatableTerm(props.label, { inSentence: true }),
           })}
+          isTitleTranslated={true}
           description={translator.translateTemplate(
             "{{removed}} You can upload it again at any time.",
             {

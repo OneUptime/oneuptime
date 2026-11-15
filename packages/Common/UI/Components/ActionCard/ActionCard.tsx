@@ -69,6 +69,7 @@ const ActionCard: (props: ComponentProps) => ReactElement = (
           title={translator.translateTemplate("Confirm {{action}}", {
             action: translatableTerm(currentAction.actionName),
           })}
+          isTitleTranslated={true}
           onSubmit={() => {
             currentAction.onConfirmAction();
             setCurrentAction(undefined);

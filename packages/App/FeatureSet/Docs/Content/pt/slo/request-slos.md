@@ -5,6 +5,7 @@ Um SLO de requisições mede o que seus usuários recebem de um serviço: a parc
 :::cards
 - [Criar um SLO de requisições](#criar-um-slo-de-requisições): Os serviços, um limite para a latência e uma meta.
 - [Contar só algumas requisições](#contar-só-algumas-requisições): Um endpoint, ou todas as requisições menos as verificações de saúde.
+- [SLOs a partir de uma métrica](#slos-a-partir-de-uma-métrica): Um contador ou um histograma, para serviços que não enviam traços.
 - [Como as requisições são contadas](#como-as-requisições-são-contadas): Quais spans contam, e quando.
 - [Verificações de lançamento](/docs/slo/release-checks): Reverta um lançamento que consome o orçamento de erros.
 :::
@@ -76,6 +77,22 @@ Um SLO de requisições conta todas as requisições dos seus serviços. Um **Fi
 Todos os termos precisam corresponder, então `@http.route:/checkout* -@http.route:/checkout/health` conta as requisições de checkout, menos a verificação de saúde delas. Um termo com `@` é um atributo do span da requisição, e `name:` é o nome do span. Texto livre e os outros campos do explorador, como `status:` e `duration:`, não são filtros aqui: o SLO já decide quais requisições são ruins ou lentas. Um filtro tem até 10 termos em 500 caracteres.
 
 A **Visão geral** mostra o filtro abaixo dos serviços do SLO, e as **Configurações** o mostram em **O que mede**. Mudar o filtro faz as requisições do SLO serem contadas de novo desde o início.
+
+## SLOs a partir de uma métrica
+
+Quando seus serviços já contam as requisições deles como métricas, ou não enviam traços, meça o SLO a partir de um contador ou de um histograma em vez disso. Em **O que mede**, escolha **Métrica** e os **Serviços** que enviam a métrica e, depois, na etapa **Métrica**:
+
+| Campo | O que informar |
+| --- | --- |
+| **Métrica** | O nome da métrica, escolhido entre as métricas do seu projeto ou digitado, como `http_requests_total` ou `http.server.request.duration`. |
+| **Eventos bons** | **Um contador, por uma condição** ou **Um histograma, por um valor**. |
+| **Bom quando** | Para um contador: os eventos que são bons, como uma pesquisa nos atributos dele, por exemplo `@http.response.status_code:<500`. |
+| **Bom até** | Para um histograma: o valor que uma observação boa não ultrapassa, na unidade da própria métrica, por exemplo `0.3` para 300 ms de um histograma em segundos. Use um dos limites dos buckets dele. |
+| **Filtro de métrica** | Opcional: as séries que contam, por exemplo `-@http.route:/health`. |
+
+Os eventos de um contador são quanto ele cresceu em cada etapa de 5 minutos, como o `increase()` do Prometheus o lê: um contador que reinicia volta a contar do zero, e tanto os contadores cumulativos quanto os delta contam. Os eventos de um histograma são as observações dele, e os bons são os que estão nos buckets até esse valor. Só contam os pontos da própria métrica, vindos dos serviços do SLO: um gauge com o mesmo nome não conta nada.
+
+A partir daí, um SLO de métrica funciona como um SLO de requisições, com o orçamento de erros, as regras de taxa de consumo e as verificações de lançamento em eventos. Mudar a métrica faz os eventos dela serem contados de novo desde o início.
 
 ## Como as requisições são contadas
 

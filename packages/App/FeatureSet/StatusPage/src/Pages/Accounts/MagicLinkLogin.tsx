@@ -220,6 +220,7 @@ const MagicLinkLoginPage: FunctionComponent<ComponentProps> = (
           {canSignIn && (
             <Button
               title={t("accounts.magicLinkLogin.submit")}
+              isTitleTranslated={true}
               buttonStyle={ButtonStyleType.PRIMARY}
               isLoading={isSigningIn}
               dataTestId={MAGIC_LINK_LOGIN_BUTTON_TEST_ID}

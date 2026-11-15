@@ -20,6 +20,8 @@ export interface ComponentProps {
   onBlur?: (() => void) | undefined;
   placeholder?: string | undefined;
   addButtonLabel?: string | undefined;
+  // The addButtonLabel is in the reader's words already, drawn as given (Button's isTitleTranslated).
+  isAddButtonLabelTranslated?: boolean | undefined;
   error?: string | undefined;
 }
 
@@ -178,6 +180,9 @@ const AxisValuesInput: FunctionComponent<ComponentProps> = (
       <div className="pt-1">
         <Button
           title={props.addButtonLabel || "Add value"}
+          isTitleTranslated={
+            Boolean(props.addButtonLabel) && props.isAddButtonLabelTranslated
+          }
           icon={IconProp.Add}
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}

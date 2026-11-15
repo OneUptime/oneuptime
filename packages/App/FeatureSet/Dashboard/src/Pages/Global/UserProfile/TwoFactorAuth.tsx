@@ -360,6 +360,7 @@ const TwoFactorAuth: FunctionComponent<
               selectedTotpAuth.name ||
               translatableTerm("authenticator app", { inSentence: true }),
           })}
+          isTitleTranslated={true}
           description="Scan the QR code with your authenticator app, then enter its 6-digit code to finish setup."
           submitButtonText="Verify and finish"
           isLoading={verificationLoading}

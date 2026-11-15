@@ -39,6 +39,16 @@ jest.mock("Common/UI/Utils/API/API", () => {
 });
 
 import ScimOAuthClientCredentials from "../../Dashboard/Identity/Components/ScimOAuthClientCredentials";
+import {
+  MIN_SCIM_BEARER_TOKEN_LENGTH,
+  SCIM_BEARER_TOKEN_TOO_SHORT_MESSAGE,
+  SCIM_BEARER_TOKEN_UNAVAILABLE_MESSAGE,
+} from "../../Dashboard/Identity/TightenOnly/TightenOnlyUpdates";
+import RolesPageLink, {
+  ROLES_PAGE_LINK_TEST_ID,
+} from "../../Dashboard/CustomRoles/RolesPageLink";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { MemoryRouter } from "react-router-dom";
 import TelemetryRetentionConfigForm from "../../Dashboard/TelemetryRetention/TelemetryRetentionConfigForm";
 import TelemetryRetentionConfigSummary from "../../Dashboard/TelemetryRetention/TelemetryRetentionConfigSummary";
 import TelemetryRetentionLicenseNotice, {
@@ -384,6 +394,85 @@ describe("an Enterprise setting's license notice", () => {
           LicensedFeature.CustomRoles,
           dashboardTranslator(language),
         )?.description || "",
+      );
+    },
+  );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The rest of the Enterprise screens (#8634).
+ * ---------------------------------------------------------------------------
+ *
+ * A SCIM connection's Reset Bearer Token dialog says why a token could not
+ * be made or was refused; the error dialog looks its sentence up, and both
+ * sentences are keys now - the second one was an English template filled
+ * with the length, which no locale could word. The custom roles' link to
+ * the Roles page drew its word with an English fallback around the lookup.
+ */
+describe("the SCIM token's errors, and the link to the Roles page", () => {
+  test.each(LANGUAGES)(
+    "%s: why a new bearer token is refused, as the reset dialog draws it",
+    (language: string) => {
+      for (const message of [
+        SCIM_BEARER_TOKEN_TOO_SHORT_MESSAGE,
+        SCIM_BEARER_TOKEN_UNAVAILABLE_MESSAGE,
+      ]) {
+        drawIn(
+          language,
+          <ConfirmModal
+            title="Reset Error"
+            description={message}
+            onSubmit={() => {}}
+          />,
+        );
+
+        expect(
+          screen.getByTestId("confirm-modal-description"),
+        ).toHaveTextContent(wordIn(language, message));
+
+        if (TRANSLATED.includes(language)) {
+          expect(wordIn(language, message)).not.toBe(message);
+        }
+
+        cleanup();
+      }
+    },
+  );
+
+  test("the too-short message states the length the server asks for, in every language", () => {
+    expect(SCIM_BEARER_TOKEN_TOO_SHORT_MESSAGE).toBe(
+      `A new bearer token must be at least ${MIN_SCIM_BEARER_TOKEN_LENGTH} characters long.`,
+    );
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const worded: string = wordIn(
+        language,
+        SCIM_BEARER_TOKEN_TOO_SHORT_MESSAGE,
+      );
+
+      // In the language's own digits, as its sentences write numbers.
+      const LENGTH: RegExp = /32|\u06F3\u06F2/;
+
+      expect({ language, hasLength: LENGTH.test(worded) }).toEqual({
+        language,
+        hasLength: true,
+      });
+    }
+  });
+
+  test.each(LANGUAGES)(
+    "%s: the link to the Roles page reads in the reader's word",
+    (language: string) => {
+      drawIn(
+        language,
+        <MemoryRouter>
+          <RolesPageLink />
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByTestId(ROLES_PAGE_LINK_TEST_ID)).toHaveTextContent(
+        wordIn(language, "Roles"),
       );
     },
   );

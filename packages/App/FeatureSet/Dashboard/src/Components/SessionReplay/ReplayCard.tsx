@@ -824,6 +824,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                             ),
                           })
                     }
+                    isTitleTranslated={true}
                     buttonStyle={ButtonStyleType.SECONDARY_LINK}
                     buttonSize={ButtonSize.ExtraSmall}
                     ariaExpanded={showAllSessions}
