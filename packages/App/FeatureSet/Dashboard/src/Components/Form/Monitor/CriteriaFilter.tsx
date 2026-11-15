@@ -1006,6 +1006,20 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             const categoryOrder: Array<DatabaseMetricCategory> =
               getDatabaseMetricCategoryOrder();
 
+            /*
+             * A metric's name in the reader's words, a key of the catalog's
+             * (#8354): the options sort by it and draw it, never looking it
+             * up again.
+             */
+            const databaseMetricNameOf: (
+              metric: DatabaseMetricDefinition,
+            ) => string = (metric: DatabaseMetricDefinition): string => {
+              return (
+                translator.translateText(metric.friendlyName) ||
+                metric.friendlyName
+              );
+            };
+
             const metricOptions: Array<DropdownOption> = [...metrics]
               .sort(
                 (
@@ -1020,7 +1034,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     return categoryDifference;
                   }
 
-                  return a.friendlyName.localeCompare(b.friendlyName);
+                  // By the name the reader reads, in their language's order.
+                  return databaseMetricNameOf(a).localeCompare(
+                    databaseMetricNameOf(b),
+                    translator.language,
+                  );
                 },
               )
               .map((metric: DatabaseMetricDefinition): DropdownOption => {
@@ -1029,9 +1047,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                  * metric pickers write it, and its unit: put together
                  * here, so never looked up again.
                  */
-                const name: string =
-                  translator.translateText(metric.friendlyName) ||
-                  metric.friendlyName;
+                const name: string = databaseMetricNameOf(metric);
 
                 return {
                   value: metric.metricType,
@@ -1066,9 +1082,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   ? translator.translateTemplate(
                       "{{metric}} - not collected by {{engine}}",
                       {
-                        metric: translator.translateText(
-                          staleMetric.friendlyName,
-                        ) as string,
+                        metric: databaseMetricNameOf(staleMetric),
                         engine: databaseType || "",
                       },
                     )

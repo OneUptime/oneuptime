@@ -18,6 +18,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 /*
  * A STATUS PAGE OR SLO MONITOR RULE'S RUN NOW, FROM THE ROUTE TO THE WRITES
@@ -98,7 +99,7 @@ const RESOURCE_B_ID: ObjectID = new ObjectID(
 );
 const KEY_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 interface Write {
   table: string;

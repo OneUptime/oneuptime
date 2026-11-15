@@ -443,6 +443,8 @@ describe("the unsubscribe page's translations", () => {
         "channelSlack",
         "channelSms",
         "channelWebhook",
+        // The channel with its own colon, before the address (#8483).
+        "channelWithColon",
         "confirmButton",
         "confirmPrompt",
         "failed",

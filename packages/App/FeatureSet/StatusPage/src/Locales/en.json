@@ -275,6 +275,7 @@
       "channelSlack": "Slack workspace",
       "channelMicrosoftTeams": "Microsoft Teams workspace",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "This subscription was added by the team that runs this status page. If it is a shared address, such as a mailing list, unsubscribing stops these notifications for everyone who receives them, and the team will be told.",
       "confirmButton": "Unsubscribe",
       "manageInstead": "Choose which notifications you receive instead",
