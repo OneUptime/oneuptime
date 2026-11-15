@@ -2737,7 +2737,7 @@
   "Type": "类型",
   "Value": "值",
   "Number": "数字",
-  "Loading values...": "Loading values...",
+  "Loading values...": "正在加载值...",
   "equals": "等于",
   "does not equal": "不等于",
   "is any of": "是以下任一项",
