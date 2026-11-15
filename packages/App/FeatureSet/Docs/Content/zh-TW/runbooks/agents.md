@@ -53,7 +53,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 ## 全域 Runner
 
-全域 Runner 是 OneUptime 為所有專案執行的 Runner。未選擇自己 Runner 的 JavaScript 步驟會在其中一個上執行（除非專案有 [預設 Runner](#專案預設-runner) ），因此您可以在安裝任何東西之前就撰寫它。 **運行手冊 → Runbook 代理程式** 會在 **全域 Runner** 下列出它們，位於您自己的 Runner 上方；JavaScript 步驟的 **Runner** 下拉式清單會最先提供 **全域 Runner** ，或緊接在專案預設 Runner 之後提供。 Bash、SSH 或 kubectl 步驟的下拉式清單會把它以灰色顯示在最後，並顯示 **僅執行 JavaScript 步驟。** 這些步驟在您自己網路內的 Runner 上執行，絕不會在所有專案共用的 Runner 上執行。
+全域 Runner 是 OneUptime 為所有專案執行的 Runner。未選擇自己 Runner 的 JavaScript 步驟會在其中一個上執行（除非專案有 [預設 Runner](#專案預設-runner) ），因此您可以在安裝任何東西之前就撰寫它。 **運行手冊 → Runner** 會在 **全域 Runner** 下列出它們，位於您自己的 Runner 上方；JavaScript 步驟的 **Runner** 下拉式清單會最先提供 **全域 Runner** ，或緊接在專案預設 Runner 之後提供。 Bash、SSH 或 kubectl 步驟的下拉式清單會把它以灰色顯示在最後，並顯示 **僅執行 JavaScript 步驟。** 這些步驟在您自己網路內的 Runner 上執行，絕不會在所有專案共用的 Runner 上執行。
 
 | | 全域 Runner | 您自己的 Runner |
 | --- | --- | --- |
@@ -75,7 +75,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 早於 14.0.94 的全域 Runner，或以 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` 啟動的全域 Runner，不接受程式碼修復，OneUptime 也不會將它計入。此時，在 **全域 Runner** 上工作的儲存庫會提示沒有在線的全域 Runner 接受 AI 程式碼修復，而 Admin Dashboard 的 **全域 Runner** 頁面會在該 Runner 的狀態下方說明原因。
 
-對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在專案預設 Runner 上工作，沒有設定預設 Runner 時在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
+對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runner** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在專案預設 Runner 上工作，沒有設定預設 Runner 時在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 
 ### 全域 Runner 從哪裡來
 
@@ -83,7 +83,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 主管理員可以新增更多全域 Runner，以便從其他主機執行步驟與程式碼修復：在 Admin Dashboard 中依序開啟 **設定** 、 **全域 Runner** ，建立一個，然後在可以存取網際網路的主機上執行其 **顯示 ID 和金鑰** 提供的命令。
 
-若要關閉內建的全域 Runner，請在 Docker Compose 的 `config.env` 中設定 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中將 `globalRunner.enabled` 設為 `false`。完全沒有全域 Runner 時， **運行手冊 → Runbook 代理程式** 只會列出您自己的 Runner，每個 JavaScript 步驟與每個程式碼儲存庫都要選擇其中一個。
+若要關閉內建的全域 Runner，請在 Docker Compose 的 `config.env` 中設定 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中將 `globalRunner.enabled` 設為 `false`。完全沒有全域 Runner 時， **運行手冊 → Runner** 只會列出您自己的 Runner，每個 JavaScript 步驟與每個程式碼儲存庫都要選擇其中一個。
 
 ## 開始之前
 
@@ -94,7 +94,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 ### 1. 建立代理程式紀錄
 
-前往 **運行手冊 → Runbook 代理程式** ，建立一個新的代理程式。點選 **建立Runner** ，在同一頁上填寫它的欄位：
+前往 **運行手冊 → Runner** ，建立一個新的代理程式。點選 **建立Runner** ，在同一頁上填寫它的欄位：
 
 | 欄位 | 位置 | 說明 |
 | --- | --- | --- |
@@ -107,9 +107,9 @@ Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。A
 
 ### 2. 複製安裝指令
 
-在 Runner 所在列點選 **顯示設定說明** 。 **操作手冊代理程式設定** 對話方塊會顯示一個 `docker run` 指令，其中已包含該 Runner 的 ID 和金鑰。同樣的指令也位於 Runner 本身頁面的 **設定說明** 下。
+在 Runner 所在列點選 **顯示設定說明** 。 **Runner 設定** 對話方塊會顯示一個 `docker run` 指令，其中已包含該 Runner 的 ID 和金鑰。同樣的指令也位於 Runner 本身頁面的 **設定說明** 下。
 
-只有專案擁有者、專案管理員或運行手冊管理員能讀取金鑰。其他人看到的不是指令，而是「您沒有檢視此操作手冊代理程式金鑰的權限」。
+只有專案擁有者、專案管理員或運行手冊管理員能讀取金鑰。其他人看到的不是指令，而是「您沒有檢視此 Runner 金鑰的權限」。
 
 ### 3. 在您基礎架構中的主機上執行
 
@@ -128,11 +128,11 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. 確認代理程式已連線
 
-回到 **運行手冊 → Runbook 代理程式** 。容器啟動後一分鐘內，Runner 的 **狀態** 應顯示為 **已連線** ，並有新的 **上次出現** 時間。在 Runner 本身的頁面上， **操作手冊代理程式狀態** 卡片會顯示它的 **操作手冊代理程式版本** 和 **主機** 。如果一直顯示 **從未連線** 或 **已中斷** ，請參閱 [疑難排解](#疑難排解)。
+回到 **運行手冊 → Runner** 。容器啟動後一分鐘內，Runner 的 **狀態** 應顯示為 **已連線** ，並有新的 **上次出現** 時間。在 Runner 本身的頁面上， **Runner 狀態** 卡片會顯示它的 **Runner 版本** 和 **主機** 。如果一直顯示 **從未連線** 或 **已中斷** ，請參閱 [疑難排解](#疑難排解)。
 
 ### 5. 讓代理程式保持最新
 
-當代理程式執行的版本比您的 OneUptime 舊時，其頁面上的 **操作手冊代理程式版本** 旁會出現警告標記。選擇它即可查看升級方式：拉取新的映像檔，移除容器，然後重新執行第 2 步的安裝指令。由 Kubernetes 代理程式的 Chart 安裝的代理程式，則改用該 Chart 升級。
+當代理程式執行的版本比您的 OneUptime 舊時，其頁面上的 **Runner 版本** 旁會出現警告標記。選擇它即可查看升級方式：拉取新的映像檔，移除容器，然後重新執行第 2 步的安裝指令。由 Kubernetes 代理程式的 Chart 安裝的代理程式，則改用該 Chart 升級。
 
 ```bash
 docker pull oneuptime/runner:release
@@ -163,7 +163,7 @@ Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中
 
 專案可以把自己的某個 Runner 設為預設，就像把某個 Twilio 設定設為預設一樣。之後，所有未選擇 Runner 的運行手冊步驟都會在它上面執行：Bash、SSH 和 kubectl 步驟，以及原本會在全域 Runner 上執行的 JavaScript 步驟。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫，其中的 AI 也在它上面工作。
 
-若要把某個 Runner 設為預設，請前往 **運行手冊 → Runbook 代理程式** ，開啟該 Runner 所在列的 **⋯** 選單，點選 **設為專案預設** ，然後在對話方塊中確認。也可以開啟該 Runner，在它的 **專案預設值** 卡片上開啟 **用作專案預設** 。清單會在預設 Runner 的名稱旁標出 **專案預設** ，步驟的 **Runner** 下拉式清單也會在第一個選項上這樣標出。一個專案只有一個預設 Runner：把另一個 Runner 設為預設會取代它。同一選單中的 **不再用作專案預設** ，或 Runner 頁面上的開關，可以停止使用它。
+若要把某個 Runner 設為預設，請前往 **運行手冊 → Runner** ，開啟該 Runner 所在列的 **⋯** 選單，點選 **設為專案預設** ，然後在對話方塊中確認。也可以開啟該 Runner，在它的 **專案預設值** 卡片上開啟 **用作專案預設** 。清單會在預設 Runner 的名稱旁標出 **專案預設** ，步驟的 **Runner** 下拉式清單也會在第一個選項上這樣標出。一個專案只有一個預設 Runner：把另一個 Runner 設為預設會取代它。同一選單中的 **不再用作專案預設** ，或 Runner 頁面上的開關，可以停止使用它。
 
 未選擇 Runner 的步驟在哪裡執行：
 
@@ -230,7 +230,7 @@ Runner 認領工作時會取得一個短租約（預設 30 秒）。步驟執行
 
 ### 沒有在線的代理程式
 
-如果步驟執行時所選的 Runner 離線，工作會以 `Pending` 等待到 claim timeout 結束，然後步驟失敗，訊息為「No runbook agent picked up this step before the wait window expired.」在正式執行 Runbook 之前，可以在 **Runbook 代理程式** 頁面上檢查涵蓋範圍。 全域 Runner 上的步驟則會失敗，訊息為「No global Runner picked up this step before the wait window expired.」
+如果步驟執行時所選的 Runner 離線，工作會以 `Pending` 等待到 claim timeout 結束，然後步驟失敗，訊息為「No runbook agent picked up this step before the wait window expired.」在正式執行 Runbook 之前，可以在 **Runner** 頁面上檢查涵蓋範圍。 全域 Runner 上的步驟則會失敗，訊息為「No global Runner picked up this step before the wait window expired.」
 
 ### 輸出上限
 
@@ -268,7 +268,7 @@ Runner 在啟動時讀取以下變數：
 :::steps
 ### 重設金鑰
 
-從 **運行手冊 → Runbook 代理程式** 開啟 Runner，點選 **重設操作手冊代理程式金鑰** 並確認。在取得新金鑰之前，Runner 將無法連線。
+從 **運行手冊 → Runner** 開啟 Runner，點選 **重設 Runner 金鑰** 並確認。在取得新金鑰之前，Runner 將無法連線。
 
 ### 以新金鑰執行容器
 
@@ -280,7 +280,7 @@ docker rm -f oneuptime-runner
 
 ### 確認它重新連線
 
-在 **運行手冊 → Runbook 代理程式** 下，Runner 的 **狀態** 會在一分鐘內恢復為 **已連線** 。
+在 **運行手冊 → Runner** 下，Runner 的 **狀態** 會在一分鐘內恢復為 **已連線** 。
 :::
 
 ## 權限
