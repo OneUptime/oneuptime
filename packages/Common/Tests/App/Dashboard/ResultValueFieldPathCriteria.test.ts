@@ -1,7 +1,6 @@
 import CriteriaNameUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName";
 import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import { describe, expect, test } from "@jest/globals";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
   CheckOn,
   CriteriaFilter,
@@ -106,11 +105,8 @@ describe("Result Value field path in the criteria list", () => {
         resultValueFilter({
           customCodeMonitorOptions: { resultValuePath: "cpu_busy_percent" },
         }),
-        FilterCondition.Any,
       ),
-    ).toBe(
-      'Check if "Result Value" at cpu_busy_percent is greater than 90 or,',
-    );
+    ).toBe('Check if "Result Value" at cpu_busy_percent is greater than 90');
   });
 
   test("no path keeps the line it always had", () => {

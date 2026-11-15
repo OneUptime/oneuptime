@@ -65,9 +65,19 @@ import ExecutionLogTimelineTable from "../../../../App/FeatureSet/Dashboard/src/
 import {
   getOnCallLogLineSentence,
   getOnCallLogNotificationChannel,
+  LOG_CALL_ANSWERED_AND_LASTED,
+  LOG_CALL_ID,
+  LOG_CALL_OUTCOME_SENTENCES,
   LOG_DIRECT_PAGE_PAGED,
   LOG_LINE_SENTENCES,
+  LOG_NOTIFICATION_STUCK,
   LOG_OWN_LINE_SENTENCES,
+  LOG_PAGE_ACKNOWLEDGED_BY_SENTENCES,
+  LOG_PAGE_LINE_SENTENCES,
+  LOG_PAGE_RECORD_ACKNOWLEDGED_SENTENCES,
+  LOG_PAGE_RECORD_DELETED_SENTENCES,
+  LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES,
+  LOG_PROVIDER_STATUS_SENTENCES,
   LOG_PAGE_HANDED_OVER,
   LOG_PAGE_OUT_OF_TRIES,
   LOG_PAGE_OUT_OF_TRIES_NEXT,
@@ -153,12 +163,33 @@ import {
   ON_CALL_RUN_SCHEDULED_MESSAGE,
   USER_LOG_TIMED_OUT_STATUS_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallRunStart";
+import { getSentWithoutImagesStatusMessage } from "../../../../App/FeatureSet/Notification/Utils/EmailStatusMessage";
+import { getOnCallObserverPageSeenMessage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import {
+  getOnCallPageAcknowledgedByMessage,
+  getOnCallPageOverRecordResolvedReason,
+  getUserOnCallLogEndedMessage,
+  getUserOnCallLogRecordAcknowledgedMessage,
+  ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON,
+  ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageEnding";
+import { getOnCallPageRecordDeletedMessage } from "../../../Types/OnCallDutyPolicy/OnCallPageRecordGone";
+import {
+  CALL_ANSWERED_MESSAGE,
+  CALL_BUSY_MESSAGE,
+  CALL_NOT_CONNECTED_MESSAGE,
+  CALL_RANG_OUT_MESSAGE,
+  CallOutcomeLine,
   EMAIL_SENT_STATUS_MESSAGE,
+  getCallAnsweredAndLastedMessage,
   getCallIdStatusMessage,
+  getCallOutcomeMessage,
   getMessageIdStatusMessage,
+  getProviderDeliveryStatusMessage,
+  getStuckNotificationStatusMessage,
   getWorkspaceMessageSentMessage,
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
   PUSH_NOTIFICATION_SENT_MESSAGE,
   TELEGRAM_MESSAGE_SENT_MESSAGE,
   WHATSAPP_MESSAGE_SENT_MESSAGE,
@@ -166,6 +197,7 @@ import {
 import { joinSentences } from "../../../UI/Utils/SentenceSeparator";
 import {
   getOnCallOptedOutStatusMessage,
+  NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
   NO_NOTIFICATION_RULES_STATUS_MESSAGE,
   NOBODY_ON_CALL_IN_SCHEDULE_TIMELINE_MESSAGE,
   NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
@@ -1966,4 +1998,465 @@ describe("the rest of the logs' sentences, in every Dashboard language (#8434)",
       );
     }
   });
+});
+
+/*
+ * THE LAST OF A LOG'S OWN LINES, IN THE READER'S WORDS (#8551): a person's
+ * page that ended, was acknowledged or seen; a notification an observer
+ * saw, or the stuck check settled; a provider's delivery report; an email
+ * sent without its images. On the real pages, with the shipped locales.
+ */
+describe.each(LANGUAGES)(
+  "a %s reader reads a person's page's and a notification's last lines in their own words (#8551)",
+  (language: string) => {
+    beforeEach(async () => {
+      await inLanguage(language);
+    });
+
+    // What a German, Persian or Arabic line keeps of English: names and values.
+    const expectNoEnglish: (line: HTMLElement, keep?: Array<string>) => void = (
+      line: HTMLElement,
+      keep: Array<string> = [],
+    ): void => {
+      if (language === "en") {
+        return;
+      }
+
+      let words: string = text(line);
+
+      for (const value of ["OneUptime", ...keep]) {
+        words = words.split(value).join("");
+      }
+
+      expect(words).not.toMatch(
+        /\b(execution|completed|acknowledged|deleted|seen|observer|sending|provider|delivered|stopped|email|images)\b/i,
+      );
+    };
+
+    describe("User Settings > On-Call Logs: a person's page", () => {
+      test.each([
+        [
+          getUserOnCallLogEndedMessage(
+            ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON,
+          ),
+          LOG_PAGE_LINE_SENTENCES.pageOverPageAcknowledged,
+        ],
+        [
+          getUserOnCallLogEndedMessage(
+            ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON,
+          ),
+          LOG_PAGE_LINE_SENTENCES.pageOverPageAgainAcknowledged,
+        ],
+        [
+          getOnCallPageRecordDeletedMessage(null),
+          LOG_PAGE_LINE_SENTENCES.pageNamesNoRecord,
+        ],
+        [
+          NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+          LOG_PAGE_LINE_SENTENCES.pageNoLongerProjectMember,
+        ],
+      ] as Array<[string, string]>)(
+        "%s",
+        async (message: string, key: string) => {
+          const line: HTMLElement = await statusLine(
+            "pages",
+            personPage(message),
+          );
+
+          expect(text(line)).toBe(worded(language, key));
+          expect(text(line)).not.toMatch(SAYS_TEST);
+          expectNoEnglish(line);
+        },
+      );
+
+      test.each([...ON_CALL_POLICY_RUN_RECORD_KINDS])(
+        "its %s acknowledged, resolved or deleted",
+        async (kind: OnCallPolicyRunRecordKind) => {
+          for (const [message, key] of [
+            [
+              getUserOnCallLogRecordAcknowledgedMessage(kind),
+              LOG_PAGE_RECORD_ACKNOWLEDGED_SENTENCES[kind],
+            ],
+            [
+              getUserOnCallLogEndedMessage(
+                getOnCallPageOverRecordResolvedReason(kind),
+              ),
+              RUN_RECORD_RESOLVED_SENTENCES[kind],
+            ],
+            [
+              getOnCallPageRecordDeletedMessage(kind),
+              LOG_PAGE_RECORD_DELETED_SENTENCES[kind],
+            ],
+          ] as Array<[string, string]>) {
+            cleanup();
+
+            const line: HTMLElement = await statusLine(
+              "pages",
+              personPage(message),
+            );
+
+            expect(text(line)).toBe(worded(language, key));
+            expectNoEnglish(line);
+          }
+        },
+      );
+
+      test("acknowledged by its person: who, set apart, as written", async () => {
+        const who: string = "Ana Lopez (ana@acme.example)";
+        const line: HTMLElement = await statusLine(
+          "pages",
+          personPage(
+            getOnCallPageAcknowledgedByMessage({
+              recordLabel: "Alert Episode",
+              userName: "Ana Lopez",
+              userEmail: "ana@acme.example",
+            }),
+          ),
+        );
+
+        expect(text(line)).toBe(
+          worded(
+            language,
+            LOG_PAGE_ACKNOWLEDGED_BY_SENTENCES[
+              OnCallPolicyRunRecordKind.AlertEpisode
+            ],
+            { name: who },
+          ),
+        );
+
+        if (RIGHT_TO_LEFT.includes(language)) {
+          expect(line.textContent).toContain(isolated(who));
+        }
+
+        expectNoEnglish(line, ["Ana Lopez", "ana@acme.example"]);
+      });
+
+      test("seen by an observer: who, and the record not acknowledged by it", async () => {
+        const line: HTMLElement = await statusLine(
+          "pages",
+          personPage(
+            getOnCallObserverPageSeenMessage({
+              kind: "incident",
+              userName: "Ana Lopez",
+              userEmail: "",
+            }),
+          ),
+        );
+
+        expect(text(line)).toBe(
+          worded(
+            language,
+            LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES[
+              OnCallPolicyRunRecordKind.Incident
+            ],
+            { name: "Ana Lopez" },
+          ),
+        );
+        expectNoEnglish(line, ["Ana Lopez"]);
+      });
+    });
+
+    describe("User Settings > On-Call Logs > a log's timeline: a notification", () => {
+      test("an observer's notification marked as seen", async () => {
+        const line: HTMLElement = await statusLine(
+          "notifications",
+          notification(ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE, {
+            channelColumn: "userPushId",
+          }),
+        );
+
+        expect(text(line)).toBe(
+          worded(language, LOG_PAGE_LINE_SENTENCES.notificationSeenAsObserver),
+        );
+        expectNoEnglish(line);
+      });
+
+      test("a notification the stuck check settled, its minutes in the reader's plural", async () => {
+        const line: HTMLElement = await statusLine(
+          "notifications",
+          notification(getStuckNotificationStatusMessage(15), {
+            channelColumn: "userCallId",
+          }),
+        );
+        const translator: Translator = dashboardTranslator(language);
+        const words: string =
+          language === "en"
+            ? LOG_NOTIFICATION_STUCK.other
+            : readDashboardLocale(language)[LOG_NOTIFICATION_STUCK.other]!;
+
+        expect(text(line)).toBe(
+          words.split("{{count}}").join(translator.formatNumber(15)),
+        );
+        expectNoEnglish(line);
+      });
+
+      test("an SMS the provider delivered, and one it could not, with its id and error code", async () => {
+        const delivered: HTMLElement = await statusLine(
+          "notifications",
+          notification(
+            getProviderDeliveryStatusMessage({
+              status: "Delivered",
+              messageId: "SM0123",
+            }),
+            { channelColumn: "userSmsId" },
+          ),
+        );
+
+        expect(text(delivered)).toBe(
+          joinSentences([
+            worded(language, LOG_PROVIDER_STATUS_SENTENCES["Delivered"]!),
+            worded(language, LOG_PAGE_LINE_SENTENCES.providerMessageId, {
+              id: "SM0123",
+            }),
+          ]),
+        );
+        cleanup();
+
+        const undelivered: HTMLElement = await statusLine(
+          "notifications",
+          notification(
+            getProviderDeliveryStatusMessage({
+              status: "Undelivered",
+              messageId: "SM0123",
+              errorCode: "30003",
+            }),
+            { channelColumn: "userSmsId" },
+          ),
+        );
+
+        expect(text(undelivered)).toBe(
+          joinSentences([
+            worded(language, LOG_PROVIDER_STATUS_SENTENCES["Undelivered"]!),
+            worded(language, LOG_PAGE_LINE_SENTENCES.providerMessageId, {
+              id: "SM0123",
+            }),
+            worded(language, LOG_PAGE_LINE_SENTENCES.providerErrorCode, {
+              code: "30003",
+            }),
+          ]),
+        );
+        expectNoEnglish(undelivered, ["SM0123", "30003"]);
+      });
+
+      test("a WhatsApp message Meta could not send: Meta's words set apart, as written", async () => {
+        const metaWords: string = "Message undeliverable (code 131026)";
+        const line: HTMLElement = await statusLine(
+          "notifications",
+          notification(
+            getProviderDeliveryStatusMessage({
+              status: "Failed",
+              messageId: "wamid.HBgL",
+              providerError: metaWords,
+            }),
+            { channelColumn: "userWhatsAppId" },
+          ),
+        );
+
+        expect(text(line)).toBe(
+          joinSentences([
+            worded(language, LOG_PROVIDER_STATUS_SENTENCES["Failed"]!),
+            worded(language, LOG_PAGE_LINE_SENTENCES.providerMessageId, {
+              id: "wamid.HBgL",
+            }),
+            worded(language, LOG_PAGE_LINE_SENTENCES.providerError, {
+              error: metaWords,
+            }),
+          ]),
+        );
+
+        if (RIGHT_TO_LEFT.includes(language)) {
+          expect(line.textContent).toContain(isolated(metaWords));
+        }
+      });
+
+      test("an email sent without its images: the mail service's words, and that delivery is not tracked", async () => {
+        const line: HTMLElement = await statusLine(
+          "notifications",
+          notification(
+            getSentWithoutImagesStatusMessage("Attachment too large"),
+            {
+              channelColumn: "userEmailId",
+            },
+          ),
+        );
+
+        expect(text(line)).toBe(
+          joinSentences([
+            worded(language, LOG_PAGE_LINE_SENTENCES.emailSentWithoutImages, {
+              answer: "Attachment too large.",
+            }),
+            worded(language, LOG_PAGE_LINE_SENTENCES.emailDeliveryNotTracked),
+          ]),
+        );
+        expectNoEnglish(line, ["Attachment too large."]);
+      });
+    });
+  },
+);
+
+// The last sentences, in every Dashboard language (#8551).
+describe("the last of the logs' sentences, in every Dashboard language (#8551)", () => {
+  const SENTENCES: Array<string> = [
+    ...Object.values(LOG_PAGE_LINE_SENTENCES),
+    ...Object.values(LOG_PROVIDER_STATUS_SENTENCES),
+    ...Object.values(LOG_PAGE_RECORD_ACKNOWLEDGED_SENTENCES),
+    ...Object.values(LOG_PAGE_RECORD_DELETED_SENTENCES),
+    ...Object.values(LOG_PAGE_ACKNOWLEDGED_BY_SENTENCES),
+    ...Object.values(LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES),
+  ];
+  const KEYS: Array<string> = [
+    ...SENTENCES,
+    LOG_NOTIFICATION_STUCK.other,
+    `${LOG_NOTIFICATION_STUCK.other}_one`,
+  ];
+
+  test("thirty-four keys, each its own", () => {
+    expect(KEYS).toHaveLength(34);
+    expect(new Set(KEYS).size).toBe(34);
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s words every one, its values kept",
+    (language: string) => {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const key of KEYS) {
+        const english: string = key.endsWith("_one")
+          ? LOG_NOTIFICATION_STUCK.one
+          : key;
+        const value: string = locale[key] || "";
+
+        expect({
+          language,
+          key,
+          worded: Boolean(value) && value !== english,
+        }).toEqual({ language, key, worded: true });
+        expect({ language, key, placeholders: placeholdersOf(value) }).toEqual({
+          language,
+          key,
+          placeholders: placeholdersOf(english),
+        });
+      }
+    },
+  );
+
+  test("none of a real page's sentences says test", () => {
+    for (const key of KEYS) {
+      expect({ key, saysTest: SAYS_TEST.test(key) }).toEqual({
+        key,
+        saysTest: false,
+      });
+    }
+  });
+});
+
+/*
+ * A CALL'S OUTCOME, IN THE READER'S WORDS (#8576): on a person's on-call
+ * log's timeline, with the shipped locales, in en, de, fa and ar.
+ */
+describe.each(LANGUAGES)(
+  "a %s reader reads how a call ended in their own words (#8576)",
+  (language: string) => {
+    const CALL_SID: string = "CA0123456789abcdef0123456789abcdef";
+
+    beforeEach(async () => {
+      await inLanguage(language);
+    });
+
+    test.each([
+      [CALL_ANSWERED_MESSAGE, CallOutcomeLine.Answered],
+      [CALL_RANG_OUT_MESSAGE, CallOutcomeLine.RangOut],
+      [CALL_BUSY_MESSAGE, CallOutcomeLine.Busy],
+      [CALL_NOT_CONNECTED_MESSAGE, CallOutcomeLine.NotConnected],
+    ] as Array<[string, CallOutcomeLine]>)(
+      "%s, after the call's id, set apart",
+      async (sentence: string, outcome: CallOutcomeLine) => {
+        const line: HTMLElement = await statusLine(
+          "notifications",
+          notification(
+            getCallOutcomeMessage({ callId: CALL_SID, sentence: sentence }),
+            { channelColumn: "userCallId" },
+          ),
+        );
+
+        expect(text(line)).toBe(
+          joinSentences([
+            worded(language, LOG_CALL_ID, { id: CALL_SID }),
+            worded(language, LOG_CALL_OUTCOME_SENTENCES[outcome]),
+          ]),
+        );
+
+        if (RIGHT_TO_LEFT.includes(language)) {
+          expect(line.textContent).toContain(isolated(CALL_SID));
+        }
+
+        if (language !== "en") {
+          expect(text(line).split(CALL_SID).join("")).not.toMatch(
+            /\b(call|answered|rang|busy|declined|connected)\b/i,
+          );
+        }
+      },
+    );
+
+    test("an answered call, how long it lasted in the reader's plural and digits", async () => {
+      const line: HTMLElement = await statusLine(
+        "notifications",
+        notification(
+          getCallOutcomeMessage({
+            callId: null,
+            sentence: getCallAnsweredAndLastedMessage(42),
+          }),
+          { channelColumn: "userCallId" },
+        ),
+      );
+      const words: string =
+        language === "en"
+          ? LOG_CALL_ANSWERED_AND_LASTED.other
+          : readDashboardLocale(language)[LOG_CALL_ANSWERED_AND_LASTED.other]!;
+
+      expect(text(line)).toBe(
+        words
+          .split("{{count}}")
+          .join(dashboardTranslator(language).formatNumber(42)),
+      );
+    });
+  },
+);
+
+describe("a call's outcome, in every Dashboard language (#8576)", () => {
+  const KEYS: Array<string> = [
+    ...Object.values(LOG_CALL_OUTCOME_SENTENCES),
+    LOG_CALL_ID,
+    LOG_CALL_ANSWERED_AND_LASTED.other,
+    `${LOG_CALL_ANSWERED_AND_LASTED.other}_one`,
+  ];
+
+  test("seven keys, each its own", () => {
+    expect(new Set(KEYS).size).toBe(7);
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s words every one",
+    (language: string) => {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const key of KEYS) {
+        const english: string = key.endsWith("_one")
+          ? LOG_CALL_ANSWERED_AND_LASTED.one
+          : key;
+        const value: string = locale[key] || "";
+
+        expect({
+          language,
+          key,
+          worded: Boolean(value) && value !== english,
+        }).toEqual({ language, key, worded: true });
+        expect({ language, key, placeholders: placeholdersOf(value) }).toEqual({
+          language,
+          key,
+          placeholders: placeholdersOf(english),
+        });
+      }
+    },
+  );
 });

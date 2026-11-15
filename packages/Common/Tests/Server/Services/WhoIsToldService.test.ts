@@ -2656,8 +2656,8 @@ describe("WhoIsToldService", () => {
   });
 
   test("an answer is kept a minute, and a refresh works it out again", async () => {
-    const reads: jest.SpiedFunction<typeof MonitorService.findOneBy> =
-      MonitorService.findOneBy as unknown as jest.SpiedFunction<
+    const reads: SpyInstance<typeof MonitorService.findOneBy> =
+      MonitorService.findOneBy as unknown as SpyInstance<
         typeof MonitorService.findOneBy
       >;
 
@@ -2701,9 +2701,7 @@ describe("WhoIsToldService", () => {
       offlineCriteria({ createAlerts: true, alerts: [alertTemplate()] }),
     ]);
 
-    const writes: Array<
-      jest.SpiedFunction<(...args: Array<never>) => unknown>
-    > = [
+    const writes: Array<SpyInstance<(...args: Array<never>) => unknown>> = [
       jest.spyOn(MonitorService, "updateOneById"),
       jest.spyOn(OnCallDutyPolicyService, "create"),
       jest.spyOn(ProjectService, "updateOneById"),
@@ -2713,9 +2711,7 @@ describe("WhoIsToldService", () => {
       jest.spyOn(AlertService, "create"),
       jest.spyOn(IncidentOwnerUserService, "create"),
       jest.spyOn(IncidentFeedService, "createIncidentFeedItem"),
-    ] as unknown as Array<
-      jest.SpiedFunction<(...args: Array<never>) => unknown>
-    >;
+    ] as unknown as Array<SpyInstance<(...args: Array<never>) => unknown>>;
 
     const result: WhoIsToldResult = await resolve();
 
@@ -3331,7 +3327,7 @@ describe("WhoIsToldService", () => {
       expect(events(result)).toHaveLength(2);
 
       const rootRuleReads: number = (
-        IncidentOwnerRuleService.findBy as unknown as jest.SpiedFunction<
+        IncidentOwnerRuleService.findBy as unknown as SpyInstance<
           (args: { props: DatabaseCommonInteractionProps }) => unknown
         >
       ).mock.calls.filter(
@@ -3596,7 +3592,7 @@ describe("WhoIsToldService", () => {
       const ownerRuleReads: Array<
         Array<{ query: unknown; props: DatabaseCommonInteractionProps }>
       > = (
-        IncidentOwnerRuleService.findBy as unknown as jest.SpiedFunction<
+        IncidentOwnerRuleService.findBy as unknown as SpyInstance<
           (args: {
             query: unknown;
             props: DatabaseCommonInteractionProps;
@@ -3617,7 +3613,7 @@ describe("WhoIsToldService", () => {
       const pageReads: Array<
         Array<{ query: unknown; props: DatabaseCommonInteractionProps }>
       > = (
-        StatusPageService.findBy as unknown as jest.SpiedFunction<
+        StatusPageService.findBy as unknown as SpyInstance<
           (args: {
             query: unknown;
             props: DatabaseCommonInteractionProps;

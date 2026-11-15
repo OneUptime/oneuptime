@@ -37,6 +37,14 @@ import {
   sectionTitlesInOrder,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/code-repository/*/get-item", "/project-products"]);
 
 /*
  * Code is one product: the request box and every task first (/code), the

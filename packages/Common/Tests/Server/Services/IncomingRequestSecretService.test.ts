@@ -25,6 +25,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A project's incoming request secrets, as IncomingRequestSecretService
@@ -100,7 +101,7 @@ const createBy: (
 let requireSecret: boolean;
 let secretCount: number;
 let rowsToDelete: Array<IncomingRequestSecret>;
-let forget: jest.SpiedFunction<typeof IncomingRequestSecretPolicy.forget>;
+let forget: SpyInstance<typeof IncomingRequestSecretPolicy.forget>;
 
 beforeEach(() => {
   requireSecret = true;
@@ -169,7 +170,10 @@ describe("creating a secret", () => {
     "a value left empty (%j) is generated",
     async (value: string | undefined) => {
       const onCreate: OnCreate<IncomingRequestSecret> =
-        await hooks.onBeforeCreate(createBy({ secretValue: value }));
+        await hooks.onBeforeCreate(
+          // Sent as written, an explicit undefined included.
+          createBy({ secretValue: value } as Partial<IncomingRequestSecret>),
+        );
 
       expect(onCreate.createBy.data.secretValue).toMatch(/^[0-9a-f]{64}$/);
     },

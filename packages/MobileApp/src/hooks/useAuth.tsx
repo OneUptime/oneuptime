@@ -18,6 +18,7 @@ import {
   TwoFactorMethod,
 } from "../api/auth";
 import { setOnAuthFailure } from "../api/client";
+import type { SessionEndReason } from "../auth/sessionEnded";
 import { queryClient } from "../api/queryClient";
 import { unregisterPushToken } from "./pushTokenUtils";
 import {
@@ -86,6 +87,14 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   setNeedsServerUrl: (value: boolean) => void;
   setIsAuthenticated: (value: boolean) => void;
+
+  /*
+   * Why the server ended the last session, when it said why: its length or
+   * its idle timeout (auth/sessionEnded, issue #8381). The sign-in screen
+   * says it above the form. Null after any other end - a sign-out, a
+   * session signed out elsewhere - and from the next sign-in on.
+   */
+  sessionEndReason: SessionEndReason | null;
 
   /* The challenge in flight, or null when there is not one. */
   pendingTwoFactor: PendingTwoFactor | null;
@@ -166,6 +175,20 @@ export function AuthProvider({
   const [pendingBackupCodes, setPendingBackupCodes] =
     useState<Array<string> | null>(null);
 
+  const [sessionEndReason, setSessionEndReason] =
+    useState<SessionEndReason | null>(null);
+
+  /*
+   * Said until the person is signed in again, however they sign in: a
+   * password, a second factor, a passkey or single sign-on all end at the
+   * authenticated navigator.
+   */
+  useEffect((): void => {
+    if (isAuthenticated) {
+      setSessionEndReason(null);
+    }
+  }, [isAuthenticated]);
+
   useEffect((): (() => void) => {
     /*
      * Start capturing `oneuptime://sso-callback` before anything else can
@@ -229,9 +252,19 @@ export function AuthProvider({
 
   // Register auth failure handler for 401 interceptor
   useEffect((): void => {
-    setOnAuthFailure((): void => {
+    setOnAuthFailure((reason: SessionEndReason | null): void => {
       setIsAuthenticated(false);
       setUser(null);
+
+      /*
+       * Why, when the server said why. An end that says nothing never
+       * replaces one that did: the requests a screen had in flight when
+       * the server ended the session come back refused one by one, with
+       * nothing left to renew, after the refusal that said why.
+       */
+      if (reason) {
+        setSessionEndReason(reason);
+      }
 
       /*
        * The cache goes here too, for the same reason it goes on sign-out.
@@ -522,6 +555,13 @@ export function AuthProvider({
     setPendingTwoFactor(null);
     setHeldUser(null);
     setPendingBackupCodes(null);
+
+    /*
+     * The person chose to sign out: the sign-in screen says nothing of a
+     * reason, even when the server ended the session while the sign-out
+     * waited for its renewal.
+     */
+    setSessionEndReason(null);
   }, []);
 
   return (
@@ -536,6 +576,7 @@ export function AuthProvider({
         logout,
         setNeedsServerUrl,
         setIsAuthenticated,
+        sessionEndReason,
         pendingTwoFactor,
         pendingBackupCodes,
         showBackupCodes,

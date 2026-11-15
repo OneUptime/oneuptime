@@ -28,7 +28,7 @@ flowchart TB
 ## Før du begynner
 
 - **Et tilkoblet Azure-abonnement.** Koble det til først under **Sky → Koble til**: se [Koble til en skykonto](/docs/telemetry/cloud-accounts).
-- **En prosjekteier eller administrator.** Bare de kan slå på lesing og stoppe strømmingen.
+- **En Prosjekteier eller Prosjektadministrator.** Bare de kan slå på lesing og stoppe strømmingen.
 - **Azure Cloud Shell**, pålogget som **Owner** av abonnementene, eller som **Contributor** som også er **User Access Administrator**: kommandoen oppretter en ressursgruppe og en rolletildeling, og endrer diagnoseinnstillinger.
 - **En vei ut til Azure, på en selvhostet OneUptime.** OneUptime leser hvert navnerom på `<namespace>.servicebus.windows.net` på port 9093, og navnerommene tar imot tilkoblinger fra internett.
 

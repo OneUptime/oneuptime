@@ -275,6 +275,7 @@
       "channelSlack": "Espace de travail Slack",
       "channelMicrosoftTeams": "Espace de travail Microsoft Teams",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}} :",
       "addedByTeamWarning": "Cet abonnement a été ajouté par l'équipe qui gère cette page de statut. S'il s'agit d'une adresse partagée, comme une liste de diffusion, le désabonnement arrête ces notifications pour toutes les personnes qui les reçoivent, et l'équipe en sera informée.",
       "confirmButton": "Se désabonner",
       "manageInstead": "Choisir plutôt les notifications que vous recevez",

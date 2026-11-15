@@ -7,10 +7,12 @@ import HealthPage from "./HealthPage";
 import Route from "Common/Types/API/Route";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { BILLING_ENABLED, IS_ENTERPRISE_EDITION } from "Common/UI/Config";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
-export const QUERY_CONSOLE_NOT_ON_CLOUD_NOTICE: string =
-  "The query console is not available on OneUptime Cloud. It runs statements directly against the datastores behind the instance, so it is offered on the self-hosted OneUptime Enterprise Edition only.";
+export const QUERY_CONSOLE_NOT_ON_CLOUD_NOTICE: string = translationKey(
+  "The query console is not available on OneUptime Cloud. It runs statements directly against the datastores behind the instance, so it is offered on the self-hosted OneUptime Enterprise Edition only.",
+);
 
 /*
  * The OneUptime Health query console: ad-hoc Postgres, ClickHouse and Valkey
@@ -41,8 +43,10 @@ const HealthQueryConsole: FunctionComponent = (): ReactElement => {
 
           return (
             <EnterpriseHealthUpgrade
-              featureName="Query console"
-              featureDescription="Run ad-hoc Postgres, ClickHouse and Valkey queries against the datastores backing this instance, with read-only safety and result export."
+              featureName={translationKey("Query console")}
+              featureDescription={translationKey(
+                "Run ad-hoc Postgres, ClickHouse and Valkey queries against the datastores backing this instance, with read-only safety and result export.",
+              )}
             />
           );
         }}

@@ -69,7 +69,11 @@ export default class DashboardDataSourceValueComponentUtil extends DashboardBase
         required: false,
         type: ComponentInputType.Dropdown,
         id: "reduce",
-        placeholder: DataSourceValueReduce.Last,
+        /*
+         * The default option as the menu names it: the enum's own value
+         * ("Last") read as no option, and was never a word to translate.
+         */
+        placeholder: "Last value",
         section: DisplaySection,
         dropdownOptions: DATA_SOURCE_REDUCE_DROPDOWN_OPTIONS,
       },

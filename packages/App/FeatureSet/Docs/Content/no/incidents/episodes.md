@@ -51,7 +51,7 @@ Så lenge den er slått på, blir en hendelse som er i en episode, ikke lagt til
 
 ## Hvem kan legge til
 
-Å legge til krever tillatelse til å legge hendelser til en episode, som rollene Prosjekteier, Prosjektadministrator, Prosjektmedlem, Hendelsesadministrator og Hendelsesmedlem har, i likhet med en egendefinert rolle med Create Incident Episode Member. Du kan bare legge til hendelser du kan se: en privat hendelse kan bare legges til av eierne sine og av prosjektets eiere og administratorer. Legg til i ny episode krever også tillatelse til å opprette en episode. Når du ikke kan bruke en handling, er den låst, og verktøytipset nevner tillatelsen som mangler.
+Å legge til krever tillatelse til å legge hendelser til en episode, som rollene Prosjekteier, Prosjektadministrator, Prosjektmedlem, Hendelsesadministrator og Hendelsesmedlem har, i likhet med en egendefinert rolle med Create Incident Episode Member. Du kan bare legge til hendelser du kan se: en privat hendelse kan bare legges til av eierne sine og av Prosjekteiere og Prosjektadministratorer. Legg til i ny episode krever også tillatelse til å opprette en episode. Når du ikke kan bruke en handling, er den låst, og verktøytipset nevner tillatelsen som mangler.
 
 ## Med API-et
 

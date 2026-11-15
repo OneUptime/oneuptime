@@ -35,7 +35,7 @@ flowchart TB
 
 ## 開始之前
 
-- **專案擁有者或管理員。** 只有他們可以連線、測試和編輯雲端帳戶。
+- **專案擁有者或專案管理員。** 只有他們可以連線、測試和編輯雲端帳戶。
 - **你的雲端的終端機**（AWS CloudShell、Azure Cloud Shell 或 Google Cloud Shell），並以可以建立 IAM 角色或使用者、應用程式註冊或服務帳戶的身分登入。
 
 ## Amazon Web Services

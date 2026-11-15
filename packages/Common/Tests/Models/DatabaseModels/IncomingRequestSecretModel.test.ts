@@ -1,7 +1,7 @@
 import IncomingRequestSecret from "../../../Models/DatabaseModels/IncomingRequestSecret";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Project from "../../../Models/DatabaseModels/Project";
-import ColumnAccessControl from "../../../Types/BaseDatabase/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import { IncomingRequestSecretProblem } from "../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import Permission from "../../../Types/Permission";

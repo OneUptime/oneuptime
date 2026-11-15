@@ -922,7 +922,7 @@ describe("when a page finds no rule", () => {
       "const NOTIFICATION_WINDOW_IN_MS: number = 24 * 60 * 60 * 1000;",
     );
     expect(english(REACHING_YOU)).toContain(
-      "You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none.",
+      "You get an email saying so, and so do the on-call policy's owners, or the Project Owners when the policy has none.",
     );
   });
 
@@ -2203,6 +2203,27 @@ describe("notification settings", () => {
   it("tells a record's owners, members of its owner teams included, or the project's owners when it has none, but tells only the person added that they were", () => {
     const jobs: string = path.join(PACKAGES_DIR, "App/FeatureSet/Workers/Jobs");
 
+    /*
+     * A job falls back on its own, or through planForOwnersOf, which reads
+     * the project's owners for a record with none (#8509).
+     */
+    expect(
+      readCommonSource(
+        "Server/Utils/Notification/OwnerNotificationDeliveries.ts",
+      ),
+    ).toContain(
+      "owners = await ProjectService.getOwners(data.notification.projectId);",
+    );
+
+    const fallsBack: (source: string) => boolean = (
+      source: string,
+    ): boolean => {
+      return (
+        source.includes("ProjectService.getOwners(") ||
+        source.includes("OwnerNotificationDeliveries.planForOwnersOf(")
+      );
+    };
+
     for (const job of [
       "IncidentOwners/SendCreatedResourceNotification.ts",
       "AlertOwners/SendStateChangeNotification.ts",
@@ -2212,9 +2233,7 @@ describe("notification settings", () => {
     ]) {
       expect({
         job,
-        fallsBack: fs
-          .readFileSync(path.join(jobs, job), "utf8")
-          .includes("ProjectService.getOwners("),
+        fallsBack: fallsBack(fs.readFileSync(path.join(jobs, job), "utf8")),
       }).toEqual({ job, fallsBack: true });
     }
 
@@ -2225,9 +2244,7 @@ describe("notification settings", () => {
     ]) {
       expect({
         job,
-        fallsBack: fs
-          .readFileSync(path.join(jobs, job), "utf8")
-          .includes("ProjectService.getOwners("),
+        fallsBack: fallsBack(fs.readFileSync(path.join(jobs, job), "utf8")),
       }).toEqual({ job, fallsBack: false });
     }
 
@@ -2235,7 +2252,7 @@ describe("notification settings", () => {
       "AlertOwnerTeamService.findBy(",
     );
     expect(settings).toContain(
-      "When a record has no owners, it goes to the project's owners instead.",
+      "When a record has no owners, it goes to the Project Owners instead.",
     );
   });
 

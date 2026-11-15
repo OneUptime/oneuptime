@@ -243,9 +243,9 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
             data-testid="global-oidc-test-link"
           >
             <p>
-              Open this link to test the provider. It must be enabled, which
-              only adds a &quot;Sign in with SSO&quot; option and locks no one
-              out.
+              {t(
+                'Open this link to test the provider. It must be enabled, which only adds a "Sign in with SSO" option and locks no one out.',
+              )}
             </p>
             <p>
               <Link

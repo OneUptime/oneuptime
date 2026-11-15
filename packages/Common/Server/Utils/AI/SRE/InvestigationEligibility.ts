@@ -260,7 +260,7 @@ export default class InvestigationEligibility {
           ? "The system could not check the daily AI token limit, so it did not queue an investigation that might go over it."
           : "The daily AI token limit cannot currently be checked, so eligibility for a new investigation cannot be confirmed.",
         nextStep:
-          "Ask a project administrator to check service health and AI settings. This record was not queued for automatic retry.",
+          "Ask a Project Admin to check service health and AI settings. This record was not queued for automatic retry.",
       },
       enqueue_failed: {
         title: recorded
@@ -270,7 +270,7 @@ export default class InvestigationEligibility {
           ? "The system could not save an investigation to the queue, so no investigation started for this record."
           : "The service could not confirm whether a new investigation can currently be saved to the queue.",
         nextStep:
-          "Ask a project administrator to check service health and server logs. This record was not queued for automatic retry.",
+          "Ask a Project Admin to check service health and server logs. This record was not queued for automatic retry.",
       },
       eligibility_check_failed: {
         title: recorded
@@ -280,7 +280,7 @@ export default class InvestigationEligibility {
           ? "The system could not complete the checks required to start an automatic investigation."
           : "The current checks required to start an automatic investigation could not be completed.",
         nextStep:
-          "Ask a project administrator to check service health and AI settings. No automatic retry is scheduled for this record.",
+          "Ask a Project Admin to check service health and AI settings. No automatic retry is scheduled for this record.",
       },
       /*
        * The card links to the record's AI settings here, and its step names

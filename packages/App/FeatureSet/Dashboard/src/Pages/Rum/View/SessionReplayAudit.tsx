@@ -27,7 +27,11 @@ import {
 } from "../../../Components/SessionReplay/SessionReplayAuditSummary";
 import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/RumMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 
 /*
  * Who watched a real end user's screen, and for how long.
@@ -51,16 +55,23 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  */
 export const SESSION_REPLAY_WATCH_BUCKET_SECONDS: number = 15;
 
+/*
+ * "< 15s" and "45s" in English, the reader's short unit and digits in their
+ * language ("< 15 Sek.", "۴۵ ثانیه"; #8455).
+ */
 export function describeSecondsWatched(
   secondsWatched: number | undefined | null,
+  translator: Translator = getGlobalTranslator(),
 ): string {
   const seconds: number = secondsWatched ?? 0;
 
   if (seconds <= 0) {
-    return `< ${SESSION_REPLAY_WATCH_BUCKET_SECONDS}s`;
+    return `< ${formatCompactDuration(translator, {
+      seconds: SESSION_REPLAY_WATCH_BUCKET_SECONDS,
+    })}`;
   }
 
-  return `${seconds}s`;
+  return formatCompactDuration(translator, { seconds });
 }
 
 interface SessionSummaryState {
@@ -291,7 +302,7 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
             getElement: (item: RumSessionReplayView): ReactElement => {
               return (
                 <span className="font-mono text-sm tabular-nums text-gray-900">
-                  {describeSecondsWatched(item.secondsWatched)}
+                  {describeSecondsWatched(item.secondsWatched, translator)}
                 </span>
               );
             },

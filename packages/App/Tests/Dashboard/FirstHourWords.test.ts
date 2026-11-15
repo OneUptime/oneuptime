@@ -39,7 +39,7 @@ function read(...segments: Array<string>): string {
 }
 
 const CREATE_MONITOR_DESCRIPTION: string =
-  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.";
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the Project Owners.";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
@@ -49,10 +49,10 @@ const WHITESPACE_RUN: RegExp = /\s+/g;
  * ...", and still says who is told until then.
  */
 const ON_CALL_STEP_DESCRIPTION: string =
-  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the project's owners get an email.";
+  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.";
 
 const PREVIOUS_ON_CALL_STEP_DESCRIPTION: string =
-  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.";
+  "Page the right person when an incident or alert opens. Until then, the Project Owners get an email.";
 
 const EVERY_NEW_EVENT_TITLE: string =
   "Page this policy for every new incident and alert";

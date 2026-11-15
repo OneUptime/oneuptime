@@ -36,6 +36,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * "I'VE SEEN IT" FROM THE MOBILE APP, END TO END (OnCallObserverPageSeen).
@@ -103,11 +104,11 @@ function logOf(userId: ObjectID): UserOnCallLog {
   return world.logsOf(userId)[0]!;
 }
 
-function spyOnRecordAcknowledgements(): Array<jest.SpiedFunction<() => void>> {
+function spyOnRecordAcknowledgements(): Array<SpyInstance<() => void>> {
   return [
     jest.spyOn(IncidentService, "acknowledgeIncident"),
     jest.spyOn(AlertService, "acknowledgeAlert"),
-  ] as unknown as Array<jest.SpiedFunction<() => void>>;
+  ] as unknown as Array<SpyInstance<() => void>>;
 }
 
 describe("an observer says they have seen their page", () => {
@@ -118,7 +119,7 @@ describe("an observer says they have seen their page", () => {
   });
 
   test("the incident stays as it was - not acknowledged, no state written - and nobody becomes its commander", async () => {
-    const acknowledgements: Array<jest.SpiedFunction<() => void>> =
+    const acknowledgements: Array<SpyInstance<() => void>> =
       spyOnRecordAcknowledgements();
     await startObserverRun();
 
@@ -173,7 +174,7 @@ describe("an observer says they have seen their page", () => {
   });
 
   test("on an incident the responders acknowledged - the usual case - it is just as open, and answered the same way", async () => {
-    const acknowledgements: Array<jest.SpiedFunction<() => void>> =
+    const acknowledgements: Array<SpyInstance<() => void>> =
       spyOnRecordAcknowledgements();
     await startObserverRun();
     await world.acknowledgeInDashboard(DANA);
@@ -247,7 +248,7 @@ describe("what is not theirs to answer", () => {
   });
 
   test("a responder's page is never answered here: answering it would acknowledge the incident", async () => {
-    const acknowledgements: Array<jest.SpiedFunction<() => void>> =
+    const acknowledgements: Array<SpyInstance<() => void>> =
       spyOnRecordAcknowledgements();
     await world.startRun();
 

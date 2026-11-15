@@ -23,6 +23,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import FakeEnterpriseModule, {
   createEditionStateCases,
   createLicenseSnapshot,
@@ -400,13 +401,13 @@ describe.each([
   "a %s's telemetry",
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (_name: string, serviceType: ServiceType, service: any) => {
-    let findOneById: jest.SpiedFunction<() => Promise<unknown>>;
+    let findOneById: SpyInstance<() => Promise<unknown>>;
 
     beforeEach(() => {
       findOneById = jest.spyOn(service, "findOneById").mockResolvedValue({
         retainTelemetryDataForDays: OVERRIDE_DAYS,
         telemetryRetentionConfig: OVERRIDE_CONFIG,
-      } as never) as unknown as jest.SpiedFunction<() => Promise<unknown>>;
+      } as never) as unknown as SpyInstance<() => Promise<unknown>>;
     });
 
     const build: (

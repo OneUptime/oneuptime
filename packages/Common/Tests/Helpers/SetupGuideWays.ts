@@ -16,6 +16,14 @@ import {
   DOCKER_SWARM_INSTALL_METHODS,
   getDockerSwarmSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import {
+  CEPH_INSTALL_METHODS,
+  getCephSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import {
+  IOT_INGESTION_METHODS,
+  getIoTSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -140,6 +148,53 @@ export function getDockerSwarmSetupGuideWays(): Array<SetupGuideWay> {
         apiKey: reader.apiKey,
         method: option,
         clusterName: name,
+      });
+    },
+  });
+}
+
+/*
+ * Ceph's guide also tells a reader with a key from one without: the install
+ * script's command carries only a real key (CephDocumentationCard).
+ */
+export function getCephSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: CEPH_INSTALL_METHODS,
+    names: ["ceph-1", "Prod Ceph 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof CEPH_INSTALL_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getCephSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        method: option,
+        clusterName: name,
+      });
+    },
+  });
+}
+
+/*
+ * IoT's guide sends readings to a fleet: one named in Add IoT Fleet or on a
+ * fleet's own Documentation tab, or an example fleet on the product page.
+ */
+export function getIoTSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: IOT_INGESTION_METHODS,
+    names: ["fleet-1", "Prod Fleet 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof IOT_INGESTION_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getIoTSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        method: option,
+        fleetName: name,
       });
     },
   });

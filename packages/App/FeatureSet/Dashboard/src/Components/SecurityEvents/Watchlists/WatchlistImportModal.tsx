@@ -16,6 +16,7 @@ import {
   IMPORT_MODE_REPLACE_TITLE,
   IMPORT_NOTHING,
   IMPORT_PROBLEMS_MORE,
+  IMPORT_PROBLEM_ITEM,
   IMPORT_PROBLEM_LINE,
   IMPORT_SUBMIT,
   IMPORT_TEXT_LABEL,
@@ -46,6 +47,7 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import GroupRadioButtons from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import SecurityCaseApi from "../../SecurityCase/SecurityCaseApi";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -407,19 +409,32 @@ const WatchlistImportModal: FunctionComponent<ComponentProps> = (
                   (problem: SecurityWatchlistImportProblem): ReactElement => {
                     return (
                       <li key={problem.line} className="break-words">
-                        <span className="font-medium text-gray-700">
-                          {translator.translateTemplate(IMPORT_PROBLEM_LINE, {
-                            line: translator.formatNumber(problem.line),
-                          })}
-                        </span>
-                        {": "}
-                        <IsolatedText
-                          text={problem.value}
-                          className="font-mono"
+                        <TranslatedSentence
+                          template={IMPORT_PROBLEM_ITEM}
+                          slots={{
+                            line: (
+                              <span className="font-medium text-gray-700">
+                                {translator.translateTemplate(
+                                  IMPORT_PROBLEM_LINE,
+                                  {
+                                    line: translator.formatNumber(problem.line),
+                                  },
+                                )}
+                              </span>
+                            ),
+                            value: (
+                              <IsolatedText
+                                text={problem.value}
+                                className="font-mono"
+                              />
+                            ),
+                          }}
+                          values={{
+                            problem:
+                              translator.translateText(problem.message) ||
+                              problem.message,
+                          }}
                         />
-                        {" - "}
-                        {translator.translateText(problem.message) ||
-                          problem.message}
                       </li>
                     );
                   },

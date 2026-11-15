@@ -149,6 +149,7 @@ jest.mock(
 
 import TracesViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TracesViewer";
 import ObjectID from "../../../Types/ObjectID";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../../Types/Telemetry/ResourceFacetCatalog";
 import {
   TRACE_SPAN_TYPE_OPTIONS,
@@ -315,18 +316,39 @@ const renderInLanguage: (language: string) => void = (
 };
 
 // The keys the chips draw, without their colons: "スパンタイプ".
-const chipKeys: () => Array<string> = (): Array<string> => {
+/*
+ * A label with the language's own colon, as LABEL_WITH_COLON words it:
+ * "Type de span :" in French, "Span 类型：" in Chinese (#8571).
+ */
+const withColon: (language: string, label: string) => string = (
+  language: string,
+  label: string,
+): string => {
+  // French's colon after a no-break space, as the translator sets it.
+  return withNoBreakSpaces(
+    drawn(language, "{{label}}:"),
+    "{{label}}:",
+    language,
+  ).replace("{{label}}", label);
+};
+
+// The filter chips' field names, each without the colon the language writes after it.
+const chipKeys: (language: string) => Array<string> = (
+  language: string,
+): Array<string> => {
+  const colon: string = withColon(language, "");
+
   return screen
     .queryAllByText((_content: string, element: Element | null): boolean => {
       return (
         element !== null &&
         element.tagName === "SPAN" &&
         element.classList.contains("font-medium") &&
-        (element.textContent || "").endsWith(":")
+        (element.textContent || "").endsWith(colon)
       );
     })
     .map((element: HTMLElement): string => {
-      return (element.textContent || "").slice(0, -1);
+      return (element.textContent || "").slice(0, -colon.length);
     });
 };
 
@@ -468,7 +490,7 @@ describe.each(LANGUAGES)("the traces sidebar in %s", (language: string) => {
   test("the Root spans and Server chips name their filters as the sections do", () => {
     renderInLanguage(language);
 
-    const keys: Array<string> = chipKeys();
+    const keys: Array<string> = chipKeys(language);
 
     expect(keys).toEqual(
       expect.arrayContaining([
@@ -495,7 +517,7 @@ describe("the two filters in Japanese and Spanish", () => {
     );
     expect(titles).not.toContain(SPAN_TYPE);
     expect(titles).not.toContain(SPAN_KIND);
-    expect(chipKeys()).toEqual(
+    expect(chipKeys("ja")).toEqual(
       expect.arrayContaining(["スパンタイプ", "スパンの種類"]),
     );
     // Each name once: the two filters no longer share スパンの種類.
@@ -519,7 +541,7 @@ describe("the two filters in Japanese and Spanish", () => {
         return title === "Tipo de span";
       }),
     ).toHaveLength(1);
-    expect(chipKeys()).toEqual(
+    expect(chipKeys("es")).toEqual(
       expect.arrayContaining(["Categoría de span", "Tipo de span"]),
     );
   });
@@ -530,7 +552,9 @@ describe("the two filters in Japanese and Spanish", () => {
     expect(sectionTitles()).toEqual(
       expect.arrayContaining([SPAN_TYPE, SPAN_KIND]),
     );
-    expect(chipKeys()).toEqual(expect.arrayContaining([SPAN_TYPE, SPAN_KIND]));
+    expect(chipKeys("en")).toEqual(
+      expect.arrayContaining([SPAN_TYPE, SPAN_KIND]),
+    );
   });
 });
 
@@ -658,7 +682,7 @@ describe.each(LANGUAGES)("the Span Type in %s", (language: string) => {
     expect(button).toHaveAccessibleDescription(
       choicesIn(language)
         .map((choice: [string, string]): string => {
-          return `${choice[0]}: ${choice[1]}`;
+          return `${withColon(language, choice[0])} ${choice[1]}`;
         })
         .join(" "),
     );

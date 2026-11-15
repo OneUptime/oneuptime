@@ -1,9 +1,9 @@
 import {
   getGlobalTranslator,
-  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
+  formatCompactDuration,
   formatDurationInUnit,
   formatMilliseconds,
 } from "../../Utils/Milliseconds";
@@ -20,26 +20,12 @@ import {
  * translation yet.
  */
 
-// "4m 05s" and "1h 02m": the Dashboard's short minutes and hours.
-export const LLM_MINUTES_AND_SECONDS_TEMPLATE: string = translationKey(
-  "{{minutes}}m {{seconds}}s",
-);
-
-export const LLM_HOURS_AND_MINUTES_TEMPLATE: string = translationKey(
-  "{{hours}}h {{minutes}}m",
-);
-
 /*
- * A count under 60 in two digits, as a clock writes it: "05", "۰۵" - the
- * reader's zero before the reader's digit.
+ * "850 ms", "2.3 s", "42 s", "4m 05s", "1h 02m". From a minute up, the
+ * Dashboard's compact minutes and hours (formatCompactDuration, #8455): a
+ * two-digit field is the reader's zero before the reader's digit ("۴ دقیقه
+ * ۰۵ ثانیه").
  */
-function writeTwoDigits(value: number, translator: Translator): string {
-  return value < 10
-    ? `${translator.formatNumber(0)}${translator.formatNumber(value)}`
-    : translator.formatNumber(value);
-}
-
-// "850 ms", "2.3 s", "42 s", "4m 05s", "1h 02m".
 export function formatLlmDuration(
   ms: number,
   translator: Translator = getGlobalTranslator(),
@@ -75,18 +61,26 @@ export function formatLlmDuration(
   }
 
   if (totalSeconds < 3600) {
-    return translator.translateTemplate(LLM_MINUTES_AND_SECONDS_TEMPLATE, {
-      minutes: translator.formatNumber(Math.floor(totalSeconds / 60)),
-      seconds: writeTwoDigits(totalSeconds % 60, translator),
-    });
+    return formatCompactDuration(
+      translator,
+      {
+        minutes: Math.floor(totalSeconds / 60),
+        seconds: totalSeconds % 60,
+      },
+      { padsAfterTheFirst: true },
+    );
   }
 
   const totalMinutes: number = Math.round(totalSeconds / 60);
 
-  return translator.translateTemplate(LLM_HOURS_AND_MINUTES_TEMPLATE, {
-    hours: translator.formatNumber(Math.floor(totalMinutes / 60)),
-    minutes: writeTwoDigits(totalMinutes % 60, translator),
-  });
+  return formatCompactDuration(
+    translator,
+    {
+      hours: Math.floor(totalMinutes / 60),
+      minutes: totalMinutes % 60,
+    },
+    { padsAfterTheFirst: true },
+  );
 }
 
 /*

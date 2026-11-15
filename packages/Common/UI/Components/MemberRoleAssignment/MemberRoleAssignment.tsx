@@ -173,7 +173,8 @@ const LockedRoleButton: FunctionComponent<{
   children: ReactElement;
 }): ReactElement => {
   return (
-    <Tooltip text={props.reason}>
+    // The permission check words its reason in the reader's language.
+    <Tooltip text={props.reason} isTextTranslated={true}>
       <span
         className={`inline-flex flex-shrink-0 ${BUTTON_DISABLED_CURSOR_CLASS_NAME}${
           props.className ? ` ${props.className}` : ""

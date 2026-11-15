@@ -947,6 +947,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                         ? undefined
                         : addToDashboardGate.disabledReason
                     }
+                    isTooltipTranslated={true}
                     onClick={() => {
                       if (!addToDashboardGate.isAllowed) {
                         return;

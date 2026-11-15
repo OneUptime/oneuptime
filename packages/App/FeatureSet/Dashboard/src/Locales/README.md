@@ -377,6 +377,14 @@ number or a date, which the space sets apart. It never adds one: the key
 (issue #7864). A space beside punctuation (`。`, `：`, `？`) is yours to write
 or leave out.
 
+A value can be a sentence of its own inside yours (a `composedValue` in the
+code): a criteria filter's summary is a comparison, `{{subject}} 大于
+{{value}}`, around `{{measure}} 的平均值`. Write the space beside it too. The
+Translator drops it the same way where the inner sentence's letter on that
+side is OneUptime's words, and keeps it where that letter is a name someone
+typed: `过去 5 分钟内的 /dev/sda 上的 "磁盘使用率（%）" 的平均值大于 90%`
+(issue #8532).
+
 Korean writes a space between its words anyway, so none of this applies to
 `ko`.
 
@@ -607,13 +615,19 @@ translated the same locale. Take either side, then run
   (UTC)") read in English in every language (`Common/Utils/CronScheduleText`).
 - The monitor metric charts' own titles, units and descriptions
   (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
-  not keys yet, except a Database monitor's descriptions, which are its
-  catalog's; the metric groups' titles and descriptions are. Every monitor
-  metric catalog's descriptions are keys that every language words
-  (`Common/Types/Monitor/*MetricCatalog`, #8014), but not the database,
-  VMware, Kubernetes, Docker, Docker Swarm,
-  Podman, host and IoT catalogs' metric names, which their pickers and
-  criteria draw in English, so the docs' metric tables keep them in English.
+  not keys yet, except a Database monitor's titles and descriptions, which
+  are its catalog's; the metric groups' titles and descriptions are. Every
+  monitor metric catalog's descriptions are keys that every language words
+  (`Common/Types/Monitor/*MetricCatalog`, #8014), and so are the database
+  catalog's metric names and its groups' headings (#8354), which the
+  criteria's metric dropdown, the summary and the charts look up once, and
+  the translated Database Health pages name as each language draws them;
+  but not the VMware, Kubernetes, Docker, Docker Swarm, Podman, host and IoT
+  catalogs' metric names, which their pickers and criteria draw in English,
+  so the docs' metric tables keep them in English. A Database monitor's
+  summary still names a collection group it could not collect by the
+  group's English value, as the docs' Group column and troubleshooting
+  headings do.
 - "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
   Events" are still English in some languages, the monitor overview's
   verdicts among them. The translated docs quote each label as that

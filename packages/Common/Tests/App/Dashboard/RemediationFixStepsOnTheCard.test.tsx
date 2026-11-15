@@ -56,6 +56,14 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/project/*/get-item"]);
 
 /*
  * A FIX, STEP BY STEP, ON THE AI CARD'S REMEDIATION STEP (issue #5598).

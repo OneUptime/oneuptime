@@ -27,7 +27,7 @@ flowchart TB
 ## Før du begynner
 
 - **Et tilkoblet Google Cloud-prosjekt.** Koble det til først under **Sky → Koble til**: se [Koble til en skykonto](/docs/telemetry/cloud-accounts).
-- **En prosjekteier eller administrator.** Bare de kan lage en strømnøkkel og stoppe strømmingen.
+- **En Prosjekteier eller Prosjektadministrator.** Bare de kan lage en strømnøkkel og stoppe strømmingen.
 - **Google Cloud Shell**, pålogget som **Owner** av prosjektene, eller som noen som får lage tjenestekontoer, Pub/Sub-emner og loggsinker i dem.
 - **En HTTPS-adresse, på en selvhostet OneUptime.** Pub/Sub pusher bare til `https://`-adresser, med et sertifikat Google stoler på, og adressen må kunne nås fra Google Cloud.
 

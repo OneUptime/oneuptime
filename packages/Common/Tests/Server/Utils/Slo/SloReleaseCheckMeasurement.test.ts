@@ -10,6 +10,7 @@ import SpanService from "../../../../Server/Services/SpanService";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import SloReleaseCheckMeasurement, {
   SLO_RELEASE_CHECK_MEASUREMENT_ERRORS,
+  SLO_RELEASE_CHECK_SELECT,
 } from "../../../../Server/Utils/Slo/SloReleaseCheckMeasurement";
 import SloRequestCounting from "../../../../Server/Utils/Slo/SloRequestCounting";
 import OneUptimeDate from "../../../../Types/Date";
@@ -29,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * What the release check measures over its window: a request SLO's
@@ -93,11 +95,10 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
   });
 
   test("counts the window's requests and reads their burn", async () => {
-    const count: jest.SpiedFunction<
-      typeof SloRequestCounting.countRecentRequests
-    > = jest
-      .spyOn(SloRequestCounting, "countRecentRequests")
-      .mockResolvedValue({ goodCount: 995, totalCount: 1000 });
+    const count: SpyInstance<typeof SloRequestCounting.countRecentRequests> =
+      jest
+        .spyOn(SloRequestCounting, "countRecentRequests")
+        .mockResolvedValue({ goodCount: 995, totalCount: 1000 });
 
     const measurement: SloReleaseCheckMeasurementResult =
       await SloReleaseCheckMeasurement.measure({
@@ -125,11 +126,10 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
   });
 
   test("a Request Latency SLO counts against its threshold", async () => {
-    const count: jest.SpiedFunction<
-      typeof SloRequestCounting.countRecentRequests
-    > = jest
-      .spyOn(SloRequestCounting, "countRecentRequests")
-      .mockResolvedValue({ goodCount: 10, totalCount: 10 });
+    const count: SpyInstance<typeof SloRequestCounting.countRecentRequests> =
+      jest
+        .spyOn(SloRequestCounting, "countRecentRequests")
+        .mockResolvedValue({ goodCount: 10, totalCount: 10 });
 
     await SloReleaseCheckMeasurement.measure({
       slo: makeSlo({
@@ -143,6 +143,33 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
     expect(count.mock.calls[0]![0].config.latencyThresholdInMilliseconds).toBe(
       250,
     );
+  });
+
+  /*
+   * A release is judged on the requests the SLO counts (#8444): its
+   * request filter reaches the recent count, beside the release's version.
+   */
+  test("judges the same requests the SLO counts: its request filter, beside the version", async () => {
+    const count: SpyInstance<typeof SloRequestCounting.countRecentRequests> =
+      jest
+        .spyOn(SloRequestCounting, "countRecentRequests")
+        .mockResolvedValue({ goodCount: 10, totalCount: 10 });
+
+    await SloReleaseCheckMeasurement.measure({
+      slo: makeSlo({ requestFilter: "-@http.route:/health" }),
+      options: optionsOf({ serviceVersion: "2.0.1" }),
+      now: NOW,
+    });
+
+    const args: Parameters<typeof SloRequestCounting.countRecentRequests>[0] =
+      count.mock.calls[0]![0];
+
+    expect(args.config.requestFilter).toBe("-@http.route:/health");
+    expect(args.serviceVersion).toBe("2.0.1");
+  });
+
+  test("the check reads the SLO's request filter", () => {
+    expect(SLO_RELEASE_CHECK_SELECT.requestFilter).toBe(true);
   });
 
   test("no requests: no SLI, and no burn", async () => {
@@ -203,7 +230,7 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
   });
 
   test("the count itself: entry spans of the SLO's services, now, and the release's version", async () => {
-    const query: jest.SpiedFunction<typeof SpanService.executeQuery> = jest
+    const query: SpyInstance<typeof SpanService.executeQuery> = jest
       .spyOn(SpanService, "executeQuery")
       .mockResolvedValue(
         resultOf([{ totalCount: "40", badCount: "2" }]) as never,
@@ -235,7 +262,7 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
   });
 
   test("without a version, the count reads every release", async () => {
-    const query: jest.SpiedFunction<typeof SpanService.executeQuery> = jest
+    const query: SpyInstance<typeof SpanService.executeQuery> = jest
       .spyOn(SpanService, "executeQuery")
       .mockResolvedValue(resultOf([]) as never);
 
@@ -304,7 +331,7 @@ describe("SloReleaseCheckMeasurement - a Monitor Uptime SLO", () => {
 
   test("reads the window's downtime from the monitors' timelines", async () => {
     // Up until 2 minutes ago, Offline since: 2 of the last 10 minutes down.
-    const timelines: jest.SpiedFunction<
+    const timelines: SpyInstance<
       typeof MonitorStatusTimelineService.findAllBy
     > = jest
       .spyOn(MonitorStatusTimelineService, "findAllBy")

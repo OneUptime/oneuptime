@@ -671,6 +671,7 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
           }}
           isLocked={Boolean(pending) || isChangingPassword || isSaving}
           lockedReason={gate.isAllowed ? undefined : gate.disabledReason}
+          isLockedReasonTranslated={true}
           status={
             saved === current && !pending ? (
               <span className="inline-flex items-center gap-1 text-emerald-700">

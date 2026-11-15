@@ -525,6 +525,7 @@
     "Trace {{traceId}} ({{count}}+ spans)",
     "Traces",
     "Traits",
+    "Transactions",
     "Transition",
     "Transport",
     "Tunnel",

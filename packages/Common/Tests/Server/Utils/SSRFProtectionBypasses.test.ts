@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 
 /*
@@ -24,7 +25,7 @@ import dns from "dns";
  * webhooks (GHSA-gf3v-98g2-qffx).
  */
 
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

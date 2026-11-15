@@ -93,6 +93,7 @@
     "OpenStack ID",
     "OpenStack-Ansible",
     "OpenStack-Helm",
+    "OpenTelemetry SDK",
     "PGs",
     "PR #{{number}}",
     "PV",

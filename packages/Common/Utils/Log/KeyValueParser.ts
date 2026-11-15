@@ -1,4 +1,5 @@
 import BadDataException from "../../Types/Exception/BadDataException";
+import { writeOwnValue } from "../LookupTable";
 
 /*
  * Key=value parser.
@@ -238,14 +239,11 @@ function toKey(rawKey: string): string | null {
   }
 
   /*
-   * The result is a plain object and so are the attributes it is merged
-   * into: assigning "__proto__" would replace the prototype instead of
-   * adding an attribute.
+   * "__proto__" is a key like any other (issue #8487): the pairs are
+   * written as the result's own keys (writeOwnValue), and the log
+   * pipeline merges them into a copy of the log's attributes the same
+   * way, so it is never assigned and never a prototype.
    */
-  if (key === "__proto__") {
-    return null;
-  }
-
   return key;
 }
 
@@ -452,7 +450,7 @@ export function parseKeyValuePairs(
       continue;
     }
 
-    result[key] = capValue(value);
+    writeOwnValue(result, key, capValue(value));
     pairCount++;
   }
 

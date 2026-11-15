@@ -44,6 +44,7 @@ const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
             tooltip={translator.translateTemplate("{{name}} Service Color", {
               name: serviceName,
             })}
+            isTooltipTranslated={true}
           />
         </div>
         {/*

@@ -53,6 +53,7 @@ export const SLO_RELEASE_CHECK_SELECT: {
   deploymentsAllowed: true;
   currentErrorBudgetPolicyTierName: true;
   latencyThresholdInMilliseconds: true;
+  requestFilter: true;
   multiMonitorMode: true;
   services: { _id: true };
   monitors: { _id: true };
@@ -67,6 +68,8 @@ export const SLO_RELEASE_CHECK_SELECT: {
   deploymentsAllowed: true,
   currentErrorBudgetPolicyTierName: true,
   latencyThresholdInMilliseconds: true,
+  // The same requests the SLO counts (#8444).
+  requestFilter: true,
   multiMonitorMode: true,
   services: { _id: true },
   monitors: { _id: true },
@@ -198,6 +201,8 @@ export default class SloReleaseCheckMeasurement {
           serviceIds: serviceIds,
           latencyThresholdInMilliseconds:
             data.slo.sliType === SliType.RequestLatency ? threshold : null,
+          // The release is judged on the requests the SLO counts (#8444).
+          requestFilter: data.slo.requestFilter,
         },
         range: { from: data.from, to: data.to },
         serviceVersion: data.options.serviceVersion,

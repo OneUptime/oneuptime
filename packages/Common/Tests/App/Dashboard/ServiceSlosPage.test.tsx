@@ -67,8 +67,16 @@ import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
-import { Column } from "../../../UI/Components/ModelTable/Columns";
+import Column from "../../../UI/Components/ModelTable/Column";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/label/get-list"]);
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";
 const SERVICE_ID: string = "20000000-0000-4000-8000-0000000000b2";
@@ -157,6 +165,8 @@ describe("a service's SLOs page", () => {
       "sliType",
       "services",
       "latencyThresholdInMilliseconds",
+      // Which of the service's requests count (#8444).
+      "requestFilter",
       "name",
       "targetPercentage",
       "description",
