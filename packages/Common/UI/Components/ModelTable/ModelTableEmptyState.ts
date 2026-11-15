@@ -45,7 +45,7 @@ export const VIEW_DOCUMENTATION: string = translationKey("View Documentation");
  * button with no word of why looks broken.
  */
 export const CREATE_NOT_ALLOWED_NOTE: string = translationKey(
-  "You don't have permission to create these. Ask a project admin for access.",
+  "You don't have permission to create these. Ask a Project Admin for access.",
 );
 
 export const NO_ACCESS_TITLE: string = translationKey(
@@ -57,7 +57,7 @@ export const NO_ACCESS_TITLE: string = translationKey(
  * Monitor.") - who to ask.
  */
 export const NO_ACCESS_DESCRIPTION: string = translationKey(
-  "Ask a project admin for access.",
+  "Ask a Project Admin for access.",
 );
 
 export const EMPTY_TABLE_CREATE_BUTTON_TEST_ID: string =

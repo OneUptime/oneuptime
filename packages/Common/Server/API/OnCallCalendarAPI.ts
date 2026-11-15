@@ -170,7 +170,7 @@ export const MY_SHIFTS_MAX_DAYS: number = 120;
 export const ROTATE_LOCK_NAMESPACE: string = "OnCallCalendarFeed.rotate";
 
 export const READ_EVERY_SCHEDULE_MESSAGE: string =
-  "You can see only some of this project's on-call schedules, so its calendar link, which shows every schedule, is not yours to use. Ask a project admin for access to every schedule.";
+  "You can see only some of this project's on-call schedules, so its calendar link, which shows every schedule, is not yours to use. Ask a Project Admin for access to every schedule.";
 export const ROTATE_LOCK_TIMEOUT_MS: number = 10000;
 
 const STALE_WARNING_HEADER: string = '110 - "Response is Stale"';

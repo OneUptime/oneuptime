@@ -1760,7 +1760,7 @@ export const SetUpPagingTool: ObservabilityTool = {
     if (!counts) {
       return {
         toldModel:
-          "Nothing proposed: the person may not read this project's on-call policies and rules, so Ask AI cannot tell whether it pages people already, and making a policy beside them could page twice. Tell them a project admin can set up paging, and that a monitor they set up emails them, its owner, when its status changes.",
+          "Nothing proposed: the person may not read this project's on-call policies and rules, so Ask AI cannot tell whether it pages people already, and making a policy beside them could page twice. Tell them a Project Admin can set up paging, and that a monitor they set up emails them, its owner, when its status changes.",
         refusal: AIToolRefusal.Permission,
       };
     }

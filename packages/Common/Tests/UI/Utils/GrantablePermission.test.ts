@@ -232,7 +232,7 @@ describe("a permission row that reaches the whole project", () => {
 });
 
 describe("what a user may hand on", () => {
-  test("a project owner may hand on anything", () => {
+  test("a Project Owner may hand on anything", () => {
     const owner: Array<UserPermission> = [
       row({ permission: Permission.ProjectOwner, scope: PermissionScope.All }),
     ];
@@ -262,7 +262,7 @@ describe("what a user may hand on", () => {
     expect(canGrant(Permission.ProjectMember, rows)).toBe(false);
   });
 
-  test("an owner whose ProjectOwner is label-scoped is not a project owner here", () => {
+  test("an owner whose ProjectOwner is label-scoped is not a Project Owner here", () => {
     const rows: Array<UserPermission> = [
       row({
         permission: Permission.ProjectOwner,
@@ -274,7 +274,7 @@ describe("what a user may hand on", () => {
     expect(canGrant(Permission.Viewer, rows)).toBe(false);
   });
 
-  test("a project admin may hand on Project Admin, but not Project Member or Viewer", () => {
+  test("a Project Admin may hand on Project Admin, but not Project Member or Viewer", () => {
     const admin: Array<UserPermission> = [
       row({ permission: Permission.ProjectAdmin, scope: PermissionScope.All }),
     ];
@@ -285,7 +285,7 @@ describe("what a user may hand on", () => {
     expect(canGrant(Permission.ProjectOwner, admin)).toBe(false);
   });
 
-  test("a project admin who is also in Members may hand on Project Member", () => {
+  test("a Project Admin who is also in Members may hand on Project Member", () => {
     const rows: Array<UserPermission> = [
       row({ permission: Permission.ProjectAdmin, scope: PermissionScope.All }),
       row({ permission: Permission.ProjectMember, scope: PermissionScope.All }),
@@ -518,13 +518,13 @@ function teamServerAllows(
 const CALLERS: Array<{ name: string; rows: Array<UserPermission> }> = [
   { name: "nobody", rows: [] },
   {
-    name: "a project owner",
+    name: "a Project Owner",
     rows: [
       row({ permission: Permission.ProjectOwner, scope: PermissionScope.All }),
     ],
   },
   {
-    name: "a legacy project owner row",
+    name: "a legacy Project Owner row",
     rows: [row({ permission: Permission.ProjectOwner })],
   },
   {
@@ -544,13 +544,13 @@ const CALLERS: Array<{ name: string; rows: Array<UserPermission> }> = [
     ],
   },
   {
-    name: "a project admin",
+    name: "a Project Admin",
     rows: [
       row({ permission: Permission.ProjectAdmin, scope: PermissionScope.All }),
     ],
   },
   {
-    name: "a project admin in Members too",
+    name: "a Project Admin in Members too",
     rows: [
       row({ permission: Permission.ProjectAdmin, scope: PermissionScope.All }),
       row({ permission: Permission.ProjectMember, scope: PermissionScope.All }),

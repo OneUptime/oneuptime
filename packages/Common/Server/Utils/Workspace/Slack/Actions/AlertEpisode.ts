@@ -47,7 +47,7 @@ export default class SlackAlertEpisodeActions {
 
   // What a change-state form says instead of opening with nothing to pick.
   public static readonly NO_STATES_MESSAGE: string =
-    "No alert states are available to you in this project. Ask a project admin for access to them.";
+    "No alert states are available to you in this project. Ask a Project Admin for access to them.";
 
   @CaptureSpan()
   public static isAlertEpisodeAction(data: {

@@ -205,7 +205,7 @@ describe("Post to Slack", () => {
 
   test("a project not connected to Slack: says so, as the workspace said it", async () => {
     const notConnected: string =
-      "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.";
+      "This project is not connected to Slack. Please ask a Project Admin to connect Slack in Project Settings > Workspace > Slack.";
 
     answer = [
       {

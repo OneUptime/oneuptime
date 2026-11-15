@@ -424,8 +424,8 @@ describe("the welcome a team or a group chat gets", () => {
     const { card } = await welcome({ projectId: null, isConnected: false });
 
     expect(texts(card)[1]).toBe(
-      // No article before the product's name: "a Acme Ops project admin" read wrong.
-      "To get started, a project admin connects your organization in Acme Ops, under **Project Settings → Workspace → Microsoft Teams**.",
+      // No article before the product's name: "a Acme Ops Project Admin" read wrong.
+      "To get started, a Project Admin connects your organization in Acme Ops, under **Project Settings → Workspace → Microsoft Teams**.",
     );
     expect(card["actions"]).toEqual([
       {
@@ -534,7 +534,7 @@ describe("the help, before and after the organization is connected", () => {
     }).markdown;
 
     expect(paragraphs(markdown).pop()).toBe(
-      "**To get started,** a project admin connects your organization in Acme Ops, under **Project Settings → Workspace → Microsoft Teams**. Then everyone connects their own Microsoft Teams account the first time they use a command.",
+      "**To get started,** a Project Admin connects your organization in Acme Ops, under **Project Settings → Workspace → Microsoft Teams**. Then everyone connects their own Microsoft Teams account the first time they use a command.",
     );
   });
 

@@ -43,7 +43,7 @@ En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så tokenet aldr
 :::steps
 ### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to GitLab`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv den navnet `Incidents to GitLab`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj triggeren
 

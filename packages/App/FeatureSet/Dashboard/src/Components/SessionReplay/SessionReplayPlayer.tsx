@@ -2669,9 +2669,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
     return {
       sessionId: newer.sessionId,
-      description: describeReplayUserSession(newer, Date.now()),
+      description: describeReplayUserSession(newer, Date.now(), translator),
     };
-  }, [adjacentUserSessions]);
+  }, [adjacentUserSessions, translator.language]);
 
   const nextUserSession: ReplayNextUserSession | null = nextUserSessionFacts
     ? {

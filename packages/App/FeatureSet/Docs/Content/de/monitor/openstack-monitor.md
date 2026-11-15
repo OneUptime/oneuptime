@@ -774,8 +774,8 @@ Ein Monitor, den Sie nicht aus einer Vorlage erstellen, startet mit zwei Kriteri
 
 | Reihenfolge | Kriterium | Trifft zu, wenn | Dann |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Die erste Abfrage im ganzen Fenster keine Daten hat | Setzt den Monitor auf **Offline** und erklärt den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn sich der Monitor erholt. |
-| 2 | Check if _monitor name_ is online | Die erste Abfrage Daten hat | Setzt den Monitor auf **Betriebsbereit**. |
+| 1 | Prüfen, ob _Monitorname_ offline ist | Die erste Abfrage im ganzen Fenster keine Daten hat | Setzt den Monitor auf **Offline** und erklärt den Vorfall „_Monitorname_ ist offline“, der sich von selbst auflöst, wenn sich der Monitor erholt. |
+| 2 | Prüfen, ob _Monitorname_ online ist | Die erste Abfrage Daten hat | Setzt den Monitor auf **Betriebsbereit**. |
 
 > [!IMPORTANT]
 > Ein Wert von `0` sind Daten, sodass eine Metrik, die oft null ist, etwa Neustarts oder Fehler, den Monitor nicht offline setzt. Um bei einem Wert zu benachrichtigen, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Wenn gar keine Daten eintreffen und kein Kriterium zutrifft, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst nichts empfing, sind nie keine Daten: Eine Prüfung, deren Fenster sie enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.

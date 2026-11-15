@@ -111,7 +111,7 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer DNS-Monitor beginnt mit zwei Kriterien:
 
-- **Offline** — der Name wird nach allen Wiederholungen nicht aufgelöst oder hat keinen Eintrag des Typs. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ is offline“ wird erstellt. Der Vorfall löst sich von selbst auf, wenn der Name wieder aufgelöst wird.
+- **Offline** — der Name wird nach allen Wiederholungen nicht aufgelöst oder hat keinen Eintrag des Typs. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_Monitorname_ ist offline“ wird erstellt. Der Vorfall löst sich von selbst auf, wenn der Name wieder aufgelöst wird.
 - **Online** — der Name wird aufgelöst. Der Monitor wird als **Betriebsbereit** markiert.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Trifft keines zu, zeigt der Monitor seinen Standardstatus: **Betriebsbereit**, sofern Sie unter **Weitere Felder** unterhalb der Kriterien keinen anderen wählen.

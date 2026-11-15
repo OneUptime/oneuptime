@@ -122,7 +122,7 @@ Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste match
 
 En ny portmonitor börjar med två kriterier:
 
-- **Offline** — porten tar inte emot någon anslutning efter alla återförsök. Monitorn markeras som **Offline** och en incident som heter "_monitor name_ is offline" skapas. Incidenten löser sig själv när porten tar emot anslutningar igen.
+- **Offline** — porten tar inte emot någon anslutning efter alla återförsök. Monitorn markeras som **Offline** och en incident som heter "_monitornamn_ är offline" skapas. Incidenten löser sig själv när porten tar emot anslutningar igen.
 - **Uppe** — porten tar emot en anslutning. Monitorn markeras som **Fungerar**.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. När inget matchar visar monitorn sin standardstatus: **Fungerar**, om du inte väljer en annan under **Fler fält** under kriterierna.

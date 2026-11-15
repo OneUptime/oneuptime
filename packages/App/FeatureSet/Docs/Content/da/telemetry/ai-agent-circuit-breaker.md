@@ -121,7 +121,7 @@ Gem først endpointets token et sted, hvor arbejdsgangen kan bruge det uden at v
 :::steps
 ### Opret arbejdsgangen
 
-Åbn **Produkter → Arbejdsgange**, og klik på **Opret arbejdsgang**. Klik på **Start fra bunden**, kald det `AI agent circuit breaker`, og klik på **Opret arbejdsgang**. Den åbner i **Bygger**, slået fra.
+Åbn **Produkter → Arbejdsgange**, og klik på **Opret arbejdsgang**. Klik på **Start fra bunden**, kald den `AI agent circuit breaker`, og klik på **Opret arbejdsgang**. Den åbner i **Bygger**, slået fra.
 
 ### Tilføj udløseren
 

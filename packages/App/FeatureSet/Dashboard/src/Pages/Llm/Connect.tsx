@@ -595,7 +595,7 @@ const LlmConnectPage: FunctionComponent<PageComponentProps> = (
           <div className="space-y-6">
             <Card
               title="Your company's AI tools"
-              description="What your people ask the AI tools your company pays for, as conversations by person. Only project owners and admins can read them, unless you choose otherwise."
+              description="What your people ask the AI tools your company pays for, as conversations by person. Only Project Owners and Project Admins can read them, unless you choose otherwise."
             >
               <div className="space-y-5">
                 <div>

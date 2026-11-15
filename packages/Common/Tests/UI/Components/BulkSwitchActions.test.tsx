@@ -657,7 +657,7 @@ describe("permissions", () => {
     expect(updateCalls).toEqual([]);
   });
 
-  test("a project owner and a master admin may use them", () => {
+  test("a Project Owner and a master admin may use them", () => {
     let actions: Array<BulkActionButtonSchema<Workflow>> = [];
 
     renderWorkflows(

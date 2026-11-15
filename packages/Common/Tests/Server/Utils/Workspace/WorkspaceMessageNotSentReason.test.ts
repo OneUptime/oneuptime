@@ -39,20 +39,20 @@ const PROJECT_ID: ObjectID = new ObjectID(
 
 const NOT_CONNECTED: Record<string, string> = {
   [WorkspaceType.Slack]:
-    "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.",
+    "This project is not connected to Slack. Please ask a Project Admin to connect Slack in Project Settings > Workspace > Slack.",
   [WorkspaceType.MicrosoftTeams]:
-    "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
+    "This project is not connected to Microsoft Teams. Please ask a Project Admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
   [WorkspaceType.Mattermost]:
-    "This project is not connected to Mattermost. Please ask a project admin to connect Mattermost in Project Settings > Workspace > Mattermost.",
+    "This project is not connected to Mattermost. Please ask a Project Admin to connect Mattermost in Project Settings > Workspace > Mattermost.",
 };
 
 const CANNOT_POST: Record<string, string> = {
   [WorkspaceType.Slack]:
-    "OneUptime cannot post in Slack with this project's connection. Please ask a project admin to reconnect Slack in Project Settings > Workspace > Slack.",
+    "OneUptime cannot post in Slack with this project's connection. Please ask a Project Admin to reconnect Slack in Project Settings > Workspace > Slack.",
   [WorkspaceType.MicrosoftTeams]:
-    "OneUptime cannot post in Microsoft Teams with this project's connection. Please ask a project admin to reconnect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
+    "OneUptime cannot post in Microsoft Teams with this project's connection. Please ask a Project Admin to reconnect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
   [WorkspaceType.Mattermost]:
-    "OneUptime cannot post in Mattermost with this project's connection. Please ask a project admin to reconnect Mattermost in Project Settings > Workspace > Mattermost.",
+    "OneUptime cannot post in Mattermost with this project's connection. Please ask a Project Admin to reconnect Mattermost in Project Settings > Workspace > Mattermost.",
 };
 
 const BLOCKED: string =

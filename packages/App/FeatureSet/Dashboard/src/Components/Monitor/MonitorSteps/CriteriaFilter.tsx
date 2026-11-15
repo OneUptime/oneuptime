@@ -2,6 +2,8 @@ import FilterCondition from "Common/Types/Filter/FilterCondition";
 import CriteriaFilterUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -11,9 +13,14 @@ export interface ComponentProps {
   monitorType?: MonitorType | undefined;
 }
 
+/*
+ * One filter of a criteria, summed up as one sentence in the reader's
+ * language (CriteriaFilterUtil.translateFilterToText, #8350).
+ */
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   let text: string = "";
 
   if (props.criteriaFilter) {
@@ -21,6 +28,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       props.criteriaFilter,
       props.filterCondition,
       props.monitorType,
+      translator,
     );
   }
 

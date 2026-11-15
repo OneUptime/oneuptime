@@ -1,4 +1,8 @@
 import {
+  getMessageIdStatusMessage,
+  WHATSAPP_MESSAGE_SENT_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
+import {
   WhatsAppTextDefaultCostInCents,
   getMetaWhatsAppConfig,
   MetaWhatsAppConfig,
@@ -517,8 +521,8 @@ export default class WhatsAppService {
 
       whatsAppLog.status = WhatsAppStatus.Sent;
       whatsAppLog.statusMessage = messageId
-        ? `Message ID: ${messageId}`
-        : "WhatsApp message sent successfully";
+        ? getMessageIdStatusMessage(messageId)
+        : WHATSAPP_MESSAGE_SENT_MESSAGE;
 
       if (shouldChargeForMessage && project) {
         whatsAppLog.whatsAppCostInUSDCents = messageCostInUSDCents;

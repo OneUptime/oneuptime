@@ -273,7 +273,7 @@ export default class LlmObservabilityConnection extends BaseModel {
     allowedValues: Object.values(LlmConversationReaders),
     title: "Who Can Read Conversations",
     description:
-      "For a company AI tool: 'admins' lets only project owners and admins read its conversations; 'everyone' lets everyone who reads the project's AI conversations read them.",
+      "For a company AI tool: 'admins' lets only Project Owners and Project Admins read its conversations; 'everyone' lets everyone who reads the project's AI conversations read them.",
     defaultValue: LlmConversationReaders.Admins,
     isDefaultValueColumn: true,
   })

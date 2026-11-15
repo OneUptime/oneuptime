@@ -372,7 +372,7 @@ describe("leaving a team that blocks something", () => {
 
     await expect(leaving).rejects.toBeInstanceOf(NotAuthorizedException);
     await expect(leaving).rejects.toThrow(
-      "You cannot leave the Contractors team: it blocks Incident Member for its members, and lifting that block needs Incident Member at an equal or broader scope in your own access. Ask a project owner to remove you from the team.",
+      "You cannot leave the Contractors team: it blocks Incident Member for its members, and lifting that block needs Incident Member at an equal or broader scope in your own access. Ask a Project Owner to remove you from the team.",
     );
   });
 
@@ -524,7 +524,7 @@ describe("removing Mia from Contractors, by whom", () => {
     },
   );
 
-  test("a project owner removes her without a read", async () => {
+  test("a Project Owner removes her without a read", async () => {
     await expect(
       remove(
         [IN_CONTRACTORS],

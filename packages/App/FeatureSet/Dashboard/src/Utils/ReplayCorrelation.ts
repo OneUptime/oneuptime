@@ -16,11 +16,15 @@ import {
   getExceptionGroupLabel,
 } from "./ExceptionCorrelation";
 import {
+  composedValue,
   createTranslator,
   DEFAULT_LANGUAGE,
+  translationKey,
   Translator,
 } from "Common/Types/Translator";
-import { formatMilliseconds } from "./Milliseconds";
+import { isEnglishDateLanguage } from "Common/Types/DateLanguage";
+import { formatDurationInUnit, formatMilliseconds } from "./Milliseconds";
+import { formatReplayDurationInLanguage } from "../Components/SessionReplay/ReplayTimelineMath";
 
 // The panel's own English, and a caller that hands in no sentence's translator.
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
@@ -426,17 +430,54 @@ export function buildReplayExceptionGroupLinks(
 }
 
 /*
+ * What the details panel says of a length it could not read, and of a
+ * clock that ran ahead of or behind the server's: English keys, each a
+ * whole sentence around its {{duration}}, worded in every Dashboard
+ * language (#8299, #8350).
+ */
+export const REPLAY_UNKNOWN_DURATION: string = translationKey("unknown");
+export const REPLAY_NO_CLOCK_SKEW: string = translationKey("None");
+export const REPLAY_CLOCK_AHEAD: string = translationKey(
+  "{{duration}} ahead (server-clamped)",
+);
+export const REPLAY_CLOCK_BEHIND: string = translationKey(
+  "{{duration}} behind (server-clamped)",
+);
+
+// The minus sign `translator` writes before a figure: "-", or "‎−" in Persian.
+function getMinusSign(translator: Translator): string {
+  const minusOne: string = translator.formatNumber(-1);
+  const one: string = translator.formatNumber(1);
+
+  return minusOne.endsWith(one)
+    ? minusOne.slice(0, minusOne.length - one.length) || "-"
+    : "-";
+}
+
+/*
  * A millisecond quantity for the details panel: "420 ms" below a second,
  * "1.5s" below a minute, "2m 05s" beyond. The previous form rounded to
  * whole seconds, which printed "0s (server-clamped)" for a 300 ms skew and
  * listed a "0s missing" gap - copy that contradicted itself.
+ *
+ * In the translator's language and digits (#8299): English exactly as
+ * above; any other language writes the milliseconds with formatMilliseconds
+ * ("420 ms", "۴۲۰ میلی‌ثانیه"), the seconds with the language's own unit,
+ * decimal sign and digits ("1,5 Sek.", "۱٫۵ ثانیه", "1.5 ث"), and a minute
+ * or more as the player writes a length (formatReplayDurationInLanguage:
+ * "2 Min., 5 Sek.", "۲ دقیقه ۵ ثانیه"). A length it cannot read is
+ * "unknown" in the reader's words. Inside a sentence it goes in as a
+ * composedValue, so it is written in the sentence's language.
  */
 export function formatReplayMilliseconds(
   ms: number,
   translator: Translator = ENGLISH,
 ): string {
   if (!Number.isFinite(ms)) {
-    return "unknown";
+    return (
+      translator.translateText(REPLAY_UNKNOWN_DURATION) ||
+      REPLAY_UNKNOWN_DURATION
+    );
   }
 
   const absolute: number = Math.abs(ms);
@@ -458,11 +499,37 @@ export function formatReplayMilliseconds(
         ? String(Math.round(seconds))
         : seconds.toFixed(1);
 
-    return `${sign}${rendered}s`;
+    // The shared helper: English as written here, any other language Intl's.
+    return formatDurationInUnit(
+      translator,
+      (ms < 0 ? -1 : 1) * Number(rendered),
+      "second",
+      {
+        decimals: 1,
+        dropTrailingZeros: true,
+        english: `${sign}${rendered}s`,
+      },
+    );
   }
 
-  const minutes: number = Math.floor(absolute / (60 * 1000));
-  const seconds: number = Math.round((absolute % (60 * 1000)) / 1000);
+  const isEnglish: boolean = isEnglishDateLanguage(translator.language);
+
+  /*
+   * Whole seconds, carried into the minutes: 119.6 s is "2m 00s", never
+   * "1m 60s".
+   */
+  const totalSeconds: number = Math.round(absolute / 1000);
+  const minutes: number = Math.floor(totalSeconds / 60);
+  const seconds: number = totalSeconds % 60;
+
+  if (!isEnglish) {
+    const length: string = formatReplayDurationInLanguage(
+      totalSeconds * 1000,
+      translator,
+    );
+
+    return ms < 0 ? `${getMinusSign(translator)}${length}` : length;
+  }
 
   return `${sign}${minutes}m ${String(seconds).padStart(2, "0")}s`;
 }
@@ -473,62 +540,98 @@ export function formatReplayMilliseconds(
  * much. Zero is "none measured" rather than a number, because a skew of
  * exactly 0 ms is what the header carries when the recorder never reported
  * one.
+ *
+ * One sentence for each way the clock ran, worded whole in the reader's
+ * language with its length in it, never English words glued around a
+ * figure (#8299, #8350). Without a translator, English exactly as before.
  */
-export function formatReplayClockSkew(clockSkewMs: number): string {
+export function formatReplayClockSkew(
+  clockSkewMs: number,
+  translator: Translator = ENGLISH,
+): string {
   if (!Number.isFinite(clockSkewMs) || clockSkewMs === 0) {
-    return "None";
+    return (
+      translator.translateText(REPLAY_NO_CLOCK_SKEW) || REPLAY_NO_CLOCK_SKEW
+    );
   }
 
-  const direction: string = clockSkewMs > 0 ? "ahead" : "behind";
-
-  return `${formatReplayMilliseconds(Math.abs(clockSkewMs))} ${direction} (server-clamped)`;
+  return translator.translateTemplate(
+    clockSkewMs > 0 ? REPLAY_CLOCK_AHEAD : REPLAY_CLOCK_BEHIND,
+    {
+      duration: composedValue((sentence: Translator): string => {
+        return formatReplayMilliseconds(Math.abs(clockSkewMs), sentence);
+      }),
+    },
+  );
 }
 
 /*
  * Readable labels for the enum-valued header fields. An unknown value from
  * a newer recorder is humanised rather than dropped, but never rendered as
  * the bare machine token.
+ *
+ * Each known label is a key, looked up in the translator's language where
+ * the details panel draws it: the Privacy tab's Consent and Why recorded
+ * read English on every page beside a translated Masking mode (#8299). An
+ * unknown value, humanised, is the recorder's word and stays as written.
  */
-const TRIGGER_REASON_LABELS: Record<string, string> = {
-  [SessionReplayTriggerReason.Error]: "An error occurred on the page",
-  [SessionReplayTriggerReason.Frustration]:
+export const TRIGGER_REASON_LABELS: Readonly<Record<string, string>> = {
+  [SessionReplayTriggerReason.Error]: translationKey(
+    "An error occurred on the page",
+  ),
+  [SessionReplayTriggerReason.Frustration]: translationKey(
     "A frustration signal (rage, dead or error click)",
-  [SessionReplayTriggerReason.Sampled]: "Picked by the sample percentage",
-  [SessionReplayTriggerReason.Manual]:
+  ),
+  [SessionReplayTriggerReason.Sampled]: translationKey(
+    "Picked by the sample percentage",
+  ),
+  [SessionReplayTriggerReason.Manual]: translationKey(
     "The page called OneUptimeReplay.captureSession()",
-  [SessionReplayTriggerReason.Performance]: "A performance budget was exceeded",
+  ),
+  [SessionReplayTriggerReason.Performance]: translationKey(
+    "A performance budget was exceeded",
+  ),
 };
 
-export function getReplayTriggerReasonLabel(raw: string): string {
+// A known label in `translator`'s language; an unknown value humanised.
+function readEnumLabel(
+  labels: Readonly<Record<string, string>>,
+  raw: string,
+  translator: Translator,
+): string {
   const trimmed: string = (raw || "").trim();
 
   if (trimmed.length === 0) {
     return "";
   }
 
-  return (
-    TRIGGER_REASON_LABELS[trimmed.toLowerCase()] ||
-    Text.fromPascalCaseToReadable(Text.fromDashesToPascalCase(trimmed))
-  );
+  const label: string | undefined = labels[trimmed.toLowerCase()];
+
+  if (label) {
+    return translator.translateText(label) || label;
+  }
+
+  return Text.fromPascalCaseToReadable(Text.fromDashesToPascalCase(trimmed));
 }
 
-const CONSENT_STATE_LABELS: Record<string, string> = {
-  granted: "Granted by the end user",
-  notrequired: "Not required by this application's policy",
-  unknown: "Unknown - the recorder did not report it",
+export function getReplayTriggerReasonLabel(
+  raw: string,
+  translator: Translator = ENGLISH,
+): string {
+  return readEnumLabel(TRIGGER_REASON_LABELS, raw, translator);
+}
+
+export const CONSENT_STATE_LABELS: Readonly<Record<string, string>> = {
+  granted: translationKey("Granted by the end user"),
+  notrequired: translationKey("Not required by this application's policy"),
+  unknown: translationKey("Unknown - the recorder did not report it"),
 };
 
-export function getReplayConsentStateLabel(raw: string): string {
-  const trimmed: string = (raw || "").trim();
-
-  if (trimmed.length === 0) {
-    return "";
-  }
-
-  return (
-    CONSENT_STATE_LABELS[trimmed.toLowerCase()] ||
-    Text.fromPascalCaseToReadable(Text.fromDashesToPascalCase(trimmed))
-  );
+export function getReplayConsentStateLabel(
+  raw: string,
+  translator: Translator = ENGLISH,
+): string {
+  return readEnumLabel(CONSENT_STATE_LABELS, raw, translator);
 }
 
 export const REPLAY_PANEL_DEFAULT_WIDTH_CLASS: string =

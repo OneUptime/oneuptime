@@ -651,7 +651,7 @@ describe("AI Features page", () => {
     }
   });
 
-  test("a project owner turns AI off: it asks first, then saves exactly that switch", async () => {
+  test("a Project Owner turns AI off: it asks first, then saves exactly that switch", async () => {
     openAiFeatures();
 
     await press(await enableAiSwitch());
@@ -675,7 +675,7 @@ describe("AI Features page", () => {
     expect(createOrUpdateSpy).not.toHaveBeenCalled();
   });
 
-  test("a project owner turns AI back on at once", async () => {
+  test("a Project Owner turns AI back on at once", async () => {
     project.enableAi = false;
     openAiFeatures();
 

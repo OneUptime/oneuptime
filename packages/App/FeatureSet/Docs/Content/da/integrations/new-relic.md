@@ -158,7 +158,7 @@ Test derefter fra New Relic: åbn New Relic-workflowets webhook-besked, og klik 
 :::details Intet kommer frem til OneUptime
 - Kontrollér, at workflowet i New Relic er aktivt, og at dets filter lader sagen igennem.
 - Kontrollér, at destinationens **Endpoint URL** er URL'en for triggeren **Webhook**.
-- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Arbejdsgangen kører, men åbner intet

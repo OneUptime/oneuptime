@@ -370,8 +370,9 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
     await expect(page.getByTestId("llm-usage-totals-cost-hint")).toHaveText(
       "No cost reported",
     );
+    // The cell's quiet dash, with the words a screen reader hears (d8279c590b1).
     await expect(row(page, "bob@sysnetix.com").locator("td").nth(6)).toHaveText(
-      "—",
+      "—Not set",
     );
     await expect(page.getByText("$0.00")).toHaveCount(0);
     await shoot(page, "usage-no-cost");

@@ -14,7 +14,7 @@ import {
   ownWordsOf,
   pairedBlocksOf,
 } from "../FeatureSet/Docs/DocsBlocks";
-import { readPage } from "../FeatureSet/Docs/DocsContentSupport";
+import { listPages, readPage } from "../FeatureSet/Docs/DocsContentSupport";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -104,7 +104,15 @@ const DOCS_NAV_DIR: string = path.join(APPS_DIR, "Docs/Locales");
  * reworded goes here, and comes off when they say the one name - the test
  * fails while one is listed and clean.
  */
-const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [];
+const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [
+  /*
+   * #8435 settled the Dashboard's Italian and Portuguese words for an
+   * on-call policy; their docs pages still say the dropped ones (#8565).
+   * Norwegian's docs say vaktpolicy since #8527.
+   */
+  { language: "it", title: "On-Call" },
+  { language: "pt", title: "On-Call" },
+];
 
 /*
  * Products whose Products-menu title (navbar.items.*Title) still names
@@ -671,8 +679,170 @@ describe("the sentences that named a thing another way", () => {
     ["zh-CN", "profiles", "性能剖析"],
     ["zh-TW", "profiles", "效能剖析"],
     ["hi", "profiles", "प्रोफ़ाइल"],
+    /*
+     * Strings added after #8230 in the words the language had dropped: the
+     * Ask AI tool's sentences (Danish "Workflow-komponenter", Persian سیاست
+     * کشیک, Norwegian "Metrikknavn") and the infrastructure lists' "Docker
+     * monitors" (Swedish övervakare, Chinese 监控器 / 監控器).
+     */
+    ["da", "Workflow components", "Arbejdsgangskomponenter"],
+    ["da", 'Created workflow "{{name}}"', 'Arbejdsgang "{{name}}" oprettet'],
+    ["sv", "Docker monitors", "Docker-monitorer"],
+    ["sv", "Podman monitors", "Podman-monitorer"],
+    ["zh-CN", "Docker monitors", "Docker 监视器"],
+    ["zh-TW", "Podman monitors", "Podman 監測器"],
+    [
+      "fa",
+      'Created on-call policy "{{name}}"',
+      "سیاست آنکال «{{name}}» ایجاد شد",
+    ],
+    ["no", "Metric names ({{count}} found)", "Målingsnavn ({{count}} funnet)"],
+    // Norwegian's on-call policy: the list, one policy and the first one (#8527).
+    ["no", "On-Call Policies", "Vaktpolicyer"],
+    ["no", "on-call policies", "vaktpolicyer"],
+    ["no", "On-Call Policy", "Vaktpolicy"],
+    ["no", "Default on-call policy", "Standard vaktpolicy"],
+    ["no", "Policies", "Policyer"],
+    ["no", "My On-Call Policies", "Mine vaktpolicyer"],
+    ["no", "Incoming Call Policies", "Policyer for innkommende anrop"],
+    ["no", "Repeat Policy", "Gjentakelsespolicy"],
+    [
+      "no",
+      "Execute the on-call policy for this incident. This will notify the on-call team members and start the on-call process.",
+      "Kjør vaktpolicyen for denne hendelsen. Dette vil varsle teammedlemmene på vakt og starte vaktprosessen.",
+    ],
   ])("%s: %p reads %p", (language: string, key: string, worded: string) => {
     expect(readDashboardLocale(language)[key]).toBe(worded);
+  });
+});
+
+/*
+ * NORWEGIAN CALLS AN ON-CALL POLICY A POLICY (#8527).
+ *
+ * The Norwegian Dashboard named an on-call policy five ways: Vaktpolicy for
+ * one policy and the first one ("Standard vaktpolicy"), Vaktretningslinjer
+ * for the list and the menu, and vakttjenesteretningslinje, vakttjeneste-
+ * retningslinje and "retningslinjer for vakttjeneste" in sentences; the
+ * Policies section above the list said Retningslinjer, and an incoming call
+ * policy was a "retningslinje for innkommende anrop". OneNamePerThing holds
+ * the compounds away; a "retningslinje" on its own is a word Norwegian keeps
+ * (a guideline, a Kubernetes network policy), so it is held away only where
+ * the English names an on-call or incoming call policy, and from the on-call
+ * docs pages.
+ */
+describe("Norwegian calls an on-call policy a policy (#8527)", () => {
+  // English that names an on-call or incoming call policy, or the On-Call menu's policies.
+  const ON_CALL_POLICY_ENGLISH: RegExp =
+    /\b(?:on-call|incoming call|escalation|repeat) polic|^(?:Archived |Delete |Execute |My On-Call )?Polic(?:y|ies)(?: Name| Settings| Execution Timeline| to Execute)?$/i;
+  const RETNINGSLINJE: RegExp = /retningslinj/i;
+
+  // The Norwegian strings whose English names an on-call policy, in a locale folder.
+  function onCallPolicyStrings(directory: string): Array<Sighting> {
+    const english: Strings | null = stringsIn(directory, "en");
+    const norwegian: Strings | null = stringsIn(directory, "no");
+    const found: Array<Sighting> = [];
+
+    for (const [key, text] of norwegian || []) {
+      const englishText: string = english?.get(key) || key;
+
+      if (ON_CALL_POLICY_ENGLISH.test(englishText)) {
+        found.push({ where: key, text: text, says: englishText });
+      }
+    }
+
+    return found;
+  }
+
+  test("the dropped compounds are read, and the words that replaced them pass", () => {
+    const name: OneName = nameOf("no", "On-Call");
+
+    for (const dropped of [
+      "Vaktretningslinjer",
+      "Velg vaktretningslinjen som skal utføres.",
+      "Kjør vakttjenesteretningslinje",
+      "Hvis varselet har en vakttjeneste-retningslinje, utføres den.",
+      "Fjernet fra vaktordning-retningslinje",
+      "Kjør retningslinjer for vakttjeneste automatisk.",
+      "Retningslinjer for innkommende anrop",
+      "Velg etiketter for innkommende anropsretningslinje",
+    ]) {
+      expect({ dropped, says: otherWordIn(name, dropped) }).toEqual({
+        dropped,
+        says: expect.any(String),
+      });
+    }
+
+    for (const kept of [
+      "Vaktpolicyer",
+      "Kjør vaktpolicyen for denne hendelsen.",
+      "Policyer for innkommende anrop",
+      "Gjentakelsespolicy",
+      // A Kubernetes policy and a guideline keep their word.
+      "Samtidighetsretningslinje",
+      "Feil ved import av nettverksretningslinjer.",
+      "sjekk Twilios SMS-retningslinjer",
+    ]) {
+      expect({ kept, says: otherWordIn(name, kept) }).toEqual({
+        kept,
+        says: null,
+      });
+    }
+  });
+
+  test("finds the Dashboard's on-call policy strings, nested keys included", () => {
+    const strings: Array<Sighting> = onCallPolicyStrings(
+      LOCALE_DIRS["Dashboard"]!,
+    );
+
+    expect(strings.length).toBeGreaterThan(150);
+    expect(
+      strings.map((sighting: Sighting): string => {
+        return sighting.where;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "On-Call Policies",
+        "Policies",
+        "Delete Policy",
+        "Incoming Call Policy",
+        "commandPalette.sections.onCallPolicies",
+      ]),
+    );
+    // A Kubernetes policy is not one.
+    expect(ON_CALL_POLICY_ENGLISH.test("Concurrency Policy")).toBe(false);
+    expect(
+      ON_CALL_POLICY_ENGLISH.test(
+        "Errors importing network policies. Non-zero values indicate misconfigured policies.",
+      ),
+    ).toBe(false);
+  });
+
+  test.each(Object.keys(LOCALE_DIRS))(
+    "no Norwegian string of the %s whose English names an on-call policy says retningslinje",
+    (app: string) => {
+      expect(
+        onCallPolicyStrings(LOCALE_DIRS[app]!).filter(
+          (sighting: Sighting): boolean => {
+            return RETNINGSLINJE.test(sighting.text);
+          },
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  test("no Norwegian on-call docs page says retningslinje", () => {
+    const pages: Array<string> = listPages("no").filter(
+      (page: string): boolean => {
+        return page.startsWith("on-call/");
+      },
+    );
+
+    expect(pages.length).toBeGreaterThan(5);
+    expect(
+      pages.filter((page: string): boolean => {
+        return RETNINGSLINJE.test(readPage("no", page));
+      }),
+    ).toEqual([]);
   });
 });
 

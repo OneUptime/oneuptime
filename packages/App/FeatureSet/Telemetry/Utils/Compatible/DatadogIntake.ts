@@ -250,10 +250,26 @@ const OTEL_TRACE_ID_FIELDS: ReadonlyArray<string> = ["trace_id"];
 const OTEL_SPAN_ID_FIELDS: ReadonlyArray<string> = ["span_id"];
 
 /*
- * Datadog's status remapper, for a status none of OtlpJson's level words
- * is: the first prefix that matches, case-insensitively. Datadog also
- * reads "trace" and "verbose" as debug; here they keep OpenTelemetry's
- * TRACE, as OtlpJson's words do.
+ * Where Datadog says what a status word means, and the level words every
+ * log ingest reads (OtlpJson.severityFromWord, LOG_SEVERITY_NUMBER_BY_TEXT)
+ * say something else (issue #8536). Datadog's statuses are syslog's
+ * severities - emergency, alert, critical, error, warning, notice, info,
+ * debug - so its `critical` is syslog's Critical (2): below alert and
+ * emergency, ERROR2 as Appendix B's syslog column maps it. Read as the
+ * shared table reads it, an application logger's top level (FATAL), it
+ * would land above Datadog's own alert (ERROR3).
+ */
+const DATADOG_STATUS_SEVERITIES: ReadonlyMap<string, OtlpSeverity> = new Map<
+  string,
+  OtlpSeverity
+>([["critical", OTLP_SEVERITY_ERROR2]]);
+
+/*
+ * Datadog's status remapper, for a status none of the level words is: the
+ * first prefix that matches, case-insensitively. Datadog also reads
+ * "trace" as debug; here it keeps OpenTelemetry's TRACE, as every log
+ * ingest's level words do. "verbose" is Debug, as Datadog and Appendix B
+ * read it.
  */
 const STATUS_PREFIXES: ReadonlyArray<[prefix: string, severity: OtlpSeverity]> =
   [
@@ -266,7 +282,7 @@ const STATUS_PREFIXES: ReadonlyArray<[prefix: string, severity: OtlpSeverity]> =
     ["n", OTLP_SEVERITY_INFO2],
     ["i", OTLP_SEVERITY_INFO],
     ["trace", OTLP_SEVERITY_TRACE],
-    ["verbose", OTLP_SEVERITY_TRACE],
+    ["verbose", OTLP_SEVERITY_DEBUG],
     ["d", OTLP_SEVERITY_DEBUG],
     ["o", OTLP_SEVERITY_INFO],
     ["s", OTLP_SEVERITY_INFO],
@@ -1117,11 +1133,12 @@ export default class DatadogIntake {
   }
 
   /*
-   * A status as a severity: a syslog number (0 emergency .. 7 debug), one
-   * of OtlpJson's level words (Datadog's emergency, alert, critical,
-   * error, warning, notice, info, debug, ok and success among them), or -
-   * as Datadog's status remapper reads anything else - by its first
-   * letters. Null for anything else.
+   * A status as a severity: a syslog number (0 emergency .. 7 debug), a
+   * word whose meaning Datadog defines (DATADOG_STATUS_SEVERITIES: its
+   * critical), one of the level words every log ingest reads (OtlpJson's,
+   * Datadog's emergency, alert, error, warning, notice, info, debug, ok and
+   * success among them), or - as Datadog's status remapper reads anything
+   * else - by its first letters. Null for anything else.
    */
   private static severityOf(value: unknown): OtlpSeverity | null {
     if (typeof value === "number") {
@@ -1141,6 +1158,13 @@ export default class DatadogIntake {
 
     if (SYSLOG_SEVERITY_DIGIT.test(word)) {
       return OtlpJson.severityFromSyslogNumber(Number(word));
+    }
+
+    const datadogSeverity: OtlpSeverity | undefined =
+      DATADOG_STATUS_SEVERITIES.get(word);
+
+    if (datadogSeverity) {
+      return datadogSeverity;
     }
 
     const severity: OtlpSeverity = OtlpJson.severityFromWord(word);

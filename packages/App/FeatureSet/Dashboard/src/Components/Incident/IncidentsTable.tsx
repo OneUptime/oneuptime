@@ -772,7 +772,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   {item.isPrivate === true && (
                     <span
                       title={translator.translateText(
-                        "Private incident — visible only to its owners, project admins, and project owners",
+                        "Private incident — visible only to its owners, Project Admins, and Project Owners",
                       )}
                       className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
                     >

@@ -167,7 +167,7 @@ Um monitor de site novo começa com dois critérios, então funciona sem que voc
 - **Offline** — o site não responde, ou responde com um código de status `400` ou maior (ou menor que `200`). O monitor é marcado como **Offline** e um incidente é criado. O incidente se resolve sozinho quando o site volta.
 - **No ar** — o site responde com qualquer código de status `2xx` ou `3xx`, como `200`, `204` ou `301`. O monitor é marcado como **Operacional**.
 
-Na lista de critérios, eles levam o nome do monitor: _Check if (name) is offline_ e _Check if (name) is online_.
+Na lista de critérios, eles levam o nome do monitor: "Verificar se _nome do monitor_ está offline" e "Verificar se _nome do monitor_ está online".
 
 Então uma página que responde `204 No Content`, ou um redirecionamento que você vigia com **Não seguir redirecionamentos** ativado, conta como no ar. Se para você só um código de status significa que está saudável, altere os dois critérios na página **Configuração → Critérios** do monitor: por exemplo **Código de status da resposta** / **Igual a** / `200` no critério online e **Diferente de** / `200` no critério offline, no lugar dos dois filtros de código de status que cada um tem.
 

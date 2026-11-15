@@ -584,7 +584,7 @@ describe("what cannot be made is never on the card", () => {
     ]);
   });
 
-  test("a project member gets the monitor on the card, and is told paging needs the on-call rules a project admin may add", async () => {
+  test("a project member gets the monitor on the card, and is told paging needs the on-call rules a Project Admin may add", async () => {
     const spies: Spies = installSpies();
     spies.executeWithLogging.mockResolvedValueOnce(
       response({

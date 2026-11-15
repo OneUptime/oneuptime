@@ -687,7 +687,7 @@ describe("an empty list", () => {
     variableRows = [];
   });
 
-  test("Global Variables, to a project admin: add the hosts, keys, passwords and kubeconfigs", async () => {
+  test("Global Variables, to a Project Admin: add the hosts, keys, passwords and kubeconfigs", async () => {
     openGlobalPage();
 
     await waitFor(() => {
@@ -725,10 +725,12 @@ describe("an empty list", () => {
     expect(document.body).not.toHaveTextContent(
       "Add the hosts, keys, passwords and kubeconfigs your steps use.",
     );
-    expect(document.body).not.toHaveTextContent("A project owner or admin");
+    expect(document.body).not.toHaveTextContent(
+      "A Project Owner or Project Admin",
+    );
   });
 
-  test("a runbook's own Variables, to a project admin: global variables work here too", async () => {
+  test("a runbook's own Variables, to a Project Admin: global variables work here too", async () => {
     openRunbookPage();
 
     await waitFor(() => {
@@ -765,7 +767,9 @@ describe("an empty list", () => {
         "Global variables work here too.",
       );
     }, WAIT);
-    expect(document.body).not.toHaveTextContent("A project owner or admin");
+    expect(document.body).not.toHaveTextContent(
+      "A Project Owner or Project Admin",
+    );
   });
 
   test("Create Runbook Variable alone may add one, so it is told to", async () => {

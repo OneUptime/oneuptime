@@ -1,6 +1,6 @@
 # PagerDuty
 
-Send OneUptime-hændelser til [PagerDuty](https://www.pagerduty.com). én arbejdsgang udløser en hændelse i PagerDuty, når en OneUptime-hændelse erklæres, og et andet løser den, når OneUptime-hændelsen er løst. Brug det, når PagerDuty kalder dit team op, og OneUptime overvåger dine systemer.
+Send OneUptime-hændelser til [PagerDuty](https://www.pagerduty.com). Én arbejdsgang udløser en hændelse i PagerDuty, når en OneUptime-hændelse erklæres, og en anden løser den, når OneUptime-hændelsen er løst. Brug det, når PagerDuty kalder dit team op, og OneUptime overvåger dine systemer.
 
 :::cards
 - [Gem routing key'en](#gem-routing-keyen): Hold PagerDutys nøgle ude af dine arbejdsgange.
@@ -44,7 +44,7 @@ En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så nøglen vise
 :::steps
 ### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to PagerDuty`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv den navnet `Incidents to PagerDuty`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj triggeren
 
@@ -84,7 +84,7 @@ En arbejdsgang har én trigger, så det kræver en anden arbejdsgang at løse de
 :::steps
 ### Tilføj triggeren On Update Incident
 
-Opret en arbejdsgang med navnet `Resolve PagerDuty incidents`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
+Opret en arbejdsgang med navnet `Resolve PagerDuty incidents`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så den kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -146,7 +146,7 @@ Begge begivenheder skal have præcis den samme `dedup_key`. Kontrollér, at begg
 :::
 
 :::details Arbejdsgangen kører aldrig
-Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
+Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 :::details PagerDuty viser en reference i stedet for en værdi

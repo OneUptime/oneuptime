@@ -36,14 +36,14 @@ export const AlertPrivacySwitchCopy: {
   cardDescription: translationKey("Keep this alert to the people who own it."),
   switchTitle: translationKey("Private Alert"),
   switchOnDescription: translationKey(
-    "Only its owners (its owner users and the members of its owner teams), project admins and project owners can see this alert.",
+    "Only its owners (its owner users and the members of its owner teams), Project Admins and Project Owners can see this alert.",
   ),
   switchOffDescription: translationKey(
     "Everyone in the project who can see alerts can see this alert.",
   ),
   makePrivateConfirmTitle: translationKey("Make this alert private?"),
   makePrivateConfirmDescription: translationKey(
-    "Only its owner users, members of its owner teams, project admins and project owners will see it. If you are none of these, you lose access too.",
+    "Only its owner users, members of its owner teams, Project Admins and Project Owners will see it. If you are none of these, you lose access too.",
   ),
   makePrivateConfirmButton: translationKey("Make private"),
 };

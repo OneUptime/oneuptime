@@ -73,6 +73,25 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "OnCallDutyPolicyExecutionLog.testPageSeverityId",
   ]);
 
+/*
+ * Plain id columns, by "<table>.<column>", that name a labelled record the
+ * row is not about, so the label rule does not weigh the row by it: a
+ * measurement's backfill cursor, the last incident, alert or maintenance
+ * event its backfill worked out (#8171). A measurement belongs to the
+ * project, whichever record its backfill stands at. Weighed by that record,
+ * a reader limited to labels would lose the measurement whenever its
+ * backfill stopped on a record without them and get it back when the
+ * backfill moved on, and the dashboard would offer a label scope for the
+ * measurement permissions (PermissionScopeNarrowing) that narrows nothing
+ * anybody chose (#8463).
+ */
+export const PLAIN_COLUMNS_NAMING_RECORDS_THE_ROW_IS_NOT_ABOUT: ReadonlySet<string> =
+  new Set<string>([
+    "IncidentMeasurement.backfillCursorId",
+    "AlertMeasurement.backfillCursorId",
+    "ScheduledMaintenanceMeasurement.backfillCursorId",
+  ]);
+
 // Worked out once per model class: the columns do not change.
 const labelledReferencesCache: WeakMap<
   { new (): BaseModel },
@@ -1048,7 +1067,9 @@ export default class ReadPermission {
    * column whose name says nothing (`resourceId`, which several kinds of
    * resource share) names a record of any kind: it is weighed against every
    * model that carries labels (anyKindColumns), unless it is known to name
-   * a record that carries no labels (PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS).
+   * a record that carries no labels (PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS)
+   * or a record the row is not about, such as a backfill's cursor
+   * (PLAIN_COLUMNS_NAMING_RECORDS_THE_ROW_IS_NOT_ABOUT).
    */
   public static getLabelledReferences(modelType: {
     new (): BaseModel;
@@ -1128,6 +1149,9 @@ export default class ReadPermission {
         keyColumns.has(columnName) ||
         UserAttribution.isColumn(columnName) ||
         PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS.has(
+          `${model.tableName}.${columnName}`,
+        ) ||
+        PLAIN_COLUMNS_NAMING_RECORDS_THE_ROW_IS_NOT_ABOUT.has(
           `${model.tableName}.${columnName}`,
         )
       ) {

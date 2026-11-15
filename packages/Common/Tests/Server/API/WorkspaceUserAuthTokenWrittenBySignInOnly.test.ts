@@ -237,13 +237,13 @@ function anonymous(): DatabaseCommonInteractionProps {
 // Everybody who might try to write a link through the API.
 const WRITERS: Array<[string, () => DatabaseCommonInteractionProps]> = [
   [
-    "a project owner",
+    "a Project Owner",
     (): DatabaseCommonInteractionProps => {
       return caller([Permission.ProjectOwner]);
     },
   ],
   [
-    "a project admin",
+    "a Project Admin",
     (): DatabaseCommonInteractionProps => {
       return caller([Permission.ProjectAdmin]);
     },

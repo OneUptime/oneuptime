@@ -1,4 +1,9 @@
 import ColumnLength from "Common/Types/Database/ColumnLength";
+import {
+  EMAIL_DELIVERY_NOT_TRACKED,
+  EMAIL_DELIVERY_NOT_TRACKED_IN_SHORT,
+  EMAIL_SENT_STATUS_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 
 /*
  * WHAT AN EMAIL'S LOG ROW SAYS OF IT.
@@ -24,14 +29,15 @@ const ELLIPSIS: string = "…";
 /*
  * What every email that went says it was not: delivered. Its first two
  * sentences say it alone, where a mail service's answer needs the room
- * (getSentWithoutImagesStatusMessage).
+ * (getSentWithoutImagesStatusMessage). Kept with the lines a page's
+ * notification says once it went out (OnCallSentLine), where the on-call
+ * logs read them back to word them in the reader's language (#8434).
  */
-export const EMAIL_DELIVERY_NOT_TRACKED_IN_SHORT: string =
-  "This does not mean the email was delivered. We do not track email delivery.";
-
-export const EMAIL_DELIVERY_NOT_TRACKED: string = `${EMAIL_DELIVERY_NOT_TRACKED_IN_SHORT} If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.`;
-
-export const EMAIL_SENT_STATUS_MESSAGE: string = `Email sent successfully. ${EMAIL_DELIVERY_NOT_TRACKED}`;
+export {
+  EMAIL_DELIVERY_NOT_TRACKED,
+  EMAIL_DELIVERY_NOT_TRACKED_IN_SHORT,
+  EMAIL_SENT_STATUS_MESSAGE,
+};
 
 const SENT_WITHOUT_IMAGES_PREFIX: string =
   "Email sent successfully without its images, which the mail service refused: ";

@@ -111,7 +111,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de DNS novo começa com dois critérios:
 
-- **Offline** — o nome não resolve, ou não tem nenhum registro do tipo, depois de todas as novas tentativas. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ is offline" é criado. O incidente se resolve sozinho quando o nome volta a resolver.
+- **Offline** — o nome não resolve, ou não tem nenhum registro do tipo, depois de todas as novas tentativas. O monitor é marcado como **Offline** e um incidente chamado "_nome do monitor_ está offline" é criado. O incidente se resolve sozinho quando o nome volta a resolver.
 - **No ar** — o nome resolve. O monitor é marcado como **Operacional**.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Quando nenhum corresponde, o monitor mostra o seu status padrão: **Operacional**, a menos que você escolha outro em **Mais campos**, abaixo dos critérios.

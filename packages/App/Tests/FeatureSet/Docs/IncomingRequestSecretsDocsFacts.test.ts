@@ -3,6 +3,7 @@ import IncomingRequestSecretsCopy from "../../../FeatureSet/Dashboard/src/Compon
 import {
   INCOMING_REQUEST_SECRET_AUTHORIZATION_SCHEME,
   INCOMING_REQUEST_SECRET_HEADER,
+  INCOMING_REQUEST_WITHOUT_SECRET_WINDOW_HOURS,
 } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -14,8 +15,11 @@ import path from "path";
  * true: where a sender puts the secret, what a request without one gets,
  * the names of the switch, the page and the column it points to, and the
  * two refusals that keep the requirement from refusing every sender by
- * mistake. Each language's copy is held to the English page's shape and
- * labels by ScriptAndInboundMonitorDocsTranslations.
+ * mistake. And what it says about finding the senders that send no secret
+ * yet (issue #8498): the list, its columns and its day, when requests start
+ * being checked, and the line under a monitor's heartbeat URL. Each
+ * language's copy is held to the English page's shape and labels by
+ * ScriptAndInboundMonitorDocsTranslations.
  */
 
 const PAGE: string = "monitor/incoming-request-monitor";
@@ -138,5 +142,83 @@ describe("the Incoming Request page on a project's incoming request secrets", ()
       "unless the project [requires a secret on every request](#require-a-secret-on-every-request)",
     );
     expect(english).toContain(":::details My sender gets a 401");
+  });
+
+  it("names the list of requests without a secret, its columns and its day as the Dashboard draws them", () => {
+    expect(section()).toContain(
+      `**${IncomingRequestSecretsCopy.withoutSecretTableTitle}**, on the same page`,
+    );
+    expect(section()).toContain(
+      `**${IncomingRequestSecretsCopy.lastWithSecretTitle}**`,
+    );
+    expect(section()).toContain(
+      `**${IncomingRequestSecretsCopy.lastWithoutSecretTitle}**`,
+    );
+    expect(section()).toContain(
+      `in the last ${INCOMING_REQUEST_WITHOUT_SECRET_WINDOW_HOURS} hours`,
+    );
+    expect(IncomingRequestSecretsCopy.withoutSecretTableDescription).toContain(
+      `in the last ${INCOMING_REQUEST_WITHOUT_SECRET_WINDOW_HOURS} hours`,
+    );
+
+    // On the same page as the secrets and the switch.
+    const page: string = readRepoFile(
+      "packages/App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/IncomingRequestSecrets.tsx",
+    );
+
+    expect(page).toContain("<RequireIncomingRequestSecretCard");
+    expect(page).toContain("<RequestsWithoutSecretTable");
+    expect(page).toContain("<ModelTable<IncomingRequestSecret>");
+  });
+
+  it("says requests are checked from the moment the project has a secret, as the policy reads its secrets whether or not it requires one", () => {
+    expect(section()).toContain(
+      "As soon as the project has a secret, OneUptime checks every request for one, without refusing any yet.",
+    );
+
+    const policy: string = readRepoFile(
+      "packages/Common/Server/Utils/Monitor/IncomingRequestSecretPolicy.ts",
+    ).replace(/\s+/g, "");
+
+    expect(policy).toContain(
+      "if(!project){return{isRequired:false,secrets:[]};}",
+    );
+    expect(policy).toContain(
+      "isRequired:Boolean(project.requireIncomingRequestSecret)",
+    );
+  });
+
+  it("tells whoever finds a monitor gone quiet where its refused requests show", () => {
+    const entryStart: number = english.indexOf(
+      ":::details The monitor stopped getting requests after a secret was required",
+    );
+
+    expect(entryStart).toBeGreaterThan(-1);
+
+    const entry: string = english.slice(
+      entryStart,
+      english.indexOf("\n:::", entryStart + 1),
+    );
+
+    expect(entry).toContain("A line under the monitor's **Heartbeat URL**");
+    expect(entry).toContain(
+      `**${IncomingRequestSecretsCopy.withoutSecretTableTitle}**`,
+    );
+    expect(entry).toContain("(#require-a-secret-on-every-request)");
+
+    // The line is drawn under the URL wherever a monitor shows it.
+    for (const card of [
+      "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorSetupCard.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorConnectionCard.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink.tsx",
+    ]) {
+      expect({
+        card,
+        note: readRepoFile(card).includes("<IncomingRequestSecretNote"),
+      }).toEqual({
+        card,
+        note: true,
+      });
+    }
   });
 });

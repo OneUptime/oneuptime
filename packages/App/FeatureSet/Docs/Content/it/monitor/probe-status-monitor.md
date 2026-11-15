@@ -60,7 +60,7 @@ Entrambi sono numeri interi, confrontati con **Maggiore di**, **Minore di**, **U
 
 | Criterio | Filtro | Cosa fa |
 | --- | --- | --- |
-| Verifica se una sonda è disconnessa | **Sonde disconnesse** maggiore di `0` | Mette il monitor offline e dichiara un incidente intitolato `Probe disconnected: {{disconnectedProbeNames}}`, che si risolve da solo. |
+| Verifica se una sonda è disconnessa | **Sonde disconnesse** maggiore di `0` | Mette il monitor offline e dichiara un incidente intitolato «Sonda disconnessa: {{disconnectedProbeNames}}», che si risolve da solo. |
 | Verifica se tutte le sonde sono connesse | **Sonde disconnesse** uguale a `0` | Mette il monitor in stato operativo. |
 
 Il filtro **Sonde connesse** è adatto a un monitor che sorveglia più sonde e può perderne una: **Sonde connesse** minore di `2` dichiara un incidente solo quando ne restano meno di due.

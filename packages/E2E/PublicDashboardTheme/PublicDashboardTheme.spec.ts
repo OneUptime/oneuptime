@@ -1557,7 +1557,10 @@ test.describe("the page at a phone's width", () => {
     /*
      * Each chart's plot: the tallest surface a chart widget - the widgets
      * that offer "Drag to zoom" - draws its series on. A value's sparkline
-     * is a surface too, and short on purpose.
+     * is a surface too, and short on purpose. A phone never shows the hint
+     * (7c7d1c2dcb5: no finger drags), so a chart widget is found by the
+     * hint it holds, not by its words: a widget's own, or the shared one a
+     * metric chart's title row draws.
      */
     const plotHeights: Array<number> = await page.evaluate(
       (): Array<number> => {
@@ -1567,7 +1570,11 @@ test.describe("the page at a phone's width", () => {
           ),
         )
           .filter((widget: HTMLElement): boolean => {
-            return widget.innerText.indexOf("Drag to zoom") >= 0;
+            return (
+              widget.querySelector(
+                '[data-testid="dashboard-widget-zoom-hint"], [data-testid="time-range-zoom-hint"]',
+              ) !== null
+            );
           })
           .map((widget: HTMLElement): number => {
             return Math.max(

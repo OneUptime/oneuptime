@@ -543,8 +543,13 @@ describe("ChangeIncidentState note template", () => {
     );
 
     expect(templateField.showIf!()).toBe(true);
+    // A template's name is the project's, drawn as written (DropdownUtil).
     expect(templateField.dropdownOptions).toEqual([
-      { value: TEMPLATE_ID, label: "Investigating update" },
+      {
+        value: TEMPLATE_ID,
+        label: "Investigating update",
+        isUserContent: true,
+      },
     ]);
   });
 

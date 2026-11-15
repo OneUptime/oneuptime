@@ -111,7 +111,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur DNS commence avec deux critères :
 
-- **Hors ligne** — le nom ne se résout pas, ou n'a aucun enregistrement du type, après chaque nouvelle tentative. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ is offline » est créé. L'incident se résout de lui-même quand le nom se résout de nouveau.
+- **Hors ligne** — le nom ne se résout pas, ou n'a aucun enregistrement du type, après chaque nouvelle tentative. Le moniteur est marqué **Hors ligne** et un incident appelé « _nom du moniteur_ est hors ligne » est créé. L'incident se résout de lui-même quand le nom se résout de nouveau.
 - **En ligne** — le nom se résout. Le moniteur est marqué **Opérationnel**.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. Quand aucun ne correspond, le moniteur affiche son état par défaut : **Opérationnel**, sauf si vous en choisissez un autre sous **Plus de champs**, sous les critères.

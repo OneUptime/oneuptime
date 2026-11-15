@@ -67,7 +67,6 @@ import Input from "Common/UI/Components/Input/Input";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuDivider from "Common/UI/Components/MoreMenu/Divider";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -1210,7 +1209,6 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
           submitButtonText={POSTMORTEM_ACTION_ITEMS_COPY.saveChanges}
           isSubmitting={isDialogWorking}
           error={dialogError || undefined}
-          modalWidth={ModalWidth.Medium}
           onClose={() => {
             setDialog(null);
           }}
