@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "사람들이 알림을 받지 못하게 하는 문제가 {{count}}개 있습니다",
   "{{count}} things in your setup are worth fixing": "설정에서 고칠 만한 항목이 {{count}}개 있습니다",
   "{{count}} things in your setup are worth fixing_one": "설정에서 고칠 만한 항목이 {{count}}개 있습니다",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "여기에서 각 항목을 고치거나, 팀이 일부러 그대로 두는 항목이면 숨기세요."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "여기에서 각 항목을 고치거나, 팀이 일부러 그대로 두는 항목이면 숨기세요.",
+  "AI insight not found (or you do not have access to it).": "AI 인사이트를 찾을 수 없습니다(또는 액세스 권한이 없습니다).",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "이 AI 인사이트는 이미 무시되어 해결할 수 없습니다.",
+  "This AI insight is already resolved and cannot be resolved again.": "이 AI 인사이트는 이미 해결되어 다시 해결할 수 없습니다."
 }

@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "有 {{count}} 个问题会让相关人员收不到通知",
   "{{count}} things in your setup are worth fixing": "你的配置中有 {{count}} 项值得修复",
   "{{count}} things in your setup are worth fixing_one": "你的配置中有 {{count}} 项值得修复",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐项修复；如果团队有意保持现状，也可以将其隐藏。"
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐项修复；如果团队有意保持现状，也可以将其隐藏。",
+  "AI insight not found (or you do not have access to it).": "未找到 AI 洞察（或者您无权访问它）。",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "此 AI 洞察已忽略，无法再解决。",
+  "This AI insight is already resolved and cannot be resolved again.": "此 AI 洞察已解决，无法再次解决。"
 }

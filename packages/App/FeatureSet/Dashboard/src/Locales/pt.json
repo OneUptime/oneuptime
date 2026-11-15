@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problema impediria que as pessoas fossem avisadas",
   "{{count}} things in your setup are worth fixing": "Vale corrigir {{count}} itens da sua configuração",
   "{{count}} things in your setup are worth fixing_one": "Vale corrigir {{count}} item da sua configuração",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrija cada um daqui ou dispense-o se sua equipe o deixa assim de propósito."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrija cada um daqui ou dispense-o se sua equipe o deixa assim de propósito.",
+  "AI insight not found (or you do not have access to it).": "Insight de IA não encontrado (ou você não tem acesso a ele).",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "Este insight de IA já foi dispensado e não pode mais ser resolvido.",
+  "This AI insight is already resolved and cannot be resolved again.": "Este insight de IA já está resolvido e não pode ser resolvido de novo."
 }

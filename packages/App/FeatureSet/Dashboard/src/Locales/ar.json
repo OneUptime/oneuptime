@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "{{count}} مشكلة ستمنع إبلاغ الأشخاص",
   "{{count}} things in your setup are worth fixing": "عناصر في إعدادك تستحق الإصلاح: {{count}}",
   "{{count}} things in your setup are worth fixing_one": "{{count}} عنصر في إعدادك يستحق الإصلاح",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "أصلح كل واحد منها من هنا، أو أخفِه إذا كان فريقك يتركه هكذا عن قصد."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "أصلح كل واحد منها من هنا، أو أخفِه إذا كان فريقك يتركه هكذا عن قصد.",
+  "AI insight not found (or you do not have access to it).": "لم يُعثر على رؤية الذكاء الاصطناعي (أو ليس لديك إذن بالوصول إليها).",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "تم تجاهل رؤية الذكاء الاصطناعي هذه من قبل، ولم يعد من الممكن حلها.",
+  "This AI insight is already resolved and cannot be resolved again.": "تم حل رؤية الذكاء الاصطناعي هذه من قبل، ولا يمكن حلها مرة أخرى."
 }

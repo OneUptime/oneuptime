@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problem ville forhindre, at folk får besked",
   "{{count}} things in your setup are worth fixing": "{{count}} ting i din opsætning er værd at rette",
   "{{count}} things in your setup are worth fixing_one": "{{count}} ting i din opsætning er værd at rette",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Ret hvert punkt herfra, eller skjul det, hvis dit team bevidst lader det være sådan."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Ret hvert punkt herfra, eller skjul det, hvis dit team bevidst lader det være sådan.",
+  "AI insight not found (or you do not have access to it).": "AI-indsigten blev ikke fundet (eller du har ikke adgang til den).",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "Denne AI-indsigt er allerede afvist og kan ikke længere løses.",
+  "This AI insight is already resolved and cannot be resolved again.": "Denne AI-indsigt er allerede løst og kan ikke løses igen."
 }

@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "{{count}} проблема помешает оповестить людей",
   "{{count}} things in your setup are worth fixing": "Пунктов в настройке, которые стоит исправить: {{count}}",
   "{{count}} things in your setup are worth fixing_one": "{{count}} пункт в настройке стоит исправить",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Исправьте каждый пункт отсюда или скройте его, если ваша команда намеренно оставляет его как есть."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Исправьте каждый пункт отсюда или скройте его, если ваша команда намеренно оставляет его как есть.",
+  "AI insight not found (or you do not have access to it).": "Инсайт ИИ не найден (или у вас нет к нему доступа).",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "Этот инсайт ИИ уже отклонён, и его больше нельзя устранить.",
+  "This AI insight is already resolved and cannot be resolved again.": "Этот инсайт ИИ уже устранён, и его нельзя устранить повторно."
 }

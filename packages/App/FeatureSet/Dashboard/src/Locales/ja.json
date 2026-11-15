@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "人に知らせることを妨げる問題が {{count}} 件あります",
   "{{count}} things in your setup are worth fixing": "セットアップに修正をおすすめする項目が {{count}} 件あります",
   "{{count}} things in your setup are worth fixing_one": "セットアップに修正をおすすめする項目が {{count}} 件あります",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "ここからそれぞれ修正するか、チームが意図的にそのままにしているものは非表示にしてください。"
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "ここからそれぞれ修正するか、チームが意図的にそのままにしているものは非表示にしてください。",
+  "AI insight not found (or you do not have access to it).": "AI インサイトが見つかりません (またはアクセス権がありません)。",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "この AI インサイトはすでに却下済みのため、解決することはできません。",
+  "This AI insight is already resolved and cannot be resolved again.": "この AI インサイトはすでに解決済みのため、もう一度解決することはできません。"
 }

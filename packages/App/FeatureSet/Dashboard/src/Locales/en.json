@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problem would stop people from being told",
   "{{count}} things in your setup are worth fixing": "{{count}} things in your setup are worth fixing",
   "{{count}} things in your setup are worth fixing_one": "{{count}} thing in your setup is worth fixing",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Fix each one from here, or dismiss it if your team leaves it that way on purpose."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Fix each one from here, or dismiss it if your team leaves it that way on purpose.",
+  "AI insight not found (or you do not have access to it).": "AI insight not found (or you do not have access to it).",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "This AI insight is already dismissed and cannot be resolved again.",
+  "This AI insight is already resolved and cannot be resolved again.": "This AI insight is already resolved and cannot be resolved again."
 }

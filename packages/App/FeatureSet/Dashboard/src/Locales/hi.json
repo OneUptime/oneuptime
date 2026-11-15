@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "{{count}} समस्या लोगों तक सूचना पहुँचने से रोकेगी",
   "{{count}} things in your setup are worth fixing": "आपके सेटअप में {{count}} चीज़ें ठीक करने लायक हैं",
   "{{count}} things in your setup are worth fixing_one": "आपके सेटअप में {{count}} चीज़ ठीक करने लायक है",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "हर एक को यहीं से ठीक करें, या अगर आपकी टीम उसे जानबूझकर वैसा ही रखती है तो उसे छिपाएं।"
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "हर एक को यहीं से ठीक करें, या अगर आपकी टीम उसे जानबूझकर वैसा ही रखती है तो उसे छिपाएं।",
+  "AI insight not found (or you do not have access to it).": "एआई इनसाइट नहीं मिली (या आपके पास इसकी पहुंच नहीं है)।",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "यह एआई इनसाइट पहले ही खारिज की जा चुकी है और अब इसे सुलझाया नहीं जा सकता।",
+  "This AI insight is already resolved and cannot be resolved again.": "यह एआई इनसाइट पहले ही सुलझाई जा चुकी है और इसे फिर से नहीं सुलझाया जा सकता।"
 }

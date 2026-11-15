@@ -52411,5 +52411,9 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problème empêcherait de prévenir les bonnes personnes",
   "{{count}} things in your setup are worth fixing": "{{count}} points de votre configuration sont à corriger",
   "{{count}} things in your setup are worth fixing_one": "{{count}} point de votre configuration est à corriger",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrigez chacun d'ici, ou masquez-le si votre équipe le laisse ainsi volontairement."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrigez chacun d'ici, ou masquez-le si votre équipe le laisse ainsi volontairement.",
+  "AI insight not found (or you do not have access to it).": "Analyse IA introuvable (ou vous n'y avez pas accès).",
+  "Created Notification Held At": "Created Notification Held At",
+  "This AI insight is already dismissed and cannot be resolved again.": "Cette analyse IA est déjà ignorée et ne peut plus être résolue.",
+  "This AI insight is already resolved and cannot be resolved again.": "Cette analyse IA est déjà résolue et ne peut pas être résolue à nouveau."
 }
