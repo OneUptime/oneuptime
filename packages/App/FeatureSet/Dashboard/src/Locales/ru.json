@@ -54699,5 +54699,7 @@
   "Zabbix URL": "URL Zabbix",
   "critical, high or low, as Huntress rates the report. A report that names none is high.": "critical, high или low, как Huntress оценивает отчёт. Отчёт без оценки считается high.",
   "critical, high or low. Empty: high.": "critical, high или low. Если пусто: high.",
-  "Add JavaScript to your workflows.": "Добавьте JavaScript в свои рабочие процессы."
+  "Add JavaScript to your workflows.": "Добавьте JavaScript в свои рабочие процессы.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this alert is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "Имена, адреса или ID хостов, сетевых устройств, кластеров, баз данных или сервисов, к которым относится это оповещение, через запятую. Каждый найденный связывается. Мониторы указываются в поле JSON-объект.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this incident is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "Имена, адреса или ID хостов, сетевых устройств, кластеров, баз данных или сервисов, к которым относится этот инцидент, через запятую. Каждый найденный связывается. Мониторы указываются в поле JSON-объект."
 }

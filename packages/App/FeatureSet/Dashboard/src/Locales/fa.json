@@ -54699,5 +54699,7 @@
   "Zabbix URL": "URL زبیکس",
   "critical, high or low, as Huntress rates the report. A report that names none is high.": "critical، high یا low، طبق رتبه‌بندی Huntress از گزارش. گزارشی که هیچ‌کدام را نام نبرد high است.",
   "critical, high or low. Empty: high.": "critical، high یا low. خالی: high.",
-  "Add JavaScript to your workflows.": "به گردش‌های کاری خود JavaScript اضافه کنید."
+  "Add JavaScript to your workflows.": "به گردش‌های کاری خود JavaScript اضافه کنید.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this alert is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "نام‌ها، نشانی‌ها یا شناسه‌های میزبان‌ها، دستگاه‌های شبکه، خوشه‌ها، پایگاه‌های داده یا سرویس‌هایی که این هشدار دربارهٔ آن‌هاست، جداشده با ویرگول. هر کدام پیدا شود پیوند داده می‌شود. مانیتورها در شیء JSON وارد می‌شوند.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this incident is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "نام‌ها، نشانی‌ها یا شناسه‌های میزبان‌ها، دستگاه‌های شبکه، خوشه‌ها، پایگاه‌های داده یا سرویس‌هایی که این حادثه دربارهٔ آن‌هاست، جداشده با ویرگول. هر کدام پیدا شود پیوند داده می‌شود. مانیتورها در شیء JSON وارد می‌شوند."
 }

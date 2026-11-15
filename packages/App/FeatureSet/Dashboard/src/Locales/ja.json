@@ -54699,5 +54699,7 @@
   "Zabbix URL": "Zabbix URL",
   "critical, high or low, as Huntress rates the report. A report that names none is high.": "Huntress によるレポートの評価 (critical、high、low)。評価のないレポートは high です。",
   "critical, high or low. Empty: high.": "critical、high、low のいずれか。空の場合は high。",
-  "Add JavaScript to your workflows.": "ワークフローに JavaScript を追加します。"
+  "Add JavaScript to your workflows.": "ワークフローに JavaScript を追加します。",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this alert is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "このアラートの対象となるホスト、ネットワークデバイス、クラスター、データベース、サービスの名前、アドレス、または ID (カンマ区切り)。見つかったものはそれぞれ紐付けられます。モニターは JSON オブジェクトに入力します。",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this incident is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "このインシデントの対象となるホスト、ネットワークデバイス、クラスター、データベース、サービスの名前、アドレス、または ID (カンマ区切り)。見つかったものはそれぞれ紐付けられます。モニターは JSON オブジェクトに入力します。"
 }

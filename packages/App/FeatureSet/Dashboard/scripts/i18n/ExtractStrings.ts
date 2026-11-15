@@ -406,6 +406,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/Workflow/Components", kind: "keys" },
   { directory: "packages/Common/Types/Workflow/Components.ts", kind: "keys" },
+  // The Affected Resources setting the incident and alert steps share.
+  {
+    directory: "packages/Common/Types/Workflow/AffectedResourcesSetting.ts",
+    kind: "keys",
+  },
   /*
    * A naming rule's name pattern and lookup table (issue #6619): what each
    * placeholder is, and what is wrong with a pattern or a table, as the

@@ -54699,5 +54699,7 @@
   "Zabbix URL": "رابط Zabbix",
   "critical, high or low, as Huntress rates the report. A report that names none is high.": "critical أو high أو low، كما يصنّف Huntress التقرير. التقرير الذي لا يذكر أيًّا منها هو high.",
   "critical, high or low. Empty: high.": "critical أو high أو low. فارغ: high.",
-  "Add JavaScript to your workflows.": "أضف JavaScript إلى مهام سير العمل."
+  "Add JavaScript to your workflows.": "أضف JavaScript إلى مهام سير العمل.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this alert is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "أسماء أو عناوين أو معرّفات المضيفين أو أجهزة الشبكة أو العناقيد أو قواعد البيانات أو الخدمات التي يخصها هذا التنبيه، مفصولة بفواصل. يُربط كل ما يُعثر عليه. توضع المراقبات في «كائن JSON».",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this incident is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "أسماء أو عناوين أو معرّفات المضيفين أو أجهزة الشبكة أو العناقيد أو قواعد البيانات أو الخدمات التي تخصها هذه الحادثة، مفصولة بفواصل. يُربط كل ما يُعثر عليه. توضع المراقبات في «كائن JSON»."
 }

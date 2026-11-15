@@ -54699,5 +54699,7 @@
   "Zabbix URL": "Zabbix-URL",
   "critical, high or low, as Huntress rates the report. A report that names none is high.": "critical, high oder low, wie Huntress den Bericht einstuft. Ein Bericht, der keinen nennt, ist high.",
   "critical, high or low. Empty: high.": "critical, high oder low. Leer: high.",
-  "Add JavaScript to your workflows.": "Fügen Sie Ihren Arbeitsabläufen JavaScript hinzu."
+  "Add JavaScript to your workflows.": "Fügen Sie Ihren Arbeitsabläufen JavaScript hinzu.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this alert is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "Namen, Adressen oder IDs der Hosts, Netzwerkgeräte, Cluster, Datenbanken oder Dienste, um die es bei dieser Warnung geht, durch Kommas getrennt. Jedes gefundene Element wird verknüpft. Monitore gehören in JSON-Objekt.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this incident is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "Namen, Adressen oder IDs der Hosts, Netzwerkgeräte, Cluster, Datenbanken oder Dienste, um die es bei diesem Vorfall geht, durch Kommas getrennt. Jedes gefundene Element wird verknüpft. Monitore gehören in JSON-Objekt."
 }

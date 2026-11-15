@@ -54699,5 +54699,7 @@
   "Zabbix URL": "Zabbix-URL",
   "critical, high or low, as Huntress rates the report. A report that names none is high.": "critical, high eller low, som Huntress bedömer rapporten. En rapport som inte anger någon är high.",
   "critical, high or low. Empty: high.": "critical, high eller low. Tomt: high.",
-  "Add JavaScript to your workflows.": "Lägg till JavaScript i era arbetsflöden."
+  "Add JavaScript to your workflows.": "Lägg till JavaScript i era arbetsflöden.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this alert is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "Namn, adresser eller ID:n för de värdar, nätverksenheter, kluster, databaser eller tjänster som detta larm gäller, avgränsade med kommatecken. Varje som hittas länkas. Övervakare hör hemma i JSON-objekt.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this incident is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "Namn, adresser eller ID:n för de värdar, nätverksenheter, kluster, databaser eller tjänster som denna incident gäller, avgränsade med kommatecken. Varje som hittas länkas. Övervakare hör hemma i JSON-objekt."
 }

@@ -54699,5 +54699,7 @@
   "Zabbix URL": "Zabbix URL",
   "critical, high or low, as Huntress rates the report. A report that names none is high.": "Huntress가 매긴 보고서의 등급(critical, high, low)입니다. 등급이 없는 보고서는 high입니다.",
   "critical, high or low. Empty: high.": "critical, high, low 중 하나. 비워 두면 high.",
-  "Add JavaScript to your workflows.": "워크플로에 JavaScript를 추가하세요."
+  "Add JavaScript to your workflows.": "워크플로에 JavaScript를 추가하세요.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this alert is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "이 경고가 다루는 호스트, 네트워크 장치, 클러스터, 데이터베이스 또는 서비스의 이름, 주소 또는 ID로, 쉼표로 구분합니다. 찾은 것은 각각 연결됩니다. 모니터는 JSON 객체에 넣습니다.",
+  "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this incident is about, separated by commas. Each one found is linked. Monitors go in JSON Object.": "이 인시던트가 다루는 호스트, 네트워크 장치, 클러스터, 데이터베이스 또는 서비스의 이름, 주소 또는 ID로, 쉼표로 구분합니다. 찾은 것은 각각 연결됩니다. 모니터는 JSON 객체에 넣습니다."
 }
