@@ -4,6 +4,7 @@ import PaymentRequiredException from "../../../../Types/Exception/PaymentRequire
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import Timezone from "../../../../Types/Timezone";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../../Types/Billing/SubscriptionPlan";
@@ -254,6 +255,8 @@ export default class InvestigationThreadService {
     permissionMode?: string | undefined;
     // The asker's Dashboard language (ChatTurnRequest.language).
     language?: string | undefined;
+    // The asker's time zone (ChatTurnRequest.timezone).
+    timezone?: Timezone | undefined;
   }): Promise<InvestigationThreadSendResult> {
     const content: string = (data.content || "").trim();
 
@@ -389,6 +392,7 @@ export default class InvestigationThreadService {
         permissionMode,
         props: data.props,
         language: data.language,
+        timezone: data.timezone,
       },
       subject: data.subject,
     }).catch((error: unknown) => {
@@ -418,6 +422,8 @@ export default class InvestigationThreadService {
     approved?: boolean | undefined;
     // The decider's Dashboard language: what approved actions write in.
     language?: string | undefined;
+    // The decider's time zone, for the charts the resumed turn draws.
+    timezone?: Timezone | undefined;
   }): Promise<{ aiRunId: ObjectID }> {
     const conversation: AIConversation | null =
       await InvestigationThread.findThread(data);
@@ -492,6 +498,7 @@ export default class InvestigationThreadService {
         permissionMode: AIChatPermissionMode.AskForApproval,
         props: data.props,
         language: data.language,
+        timezone: data.timezone,
       },
       subject: data.subject,
       decisions,

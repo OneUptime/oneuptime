@@ -30,6 +30,14 @@ export interface ComponentProps {
    */
   timezone?: string | undefined;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
+  /*
+   * Put the cursor in Layer name when the form opens: for a layer just made
+   * with Add Layer, to be named right away. Every other layer's form leaves
+   * focus and the page's scroll where they are (#7812): the page opens its
+   * first layer by itself, and a form that took focus scrolled the window
+   * down to that layer's name, past the header and the people in the layer.
+   */
+  focusesNameOnOpen?: boolean | undefined;
 }
 
 // The layer's description, folded: most layers are known by their name.
@@ -59,6 +67,7 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
        * id would produce duplicate DOM ids (and colliding submit-button ids).
        */
       id={`layer-configuration-${props.layer.id?.toString() || "new"}`}
+      disableAutofocus={!props.focusesNameOnOpen}
       fields={[
         {
           field: {

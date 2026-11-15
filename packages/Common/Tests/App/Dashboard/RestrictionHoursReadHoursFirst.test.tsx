@@ -99,10 +99,22 @@ interface ClockReading {
   amOrPm: string | null;
 }
 
-// Each From and To clock on the page, in order, as its numbers read.
+/*
+ * Each From and To clock on the page, in order, as its numbers read: each
+ * named by the label over it (#7722), no longer "Time input".
+ */
 function readClocks(locale: string): Array<ClockReading> {
+  const labels: Array<string> = [
+    inLanguage(locale, "From:"),
+    inLanguage(locale, "To:"),
+  ];
+
   return screen
-    .getAllByRole("group", { name: inLanguage(locale, "Time input") })
+    .getAllByRole("group", {
+      name: (name: string): boolean => {
+        return labels.includes(name);
+      },
+    })
     .map((clock: HTMLElement): ClockReading => {
       const time: Element | null =
         clock.querySelector("input")?.closest("[dir]") || null;

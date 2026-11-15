@@ -52328,6 +52328,7 @@
   "Expand all branches": "Développer toutes les branches",
   "Expand {{name}}: {{count}} devices below it": "Développer {{name}} : {{count}} appareils en dessous",
   "Expand {{name}}: {{count}} devices below it_one": "Développer {{name}} : {{count}} appareil en dessous",
+  "Get Invitation Link": "Obtenir le lien d'invitation",
   "Narrows the map to this device and the {{count}} devices below it.": "Limite la carte à cet appareil et aux {{count}} appareils en dessous.",
   "Narrows the map to this device and the {{count}} devices below it._one": "Limite la carte à cet appareil et à {{count}} appareil en dessous.",
   "Opens the branches they are in.": "Ouvre les branches qui les contiennent.",

@@ -5,6 +5,8 @@ enum EmailTemplateType {
   MagicLink = "MagicLink.hbs",
   ProbeOffline = "ProbeOffline.hbs",
   SignupWelcomeEmail = "SignupWelcomeEmail.hbs",
+  // The welcome of an account that is ready at sign-up (self-hosted): nothing to verify.
+  SignupAccountReadyEmail = "SignupAccountReadyEmail.hbs",
   CompleteRegistration = "CompleteRegistration.hbs",
   ConfirmProjectSsoSignIn = "ConfirmProjectSsoSignIn.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",

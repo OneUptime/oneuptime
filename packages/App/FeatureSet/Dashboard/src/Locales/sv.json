@@ -52328,6 +52328,7 @@
   "Expand all branches": "Fäll ut alla grenar",
   "Expand {{name}}: {{count}} devices below it": "Fäll ut {{name}}: {{count}} enheter under den",
   "Expand {{name}}: {{count}} devices below it_one": "Fäll ut {{name}}: {{count}} enhet under den",
+  "Get Invitation Link": "Hämta inbjudningslänk",
   "Narrows the map to this device and the {{count}} devices below it.": "Begränsar kartan till den här enheten och de {{count}} enheterna under den.",
   "Narrows the map to this device and the {{count}} devices below it._one": "Begränsar kartan till den här enheten och {{count}} enhet under den.",
   "Opens the branches they are in.": "Öppnar grenarna de finns i.",

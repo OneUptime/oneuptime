@@ -137,7 +137,7 @@ A una dirección se le pueden enviar 10 invitaciones por hora, a proyectos y pá
 :::details El correo de invitación no llegó, o su enlace caducó
 La invitación no depende del correo. Pídale que se registre con la dirección invitada: OneUptime envía a esa dirección un enlace nuevo para terminar de crear la cuenta. Quien ya tiene una cuenta inicia sesión y encuentra la invitación esperándole.
 
-En un servidor autoalojado que aún no puede enviar correos electrónicos, registrarse tampoco puede enviarle un enlace nuevo por correo: en su lugar, le indica que pida su enlace de invitación. Cuando el administrador del servidor haya [configurado el correo](/docs/emails/smtp#abrir-el-formulario), registrarse funciona como se describe arriba. Hasta entonces, un administrador maestro puede quitar a la persona del proyecto, volver a invitarla y enviarle el nuevo enlace de invitación, que funciona una vez, solo para esa dirección, durante 7 días.
+En un servidor autoalojado que aún no puede enviar correos electrónicos, registrarse tampoco puede enviarle un enlace nuevo por correo: en su lugar, le indica que pida su enlace de invitación. Cuando el administrador del servidor haya [configurado el correo](/docs/emails/smtp#abrir-el-formulario), registrarse funciona como se describe arriba. Hasta entonces, un administrador maestro puede enviarle un enlace nuevo, que funciona una vez, solo para esa dirección, durante 7 días: en **Usuarios**, abra el menú de la fila de la persona, **⋯**, y haga clic en **Obtener enlace de invitación**.
 :::
 
 :::details Invitar usuario dice que los usuarios se gestionan con SCIM Push Groups

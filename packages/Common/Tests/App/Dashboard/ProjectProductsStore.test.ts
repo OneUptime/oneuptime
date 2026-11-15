@@ -8,12 +8,16 @@ import {
 } from "@jest/globals";
 import type { Mock, SpyInstance } from "jest-mock";
 import ProjectProducts, {
+  CREATE_SETTLE_MS,
   ProjectProductsFetcher,
+  REFRESH_AFTER_MS,
   REMEMBERED_PROJECT_PRODUCTS_KEY_PREFIX,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectProducts/ProjectProductsStore";
 import * as ProjectProductsApi from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectProducts/ProjectProductsApi";
 import ObjectID from "../../../Types/ObjectID";
 import ProductKey from "../../../Types/Product/ProductKey";
+import { ProductUsage } from "../../../Types/Product/ProductUsage";
+import CreatedRecords from "../../../UI/Utils/ModelAPI/CreatedRecords";
 import { ProjectProductsChosenBy } from "../../../Types/Product/ProjectProducts";
 import {
   ProjectProductsAnswer,
@@ -371,5 +375,308 @@ describe("pins", () => {
     await loading;
 
     expect(ProjectProducts.getState(PROJECT_A).answer.pinned).toEqual([]);
+  });
+});
+
+/*
+ * #7465: the products menu kept "Not set up" on Monitors, On-Call Duty and
+ * Logs after each was set up. The answer was kept until the page was
+ * reloaded, and a product's first record made on the page changed nothing.
+ */
+describe("the answer follows what the project uses (#7465)", () => {
+  const NOT_SET_UP: ProjectProductsAnswer = {
+    ...ANSWER,
+    usage: {
+      [ProductKey.Monitors]: ProductUsage.NotSetUp,
+      [ProductKey.OnCall]: ProductUsage.NotSetUp,
+      [ProductKey.Logs]: ProductUsage.NotSetUp,
+      [ProductKey.Incidents]: ProductUsage.NothingYet,
+    },
+  };
+
+  const usageOf: (
+    product: ProductKey,
+    projectId?: string,
+  ) => ProductUsage | undefined = (
+    product: ProductKey,
+    projectId: string = PROJECT_A,
+  ): ProductUsage | undefined => {
+    return ProjectProducts.getState(projectId).answer.usage[product];
+  };
+
+  const created: (tableName: string, projectId?: string | null) => void = (
+    tableName: string,
+    projectId: string | null = PROJECT_A,
+  ): void => {
+    // What ModelAPI tells the page once the server confirms a create.
+    CreatedRecords.announce({ tableName: tableName, projectId: projectId });
+  };
+
+  let now: number;
+
+  beforeEach(() => {
+    now = Date.UTC(2026, 10, 15, 21, 18, 0);
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return now;
+    });
+    fetcher.mockResolvedValue(NOT_SET_UP);
+  });
+
+  describe("asking again", () => {
+    test("an answer that does not change is asked once, however often the products are looked at", async () => {
+      for (let look: number = 0; look < 10; look++) {
+        await ProjectProducts.load(PROJECT_A);
+        now += 1_000;
+      }
+
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    test("once older than REFRESH_AFTER_MS, the next look asks again, and takes the server's word", async () => {
+      await ProjectProducts.load(PROJECT_A);
+
+      now += REFRESH_AFTER_MS - 1;
+      await ProjectProducts.load(PROJECT_A);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+
+      // The first logs arrived meanwhile.
+      fetcher.mockResolvedValue({
+        ...NOT_SET_UP,
+        usage: { ...NOT_SET_UP.usage, [ProductKey.Logs]: ProductUsage.InUse },
+      });
+      now += 1;
+      await ProjectProducts.load(PROJECT_A);
+
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      expect(usageOf(ProductKey.Logs)).toBe(ProductUsage.InUse);
+    });
+
+    test("an answer recorded from a change (a pin, a product shown) counts as asked", async () => {
+      ProjectProducts.setAnswer(PROJECT_A, NOT_SET_UP);
+
+      await ProjectProducts.load(PROJECT_A);
+      expect(fetcher).not.toHaveBeenCalled();
+
+      now += REFRESH_AFTER_MS;
+      await ProjectProducts.load(PROJECT_A);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    test("a remembered answer from an earlier page load is only a stand-in: the first look asks", async () => {
+      window.localStorage.setItem(
+        `${REMEMBERED_PROJECT_PRODUCTS_KEY_PREFIX}${PROJECT_A}`,
+        JSON.stringify(toProjectProductsAnswerJSON(NOT_SET_UP)),
+      );
+
+      await ProjectProducts.load(PROJECT_A);
+
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    test("an answer is asked for from when it was asked, not when it landed", async () => {
+      let release: () => void = () => {};
+      fetcher.mockImplementationOnce(
+        (): Promise<ProjectProductsAnswer | null> => {
+          return new Promise(
+            (resolve: (value: ProjectProductsAnswer | null) => void) => {
+              release = (): void => {
+                resolve(NOT_SET_UP);
+              };
+            },
+          );
+        },
+      );
+
+      const loading: Promise<void> = ProjectProducts.load(PROJECT_A);
+      now += REFRESH_AFTER_MS - 1_000;
+      release();
+      await loading;
+
+      now += 1_000;
+      await ProjectProducts.load(PROJECT_A);
+
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("a product's first record made on this page", () => {
+    test("a monitor marks Monitors in use at once, asking nothing", async () => {
+      await ProjectProducts.load(PROJECT_A);
+
+      created("Monitor");
+
+      expect(usageOf(ProductKey.Monitors)).toBe(ProductUsage.InUse);
+      expect(usageOf(ProductKey.OnCall)).toBe(ProductUsage.NotSetUp);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    test("an on-call policy marks On-Call Duty in use at once", async () => {
+      await ProjectProducts.load(PROJECT_A);
+
+      created("OnCallDutyPolicy");
+
+      expect(usageOf(ProductKey.OnCall)).toBe(ProductUsage.InUse);
+    });
+
+    test("a product with nothing to set up (an incident) is in use too", async () => {
+      await ProjectProducts.load(PROJECT_A);
+
+      created("Incident");
+
+      expect(usageOf(ProductKey.Incidents)).toBe(ProductUsage.InUse);
+    });
+
+    test("everyone listening hears it, and the next page load's first paint has it", async () => {
+      await ProjectProducts.load(PROJECT_A);
+      const listener: Mock = jest.fn();
+      const unsubscribe: () => void = ProjectProducts.subscribe(
+        listener as unknown as () => void,
+      );
+
+      created("Monitor");
+      unsubscribe();
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(
+        JSON.parse(
+          window.localStorage.getItem(
+            `${REMEMBERED_PROJECT_PRODUCTS_KEY_PREFIX}${PROJECT_A}`,
+          ) as string,
+        ).usage[ProductKey.Monitors],
+      ).toBe(ProductUsage.InUse);
+    });
+
+    test("the next look asks the server, whatever the answer's age, and its word stands once settled", async () => {
+      await ProjectProducts.load(PROJECT_A);
+      created("Monitor");
+
+      now += CREATE_SETTLE_MS;
+      fetcher.mockResolvedValue({
+        ...NOT_SET_UP,
+        usage: {
+          ...NOT_SET_UP.usage,
+          [ProductKey.Monitors]: ProductUsage.InUse,
+        },
+      });
+      await ProjectProducts.load(PROJECT_A);
+
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      expect(usageOf(ProductKey.Monitors)).toBe(ProductUsage.InUse);
+    });
+
+    test("an answer asked for before the create, landing after it, keeps the mark", async () => {
+      let release: () => void = () => {};
+      fetcher.mockImplementationOnce(
+        (): Promise<ProjectProductsAnswer | null> => {
+          return new Promise(
+            (resolve: (value: ProjectProductsAnswer | null) => void) => {
+              release = (): void => {
+                resolve(NOT_SET_UP);
+              };
+            },
+          );
+        },
+      );
+
+      const loading: Promise<void> = ProjectProducts.load(PROJECT_A);
+      now += 200;
+      created("Monitor");
+      now += 300;
+      release();
+      await loading;
+
+      expect(usageOf(ProductKey.Monitors)).toBe(ProductUsage.InUse);
+      expect(usageOf(ProductKey.OnCall)).toBe(ProductUsage.NotSetUp);
+    });
+
+    test("an answer worked out within CREATE_SETTLE_MS keeps the mark; one after it is the server's", async () => {
+      await ProjectProducts.load(PROJECT_A);
+      created("Monitor");
+
+      // Another server may still go by what it kept.
+      now += CREATE_SETTLE_MS - 1;
+      await ProjectProducts.refresh(PROJECT_A);
+      expect(usageOf(ProductKey.Monitors)).toBe(ProductUsage.InUse);
+
+      // The monitor was deleted since, by someone else.
+      now += 1;
+      await ProjectProducts.refresh(PROJECT_A);
+      expect(usageOf(ProductKey.Monitors)).toBe(ProductUsage.NotSetUp);
+    });
+
+    test("a product already in use: nothing changes, and nothing more is asked", async () => {
+      fetcher.mockResolvedValue({
+        ...NOT_SET_UP,
+        usage: { [ProductKey.Monitors]: ProductUsage.InUse },
+      });
+      await ProjectProducts.load(PROJECT_A);
+      const before: unknown = ProjectProducts.getState(PROJECT_A);
+
+      created("Monitor");
+      await ProjectProducts.load(PROJECT_A);
+
+      expect(ProjectProducts.getState(PROJECT_A)).toBe(before);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    test("a product this person may not read stays unmarked", async () => {
+      fetcher.mockResolvedValue({ ...NOT_SET_UP, usage: {} });
+      await ProjectProducts.load(PROJECT_A);
+
+      created("Monitor");
+
+      expect(usageOf(ProductKey.Monitors)).toBeUndefined();
+    });
+
+    test("a record of no product (a label, a note) changes nothing", async () => {
+      await ProjectProducts.load(PROJECT_A);
+      const before: unknown = ProjectProducts.getState(PROJECT_A);
+
+      created("Label");
+      created("IncidentInternalNote");
+      created("");
+
+      expect(ProjectProducts.getState(PROJECT_A)).toBe(before);
+    });
+
+    test("another project's record changes only that project's answer", async () => {
+      await ProjectProducts.load(PROJECT_A);
+      await ProjectProducts.load(PROJECT_B);
+
+      created("Monitor", PROJECT_B);
+
+      expect(usageOf(ProductKey.Monitors, PROJECT_B)).toBe(ProductUsage.InUse);
+      expect(usageOf(ProductKey.Monitors, PROJECT_A)).toBe(
+        ProductUsage.NotSetUp,
+      );
+    });
+
+    test("a create that does not say its project is the open project's", async () => {
+      await ProjectProducts.load(PROJECT_A);
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(new ObjectID(PROJECT_A));
+
+      created("Monitor", null);
+
+      expect(usageOf(ProductKey.Monitors)).toBe(ProductUsage.InUse);
+    });
+
+    test("a project nothing has drawn yet is left alone: its first ask reads the record", () => {
+      created("Monitor", PROJECT_B);
+
+      expect(usageOf(ProductKey.Monitors, PROJECT_B)).toBeUndefined();
+      expect(fetcher).not.toHaveBeenCalled();
+    });
+
+    test("forgotten on reset", async () => {
+      await ProjectProducts.load(PROJECT_A);
+      created("Monitor");
+
+      ProjectProducts.reset();
+      await ProjectProducts.load(PROJECT_A);
+
+      expect(usageOf(ProductKey.Monitors)).toBe(ProductUsage.NotSetUp);
+    });
   });
 });

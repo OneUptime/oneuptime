@@ -52328,6 +52328,7 @@
   "Expand all branches": "Fold alle grene ud",
   "Expand {{name}}: {{count}} devices below it": "Fold {{name}} ud: {{count}} enheder under den",
   "Expand {{name}}: {{count}} devices below it_one": "Fold {{name}} ud: {{count}} enhed under den",
+  "Get Invitation Link": "Hent invitationslink",
   "Narrows the map to this device and the {{count}} devices below it.": "Begrænser kortet til denne enhed og de {{count}} enheder under den.",
   "Narrows the map to this device and the {{count}} devices below it._one": "Begrænser kortet til denne enhed og {{count}} enhed under den.",
   "Opens the branches they are in.": "Åbner de grene, de ligger i.",
