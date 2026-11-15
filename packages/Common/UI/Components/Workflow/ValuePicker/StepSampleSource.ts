@@ -39,8 +39,13 @@ import {
 import { componentReturnValueReference } from "../../../../Types/Workflow/TemplateSyntax";
 import { getWebhookTriggerCurlExample } from "../../../../Types/Workflow/WebhookTrigger";
 import OneUptimeDate from "../../../../Types/Date";
-import { translationKey } from "../../../Utils/TranslateTemplate";
-import { stepGroupId } from "./StepValueSource";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
+import { stepGroupId, stepInSentence } from "./StepValueSource";
 import { returnValueName, wholeReturnValueLabel } from "../ReturnValueNames";
 import {
   ValueSuggestion,
@@ -188,10 +193,29 @@ const saysWhenFieldsArrive: SaysWhenFieldsArriveFunction = (
   );
 };
 
-type NotRunNoteFunction = (step: NodeDataProp) => string;
+export const NOT_RUN_NOTE: string = translationKey(
+  "{{step}} hasn't run yet. Its fields show up here after it does.",
+);
 
-const notRunNote: NotRunNoteFunction = (step: NodeDataProp): string => {
-  return `${step.metadata?.title || step.id} hasn't run yet. Its fields show up here after it does.`;
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+type NotRunNoteFunction = (
+  step: NodeDataProp,
+  translator?: Translator | undefined,
+) => string;
+
+/*
+ * Why there is nothing to look inside yet: one sentence in the reader's
+ * language, the step named as the canvas names it (#8360). It was glued
+ * from the step's English title in code, so it read English everywhere.
+ */
+export const notRunNote: NotRunNoteFunction = (
+  step: NodeDataProp,
+  translator: Translator | undefined = ENGLISH,
+): string => {
+  return translator.translateTemplate(NOT_RUN_NOTE, {
+    step: stepInSentence(step),
+  });
 };
 
 type WhereFromFunction = (data: {
@@ -381,7 +405,7 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
                 ? StepSampleCopy.noRequestYetInside
                 : isIncomingEmail(step)
                   ? StepSampleCopy.noEmailYetInside
-                  : notRunNote(step),
+                  : notRunNote(step, context.translator),
             },
           });
         }

@@ -52,7 +52,13 @@ import {
   allowsPathInto,
   typeLabelForInputType,
 } from "./ValueSuggestion";
-import { translationKey, Translator } from "../../../Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  TemplateValue,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
+import { isOutPortFromSettings } from "../../../../Types/Workflow/ComponentOutPorts";
 import { returnValueName, wholeReturnValueLabel } from "../ReturnValueNames";
 
 export { selectedColumnIds };
@@ -241,11 +247,21 @@ type EmptyHereNoteFunction = (
   component: NodeDataProp,
 ) => ValueSuggestionSentence;
 
+/*
+ * A step named in a sentence: its catalogue name, which the sentence words
+ * in the reader's language as the canvas does, or its id when it has none.
+ */
+export const stepInSentence: (step: NodeDataProp) => TemplateValue = (
+  step: NodeDataProp,
+): TemplateValue => {
+  return step.metadata?.title ? translatableTerm(step.metadata.title) : step.id;
+};
+
 // Why a record's other fields are empty here, and what makes them not.
 const emptyHereNote: EmptyHereNoteFunction = (
   component: NodeDataProp,
 ): ValueSuggestionSentence => {
-  const step: string = component.metadata?.title || component.id;
+  const step: TemplateValue = stepInSentence(component);
 
   if ((component.metadataId || "").endsWith("-on-delete")) {
     return {
@@ -256,7 +272,7 @@ const emptyHereNote: EmptyHereNoteFunction = (
 
   return {
     template: StepValueCopy.notPassedOn,
-    values: { step: step, setting: SELECT_FIELDS_NAME },
+    values: { step: step, setting: translatableTerm(SELECT_FIELDS_NAME) },
   };
 };
 
@@ -324,16 +340,30 @@ type SometimesReasonFunction = (
   before: SometimesBefore,
 ) => ValueSuggestionSentence;
 
-// "Runs only when If / Else takes Yes, so its values can be empty here."
+/*
+ * "Runs only when If / Else takes Yes, so its values can be empty here."
+ * The step and its output in the reader's words, as the canvas draws them,
+ * except a Switch / Case's case, which keeps the name the person gave it.
+ */
 const sometimesReason: SometimesReasonFunction = (
   before: SometimesBefore,
 ): ValueSuggestionSentence => {
   if (before.portTitle) {
+    const isNamedByThePerson: boolean = Boolean(
+      before.portId &&
+        isOutPortFromSettings({
+          metadata: before.branchStep.metadata,
+          portId: before.portId,
+        }),
+    );
+
     return {
       template: StepValueCopy.sometimesWhen,
       values: {
-        step: before.branchStep.metadata?.title || before.branchStep.id,
-        output: before.portTitle,
+        step: stepInSentence(before.branchStep),
+        output: isNamedByThePerson
+          ? before.portTitle
+          : translatableTerm(before.portTitle),
       },
     };
   }
