@@ -626,6 +626,39 @@ integration("ScrubSessionReplayAddresses against ClickHouse", () => {
     );
   });
 
+  /*
+   * What the scrubber never stores, but a redaction keeps as written all the
+   * same: a query inside a hash route, a fragment that is no route, an
+   * address with no scheme.
+   */
+  test("keeps every part of an address but its identifiers as written", async () => {
+    const cases: Array<[string, string]> = [
+      [
+        `${ORIGIN}/#/u/someone%2540example.com?tab=1`,
+        `${ORIGIN}/#/u/[redacted]?tab=1`,
+      ],
+      [
+        `${ORIGIN}/app/#!/t/${JWT}?next=%2F#again`,
+        `${ORIGIN}/app/#!/t/[redacted]?next=%2F#again`,
+      ],
+      [`${ORIGIN}/t/${JWT}#plans`, `${ORIGIN}/t/[redacted]#plans`],
+      [`/t/${BASE64}?coupon=[redacted]`, "/t/[redacted]?coupon=[redacted]"],
+      [`//cdn.example.com/t/${BASE64}`, "//cdn.example.com/t/[redacted]"],
+      [`${ORIGIN}/#/pricing?tab=1`, `${ORIGIN}/#/pricing?tab=1`],
+    ];
+
+    for (const [address, redacted] of cases) {
+      const found: Array<{ redacted: string }> = await rows<{
+        redacted: string;
+      }>(
+        `SELECT ${ScrubSessionReplayAddresses.redactedSql("{address:String}")} AS redacted`,
+        { address: address },
+      );
+
+      expect([address, found[0]!.redacted]).toEqual([address, redacted]);
+    }
+  });
+
   test("running it again changes nothing", async () => {
     const before: Array<string> = await fingerprint();
 
