@@ -55465,5 +55465,18 @@
   "Subscriber Scheduled Maintenance State Changed": "维护事件状态已更改",
   "Subscriber Subscribed": "订阅成功",
   "Subscriber Subscription Confirmation": "订阅确认",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "您的 GitHub 账号尚未管理该应用的任何安装。请通过“{{connectGitHub}}”安装。"
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "您的 GitHub 账号尚未管理该应用的任何安装。请通过“{{connectGitHub}}”安装。",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "“{{step}}”不返回名为“{{value}}”的任何值。",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "“{{step}}”不传递此字段，因此它在这里为空。请将它添加到其 {{setting}} 中。",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "“{{step}}”在此步骤之后运行，因此这个值在这里为空。",
+  "Global variable": "全局变量",
+  "Key / value": "键 / 值",
+  "Leads to {{steps}}": "通向 {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "此工作流中没有 ID 为“{{id}}”的步骤。",
+  "There is no global variable called \"{{name}}\".": "没有名为“{{name}}”的全局变量。",
+  "There is no workflow variable called \"{{name}}\".": "没有名为“{{name}}”的工作流变量。",
+  "This is this step's own value, which does not exist yet while its settings are read.": "这是此步骤自己的值，读取其设置时它还不存在。",
+  "Yes / No": "是 / 否",
+  "which led to {{steps}}": "随后进入 {{steps}}",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} 尚未运行。运行后，其字段会显示在这里。"
 }

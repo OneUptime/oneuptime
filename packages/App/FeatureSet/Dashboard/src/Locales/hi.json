@@ -55465,5 +55465,18 @@
   "Subscriber Scheduled Maintenance State Changed": "रखरखाव इवेंट की स्थिति बदली गई",
   "Subscriber Subscribed": "सब्सक्रिप्शन पूरा हुआ",
   "Subscriber Subscription Confirmation": "सब्सक्रिप्शन की पुष्टि",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "आपका GitHub खाता अभी तक ऐप के किसी इंस्टॉलेशन को प्रबंधित नहीं करता है। कृपया इसे “{{connectGitHub}}” से इंस्टॉल करें।"
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "आपका GitHub खाता अभी तक ऐप के किसी इंस्टॉलेशन को प्रबंधित नहीं करता है। कृपया इसे “{{connectGitHub}}” से इंस्टॉल करें।",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "\"{{step}}\" \"{{value}}\" नाम का कुछ नहीं लौटाता।",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "\"{{step}}\" यह फ़ील्ड आगे नहीं भेजता, इसलिए यह यहाँ खाली है। इसे उसके {{setting}} में जोड़ें।",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "\"{{step}}\" इस चरण के बाद चलता है, इसलिए यह मान यहाँ खाली है।",
+  "Global variable": "ग्लोबल वेरिएबल",
+  "Key / value": "कुंजी / मान",
+  "Leads to {{steps}}": "आगे {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "इस वर्कफ़्लो में किसी चरण की ID \"{{id}}\" नहीं है।",
+  "There is no global variable called \"{{name}}\".": "\"{{name}}\" नाम का कोई ग्लोबल वेरिएबल नहीं है।",
+  "There is no workflow variable called \"{{name}}\".": "\"{{name}}\" नाम का कोई वर्कफ़्लो वेरिएबल नहीं है।",
+  "This is this step's own value, which does not exist yet while its settings are read.": "यह इस चरण का अपना मान है, जो इसकी सेटिंग पढ़े जाते समय अभी मौजूद नहीं होता।",
+  "Yes / No": "हाँ / नहीं",
+  "which led to {{steps}}": "जिससे आगे {{steps}} चले",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} अभी तक नहीं चला है। चलने के बाद इसके फ़ील्ड यहाँ दिखते हैं।"
 }
