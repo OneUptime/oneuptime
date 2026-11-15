@@ -1,4 +1,5 @@
-import { Port } from "../../../Types/Workflow/Component";
+import ComponentMetadata, { Port } from "../../../Types/Workflow/Component";
+import { isOutPortFromSettings } from "../../../Types/Workflow/ComponentOutPorts";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -7,6 +8,14 @@ export interface ComponentProps {
   ports: Array<Port>;
   name: string;
   description: string;
+  /*
+   * The step whose outputs these are. Its own outputs - Success, Error,
+   * Yes, No - read in the reader's words, as the canvas and the run log
+   * draw them; a Switch / Case's cases keep the names the person gave them
+   * (isOutPortFromSettings). Left out (a step's inputs), every port is the
+   * step's own.
+   */
+  metadata?: ComponentMetadata | undefined;
 }
 
 /*
@@ -35,6 +44,19 @@ const ComponentPortViewer: FunctionComponent<ComponentProps> = (
       {props.ports && props.ports.length > 0 && (
         <ul className="space-y-2">
           {props.ports.map((port: Port, i: number) => {
+            const isNamedByThePerson: boolean = isOutPortFromSettings({
+              metadata: props.metadata,
+              portId: port.id,
+            });
+            const title: string = isNamedByThePerson
+              ? port.title
+              : translator.translateText(port.title) || port.title;
+            const description: string | undefined =
+              isNamedByThePerson || !port.description
+                ? port.description
+                : translator.translateText(port.description) ||
+                  port.description;
+
             return (
               <li
                 key={port.id || i}
@@ -46,11 +68,14 @@ const ComponentPortViewer: FunctionComponent<ComponentProps> = (
                   className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gray-300"
                 />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900">
-                    {port.title}
+                  <p
+                    className="text-sm font-medium text-gray-900"
+                    data-testid="workflow-port-title"
+                  >
+                    {title}
                   </p>
-                  {port.description && (
-                    <p className="text-xs text-gray-500">{port.description}</p>
+                  {description && (
+                    <p className="text-xs text-gray-500">{description}</p>
                   )}
                 </div>
               </li>
