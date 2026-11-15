@@ -84,14 +84,14 @@ Gå till **Projektinställningar**, öppna **Granskningsloggar** i sidomenyn och
 
 ### Redigera inställningarna
 
-Klicka på **Edit Audit Log Settings** och slå på **Aktivera granskningsloggar**.
+Klicka på **Redigera inställningar för granskningsloggar** och slå på **Aktivera granskningsloggar**.
 
 ### Välj vad som ska sparas
 
 Ange **Lagring (dagar)**, från 7 (standard) till 180, och slå på **Lagra systemhändelser** för att också registrera de ändringar som OneUptime gör själv. Spara. Ändringen gäller inom ungefär en minut.
 :::
 
-Medan granskningsloggen är avstängd står det **Audit logging is off** på SLO:ets sida **Granskningsloggar**, med en länk för att slå på den. Poster som registrerades innan den stängdes av är fortfarande synliga. Projektets hela granskningslogg, för alla resurser, finns under **Projektinställningar** → **Granskningsloggar** → **Granskningsloggar**.
+Medan granskningsloggen är avstängd står det **Granskningsloggning avstängd** på SLO:ets sida **Granskningsloggar**, med en länk för att slå på den. Poster som registrerades innan den stängdes av är fortfarande synliga. Projektets hela granskningslogg, för alla resurser, finns under **Projektinställningar** → **Granskningsloggar** → **Granskningsloggar**.
 
 ## Nästa steg
 
