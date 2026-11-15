@@ -149,6 +149,7 @@ import Column from "../../../UI/Components/Table/Types/Column";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const T: typeof DOCKER_SWARM_METRIC_DESCRIPTIONS =
   DOCKER_SWARM_METRIC_DESCRIPTIONS;
@@ -294,7 +295,7 @@ describe("Docker Swarm Clusters list columns", () => {
     expect(oneDown.text).toBe("2/3 ready");
     expect(oneDown.className).toContain("text-red-700");
 
-    expect(cellText(nodes, {}).text).toBe("—");
+    expect(cellText(nodes, {}).text).toBe(QUIET_DASH_TEXT);
     expect(T.clusterListNodes).toContain("shown as ready out of total");
     expect(T.clusterListNodes).toContain(
       "turns red when any node is not ready",
@@ -317,7 +318,7 @@ describe("Docker Swarm Clusters list columns", () => {
     expect(cellText(tasks, { taskCount: 12, runningTaskCount: 10 }).text).toBe(
       "10/12 running",
     );
-    expect(cellText(tasks, {}).text).toBe("—");
+    expect(cellText(tasks, {}).text).toBe(QUIET_DASH_TEXT);
     expect(T.clusterListTasks).toContain(
       "shown as how many are actually running out of that total",
     );

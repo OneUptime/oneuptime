@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9290
+    "keys": 52351,
+    "untranslated": 9271
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -140,6 +140,7 @@
     "IoT",
     "Israel (+972)",
     "Item",
+    "Jitter",
     "Job",
     "Joules",
     "Kelvin",
@@ -501,6 +502,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{name}} (monitor: {{monitor}})",
+    "{{rate}}/min",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{up}}/{{count}} OSDs up",

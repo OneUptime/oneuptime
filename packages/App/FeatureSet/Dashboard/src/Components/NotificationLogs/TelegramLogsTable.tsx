@@ -28,6 +28,7 @@ import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import Color from "Common/Types/Color";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface TelegramLogsTableProps {
   query?: Query<BaseModel>;
@@ -96,7 +97,7 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
       hideOnMobile: true,
       getElement: (item: TelegramLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;

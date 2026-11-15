@@ -1089,12 +1089,19 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 });
 
 describe("the helpers, on these pages' shapes", () => {
-  it("draw a path through the Products menu from the menu's keys: the Russian menu's Dashboards, not the page title's", () => {
+  it("draw a path through the Products menu from the menu's keys, which name Dashboards as its page title does (#8029)", () => {
     expect(drawnPath("en", ["Products", "Dashboards"])).toBe(
       "**Products → Dashboards**",
     );
+    const russianMenu: { navbar: { items: Record<string, string> } } =
+      dashboardLocale("ru") as { navbar: { items: Record<string, string> } };
+
     expect(drawnPathSegment("ru", ["Products", "Dashboards"], 1)).toBe(
-      "Дашборды",
+      russianMenu.navbar.items["dashboardsTitle"],
+    );
+    // The Russian menu said "Дашборды" over a page titled "Панели".
+    expect(drawnPathSegment("ru", ["Products", "Dashboards"], 1)).toBe(
+      "Панели",
     );
     expect(drawnActionLabel("ru", "Dashboards")).toBe("Панели");
     expect(drawnPath("fa", ["Products", "Teams"])).toBe(

@@ -1,6 +1,6 @@
 # Översikt över instrumentpaneler
 
-En instrumentpanel är en sida med widgetar som du själv ordnar: diagram över dina mätvärden, loggar och spår, listor över incidenter, larm och övervakare, dina SLO:er och din infrastruktur, till och med data från system utanför OneUptime. Bygg en för jourskärmen, för ett teams morgonkoll eller som en sida för dina kunder, och dela den med ditt projekt eller med alla som har länken. För att välja mellan en instrumentpanel, en offentlig instrumentpanel och en statussida, se [Vilken ska jag använda?](/docs/introduction/which-one#instrumentpanel-offentlig-instrumentpanel-eller-statussida).
+En instrumentpanel är en sida med widgetar som du själv ordnar: diagram över dina mätvärden, loggar och spår, listor över incidenter, larm och monitorer, dina SLO:er och din infrastruktur, till och med data från system utanför OneUptime. Bygg en för jourskärmen, för ett teams morgonkoll eller som en sida för dina kunder, och dela den med ditt projekt eller med alla som har länken. För att välja mellan en instrumentpanel, en offentlig instrumentpanel och en statussida, se [Vilken ska jag använda?](/docs/introduction/which-one#instrumentpanel-offentlig-instrumentpanel-eller-statussida).
 
 :::cards
 - [Så fungerar en instrumentpanel](#så-fungerar-en-instrumentpanel): Var datan kommer ifrån, och vem som ser den.
@@ -15,7 +15,7 @@ Varje widget läser från en källa, inom instrumentpanelens tidsintervall och f
 
 ```mermaid title="Från din data till personerna som läser den"
 flowchart TB
-    S["Din data: telemetri,<br/>övervakare, incidenter,<br/>SLO:er, infrastruktur,<br/>andra system"] --> W["Widgetar: diagram,<br/>tal, listor, kartor<br/>och text"]
+    S["Din data: telemetri,<br/>monitorer, incidenter,<br/>SLO:er, infrastruktur,<br/>andra system"] --> W["Widgetar: diagram,<br/>tal, listor, kartor<br/>och text"]
     W --> D["En instrumentpanel:<br/>dess tidsintervall,<br/>variabler och<br/>automatisk uppdatering"]
     D --> M["Ditt team,<br/>inloggat"]
     D --> P["Alla med länken,<br/>när du har delat den"]
@@ -91,7 +91,7 @@ Målet: en sida för checkout-tjänsten med dess svarstid, felfrekvens, öppna i
 
 ## Hur instrumentpaneler passar in i resten av OneUptime
 
-- **Övervakare och telemetri** är där datan kommer ifrån. Varje mätvärde, logg och spår du skickar kan hamna på en widget.
+- **Monitorer och telemetri** är där datan kommer ifrån. Varje mätvärde, logg och spår du skickar kan hamna på en widget.
 - **Incidenter och larm** visas i widgetarna **Incidentlista** och **Larmlista**. En instrumentpanel visar dem bara: du arbetar med dem på deras egna sidor.
 - **Statussidor** berättar för dina kunder om din tjänst är uppe. Instrumentpaneler visar i detalj hur den beter sig. De två arbetar sida vid sida.
 - **Arbetsflöden** agerar på det som händer. Instrumentpaneler är där du läser det.

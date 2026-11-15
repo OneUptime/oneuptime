@@ -77,7 +77,7 @@ Hver spørring tegner sitt eget diagram. For å tegne en spørring i samme diagr
 :::steps
 ### Legg til spørringene
 
-Klikk på **Legg til metrikk** for hver metrikk du trenger. De nye spørringene heter `b`, `c` og så videre.
+Klikk på **Legg til måling** for hver metrikk du trenger. De nye spørringene heter `b`, `c` og så videre.
 
 ### Legg til en formel
 

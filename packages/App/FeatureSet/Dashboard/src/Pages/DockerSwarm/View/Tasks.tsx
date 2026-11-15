@@ -117,7 +117,6 @@ const DockerSwarmClusterTasks: FunctionComponent<
       error={error}
       showGroupColumn={true}
       groupColumnTitle="Node"
-      groupFallbackLabel="—"
       showAge={false}
       tableIdPrefix="docker-swarm"
       metricThresholds={DOCKER_SWARM_TASK_METRIC_THRESHOLDS}

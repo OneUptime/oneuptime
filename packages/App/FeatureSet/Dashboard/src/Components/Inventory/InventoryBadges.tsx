@@ -19,6 +19,7 @@ import {
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The three pills the Inventory product renders a row's identity with. They
@@ -49,7 +50,7 @@ export const InventoryTypeBadge: FunctionComponent<InventoryTypeBadgeProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   if (!props.entityType) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -80,7 +81,7 @@ export const InventorySourceBadge: FunctionComponent<
 > = (props: InventorySourceBadgeProps): ReactElement => {
   const translator: Translator = useTranslator();
   if (!props.source) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const descriptor: InventorySourceDescriptor | null =
@@ -130,7 +131,7 @@ export const InventoryLivenessBadge: FunctionComponent<
   });
 
   if (result.liveness === InventoryLiveness.NotTracked) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const age: string | null =

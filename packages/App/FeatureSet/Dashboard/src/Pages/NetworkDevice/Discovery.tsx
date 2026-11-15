@@ -103,6 +103,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * More fields on the new-scan form: the name, how hosts are named, and the
@@ -952,7 +953,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                    */}
                   <div className="flex items-start gap-2">
                     <div className="min-w-0 break-words text-sm font-medium text-gray-900">
-                      {name || item.cidr || "—"}
+                      {name || item.cidr || <TableEmptyValue />}
                     </div>
                     {/*
                      * The scan's method, ICMP or SNMP, in the words of the two
@@ -1083,7 +1084,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
               return (
                 <span className="text-sm text-gray-900">
-                  {item.probe?.name || "—"}
+                  {item.probe?.name || <TableEmptyValue />}
                 </span>
               );
             },

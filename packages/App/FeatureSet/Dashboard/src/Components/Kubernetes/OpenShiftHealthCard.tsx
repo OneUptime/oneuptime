@@ -19,6 +19,7 @@ import {
   OpenShiftClusterHealth,
   OpenShiftOperatorHealth,
 } from "../../Pages/Kubernetes/Utils/KubernetesOpenShiftHealth";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * THE OPENSHIFT CARD ON A CLUSTER'S OVERVIEW.
@@ -74,7 +75,9 @@ const OperatorCondition: FunctionComponent<ConditionProps> = (
       <span className="text-gray-500">
         {translator.translateText(props.title)}
       </span>{" "}
-      <span className={statusClass}>{props.status || "—"}</span>
+      <span className={statusClass}>
+        {props.status || <EmptyValue isSmall={true} />}
+      </span>
     </span>
   );
 };

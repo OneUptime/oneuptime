@@ -100,6 +100,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Route from "../../../Types/API/Route";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import FieldType from "../../../UI/Components/Types/FieldType";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 interface RecordedColumn {
   field?: Record<string, unknown>;
@@ -454,7 +455,9 @@ describe("the Field Type cell", () => {
     for (const missing of [undefined, null, "", "   "]) {
       render(typeCell(missing));
 
-      expect(screen.getByTestId("custom-field-type").textContent).toBe("-");
+      expect(screen.getByTestId("custom-field-type").textContent).toBe(
+        QUIET_DASH_TEXT,
+      );
 
       cleanup();
     }

@@ -38,6 +38,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Every device assigned to this site — same status language as the main
@@ -281,7 +282,7 @@ const NetworkSiteDevices: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -325,14 +326,11 @@ const NetworkSiteDevices: FunctionComponent<
                 )
               ) {
                 return (
-                  <span
-                    className="text-sm text-gray-400"
+                  <TableEmptyValue
                     title={translator.translateText(
                       "Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device.",
                     )}
-                  >
-                    —
-                  </span>
+                  />
                 );
               }
 
@@ -349,14 +347,11 @@ const NetworkSiteDevices: FunctionComponent<
 
               if (!item.lastPolledAt) {
                 return (
-                  <span
-                    className="text-sm text-gray-400"
+                  <TableEmptyValue
                     title={translator.translateText(
                       "Interfaces are collected by the first successful SNMP walk. This device has not been polled yet.",
                     )}
-                  >
-                    —
-                  </span>
+                  />
                 );
               }
 

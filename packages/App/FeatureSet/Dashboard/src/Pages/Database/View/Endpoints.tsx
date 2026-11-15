@@ -16,6 +16,7 @@ import {
   getDatabaseEndpointSourceLabel,
 } from "../Utils/DatabaseServerPresentation";
 import useDatabaseWideTable from "../Utils/useDatabaseWideTable";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The endpoints a database is known by — the ONE thing that decides which
@@ -135,7 +136,7 @@ const DatabaseServerEndpoints: FunctionComponent<
                     className="min-w-0 truncate font-mono text-sm text-gray-900"
                     title={endpoint || undefined}
                   >
-                    {endpoint || "—"}
+                    {endpoint || <TableEmptyValue />}
                   </span>
                   {item.isPrimary ? (
                     <span className="flex-shrink-0">

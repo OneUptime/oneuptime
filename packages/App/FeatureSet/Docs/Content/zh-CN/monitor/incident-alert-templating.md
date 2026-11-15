@@ -333,7 +333,7 @@ Alerts for payments:
 | `processes[].command` | 启动该进程所用的命令。 | `string` |
 | `failureCause` | 检查失败时的原因。 | `string` |
 
-### 合成监控器
+### 合成监视器
 
 合成监视器会针对它被设置使用的每种浏览器和屏幕尺寸各运行一次脚本，例如桌面屏幕上的 Chromium 和移动屏幕上的 Firefox。`syntheticResponses` 为每次运行保存一条记录：可以按位置读取某一次运行，如 `{{syntheticResponses[0].browserType}}`，也可以用 `{{#each syntheticResponses}}` 读取每一次运行。
 
@@ -511,7 +511,7 @@ Timed out: {{isTimeout}}
 Response time: {{responseTimeInMs}} ms
 ```
 
-### 合成监控器的每次运行
+### 合成监视器的每次运行
 
 ```text title="Description"
 ### Synthetic monitor results

@@ -19,6 +19,7 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import TelemetryDocumentation from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation";
 import {
+  FluentdRunsIn,
   getFluentBitConfig,
   getFluentdConfig,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets";
@@ -225,15 +226,35 @@ describe("the log shippers' files carry the server's own address", () => {
         "# fluentd.conf",
       );
 
+      // The host's file first, as its tab is.
       expect(config).toBe(
-        getFluentdConfig({
-          protocol: server.protocolName,
-          host: server.host,
-          key: SECRET,
-        }),
+        getFluentdConfig(
+          {
+            protocol: server.protocolName,
+            host: server.host,
+            key: SECRET,
+          },
+          FluentdRunsIn.Host,
+        ),
       );
       expect(config).toContain(
         `endpoint ${server.protocolName}://${server.host}/fluentd/logs\n`,
+      );
+
+      // Docker Compose's, with the same address.
+      fireEvent.click(
+        screen.getAllByRole("tab", { name: "Docker Compose" })[0]!,
+      );
+
+      expect(codeStartingWith("# fluentd.conf")).toBe(
+        getFluentdConfig(
+          {
+            protocol: server.protocolName,
+            host: server.host,
+            key: SECRET,
+          },
+          FluentdRunsIn.DockerCompose,
+        ),
       );
     },
   );

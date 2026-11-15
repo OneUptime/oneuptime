@@ -705,7 +705,15 @@ describe("a person with no rule for the severity is listed with what the fallbac
     }
   });
 
-  test("the view of who would be told reads a person without the fallback's methods, as it always did", async () => {
+  /*
+   * Read without readsFallbackMethods, a preview lists nothing for a person
+   * with no rule, and asks the fallback nothing. The view of who would be
+   * told (WhoIsToldService) reads its previews so, once per severity, and
+   * reads what the fallback picks itself, once per person and kind of page
+   * (#7528): WhoIsToldService.test's "what the card lists is what a page
+   * sends" holds it to what the fallback sends.
+   */
+  test("a preview read without the fallback's methods lists none, and asks the fallback nothing", async () => {
     const sam: OnCallTestPagePreviewPerson =
       await OnCallTestPageService.getPersonPreview({
         projectId: PROJECT,

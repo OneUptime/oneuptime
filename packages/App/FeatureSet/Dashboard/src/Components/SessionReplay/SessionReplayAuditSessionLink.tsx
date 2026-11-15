@@ -14,6 +14,7 @@ import {
   SessionReplayAuditPresentation,
   SessionReplayAuditSummary,
 } from "./SessionReplayAuditSummary";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface SessionReplayAuditSessionLinkProps {
   rumApplicationId: ObjectID;
@@ -29,8 +30,8 @@ const SessionReplayAuditSessionLink: FunctionComponent<
 
   if (!sessionId) {
     return (
-      <span className="text-sm text-gray-500" data-testid="audit-session-empty">
-        —
+      <span data-testid="audit-session-empty">
+        <TableEmptyValue />
       </span>
     );
   }

@@ -761,9 +761,15 @@ test.describe("metric tables on the dashboard inside OneUptime", () => {
     await expect(await cellOf(table, "web-3", "CPU")).toHaveText("93.0%");
     // A metric whose unit is 1 is a plain number: no "1" after it.
     await expect(await cellOf(table, "web-3", "Load")).toHaveText("7.9");
-    // A host that sent no free disk reading shows a dash, uncolored.
+    /*
+     * A host that sent no free disk reading shows the quiet dash every empty
+     * cell is, uncolored, read out as "Not set" (#7603).
+     */
     const missing: Locator = await cellOf(table, "cache-1", "Free disk");
-    await expect(missing).toHaveText("—");
+    await expect(
+      missing.locator('[data-testid="table-empty-value"] [aria-hidden="true"]'),
+    ).toHaveText("—");
+    await expect(missing).toHaveText("—Not set");
     await expect(missing).not.toHaveAttribute("data-threshold-level");
   });
 

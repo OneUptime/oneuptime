@@ -26,7 +26,7 @@ Hvert minutt kjører OneUptime hver av monitorens metrikkspørringer over tidsin
 ## Før du starter
 
 - Applikasjonene eller infrastrukturen din sender metrikker til OneUptime via OpenTelemetry. Se [OpenTelemetry](/docs/telemetry/open-telemetry).
-- Kjenn navnet på metrikken og attributtene du vil filtrere eller gruppere på. Listene **Metrikk** og **Grupper etter** tilbyr bare navn og attributter som OneUptime har mottatt.
+- Kjenn navnet på metrikken og attributtene du vil filtrere eller gruppere på. Listene **Måling** og **Grupper etter** tilbyr bare navn og attributter som OneUptime har mottatt.
 
 ## Opprett en metrikkmonitor
 
@@ -41,11 +41,11 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Målinge
 
 ### Legg til metrikkspørringene
 
-I **Metrikk å følge med på** velger du en **Metrikk** og hvordan den aggregeres med **Aggregate by**. Åpne **Filters & grouping** for å filtrere etter attributter eller gruppere med **Grupper etter**. Klikk på **Legg til metrikk** for en spørring til, eller på **Legg til formel** for å kombinere dem. Diagrammet under spørringene viser de siste timene, med regelens verdi som en rød linje, så du ser verdiene regelen kommer til å sjekke.
+I **Måling å følge med på** velger du en **Måling** og hvordan den aggregeres med **Aggregate by**. Åpne **Filters & grouping** for å filtrere etter attributter eller gruppere med **Grupper etter**. Klikk på **Legg til måling** for en spørring til, eller på **Legg til formel** for å kombinere dem. Diagrammet under spørringene viser de siste timene, med regelens verdi som en rød linje, så du ser verdiene regelen kommer til å sjekke.
 
 ### Si når det skal varsles
 
-I **Når det skal varsles** velger du under **Målt som** hvordan metrikken måles, og deretter et **Tidsvindu**, en **Betingelse** og en **Verdi**. Når trinnet har mer enn én spørring eller formel, velger du også **Metrikk** som regelen leser. Setningen under dem gjentar regelen med vanlige ord.
+I **Når det skal varsles** velger du under **Målt som** hvordan metrikken måles, og deretter et **Tidsvindu**, en **Betingelse** og en **Verdi**. Når trinnet har mer enn én spørring eller formel, velger du også **Måling** som regelen leser. Setningen under dem gjentar regelen med vanlige ord.
 
 ### Velg hva som skjer
 
@@ -62,7 +62,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 
 | Felt | Hva det gjør | Standard |
 | --- | --- | --- |
-| **Metrikk** | Metrikken det spørres etter. | Påkrevd |
+| **Måling** | Metrikken det spørres etter. | Påkrevd |
 | **Aggregate by** | Hvordan verdiene i hvert tidsintervall kombineres til ett datapunkt: Gj.snitt, Sum, Min, Max, Antall eller en persentil (P50, P75, P90, P95 eller P99). | Gj.snitt |
 | **Filter by attributes** (under **Filters & grouping**) | Bare serier der attributtene oppfyller disse vilkårene. | Ingen filter |
 | **Grupper etter** (under **Filters & grouping**) | Én serie per unike verdi av disse attributtene (se [Varsler per serie](#varsler-per-serie-group-by)). | Én serie |
@@ -116,7 +116,7 @@ Jo lengre vinduet er, desto bredere er hvert tidsintervall, så ett datapunkt st
 
 ## Kriterier
 
-Disse monitorene evaluerer alltid **Metrikkverdi**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når metrikken har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav**, **Uvanlig høy eller lav**, **Ventes å stige over** eller **Ventes å falle under**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Metrikk**, en **Aggregering**, en **Betingelse** og en **Terskel**.
+Disse monitorene evaluerer alltid **Målingsverdi**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når metrikken har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav**, **Uvanlig høy eller lav**, **Ventes å stige over** eller **Ventes å falle under**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Måling**, en **Aggregering**, en **Betingelse** og en **Terskel**.
 
 | Betingelse | Samsvarer når verdien er… |
 | --- | --- |

@@ -54,6 +54,15 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
 레코드를 OneUptime으로 보내는 `<match>` 섹션을 추가합니다. `YOUR_SERVICE_TOKEN`은 수집 키로, `YOUR_SERVICE_NAME`은 로그가 표시될 이름(원하는 아무 이름)으로 바꿉니다.
 
 ```text title="fluentd.conf"
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 # Match all patterns
 <match **>
   @type http
@@ -66,12 +75,18 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -84,6 +99,8 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
 ```
 
 `json_array true`는 버퍼의 청크마다 하나의 JSON 배열로 보내고, `flush_interval 10s`는 10초마다 버퍼를 보냅니다. `chunk_limit_size 900k`는 각 요청을 이 엔드포인트에서 OneUptime이 받는 최대 크기인 1MB 미만으로 유지합니다.
+
+`retryable_response_codes 429,502,503,504`는 OneUptime이 바쁘거나(`429`) 다시 시작하는 중일 때(`502`, `503`, `504`) 배치를 다시 보냅니다. 이 설정이 없으면 Fluentd는 `503`이 아닌 모든 응답에서 배치를 버립니다. `retry_max_interval 30s`는 재시도 사이에 최대 30초를 기다리고, `retry_timeout 72h`는 72시간이 지나도 보내지 못한 배치를 버립니다. `record_transformer` 필터는 Fluentd가 각 레코드에 준 시간을 `fluentd_time`으로 추가합니다. HTTP 출력은 레코드만 보내고, OneUptime은 로그의 시간을 레코드에서 읽기 때문입니다.
 
 ### Fluentd 다시 시작
 
@@ -111,6 +128,15 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
   bind 0.0.0.0
 </source>
 
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 <match **>
   @type http
 
@@ -122,12 +148,18 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -152,7 +184,7 @@ OneUptime은 각 레코드에서 다음 필드를 읽습니다.
 | 트레이스 ID | `trace_id`, `traceId`, `traceid` | 로그를 해당 트레이스에 연결합니다. |
 | 스팬 ID | `span_id`, `spanId`, `spanid` | 로그를 해당 스팬에 연결합니다. |
 | 서비스 | `x-oneuptime-service-name` 헤더 | 헤더가 없으면 `Fluentd`. |
-| 시간 | — | OneUptime이 레코드를 받은 시간. |
+| 시간 | `time`, `timestamp`, `@timestamp`, `ts`, `fluentd_time` | `2026-11-14T08:00:00.123Z` 같은 ISO 8601 시간, 또는 에포크 이후의 초, 밀리초, 마이크로초, 나노초. 시간대가 없는 시간은 UTC로 봅니다. 2000년 이전이거나 하루 넘게 앞선 시간은 읽지 않습니다. 시간을 읽은 필드는 속성으로 저장하지 않습니다. 시간이 없는 레코드는 OneUptime이 레코드를 받은 시간으로 저장됩니다. |
 
 그 밖의 필드는 모두 `fluentd.` 뒤에 필드 이름을 붙인 속성이 되어 검색하고 필터링할 수 있습니다. 예를 들어 `container_name` 필드는 로그 탐색기에서 `@fluentd.container_name`입니다. 중첩된 객체는 `fluentd.kubernetes.pod_name`처럼 점으로 펼쳐지고, 목록은 JSON으로 저장됩니다.
 
@@ -174,6 +206,14 @@ Fluentd 로그도 다른 로그처럼 [로그 파이프라인](/docs/telemetry/l
 
 :::details Fluentd가 `413`을 기록함
 요청이 이 엔드포인트에서 OneUptime이 받는 최대 크기인 1MB를 넘습니다. 위 구성처럼 `<buffer>` 섹션에 `chunk_limit_size 900k`를 설정하세요.
+:::
+
+:::details Fluentd가 `429`, `502`, `503` 또는 `504`를 기록함
+OneUptime이 바쁘거나 다시 시작하는 중입니다. 위 구성처럼 `<match>` 섹션에 `retryable_response_codes 429,502,503,504`가 있으면 Fluentd는 배치를 보관했다가 다시 보냅니다. 없으면 Fluentd는 배치를 버립니다.
+:::
+
+:::details 로그에 자체 시간이 아니라 OneUptime이 받은 시간이 표시됨
+OneUptime은 로그의 시간을 레코드에서 읽고, Fluentd의 HTTP 출력은 레코드만 보냅니다. `<parse>` 섹션은 레코드에서 `time` 필드를 빼내므로, 여기에 `keep_time_key true`를 추가하세요. 위 구성의 `record_transformer` 필터도 추가하세요. Fluentd가 각 레코드에 준 시간을 `fluentd_time`으로 추가합니다.
 :::
 
 :::details 로그가 `Fluentd` 서비스로 들어옴

@@ -1108,8 +1108,17 @@ describe("Quickstart", () => {
     ).not.toBe(MonitorType.Manual);
 
     expect(address.body).toContain(
-      "On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step asks you to [add a payment method](/docs/configuration/billing#payment-methods).",
+      "On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step says so before **Start checking**, with **Add Payment Method** to [add one](/docs/configuration/billing#payment-methods).",
     );
+    // Said before the button, with the billing page's own button (#7367).
+    expect(setupWord(QUICKSTART_SETUP_COPIES.website, "addPaymentMethod")).toBe(
+      "Add Payment Method",
+    );
+    expect(
+      dashboard(
+        "Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup.tsx",
+      ),
+    ).toContain("{paymentNotice}");
     // The link lands on the billing page's section that adds one.
     expect(billing.split("\n")).toContain("## Payment methods");
     expect(billing).toContain("adding one turns on pay-as-you-go usage");
@@ -2913,9 +2922,13 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain("**Needs attention** ends with **Setup**");
 
     // The page, by the title it shows and the name Search finds it by.
-    expect(pageWords).toContain('title: translationKey("Setup Health"),');
-    expect(dashboard("Pages/Home/SetupHealth.tsx")).toContain(
-      '<Page title="Setup Health"',
+    const setupHealthPage: string = oneLine(
+      dashboard("Pages/Home/SetupHealth.tsx"),
+    );
+
+    expect(setupHealthPage).toContain('<Page title="Setup Health"');
+    expect(setupHealthPage).toContain(
+      "description={SETUP_HEALTH_WORDS_PAGE.description}",
     );
     expect(
       oneLine(dashboard("Components/CommandPalette/PageSearchIndex.ts")),
@@ -2932,6 +2945,16 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain(
       `worst first, under **${levelTitles[0]}**, **${levelTitles[1]}** and **${levelTitles[2]}**`,
     );
+
+    // The verdict it opens with, and what a finding reaches, as the page words them.
+    expect(pageWords).toContain(
+      'nothingToFix: translationKey("Nothing to fix."),',
+    );
+    expect(section).toContain("or **Nothing to fix**");
+    expect(pageWords).toContain(
+      'export const SETUP_HEALTH_AFFECTS: string = translationKey("Affects");',
+    );
+    expect(section).toContain("the monitors or policies it **Affects**");
 
     // A monitor's findings are its own card's breaks; dismissed ones fold away.
     expect(

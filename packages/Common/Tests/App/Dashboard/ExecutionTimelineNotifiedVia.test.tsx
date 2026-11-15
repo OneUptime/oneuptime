@@ -6,7 +6,6 @@ import NotifiedVia, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/NotifiedVia";
 import ExecutionLogTimelineTable from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable";
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
-import { isDashPlaceholder } from "Common/UI/Components/Table/TableEmptyValue";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -26,6 +25,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
+import { isEmptyValueElement } from "../../../UI/Components/Table/TableEmptyValue";
 
 /*
  * "NOTIFIED VIA" ON AN ON-CALL RUN'S EXECUTION TIMELINE (#6585).
@@ -174,7 +175,7 @@ describe("a step's channels, as the Execution Timeline draws them", () => {
       const view: RenderResult = render(<NotifiedVia channels={value} />);
 
       expect(chips()).toEqual([]);
-      expect(view.container.textContent).toBe("-");
+      expect(view.container.textContent).toBe(QUIET_DASH_TEXT);
     },
   );
 
@@ -310,10 +311,10 @@ describe("the Execution Timeline's column", () => {
       getElement(new OnCallDutyPolicyExecutionLogTimeline()),
     );
     expect(chips()).toEqual([]);
-    expect(older.container.textContent).toBe("-");
+    expect(older.container.textContent).toBe(QUIET_DASH_TEXT);
   });
 
-  test("a step that kept no channels is the bare dash the table draws as its quiet one", () => {
+  test("a step that kept no channels is the table's quiet dash", () => {
     const column: Record<string, unknown> = columns().find(
       (item: Record<string, unknown>) => {
         return item["title"] === NOTIFIED_VIA_TITLE;
@@ -337,13 +338,13 @@ describe("the Execution Timeline's column", () => {
     for (const channels of [undefined, null, [], ["Carrier Pigeon"]]) {
       expect({
         channels,
-        quiet: isDashPlaceholder(getElement(step(channels))),
+        quiet: isEmptyValueElement(getElement(step(channels))),
       }).toEqual({ channels, quiet: true });
     }
 
-    expect(isDashPlaceholder(getElement(step([OnCallPageChannel.Email])))).toBe(
-      false,
-    );
+    expect(
+      isEmptyValueElement(getElement(step([OnCallPageChannel.Email]))),
+    ).toBe(false);
   });
 });
 

@@ -49,6 +49,7 @@ import {
   getGlobalTranslator,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "container.name": "name",
@@ -350,7 +351,11 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
             className="px-3 py-2 text-xs text-gray-500 truncate font-mono"
           />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
-            {formatCpuPercent(cpu, translator)}
+            {cpu !== null ? (
+              formatCpuPercent(cpu, translator)
+            ) : (
+              <TableEmptyValue isSmall={true} />
+            )}
           </td>
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
             {formatBytes(mem, translator)}

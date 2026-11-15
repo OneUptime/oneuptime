@@ -44,15 +44,13 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
         <SummaryFact
           isWide={true}
           title="Hostname or IP address"
-          value={
-            HostAddressUtil.formatHostAndPort({
-              host:
-                props.probeMonitorResponse.monitorDestination?.toString() || "",
-              port: props.probeMonitorResponse.monitorDestinationPort?.toString(),
-            }) || "-"
-          }
+          value={HostAddressUtil.formatHostAndPort({
+            host:
+              props.probeMonitorResponse.monitorDestination?.toString() || "",
+            port: props.probeMonitorResponse.monitorDestinationPort?.toString(),
+          })}
         />
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(
@@ -64,7 +62,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -74,7 +72,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
       </SummaryFacts>
@@ -112,7 +110,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
             value={
               pingResponse.jitterInMs !== undefined
                 ? formatMilliseconds(translator, pingResponse.jitterInMs)
-                : "-"
+                : undefined
             }
           />
           <SummaryFact
@@ -123,7 +121,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
                     translator,
                     pingResponse.minRoundTripTimeInMs,
                   )
-                : "-"
+                : undefined
             }
           />
           <SummaryFact
@@ -134,7 +132,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
                     translator,
                     pingResponse.maxRoundTripTimeInMs,
                   )
-                : "-"
+                : undefined
             }
           />
         </SummaryFacts>

@@ -451,6 +451,15 @@ Com isso ativado, uma correção assim só é executada depois que duas pessoas 
 
 A regra é lida quando alguém aprova: ativada, ela retém as correções que já esperam; desativada, a próxima aprovação as executa. Uma correção só de alterações seguras, um runbook e uma correção por meio de servidores MCP precisam de uma só aprovação, como antes. Uma alteração que um cluster ou um recurso executa por conta própria, no modo **Automático** ou **Ignorar aprovação** ou porque a lista de permitidos dele a nomeia, não espera aprovação nenhuma.
 
+### Salvar como runbook uma correção que funcionou
+
+Quando uma correção que a própria OneUptime AI executou é verificada (comandos em um Runner, uma alteração pelo agente de IA de um cluster ou de um recurso, ou chamadas a servidores MCP), o cartão dela oferece **Salvar como runbook**. O OneUptime escreve um runbook com as etapas que foram executadas e funcionaram, na ordem em que foram executadas:
+
+- um comando em um Runner vira uma etapa Bash nesse mesmo Runner, exatamente como foi escrito, com o mesmo tempo limite; um comando que precisou de aprovação também aguarda uma aprovação no runbook;
+- uma alteração por um agente de IA ou por um servidor MCP vira uma etapa manual com o comando ou a chamada exatos, já que as etapas do próprio runbook não conseguem alcançar esses agentes.
+
+Cada etapa diz por que a OneUptime AI a executou, o que ela faz e como desfazê-la. O runbook leva o nome do incidente ou do alerta que a correção resolveu e começa desativado: ninguém pode executá-lo, e a OneUptime AI nunca o escolhe, até que alguém revise as etapas dele e o ative. O cartão passa então a ter um link para o runbook, e o feed diz que ele foi salvo. Uma correção que não foi verificada, ou que já executou um runbook, não oferece nada para salvar, e salvar exige a permissão para criar runbooks.
+
 ## OneUptime AI responde primeiro
 
 Uma regra de plantão de incidentes ou alertas pode deixar a OneUptime AI atender o chamado primeiro. Em **Mais campos**, responda **Quando esta regra deve acionar?** com **Depois que a OneUptime AI tentar**. Quando a OneUptime AI pode corrigir o assunto de um incidente ou alerta correspondente, as políticas da regra esperam enquanto a IA investiga, corrige e confere a correção, por no máximo o tempo definido em **Aguardar a OneUptime AI por até (minutos)**: 10 minutos por padrão, de 1 a 30. Se a correção da IA for verificada, a OneUptime AI resolve o registro e ninguém é acionado.

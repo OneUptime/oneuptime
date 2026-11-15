@@ -845,7 +845,6 @@ describe("OverLongText - a link across the end of a line's middle (#7229)", () =
       "a link that ends in the middle",
       `${WORDS} see [Run](https://example.com/x) ${"a".repeat(1100)}`,
     ],
-    ["a bare address", `${WORDS} see ${ADDRESS} now`],
   ])(
     "%s: the middle is one piece, as before",
     (_label: string, line: string) => {
@@ -934,6 +933,376 @@ describe("OverLongText - a link across the end of a line's middle (#7229)", () =
     // The fragments make such links often enough to be read.
     expect(linksInView).toBeGreaterThan(30);
   });
+});
+
+/*
+ * ISSUE #7600: A LINK'S TEXT ACROSS A CUT, AND A BARE ADDRESS ACROSS THE
+ * END. A link whose text is longer than what the line keeps on its side of
+ * a cut lost its "[" or its "](" to the middle's token, and a bare address
+ * that starts in the middle lost its scheme to it: the parser read Markdown
+ * text, not a link. Now the "[" and the "](" stay in view with what the
+ * middle holds of the text a piece of its own, and an address keeps its
+ * start in view - where the link's text reads plainly at the cut, as
+ * marked reads a link's text, so the token reads as what it stands for.
+ */
+describe("OverLongText - a link's text across a cut, and a bare address across the end (#7600)", () => {
+  const FILLER: string = "log line text ".repeat(5000);
+  const WORDS: string = repeatTo("lorem ipsum ", 70000).trim();
+  const TOKEN: RegExp = /\d+/;
+  const LONE_HIGH_SURROGATE: RegExp = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/;
+  const TAIL: string = "](https://example.com/x) now";
+
+  interface HeldLine {
+    // What the parser reads of the line, between the tokens.
+    inView: Array<string>;
+    // What each token stands for, in order.
+    held: Array<string>;
+  }
+
+  // `line` held back, read apart - and always put back together exactly.
+  const holdBackLine: (line: string) => HeldLine = (line: string): HeldLine => {
+    const holder: Holder = makeHolder();
+    const heldText: string = holdBackOverLongLines(line, holder.hold);
+
+    expect(holder.putBack(heldText) === line).toBe(true);
+
+    return { inView: heldText.split(TOKEN), held: holder.held };
+  };
+
+  // Where the middle ends: right after a space near 1 KB from the line's end.
+  const middleEndOf: (line: string) => number = (line: string): number => {
+    const cut: number = line.length - OVER_LONG_LINE_KEPT_LENGTH;
+    const space: number = line.lastIndexOf(" ", cut - 1);
+
+    return cut - space - 1 < 64 ? space + 1 : cut;
+  };
+
+  const middleStartOf: (line: string) => number = (line: string): number => {
+    const cut: number = OVER_LONG_LINE_KEPT_LENGTH;
+    const space: number = line.lastIndexOf(" ", cut - 1);
+
+    return cut - space - 1 < 64 ? space + 1 : cut;
+  };
+
+  test("the issue's row: a link's text across the end keeps its '[' in view, and the middle's part of the text is a piece of its own", () => {
+    const text: string = "run ".repeat(400);
+    const line: string = `${FILLER}see [${text}${TAIL}`;
+    const open: number = line.indexOf("[");
+    const middleEnd: number = middleEndOf(line);
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(open).toBeLessThan(middleEnd);
+    expect(line.indexOf("](")).toBeGreaterThan(middleEnd);
+    expect(heldLine.inView).toEqual([
+      line.slice(0, middleStartOf(line)),
+      "[",
+      line.slice(middleEnd),
+    ]);
+    expect(heldLine.held).toEqual([
+      line.slice(middleStartOf(line), open),
+      line.slice(open + 1, middleEnd),
+    ]);
+  });
+
+  test("the issue's row: a link's text across the start keeps its '](' in view, then its address apart", () => {
+    const text: string = "run ".repeat(400);
+    const line: string = `[${text}](https://example.com/x) ${FILLER}`;
+    const close: number = line.indexOf("](");
+    const middleStart: number = middleStartOf(line);
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(close).toBeGreaterThan(middleStart);
+    expect(heldLine.inView.slice(0, 3)).toEqual([
+      line.slice(0, middleStart),
+      "](",
+      ") ",
+    ]);
+    expect(heldLine.held.slice(0, 2)).toEqual([
+      line.slice(middleStart, close),
+      "https://example.com/x",
+    ]);
+  });
+
+  test.each([
+    [
+      "an image's text across the end keeps its '![' in view",
+      `${FILLER}see ![${"shot ".repeat(320)}${TAIL}`,
+      "![",
+    ],
+    [
+      "a text with brackets nested in it",
+      `${FILLER}see [run [42] ${"run ".repeat(400)}${TAIL}`,
+      "[",
+    ],
+    [
+      "a text with an escaped bracket",
+      `${FILLER}see [run \\] ${"run ".repeat(400)}${TAIL}`,
+      "[",
+    ],
+    [
+      "a text with code holding a bracket",
+      `${FILLER}see [run \`]\` ${"run ".repeat(400)}${TAIL}`,
+      "[",
+    ],
+    [
+      "a text after a link that ends in the middle",
+      `${FILLER}see [a](https://example.com/a) [${"run ".repeat(400)}${TAIL}`,
+      "[",
+    ],
+  ])("%s", (_name: string, line: string, opening: string) => {
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView).toHaveLength(3);
+    expect(heldLine.inView[1]).toBe(opening);
+    expect(heldLine.inView[2]).toBe(line.slice(middleEndOf(line)));
+  });
+
+  test.each([
+    [
+      "with brackets nested in it",
+      `[run [42] ${"run ".repeat(400)}](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "with an escaped bracket",
+      `[run \\] ${"run ".repeat(400)}](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "with code holding a bracket",
+      `[run \`]\` ${"run ".repeat(400)}](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "of an image",
+      `![${"shot ".repeat(320)}](https://example.com/x.png) ${FILLER}`,
+    ],
+    [
+      "with a title",
+      `[${"run ".repeat(400)}](https://example.com/x "Run") ${FILLER}`,
+    ],
+  ])(
+    "a link's text across the start %s keeps its '](' in view",
+    (_name: string, line: string) => {
+      const heldLine: HeldLine = holdBackLine(line);
+
+      expect(heldLine.inView[1]).toBe("](");
+      expect(heldLine.held[1]).toBe(
+        line.includes(".png")
+          ? "https://example.com/x.png"
+          : "https://example.com/x",
+      );
+    },
+  );
+
+  test.each([
+    ["a text that never closes", `${FILLER}see [${"run ".repeat(400)} now`],
+    [
+      "a text closed by a ']' with no '(' after it",
+      `${FILLER}see [${"run ".repeat(400)}] now`,
+    ],
+    [
+      "a text with code open at the cut",
+      `${FILLER}see [run \`${"run ".repeat(400)}\` x${TAIL}`,
+    ],
+    [
+      "a text with brackets open at the cut",
+      `${FILLER}see [run [${"run ".repeat(400)}] x${TAIL}`,
+    ],
+    [
+      "a text with a backslash right before the cut",
+      `${FILLER}see [${"a".repeat(600)}\\*${"b".repeat(OVER_LONG_LINE_KEPT_LENGTH - 1 - TAIL.length)}${TAIL}`,
+    ],
+    ["an escaped '['", `${FILLER}see \\[${"run ".repeat(400)}${TAIL}`],
+    [
+      "more labels open than are remembered",
+      `${FILLER}see ${"[".repeat(1100)}${"run ".repeat(400)}${TAIL}`,
+    ],
+  ])(
+    "%s at the end: the middle is one piece, as before",
+    (_name: string, line: string) => {
+      const heldLine: HeldLine = holdBackLine(line);
+
+      expect(heldLine.held).toHaveLength(1);
+      expect(heldLine.inView).toHaveLength(2);
+    },
+  );
+
+  test.each([
+    ["a text that never closes", `[${"run ".repeat(400)} ${FILLER}`],
+    ["a text closed with no '(' after it", `[${"run ".repeat(400)}] ${FILLER}`],
+    [
+      "a text with code open at the cut",
+      `[run \`${"run ".repeat(400)}\` x](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "a text in code",
+      `\`[${"run ".repeat(400)}\` x](https://example.com/x) ${FILLER}`,
+    ],
+  ])(
+    "%s at the start: no '](' is kept in view",
+    (_name: string, line: string) => {
+      const heldLine: HeldLine = holdBackLine(line);
+
+      expect(heldLine.inView).not.toContain("](");
+    },
+  );
+
+  test.each([
+    ["https", "https://example.com/", " https://example.com/"],
+    ["http", "http://example.com/", " http://example.com/"],
+    ["ftp", "ftp://example.com/", " ftp://example.com/"],
+    ["www", "www.example.com/", " www.example.com/"],
+    ["in capitals", "HTTPS://Example.COM/", " HTTPS://Example.COM/"],
+  ])(
+    "a bare %s address across the end keeps its scheme, domain and '/' in view, and its rest is a piece of its own",
+    (_name: string, start: string, inView: string) => {
+      const address: string = `${start}${"a".repeat(2000)}`;
+      const line: string = `${FILLER}see ${address} now`;
+      const addressAt: number = line.indexOf(start);
+      const middleEnd: number = line.length - OVER_LONG_LINE_KEPT_LENGTH;
+      const heldLine: HeldLine = holdBackLine(line);
+
+      expect(heldLine.inView).toEqual([
+        line.slice(0, middleStartOf(line)),
+        inView,
+        line.slice(middleEnd),
+      ]);
+      expect(heldLine.held).toEqual([
+        line.slice(middleStartOf(line), addressAt - 1),
+        line.slice(addressAt + start.length, middleEnd),
+      ]);
+    },
+  );
+
+  test("a bare address inside a word keeps its start in view, and the word's start stays in the middle's piece", () => {
+    const line: string = `${FILLER}see xhttps://example.com/${"a".repeat(2000)} now`;
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView[1]).toBe("https://example.com/");
+    expect(heldLine.held[0]!.endsWith("see x")).toBe(true);
+  });
+
+  test("a bare address with trailing punctuation keeps it in the kept end, as written", () => {
+    const line: string = `${FILLER}see https://example.com/${"a".repeat(2000)}). Done`;
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView[1]).toBe(" https://example.com/");
+    expect(heldLine.inView[2]!.endsWith("aaa). Done")).toBe(true);
+  });
+
+  test.each([
+    [
+      "a word with a backtick before the cut",
+      `${FILLER}see \`https://example.com/${"a".repeat(2000)}\` now`,
+    ],
+    [
+      "a word with a '<' before the cut",
+      `${FILLER}see x<1https://example.com/${"a".repeat(2000)} now`,
+    ],
+    [
+      "a word with no scheme",
+      `${FILLER}see example.com/${"a".repeat(2000)} now`,
+    ],
+    [
+      "a scheme with no domain after it",
+      `${FILLER}see https://.${"a".repeat(2000)} now`,
+    ],
+    [
+      "an address that starts in the kept start",
+      `https://example.com/${"a".repeat(70000)} now`,
+    ],
+  ])(
+    "%s: the middle is one piece, as before",
+    (_name: string, line: string) => {
+      const heldLine: HeldLine = holdBackLine(line);
+
+      expect(heldLine.held).toHaveLength(1);
+    },
+  );
+
+  test("a scheme right before the cut keeps itself in view, its domain in the kept end", () => {
+    // The kept end is exactly the domain and the path: no space near the cut.
+    const tail: string = `example.com/${"a".repeat(OVER_LONG_LINE_KEPT_LENGTH - 12)}`;
+    const line: string = `${FILLER}see${"x".repeat(80)}https://${tail}`;
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(tail).toHaveLength(OVER_LONG_LINE_KEPT_LENGTH);
+    // Nothing of it is held back: the scheme reads on into the kept end.
+    expect(heldLine.inView).toEqual([
+      line.slice(0, middleStartOf(line)),
+      `https://${tail}`,
+    ]);
+    expect(heldLine.held).toEqual([
+      line.slice(middleStartOf(line), line.indexOf("https://")),
+    ]);
+  });
+
+  test("lines of link texts and addresses near each cut, drawn at random, are always put back exactly", () => {
+    const random: SeededRandom = seededRandom(7600);
+    const pieces: ReadonlyArray<string> = [
+      "[",
+      "]",
+      "](",
+      "(",
+      ")",
+      "`",
+      "\\",
+      "\\]",
+      "![",
+      "run ",
+      "run",
+      " ",
+      "https://e.com/",
+      "www.e.co/",
+      "<",
+      "😀",
+    ];
+
+    for (let attempt: number = 0; attempt < 300; attempt++) {
+      let start: string = "";
+      let end: string = "";
+
+      while (start.length < 1300) {
+        start += pieces[random(pieces.length)];
+      }
+
+      while (end.length < 1300) {
+        end += pieces[random(pieces.length)];
+      }
+
+      const line: string = `${start}${WORDS}${end}`;
+      const holder: Holder = makeHolder();
+      const heldText: string = holdBackOverLongLines(line, holder.hold);
+
+      expect(holder.putBack(heldText) === line).toBe(true);
+      // A token never parts an emoji: no half of one is in view or held alone.
+      expect(LONE_HIGH_SURROGATE.test(heldText)).toBe(false);
+    }
+  });
+
+  test.each([
+    ["'['", "["],
+    ["'[a'", "[a"],
+    ["'https://e'", "https://e"],
+    ["'[`'", "[`"],
+    ["'[\\]'", "[\\]"],
+    ["'[run '", "[run "],
+  ])(
+    "a megabyte line of %s is held back in time in line with its length",
+    (_name: string, unit: string) => {
+      const line: string = repeatTo(unit, 1024 * 1024);
+      const holder: Holder = makeHolder();
+      const run: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return holdBackOverLongLines(line, makeHolder().hold);
+        },
+        limitInMs: 2000,
+      });
+
+      expect(run.inMs).toBeLessThan(2000);
+      expect(
+        holder.putBack(holdBackOverLongLines(line, holder.hold)) === line,
+      ).toBe(true);
+    },
+  );
 });
 
 describe("OverLongText - which lines only continue the block they are in", () => {

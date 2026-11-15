@@ -52,7 +52,11 @@ import {
   ReplaySignal,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
 import { getRailEmptyCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailEmptyCopy";
-import { formatSignalBytes } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignals";
+import {
+  formatSignalBytes,
+  fromTimelineEvent,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignals";
+import { describeIdleSkip } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStageOverlays";
 
 /*
  * SESSION REPLAY'S EVENTS RAIL IN THE READER'S LANGUAGE - from the
@@ -1371,5 +1375,111 @@ describe("UI review: a fact's value reads the way it was written", () => {
       expect(value).not.toHaveAttribute("dir");
       expect(value.className.split(" ")).not.toContain("text-end");
     }
+  });
+});
+
+/*
+ * Issue #7498: the page's own pause (OneUptimeReplay.pause()) says so on
+ * the rail, the timeline and the stage, in the reader's language, and
+ * never that nobody touched the page.
+ */
+describe("the page's own pause in the reader's language", () => {
+  const PAGE_PAUSE_KEYS: ReadonlyArray<string> = [
+    "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.",
+    "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+    "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+    "Recording paused by the page: {{label}}",
+    "Skipped {{duration}}: recording paused by the page",
+    "The page paused recording, so nothing was recorded until it resumed.",
+  ];
+
+  function pageSignal(edge: "paused" | "resumed"): ReplaySignal {
+    return fromTimelineEvent(
+      {
+        id: "rec:4:9",
+        kind: "idle-pause",
+        chunkIndex: 4,
+        offsetMs: edge === "paused" ? 330_000 : 1_710_000,
+        idlePauseEdge: edge,
+        pausedAtUnixMs: START_UNIX_MS + 330_000,
+        resumedAtUnixMs:
+          edge === "resumed" ? START_UNIX_MS + 1_710_000 : undefined,
+        pausedAtOffsetMs: edge === "resumed" ? 330_000 : undefined,
+        pauseReason: "page",
+      },
+      { startTimeUnixMs: START_UNIX_MS },
+    );
+  }
+
+  test("every sentence is worded in each of the Dashboard's languages, its values kept", () => {
+    const missing: Array<string> = [];
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+
+      for (const key of PAGE_PAUSE_KEYS) {
+        const text: string | undefined = locale[key];
+        const values: Array<string> = key.match(/\{\{\w+\}\}/g) || [];
+
+        if (
+          !text ||
+          text === EN[key] ||
+          values.some((value: string): boolean => {
+            return !text.includes(value);
+          })
+        ) {
+          missing.push(`${language}: ${key}`);
+        }
+      }
+    }
+
+    expect(DASHBOARD_LANGUAGES.length).toBeGreaterThanOrEqual(17);
+    expect(missing).toEqual([]);
+  });
+
+  test("German: the detail says the page paused recording, and the page resumed it", () => {
+    renderDetail(pageSignal("paused"));
+
+    expect(shown(screen.getByTestId("rail-detail"))).toContain(
+      worded(DE, PAGE_PAUSE_KEYS[0] as string),
+    );
+
+    cleanup();
+    renderDetail(pageSignal("resumed"));
+
+    expect(shown(screen.getByTestId("rail-detail"))).toContain(
+      worded(DE, PAGE_PAUSE_KEYS[1] as string, { duration: "23m" }),
+    );
+    expect(shown(screen.getByTestId("rail-detail"))).not.toContain(
+      worded(
+        DE,
+        "Input came back after {{duration}} and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+        { duration: "23m" },
+      ),
+    );
+  });
+
+  test("Arabic: the same detail, in Arabic", async () => {
+    await i18next.changeLanguage("ar");
+    renderDetail(pageSignal("paused"));
+
+    expect(shown(screen.getByTestId("rail-detail"))).toContain(
+      worded(AR, PAGE_PAUSE_KEYS[0] as string),
+    );
+  });
+
+  test("German: the skip notice says the page paused recording", () => {
+    expect(
+      describeIdleSkip(
+        {
+          startMs: 30_000,
+          endMs: 90_000,
+          kind: "paused",
+          fidelity: "exact",
+          pauseReason: "page",
+        },
+        translatorFor(DE, "de"),
+      ),
+    ).toBe(worded(DE, PAGE_PAUSE_KEYS[4] as string, { duration: "1m" }));
   });
 });

@@ -318,7 +318,7 @@ criteria = [
 | DNSSEC | `DNSSEC Chain Is Valid`, `DNSSEC DS Record Exists At Parent`, `DNSSEC Signature Expires In Days` |
 | SQL-запрос | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
 | Состояние базы данных | `Database Is Online`, `Database Metric` (с JSON в `database_monitor_options`, указывающим ряд, например `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
-| Внешняя страница состояния | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
+| Внешняя страница статуса | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
 | NTP | `NTP Is Online`, `NTP Is Synchronized`, `NTP Stratum`, `NTP Clock Offset (in ms)`, `NTP Response Time (in ms)`, `NTP Root Dispersion (in ms)` (`NTP Is Online` и `NTP Is Synchronized` не принимают `value`) |
 | Сетевое устройство (SNMP) | `SNMP Device Is Online` (оно отвечает на ping или SNMP), `SNMP Walk Is Succeeding` (false, когда оно отвечает, но обойти его нельзя), `SNMP OID Value` (фильтры SNMP могут принимать JSON в `snmp_monitor_options`) |
 

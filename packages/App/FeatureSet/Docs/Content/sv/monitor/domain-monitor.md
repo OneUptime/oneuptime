@@ -11,11 +11,11 @@ En domänmonitor läser din domäns registreringspost enligt ett schema för att
 
 ## Så fungerar det
 
-Vid varje kontroll slår en sond upp domänens registreringspost via RDAP eller WHOIS, beroende på **Lookup Method**, och normaliserar det den hittar: utgångsdatumet, registraren, namnservrarna och statuskoderna. Ett uppslag som misslyckas görs om, upp till det antal återförsök du anger. Sedan kör OneUptime posten genom monitorns kriterier.
+Vid varje kontroll slår en sond upp domänens registreringspost via RDAP eller WHOIS, beroende på **Uppslagsmetod**, och normaliserar det den hittar: utgångsdatumet, registraren, namnservrarna och statuskoderna. Ett uppslag som misslyckas görs om, upp till det antal återförsök du anger. Sedan kör OneUptime posten genom monitorns kriterier.
 
 ```mermaid title="Så läser ett uppslag registreringen"
 flowchart TB
-    method{"Lookup Method"} -->|"Auto eller RDAP"| rdap["Fråga toppdomänens<br/>RDAP-server"]
+    method{"Uppslagsmetod"} -->|"Auto eller RDAP"| rdap["Fråga toppdomänens<br/>RDAP-server"]
     method -->|"WHOIS"| whois["Fråga toppdomänens<br/>WHOIS-server"]
     rdap -->|"Post hittad"| record["Registreringspost"]
     rdap -->|"Ingen RDAP eller ett fel,<br/>med Auto"| whois
@@ -56,7 +56,7 @@ Ange ett **Namn**, som `example.com registration`, och klicka sedan på **Nästa
 
 ### Ange domänen
 
-Ange **Domännamn**, som `example.com`. Låt **Lookup Method** stå på **Auto** om du inte har skäl att göra annat (se [Uppslagsmetoder](#uppslagsmetoder)).
+Ange **Domännamn**, som `example.com`. Låt **Uppslagsmetod** stå på **Auto** om du inte har skäl att göra annat (se [Uppslagsmetoder](#uppslagsmetoder)).
 
 ### Testa den
 
@@ -76,7 +76,7 @@ Behåll eller ändra **Sonder** och **Övervakningsintervall** (det börjar på 
 | Fält | Standard | Vad du anger |
 | --- | --- | --- |
 | **Domännamn** | Inget | Den registrerade domänen, som `example.com`. En inklistrad adress fungerar också: `https://example.com/pricing` läses som `example.com`. |
-| **Lookup Method** | **Auto** | **Auto**, **RDAP** eller **WHOIS**. Se [Uppslagsmetoder](#uppslagsmetoder). |
+| **Uppslagsmetod** | **Auto** | **Auto**, **RDAP** eller **WHOIS**. Se [Uppslagsmetoder](#uppslagsmetoder). |
 | **Timeout (ms)** (under **Fler fält**) | `10000` | Hur länge det väntas på varje registreringsuppslag, i millisekunder. |
 | **Återförsök** (under **Fler fält**) | `3` | Återförsök efter att det första försöket har misslyckats. `0` betyder ett enda försök. |
 
@@ -137,7 +137,7 @@ Monitorer som skapades innan OneUptime lade till den här varningen har inget kr
 
 1. Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera kriterier**.
 2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Domänen har löpt ut** / **Falskt**, klicka på **Lägg till filter** och sätt det andra till **Dagar tills domänen löper ut** / **Mindre än eller lika med** / `30`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
-3. Slå på **När filter matchar, skapa ett larm.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
+3. Slå på **När filter matchar, skapa ett larm.** under **Åtgärder** och låt **När filter matchar, ändra monitorstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
 4. Dra det nya kriteriet ovanför kriteriet som markerar monitorn som online och spara sedan.
 :::
 
@@ -163,11 +163,11 @@ Monitorer som skapades innan OneUptime lade till den här varningen har inget kr
 ## Felsökning
 
 :::details WHOIS-servern "answered without any registration data"
-Toppdomänens WHOIS-värd är nedlagd, begränsar sonden eller är tillfälligt trasig. En nedlagd värd, som den som fortfarande är kopplad till Identity Digitals toppdomäner, svarar `TLD is not supported.` varje gång. Om felet kvarstår med **Lookup Method** på **WHOIS** byter du till **Auto**, så att sonden läser toppdomänens RDAP-tjänst där det finns en.
+Toppdomänens WHOIS-värd är nedlagd, begränsar sonden eller är tillfälligt trasig. En nedlagd värd, som den som fortfarande är kopplad till Identity Digitals toppdomäner, svarar `TLD is not supported.` varje gång. Om felet kvarstår med **Uppslagsmetod** på **WHOIS** byter du till **Auto**, så att sonden läser toppdomänens RDAP-tjänst där det finns en.
 :::
 
 :::details Kontrollen misslyckas med "No RDAP service is published"
-Monitorn använder **RDAP**, och toppdomänen publicerar ingen RDAP-tjänst, vilket många ccTLD:er inte gör. Byt **Lookup Method** till **Auto**, som faller tillbaka på WHOIS.
+Monitorn använder **RDAP**, och toppdomänen publicerar ingen RDAP-tjänst, vilket många ccTLD:er inte gör. Byt **Uppslagsmetod** till **Auto**, som faller tillbaka på WHOIS.
 :::
 
 :::details Domänen rapporteras som inte registrerad

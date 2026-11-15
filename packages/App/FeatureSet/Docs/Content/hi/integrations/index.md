@@ -97,14 +97,14 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 
 | टूल | दिशा | क्या करता है |
 | --- | --- | --- |
-| [Vercel](/docs/integrations/vercel) | इनबाउंड | Vercel Marketplace से OneUptime जोड़ें: आपके Vercel प्रोजेक्ट के लिए ट्रेस, लॉग, अपटाइम मॉनिटर और एक स्टेटस पेज। |
+| [Vercel](/docs/integrations/vercel) | इनबाउंड | Vercel Marketplace से OneUptime जोड़ें: आपके Vercel प्रोजेक्ट के लिए ट्रेस, लॉग, अपटाइम मॉनिटर और एक स्थिति पृष्ठ। |
 
 ## किसी दूसरे टूल से आना
 
-किसी दूसरे ऑन-कॉल, अपटाइम या स्टेटस पेज टूल को छोड़ने के लिए, दोनों को जोड़ने के बजाय अपनी टीम को यहां ले आएं। **प्रोजेक्ट सेटिंग्स → उन्नत → किसी दूसरे टूल से आयात करें** एक API कुंजी से आपका खाता पढ़ता है, जो मिला वह दिखाता है, और जिन पर आप टिक करते हैं उन्हें बनाता है। हर टूल की एक गाइड है:
+किसी दूसरे ऑन-कॉल, अपटाइम या स्थिति पृष्ठ टूल को छोड़ने के लिए, दोनों को जोड़ने के बजाय अपनी टीम को यहां ले आएं। **प्रोजेक्ट सेटिंग्स → उन्नत → किसी दूसरे टूल से आयात करें** एक API कुंजी से आपका खाता पढ़ता है, जो मिला वह दिखाता है, और जिन पर आप टिक करते हैं उन्हें बनाता है। हर टूल की एक गाइड है:
 
 - ऑन-कॉल और घटना टूल: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) और [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall)।
-- अपटाइम और स्टेटस पेज टूल: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) और [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma)।
+- अपटाइम और स्थिति पृष्ठ टूल: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) और [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma)।
 
 ## अपना इंटिग्रेशन बनाएं
 

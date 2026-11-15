@@ -295,7 +295,7 @@
   "This criteria checks if the {{monitorName}} time server answers, is synchronized, and its clock is within {{offset}} ms of the probe's": "Dette kriteriet sjekker om tidsserveren {{monitorName}} svarer, er synkronisert og har en klokke som avviker mindre enn {{offset}} ms fra sondens",
   "This criteria checks if the {{monitorName}} time server does not answer, is not synchronized, or its clock is {{offset}} ms or more away from the probe's": "Dette kriteriet sjekker om tidsserveren {{monitorName}} ikke svarer, ikke er synkronisert eller har en klokke som avviker {{offset}} ms eller mer fra sondens",
   "This criteria checks if {{monitorName}} is offline": "Dette kriteriet sjekker om {{monitorName}} er frakoblet",
-  "This criteria checks if {{monitorName}} is reachable and its health metrics were collected": "Dette kriteriet sjekker om {{monitorName}} kan nås og om helsemetrikkene ble samlet inn",
+  "This criteria checks if {{monitorName}} is reachable and its health metrics were collected": "Dette kriteriet sjekker om {{monitorName}} kan nås og om helsemålingene ble samlet inn",
   "This criteria checks that no more than {{percent}}% of the answers {{monitorName}} counts were bad": "Dette kriteriet sjekker at høyst {{percent}} % av svarene som {{monitorName}} teller, var dårlige",
   "This criteria checks that {{monitorName}} has no matching security events": "Dette kriteriet sjekker at {{monitorName}} ikke har noen samsvarende sikkerhetshendelser",
   "This criteria fires when more than {{percent}}% of the answers {{monitorName}} counts, and at least {{minimum}} of them, were bad": "Dette kriteriet utløses når mer enn {{percent}} % av svarene som {{monitorName}} teller, og minst {{minimum}} av dem, var dårlige",

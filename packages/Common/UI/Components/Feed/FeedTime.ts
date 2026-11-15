@@ -1,6 +1,7 @@
 import moment from "moment-timezone";
 import OneUptimeDate from "../../../Types/Date";
 import {
+  getHourOption,
   getNumberLocale,
   getDateLocale,
   isEnglishDateLanguage,
@@ -237,7 +238,14 @@ const writeFeedDay: (date: Date, clock: FeedClock) => string = (
   return format.format(date);
 };
 
-// "3:25 PM", "15:25", "午後3:25".
+/*
+ * "3:25 PM", "15:25", "午後3:25"; "5:14 AM" and "05:14" in the morning. The
+ * hour is the clock's (getHourOption): a 24-hour time keeps its zero, as a
+ * table's dates beside the feed write it, and as moment's "HH:mm" does when
+ * Intl cannot write the zone. Asked for a numeric hour on a 24-hour clock,
+ * Intl dropped it in German, French, Japanese and most others: "5:14"
+ * (issue #7649).
+ */
 export const formatFeedTime: (date: Date, clock: FeedClock) => string = (
   date: Date,
   clock: FeedClock,
@@ -247,7 +255,7 @@ export const formatFeedTime: (date: Date, clock: FeedClock) => string = (
     timezone: clock.timezone,
     shape: clock.use12HourClock ? "time-12" : "time-24",
     options: {
-      hour: "numeric",
+      hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       hour12: clock.use12HourClock,
     },
@@ -322,7 +330,7 @@ const writeFeedFullTime: (date: Date, clock: FeedClock) => string = (
       year: "numeric",
       month: "long",
       day: "numeric",
-      hour: "numeric",
+      hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       second: "2-digit",
       hour12: clock.use12HourClock,

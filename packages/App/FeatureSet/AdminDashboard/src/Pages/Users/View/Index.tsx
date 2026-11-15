@@ -12,6 +12,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import SideMenuComponent from "./SideMenu";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 const Users: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -27,14 +28,17 @@ const Users: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.users"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
         {
           title: t("breadcrumbs.user"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_VIEW] as Route,
           ),
@@ -145,7 +149,7 @@ const Users: FunctionComponent = (): ReactElement => {
                 fieldType: FieldType.Element,
                 getElement: (item: User): ReactElement => {
                   if (!item.createdByUser) {
-                    return <p>-</p>;
+                    return <EmptyValue />;
                   }
 
                   const name: string | undefined =
@@ -155,7 +159,9 @@ const Users: FunctionComponent = (): ReactElement => {
 
                   return (
                     <div>
-                      <p className="font-medium">{name || email || "-"}</p>
+                      <p className="font-medium">
+                        {name || email || <EmptyValue />}
+                      </p>
                       {name && email ? (
                         <p className="text-xs text-gray-500">{email}</p>
                       ) : null}

@@ -4,6 +4,7 @@ import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import MetricFormulaConfigData from "../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../Types/Metrics/MetricQueryConfigData";
 import { JSONObject, JSONValue } from "../../Types/JSON";
+import { readOwnValue, writeOwnValue } from "../LookupTable";
 
 /**
  * Shunting-yard based evaluator for metric formulas such as
@@ -583,8 +584,20 @@ export default class MetricFormulaEvaluator {
 
     if (input.groupByAttributeKeys.length > 0) {
       for (const key of input.groupByAttributeKeys) {
-        const value: JSONValue | undefined = sampleAttributes[key];
-        labels[key] = value === undefined || value === null ? "" : value;
+        /*
+         * The sample's own attributes, written as the labels' own keys, as
+         * extractSeriesLabels reads them: a group-by key may be named
+         * constructor, toString or __proto__.
+         */
+        const value: JSONValue | undefined = readOwnValue(
+          sampleAttributes,
+          key,
+        );
+        writeOwnValue<JSONValue>(
+          labels,
+          key,
+          value === undefined || value === null ? "" : value,
+        );
       }
       return labels;
     }
@@ -592,14 +605,14 @@ export default class MetricFormulaEvaluator {
     for (const key of Object.keys(sampleAttributes)) {
       const value: JSONValue | undefined = sampleAttributes[key];
       if (value === undefined || value === null) {
-        labels[key] = "";
+        writeOwnValue<JSONValue>(labels, key, "");
         continue;
       }
       // Nested objects/arrays can't canonicalize into a stable label.
       if (typeof value === "object") {
         continue;
       }
-      labels[key] = value;
+      writeOwnValue(labels, key, value);
     }
 
     return labels;

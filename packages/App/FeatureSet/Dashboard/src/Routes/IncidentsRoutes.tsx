@@ -41,6 +41,7 @@ import IncidentInternalNote from "../Pages/Incidents/View/InternalNote";
 import IncidentPublicNote from "../Pages/Incidents/View/PublicNote";
 import UnresolvedIncidents from "../Pages/Incidents/Unresolved";
 import IncidentPostmortems from "../Pages/Incidents/Postmortems";
+import IncidentActionItems from "../Pages/Incidents/ActionItems";
 import IncidentViewCustomFields from "../Pages/Incidents/View/CustomFields";
 import IncidentViewOwner from "../Pages/Incidents/View/Owners";
 
@@ -298,6 +299,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             <IncidentPostmortems
               {...props}
               pageRoute={RouteMap[PageMap.INCIDENT_POSTMORTEMS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_ACTION_ITEMS] || ""}
+          element={
+            <IncidentActionItems
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_ACTION_ITEMS] as Route}
             />
           }
         />

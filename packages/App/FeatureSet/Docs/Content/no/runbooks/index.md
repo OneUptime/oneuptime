@@ -169,6 +169,7 @@ Kjøringen blir liggende på hendelsens side **Runbooks**. Når du skriver postm
 - **[Vaktpolicyer](/docs/on-call/schedules)** avgjør hvem som blir tilkalt. Runbooks avgjør hva den personen gjør når hen er våken.
 - **[Workspace-tilkoblinger](/docs/workspace-connections/slack)** som Slack og Microsoft Teams er naturlige mål for HTTP-forespørselstrinn som sender oppdateringer.
 - **[Statussider](/docs/status-pages/index)** oppdateres ofte som et Manual-trinn i et kunderettet runbook.
+- **[OneUptime AI](/docs/ai/ai-sre#lagre-en-vellykket-retting-som-runbook)** skriver et runbook ut fra en av sine egne rettinger som virket: **Lagre som runbook** på en verifisert retting lagrer trinnene som kjørte, i et runbook som er slått av til du har gått gjennom dem.
 
 ## Neste steg
 

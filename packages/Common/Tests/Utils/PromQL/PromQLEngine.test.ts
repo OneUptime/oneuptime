@@ -928,263 +928,285 @@ describe.each(INHERITED_PROPERTY_NAMES)(
 
 /*
  * absent() writes each label its selector pins into the labels it answers
- * with, a label named like an Object member too. (__proto__ is the one name
- * a label set cannot be given by assignment yet, issue #8025.)
+ * with, a label named like an Object member too - __proto__ included, which
+ * an assignment dropped (issue #8025).
  */
-describe.each(
-  INHERITED_PROPERTY_NAMES.filter((name: string): boolean => {
-    return name !== "__proto__";
-  }),
-)("absent() names a label called %s that its selector pins", (name: string) => {
-  test("absent() and absent_over_time()", async () => {
-    const pinned: string = formatPromQLLabels({ [name]: "x" });
+describe.each(INHERITED_PROPERTY_NAMES)(
+  "absent() names a label called %s that its selector pins",
+  (name: string) => {
+    test("absent() and absent_over_time()", async () => {
+      const pinned: string = formatPromQLLabels({ [name]: "x" });
 
-    expect(await vector(`absent(nonexistent{${name}="x"})`)).toEqual({
-      [pinned]: 1,
+      expect(await vector(`absent(nonexistent{${name}="x"})`)).toEqual({
+        [pinned]: 1,
+      });
+      expect(
+        await vector(`absent_over_time(nonexistent{${name}="x"}[5m])`),
+      ).toEqual({ [pinned]: 1 });
+      expect(
+        await vector(`absent(nonexistent{${name}="x", job="api"})`),
+      ).toEqual({ [formatPromQLLabels({ [name]: "x", job: "api" })]: 1 });
+      // Matched for anything but equality, it names nothing.
+      expect(await vector(`absent(nonexistent{${name}=~"x"})`)).toEqual({
+        "{}": 1,
+      });
     });
-    expect(
-      await vector(`absent_over_time(nonexistent{${name}="x"}[5m])`),
-    ).toEqual({ [pinned]: 1 });
-    expect(await vector(`absent(nonexistent{${name}="x", job="api"})`)).toEqual(
-      { [formatPromQLLabels({ [name]: "x", job: "api" })]: 1 },
-    );
-    // Matched for anything but equality, it names nothing.
-    expect(await vector(`absent(nonexistent{${name}=~"x"})`)).toEqual({
-      "{}": 1,
-    });
-  });
-});
+  },
+);
 
 /*
- * Series that do have labels named like Object members (every one of them
- * but __proto__, which a label set cannot hold yet: issue #8025), next to
- * one that has none. Each such label is read as the series' own value, and
- * as "" on the series without it.
+ * Series that do have labels named like Object members (every one of them,
+ * __proto__ included: a label set copied with a spread or written with an
+ * assignment dropped it, issue #8025), next to one that has none. Each such
+ * label is read as the series' own value, and as "" on the series without
+ * it.
  */
-describe.each(
-  INHERITED_PROPERTY_NAMES.filter((name: string): boolean => {
-    return name !== "__proto__";
-  }),
-)("a label named %s that some series have", (name: string) => {
-  const members: Array<TestSeries> = [
-    {
-      labels: { __name__: "member", instance: "1", [name]: "b" },
-      samples: [[600, 1]],
-    },
-    {
-      labels: { __name__: "member", instance: "2", [name]: "a" },
-      samples: [[600, 2]],
-    },
-    {
-      labels: { __name__: "member", instance: "3", [name]: "b" },
-      samples: [[600, 4]],
-    },
-    { labels: { __name__: "member", instance: "4" }, samples: [[600, 8]] },
-    // One owner per instance, for group_left and group_right.
-    {
-      labels: { __name__: "owner", instance: "1", [name]: "team-1" },
-      samples: [[600, 10]],
-    },
-    { labels: { __name__: "owner", instance: "2" }, samples: [[600, 20]] },
-    {
-      labels: { __name__: "owner", instance: "3", [name]: "team-3" },
-      samples: [[600, 30]],
-    },
-    { labels: { __name__: "owner", instance: "4" }, samples: [[600, 40]] },
-  ];
-
-  const query: (text: string) => Promise<PromQLQueryResult> = async (
-    text: string,
-  ): Promise<PromQLQueryResult> => {
-    return new PromQLEngine(new MemorySource(members)).instantQuery(
-      text,
-      600 * 1000,
-    );
-  };
-
-  const samplesOf: (text: string) => Promise<Array<[string, number]>> = async (
-    text: string,
-  ): Promise<Array<[string, number]>> => {
-    const result: PromQLQueryResult = await query(text);
-
-    if (result.resultType !== PromQLResultType.Vector) {
-      throw new Error(`Expected a vector, got ${result.resultType}.`);
-    }
-
-    return result.samples.map(
-      (sample: PromQLVectorResultSample): [string, number] => {
-        return [formatPromQLLabels(sample.labels), sample.value];
+describe.each(INHERITED_PROPERTY_NAMES)(
+  "a label named %s that some series have",
+  (name: string) => {
+    const members: Array<TestSeries> = [
+      {
+        labels: { __name__: "member", instance: "1", [name]: "b" },
+        samples: [[600, 1]],
       },
-    );
-  };
-
-  // A vector's samples by their labels, whatever order they come in.
-  const valuesOf: (text: string) => Promise<Record<string, number>> = async (
-    text: string,
-  ): Promise<Record<string, number>> => {
-    return Object.fromEntries(await samplesOf(text));
-  };
-
-  const key: (labels: PromQLLabels) => string = (
-    labels: PromQLLabels,
-  ): string => {
-    return formatPromQLLabels(labels);
-  };
-
-  test("by (...) groups by each series' own value, the series without it apart", async () => {
-    expect(await valuesOf(`sum by (${name}) (member)`)).toEqual({
-      [key({ [name]: "a" })]: 2,
-      [key({ [name]: "b" })]: 5,
-      "{}": 8,
-    });
-    expect(await valuesOf(`count without (instance) (member)`)).toEqual({
-      [key({ [name]: "a" })]: 1,
-      [key({ [name]: "b" })]: 2,
-      "{}": 1,
-    });
-    expect(await valuesOf(`sum without (${name}, instance) (member)`)).toEqual({
-      "{}": 15,
-    });
-    expect(await valuesOf(`topk by (${name}) (1, member)`)).toEqual({
-      [key({ __name__: "member", instance: "3", [name]: "b" })]: 4,
-      [key({ __name__: "member", instance: "2", [name]: "a" })]: 2,
-      [key({ __name__: "member", instance: "4" })]: 8,
-    });
-    expect(
-      await valuesOf(`count_values by (${name}) ("value", member)`),
-    ).toEqual({
-      [key({ [name]: "b", value: "1" })]: 1,
-      [key({ [name]: "a", value: "2" })]: 1,
-      [key({ [name]: "b", value: "4" })]: 1,
-      [key({ value: "8" })]: 1,
-    });
-    // count_values writes each value into the label it names.
-    expect(await valuesOf(`count_values("${name}", member)`)).toEqual({
-      [key({ [name]: "1" })]: 1,
-      [key({ [name]: "2" })]: 1,
-      [key({ [name]: "4" })]: 1,
-      [key({ [name]: "8" })]: 1,
-    });
-  });
-
-  test("label_join joins and label_replace reads each series' own value", async () => {
-    expect(
-      await valuesOf(
-        `label_join(member, "joined", "-", "${name}", "instance")`,
-      ),
-    ).toEqual({
-      [key({ __name__: "member", instance: "1", [name]: "b", joined: "b-1" })]:
-        1,
-      [key({ __name__: "member", instance: "2", [name]: "a", joined: "a-2" })]:
-        2,
-      [key({ __name__: "member", instance: "3", [name]: "b", joined: "b-3" })]:
-        4,
-      [key({ __name__: "member", instance: "4", joined: "-4" })]: 8,
-    });
-    expect(
-      await valuesOf(
-        `label_replace(member, "copy", "<$1>", "${name}", "(.+)")`,
-      ),
-    ).toEqual({
-      [key({ __name__: "member", instance: "1", [name]: "b", copy: "<b>" })]: 1,
-      [key({ __name__: "member", instance: "2", [name]: "a", copy: "<a>" })]: 2,
-      [key({ __name__: "member", instance: "3", [name]: "b", copy: "<b>" })]: 4,
-      [key({ __name__: "member", instance: "4" })]: 8,
-    });
-    // Written by label_replace, it replaces the series' own value.
-    expect(
-      await valuesOf(
-        `label_replace(member{instance="1"}, "${name}", "z", "instance", "1")`,
-      ),
-    ).toEqual({ [key({ __name__: "member", instance: "1", [name]: "z" })]: 1 });
-  });
-
-  test("sort_by_label sorts by each series' own value, a missing one first", async () => {
-    const byName: Array<string> = [
-      key({ __name__: "member", instance: "4" }),
-      key({ __name__: "member", instance: "2", [name]: "a" }),
-      key({ __name__: "member", instance: "1", [name]: "b" }),
-      key({ __name__: "member", instance: "3", [name]: "b" }),
+      {
+        labels: { __name__: "member", instance: "2", [name]: "a" },
+        samples: [[600, 2]],
+      },
+      {
+        labels: { __name__: "member", instance: "3", [name]: "b" },
+        samples: [[600, 4]],
+      },
+      { labels: { __name__: "member", instance: "4" }, samples: [[600, 8]] },
+      // One owner per instance, for group_left and group_right.
+      {
+        labels: { __name__: "owner", instance: "1", [name]: "team-1" },
+        samples: [[600, 10]],
+      },
+      { labels: { __name__: "owner", instance: "2" }, samples: [[600, 20]] },
+      {
+        labels: { __name__: "owner", instance: "3", [name]: "team-3" },
+        samples: [[600, 30]],
+      },
+      { labels: { __name__: "owner", instance: "4" }, samples: [[600, 40]] },
     ];
 
-    expect(
-      (await samplesOf(`sort_by_label(member, "${name}", "instance")`)).map(
-        (sample: [string, number]): string => {
-          return sample[0];
-        },
-      ),
-    ).toEqual(byName);
-    expect(
-      (
-        await samplesOf(`sort_by_label_desc(member, "${name}", "instance")`)
-      ).map((sample: [string, number]): string => {
-        return sample[0];
-      }),
-    ).toEqual([...byName].reverse());
-  });
-
-  test("a selector's matchers read each series' own value", async () => {
-    for (const [matcher, instances] of [
-      [`${name}="b"`, ["1", "3"]],
-      [`${name}!="b"`, ["2", "4"]],
-      [`${name}=~"a|b"`, ["1", "2", "3"]],
-      [`${name}!~".+"`, ["4"]],
-      [`${name}=""`, ["4"]],
-    ] as Array<[string, Array<string>]>) {
-      const text: string = `member{${matcher}}`;
-      const result: PromQLQueryResult = await query(text);
-      const found: Array<string> =
-        result.resultType === PromQLResultType.Vector
-          ? result.samples
-              .map((sample: PromQLVectorResultSample): string => {
-                return sample.labels["instance"] || "";
-              })
-              .sort()
-          : [];
-
-      expect({ text, found }).toEqual({ text, found: instances });
-    }
-  });
-
-  test("on (...) matches on each series' own value, and group_left (...) and group_right (...) copy the one side's", async () => {
-    expect(
-      await valuesOf(
-        `member{instance="1"} + on (${name}) member{instance="3"}`,
-      ),
-    ).toEqual({ [key({ [name]: "b" })]: 5 });
-    expect(
-      await valuesOf(
-        `member{instance="1"} + on (${name}) member{instance="2"}`,
-      ),
-    ).toEqual({});
-    // Neither has it: they match on "", with no label kept.
-    expect(
-      await valuesOf(`member{instance="4"} + on (${name}) owner{instance="2"}`),
-    ).toEqual({ "{}": 28 });
-    expect(
-      await valuesOf(`member unless on (${name}) member{instance="2"}`),
-    ).toEqual({
-      [key({ __name__: "member", instance: "1", [name]: "b" })]: 1,
-      [key({ __name__: "member", instance: "3", [name]: "b" })]: 4,
-      [key({ __name__: "member", instance: "4" })]: 8,
-    });
-
-    // The one side's value replaces the many side's, and its absence removes it.
-    const copied: Record<string, number> = {
-      [key({ instance: "1", [name]: "team-1" })]: 10,
-      [key({ instance: "2" })]: 40,
-      [key({ instance: "3", [name]: "team-3" })]: 120,
-      [key({ instance: "4" })]: 320,
+    const query: (text: string) => Promise<PromQLQueryResult> = async (
+      text: string,
+    ): Promise<PromQLQueryResult> => {
+      return new PromQLEngine(new MemorySource(members)).instantQuery(
+        text,
+        600 * 1000,
+      );
     };
 
-    expect(
-      await valuesOf(`member * on (instance) group_left (${name}) owner`),
-    ).toEqual(copied);
-    expect(
-      await valuesOf(`owner * on (instance) group_right (${name}) member`),
-    ).toEqual(copied);
-  });
-});
+    const samplesOf: (
+      text: string,
+    ) => Promise<Array<[string, number]>> = async (
+      text: string,
+    ): Promise<Array<[string, number]>> => {
+      const result: PromQLQueryResult = await query(text);
+
+      if (result.resultType !== PromQLResultType.Vector) {
+        throw new Error(`Expected a vector, got ${result.resultType}.`);
+      }
+
+      return result.samples.map(
+        (sample: PromQLVectorResultSample): [string, number] => {
+          return [formatPromQLLabels(sample.labels), sample.value];
+        },
+      );
+    };
+
+    // A vector's samples by their labels, whatever order they come in.
+    const valuesOf: (text: string) => Promise<Record<string, number>> = async (
+      text: string,
+    ): Promise<Record<string, number>> => {
+      return Object.fromEntries(await samplesOf(text));
+    };
+
+    const key: (labels: PromQLLabels) => string = (
+      labels: PromQLLabels,
+    ): string => {
+      return formatPromQLLabels(labels);
+    };
+
+    test("by (...) groups by each series' own value, the series without it apart", async () => {
+      expect(await valuesOf(`sum by (${name}) (member)`)).toEqual({
+        [key({ [name]: "a" })]: 2,
+        [key({ [name]: "b" })]: 5,
+        "{}": 8,
+      });
+      expect(await valuesOf(`count without (instance) (member)`)).toEqual({
+        [key({ [name]: "a" })]: 1,
+        [key({ [name]: "b" })]: 2,
+        "{}": 1,
+      });
+      expect(
+        await valuesOf(`sum without (${name}, instance) (member)`),
+      ).toEqual({
+        "{}": 15,
+      });
+      expect(await valuesOf(`topk by (${name}) (1, member)`)).toEqual({
+        [key({ __name__: "member", instance: "3", [name]: "b" })]: 4,
+        [key({ __name__: "member", instance: "2", [name]: "a" })]: 2,
+        [key({ __name__: "member", instance: "4" })]: 8,
+      });
+      expect(
+        await valuesOf(`count_values by (${name}) ("value", member)`),
+      ).toEqual({
+        [key({ [name]: "b", value: "1" })]: 1,
+        [key({ [name]: "a", value: "2" })]: 1,
+        [key({ [name]: "b", value: "4" })]: 1,
+        [key({ value: "8" })]: 1,
+      });
+      // count_values writes each value into the label it names.
+      expect(await valuesOf(`count_values("${name}", member)`)).toEqual({
+        [key({ [name]: "1" })]: 1,
+        [key({ [name]: "2" })]: 1,
+        [key({ [name]: "4" })]: 1,
+        [key({ [name]: "8" })]: 1,
+      });
+    });
+
+    test("label_join joins and label_replace reads each series' own value", async () => {
+      expect(
+        await valuesOf(
+          `label_join(member, "joined", "-", "${name}", "instance")`,
+        ),
+      ).toEqual({
+        [key({
+          __name__: "member",
+          instance: "1",
+          [name]: "b",
+          joined: "b-1",
+        })]: 1,
+        [key({
+          __name__: "member",
+          instance: "2",
+          [name]: "a",
+          joined: "a-2",
+        })]: 2,
+        [key({
+          __name__: "member",
+          instance: "3",
+          [name]: "b",
+          joined: "b-3",
+        })]: 4,
+        [key({ __name__: "member", instance: "4", joined: "-4" })]: 8,
+      });
+      expect(
+        await valuesOf(
+          `label_replace(member, "copy", "<$1>", "${name}", "(.+)")`,
+        ),
+      ).toEqual({
+        [key({ __name__: "member", instance: "1", [name]: "b", copy: "<b>" })]:
+          1,
+        [key({ __name__: "member", instance: "2", [name]: "a", copy: "<a>" })]:
+          2,
+        [key({ __name__: "member", instance: "3", [name]: "b", copy: "<b>" })]:
+          4,
+        [key({ __name__: "member", instance: "4" })]: 8,
+      });
+      // Written by label_replace, it replaces the series' own value.
+      expect(
+        await valuesOf(
+          `label_replace(member{instance="1"}, "${name}", "z", "instance", "1")`,
+        ),
+      ).toEqual({
+        [key({ __name__: "member", instance: "1", [name]: "z" })]: 1,
+      });
+    });
+
+    test("sort_by_label sorts by each series' own value, a missing one first", async () => {
+      const byName: Array<string> = [
+        key({ __name__: "member", instance: "4" }),
+        key({ __name__: "member", instance: "2", [name]: "a" }),
+        key({ __name__: "member", instance: "1", [name]: "b" }),
+        key({ __name__: "member", instance: "3", [name]: "b" }),
+      ];
+
+      expect(
+        (await samplesOf(`sort_by_label(member, "${name}", "instance")`)).map(
+          (sample: [string, number]): string => {
+            return sample[0];
+          },
+        ),
+      ).toEqual(byName);
+      expect(
+        (
+          await samplesOf(`sort_by_label_desc(member, "${name}", "instance")`)
+        ).map((sample: [string, number]): string => {
+          return sample[0];
+        }),
+      ).toEqual([...byName].reverse());
+    });
+
+    test("a selector's matchers read each series' own value", async () => {
+      for (const [matcher, instances] of [
+        [`${name}="b"`, ["1", "3"]],
+        [`${name}!="b"`, ["2", "4"]],
+        [`${name}=~"a|b"`, ["1", "2", "3"]],
+        [`${name}!~".+"`, ["4"]],
+        [`${name}=""`, ["4"]],
+      ] as Array<[string, Array<string>]>) {
+        const text: string = `member{${matcher}}`;
+        const result: PromQLQueryResult = await query(text);
+        const found: Array<string> =
+          result.resultType === PromQLResultType.Vector
+            ? result.samples
+                .map((sample: PromQLVectorResultSample): string => {
+                  return sample.labels["instance"] || "";
+                })
+                .sort()
+            : [];
+
+        expect({ text, found }).toEqual({ text, found: instances });
+      }
+    });
+
+    test("on (...) matches on each series' own value, and group_left (...) and group_right (...) copy the one side's", async () => {
+      expect(
+        await valuesOf(
+          `member{instance="1"} + on (${name}) member{instance="3"}`,
+        ),
+      ).toEqual({ [key({ [name]: "b" })]: 5 });
+      expect(
+        await valuesOf(
+          `member{instance="1"} + on (${name}) member{instance="2"}`,
+        ),
+      ).toEqual({});
+      // Neither has it: they match on "", with no label kept.
+      expect(
+        await valuesOf(
+          `member{instance="4"} + on (${name}) owner{instance="2"}`,
+        ),
+      ).toEqual({ "{}": 28 });
+      expect(
+        await valuesOf(`member unless on (${name}) member{instance="2"}`),
+      ).toEqual({
+        [key({ __name__: "member", instance: "1", [name]: "b" })]: 1,
+        [key({ __name__: "member", instance: "3", [name]: "b" })]: 4,
+        [key({ __name__: "member", instance: "4" })]: 8,
+      });
+
+      // The one side's value replaces the many side's, and its absence removes it.
+      const copied: Record<string, number> = {
+        [key({ instance: "1", [name]: "team-1" })]: 10,
+        [key({ instance: "2" })]: 40,
+        [key({ instance: "3", [name]: "team-3" })]: 120,
+        [key({ instance: "4" })]: 320,
+      };
+
+      expect(
+        await valuesOf(`member * on (instance) group_left (${name}) owner`),
+      ).toEqual(copied);
+      expect(
+        await valuesOf(`owner * on (instance) group_right (${name}) member`),
+      ).toEqual(copied);
+    });
+  },
+);
 
 /*
  * A label is absent and a label is empty mean the same thing in PromQL, so a

@@ -39,10 +39,12 @@ const SettingsPushNotifications: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.settings"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),

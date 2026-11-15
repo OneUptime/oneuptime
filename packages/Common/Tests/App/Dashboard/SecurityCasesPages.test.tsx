@@ -224,6 +224,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ModelListCache from "../../../UI/Utils/ModelListCache";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 type RealModelTableType = (props: Record<string, unknown>) => ReactElement;
 
@@ -1046,7 +1047,9 @@ describe("the list a person sees", () => {
     });
 
     expect(teamColumn).toBeGreaterThan(-1);
-    expect(noTeamRow?.children[teamColumn]?.textContent?.trim()).toBe("-");
+    expect(noTeamRow?.children[teamColumn]?.textContent?.trim()).toBe(
+      QUIET_DASH_TEXT,
+    );
   });
 
   test("a case OneUptime AI has read shows the read under its title, with the AI mark", async () => {

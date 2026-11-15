@@ -188,6 +188,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import McpServerPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/McpServer";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 interface GrantData {
   name?: string | undefined;
@@ -918,7 +919,7 @@ describe("the Connected MCP Clients table", () => {
     test("a row whose member could not be read shows a dash", () => {
       renderPage();
 
-      expect(cell(2, "Connected By").textContent).toBe("-");
+      expect(cell(2, "Connected By").textContent).toBe(QUIET_DASH_TEXT);
     });
   });
 });

@@ -169,6 +169,7 @@ De uitvoering blijft op de pagina **Runbooks** van het incident. Wanneer u de po
 - **[Dienstbeleid](/docs/on-call/schedules)** bepaalt wie wordt opgeroepen. Runbooks bepalen wat die persoon doet zodra die wakker is.
 - **[Werkruimteverbindingen](/docs/workspace-connections/slack)** zoals Slack en Microsoft Teams zijn logische doelen voor HTTP-verzoekstappen die updates plaatsen.
 - **[Statuspagina's](/docs/status-pages/index)** worden vaak bijgewerkt als Manual-stap van een runbook richting klanten.
+- **[OneUptime AI](/docs/ai/ai-sre#een-geslaagde-fix-opslaan-als-runbook)** schrijft een runbook op basis van een eigen fix die werkte: **Opslaan als runbook** bij een geverifieerde fix slaat de uitgevoerde stappen op in een runbook dat uitgeschakeld blijft tot u ze hebt nagekeken.
 
 ## Volgende stappen
 
