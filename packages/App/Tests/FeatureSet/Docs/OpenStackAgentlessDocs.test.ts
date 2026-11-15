@@ -31,6 +31,8 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS } from "../../../FeatureSet/Dashboard/src/Components/OpenStack/OpenStackProbeCollectionView";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * telemetry/openstack-agentless.md, in English for now, against the product: the limits the
@@ -466,6 +468,80 @@ describe("what it says about how a collection stands", () => {
     expect(PAGE).toContain(`once a collection is ${minutes} minutes overdue`);
     expect(PAGE).toContain("**Not collecting**");
   });
+
+  /*
+   * What the card says when no probe may collect the cloud, and its Next collection line
+   * (#8331): the words NextClaimWords draws, and the stops OpenStackCollectionStop knows.
+   */
+  it("says why no probe may collect a cloud, and what its Next collection reads", () => {
+    const minutes: number = OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS / 60_000;
+
+    for (const label of [
+      "Next collection",
+      "Due now",
+      "Overdue",
+      "Not scheduled",
+    ]) {
+      expect(PAGE).toContain(`**${label}**`);
+    }
+
+    expect(PAGE).toContain(
+      `**Overdue** once none has come for ${minutes} minutes`,
+    );
+    expect(PAGE).toContain(
+      "no credential is saved, Keystone's address is missing, no probe is set to collect it",
+    );
+    expect(PAGE).toContain("or its probe is disconnected");
+
+    // Archiving is no stop (#8324): the page says so, and never the opposite.
+    expect(PAGE).toContain("An archived cloud is still collected.");
+    expect(PAGE).not.toMatch(/archived, so no probe collects it/i);
+  });
+
+  it.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s: names the card's Next collection words as its Dashboard draws them, with the 15 minutes",
+    (lang: string) => {
+      const page: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          `../../../FeatureSet/Docs/Content/${lang}/telemetry/openstack-agentless.md`,
+        ),
+        "utf8",
+      );
+      const paragraph: string | undefined = page
+        .split("\n\n")
+        .find((block: string): boolean => {
+          return block.includes(
+            `**${drawnDashboardLabel(lang, "Next collection")}**`,
+          );
+        });
+
+      expect(paragraph).toBeDefined();
+
+      for (const label of [
+        "Not collecting",
+        "Next collection",
+        "Due now",
+        "Overdue",
+        "Not scheduled",
+      ]) {
+        expect({
+          label,
+          named: paragraph!.includes(`**${drawnDashboardLabel(lang, label)}**`),
+        }).toEqual({ label, named: true });
+      }
+
+      const minutes: number = OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS / 60_000;
+      const westernDigits: string = paragraph!.replace(
+        /[\u06F0-\u06F9]/g,
+        (digit: string): string => {
+          return String(digit.charCodeAt(0) - 0x06f0);
+        },
+      );
+
+      expect(westernDigits).toContain(String(minutes));
+    },
+  );
 
   it("says where a large cloud starts keeping less", () => {
     expect(PAGE).toContain(
