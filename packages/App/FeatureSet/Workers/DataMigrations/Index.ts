@@ -132,6 +132,7 @@ import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
 import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInProductAnalyticsPages";
+import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -1136,6 +1137,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new RedactPersonalDataInProductAnalyticsPages(),
+  /*
+   * The Product Analytics overview files a hash-routed app's session under
+   * its route, not "/" (#8194): RumProductAnalyticsSessionV1_mv's query is
+   * replaced in place (ALTER TABLE ... MODIFY QUERY, ON CLUSTER) with the
+   * model's, whose entry page reads the route. Atomic, so no session header
+   * goes by unfiled; idempotent; it sits before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ReadHashRoutesInProductAnalyticsEntryPages(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
