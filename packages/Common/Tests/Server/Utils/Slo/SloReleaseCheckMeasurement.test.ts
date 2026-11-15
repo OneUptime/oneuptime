@@ -150,11 +150,10 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
    * request filter reaches the recent count, beside the release's version.
    */
   test("judges the same requests the SLO counts: its request filter, beside the version", async () => {
-    const count: jest.SpiedFunction<
-      typeof SloRequestCounting.countRecentRequests
-    > = jest
-      .spyOn(SloRequestCounting, "countRecentRequests")
-      .mockResolvedValue({ goodCount: 10, totalCount: 10 });
+    const count: SpyInstance<typeof SloRequestCounting.countRecentRequests> =
+      jest
+        .spyOn(SloRequestCounting, "countRecentRequests")
+        .mockResolvedValue({ goodCount: 10, totalCount: 10 });
 
     await SloReleaseCheckMeasurement.measure({
       slo: makeSlo({ requestFilter: "-@http.route:/health" }),
