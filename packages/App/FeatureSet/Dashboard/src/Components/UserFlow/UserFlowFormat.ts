@@ -1,6 +1,12 @@
 import { UserFlowScope } from "./UserFlowScope";
-import { translationKey, Translator } from "Common/Types/Translator";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import { getNumberLocale } from "Common/Types/DateLanguage";
+import { formatCompactDuration } from "Common/Utils/Milliseconds";
 import {
   LEFT_TO_RIGHT,
   POP_DIRECTIONAL_ISOLATE,
@@ -24,6 +30,9 @@ import { getOneWayLineDirection } from "Common/UI/Utils/LineDirection";
  * locale held it and every reader saw "Other pages".
  */
 export const USER_FLOW_OTHER_PAGES_NAME: string = translationKey("Other pages");
+
+// English, as the tests pin the page's figures without a translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 export function formatUserFlowCount(
   value: number,
@@ -127,7 +136,15 @@ export function formatUserFlowShare(
   return writeUserFlowPercent(Math.round(percent), 0, language);
 }
 
-export function formatUserFlowDuration(ms: number): string {
+/*
+ * How long a journey took: "42s", "2m 5s", "1h 30m" in English, the
+ * reader's short units and digits with their Translator ("2 Min. 5 s", "۲
+ * دقیقه ۵ ثانیه"; #8455).
+ */
+export function formatUserFlowDuration(
+  ms: number,
+  translator: Translator = ENGLISH,
+): string {
   if (!Number.isFinite(ms) || ms <= 0) {
     return "—";
   }
@@ -135,20 +152,26 @@ export function formatUserFlowDuration(ms: number): string {
   const seconds: number = Math.round(ms / 1000);
 
   if (seconds < 60) {
-    return `${seconds}s`;
+    return formatCompactDuration(translator, { seconds });
   }
 
   const minutes: number = Math.floor(seconds / 60);
   const rest: number = seconds % 60;
 
   if (minutes < 60) {
-    return rest > 0 ? `${minutes}m ${rest}s` : `${minutes}m`;
+    return formatCompactDuration(
+      translator,
+      rest > 0 ? { minutes, seconds: rest } : { minutes },
+    );
   }
 
   const hours: number = Math.floor(minutes / 60);
   const restMinutes: number = minutes % 60;
 
-  return restMinutes > 0 ? `${hours}h ${restMinutes}m` : `${hours}h`;
+  return formatCompactDuration(
+    translator,
+    restMinutes > 0 ? { hours, minutes: restMinutes } : { hours },
+  );
 }
 
 // A path of nothing but slashes: the site's root, "/".

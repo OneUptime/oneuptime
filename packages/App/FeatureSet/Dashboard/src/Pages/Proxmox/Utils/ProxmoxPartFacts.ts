@@ -3,7 +3,12 @@ import {
   PROXMOX_BACKUP_JOB_FAILED_TEMPLATE_ID,
   PROXMOX_NODE_FENCED_TEMPLATE_ID,
 } from "Common/Types/Monitor/ProxmoxNotificationAlertTemplates";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 import {
   ResourcePartBadge,
   ResourcePartStatus,
@@ -562,24 +567,29 @@ export function getProxmoxBusiestGuests(data: {
     .slice(0, data.limit);
 }
 
-// How long a task took: "45s", "3m 32s", "1h 5m". Empty for no reading.
+/*
+ * How long a task took: "45s", "3m 32s", "1h 5m". Empty for no reading. In
+ * the reader's short units and digits in their language ("3 Min. 32 s",
+ * "۳ دقیقه ۳۲ ثانیه"; #8455).
+ */
 export function formatProxmoxDuration(
   seconds: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) {
     return "";
   }
   const whole: number = Math.max(0, Math.round(seconds));
   if (whole < 60) {
-    return `${whole}s`;
+    return formatCompactDuration(translator, { seconds: whole });
   }
   const hours: number = Math.floor(whole / 3600);
   const minutes: number = Math.floor((whole % 3600) / 60);
   const rest: number = whole % 60;
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return formatCompactDuration(translator, { hours, minutes });
   }
-  return `${minutes}m ${rest}s`;
+  return formatCompactDuration(translator, { minutes, seconds: rest });
 }
 
 // The share of a part's memory in use, from its row, or null.
