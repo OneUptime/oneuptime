@@ -84,14 +84,14 @@ Ga naar **Projectinstellingen**, open **Auditlogboeken** in het zijmenu en klik 
 
 ### De instellingen bewerken
 
-Klik op **Edit Audit Log Settings** en zet **Auditlogboeken inschakelen** aan.
+Klik op **Instellingen van auditlogboeken bewerken** en zet **Auditlogboeken inschakelen** aan.
 
 ### Kiezen wat u bewaart
 
 Stel **Bewaring (dagen)** in, van 7 (de standaard) tot 180, en zet **Systeemgebeurtenissen opslaan** aan om ook de wijzigingen vast te leggen die OneUptime zelf doet. Sla op. De wijziging gaat binnen ongeveer een minuut in.
 :::
 
-Zolang het auditlogboek uit staat, toont de pagina **Auditlogboeken** van de SLO **Audit logging is off**, met een link om het aan te zetten. Vermeldingen die zijn vastgelegd voordat het werd uitgezet, blijven zichtbaar. Het volledige auditlogboek van het project, voor elke resource, staat onder **Projectinstellingen** → **Auditlogboeken** → **Auditlogboeken**.
+Zolang het auditlogboek uit staat, toont de pagina **Auditlogboeken** van de SLO **Auditlogging staat uit**, met een link om het aan te zetten. Vermeldingen die zijn vastgelegd voordat het werd uitgezet, blijven zichtbaar. Het volledige auditlogboek van het project, voor elke resource, staat onder **Projectinstellingen** → **Auditlogboeken** → **Auditlogboeken**.
 
 ## Volgende stappen
 

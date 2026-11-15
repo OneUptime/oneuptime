@@ -322,6 +322,13 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
         actionButtons={[
           {
             title: "Run Now",
+            /*
+             * The row's button says the verb, named by its whole title (as
+             * a row's View is), so the sticky column takes less of a card
+             * beside the side menu (#8345): German "Ausführen", not "Jetzt
+             * ausführen".
+             */
+            rowButtonTitle: "Run",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Play,
             onClick: async (

@@ -20,6 +20,9 @@ import {
   SloStatusSummaryTile,
 } from "../../Components/Slo/SloStatusSummaryTiles";
 import MonitorsElement from "../../Components/Monitor/Monitors";
+import ServicesElement from "../../Components/Service/ServiceElements";
+import Service from "Common/Models/DatabaseModels/Service";
+import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
 import Route from "Common/Types/API/Route";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
@@ -411,6 +414,44 @@ export const getSloTableColumns: GetSloTableColumnsFunction =
   };
 
 /**
+ * What the SLO measures: its monitors, or a request SLO's services (#8441).
+ * One column, since an SLO measures one or the other: a request SLO's row
+ * used to show an empty Monitors cell. The services and the SLI type are
+ * read through SLO_TABLE_SELECT_MORE_FIELDS.
+ */
+export const getSloWhatItMeasuresColumns: GetSloTableColumnsFunction =
+  (): Columns<ServiceLevelObjective> => {
+    return [
+      {
+        field: {
+          monitors: {
+            name: true,
+            _id: true,
+          },
+        },
+        title: "What It Measures",
+        type: FieldType.Element,
+        hideOnMobile: true,
+        getElement: (item: ServiceLevelObjective): ReactElement => {
+          if (isRequestSliType(item.sliType)) {
+            return (
+              <ServicesElement
+                services={(item.services as Array<Service>) || []}
+              />
+            );
+          }
+
+          return (
+            <MonitorsElement
+              monitors={(item.monitors as Array<Monitor>) || []}
+            />
+          );
+        },
+      },
+    ];
+  };
+
+/**
  * Columns read by the getElement callbacks above but not owned by a
  * column of their own — without these the cells silently render their
  * fallback ("—", or a stale-looking status).
@@ -420,6 +461,12 @@ export const SLO_TABLE_SELECT_MORE_FIELDS: Select<ServiceLevelObjective> = {
   isEnabled: true,
   isArchived: true,
   atRiskThresholdPercentage: true,
+  // What It Measures: a request SLO's services, in place of monitors.
+  sliType: true,
+  services: {
+    name: true,
+    _id: true,
+  },
 };
 
 export type GetSloViewRouteFunction = (item: ServiceLevelObjective) => Route;
@@ -604,6 +651,24 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
               value: "_id",
             },
           },
+          // The request SLOs that measure a service (#8441).
+          {
+            field: {
+              services: {
+                name: true,
+              },
+            },
+            title: "Services",
+            type: FieldType.EntityArray,
+            filterEntityType: Service,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
           {
             field: {
               labels: {
@@ -662,24 +727,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         columns={[
           ...getSloTableColumns(),
-          {
-            field: {
-              monitors: {
-                name: true,
-                _id: true,
-              },
-            },
-            title: "Monitors",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: ServiceLevelObjective): ReactElement => {
-              return (
-                <MonitorsElement
-                  monitors={(item.monitors as Array<Monitor>) || []}
-                />
-              );
-            },
-          },
+          ...getSloWhatItMeasuresColumns(),
           ...getSloLastEvaluatedColumns(),
           {
             field: {

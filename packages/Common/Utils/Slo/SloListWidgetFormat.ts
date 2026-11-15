@@ -8,7 +8,7 @@ import { getSloStatusColor, getSloStatusText } from "./SloStatusColor";
 import { SLO_METRIC_SLO_NAME_ATTRIBUTE } from "./SloMetricType";
 import {
   BUDGET_PERCENT_DECIMALS,
-  formatErrorBudgetRemainingSeconds,
+  formatSloErrorBudgetSubline,
   formatSloBurnRate,
   formatSloPercent,
   formatSloTargetSubline,
@@ -236,10 +236,8 @@ export const getSloListRowDisplay: GetSloListRowDisplayFunction = (
       BUDGET_PERCENT_DECIMALS,
       translator,
     ),
-    budgetTime: formatErrorBudgetRemainingSeconds(
-      slo.errorBudgetRemainingSeconds,
-      translator,
-    ),
+    // Minutes, or a request SLO's requests (#8441).
+    budgetTime: formatSloErrorBudgetSubline(slo, translator),
     budgetFillPercent: getSloBudgetBarFillPercent(
       slo.errorBudgetRemainingPercentage,
     ),

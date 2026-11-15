@@ -58,7 +58,10 @@ import Color from "../../../Types/Color";
 import { clearBlankColumnValues } from "../../../Types/Database/BlankColumnValue";
 import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
-import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import {
+  getColumnTitleKey,
+  TableColumnMetadata,
+} from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 import Dictionary from "../../../Types/Dictionary";
@@ -821,7 +824,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 ? "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}"
                 : "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}",
               {
-                columnName: translatableTerm(columnMetadata.title || fieldName),
+                columnName: translatableTerm(
+                  getColumnTitleKey(columnMetadata) || fieldName,
+                ),
                 itemName: translatableTerm(model.singularName || ""),
                 permissions: fieldPermissions.join(", "),
               },
@@ -1286,8 +1291,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
                   options: options,
                 },
                 accessControlColumnTitle:
-                  tempModel.getTableColumnMetadata(accessControlColumnName)
-                    .title || "",
+                  getColumnTitleKey(
+                    tempModel.getTableColumnMetadata(accessControlColumnName),
+                  ) || "",
               };
             }
           } else {
