@@ -12,7 +12,7 @@ El calendario de mantenimiento muestra tu mantenimiento programado por fecha: en
 
 ```mermaid title="Una lista de eventos, tres calendarios"
 flowchart TB
-    events["Eventos de<br/>mantenimiento programado"] --> view["La vista de calendario<br/>del panel"]
+    events["Eventos de<br/>mantenimiento"] --> view["La vista de calendario<br/>del panel"]
     events --> team["El enlace del equipo<br/>cada evento"]
     events --> page["El enlace de una<br/>página de estado<br/>lo que muestra la página"]
     team --> apps["Aplicaciones<br/>de calendario"]
@@ -59,11 +59,11 @@ Copia el enlace desde los ajustes para compartir del propio calendario: en Googl
 
 Cada calendario guarda sus eventos desde 90 días atrás hasta un año adelante, hasta 2000, los más cercanos a hoy primero. Un calendario de más de 5 MB no se lee. Los eventos repetidos, sus excepciones y sus zonas horarias se leen tal como los escribió la aplicación de calendario, y un evento de todo el día se queda en su fecha en cualquier zona horaria. Un proyecto puede tener hasta 20 calendarios externos, y una vista del calendario dibuja hasta 500 de sus eventos.
 
-Los roles que crean, editan y eliminan eventos de mantenimiento programado añaden, cambian y quitan calendarios externos, y cualquiera que pueda leer los eventos los ve en el calendario. OneUptime nunca lee una dirección de su propio servidor ni una dirección de metadatos de la nube, y OneUptime Cloud rechaza las direcciones de una red privada. Un servidor autoalojado puede leer un calendario de tu propia red, salvo que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sea `true`.
+Los roles que crean, editan y eliminan eventos de mantenimiento añaden, cambian y quitan calendarios externos, y cualquiera que pueda leer los eventos los ve en el calendario. OneUptime nunca lee una dirección de su propio servidor ni una dirección de metadatos de la nube, y OneUptime Cloud rechaza las direcciones de una red privada. Un servidor autoalojado puede leer un calendario de tu propia red, salvo que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sea `true`.
 
 ## El enlace de calendario del equipo
 
-**Suscribirse al calendario**, debajo del calendario, abre el enlace de calendario del proyecto: un enlace iCalendar (`.ics`) secreto que lleva cada evento de mantenimiento programado del proyecto a Google Calendar, Outlook, el Calendario de Apple o cualquier aplicación que se suscriba a un calendario por URL.
+**Suscribirse al calendario**, debajo del calendario, abre el enlace de calendario del proyecto: un enlace iCalendar (`.ics`) secreto que lleva cada evento de mantenimiento del proyecto a Google Calendar, Outlook, el Calendario de Apple o cualquier aplicación que se suscriba a un calendario por URL.
 
 :::steps
 ### Publicar el enlace
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> Cualquiera que tenga el enlace ve cada evento de mantenimiento programado del proyecto, sin iniciar sesión. Trátalo como una contraseña y regenéralo si se comparte por error.
+> Cualquiera que tenga el enlace ve cada evento de mantenimiento del proyecto, sin iniciar sesión. Trátalo como una contraseña y regenéralo si se comparte por error.
 
 ### Quién puede ver el enlace
 
@@ -94,9 +94,9 @@ El enlace muestra cada evento del proyecto, así que el diálogo solo lo muestra
 
 | Acción | Quién puede hacerla |
 | --- | --- |
-| Copiar el enlace | Cualquiera que pueda leer cada evento de mantenimiento programado del proyecto |
-| **Publicar enlace** | Cualquiera que además pueda crear eventos de mantenimiento programado |
-| **Regenerar enlace**, **Desactivar enlace** | Cualquiera que además pueda editar eventos de mantenimiento programado |
+| Copiar el enlace | Cualquiera que pueda leer cada evento de mantenimiento del proyecto |
+| **Publicar enlace** | Cualquiera que además pueda crear eventos de mantenimiento |
+| **Regenerar enlace**, **Desactivar enlace** | Cualquiera que además pueda editar eventos de mantenimiento |
 
 ### Gestionar el enlace
 
@@ -158,6 +158,6 @@ El motivo aparece bajo **No funciona** en su **Estado**: no hay calendario en el
 
 :::cards
 - [Crear eventos de mantenimiento](/docs/scheduled-maintenance/creating-events): El formulario, campo por campo, y lo que pasa después.
-- [Suscriptores y anuncios](/docs/status-pages/subscribers#eventos-de-mantenimiento-programado): Lo que se comunica a los suscriptores de una página de estado sobre el mantenimiento.
+- [Suscriptores y anuncios](/docs/status-pages/subscribers#eventos-de-mantenimiento): Lo que se comunica a los suscriptores de una página de estado sobre el mantenimiento.
 - [Feeds de calendario](/docs/on-call/calendar-feeds): El mismo tipo de enlace, para los turnos de guardia.
 :::

@@ -253,7 +253,7 @@ API कुंजी या साइन-इन के बिना, क्ला
 - **`oneuptime_describe_resource`**: किसी संसाधन के फ़ील्ड, और उन पर फ़िल्टर, सॉर्ट और चयन करने का तरीका
 - **`get_public_status_page_overview`**: किसी सार्वजनिक स्टेटस पेज का अवलोकन
 - **`get_public_status_page_incidents`**: किसी सार्वजनिक स्टेटस पेज की घटनाएं
-- **`get_public_status_page_scheduled_maintenance`**: उसके निर्धारित रखरखाव इवेंट
+- **`get_public_status_page_scheduled_maintenance`**: उसके रखरखाव इवेंट
 - **`get_public_status_page_announcements`**: उसकी घोषणाएं
 
 सार्वजनिक स्टेटस पेज के टूल किसी स्टेटस पेज की ID (एक UUID) या उसका डोमेन नाम लेते हैं। सिर्फ़ इन्हें इस्तेमाल करने के लिए, पते के साथ और बिना क्रेडेंशियल के कनेक्ट करें:
@@ -414,7 +414,7 @@ curl https://oneuptime.com/mcp/tools
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 

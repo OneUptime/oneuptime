@@ -196,6 +196,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 title: "Enabled",
                 fieldType: FieldType.Boolean,
                 placeholder: t("common.no"),
+                isPlaceholderTranslated: true,
               },
             ],
             modelId: modelId,

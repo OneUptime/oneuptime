@@ -196,6 +196,7 @@ const MonitorCloudLinkSuggestions: FunctionComponent<ComponentProps> = (
                       template: "Link {{itemName}}",
                       itemName: name,
                     })}
+                    isAriaLabelTranslated={true}
                     isLoading={linkingId === suggestion.cloudResourceId}
                     disabled={!gate.isAllowed || Boolean(linkingId)}
                     tooltip={gate.isAllowed ? undefined : gate.disabledReason}

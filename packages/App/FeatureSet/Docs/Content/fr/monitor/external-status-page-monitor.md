@@ -172,7 +172,7 @@ Le statut d'un composant est la valeur que représente son statut sur la page, s
 
 Une ressource que la page affiche comme **Non surveillé** n'est vérifiée par rien, elle ne compte donc dans aucun statut global, comme sur la bannière de la page elle-même. Quand aucun des composants que suit le moniteur n'est surveillé, et qu'aucun n'a d'incident ouvert, le statut global est `unknown`.
 
-Tant qu'un événement de maintenance planifiée en cours touche une ressource, parce qu'il nomme l'un de ses moniteurs ou un moniteur de son groupe de moniteurs, le composant est `under_maintenance`, quel que soit le statut de ses moniteurs : un moniteur n'est pas vérifié tant qu'un événement le retient. Un événement encore à venir, ou terminé, ne change rien. Les incidents actifs de la page comptent pour les ressources qu'ils touchent.
+Tant qu'un événement de maintenance en cours touche une ressource, parce qu'il nomme l'un de ses moniteurs ou un moniteur de son groupe de moniteurs, le composant est `under_maintenance`, quel que soit le statut de ses moniteurs : un moniteur n'est pas vérifié tant qu'un événement le retient. Un événement encore à venir, ou terminé, ne change rien. Les incidents actifs de la page comptent pour les ressources qu'ils touchent.
 
 Les [critères par défaut](#critères-par-défaut) ne prennent jamais une maintenance pour une panne : le moniteur reste en ligne pendant les travaux planifiés de l'autre projet.
 

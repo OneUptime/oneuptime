@@ -1,6 +1,6 @@
 # Planlagt vedlikehold – Oversikt
 
-En planlagt vedlikeholdshendelse forteller alle om planlagt arbeid før det skjer: en databaseoppgradering, en nettverksendring, en flytting til nye servere. OneUptime starter og avslutter hendelsen i tide, slutter å sjekke monitorene den berører mens arbeidet pågår, og viser den på statussidene dine, slik at planlagt nedetid aldri ser ut som et driftsavbrudd. Denne siden forklarer hvordan en hendelse forløper, hvor alt ligger i dashbordet, og hva en hendelse endrer i resten av OneUptime.
+En vedlikeholdshendelse forteller alle om planlagt arbeid før det skjer: en databaseoppgradering, en nettverksendring, en flytting til nye servere. OneUptime starter og avslutter hendelsen i tide, slutter å sjekke monitorene den berører mens arbeidet pågår, og viser den på statussidene dine, slik at planlagt nedetid aldri ser ut som et driftsavbrudd. Denne siden forklarer hvordan en hendelse forløper, hvor alt ligger i dashbordet, og hva en hendelse endrer i resten av OneUptime.
 
 :::cards
 - [Hvordan en hendelse forløper](#hvordan-en-hendelse-forløper): Fra planlagt til fullført, stort sett av seg selv.
@@ -44,7 +44,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 - **Skjemaet.** Klikk på **Opprett vedlikeholdshendelse** i listen over hendelser, eller på fanen **Planlagt vedlikehold** for en vert, en klynge, en tjeneste, en nettverkslokasjon eller en annen ressurs, som velger den ressursen for deg. Se [Opprett vedlikeholdshendelser](/docs/scheduled-maintenance/creating-events).
 - **En mal.** **Opprett fra mal** fyller ut skjemaet fra en mal du har lagret for arbeid du gjør ofte. Se [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates).
 - **En tidsplan.** En gjentakende mal oppretter en ny hendelse etter en tidsplan, for eksempel hver uke eller hver måned, uten at noen åpner skjemaet.
-- **Et skjema.** Et skjema der innsendinger oppretter vedlikeholdshendelser, gjør en endringsforespørsel om til en hendelse. Se [Hva en innsending oppretter](/docs/forms/on-submit#slik-blir-en-innsending-til-en-planlagt-vedlikeholdsbegivenhet).
+- **Et skjema.** Et skjema der innsendinger oppretter vedlikeholdshendelser, gjør en endringsforespørsel om til en hendelse. Se [Hva en innsending oppretter](/docs/forms/on-submit#slik-blir-en-innsending-til-en-vedlikeholdshendelse).
 - **Chat.** `/oneuptime maintenance` i Slack, eller `maintenance` skrevet til OneUptime-boten i Microsoft Teams, åpner skjemaet i chatverktøyet ditt. Se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
 - **Kode.** API-et på `/api/scheduled-maintenance`, Terraform-ressursen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Maintenance Event** i en arbeidsflyt.
 
@@ -74,7 +74,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 - **De andre ressursene dens holder seg stille.** En telemetrimonitor som overvåker mange verter, klynger, databaser eller tjenester, med én serie hver, oppretter ingen hendelse eller varsel for en serie der hendelsen dekker ressursen, mens de andre seriene fortsetter å varsle. Monitorene til en skyressurs som hendelsen dekker, som de anbefalte, oppretter ingen hendelse eller varsel i det hele tatt.
 - **Nettverkslokasjoner og SLO-er holder igjen.** En nettverkslokasjon som hendelsen dekker, slutter å regne det planlagte avbruddet sitt mot lokasjonene over den, og forbruksratereglene til en SLO utløser ingenting så lenge en av monitorene dens er i vedlikehold. Se [Nettverkslokasjoner](/docs/monitor/network-sites#planlagt-vedlikehold-for-nettverkslokasjoner) og [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts#planlagt-vedlikehold).
 - **Statussidene dine viser den.** Hendelsen vises på statussidene du har valgt, først som kommende, så som pågående og så som over, så lenge **Synlig på statussiden** er slått på i **Innstillinger** for den, og fra **Publiser den** for den hvis du har valgt et. Når den har startet, viser oppetidshistorikken på disse sidene for hver ressurs monitorene står på den på hver dag vinduet berører, og de ressursene viser «Under vedlikehold» mens den pågår; monitorens oppetidshistorikk i dashbordet viser den på samme måte. Se [Oppetidsprosenter og historikkdiagrammer](/docs/status-pages/resources-and-groups#oppetidsprosenter-og-historikkdiagrammer).
-- **Abonnentene får høre om den.** Som standard får abonnentene på disse sidene beskjed når den planlegges, når den starter og når den slutter, og en påminnelse før start hvis du setter opp påminnelser. Se [Planlagte vedlikeholdshendelser](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser).
+- **Abonnentene får høre om den.** Som standard får abonnentene på disse sidene beskjed når den planlegges, når den starter og når den slutter, og en påminnelse før start hvis du setter opp påminnelser. Se [Vedlikeholdshendelser](/docs/status-pages/subscribers#vedlikeholdshendelser).
 - **Teamet ditt får høre om den.** Eierne får beskjed slik [varselinnstillingene](/docs/notifications/notification-settings) deres sier, og Slack-, Microsoft Teams- og Mattermost-reglene under **Arbeidsområde** poster den i kanalene dine.
 
 ## En hendelses egne sider
@@ -108,7 +108,7 @@ Bare monitorene hendelsen nevner under **Monitorer**, slutter å bli sjekket, og
 :::
 
 :::details Hendelsen vises ikke på statussiden min
-Sjekk at hendelsen nevner siden under **Vis hendelse på disse statussidene**, og at **Synlig på statussiden** er slått på i **Innstillinger** for hendelsen. Viser toppen dens **Ikke på statussider ennå**, vises den fra **Publiser den** for den: se [Publiser den senere](/docs/scheduled-maintenance/creating-events#publiser-den-senere). Sjekk deretter selve statussiden: den må vise planlagte vedlikeholdshendelser, og en hendelse som startet lenger tilbake enn historikkvinduet til siden, 14 dager med mindre du har endret det, vises ikke lenger.
+Sjekk at hendelsen nevner siden under **Vis hendelse på disse statussidene**, og at **Synlig på statussiden** er slått på i **Innstillinger** for hendelsen. Viser toppen dens **Ikke på statussider ennå**, vises den fra **Publiser den** for den: se [Publiser den senere](/docs/scheduled-maintenance/creating-events#publiser-den-senere). Sjekk deretter selve statussiden: den må vise vedlikeholdshendelser, og en hendelse som startet lenger tilbake enn historikkvinduet til siden, 14 dager med mindre du har endret det, vises ikke lenger.
 :::
 
 ## Neste steg

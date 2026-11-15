@@ -855,7 +855,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
         {isMetric && unitOptions.length > 1 ? (
           <div className="w-28 flex-none">
             <Dropdown
-              ariaLabel={translator.translateText("Unit") || "Unit"}
+              ariaLabel="Unit"
               id={unitLabelId}
               isClearable={false}
               value={unitOptions

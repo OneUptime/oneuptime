@@ -24,7 +24,7 @@ flowchart TB
 ## Before you begin
 
 - **Your role.** Creating an event takes **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** or **Scheduled Maintenance Member**, or a custom role with **Create Scheduled Maintenance**.
-- **Your status pages.** To tell customers, you need a status page that shows scheduled maintenance events. See [Status Pages Overview](/docs/status-pages/index).
+- **Your status pages.** To tell customers, you need a status page that shows maintenance events. See [Status Pages Overview](/docs/status-pages/index).
 
 ## Create an event
 
@@ -71,7 +71,7 @@ Nothing is sent until you pick a status page: an event shown on no status page t
 Two things fill the form in for you as you go:
 
 - **Linked resources.** When you pick a monitor, the hosts, clusters, services and other resources it is linked to are added under **Other Affected Resources**, and a line under the field names them. Remove any you do not want. Cloud resources are added too: while the event is in progress, their monitors open no incident or alert.
-- **Suggested status pages.** Under **Show event on these status pages**, the pages that show your monitors are suggested: click a page's name to add it, or **Add all**. Nothing is picked for you. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **Suggested status pages.** Under **Show event on these status pages**, the pages that show your monitors are suggested: click a page's name to add it, or **Add all**. Nothing is picked for you. See [Maintenance events](/docs/status-pages/subscribers#maintenance-events).
 
 ## Start from a resource or a template
 
@@ -180,6 +180,6 @@ An event is published so your customers hear of the work before it starts. Pick 
 :::cards
 - [Maintenance States](/docs/scheduled-maintenance/states): What starts and ends an event, and how to move it by hand.
 - [Templates & Recurring Events](/docs/scheduled-maintenance/templates): Save the form's answers for next time.
-- [Subscribers & Announcements](/docs/status-pages/subscribers#scheduled-maintenance-events): Exactly who is told, and when.
+- [Subscribers & Announcements](/docs/status-pages/subscribers#maintenance-events): Exactly who is told, and when.
 - [Maintenance Rules & Settings](/docs/scheduled-maintenance/settings): Add owners, labels and reminders automatically.
 :::

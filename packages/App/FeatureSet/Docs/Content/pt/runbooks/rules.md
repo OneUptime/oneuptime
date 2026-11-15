@@ -35,7 +35,7 @@ Quando uma regra dispara, para cada runbook que ela indica:
 1. O runbook é carregado.
 2. Suas etapas são copiadas como **instantâneo** para uma nova execução de runbook.
 3. A execução é colocada na fila do worker de runbooks.
-4. A execução é ligada à entidade de origem: ela aparece na página **Runbooks** do incidente, alerta ou evento de manutenção programada e na lista **Execuções** do runbook.
+4. A execução é ligada à entidade de origem: ela aparece na página **Runbooks** do incidente, alerta ou evento de manutenção e na lista **Execuções** do runbook.
 
 Você vê todas as execuções, iniciadas por regras ou não, em **Runbooks → Execuções**, filtradas por status, runbook ou data de início.
 
@@ -72,12 +72,12 @@ Em **Runbooks**, escolha um ou mais **Runbooks para iniciar**. O **Nome** da reg
 
 ## Condições
 
-Cada condição compara uma característica do incidente, alerta ou evento de manutenção programada com um valor que você informa. Uma regra de runbook oferece os mesmos critérios que as outras regras do seu produto: uma regra de runbook de incidentes compara o mesmo que uma regra de privacidade ou de plantão de incidentes.
+Cada condição compara uma característica do incidente, alerta ou evento de manutenção com um valor que você informa. Uma regra de runbook oferece os mesmos critérios que as outras regras do seu produto: uma regra de runbook de incidentes compara o mesmo que uma regra de privacidade ou de plantão de incidentes.
 
 | Critério | O que verifica |
 | --- | --- |
-| **Monitores** | Os monitores que o incidente ou o evento de manutenção programada afeta, ou o monitor que gerou o alerta. |
-| **Severidades dos incidentes** / **Severidades dos alertas** | A severidade do incidente ou do alerta. Eventos de manutenção programada não têm severidade, então as regras deles não a oferecem. |
+| **Monitores** | Os monitores que o incidente ou o evento de manutenção afeta, ou o monitor que gerou o alerta. |
+| **Severidades dos incidentes** / **Severidades dos alertas** | A severidade do incidente ou do alerta. Eventos de manutenção não têm severidade, então as regras deles não a oferecem. |
 | **Rótulos de incidentes** / **Rótulos de alerta** / **Rótulos do evento** | Os rótulos do próprio incidente, alerta ou evento, incluindo os que as regras de rótulos adicionaram na criação. |
 | **Rótulos do Monitor** | Os rótulos dos seus monitores. Rotule seus monitores como `production` ou `staging` para executar um runbook só em um ambiente. |
 | **Título do Incidente** / **Título do alerta** / **Título do evento** | O título. |

@@ -2,7 +2,13 @@ import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
+  // In English, looked up here.
   text: string;
+  /*
+   * The text is in the reader's words already: drawn as given, never
+   * looked up again (#7791).
+   */
+  isTextTranslated?: boolean | undefined;
 }
 
 /*
@@ -36,7 +42,9 @@ const PlaceholderText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedText: string = translateString(props.text) ?? props.text;
+  const translatedText: string = props.isTextTranslated
+    ? props.text
+    : translateString(props.text) ?? props.text;
   return (
     <span
       className={PLACEHOLDER_TEXT_CLASS_NAME}

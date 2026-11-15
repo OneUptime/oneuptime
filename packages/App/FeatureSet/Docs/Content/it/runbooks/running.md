@@ -39,9 +39,9 @@ Una nuova esecuzione è **Programmato** finché un Worker non la prende in caric
 
 Un'esecuzione di runbook viene creata in cinque modi:
 
-1. **Automaticamente tramite una regola**: una [regola di runbook](/docs/runbooks/rules) la avvia quando viene creato un incidente, un avviso o un evento di manutenzione programmata corrispondente. Anche una regola IA può avviarne una; vedi [AI SRE](/docs/ai/ai-sre).
-2. **Manualmente da un evento**: fai clic su **Esegui Runbook** su un incidente, un avviso o un evento di manutenzione programmata. L'esecuzione è collegata a quell'evento.
-3. **Manualmente dalla pagina del runbook**: fai clic su **Esegui ora** nella pagina **Panoramica** di un runbook. L'esecuzione non è collegata ad alcun incidente, avviso o evento di manutenzione programmata.
+1. **Automaticamente tramite una regola**: una [regola di runbook](/docs/runbooks/rules) la avvia quando viene creato un incidente, un avviso o un evento di manutenzione corrispondente. Anche una regola IA può avviarne una; vedi [AI SRE](/docs/ai/ai-sre).
+2. **Manualmente da un evento**: fai clic su **Esegui Runbook** su un incidente, un avviso o un evento di manutenzione. L'esecuzione è collegata a quell'evento.
+3. **Manualmente dalla pagina del runbook**: fai clic su **Esegui ora** nella pagina **Panoramica** di un runbook. L'esecuzione non è collegata ad alcun incidente, avviso o evento di manutenzione.
 4. **Secondo una pianificazione**: la pianificazione del runbook la avvia a orari stabiliti. Vedi [Eseguire secondo una pianificazione](/docs/runbooks/triggers#eseguire-secondo-una-pianificazione).
 5. **Da un altro strumento**: un `POST` all'URL del webhook del runbook la avvia, con i valori inviati dalla chiamata. Vedi [Chiamare il webhook](/docs/runbooks/triggers#chiamare-il-webhook).
 
@@ -49,7 +49,7 @@ Per avviarne una a mano:
 
 :::tabs
 @tab Da un evento
-1. Apri l'incidente, l'avviso o l'evento di manutenzione programmata e vai alla sua pagina **Runbook**.
+1. Apri l'incidente, l'avviso o l'evento di manutenzione e vai alla sua pagina **Runbook**.
 2. Fai clic su **Esegui Runbook**. La finestra **Esegui un Runbook** elenca i runbook del progetto attivi.
 3. Fai clic su **Esegui** accanto al runbook. L'esecuzione compare nell'elenco dell'evento: fai clic su **Visualizza** per aprirla.
 @tab Dal runbook

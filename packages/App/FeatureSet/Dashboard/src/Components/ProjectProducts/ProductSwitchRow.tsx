@@ -206,6 +206,7 @@ const ProductSwitchRow: FunctionComponent<ComponentProps> = (
           <Toggle
             title={title}
             ariaLabel={props.title}
+            isAriaLabelTranslated={true}
             description={props.description}
             value={props.isShown}
             disabled={

@@ -473,9 +473,7 @@ const SecurityOverviewPage: FunctionComponent<
                */}
               <EventStatBar
                 columns={isPipelineShown ? 3 : 4}
-                ariaLabel={translator.translateText(
-                  "Security operations figures",
-                )}
+                ariaLabel="Security operations figures"
               >
                 {[
                   ...(isPipelineShown

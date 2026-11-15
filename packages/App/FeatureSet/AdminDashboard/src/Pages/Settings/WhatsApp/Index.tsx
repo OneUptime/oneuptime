@@ -350,6 +350,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "Access Token",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -358,6 +359,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "Phone Number ID",
               fieldType: FieldType.ObjectID,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -366,6 +368,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "Business Account ID",
               fieldType: FieldType.ObjectID,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -374,6 +377,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "Webhook Verify Token",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -382,6 +386,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "App ID",
               fieldType: FieldType.ObjectID,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -390,6 +395,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "App Secret",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

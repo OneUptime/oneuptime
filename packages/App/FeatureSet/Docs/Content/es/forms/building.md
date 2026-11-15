@@ -92,7 +92,7 @@ Una pregunta **Archivo** o **Varios archivos** toma archivos del equipo de quien
 
 ### Campos de lo que crea el formulario
 
-Los campos de un incidente, o de un evento de mantenimiento programado, que un remitente puede responder. La respuesta se convierte en el valor del campo.
+Los campos de un incidente, o de un evento de mantenimiento, que un remitente puede responder. La respuesta se convierte en el valor del campo.
 
 | Campo del incidente | Se responde con |
 | --- | --- |
