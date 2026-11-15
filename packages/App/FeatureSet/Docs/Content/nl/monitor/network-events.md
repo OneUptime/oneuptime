@@ -1,6 +1,6 @@
 # Netwerkgebeurtenissen (syslog en SNMP-traps)
 
-Routers, firewalls, switches en accesspoints zeggen in hun syslog wat er met ze gebeurt: een link viel uit, een tunnel viel weg, een firewall schakelde over, iemand meldde zich aan. Elke leverancier verwoordt het op zijn eigen manier. Richt hun syslog op een OneUptime-probe en de **Gebeurtenissen**-pagina's tonen in dezelfde woorden wat er gebeurde, wie het apparaat ook gemaakt heeft, en waarschuwen je als het weer gebeurt.
+Routers, firewalls, switches en accesspoints zeggen in hun syslog wat er met ze gebeurt: een link viel uit, een tunnel viel weg, een firewall schakelde over, iemand meldde zich aan. Elke leverancier verwoordt het op zijn eigen manier. Richt hun syslog op een OneUptime-sonde en de **Gebeurtenissen**-pagina's tonen in dezelfde woorden wat er gebeurde, wie het apparaat ook gemaakt heeft, en waarschuwen je als het weer gebeurt.
 
 Er is op twee plekken een Gebeurtenissen-pagina:
 
@@ -93,28 +93,28 @@ Elke gebeurtenis draagt ook:
 
 ## Hoe gebeurtenissen hier komen
 
-Elke probe luistert naar syslog op poort 5140, via UDP en via TCP. Via TCP is een bericht een regel, of wordt het voorafgegaan door zijn lengte, zoals RFC 6587 beschrijft. De probe stuurt om de paar seconden door naar OneUptime wat hij hoort, en OneUptime koppelt elk bericht aan een apparaat op basis van het adres waar het vandaan kwam:
+Elke sonde luistert naar syslog op poort 5140, via UDP en via TCP. Via TCP is een bericht een regel, of wordt het voorafgegaan door zijn lengte, zoals RFC 6587 beschrijft. De sonde stuurt om de paar seconden door naar OneUptime wat hij hoort, en OneUptime koppelt elk bericht aan een apparaat op basis van het adres waar het vandaan kwam:
 
-1. een apparaat dat de probe bevraagt en waarvan de hostnaam dat adres is (of ernaar resolvet), of dat het vermeldt onder **Overige adressen** op zijn **Instellingen**-pagina;
-2. op je eigen (aangepaste) probe, elk apparaat in het project met dat adres, of met de hostnaam die het bericht draagt als precies één apparaat die naam heeft;
-3. anders wordt het bericht op je eigen probe bewaard voor de Gebeurtenissen-pagina van het netwerk, onder **Stuurt syslog, nog geen apparaat**, tot je zegt bij welk apparaat het hoort. Een globale probe gooit het weg.
+1. een apparaat dat de sonde bevraagt en waarvan de hostnaam dat adres is (of ernaar resolvet), of dat het vermeldt onder **Overige adressen** op zijn **Instellingen**-pagina;
+2. op je eigen (aangepaste) sonde, elk apparaat in het project met dat adres, of met de hostnaam die het bericht draagt als precies één apparaat die naam heeft;
+3. anders wordt het bericht op je eigen sonde bewaard voor de Gebeurtenissen-pagina van het netwerk, onder **Stuurt syslog, nog geen apparaat**, tot je zegt bij welk apparaat het hoort. Een globale sonde gooit het weg.
 
 Een regel van een onbekend adres die geen syslog-prioriteit heeft en geen gebeurtenis is, wordt voor ruis gehouden en weggegooid.
 
 Een controller spreekt voor de apparaten die hij beheert: een UniFi-console meldt over zijn accesspoints en switches. Als een bericht van een apparaat een ander apparaat noemt met zijn MAC-adres, zijn serienummer, zijn adres of de naam die zijn controller het geeft, gaat de gebeurtenis naar dat apparaat, en de log bewaart de naam van de controller die het bericht doorgaf in `syslog.relay.name`.
 
-Een log wordt opgeslagen op het tijdstip waarop de probe hem ontving. Een bericht dat werd vastgehouden - zijn eigen tijdstempel staat in de vorm van RFC 5424, die de tijdzone noemt, en is ouder dan 5 minuten - houdt de tijd van het apparaat, tot 7 dagen terug. Elk ander tijdstempel dat meer dan 5 minuten van de klok van de probe afwijkt, wordt niet geloofd: de log wordt opgeslagen op het tijdstip van ontvangst, en de tijd van het apparaat wordt bewaard in `syslog.deviceTime`.
+Een log wordt opgeslagen op het tijdstip waarop de sonde hem ontving. Een bericht dat werd vastgehouden - zijn eigen tijdstempel staat in de vorm van RFC 5424, die de tijdzone noemt, en is ouder dan 5 minuten - houdt de tijd van het apparaat, tot 7 dagen terug. Elk ander tijdstempel dat meer dan 5 minuten van de klok van de sonde afwijkt, wordt niet geloofd: de log wordt opgeslagen op het tijdstip van ontvangst, en de tijd van het apparaat wordt bewaard in `syslog.deviceTime`.
 
 Syslog die je via HTTPS naar [het syslog-endpoint](/docs/telemetry/syslog) stuurt, wordt door dezelfde parsers gelezen. Daar wordt een bericht een netwerkgebeurtenis als het in het eigen formaat van een netwerkleverancier staat, of als het een van je netwerkapparaten noemt met MAC-adres, serienummer, adres of hostnaam; de `sshd`-regels van een server blijven gewone logs.
 
 ## Instellen
 
-1. **Gebruik een probe in het netwerk van het apparaat.** Syslog wordt door je apparaten verstuurd, dus ze hebben een [aangepaste probe](/docs/probe/custom-probe) nodig die ze kunnen bereiken. Een globale probe op het openbare internet ontvangt die niet.
-2. **Laat syslog de probe bereiken.** Sta poort 5140, UDP of TCP, toe van de apparaten naar de probe. Een probe in Docker die met hostnetwerk (`--network host`) is gestart, zoals de pagina over de aangepaste probe laat zien, ontvangt syslog zoals hij is; zonder hostnetwerk publiceer je de poort met `-p 5140:5140/udp -p 5140:5140/tcp`. Voor een apparaat dat alleen naar poort 514 kan sturen, publiceer je de poort als `-p 514:5140/udp`, of stel je `PROBE_SYSLOG_RECEIVER_PORT=514` in op een probe met hostnetwerk.
-3. **Stel de probe in als syslog-server van het apparaat.** De commando's voor gangbare apparaten staan hieronder. De **Gebeurtenissen**-pagina toont dezelfde stappen tot het eerste bericht binnenkomt, en wordt dan vanzelf de lijst.
+1. **Gebruik een sonde in het netwerk van het apparaat.** Syslog wordt door je apparaten verstuurd, dus ze hebben een [aangepaste sonde](/docs/probe/custom-probe) nodig die ze kunnen bereiken. Een globale sonde op het openbare internet ontvangt die niet.
+2. **Laat syslog de sonde bereiken.** Sta poort 5140, UDP of TCP, toe van de apparaten naar de sonde. Een sonde in Docker die met hostnetwerk (`--network host`) is gestart, zoals de pagina over de aangepaste sonde laat zien, ontvangt syslog zoals hij is; zonder hostnetwerk publiceer je de poort met `-p 5140:5140/udp -p 5140:5140/tcp`. Voor een apparaat dat alleen naar poort 514 kan sturen, publiceer je de poort als `-p 514:5140/udp`, of stel je `PROBE_SYSLOG_RECEIVER_PORT=514` in op een sonde met hostnetwerk.
+3. **Stel de sonde in als syslog-server van het apparaat.** De commando's voor gangbare apparaten staan hieronder. De **Gebeurtenissen**-pagina toont dezelfde stappen tot het eerste bericht binnenkomt, en wordt dan vanzelf de lijst.
 4. **Controleer het adres van het apparaat.** Berichten worden gekoppeld op basis van het adres waarvandaan het apparaat verstuurt. Verstuurt het vanaf een loopback of een beheerinterface die niet zijn hostnaam is, voeg dat adres dan toe aan de **Overige adressen** van het apparaat.
 
-De syslog-ontvanger staat standaard aan. De instellingen zijn omgevingsvariabelen van de probe:
+De syslog-ontvanger staat standaard aan. De instellingen zijn omgevingsvariabelen van de sonde:
 
 | Variabele | Wat ze doet | Standaard |
 | --- | --- | --- |
@@ -122,7 +122,7 @@ De syslog-ontvanger staat standaard aan. De instellingen zijn omgevingsvariabele
 | `PROBE_SYSLOG_RECEIVER_PORT` | De poort, voor UDP en TCP | `5140` |
 | `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` | Doorgestuurde berichten per minuut, over alle apparaten samen | `600` |
 
-Voorbij de limiet stuurt de probe nog steeds de berichten door die hij als netwerkgebeurtenis leest, tot nog eens zoveel, zodat een vloed van routineregels niet die ene kan verdringen die zegt dat een link uitviel. Een probe die ouder is dan deze functie luistert alleen als hij met `PROBE_SYSLOG_RECEIVER_ENABLED=true` wordt gestart, en alleen via UDP: werk hem bij.
+Voorbij de limiet stuurt de sonde nog steeds de berichten door die hij als netwerkgebeurtenis leest, tot nog eens zoveel, zodat een vloed van routineregels niet die ene kan verdringen die zegt dat een link uitviel. Een sonde die ouder is dan deze functie luistert alleen als hij met `PROBE_SYSLOG_RECEIVER_ENABLED=true` wordt gestart, en alleen via UDP: werk hem bij.
 
 ### Cisco IOS, IOS XE en NX-OS
 
@@ -137,7 +137,7 @@ De tweede regel stuurt informatieve berichten en alles wat ernstiger is: linkwij
 ### Sophos Firewall
 
 1. Open in de webbeheerinterface van de firewall **System services** > **Log settings** en kies onder **Syslog servers** voor **Add**.
-2. Vul het IP-adres van de probe en poort `5140` in, en zet het ernstniveau op **Information**. Beide logformaten die de firewall aanbiedt worden gelezen.
+2. Vul het IP-adres van de sonde en poort `5140` in, en zet het ernstniveau op **Information**. Beide logformaten die de firewall aanbiedt worden gelezen.
 3. Terug op **Log settings** vink je de nieuwe server aan voor de logs die je wilt versturen: minstens de systeemgebeurtenissen, en **SD-WAN** voor SLA-wijzigingen. Verkeerslogs van de firewall zijn talrijk, dus laat ze weg tenzij je ze wilt.
 
 ### Fortinet FortiGate
@@ -162,7 +162,7 @@ enable log target syslog <probe-address>:5140 vr VR-Default local7
 enable syslog
 ```
 
-Verander `VR-Default` in de virtuele router waarlangs de probe bereikt wordt.
+Verander `VR-Default` in de virtuele router waarlangs de sonde bereikt wordt.
 
 ### HPE Aruba
 
@@ -170,7 +170,7 @@ Verander `VR-Default` in de virtuele router waarlangs de probe bereikt wordt.
 logging <probe-address> udp 5140 severity info
 ```
 
-Voeg op AOS-CX `vrf mgmt` aan de regel toe als de probe via de beheerpoort bereikt wordt. Op AOS-Switch is de regel `logging <probe-address> udp 5140`.
+Voeg op AOS-CX `vrf mgmt` aan de regel toe als de sonde via de beheerpoort bereikt wordt. Op AOS-Switch is de regel `logging <probe-address> udp 5140`.
 
 ### MikroTik RouterOS
 
@@ -182,25 +182,25 @@ Voeg op AOS-CX `vrf mgmt` aan de regel toe als de probe via de beheerpoort berei
 /system logging add topics=critical action=remote
 ```
 
-De eerste regel richt de ingebouwde remote-actie van de router op de probe; de andere kiezen wat hij stuurt. Laat het remote-logformaat zoals het is.
+De eerste regel richt de ingebouwde remote-actie van de router op de sonde; de andere kiezen wat hij stuurt. Laat het remote-logformaat zoals het is.
 
 ### Ubiquiti UniFi
 
 1. Open in UniFi Network **Integration** > **System Logging / SIEM** en selecteer **SIEM Server** als bestemming.
-2. Vul het IP-adres van de probe en poort `5140` in, en kies de logcategorieën om te exporteren.
+2. Vul het IP-adres van de sonde en poort `5140` in, en kies de logcategorieën om te exporteren.
 
 De console meldt over de accesspoints en switches die hij beheert. Gebeurtenissen komen op de eigen pagina van elk apparaat terecht als het apparaat met zijn MAC-adres in OneUptime staat, en anders op die van de console.
 
 ### Cambium Networks
 
 1. Open in cnMaestro of in de webinterface van het accesspoint de systeeminstellingen en zoek de syslog-servers.
-2. Vul het IP-adres van de probe in als syslog-server, met poort `5140` waar het formulier om een poort vraagt, en zet de syslog-ernst op **Info**.
+2. Vul het IP-adres van de sonde in als syslog-server, met poort `5140` waar het formulier om een poort vraagt, en zet de syslog-ernst op **Info**.
 
-Waar geen poort in te stellen is, stuurt het accesspoint naar poort 514: publiceer de poort van de probe daar, zoals stap 2 van [Instellen](#instellen) laat zien.
+Waar geen poort in te stellen is, stuurt het accesspoint naar poort 514: publiceer de poort van de sonde daar, zoals stap 2 van [Instellen](#instellen) laat zien.
 
 ### Andere apparaten
 
-Voeg op het apparaat een externe syslog-server toe: het IP-adres van de probe, poort 5140, via UDP of TCP, met informatieve berichten en alles wat ernstiger is. Van een apparaat waarvan OneUptime het formaat niet kent worden de berichten toch opgeslagen, en je kunt de gebeurtenissen ervan zelf een naam geven.
+Voeg op het apparaat een externe syslog-server toe: het IP-adres van de sonde, poort 5140, via UDP of TCP, met informatieve berichten en alles wat ernstiger is. Van een apparaat waarvan OneUptime het formaat niet kent worden de berichten toch opgeslagen, en je kunt de gebeurtenissen ervan zelf een naam geven.
 
 ## Waarschuwingen
 
@@ -223,9 +223,9 @@ Vanaf het tabblad **Gebeurtenissen** van een apparaat bewaken de monitors alleen
 
 ## Adressen die nog geen apparaat zijn
 
-Syslog kan binnenkomen voordat het apparaat dat het stuurt aan OneUptime is toegevoegd. Op je eigen probe wordt het bewaard, de gebeurtenissen ervan staan op de Gebeurtenissen-pagina van het netwerk met de naam die het apparaat zichzelf geeft, en het adres staat onder **Stuurt syslog, nog geen apparaat**:
+Syslog kan binnenkomen voordat het apparaat dat het stuurt aan OneUptime is toegevoegd. Op je eigen sonde wordt het bewaard, de gebeurtenissen ervan staan op de Gebeurtenissen-pagina van het netwerk met de naam die het apparaat zichzelf geeft, en het adres staat onder **Stuurt syslog, nog geen apparaat**:
 
-- **Toevoegen als apparaat** opent **Apparaat toevoegen** met het adres en de probe al ingevuld. De berichten die al binnenkwamen blijven op de pagina van het netwerk; nieuwe gaan naar het apparaat.
+- **Toevoegen als apparaat** opent **Apparaat toevoegen** met het adres en de sonde al ingevuld. De berichten die al binnenkwamen blijven op de pagina van het netwerk; nieuwe gaan naar het apparaat.
 - **Het is een van mijn apparaten** voegt het adres toe aan de **Overige adressen** van een apparaat: gebruik dit als een apparaat dat je al toevoegde vanaf een ander adres verstuurt, zoals een loopback. Zijn berichten gaan vanaf de volgende minuut naar dat apparaat.
 
 Meerdere apparaten achter één NAT-adres delen dat adres, dus hun berichten gaan naar het ene apparaat dat het heeft, tenzij een bericht zijn eigen apparaat noemt.
@@ -244,7 +244,7 @@ Een pipeline hoort bij zijn project. Om er een in een ander project te gebruiken
 
 ## Wat er niet bij zit
 
-- **Syslog over TLS** (RFC 5425). De probe neemt gewone UDP en TCP aan; houd het pad tussen de apparaten en de probe op een netwerk dat je vertrouwt.
+- **Syslog over TLS** (RFC 5425). De sonde neemt gewone UDP en TCP aan; houd het pad tussen de apparaten en de sonde op een netwerk dat je vertrouwt.
 - **Parsers delen tussen projecten.** Een pipeline kan nog niet geëxporteerd en geïmporteerd worden.
 - **Gebeurtenissen uit andere SNMP-traps dan de vier standaardtraps.** De eigen traps van een leverancier worden als logs opgeslagen, en waarschuwingen daarop maak je met het criterium **SNMP-trap ontvangen (trap-OID)** van de [netwerkapparaat-monitor](/docs/monitor/network-device-monitor).
 - **Cambium cnMatrix-switches, Aruba mobility controllers en FortiGate in CEF-modus.** Hun berichten worden opgeslagen en zijn doorzoekbaar; er worden nog geen gebeurtenissen uit gelezen.
@@ -254,8 +254,8 @@ Een pipeline hoort bij zijn project. Om er een in een ander project te gebruiken
 
 Als een Gebeurtenissen-pagina nog steeds de installatiestappen toont:
 
-- **Ontvangt de probe iets?** De Gebeurtenissen-pagina van het netwerk vermeldt onder **Stuurt syslog, nog geen apparaat** elk adres dat in de periode syslog stuurde. Staat het apparaat daar, dan verstuurt het vanaf een adres dat niet zijn hostnaam is: voeg dat adres toe aan zijn **Overige adressen**.
-- **Firewalls en Docker.** Sta poort 5140 toe van het apparaat naar de probe, en publiceer de poort als de probe in Docker draait. Veel apparaten sturen naar poort 514 tenzij je iets anders opgeeft.
-- **De log van de probe.** Bij het opstarten logt de probe op welke poort hij luistert, of dat hij die niet kon openen. Als hij berichten weggooit boven `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, logt hij één keer per minuut hoeveel.
-- **Een globale probe.** Een apparaat dat door een globale probe wordt bevraagd, kan er vanuit een privénetwerk geen syslog naartoe sturen. Draai een aangepaste probe in het netwerk van het apparaat en kies die in de instellingen van het apparaat.
+- **Ontvangt de sonde iets?** De Gebeurtenissen-pagina van het netwerk vermeldt onder **Stuurt syslog, nog geen apparaat** elk adres dat in de periode syslog stuurde. Staat het apparaat daar, dan verstuurt het vanaf een adres dat niet zijn hostnaam is: voeg dat adres toe aan zijn **Overige adressen**.
+- **Firewalls en Docker.** Sta poort 5140 toe van het apparaat naar de sonde, en publiceer de poort als de sonde in Docker draait. Veel apparaten sturen naar poort 514 tenzij je iets anders opgeeft.
+- **De log van de sonde.** Bij het opstarten logt de sonde op welke poort hij luistert, of dat hij die niet kon openen. Als hij berichten weggooit boven `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, logt hij één keer per minuut hoeveel.
+- **Een globale sonde.** Een apparaat dat door een globale sonde wordt bevraagd, kan er vanuit een privénetwerk geen syslog naartoe sturen. Draai een aangepaste sonde in het netwerk van het apparaat en kies die in de instellingen van het apparaat.
 - **Er komen berichten binnen, maar geen gebeurtenissen.** De pagina zegt dat, en elk bericht staat op het tabblad **Logboeken** van het apparaat. Controleer of het apparaat informatieve berichten stuurt, niet alleen fouten, en of het product een van de producten onder [Wat OneUptime leest](#wat-oneuptime-leest) is; geef anders zijn gebeurtenissen een naam in een logboekpipeline.

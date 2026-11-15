@@ -22,7 +22,7 @@ flowchart TB
     ai -->|"alleen-lezen<br/>govc-commando's"| vsphere
 ```
 
-Het vCenter registreert zich met zijn eerste gegevens, onder de naam die de agent als `vmware.vcenter.name` op elke metric stempelt. Om een vCenter te bewaken zonder de agent te draaien, zie [VMware zonder agent](/docs/telemetry/vmware-agentless): een van je probes verzamelt dezelfde gegevens met een alleen-lezen account.
+Het vCenter registreert zich met zijn eerste gegevens, onder de naam die de agent als `vmware.vcenter.name` op elke metric stempelt. Om een vCenter te bewaken zonder de agent te draaien, zie [VMware zonder agent](/docs/telemetry/vmware-agentless): een van je sondes verzamelt dezelfde gegevens met een alleen-lezen account.
 
 ## Voordat je begint
 
@@ -517,7 +517,7 @@ vSphere heeft geen eigen OpenTelemetry-push, dus de agent (of een OpenTelemetry 
 
 :::cards
 - [VMware-monitor](/docs/monitor/vmware-monitor): Waarschuw op hosts, VM's, datastores, clusters, datacenters en vSAN.
-- [VMware zonder agent](/docs/telemetry/vmware-agentless): Laat in plaats daarvan een probe het vCenter verzamelen.
+- [VMware zonder agent](/docs/telemetry/vmware-agentless): Laat in plaats daarvan een sonde het vCenter verzamelen.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Wat de VMware AI-agent mag uitvoeren en hoe fixes werken.
 - [OpenTelemetry-collector op de host](/docs/telemetry/host-otel-collector): De weergave van het besturingssysteem binnen de VM's, of van de machine van de agent.
 :::
