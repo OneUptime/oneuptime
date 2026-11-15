@@ -109,6 +109,9 @@ export function getMarkedLocale(
   options: RuntimeLocaleOptions,
 ): RuntimeLocaleTree;
 
+// A shipped locale as one default export, its JSON handed to JSON.parse.
+export function getLocaleModule(locale: RuntimeLocaleTree): string;
+
 export function createRuntimeLocalesPlugin(
   options: RuntimeLocalesPluginOptions,
 ): RuntimeLocalesPlugin;
