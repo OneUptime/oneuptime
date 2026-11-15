@@ -968,8 +968,9 @@ describe("dashboard Cmd/Ctrl+K ownership with the products menu mounted", () => 
       const productsDialog: HTMLElement = screen.getByRole("dialog", {
         name: "Products menu",
       });
+      // Named by its label, the placeholder's words without the "…" (#7486).
       const productsSearch: HTMLElement = screen.getByRole("combobox", {
-        name: "navbar.search.placeholder",
+        name: "Search products",
       });
       expect(productsDialog).toBeInTheDocument();
       expect(document.activeElement).toBe(productsSearch);

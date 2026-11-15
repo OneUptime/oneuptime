@@ -465,7 +465,7 @@ working mail server.
   incidents or alerts only where theirs would move: one already in that
   state, or past it, is left where it is.
 - **A write of a record's current state follows the same rule.** Updating
-  an incident's, alert's, episode's or scheduled maintenance event's
+  an incident's, alert's, episode's or maintenance event's
   current state through the API or Terraform (`currentIncidentStateId`,
   `currentAlertStateId`, `currentScheduledMaintenanceStateId`) is refused
   before anything is saved when it moves the record back up its list,
@@ -481,7 +481,7 @@ working mail server.
   answered "There is no later state to move this incident to." instead of
   a form whose every choice would be refused. The **Change state to** menu
   in the dashboard header asks the same rule.
-- **The error for a scheduled maintenance event moved back up its list
+- **The error for a maintenance event moved back up its list
   reads like the others:** "Scheduled Maintenance cannot transition to
   Scheduled state from Ongoing state because Scheduled is before Ongoing in
   the order of scheduled maintenance states." (it said `ScheduledMaintenance`
@@ -557,7 +557,7 @@ working mail server.
   description, root cause or remediation notes that was cleared. Taking
   every label off is recorded as "All labels removed.". See
   [What the feed records](/docs/incidents/notes-owners-and-feed#what-the-feed-records).
-- **A scheduled maintenance event's or a monitor's "updated" feed entry
+- **A maintenance event's or a monitor's "updated" feed entry
   records only what changed, too.** Saving an event's **Maintenance
   Details** or **Affected Resources** card or a monitor's details with
   nothing changed, or an API client, a workflow, Terraform or a script
@@ -579,9 +579,9 @@ working mail server.
   your own placed between **Ongoing** and **Ended** now starts the way
   **Ongoing** does: its monitors change to its **Change Monitor Status
   to**, where until now they were left as they were. See
-  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+  [Maintenance events](/docs/status-pages/subscribers#maintenance-events).
 - **A maintenance event in a state of your own before Ongoing starts at
-  its time, and is listed as coming up.** A scheduled maintenance event
+  its time, and is listed as coming up.** A maintenance event
   moved on from **Scheduled** to a state of your own placed above
   **Ongoing** - a "Confirmed" step, say - was never started at its
   **Starts At**: its monitors were not put into maintenance and its
@@ -614,9 +614,9 @@ working mail server.
   now reads the same on the event's header as on the server. Projects
   with no states of their own see only the network site and measurement
   changes. See
-  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+  [Maintenance events](/docs/status-pages/subscribers#maintenance-events).
 - **A maintenance event in a state of your own after Ongoing counts as
-  in progress everywhere.** A scheduled maintenance event moved on from
+  in progress everywhere.** A maintenance event moved on from
   **Ongoing** to a state of your own placed above **Ended** - a
   "Verifying" step, say - kept its monitors in maintenance, but nothing
   else took it for in progress: its status pages' overview left it out
@@ -649,7 +649,7 @@ working mail server.
   **Starts At** or **Ends At** written without a time zone is compared as
   UTC, as it is stored, so a server not running in UTC no longer records a
   move that was not one. See
-  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+  [Maintenance events](/docs/status-pages/subscribers#maintenance-events).
 - **Saving a secret back as it is changes nothing.** A monitor secret, a
   workflow variable, a runbook secret or credential, an LLM provider's
   API key, an OIDC client secret and the other values OneUptime stores
@@ -683,7 +683,7 @@ working mail server.
   send an on/off field as text or a number: `"true"`, `"yes"`, `"on"`,
   `"1"` or `1` for on, `"false"`, `"no"`, `"off"`, `"0"` or `0` for off. The
   database always stored those as on or off, but OneUptime itself read the
-  text: a scheduled maintenance event sent with
+  text: a maintenance event sent with
   `"isVisibleOnStatusPage": "true"` showed on its status page with its
   images left private, so they did not load there, and a monitor sent with
   `"isArchived": "false"` stayed unarchived but was stamped with who
@@ -835,7 +835,7 @@ working mail server.
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **A record read through another one is created only under a record its
   creator may read.** The notes, state timeline and feed of an incident,
-  an alert, an episode or a scheduled maintenance event, a status page's
+  an alert, an episode or a maintenance event, a status page's
   announcements, domains, groups and owners, an on-call policy's
   escalation rules and the other records read through another one are
   created - from the dashboard, the API, Terraform or the MCP tools - only
@@ -869,7 +869,7 @@ working mail server.
   follows: each record it adds as a parent must be one the caller may read,
   or the change is refused with the `400` that names the field and the ID,
   and nothing is written. The records a create or a change lists - an
-  incident's monitors, an alert's services, a scheduled maintenance event's
+  incident's monitors, an alert's services, a maintenance event's
   status pages - keep to the caller's permission to read that kind of record
   when it has one, and to a block with labels on reading it either way.
   What a change leaves where it is, as a parent or in a list, is not checked
@@ -884,7 +884,7 @@ working mail server.
   only on an incident that person or one of their teams owns. Roles and API
   keys whose permissions reach the whole project work as before; give one
   restricted to labels one of those labels on each record it creates. The
-  owners picked when creating a monitor, an incident, an alert, a scheduled
+  owners picked when creating a monitor, an incident, an alert, a
   maintenance event, a status page or a template, and the first escalation
   rule picked when creating an on-call policy, are added for their creator
   even when the creator's own read does not reach the new record. A pick
@@ -913,7 +913,7 @@ working mail server.
   creator whose permission to create reaches only what they own is made the
   owner right after the save, before anything else happens to the record,
   and when that fails the record is removed again and the create is refused
-  with a `500`. The owners of monitors, incidents, alerts, scheduled
+  with a `500`. The owners of monitors, incidents, alerts,
   maintenance events and their templates are now read through the record
   they own, as a status page's and a service's are. Roles and API keys whose
   permissions reach the whole project work as before; give a custom role or
@@ -1140,7 +1140,7 @@ working mail server.
   everyone else to the project's. Installs with billing off, the
   self-hosted default, see no change.
 - **Changing a state takes the state timeline's permission, and nothing
-  more.** An incident, alert, episode or scheduled maintenance event
+  more.** An incident, alert, episode or maintenance event
   changes state, and a monitor changes status, by a new row on its state
   timeline, and the record then takes the new state. That second write
   used to be made with your own permissions, so a custom role with
@@ -1208,7 +1208,7 @@ working mail server.
 - **Slack and Microsoft Teams buttons act as the OneUptime member who
   presses them.** **Acknowledge**, **Resolve**, **Change State**, **Mark as
   Ongoing**, **Mark as Complete**, **Add Note** and **Execute On-Call
-  Policy** on incidents, alerts, episodes and scheduled maintenance events,
+  Policy** on incidents, alerts, episodes and maintenance events,
   and notes saved from a message with a reaction, now make the change the
   dashboard makes for the same action, with the member's own permissions,
   and credit it to them. A member who may not make that change in

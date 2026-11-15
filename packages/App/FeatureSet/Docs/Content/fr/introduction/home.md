@@ -49,7 +49,7 @@ Chaque nombre compte quelque chose, dit si cela demande votre attention, et ouvr
 | **Incidents actifs** | Les incidents qui ne sont pas résolus | **Tout va bien** | **Incidents → Incidents actifs** |
 | **Alertes actives** | Les alertes qui ne sont pas résolues | **Tout va bien** | **Alertes → Alertes actives** |
 | **Moniteurs non opérationnels** | Les moniteurs dont l'état n'est pas un état opérationnel. Les moniteurs archivés, et ceux dont la surveillance est désactivée, ne comptent pas. | **Tous opérationnels** | **Moniteurs → Non opérationnel** |
-| **Maintenance en cours** | Les événements de maintenance planifiée en cours | **Aucune en cours** | **Maintenance planifiée → Événements de maintenance en cours** |
+| **Maintenance en cours** | Les événements de maintenance en cours | **Aucune en cours** | **Maintenance planifiée → Événements de maintenance en cours** |
 | **SLO à risque** | Les SLO activés qui sont à risque ou ont épuisé leur budget d'erreur | **Budgets sains** | **SLOs** |
 
 Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et **Budget qui s'épuise** pour la maintenance et les SLO. Tant qu'un SLO est à risque, **SLO à risque** ouvre la liste **SLOs** filtrée sur ces SLO. Un projet sans moniteur voit **Aucun moniteur pour l'instant**, et un projet sans SLO voit **Aucun SLO pour l'instant** : un projet vide n'est pas un projet en bonne santé. Ces deux-là ouvrent alors les listes **Moniteurs** et **SLOs**, où vous en créez un.
@@ -142,7 +142,7 @@ Au-dessus du titre de chaque page, un fil comme *Projet › Docker › Paramètr
 - L'option **Colonnes** du menu **⋯** d'une liste choisit les colonnes que la liste affiche et leur ordre, et les garde pour vous dans ce navigateur. Un propriétaire ou un administrateur du projet peut aussi y cocher **Afficher ces colonnes pour tout le monde dans ce projet** : quiconque n'a pas choisi ses propres colonnes pour cette liste les voit, et **Réinitialiser aux valeurs par défaut du projet** remet les vôtres sur celles-ci.
 - L'option **Lignes compactes**, dans le même menu, affiche les lignes de chaque liste moins hautes, si bien qu'une longue liste en montre environ un cinquième de plus. Ce choix est gardé dans ce navigateur.
 - **Sur un téléphone, ou dans une carte trop étroite pour ses lignes, une liste s'affiche en cartes, une par ligne.** Le bandeau au-dessus indique leur ordre, par exemple **Trié par Nom** : appuyez dessus pour choisir la colonne de tri, et **Croissant** ou **Décroissant**.
-- **Les pages d'un incident commencent par son numéro.** Son titre, son étape dans le fil et l'onglet du navigateur affichent `INC-42 Checkout is down`, de même que les boîtes de dialogue qui le nomment, si bien que les incidents qui partagent un titre se distinguent. Les alertes, les événements de maintenance planifiée et les épisodes font de même.
+- **Les pages d'un incident commencent par son numéro.** Son titre, son étape dans le fil et l'onglet du navigateur affichent `INC-42 Checkout is down`, de même que les boîtes de dialogue qui le nomment, si bien que les incidents qui partagent un titre se distinguent. Les alertes, les événements de maintenance et les épisodes font de même.
 
 ## Rechercher une page, un paramètre ou une action
 

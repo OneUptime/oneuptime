@@ -183,7 +183,7 @@ Most projects need one step. Add another when a note needs a second approval, fo
 - **Changes count at once.** Who may approve is read when somebody decides, and notes already waiting follow your changes. When you add, delete or reorder steps, or change who a step names, whoever can now approve a waiting note and was not asked about it yet is asked, by their notification settings, and so is somebody who joins a team named on the step a note waits for. Nobody is asked twice about the same step of a note. Somebody taken off the step, or out of its team, can no longer decide on the note, and their Slack, Microsoft Teams or Mattermost message about it says so. A note keeps the approvals it has.
 - **Nobody approves their own note, or two steps of one note.** Whoever sent a note for approval cannot approve or reject it, and whoever approved one of its steps cannot approve another.
 
-Only project owners and admins can change these settings, and everyone who reads the notes can see who approves them. **Scheduled Maintenance → Settings → Public Note Approval** is the same page for scheduled maintenance events, with a switch and steps of its own. What a note does while it waits, and how approvers decide, is under [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
+Only project owners and admins can change these settings, and everyone who reads the notes can see who approves them. **Scheduled Maintenance → Settings → Public Note Approval** is the same page for maintenance events, with a switch and steps of its own. What a note does while it waits, and how approvers decide, is under [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
 
 ## Subscriber notifications
 
@@ -236,7 +236,7 @@ Each definition has:
 - **Include in Subscriber Notifications** — under **More fields**. Sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
 - **Template Variable** — the key a template reaches the field by, `{{incident.customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it. Templates written with the older `{{customFields.<key>}}` keep working. You never need to look it up: the editors that place it — a note template's **Note** and a status page's custom subscriber notification templates for incident events — list every field's variable under **Template variables**, by the field's name. A field's **Edit** form also shows it, read only, at the bottom of **More fields**, with a button that copies it.
 
-**Order**, **Show on Create**, **Required on Create**, **Include in Subscriber Notifications** and **Template Variable** exist on incident custom fields only. The custom fields of monitors, alerts, scheduled maintenance events and the other resources do not have them.
+**Order**, **Show on Create**, **Required on Create**, **Include in Subscriber Notifications** and **Template Variable** exist on incident custom fields only. The custom fields of monitors, alerts, maintenance events and the other resources do not have them.
 
 Definitions live in their own model; the values live on the incident itself in the `customFields` column. On a single incident you fill them in from **Custom Fields** in the incident side menu (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), where the fields are listed in their **Order**. Incident templates keep values for the same fields in their own `customFields`.
 
@@ -362,7 +362,7 @@ When you save, a renamed option and a value you pick an option for are moved: on
 
 An incident whose value its field no longer offers shows the value, marked _no longer an option_, on its **Custom Fields** page and in the incidents list. Editing its other fields keeps it; pick another option to change it.
 
-The custom fields of every other resource work the same way: monitors, alerts, scheduled maintenance events, status pages, on-call policies, teams, team members and inventory items. Renaming an option of a monitor field, or adding one, does the same to the incident, alert and scheduled maintenance fields that copy it (see [Fields copied from a monitor](#fields-copied-from-a-monitor)), so they keep offering every value they copy.
+The custom fields of every other resource work the same way: monitors, alerts, maintenance events, status pages, on-call policies, teams, team members and inventory items. Renaming an option of a monitor field, or adding one, does the same to the incident, alert and scheduled maintenance fields that copy it (see [Fields copied from a monitor](#fields-copied-from-a-monitor)), so they keep offering every value they copy.
 
 Through the API, send the new list as `dropdownOptions`, and the renames in `miscDataProps`:
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Time to postmortem"| postmortem["The postmortem is published"]
 ```
 
-Alerts and scheduled maintenance events have the same feature, at **Alerts → Settings → Measurements** and **Scheduled Maintenance → Settings → Measurements**. Everything below applies to all three, with each one's own moments.
+Alerts and maintenance events have the same feature, at **Alerts → Settings → Measurements** and **Scheduled Maintenance → Settings → Measurements**. Everything below applies to all three, with each one's own moments.
 
 ### Ready-made measurements
 
@@ -477,7 +477,7 @@ Each incident's page shows its own measurements in a **Measurements** card, righ
 
 A measurement whose start or end you change keeps showing its old value on each incident until OneUptime has worked it out again, as its chart does. Right after a state change from the incident's header, the card reads the new values as soon as OneUptime has worked them out, usually at once.
 
-Alerts and scheduled maintenance events have the same card on their pages. For a maintenance event, **Not reached** comes once the event has ended: once it is in the ended or the completed state, or in a state of your own placed after the ended state. Its moments follow the same places: **The maintenance starts**, **ends** and **is completed** are the moves into a state where the event is in progress, over or complete from one where it was not - so an event completed straight from the ongoing state ends there, an event moved from the ended state straight into a state of your own placed after the completed state is completed there, and moving on from the completed state to such a state completes nothing again. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events). The card is left out when no enabled measurement has **Show on incident pages** on, and for someone who may not read measurements.
+Alerts and maintenance events have the same card on their pages. For a maintenance event, **Not reached** comes once the event has ended: once it is in the ended or the completed state, or in a state of your own placed after the ended state. Its moments follow the same places: **The maintenance starts**, **ends** and **is completed** are the moves into a state where the event is in progress, over or complete from one where it was not - so an event completed straight from the ongoing state ends there, an event moved from the ended state straight into a state of your own placed after the completed state is completed there, and moving on from the completed state to such a state completes nothing again. See [Maintenance events](/docs/status-pages/subscribers#maintenance-events). The card is left out when no enabled measurement has **Show on incident pages** on, and for someone who may not read measurements.
 
 ### Impact Started At, and why it is blank
 
@@ -563,7 +563,7 @@ The dialog says what is wrong before you save, and the API refuses the same pref
 
 Project Owners, Project Admins and anyone with **Edit Project** can change the prefixes. Everyone else sees them with the **Update** button locked.
 
-Alerts and scheduled maintenance events have the same page: **Alerts → Settings → Numbering** for alert and alert episode numbers (`ALT-` and `AE-` for new projects), and **Scheduled Maintenance → Settings → Numbering** for event numbers (`SM-`). In all three, the page's old addresses still work and open **Numbering**: **More Settings** (`…/settings/more`) and **Number Prefix** (`…/settings/number-prefix`).
+Alerts and maintenance events have the same page: **Alerts → Settings → Numbering** for alert and alert episode numbers (`ALT-` and `AE-` for new projects), and **Scheduled Maintenance → Settings → Numbering** for event numbers (`SM-`). In all three, the page's old addresses still work and open **Numbering**: **More Settings** (`…/settings/more`) and **Number Prefix** (`…/settings/number-prefix`).
 
 ## Next numbers
 
@@ -589,7 +589,7 @@ The dialog says what is wrong before you save, and only the numbers you changed 
 
 Project Owners, Project Admins and anyone with **Edit Project** can change the next numbers, as they can the prefixes. Everyone else sees them with the **Update** button locked.
 
-Alerts and scheduled maintenance events have the same card on their **Numbering** pages: **Next Alert Number** and **Next Alert Episode Number**, and **Next Scheduled Maintenance Number**. [Import from another tool](/docs/moving-to-oneuptime/incident-io) brings your setup over, not your past incidents, so it leaves the numbers as they are: set the next numbers before the first incident is declared in OneUptime.
+Alerts and maintenance events have the same card on their **Numbering** pages: **Next Alert Number** and **Next Alert Episode Number**, and **Next Scheduled Maintenance Number**. [Import from another tool](/docs/moving-to-oneuptime/incident-io) brings your setup over, not your past incidents, so it leaves the numbers as they are: set the next numbers before the first incident is declared in OneUptime.
 
 ## Linked alert switches
 

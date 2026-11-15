@@ -1,6 +1,6 @@
 # Публичный API
 
-Каждая страница статуса отвечает на небольшой набор JSON-адресов только для чтения: её обзор, сводку, время работы, инциденты, эпизоды, события плановых работ и объявления. Это те же адреса, которые загружает сама страница статуса, поэтому они возвращают ровно то, что видит посетитель, а публичной странице API-ключ не нужен. Используйте их, чтобы показывать свой статус в собственном приложении, чат-боте или на настенном экране.
+Каждая страница статуса отвечает на небольшой набор JSON-адресов только для чтения: её обзор, сводку, время работы, инциденты, эпизоды, события обслуживания и объявления. Это те же адреса, которые загружает сама страница статуса, поэтому они возвращают ровно то, что видит посетитель, а публичной странице API-ключ не нужен. Используйте их, чтобы показывать свой статус в собственном приложении, чат-боте или на настенном экране.
 
 :::cards
 - [Адреса](#адреса): По одному адресу на всё, что показывает страница.
@@ -57,8 +57,8 @@ flowchart TB
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | Один инцидент. |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | Эпизоды инцидентов, которые показывает страница. |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | Один эпизод. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | События плановых работ, которые показывает страница, с их публичными заметками и сменами состояний. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | Одно событие плановых работ. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | События обслуживания, которые показывает страница, с их публичными заметками и сменами состояний. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | Одно событие обслуживания. |
 | `/announcements/{statusPageIdOrDomain}` | `GET`, `POST` | Объявления, которые показывает страница. |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | Одно объявление. |
 
@@ -140,13 +140,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Нерешённые инциденты, которые показывает страница, их публичные заметки и смены состояний, а также состояния инцидентов проекта. |
 | `timelineIncidents` | Инциденты в окне полос времени работы, включая решённые, — для всплывающих подсказок полос. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | То же для эпизодов инцидентов. |
-| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | События плановых работ, которые ещё впереди или идут сейчас, их публичные заметки и смены состояний. |
-| `timelineScheduledMaintenanceEvents` | Уже начавшиеся события плановых работ в окне полос времени работы, идущие сейчас или прошедшие, — для всплывающих подсказок полос и диалогового окна каждого дня: те, что показывает страница и что затрагивают один из её мониторов, каждое только с мониторами страницы. |
+| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | События обслуживания, которые ещё впереди или идут сейчас, их публичные заметки и смены состояний. |
+| `timelineScheduledMaintenanceEvents` | Уже начавшиеся события обслуживания в окне полос времени работы, идущие сейчас или прошедшие, — для всплывающих подсказок полос и диалогового окна каждого дня: те, что показывает страница и что затрагивают один из её мониторов, каждое только с мониторами страницы. |
 | `activeAnnouncements` | Объявления, которые показываются сейчас: уже начались и ещё не закончились. |
 
 ## Чтение сводки
 
-Сводка — это обзор, урезанный до того, что инструмент мониторинга спрашивает у страницы: статус каждого ресурса и затрагивает ли его идущее событие плановых работ. Она остаётся небольшой, сколько бы истории ни показывала страница, и именно её читает [монитор внешней страницы статуса](/docs/monitor/external-status-page-monitor#страницы-статуса-oneuptime) другого OneUptime. Она берётся из того же кэша, что и обзор, после тех же правил доступа.
+Сводка — это обзор, урезанный до того, что инструмент мониторинга спрашивает у страницы: статус каждого ресурса и затрагивает ли его идущее событие обслуживания. Она остаётся небольшой, сколько бы истории ни показывала страница, и именно её читает [монитор внешней страницы статуса](/docs/monitor/external-status-page-monitor#страницы-статуса-oneuptime) другого OneUptime. Она берётся из того же кэша, что и обзор, после тех же правил доступа.
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `overallStatus` | Общий статус страницы, как его показывает её баннер: `name`, `color` и `isOperational`. `null`, когда все ресурсы страницы показаны как **Не отслеживается**. |
 | `resources` | Каждый ресурс, который показывает страница, в её порядке: его `name` на странице, его `groupName` с группами над ним, его `currentStatus`, `isMonitored` и `isUnderMaintenance`. |
 | `activeIncidents` | Нерешённые инциденты, которые показывает страница, каждый с `affectedResourceIds` затронутых ресурсов. |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Идущие и ещё предстоящие события плановых работ, каждое со своими `affectedResourceIds`. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Идущие и ещё предстоящие события обслуживания, каждое со своими `affectedResourceIds`. |
 
 `currentStatus` ресурса равен `null`, когда страница его не показывает, а также когда `isMonitored` равен `false`: ресурс никто не проверяет, потому что мониторинг его монитора выключен или выключен у всех мониторов его группы мониторов, и страница показывает его как **Не отслеживается**. `isUnderMaintenance` равен `true`, пока идущее событие называет один из мониторов ресурса или монитор в его группе мониторов, каким бы ни был статус этих мониторов.
 
@@ -346,7 +346,7 @@ for group in uptime["groupUptimes"]:
 # The incidents the page lists
 curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-# One scheduled maintenance event
+# One maintenance event
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
 ```
 @tab Node.js
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | Инциденты | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
 | Эпизоды | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| События плановых работ | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
+| События обслуживания | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Объявления | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
 Запрос одной записи отвечает теми же ключами, в которых лежит эта одна запись.
@@ -406,7 +406,7 @@ for incident in incidents:
 
 ## Другие способы читать страницу статуса
 
-- **RSS.** Каждая страница статуса отдаёт `/rss` — ленту своих инцидентов, объявлений и событий плановых работ, и у каждого элемента та же дата, что и на странице. См. [Встраиваемый значок и RSS-лента](/docs/status-pages/index#встраиваемый-значок-и-rss-лента).
+- **RSS.** Каждая страница статуса отдаёт `/rss` — ленту своих инцидентов, объявлений и событий обслуживания, и у каждого элемента та же дата, что и на странице. См. [Встраиваемый значок и RSS-лента](/docs/status-pages/index#встраиваемый-значок-и-rss-лента).
 - **llms.txt.** Рядом с `/rss` каждая страница статуса отдаёт `/llms.txt`, который направляет ИИ-агентов к RSS-ленте и к JSON обзора.
 - **MCP.** ИИ-агенты могут читать страницу через MCP-сервер OneUptime по адресу `https://oneuptime.com/mcp`, без API-ключа, передавая ID или домен страницы как `statusPageIdOrDomain`. По умолчанию это включено; отключите переключателем **Включить MCP-сервер** в **ИИ → MCP** бокового меню страницы. См. [Сервер MCP](/docs/ai/mcp-server).
 - **REST API.** Чтобы создавать или изменять страницы статуса, ресурсы, подписчиков и объявления, используйте [API OneUptime](/docs/api-reference/api-reference) с API-ключом.

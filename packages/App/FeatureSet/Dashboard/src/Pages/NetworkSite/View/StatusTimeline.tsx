@@ -26,6 +26,8 @@ import StatusTimelineViewSwitch, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   getStateTimelineDurationColumn,
   getStateTimelineEndsAtColumn,
@@ -351,6 +353,10 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
                 return (
                   <Pill
                     text={item.monitorStatus.name}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.MonitorStatus,
+                      item.monitorStatus.name,
+                    )}
                     color={item.monitorStatus.color || Gray500}
                     size={PillSize.Small}
                   />

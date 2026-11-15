@@ -86,6 +86,8 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -179,13 +181,20 @@ function readColor(value: string | undefined): Color {
   return value ? new Color(value) : Gray500;
 }
 
-// One open incident, alert or monitor on a record: its number and title, opening it, and where it stands.
+/*
+ * One open incident, alert or monitor on a record: its number and title,
+ * opening it, and where it stands - its state, from `stateList`, whose
+ * default names are looked up and the project's own drawn as written
+ * (Common/Utils/DefaultRecordNames).
+ */
 const FactRecordItem: FunctionComponent<{
   item: SecurityConnectionRecordJson;
   route: Route | null;
+  stateList?: StateListType | undefined;
 }> = (props: {
   item: SecurityConnectionRecordJson;
   route: Route | null;
+  stateList?: StateListType | undefined;
 }): ReactElement => {
   const item: SecurityConnectionRecordJson = props.item;
   const text: ReactElement = (
@@ -216,6 +225,7 @@ const FactRecordItem: FunctionComponent<{
       {item.stateName ? (
         <Pill
           text={item.stateName}
+          isUserContent={isRecordNameAsWritten(props.stateList, item.stateName)}
           color={readColor(item.stateColor)}
           size={PillSize.Small}
         />
@@ -357,9 +367,12 @@ const MoreItems: FunctionComponent<{ count: number }> = (props: {
 const FactRecordList: FunctionComponent<{
   list: SecurityConnectionRecordListJson;
   getRoute: (id: string) => Route | null;
+  // The list the records' states are of: incident states for incidents.
+  stateList?: StateListType | undefined;
 }> = (props: {
   list: SecurityConnectionRecordListJson;
   getRoute: (id: string) => Route | null;
+  stateList?: StateListType | undefined;
 }): ReactElement => {
   return (
     <ul className="space-y-1">
@@ -370,6 +383,7 @@ const FactRecordList: FunctionComponent<{
               key={item.id}
               item={item}
               route={props.getRoute(item.id)}
+              stateList={props.stateList}
             />
           );
         },
@@ -494,6 +508,10 @@ const ConnectedRecord: FunctionComponent<{
               <span data-testid={SECURITY_CONNECTIONS_TEST_IDS.monitorStatus}>
                 <Pill
                   text={resource.status.name}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.MonitorStatus,
+                    resource.status.name,
+                  )}
                   color={readColor(resource.status.color)}
                   size={PillSize.Small}
                 />
@@ -605,6 +623,7 @@ const ConnectedRecord: FunctionComponent<{
                     <FactRecordList
                       list={incidents}
                       getRoute={getIncidentRoute}
+                      stateList={StateListType.IncidentState}
                     />
                   </FactRow>
                 ) : (
@@ -619,7 +638,11 @@ const ConnectedRecord: FunctionComponent<{
                     )}
                     labelClassName="text-amber-700"
                   >
-                    <FactRecordList list={alerts} getRoute={getAlertRoute} />
+                    <FactRecordList
+                      list={alerts}
+                      getRoute={getAlertRoute}
+                      stateList={StateListType.AlertState}
+                    />
                   </FactRow>
                 ) : (
                   <></>
@@ -636,6 +659,7 @@ const ConnectedRecord: FunctionComponent<{
                     <FactRecordList
                       list={monitors}
                       getRoute={getMonitorRoute}
+                      stateList={StateListType.MonitorStatus}
                     />
                   </FactRow>
                 ) : (

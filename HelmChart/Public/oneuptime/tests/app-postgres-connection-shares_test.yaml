@@ -1,0 +1,76 @@
+# How an app pod shares its Postgres pool (issue #7920): probe scheduling runs
+# a bounded number of requests at once (PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS)
+# and the queue jobs the pod runs while worker.enabled is false hold a bounded
+# number of connections (DATABASE_MAX_QUEUE_JOB_CONNECTIONS), so sign-ins and
+# dashboards always find one. Both default in code to a share of the pool, so
+# the chart sets them only when asked to: unset, the code's defaults follow
+# DATABASE_MAX_OPEN_CONNECTIONS; set, the value must reach the container, or
+# the operator turns the knob and nothing changes.
+suite: app postgres connection shares
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: leaves both shares to the code's defaults when unset
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MAX_QUEUE_JOB_CONNECTIONS
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS
+          any: true
+
+  - it: passes both shares through when set
+    templates:
+      - templates/app.yaml
+    set:
+      app.databaseMaxQueueJobConnections: 40
+      app.probeSchedulingMaxConcurrentRequests: 6
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MAX_QUEUE_JOB_CONNECTIONS
+            value: "40"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS
+            value: "6"
+
+  - it: never sets them on the worker pods, whose jobs keep the whole pool
+    templates:
+      - templates/worker.yaml
+    set:
+      worker.enabled: true
+      app.databaseMaxQueueJobConnections: 40
+      app.probeSchedulingMaxConcurrentRequests: 6
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_MAX_QUEUE_JOB_CONNECTIONS
+          any: true
+
+  - it: refuses a share that is not a whole number above 0
+    templates:
+      - templates/app.yaml
+    set:
+      app.databaseMaxQueueJobConnections: 0
+    asserts:
+      - failedTemplate: {}

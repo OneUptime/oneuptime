@@ -198,7 +198,7 @@ Be AI att analysera, sammanfatta eller besluta något mitt i körningen. Svaret 
 | **Prompt** | Vad AI:n ska göra. Till exempel: "Gå igenom outputen från de föregående stegen och säg om det är säkert att fortsätta med åtgärden." |
 | **LLM-leverantör** | Valfritt. **Projektstandard** använder projektets standardleverantör. Lås en leverantör när steget behöver en viss modell, till exempel en självhostad modell för data som inte får lämna ditt nätverk. Se [LLM-leverantörer](/docs/ai/llm-provider). |
 | **Ta med kontext från föregående steg** | När den är påslagen ser AI:n allt om de steg som kördes före det här: titel, typ, status, output och felmeddelanden. Den får upp till 4 000 tecken av varje stegs output. |
-| **Ta med utlösarkontext** | När den är påslagen ser AI:n vad som startade körningen: den kopplade incidenten, larmet eller den schemalagda underhållshändelsen (beskrivning, allvarlighetsgrad, aktuellt tillstånd, berörda monitorer, grundorsak, tillståndstidslinje och publika anteckningar), eller vem som körde runbooket manuellt. |
+| **Ta med utlösarkontext** | När den är påslagen ser AI:n vad som startade körningen: den kopplade incidenten, larmet eller underhållshändelsen (beskrivning, allvarlighetsgrad, aktuellt tillstånd, berörda monitorer, grundorsak, tillståndstidslinje och publika anteckningar), eller vem som körde runbooket manuellt. |
 
 För att hålla en människa i loopen slår du på **Kräv godkännande** på steget efter ett AI-steg: AI:n analyserar, en person läser svaret, och det åtgärdande steget körs först när personen godkänner det.
 

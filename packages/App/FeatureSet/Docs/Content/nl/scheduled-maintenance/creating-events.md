@@ -24,7 +24,7 @@ flowchart TB
 ## Voordat je begint
 
 - **Je rol.** Een gebeurtenis maken vraagt **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Onderhoudsbeheerder** of **Onderhoudslid**, of een aangepaste rol met **Create Scheduled Maintenance**.
-- **Je statuspagina's.** Om klanten te informeren heb je een statuspagina nodig die geplande onderhoudsgebeurtenissen toont. Zie [Statuspagina's – Overzicht](/docs/status-pages/index).
+- **Je statuspagina's.** Om klanten te informeren heb je een statuspagina nodig die onderhoudsgebeurtenissen toont. Zie [Statuspagina's – Overzicht](/docs/status-pages/index).
 
 ## Een gebeurtenis maken
 
@@ -71,7 +71,7 @@ Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op g
 Twee dingen vullen het formulier onderweg voor je in:
 
 - **Gekoppelde resources.** Wanneer je een monitor kiest, worden de hosts, clusters, services en andere resources waaraan hij gekoppeld is toegevoegd onder **Andere getroffen resources**, en een regel onder het veld noemt ze. Verwijder wat je niet wilt. Cloudresources worden ook toegevoegd: zolang de gebeurtenis loopt, openen hun monitors geen incident of waarschuwing.
-- **Voorgestelde statuspagina's.** Onder **Gebeurtenis weergeven op deze statuspagina's** worden de pagina's voorgesteld die je monitoren tonen: klik op de naam van een pagina om haar toe te voegen, of op **Alles toevoegen**. Er wordt niets voor je gekozen. Zie [Geplande onderhoudsgebeurtenissen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen).
+- **Voorgestelde statuspagina's.** Onder **Gebeurtenis weergeven op deze statuspagina's** worden de pagina's voorgesteld die je monitoren tonen: klik op de naam van een pagina om haar toe te voegen, of op **Alles toevoegen**. Er wordt niets voor je gekozen. Zie [Onderhoudsgebeurtenissen](/docs/status-pages/subscribers#onderhoudsgebeurtenissen).
 
 ## Beginnen vanaf een resource of een sjabloon
 
@@ -180,6 +180,6 @@ Een gebeurtenis wordt gepubliceerd zodat je klanten van het werk horen voordat h
 :::cards
 - [Onderhoudsstatussen](/docs/scheduled-maintenance/states): Wat een gebeurtenis start en beëindigt, en hoe je haar met de hand verder zet.
 - [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates): De antwoorden van het formulier voor de volgende keer bewaren.
-- [Abonnees en aankondigingen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen): Precies wie bericht krijgt, en wanneer.
+- [Abonnees en aankondigingen](/docs/status-pages/subscribers#onderhoudsgebeurtenissen): Precies wie bericht krijgt, en wanneer.
 - [Onderhoudsregels en instellingen](/docs/scheduled-maintenance/settings): Eigenaren, labels en herinneringen automatisch toevoegen.
 :::

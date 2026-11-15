@@ -41,7 +41,7 @@ Em **Bancos de dados**, escolha **Alertas recomendados** para um banco de dados.
 
 Escolha gravidades, políticas de plantão, proprietários e rótulos ao criá-los. A partir daí eles são monitores comuns: edite-os, silencie-os ou coloque-os em uma página de status como qualquer outro.
 
-Um backfill ou uma migração não deve acionar ninguém. Informe o banco de dados em **Data Observability Bancos de dados** em um [evento de manutenção programada](/docs/scheduled-maintenance/index), ou coloque o servidor dele em um, e os alertas de dados dele ficam em silêncio enquanto o evento estiver ativo.
+Um backfill ou uma migração não deve acionar ninguém. Informe o banco de dados em **Data Observability Bancos de dados** em um [evento de manutenção](/docs/scheduled-maintenance/index), ou coloque o servidor dele em um, e os alertas de dados dele ficam em silêncio enquanto o evento estiver ativo.
 
 ## Métricas que cada tabela grava
 

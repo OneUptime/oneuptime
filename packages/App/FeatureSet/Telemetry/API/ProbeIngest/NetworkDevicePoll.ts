@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -25,6 +26,7 @@ import ProbeCapability, {
   ProbeCapabilityUtil,
 } from "Common/Types/Probe/ProbeCapability";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -108,6 +110,15 @@ const NETWORK_DEVICE_PING_CAPABILITY: string =
 router.post(
   "/probe/network-device/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  /*
+   * Under the probe scheduling limit; a refused request claims nothing and
+   * is answered busy (ProbeSchedulingMiddleware): devices stay due.
+   */
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendJsonObjectResponse(req, res, { devices: [] });
+    },
+  ),
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,

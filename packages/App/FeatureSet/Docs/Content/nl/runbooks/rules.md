@@ -35,7 +35,7 @@ Wanneer een regel afgaat, gebeurt voor elk runbook dat hij noemt het volgende:
 1. Het runbook wordt geladen.
 2. De stappen worden als **momentopname** op een nieuwe runbook-uitvoering gekopieerd.
 3. De uitvoering wordt in de wachtrij van de runbook-worker gezet.
-4. De uitvoering wordt gekoppeld aan de bronentiteit: ze verschijnt op de pagina **Runbooks** van het incident, de waarschuwing of het geplande onderhoudsevenement en in de lijst **Uitvoeringen** van het runbook.
+4. De uitvoering wordt gekoppeld aan de bronentiteit: ze verschijnt op de pagina **Runbooks** van het incident, de waarschuwing of de onderhoudsgebeurtenis en in de lijst **Uitvoeringen** van het runbook.
 
 Elke uitvoering, door een regel gestart of niet, ziet u onder **Runbooks → Uitvoeringen**, gefilterd op status, runbook of startdatum.
 
@@ -72,12 +72,12 @@ Kies onder **Runbooks** een of meer **Te starten runbooks**. De **Naam** van de 
 
 ## Voorwaarden
 
-Elke voorwaarde vergelijkt één eigenschap van het incident, de waarschuwing of het geplande onderhoudsevenement met een waarde die u opgeeft. Een runbook-regel biedt dezelfde criteria als de andere regels van haar product: een runbook-regel voor incidenten matcht op hetzelfde als een privacy- of dienstregel voor incidenten.
+Elke voorwaarde vergelijkt één eigenschap van het incident, de waarschuwing of de onderhoudsgebeurtenis met een waarde die u opgeeft. Een runbook-regel biedt dezelfde criteria als de andere regels van haar product: een runbook-regel voor incidenten matcht op hetzelfde als een privacy- of dienstregel voor incidenten.
 
 | Criterium | Wat het controleert |
 | --- | --- |
-| **Monitoren** | De monitoren die het incident of het geplande onderhoudsevenement raakt, of de monitor die de waarschuwing gaf. |
-| **Ernstniveaus van incidenten** / **Ernstniveaus van waarschuwingen** | De ernst van het incident of de waarschuwing. Geplande onderhoudsevenementen hebben geen ernst, dus hun regels bieden die niet aan. |
+| **Monitoren** | De monitoren die het incident of de onderhoudsgebeurtenis raakt, of de monitor die de waarschuwing gaf. |
+| **Ernstniveaus van incidenten** / **Ernstniveaus van waarschuwingen** | De ernst van het incident of de waarschuwing. Onderhoudsgebeurtenissen hebben geen ernst, dus hun regels bieden die niet aan. |
 | **Incident-labels** / **Waarschuwingslabels** / **Gebeurtenislabels** | De labels van het incident, de waarschuwing of het evenement zelf, inclusief de labels die labelregels bij het aanmaken toevoegden. |
 | **Monitorlabels** | De labels van de monitoren. Geef uw monitoren het label `production` of `staging` om een runbook voor één omgeving uit te voeren. |
 | **Incidenttitel** / **Waarschuwingstitel** / **Gebeurtenistitel** | De titel. |

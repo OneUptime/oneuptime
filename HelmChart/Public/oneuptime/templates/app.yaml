@@ -140,6 +140,19 @@ spec:
             # while worker.enabled is false (DISABLE_QUEUE_WORKERS).
             - name: AI_INVESTIGATION_CONCURRENCY
               value: {{ $.Values.app.aiInvestigationConcurrency | default 10 | squote }}
+            {{- if $.Values.app.databaseMaxQueueJobConnections }}
+            # Postgres connections this pod's queue jobs hold at once (while
+            # worker.enabled is false). Unset: the pool less a fifth kept for
+            # requests and less probe scheduling's share.
+            - name: DATABASE_MAX_QUEUE_JOB_CONNECTIONS
+              value: {{ $.Values.app.databaseMaxQueueJobConnections | squote }}
+            {{- end }}
+            {{- if $.Values.app.probeSchedulingMaxConcurrentRequests }}
+            # Probe scheduling requests this pod runs at once. Unset: a fifth
+            # of the Postgres pool.
+            - name: PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS
+              value: {{ $.Values.app.probeSchedulingMaxConcurrentRequests | squote }}
+            {{- end }}
             {{- if $.Values.app.networkDevicePollFetchLimit }}
             # How many NetworkDevice SNMP walks one probe is handed per fetch,
             # and so the ceiling on how fast that probe's fleet can be polled

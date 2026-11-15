@@ -1129,6 +1129,13 @@ export default class PublicDashboardResourceListPolicy {
         "monitorStatusIds",
       );
 
+    /*
+     * No project, though the board passes its own: asked in the project,
+     * "non-operational" reads every monitor in the project's problem
+     * statuses, which a count pays for (issue #8096). This read fetches one
+     * page and no count, and in a big project the plain query fills a page
+     * for far less. The monitors are the same either way.
+     */
     const query: Record<string, unknown> = getMonitorListQuery({
       statusFilter,
       monitorStatusIds,

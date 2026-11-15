@@ -82,6 +82,19 @@ export default class HTTPResponse<
     this._hasMore = v;
   }
 
+  /*
+   * Optional. True when a list read asked for its count up to a cap
+   * (countUpTo) and more records match: `count` is the cap, a lower bound,
+   * and records follow this page. Undefined when the count is exact.
+   */
+  private _isCountCapped: boolean | undefined = undefined;
+  public get isCountCapped(): boolean | undefined {
+    return this._isCountCapped;
+  }
+  public set isCountCapped(v: boolean | undefined) {
+    this._isCountCapped = v;
+  }
+
   public constructor(
     statusCode: number,
     data: JSONObject | Array<JSONObject>,
@@ -101,6 +114,9 @@ export default class HTTPResponse<
       this.limit = data["limit"] as number;
       if (Object.keys(data).includes("hasMore")) {
         this.hasMore = data["hasMore"] as boolean;
+      }
+      if (data["isCountCapped"] === true) {
+        this.isCountCapped = true;
       }
       this.jsonData = JSONFunctions.deserializeArray(data["data"] as JSONArray);
     } else if (Array.isArray(data)) {

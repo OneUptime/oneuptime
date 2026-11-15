@@ -1963,7 +1963,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(
       lineStarting(
         channelSection,
-        "An incident, alert, episode or scheduled maintenance event with a Slack channel of its own has a ",
+        "An incident, alert, episode or maintenance event with a Slack channel of its own has a ",
       ),
     ).toContain(`**${RECORD_CHANNEL_TEXT.slackChannel}** card`);
 
