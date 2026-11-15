@@ -5,6 +5,7 @@ import os from "os";
 import path from "path";
 import {
   createRuntimeLocalesPlugin,
+  getMarkedLocale,
   getPluralOneFormKeys,
   getRuntimeLocale,
   getSameAsEnglishMarks,
@@ -23,6 +24,13 @@ import {
 } from "../../Types/Dashboard/DashboardLanguage";
 import { SAME_AS_ENGLISH_MARK as LOOKUP_SAME_AS_ENGLISH_MARK } from "../../Types/Translator";
 import { readDashboardSameAsEnglish } from "../Helpers/DashboardLocales";
+import {
+  ADMIN_DASHBOARD_CODES,
+  ADMIN_DASHBOARD_DIRECTORY,
+  ADMIN_DASHBOARD_ENGLISH,
+  ADMIN_DASHBOARD_LOCALES_DIRECTORY,
+  readAdminDashboardSameAsEnglish,
+} from "../Helpers/AdminDashboardLocales";
 
 /*
  * What the Dashboard bundles of its locale files (UI/esbuild-locales.js).
@@ -706,6 +714,176 @@ describe("the mark of a _one form a language words as English does", () => {
   });
 });
 
+/*
+ * A frontend that bundles every locale whole (the Admin Dashboard) ships
+ * each as its file holds it: the build only adds the marks, each right
+ * after its form (#8068).
+ */
+describe("getMarkedLocale: a locale shipped whole, with its marks", () => {
+  const english: RuntimeLocaleTree = frozen({
+    common: { save: "Save" },
+    Save: "Save",
+    "{{count}} monitors": "{{count}} monitors",
+    "{{count}} monitors_one": "{{count}} monitor",
+    "{{count}} people": "{{count}} people",
+    "{{count}} people_one": "{{count}} person",
+    "{{count}} rows": "{{count}} rows",
+    "{{count}} rows_one": "{{count}} row",
+  });
+  const portuguese: RuntimeLocaleTree = frozen({
+    common: { save: "Save" },
+    Save: "Salvar",
+    "{{count}} monitors": "{{count}} monitores",
+    "{{count}} monitors_one": "{{count}} monitor",
+    "{{count}} people": "{{count}} pessoas",
+    "{{count}} people_one": "{{count}} pessoa",
+    "{{count}} rows": "{{count}} linhas",
+    "{{count}} rows_one": "{{count}} row",
+  });
+  /*
+   * Portuguese's list: the one form it keeps as English's, a one form it
+   * has translated after all, and a text that is no one form.
+   */
+  const portugueseList: Array<string> = frozen([
+    "{{count}} monitor",
+    "{{count}} person",
+    "Save",
+  ]);
+
+  test("ships every entry of the file, in its order, and the mark right after its form", () => {
+    const shipped: RuntimeLocaleTree = getMarkedLocale({
+      language: "pt",
+      fallbackLanguage: "en",
+      locale: portuguese,
+      fallback: english,
+      sameAsEnglish: portugueseList,
+    });
+
+    expect(Object.keys(shipped)).toEqual([
+      "common",
+      "Save",
+      "{{count}} monitors",
+      "{{count}} monitors_one",
+      "{{count}} monitors_one_sameAsEnglish",
+      "{{count}} people",
+      "{{count}} people_one",
+      "{{count}} rows",
+      "{{count}} rows_one",
+    ]);
+    expect(shipped).toEqual({
+      ...portuguese,
+      "{{count}} monitors_one_sameAsEnglish": "{{count}} monitor",
+    });
+  });
+
+  // What the trimmed copy drops, the whole one keeps: nested and English alike.
+  test("keeps what getRuntimeLocale() would drop", () => {
+    const shipped: RuntimeLocaleTree = getMarkedLocale({
+      language: "pt",
+      fallbackLanguage: "en",
+      locale: portuguese,
+      fallback: english,
+    });
+
+    expect(shipped).toEqual(portuguese);
+    expect(
+      getRuntimeLocale({
+        language: "pt",
+        fallbackLanguage: "en",
+        locale: portuguese,
+        fallback: english,
+      })["common"],
+    ).toBeUndefined();
+    expect(shipped["common"]).toEqual({ save: "Save" });
+  });
+
+  test("the fallback language ships as its file holds it, its _one forms and identity entries too", () => {
+    const shipped: RuntimeLocaleTree = getMarkedLocale({
+      language: "en",
+      fallbackLanguage: "en",
+      locale: english,
+      sameAsEnglish: portugueseList,
+    });
+
+    expect(shipped).toEqual(english);
+    expect(shipped).not.toBe(english);
+    expect(Object.keys(shipped)).toEqual(Object.keys(english));
+  });
+
+  test("marks nothing without a list, or for a language that reads no one form", () => {
+    for (const sameAsEnglish of [undefined, []]) {
+      expect(
+        getMarkedLocale({
+          language: "pt",
+          fallbackLanguage: "en",
+          locale: portuguese,
+          fallback: english,
+          sameAsEnglish: sameAsEnglish,
+        }),
+      ).toEqual(portuguese);
+    }
+
+    // Japanese reads its general form at every count.
+    expect(
+      getMarkedLocale({
+        language: "ja",
+        fallbackLanguage: "en",
+        locale: portuguese,
+        fallback: english,
+        sameAsEnglish: portugueseList,
+      }),
+    ).toEqual(portuguese);
+  });
+
+  test("marks the same forms the trimmed copy marks", () => {
+    const whole: RuntimeLocaleTree = getMarkedLocale({
+      language: "pt",
+      fallbackLanguage: "en",
+      locale: portuguese,
+      fallback: english,
+      sameAsEnglish: portugueseList,
+    });
+    const trimmed: RuntimeLocaleTree = getRuntimeLocale({
+      language: "pt",
+      fallbackLanguage: "en",
+      locale: portuguese,
+      fallback: english,
+      sameAsEnglish: portugueseList,
+    });
+    const marksOf: (tree: RuntimeLocaleTree) => Array<string> = (
+      tree: RuntimeLocaleTree,
+    ): Array<string> => {
+      return Object.keys(tree).filter((key: string): boolean => {
+        return key.endsWith(SAME_AS_ENGLISH_MARK);
+      });
+    };
+
+    expect(marksOf(whole)).toEqual(["{{count}} monitors_one_sameAsEnglish"]);
+    expect(marksOf(whole)).toEqual(marksOf(trimmed));
+  });
+
+  test("refuses to mark another language without the fallback, or a locale that is not a JSON object", () => {
+    expect(() => {
+      return getMarkedLocale({
+        language: "pt",
+        fallbackLanguage: "en",
+        locale: portuguese,
+      });
+    }).toThrow("getMarkedLocale: the en locale is needed to mark pt.");
+
+    for (const locale of [null, [], "pt"]) {
+      expect(() => {
+        return getMarkedLocale({
+          language: "pt",
+          fallbackLanguage: "en",
+          locale: locale as unknown as RuntimeLocaleTree,
+          fallback: english,
+        });
+      }).toThrow("getMarkedLocale: the pt locale is not a JSON object.");
+    }
+  });
+});
+
 describe("createRuntimeLocalesPlugin", () => {
   test("is an esbuild plugin named for what it does", () => {
     const plugin: { name: string; setup: unknown } = createRuntimeLocalesPlugin(
@@ -768,11 +946,40 @@ describe("createRuntimeLocalesPlugin", () => {
       },
       '"progressDirectory" must be a path when given',
     ],
+    [
+      {
+        localesDirectory: DASHBOARD_LOCALES,
+        fallbackLanguage: "en",
+        shipsWholeLocales: "yes",
+      },
+      '"shipsWholeLocales" must be true or false when given',
+    ],
+    [
+      {
+        localesDirectory: DASHBOARD_LOCALES,
+        fallbackLanguage: "en",
+        shipsWholeLocales: 1,
+      },
+      '"shipsWholeLocales" must be true or false when given',
+    ],
   ])("refuses the options %j", (options: unknown, message: string) => {
     expect(() => {
       return createRuntimeLocalesPlugin(options as RuntimeLocalesPluginOptions);
     }).toThrow(message);
   });
+
+  test.each([true, false, undefined])(
+    "takes shipsWholeLocales: %s",
+    (shipsWholeLocales: boolean | undefined) => {
+      expect(
+        createRuntimeLocalesPlugin({
+          localesDirectory: DASHBOARD_LOCALES,
+          fallbackLanguage: "en",
+          shipsWholeLocales: shipsWholeLocales,
+        }).name,
+      ).toBe(RUNTIME_LOCALES_PLUGIN_NAME);
+    },
+  );
 });
 
 /*
@@ -882,6 +1089,11 @@ interface FixtureLists {
   progressDirectory?: string;
 }
 
+// The plugin's other options, beside the lists.
+interface FixtureOptions extends FixtureLists {
+  shipsWholeLocales?: boolean;
+}
+
 /*
  * Lists laid out like the Dashboard's i18n directory: one every language
  * shares, and a progress file for each language given.
@@ -975,7 +1187,7 @@ const SUMMARIZE_OUTPUTS: string = `
 function buildFixture(
   fixture: Fixture,
   env: Record<string, string | null> = { NODE_ENV: "production" },
-  lists: FixtureLists = {},
+  lists: FixtureOptions = {},
 ): FixtureBuild {
   const script: string = `
     const fs = require("fs");
@@ -1410,6 +1622,79 @@ describe("bundling a fixture for real", () => {
     },
     BUILD_TIMEOUT_MS,
   );
+
+  /*
+   * A frontend that bundles its locales whole (the Admin Dashboard): each
+   * ships as its file holds it - English with its identity entries and its
+   * _one forms - and a listed one form with its mark right after it
+   * (#8068).
+   */
+  test(
+    "with shipsWholeLocales every locale ships as its file holds it, and a listed _one form with its mark",
+    () => {
+      const fixture: Fixture = makeFixture();
+      const lists: FixtureLists = writeLists(fixture, {
+        progress: {
+          de: ["{{count}} monitor"],
+          ja: ["{{count}} monitor"],
+        },
+      });
+      const result: FixtureBuild = buildFixture(
+        fixture,
+        { NODE_ENV: "production" },
+        { ...lists, shipsWholeLocales: true },
+      );
+      const germanMarked: RuntimeLocaleTree = {};
+
+      for (const key of Object.keys(FIXTURE_GERMAN)) {
+        germanMarked[key] = FIXTURE_GERMAN[key] as string | RuntimeLocaleTree;
+
+        if (key === "{{count}} monitors_one") {
+          germanMarked[`${key}${SAME_AS_ENGLISH_MARK}`] = "{{count}} monitor";
+        }
+      }
+
+      expect([result.ok, result.error]).toEqual([true, ""]);
+      expect(treeDifferences(result.english, FIXTURE_ENGLISH)).toEqual([]);
+      expect(treeDifferences(result.lazy["de"], germanMarked)).toEqual([]);
+      // Japanese reads no one form: no mark, and nothing dropped either.
+      expect(treeDifferences(result.lazy["ja"], FIXTURE_JAPANESE)).toEqual([]);
+      expect(result.data).toEqual(production.data);
+      expect(result.other).toEqual(production.other);
+
+      // What the trimmed copies drop is in the bundle; the mark is not in the entry.
+      const entryText: string = entryClosure(result.outputs, "Index.js")
+        .map((output: OutputSummary): string => {
+          return output.text;
+        })
+        .join("\n");
+
+      expect(entryText).toContain("IDENTITY_SENTINEL");
+      expect(entryText).toContain("{{count}} monitors_one");
+      expect(entryText).not.toContain(SAME_AS_ENGLISH_MARK);
+      expect(outputWithLocale(result.outputs, "de").text).toContain(
+        `{{count}} monitors_one${SAME_AS_ENGLISH_MARK}`,
+      );
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  test(
+    "with shipsWholeLocales and no lists, every locale ships exactly as its file holds it",
+    () => {
+      const result: FixtureBuild = buildFixture(
+        makeFixture(),
+        { NODE_ENV: "production" },
+        { shipsWholeLocales: true },
+      );
+
+      expect([result.ok, result.error]).toEqual([true, ""]);
+      expect(treeDifferences(result.english, FIXTURE_ENGLISH)).toEqual([]);
+      expect(treeDifferences(result.lazy["de"], FIXTURE_GERMAN)).toEqual([]);
+      expect(treeDifferences(result.lazy["ja"], FIXTURE_JAPANESE)).toEqual([]);
+    },
+    BUILD_TIMEOUT_MS,
+  );
 });
 
 describe("rebuilding in watch mode", () => {
@@ -1837,5 +2122,247 @@ describe("the Dashboard's own build", () => {
       expect([code, Object.keys(chunk.locales)]).toEqual([code, [code]]);
       expect([code, closure.includes(chunk)]).toEqual([code, false]);
     }
+  });
+});
+
+/*
+ * The Admin Dashboard's build (#8068): its Utils/i18n.ts bundles all
+ * eighteen locales, and each ships whole, with a mark beside each "_one"
+ * form its language's same-as-English list names (AdminDashboard/i18n/
+ * Progress/<code>.json) - Portuguese "{{count}} monitor", which it reads at
+ * 0 as well as at 1.
+ */
+describe("the Admin Dashboard's own build", () => {
+  interface AdminBuild {
+    plugins: Array<string>;
+  }
+
+  let built: AdminBuild;
+  let shipped: Record<string, RuntimeLocaleTree> = {};
+
+  const readSourceLocale: (code: string) => RuntimeLocaleTree = (
+    code: string,
+  ): RuntimeLocaleTree => {
+    return JSON.parse(
+      fs.readFileSync(
+        path.join(ADMIN_DASHBOARD_LOCALES_DIRECTORY, `${code}.json`),
+        "utf8",
+      ),
+    ) as RuntimeLocaleTree;
+  };
+
+  const marksIn: (tree: RuntimeLocaleTree) => Record<string, unknown> = (
+    tree: RuntimeLocaleTree,
+  ): Record<string, unknown> => {
+    const marks: Record<string, unknown> = {};
+
+    for (const key of Object.keys(tree)) {
+      if (key.endsWith(SAME_AS_ENGLISH_MARK)) {
+        marks[key] = tree[key];
+      }
+    }
+
+    return marks;
+  };
+
+  /*
+   * Runs the shipped esbuild.config.js with build() swapped for a probe, as
+   * the Dashboard's block does, then builds every locale file with the
+   * config it produced, imported the way Utils/i18n.ts imports them.
+   */
+  beforeAll(() => {
+    const probeDir: string = makeTempDir("oneuptime-admin-locales-");
+    const preload: string = path.join(probeDir, "probe.js");
+    const outdir: string = path.join(probeDir, "out");
+    const shippedPath: string = path.join(probeDir, "shipped.json");
+    const names: Record<string, string> = {};
+
+    for (const code of ADMIN_DASHBOARD_CODES) {
+      names[code] = `locale_${code.replace(/[^a-z]/gi, "_")}`;
+    }
+
+    writeFile(
+      preload,
+      `
+      const config = require(${JSON.stringify(ESBUILD_CONFIG)});
+      globalThis.__adminBuilds = [];
+      config.build = function (built) {
+        globalThis.__adminBuilds.push(built);
+      };
+      config.watch = config.build;
+      `,
+    );
+
+    const entry: string = [
+      ...ADMIN_DASHBOARD_CODES.map((code: string): string => {
+        return `import ${names[code]} from "../Locales/${code}.json";`;
+      }),
+      `export const locales: Record<string, unknown> = { ${ADMIN_DASHBOARD_CODES.map(
+        (code: string): string => {
+          return `${JSON.stringify(code)}: ${names[code]}`;
+        },
+      ).join(", ")} };`,
+    ].join("\n");
+
+    const script: string = `
+      require(${JSON.stringify(path.join(ADMIN_DASHBOARD_DIRECTORY, "esbuild.config.js"))});
+      const fs = require("fs");
+      const path = require("path");
+      const url = require("url");
+      const esbuild = require(require.resolve("esbuild", {
+        paths: [${JSON.stringify(UI_DIR)}],
+      }));
+
+      (async function () {
+        const config = globalThis.__adminBuilds[0];
+        const outdir = ${JSON.stringify(outdir)};
+        const build = Object.assign({}, config, {
+          stdin: {
+            contents: ${JSON.stringify(entry)},
+            resolveDir: ${JSON.stringify(path.join(ADMIN_DASHBOARD_DIRECTORY, "src", "Utils"))},
+            sourcefile: "LocaleProbe.ts",
+            loader: "ts",
+          },
+          // The real Common, since the Admin Dashboard may not be installed.
+          alias: Object.assign({}, config.alias, {
+            Common: ${JSON.stringify(path.join(PACKAGES_DIR, "Common"))},
+          }),
+          outdir: outdir,
+          metafile: true,
+          logLevel: "silent",
+        });
+        delete build.entryPoints;
+        delete build.publicPath;
+
+        await esbuild.build(build);
+        fs.writeFileSync(path.join(outdir, "package.json"), '{"type":"module"}');
+        const bundle = await import(url.pathToFileURL(path.join(outdir, "stdin.js")).href);
+        fs.writeFileSync(${JSON.stringify(shippedPath)}, JSON.stringify(bundle.locales));
+
+        console.log(JSON.stringify({
+          plugins: config.plugins.map(function (plugin) { return plugin.name; }),
+        }));
+      })().catch(function (error) {
+        console.error(error);
+        process.exit(1);
+      });
+    `;
+
+    built = runNode({
+      script,
+      cwd: ADMIN_DASHBOARD_DIRECTORY,
+      env: {
+        NODE_ENV: "production",
+        ONEUPTIME_EDITION: "community",
+        NODE_PATH: PACKAGES_DIR,
+      },
+      preload,
+    }) as AdminBuild;
+
+    shipped = JSON.parse(fs.readFileSync(shippedPath, "utf8")) as Record<
+      string,
+      RuntimeLocaleTree
+    >;
+  }, BUILD_TIMEOUT_MS);
+
+  test("the config the Admin Dashboard builds with carries the plugin", () => {
+    expect(built.plugins).toContain(RUNTIME_LOCALES_PLUGIN_NAME);
+  });
+
+  test("English ships as en.json holds it, its _one forms and identity entries too", () => {
+    const english: RuntimeLocaleTree = readSourceLocale(
+      ADMIN_DASHBOARD_ENGLISH,
+    );
+
+    expect(treeDifferences(shipped[ADMIN_DASHBOARD_ENGLISH], english)).toEqual(
+      [],
+    );
+    expect(getPluralOneFormKeys(english).length).toBeGreaterThan(50);
+    expect(marksIn(shipped[ADMIN_DASHBOARD_ENGLISH] || {})).toEqual({});
+  });
+
+  test.each(
+    ADMIN_DASHBOARD_CODES.filter((code: string): boolean => {
+      return code !== ADMIN_DASHBOARD_ENGLISH;
+    }),
+  )(
+    "%s ships its whole file, and a mark for each form its list names",
+    (code: string) => {
+      const locale: RuntimeLocaleTree = readSourceLocale(code);
+      const ships: RuntimeLocaleTree = shipped[code] as RuntimeLocaleTree;
+
+      expect(
+        treeDifferences(
+          ships,
+          getMarkedLocale({
+            language: code,
+            fallbackLanguage: ADMIN_DASHBOARD_ENGLISH,
+            locale: locale,
+            fallback: readSourceLocale(ADMIN_DASHBOARD_ENGLISH),
+            sameAsEnglish: readAdminDashboardSameAsEnglish(code),
+          }),
+        ),
+      ).toEqual([]);
+
+      // Without its marks, the file exactly: nothing dropped, in its order.
+      const withoutMarks: RuntimeLocaleTree = {};
+
+      for (const key of Object.keys(ships)) {
+        if (!key.endsWith(SAME_AS_ENGLISH_MARK)) {
+          withoutMarks[key] = ships[key] as string | RuntimeLocaleTree;
+        }
+      }
+
+      expect(treeDifferences(withoutMarks, locale)).toEqual([]);
+    },
+  );
+
+  // The forms #8068 found, and French's minutes and instances, which it reads at 0.
+  test("the one forms the Admin's languages word as English does ship with their marks", () => {
+    const marks: Record<string, Record<string, unknown>> = {};
+
+    for (const code of ADMIN_DASHBOARD_CODES) {
+      const found: Record<string, unknown> = marksIn(shipped[code] || {});
+
+      if (Object.keys(found).length > 0) {
+        marks[code] = found;
+      }
+    }
+
+    const markOf: (key: string) => string = (key: string): string => {
+      return `${key}_one${SAME_AS_ENGLISH_MARK}`;
+    };
+
+    expect(marks).toEqual({
+      da: {
+        [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} people")]: "{{count}} person",
+      },
+      es: { [markOf("{{count}} monitors")]: "{{count}} monitor" },
+      fr: {
+        [markOf("{{count}} instances")]: "{{count}} instance",
+        [markOf("{{count}} minutes")]: "{{count}} minute",
+      },
+      nl: {
+        [markOf("{{count}} products")]: "{{count}} product",
+        [markOf("{{count}} projects")]: "{{count}} project",
+      },
+      no: {
+        [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} people")]: "{{count}} person",
+      },
+      pt: { [markOf("{{count}} monitors")]: "{{count}} monitor" },
+      sv: {
+        [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} people")]: "{{count}} person",
+      },
+    });
+
+    // Right after its form.
+    const portugueseKeys: Array<string> = Object.keys(shipped["pt"] || {});
+
+    expect(
+      portugueseKeys[portugueseKeys.indexOf("{{count}} monitors_one") + 1],
+    ).toBe(markOf("{{count}} monitors"));
   });
 });
