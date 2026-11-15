@@ -124,6 +124,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "the element names NAMED_ELEMENTS lists",
   },
   {
+    file: "packages/Common/Types/NoBreakSpaces.ts",
+    count: 1,
+    builtFrom:
+      "the spaces the file writes from its own characters and the English duration words ENGLISH_DURATION_WORDS lists (second, minutes, hr ...), letters only",
+  },
+  {
     file: "packages/Common/Types/OnCallDutyPolicy/OnCallLogLine.ts",
     count: 1,
     builtFrom:
