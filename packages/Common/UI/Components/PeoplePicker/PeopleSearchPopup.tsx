@@ -32,6 +32,7 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 /*
  * The search list behind "Add owner": one search box, and every kind the
@@ -525,7 +526,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
               icon={IconProp.Alert}
               className="mt-0.5 h-4 w-4 flex-shrink-0"
             />
-            <span>{loadError}</span>
+            <span>
+              <ErrorInSentence message={loadError} showWhereToLook={true} />
+            </span>
           </div>
         )}
 
@@ -766,7 +769,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Alert}
                 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0"
               />
-              <span>{pickError}</span>
+              <span>
+                <ErrorInSentence message={pickError} showWhereToLook={true} />
+              </span>
             </div>
           )}
         </div>

@@ -60,7 +60,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * GUIDED SETUP: SEND LOGS, METRICS AND TRACES, THEN GET ALERTED ON THEM
@@ -583,7 +585,10 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
         )}
         {pickError || saveError ? (
           <p role="alert" className="text-sm text-red-600">
-            {pickError || saveError}
+            <ErrorInSentence
+              message={pickError || saveError}
+              showWhereToLook={true}
+            />
           </p>
         ) : (
           <></>

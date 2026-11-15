@@ -1,4 +1,5 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { MongoPipelineRefusal } from "../../../Types/DataObservability/DataCheckRefusals";
 import {
   DataCheckType,
   isSampleableCheckType,
@@ -103,11 +104,11 @@ export function checkMongoPipeline(text: string): Array<JSONObject> {
   const value: string = (text || "").trim();
 
   if (!value) {
-    throw new BadDataException("A custom check needs an aggregation pipeline.");
+    throw new BadDataException(MongoPipelineRefusal.noPipeline);
   }
 
   if (value.length > MAX_CUSTOM_PIPELINE_LENGTH) {
-    throw new BadDataException("The aggregation pipeline is too long.");
+    throw new BadDataException(MongoPipelineRefusal.tooLong);
   }
 
   let pipeline: unknown;
@@ -115,9 +116,7 @@ export function checkMongoPipeline(text: string): Array<JSONObject> {
   try {
     pipeline = JSON.parse(value);
   } catch {
-    throw new BadDataException(
-      'A MongoDB custom check is an aggregation pipeline as JSON: [{ "$match": ... }, { "$count": "value" }].',
-    );
+    throw new BadDataException(MongoPipelineRefusal.notJson);
   }
 
   if (
@@ -136,9 +135,7 @@ export function checkMongoPipeline(text: string): Array<JSONObject> {
   }
 
   if (containsForbidden(pipeline)) {
-    throw new BadDataException(
-      "The aggregation pipeline may only read: no $out, $merge, $function, $accumulator or $where.",
-    );
+    throw new BadDataException(MongoPipelineRefusal.writes);
   }
 
   return pipeline as Array<JSONObject>;

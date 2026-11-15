@@ -17,6 +17,34 @@ import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnW
  * on Delete.
  */
 
+/*
+ * A TABLE WIDGET'S WORDS GIVE WAY TO ITS NUMBERS (#7524).
+ *
+ * A Table widget's group cells were cut short to one line (truncate), and
+ * a line that may not break is as wide at its least as at its most: the
+ * browser's table layout made the group column as wide as its longest name
+ * ("payments-webhook-consumer-eu-west-production", about 330px). On a phone
+ * that is the whole widget, and the Errors column - the number the widget
+ * is for - sat past its edge, the long name itself not cut at all.
+ *
+ * A group's name is drawn in a box of its own that may break between any
+ * two letters but shows its first line only, its "..." at the end
+ * (line-clamp): the column still asks for the whole name when there is
+ * room - nothing changes for a name that fits - and gives way first, down
+ * to a letter, when there is not, so the numbers keep their width and stay
+ * in view. A column a person sized keeps its width: the box is the cell's
+ * value box that getSizedColumnsCss sizes.
+ */
+export const WIDGET_TABLE_NAME_LINE_CLASS_NAME: string =
+  "line-clamp-1 whitespace-normal break-all";
+
+/*
+ * A Data Source Table's text: its lines wrap, and a word too long for its
+ * column breaks rather than push the numbers past the widget's edge.
+ */
+export const WIDGET_TABLE_TEXT_CELL_CLASS_NAME: string =
+  "[overflow-wrap:anywhere]";
+
 // Which widget is drawn: the id its dashboard gives it (DashboardBaseComponent).
 export const DashboardWidgetIdContext: React.Context<string | null> =
   React.createContext<string | null>(null);

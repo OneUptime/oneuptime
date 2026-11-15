@@ -60,6 +60,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A record's Owners page: the people and teams who own it, as avatars, and
@@ -733,7 +734,9 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
               className="h-4 w-4"
               size={SizeProp.Small}
             />
-            <span>{loadError}</span>
+            <span>
+              <ErrorInSentence message={loadError} showWhereToLook={true} />
+            </span>
           </div>
         )}
 

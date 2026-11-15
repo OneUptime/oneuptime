@@ -79,7 +79,9 @@ import useRecordChannelMembers, {
   RecordChannelMembersState,
   addPeopleToRecordChannel,
 } from "./useRecordChannelMembers";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * THE RECORD'S OWN CHANNELS, AND WHO IS IN THEM.
@@ -682,7 +684,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
           data-testid="record-channel-join-error"
           className="mt-3 text-sm text-red-600"
         >
-          {joinError}
+          <ErrorInSentence message={joinError} showWhereToLook={true} />
         </p>
       )}
 

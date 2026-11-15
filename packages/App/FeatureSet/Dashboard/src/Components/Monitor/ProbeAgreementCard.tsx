@@ -33,6 +33,7 @@ import React, {
   useState,
 } from "react";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -258,7 +259,7 @@ const ProbeAgreementCard: FunctionComponent<ComponentProps> = (
               role="alert"
               data-testid={`${PROBE_AGREEMENT_TEST_ID}-error`}
             >
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </p>
           ) : (
             <></>

@@ -75,6 +75,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * On-Call > Readiness.
@@ -1772,7 +1773,7 @@ const OnCallReadinessPage: FunctionComponent<
               <span className="font-medium">
                 {translator.translateText("No reminders were sent.")}&nbsp;
               </span>
-              {reminderFailure.message}
+              <ErrorInSentence message={reminderFailure.message} />
             </div>
           ) : (
             <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -1782,7 +1783,7 @@ const OnCallReadinessPage: FunctionComponent<
                 )}
                 &nbsp;
               </span>
-              {reminderFailure.message}
+              <ErrorInSentence message={reminderFailure.message} />
               <p className="mt-1.5">
                 {translator.translateText(
                   "Some of them may already have gone out. Check with the responders before sending again - a reminder sent in the last 24 hours is skipped rather than repeated, so a retry will not mail anybody twice.",

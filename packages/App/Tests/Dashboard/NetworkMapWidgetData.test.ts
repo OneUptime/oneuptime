@@ -9,8 +9,6 @@ import {
   NetworkMapSiteInput,
   NetworkMapSitesResult,
   NetworkMapStatusSummary,
-  UNKNOWN_STATUS_LABEL,
-  UNNAMED_SITE_LABEL,
   buildNetworkMapMarkers,
   countNetworkMapSitesInViewport,
   describeNetworkMapCoverage,
@@ -214,8 +212,8 @@ describe("toNetworkMapSites", () => {
       input({ name: undefined, statusName: undefined }),
     ]);
 
-    expect(result.sites[0]?.name).toBe(UNNAMED_SITE_LABEL);
-    expect(result.sites[0]?.statusName).toBe(UNKNOWN_STATUS_LABEL);
+    expect(result.sites[0]?.name).toBe("Unnamed site");
+    expect(result.sites[0]?.statusName).toBe("No status yet");
   });
 
   test("trims whitespace and treats a blank string as absent", () => {

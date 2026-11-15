@@ -10,9 +10,11 @@ import { DataObservabilityCheckSuggestion } from "Common/Types/DataObservability
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { translationKey } from "Common/Types/Translator";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import ErrorLine from "Common/UI/Components/ErrorMessage/ErrorLine";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -46,6 +48,24 @@ export const CHECK_FROM_SENTENCE_ERROR_TEST_ID: string =
   "check-from-sentence-error";
 
 /*
+ * What did not happen, said first when nobody explained why (#7530): the
+ * card's two buttons each fail in their own words.
+ */
+export const CheckFromSentenceWhatFailed: {
+  write: string;
+  add: string;
+} = {
+  write: translationKey("The check was not written."),
+  add: translationKey("The check was not added."),
+};
+
+// Why the card's last button failed, and which one it was.
+interface CardError {
+  message: string;
+  whatFailed: string;
+}
+
+/*
  * "Orders never have a negative total": a rule the team knows, as a check,
  * without writing SQL. OneUptime AI writes one read-only query that counts
  * the rows breaking the rule, held to everything a Custom SQL check is; it
@@ -60,10 +80,10 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
   const [suggestion, setSuggestion] =
     useState<DataObservabilityCheckSuggestion | null>(null);
   const [isWorking, setIsWorking] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<CardError | null>(null);
 
   const write: () => Promise<void> = async (): Promise<void> => {
-    setError("");
+    setError(null);
     setSuggestion(null);
     setIsWorking(true);
 
@@ -77,7 +97,10 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
         ),
       );
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError({
+        message: API.getFriendlyMessage(err),
+        whatFailed: CheckFromSentenceWhatFailed.write,
+      });
     } finally {
       setIsWorking(false);
     }
@@ -88,7 +111,7 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    setError("");
+    setError(null);
     setIsWorking(true);
 
     try {
@@ -125,7 +148,10 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
       setSentence("");
       props.onCheckAdded();
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError({
+        message: API.getFriendlyMessage(err),
+        whatFailed: CheckFromSentenceWhatFailed.add,
+      });
     } finally {
       setIsWorking(false);
     }
@@ -176,15 +202,18 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
         </div>
         {error ? (
           /*
-           * Why the check could not be written or added, in the words the
-           * server wrote it in - English, whatever the page's language: a
-           * line of its own, read the way its words are, so on an Arabic
-           * or Persian page it keeps its full stop at its end, as the
-           * suggestion's name and explanation do.
+           * Why the check could not be written or added, in the reader's
+           * language (#7530): an error nobody explained says what failed,
+           * why, what to do next and its reference; the server's own
+           * refusals are keys of the locales. A message the reader's
+           * language has no words for is a line of its own, read the way
+           * its words are, so on an Arabic or Persian page it keeps its
+           * full stop at its end, as the suggestion's name and explanation
+           * do.
            */
-          <IsolatedLine
-            as="p"
-            text={error}
+          <ErrorLine
+            message={error.message}
+            whatFailed={translator.translateText(error.whatFailed)}
             className="break-words text-sm text-red-600"
             dataTestId={CHECK_FROM_SENTENCE_ERROR_TEST_ID}
           />

@@ -8,8 +8,17 @@ import {
   DashboardLanguage,
   SUPPORTED_DASHBOARD_LANGUAGES,
 } from "../../../Types/Dashboard/DashboardLanguage";
+import {
+  CHECK_NOT_WRITTEN_REFUSAL,
+  DataCheckFromSentenceRefusal,
+  RULE_NOT_A_CHECK_REFUSAL,
+} from "../../../Types/DataObservability/DataCheckRefusals";
 import { DataCheckAlertCondition } from "../../../Types/DataObservability/DataCheckType";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import {
+  getRefusalText,
+  readRefusalValues,
+} from "../../../Types/Exception/RefusalWithValues";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
@@ -71,10 +80,11 @@ export interface DataCheckSuggestion {
  * as the check's name and description, so they are written in the
  * language the person who asked reads OneUptime in: one more line in the
  * system message, naming that language from the Dashboard's own list.
- * Only those two change language. The query or pipeline, the table and
- * column names in it, the JSON keys, "Above" or "Below" and an error's
- * why are asked for exactly as before - the why stays English, as the
- * server's message around it is.
+ * So is an error's why (#7530): the Dashboard says the sentence around it,
+ * "The rule could not be made a check: {{reason}}", in the reader's
+ * language (DataCheckRefusals), so the why it holds is the reader's too.
+ * The query or pipeline, the table and column names in it, the JSON keys
+ * and "Above" or "Below" are asked for exactly as before.
  *
  * English, no language, or anything that is not a code the Dashboard is
  * read in adds nothing: the prompt is exactly what it always was, and what
@@ -109,9 +119,9 @@ export function getCheckFromSentenceLanguageLine(data: {
       : "the SQL, with the table and column names as listed";
 
   return [
-    `Write the name and the explanation in this language: ${language.englishName}, ${language.nativeName}.`,
+    `Write the name, the explanation and the why of an error in this language: ${language.englishName}, ${language.nativeName}.`,
     "It is the language the person who asked reads OneUptime in; the example below is in English only to show the shape.",
-    `Keep everything else exactly as asked: ${query}; the JSON keys; "Above" or "Below"; and the why of an error, in English.`,
+    `Keep everything else exactly as asked: ${query}; the JSON keys; and "Above" or "Below".`,
   ].join(" ");
 }
 
@@ -159,7 +169,7 @@ export function buildCheckFromSentencePrompt(data: {
   const sentence: string = data.sentence.trim().slice(0, MAX_SENTENCE_LENGTH);
 
   if (!sentence) {
-    throw new BadDataException("Say the rule the check should hold to.");
+    throw new BadDataException(DataCheckFromSentenceRefusal.noRule);
   }
 
   const languageLine: string | null = getCheckFromSentenceLanguageLine({
@@ -218,9 +228,7 @@ function readJson(text: string): JSONObject {
   const end: number = trimmed.lastIndexOf("}");
 
   if (start < 0 || end <= start) {
-    throw new BadDataException(
-      "The AI's answer was not a check. Say the rule another way, or write the check yourself.",
-    );
+    throw new BadDataException(DataCheckFromSentenceRefusal.answerNotACheck);
   }
 
   try {
@@ -233,9 +241,7 @@ function readJson(text: string): JSONObject {
     // Read as no check below.
   }
 
-  throw new BadDataException(
-    "The AI's answer was not a check. Say the rule another way, or write the check yourself.",
-  );
+  throw new BadDataException(DataCheckFromSentenceRefusal.answerNotACheck);
 }
 
 // A pipeline answer, as a MongoDB custom check holds it: JSON text, read-only, naming its value.
@@ -248,7 +254,7 @@ function readPipelineAnswer(answer: JSONObject): string {
 
   if (!namesItsValue) {
     throw new BadDataException(
-      "The AI's pipeline does not name its number value. Say the rule another way, or write the check yourself.",
+      DataCheckFromSentenceRefusal.pipelineNamesNoValue,
     );
   }
 
@@ -268,7 +274,9 @@ export function readCheckSuggestion(
 
   if (typeof answer["error"] === "string" && answer["error"].trim()) {
     throw new BadDataException(
-      `The rule could not be made a check: ${answer["error"].trim().slice(0, MAX_EXPLANATION_LENGTH)}`,
+      getRefusalText(RULE_NOT_A_CHECK_REFUSAL, {
+        reason: answer["error"].trim().slice(0, MAX_EXPLANATION_LENGTH),
+      }),
     );
   }
 
@@ -289,7 +297,7 @@ export function readCheckSuggestion(
 
     if (!namesItsValue.test(sql)) {
       throw new BadDataException(
-        "The AI's query does not name its number value. Say the rule another way, or write the check yourself.",
+        DataCheckFromSentenceRefusal.queryNamesNoValue,
       );
     }
   }
@@ -357,7 +365,7 @@ export default class DataCheckFromSentence {
     });
 
     if (!asset?.name || !asset.dataStoreId) {
-      throw new BadDataException("The table was not found.");
+      throw new BadDataException(DataCheckFromSentenceRefusal.tableNotFound);
     }
 
     const store: DataStore | null = await DataStoreService.findOneBy({
@@ -368,9 +376,7 @@ export default class DataCheckFromSentence {
     const engine: DatabaseEngine | null = getCollectorEngineOfKind(store?.kind);
 
     if (!engine) {
-      throw new BadDataException(
-        "Data Observability does not run checks on this table's database.",
-      );
+      throw new BadDataException(DataCheckFromSentenceRefusal.engineNotChecked);
     }
 
     const prompt: { system: string; user: string } =
@@ -419,7 +425,7 @@ export default class DataCheckFromSentence {
             : String(error);
 
         // A rule that cannot be checked with these columns is the answer, not a mistake.
-        if (lastError.includes("could not be made a check")) {
+        if (readRefusalValues(RULE_NOT_A_CHECK_REFUSAL, lastError)) {
           throw error;
         }
 
@@ -432,7 +438,7 @@ export default class DataCheckFromSentence {
     }
 
     throw new BadDataException(
-      `OneUptime AI could not write a check OneUptime can run for that rule (${lastError}) Say it another way, or write the check yourself.`,
+      getRefusalText(CHECK_NOT_WRITTEN_REFUSAL, { reason: lastError }),
     );
   }
 }

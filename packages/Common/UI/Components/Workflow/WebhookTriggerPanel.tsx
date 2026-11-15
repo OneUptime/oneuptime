@@ -16,6 +16,7 @@ import {
 } from "../../../Types/Workflow/WebhookTrigger";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 /*
  * Every sentence the panel shows, in English. Each is looked up whole in the
@@ -282,7 +283,7 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
         </div>
         {resetError ? (
           <p className="mt-2 text-sm text-red-600" role="alert">
-            {resetError}
+            <ErrorInSentence message={resetError} showWhereToLook={true} />
           </p>
         ) : (
           <></>
