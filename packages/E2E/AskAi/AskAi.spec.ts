@@ -12,6 +12,10 @@ import path from "path";
 import { inflateSync } from "zlib";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+} from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Ask AI beside the page, in real Chromium, against the offline fixture
@@ -5092,4 +5096,37 @@ test.describe("a setup plan", () => {
     await expectNothingScrollsSideways(page);
     await screenshot(page, "setup-done-390-fa");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * German, Persian and Arabic whole, 23 MB of JSON in every page's scripts, parsed on
+ * every page load of every test. English is in the bundle now, and each
+ * other language a chunk of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "de", "fa", "ar"]) {
+    test(`a page in ${language} loads its own locale and no other, in its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return code === "en" ? "/" : `/?lang=${code}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return shown.getByTestId("fixture-page").getByRole("button", {
+              name: dashboardWord(code, "Ask AI"),
+            });
+          },
+        },
+        language,
+      );
+    });
+  }
 });

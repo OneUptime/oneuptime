@@ -11,6 +11,10 @@ import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+} from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Code in a browser, against the offline fixture (Code/Fixture): its first
@@ -6720,4 +6724,43 @@ test.describe("dark mode and other languages", () => {
       "8 Minuten gearbeitet",
     );
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * German, Japanese and Arabic whole, 23 MB of JSON in every page's scripts, parsed on
+ * every page load of every test. English is in the bundle now, and each
+ * other language a chunk of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "de", "ja", "ar"]) {
+    test(`a page in ${language} loads its own locale and no other, in its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }, testInfo: TestInfo) => {
+      test.skip(
+        isPhone(testInfo),
+        "A page loads its language the same at every width.",
+      );
+
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return code === "en" ? CODE : `${CODE}?lang=${code}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return shown.getByRole("button", {
+              name: dashboardWord(code, "Start task"),
+              exact: true,
+            });
+          },
+        },
+        language,
+      );
+    });
+  }
 });

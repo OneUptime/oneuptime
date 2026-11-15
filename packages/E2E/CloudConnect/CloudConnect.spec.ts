@@ -1,4 +1,4 @@
-import { expect, Locator, Page, test } from "@playwright/test";
+import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import {
@@ -7,6 +7,10 @@ import {
 } from "Common/Types/ReadingDirection";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+} from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Cloud > Connect, end to end in a browser, on the real page
@@ -5894,4 +5898,45 @@ test.describe("a cloud resource's streamed Logs", () => {
     );
     await shoot(page, "resource-logs-empty-fa");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * Japanese, German and Persian whole, 23 MB of JSON in every page's scripts, parsed on
+ * every page load of every test. English is in the bundle now, and each
+ * other language a chunk of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "de", "fa", "ja"]) {
+    test(`a page in ${language} loads its own locale and no other, in its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }, testInfo: TestInfo) => {
+      test.skip(
+        testInfo.project.name === "phone",
+        "A page loads its language the same at every width.",
+      );
+
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return `${CONNECT_PATH}?${code === "en" ? "" : `lang=${code}`}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return shown
+              .getByTestId("cloud-connect-page")
+              .getByText(dashboardWord(code, "Connect a cloud account"), {
+                exact: true,
+              })
+              .first();
+          },
+        },
+        language,
+      );
+    });
+  }
 });
