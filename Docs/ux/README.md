@@ -673,13 +673,19 @@ then `npm run i18n:validate` from the root.
   A status page, an on-call page and a status page's messages decide by the same rule, each handed
   its record's list: an incident state a project named "Degraded" read "Beeinträchtigt" on a German
   status page and in its emails, because Degraded is a default monitor status, while the Dashboard
-  drew it as written. Enforced by
+  drew it as written. A label's description, in its hover tip, reads as written too. And a badge is
+  never handed words already in the reader's language without saying so: a plain English word goes
+  over in English, for the badge to look up once, and a sentence, a plural or a front end's own keyed
+  text the page has worded is marked as written (`isUserContent`, `isTooltipUserContent`), with none
+  of its words left in English. Looked up again, a translation that is itself a key read as another
+  word: Spanish "Red" (Network) read "Rojo" (#8067). Enforced by
   [StatusPageNamesByTheirList](../../packages/Common/Tests/App/StatusPage/StatusPageNamesByTheirList.test.ts),
   [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
   [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx),
-  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx)
+  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx),
+  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx)
   and
-  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx).
+  [BadgeWordsLookedUpOnce](../../packages/Common/Tests/App/Dashboard/BadgeWordsLookedUpOnce.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

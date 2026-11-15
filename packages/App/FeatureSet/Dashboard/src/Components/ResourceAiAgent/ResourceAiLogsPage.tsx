@@ -679,6 +679,7 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
                   <div>
                     {look ? (
                       <Pill
+                        // Worded here either way: drawn as given (#8067).
                         text={
                           typeof item.exitCode === "number"
                             ? translator.translateTemplate(
@@ -688,8 +689,9 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
                                   exitCode: item.exitCode,
                                 },
                               )
-                            : look.label
+                            : translator.translateText(look.label) || look.label
                         }
+                        isUserContent={true}
                         color={look.color}
                       />
                     ) : (

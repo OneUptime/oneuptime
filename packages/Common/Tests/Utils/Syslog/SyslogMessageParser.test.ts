@@ -5,6 +5,7 @@ import {
   parseSyslogMessage,
   sanitizeSyslogAttributeKey,
 } from "../../../Utils/Syslog/SyslogMessageParser";
+import { readOwnValue } from "../../../Utils/LookupTable";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -255,6 +256,102 @@ describe("getSyslogHeaderFormat", () => {
     expect(getSyslogHeaderFormat(parse("<34>1 - - - - - - text"))).toBe(
       SyslogHeaderFormat.Rfc5424,
     );
+  });
+});
+
+/*
+ * Structured data's SD-IDs and parameter names are whatever the sender
+ * wrote. The reader kept each element's parameters in an entry read back
+ * with a plain read: an SD-ID named __proto__ read the prototype every
+ * object shares, and its parameters were written onto it - into every
+ * object of the process that read the line, a probe's syslog listener or
+ * the ingest (issue #8025). An element of each such name is an element
+ * like any other, and nothing outside the result changes.
+ */
+describe("structured data named like what every object inherits", () => {
+  const PROTOTYPE_KEYS: Array<string> = Object.getOwnPropertyNames(
+    Object.prototype,
+  ).sort();
+
+  const line: (structuredData: string) => string = (
+    structuredData: string,
+  ): string => {
+    return `<34>1 2026-11-15T10:00:00Z host app - - ${structuredData} message`;
+  };
+
+  it("an SD-ID named __proto__ is an element, and its parameters write nothing onto Object.prototype", () => {
+    const parsed: ParsedSyslogMessage = parse(
+      line('[__proto__ polluted="yes" isAdmin="true"]'),
+    );
+
+    expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+    expect(({} as Record<string, unknown>)["isAdmin"]).toBeUndefined();
+    expect(Object.getOwnPropertyNames(Object.prototype).sort()).toEqual(
+      PROTOTYPE_KEYS,
+    );
+
+    const element: Record<string, string> | undefined = readOwnValue(
+      parsed.structuredData,
+      "__proto__",
+    );
+
+    expect(element).toEqual({ polluted: "yes", isAdmin: "true" });
+    expect(Object.keys(parsed.structuredData || {})).toEqual(["__proto__"]);
+    expect(Object.getPrototypeOf(parsed.structuredData)).toBe(Object.prototype);
+    expect(parsed.message).toBe("message");
+  });
+
+  it("an SD-ID named constructor writes nothing onto the Object function", () => {
+    const parsed: ParsedSyslogMessage = parse(
+      line('[constructor polluted="yes"]'),
+    );
+
+    expect((Object as unknown as Record<string, unknown>)["polluted"]).toBe(
+      undefined,
+    );
+    expect(readOwnValue(parsed.structuredData, "constructor")).toEqual({
+      polluted: "yes",
+    });
+  });
+
+  it.each(PROTOTYPE_KEYS)(
+    "an element and a parameter named %s are kept as the result's own",
+    (name: string) => {
+      const parsed: ParsedSyslogMessage = parse(
+        line(`[${name} ${name}="first" other="x"][meta ${name}="second"]`),
+      );
+      const element: Record<string, string> | undefined = readOwnValue(
+        parsed.structuredData,
+        name,
+      );
+
+      expect(Object.keys(parsed.structuredData || {})).toEqual([name, "meta"]);
+      expect(Object.keys(element || {})).toEqual([name, "other"]);
+      expect(readOwnValue(element, name)).toBe("first");
+      expect(
+        readOwnValue(readOwnValue(parsed.structuredData, "meta"), name),
+      ).toBe("second");
+      expect(JSON.stringify(parsed.structuredData)).toBe(
+        JSON.stringify({
+          [name]: { [name]: "first", other: "x" },
+          meta: { [name]: "second" },
+        }),
+      );
+      expect(Object.getOwnPropertyNames(Object.prototype).sort()).toEqual(
+        PROTOTYPE_KEYS,
+      );
+    },
+  );
+
+  it("two elements with one SD-ID still share an entry, __proto__ too", () => {
+    const parsed: ParsedSyslogMessage = parse(
+      line('[__proto__ a="1"][__proto__ b="2"]'),
+    );
+
+    expect(readOwnValue(parsed.structuredData, "__proto__")).toEqual({
+      a: "1",
+      b: "2",
+    });
   });
 });
 

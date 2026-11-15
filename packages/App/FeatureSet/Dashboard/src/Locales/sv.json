@@ -52398,5 +52398,12 @@
   "Change (schema change)": "Ändring",
   "Table (database object)": "Tabell",
   "View (database object)": "Vy",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Ändra när det här steget skickas."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Ändra när det här steget skickas.",
+  "Affects": "Påverkar",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Tills de är åtgärdade når vissa larm inte fram till de personer de är avsedda för.",
+  "{{count}} problems would stop people from being told": "{{count}} problem skulle hindra att folk får veta",
+  "{{count}} problems would stop people from being told_one": "{{count}} problem skulle hindra att folk får veta",
+  "{{count}} things in your setup are worth fixing": "{{count}} saker i dina inställningar är värda att åtgärda",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} sak i dina inställningar är värd att åtgärda",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Åtgärda var och en härifrån, eller dölj den om ditt team låter den vara så med flit."
 }

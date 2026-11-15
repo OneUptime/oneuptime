@@ -87,6 +87,26 @@ export function getRecordCrumbName(link: Link): string | undefined {
   return name || undefined;
 }
 
+/*
+ * What a crumb's title reads, wherever the trail is drawn - the trail
+ * itself, the browser tab, the phone's menu button. Looked up once:
+ * English is looked up here; a record's name (Link.isRecordName) and a
+ * title the page has put in the reader's words already
+ * (Link.isTitleTranslated) are drawn as given. Looked up again, the Admin
+ * Dashboard's keyed crumbs read a second word wherever a translation is
+ * itself an English key (#8075).
+ */
+export function getCrumbTitle(
+  link: Link,
+  translateString: (value: string | undefined) => string | undefined,
+): string {
+  if (link.isRecordName || link.isTitleTranslated) {
+    return link.title;
+  }
+
+  return translateString(link.title) || link.title;
+}
+
 // The last segment of the path an address names, lower-cased.
 function getLastPathSegment(to: Route | URL): string {
   let address: string = to.toString();

@@ -44,9 +44,6 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import URL from "Common/Types/API/URL";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import { useAsyncEffect } from "use-async-effect";
-import useTranslateValue, {
-  UseTranslateValueResult,
-} from "Common/UI/Utils/Translation";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
@@ -151,7 +148,6 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [defaultChangeError, setDefaultChangeError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<string>("0");
 
-  const { translateString }: UseTranslateValueResult = useTranslateValue();
   const translator: Translator = useTranslator();
 
   const readProjectDefaultRunner: () => Promise<void> =
@@ -650,7 +646,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     return (
                       <Pill
                         key={capability}
-                        text={translateString(capability) || capability}
+                        text={capability}
                         color={Gray500}
                         size={PillSize.Small}
                       />

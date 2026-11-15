@@ -52398,5 +52398,12 @@
   "Change (schema change)": "Изменение",
   "Table (database object)": "Таблица",
   "View (database object)": "Представление",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Изменить, когда отправляется этот шаг."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Изменить, когда отправляется этот шаг.",
+  "Affects": "Затрагивает",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Пока они не исправлены, некоторые вызовы не дойдут до тех, кому они предназначены.",
+  "{{count}} problems would stop people from being told": "Проблем, которые помешают оповестить людей: {{count}}",
+  "{{count}} problems would stop people from being told_one": "{{count}} проблема помешает оповестить людей",
+  "{{count}} things in your setup are worth fixing": "Пунктов в настройке, которые стоит исправить: {{count}}",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} пункт в настройке стоит исправить",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Исправьте каждый пункт отсюда или скройте его, если ваша команда намеренно оставляет его как есть."
 }
