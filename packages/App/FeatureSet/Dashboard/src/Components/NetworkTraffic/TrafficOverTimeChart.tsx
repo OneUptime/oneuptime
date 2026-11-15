@@ -47,7 +47,7 @@ const TRAILING_ZEROS: RegExp = /\.?0+$/;
 export function formatAxisRate(megabitsPerSecond: number): string {
   const [amount, unit] = formatBitsPerSecond(
     megabitsPerSecond * 1_000_000,
-  ).split(" ");
+  ).split(/[ \u00a0]/);
   const shortAmount: string = (amount || "").includes(".")
     ? (amount || "").replace(TRAILING_ZEROS, "")
     : amount || "";
