@@ -13,7 +13,7 @@ Hver gang en arbejdsgang kører, gemmer OneUptime en registrering af, hvad der s
 | Side                                                 | Hvad du ser                                                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | **Arbejdsgange → Protokoller → Kørsler**             | Hver kørsel af hver arbejdsgang i projektet. Filtrer på arbejdsgangsnavn, status og tid.                 |
-| **Arbejdsgang → Protokoller → Kørsler**              | Kun dette ene arbejdsgange kørsler. Her er der et filter **Kørsels-ID** i stedet for et arbejdsgangsfilter. |
+| **Arbejdsgang → Protokoller → Kørsler**              | Kun denne ene arbejdsgangs kørsler. Her er der et filter **Kørsels-ID** i stedet for et arbejdsgangsfilter. |
 | **En enkelt kørsel**                                 | Åbnes med knappen **Vis logge** på en kørsels række — selve rækkerne kan ikke klikkes.             |
 
 Starter du en kørsel fra **Bygger**, åbner den samme visning **Arbejdsgangskørsel**, som allerede følger kørslen, så du kan se den ske i stedet for at skulle lede efter den bagefter.
@@ -109,7 +109,7 @@ En download indeholder intet, du ikke allerede kunne læse i kørslen. Hemmeligh
 ## Fejlfinding
 
 :::details Min arbejdsgang kørte ikke
-1. Sørg for, at arbejdsgangen er **Aktiveret**: kontakten sidder øverst i dens **Bygger**, som siger det over lærredet, når arbejdsgangen er slået fra. Nye arbejdsgange starter deaktiveret, og mens en arbejdsgang er slået fra, starter dens trigger den ikke: kun **Kør arbejdsgang** og **Run just this step** gør, som testkørsler. Et webhook-kald til det får HTTP 400 med en meddelelse om, hvordan du slår det til.
+1. Sørg for, at arbejdsgangen er **Aktiveret**: kontakten sidder øverst i dens **Bygger**, som siger det over lærredet, når arbejdsgangen er slået fra. Nye arbejdsgange starter deaktiveret, og mens en arbejdsgang er slået fra, starter dens trigger den ikke: kun **Kør arbejdsgang** og **Run just this step** gør, som testkørsler. Et webhook-kald til den får HTTP 400 med en meddelelse om, hvordan du slår den til.
 2. For en OneUptime-begivenhedstrigger skal du bekræfte, at begivenheden faktisk skete: åbn posten, og tjek dens historik. En **On Update**-trigger med **Fields to watch** udløses kun, når et af de felter ændrede sig.
 3. For en webhook-trigger skal du bekræfte, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — tjek dér.
 4. For en tidsplantrigger skal du bekræfte, at cron-udtrykket svarer til det tidspunkt, du forventer. Tidsplaner kører i UTC.
