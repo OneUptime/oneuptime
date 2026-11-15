@@ -93,8 +93,8 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de certificado SSL novo começa com três critérios, então ele avisa você antes que um certificado vença sem configurar nada:
 
-1. **O certificado não é válido** — o certificado venceu, foi revogado pelo emissor, é autoassinado, foi emitido para outro nome de host ou por uma autoridade não confiável, ou não pôde ser verificado porque o endpoint não respondeu. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ certificate is not valid" é criado. A causa raiz dele diz qual desses casos foi e, para um certificado revogado, quando e por que o emissor o revogou. O incidente se resolve sozinho assim que o certificado volta a ser válido.
-2. **O certificado vence em breve** — o certificado é válido, mas vence em 14 dias ou menos. Um **alerta** chamado "_monitor name_ certificate expires soon" é criado.
+1. **O certificado não é válido** — o certificado venceu, foi revogado pelo emissor, é autoassinado, foi emitido para outro nome de host ou por uma autoridade não confiável, ou não pôde ser verificado porque o endpoint não respondeu. O monitor é marcado como **Offline** e um incidente chamado "O certificado de _nome do monitor_ não é válido" é criado. A causa raiz dele diz qual desses casos foi e, para um certificado revogado, quando e por que o emissor o revogou. O incidente se resolve sozinho assim que o certificado volta a ser válido.
+2. **O certificado vence em breve** — o certificado é válido, mas vence em 14 dias ou menos. Um **alerta** chamado "O certificado de _nome do monitor_ expira em breve" é criado.
 3. **O certificado é válido** — o monitor é marcado como **Operacional**.
 
 O aviso de "vence em breve" é um alerta, não um incidente: ele não aparece nas suas páginas de status, não aciona ninguém a menos que você adicione uma política de plantão a ele, e não muda o status do monitor. Ele usa a segunda severidade de alerta do seu projeto, **Baixo** em um projeto novo. Quando o certificado renovado é detectado, o monitor volta para "O certificado é válido" e o alerta se resolve sozinho.

@@ -51,7 +51,7 @@ Kortet viser hvert felt på den nye hendelsen og hvor verdien kommer fra:
 | **Etiketter** | Etikettene innsenderen valgte, sammen med de innstillingene alltid legger til. Uten noen av delene, hendelsesmalens. |
 | **Påvirkning startet** | Svaret på **Påvirkning startet**, når skjemaet spør om det. |
 | **Hendelsesmal** | Skjemaets innstilling **Hendelsesmal**. Den fyller ut alt svarene og innstillingene lar stå uangitt. |
-| **Vaktretningslinjer** | Policyene innstillingene nevner, kjørt for hver hendelse skjemaet oppretter. Uten noen, hendelsesmalens. |
+| **Vaktpolicyer** | Policyene innstillingene nevner, kjørt for hver hendelse skjemaet oppretter. Uten noen, hendelsesmalens. |
 | **Eiere** | Personene og teamene innstillingene nevner, sammen med malens eiere. De får beskjed om hver hendelse. |
 | **Egendefinerte felt** | Svaret på hvert spørsmål om et egendefinert felt — med mindre feltet kopierer verdien sin fra et egendefinert monitorfelt og hendelsens monitorer har en; malen fyller ut resten. |
 | **Statussider** | Vises aldri på statussider, og abonnenter får ikke beskjed, før noen i teamet ditt publiserer den. |
@@ -119,7 +119,7 @@ En innsending er noens forespørsel, og en forespørsel gjennomgås før den pub
 | Trinn | Hendelsesskjema | Vedlikeholdsskjema |
 | --- | --- | --- |
 | **Standardverdier** | **Standardtittel**, **Alvorlighetsgrad**, **Hendelsesmal** | **Standardtittel** |
-| **Knytt alltid til** | **Monitorer**, **Etiketter**, **Vaktretningslinjer** | **Monitorer**, **Statussider**, **Etiketter** |
+| **Knytt alltid til** | **Monitorer**, **Etiketter**, **Vaktpolicyer** | **Monitorer**, **Statussider**, **Etiketter** |
 | **Eiere** | **Eiere** | **Eiere** |
 | **Publisering** | — | **Vis på statussider**, **Varsle abonnenter** |
 

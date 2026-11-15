@@ -181,7 +181,7 @@ Un nouveau moniteur d'API commence avec deux critères, il fonctionne donc sans 
 - **Hors ligne** — l'API ne répond pas, ou répond avec un code de statut de `400` ou plus (ou inférieur à `200`). Le moniteur est marqué **Hors ligne** et un incident est créé. L'incident se résout de lui-même quand l'API revient.
 - **En ligne** — l'API répond avec n'importe quel code de statut `2xx` ou `3xx`, comme `200`, `201`, `202` ou `204`. Le moniteur est marqué **Opérationnel**.
 
-Dans la liste des critères, ils sont nommés d'après le moniteur : _Check if (name) is offline_ et _Check if (name) is online_.
+Dans la liste des critères, ils sont nommés d'après le moniteur : « Vérifier si _nom du moniteur_ est hors ligne » et « Vérifier si _nom du moniteur_ est en ligne ».
 
 Ainsi, un point de terminaison qui répond `201 Created` ou `204 No Content` compte comme disponible. Si un seul code de statut signifie « en bonne santé » pour vous, modifiez les deux critères sur la page **Configuration → Critères** du moniteur : par exemple **Code de statut de la réponse** / **Égal à** / `200` dans le critère en ligne et **Différent de** / `200` dans le critère hors ligne, à la place des deux filtres de code de statut de chacun. Pour vérifier aussi ce que l'API renvoie, ajoutez un filtre **Corps de la réponse** ou **Expression JavaScript** au critère hors ligne.
 
