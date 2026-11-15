@@ -167,6 +167,7 @@ import DashboardSloComponent, {
 import DashboardSloListComponent from "../../../Types/Dashboard/DashboardComponents/DashboardSloListComponent";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import { getNumberLocale } from "../../../Types/DateLanguage";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import { ObjectType } from "../../../Types/JSON";
 import { ReferenceLineLabelPlacement } from "../../../UI/Components/Charts/Types/ReferenceLineProps";
 import ObjectID from "../../../Types/ObjectID";
@@ -225,7 +226,19 @@ function arabicPercent(value: number): string {
   }).format(value / 100);
 }
 
-// The locale's own words for `key`, which must differ from the English.
+const LANGUAGE_OF: Map<Record<string, string>, string> = new Map<
+  Record<string, string>,
+  string
+>([
+  [DE, "de"],
+  [AR, "ar"],
+  [FA, "fa"],
+]);
+
+/*
+ * The locale's own words for `key`, which must differ from the English, as
+ * the widget draws them: each number with its unit (NoBreakSpaces).
+ */
 function worded(
   locale: Record<string, string>,
   key: string,
@@ -238,9 +251,12 @@ function worded(
     translated: true,
   });
 
-  return Object.keys(values).reduce((sentence: string, name: string) => {
-    return sentence.split(`{{${name}}}`).join(values[name] as string);
-  }, text as string);
+  return Object.keys(values).reduce(
+    (sentence: string, name: string) => {
+      return sentence.split(`{{${name}}}`).join(values[name] as string);
+    },
+    withNoBreakSpaces(text as string, key, LANGUAGE_OF.get(locale)),
+  );
 }
 
 type SloOverrides = {

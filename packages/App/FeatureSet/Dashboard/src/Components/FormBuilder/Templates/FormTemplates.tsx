@@ -78,6 +78,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -146,6 +148,7 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const tx: (text: string) => string = (text: string): string => {
     return translateString(text) || text;
@@ -542,7 +545,9 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 className={getIconButtonClassName(index === 0 || isSaving)}
-                aria-label={`${tx(FormsCopy.moveUp)}: ${template.name}`}
+                aria-label={translator.translateTemplate("Move Up: {{name}}", {
+                  name: template.name,
+                })}
                 title={tx(FormsCopy.moveUp)}
                 disabled={index === 0 || isSaving}
                 data-testid={`form-template-move-up-${template.id}`}
@@ -563,7 +568,10 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 className={getIconButtonClassName(
                   index === templates.length - 1 || isSaving,
                 )}
-                aria-label={`${tx(FormsCopy.moveDown)}: ${template.name}`}
+                aria-label={translator.translateTemplate(
+                  "Move Down: {{name}}",
+                  { name: template.name },
+                )}
                 title={tx(FormsCopy.moveDown)}
                 disabled={index === templates.length - 1 || isSaving}
                 data-testid={`form-template-move-down-${template.id}`}

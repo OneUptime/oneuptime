@@ -28,7 +28,11 @@ import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
-import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+} from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { MODEL_SWITCH_SAVED_EVENT } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import { BILLING_ENABLED } from "../../../UI/Config";
 import API from "../../../UI/Utils/API/API";
@@ -239,6 +243,7 @@ describe("the policy it makes", () => {
         userIds: [USER_ID],
         teamIds: ["team-platform"],
         addRules: true,
+        translator: dashboardTranslator("en"),
       }),
     ).resolves.toBe(POLICY_ID);
 
@@ -254,14 +259,45 @@ describe("the policy it makes", () => {
       users: [USER_ID],
       teams: ["team-platform"],
       [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+      // The server words the two rules in the reader's language (#7995).
+      [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: "en",
     });
   });
+
+  test.each(["de", "ar", "fa", "ja"])(
+    "read in %s, the policy is named in the reader's language, and its rules are asked for in it (#7995)",
+    async (language: string) => {
+      await OnCallSetupApi.createPolicy({
+        userIds: [USER_ID],
+        teamIds: [],
+        addRules: true,
+        translator: dashboardTranslator(language),
+      });
+
+      const args: Record<string, unknown> = callsFor(
+        createSpy,
+        OnCallDutyPolicy,
+      )[0]!;
+      const name: string | undefined = (args["model"] as OnCallDutyPolicy).name;
+
+      expect(name).toBe(
+        dashboardTranslator(language).translateText("Default on-call policy"),
+      );
+      expect(name).not.toBe("Default on-call policy");
+      expect(
+        (args["miscDataProps"] as Record<string, unknown>)[
+          EVERY_NEW_EVENT_RULES_LANGUAGE_KEY
+        ],
+      ).toBe(language);
+    },
+  );
 
   test("asks for the catch-all rules only from someone who may add them", async () => {
     await OnCallSetupApi.createPolicy({
       userIds: [USER_ID],
       teamIds: [],
       addRules: false,
+      translator: dashboardTranslator("en"),
     });
 
     expect(callsFor(createSpy, OnCallDutyPolicy)[0]!["miscDataProps"]).toEqual({
@@ -278,6 +314,7 @@ describe("the policy it makes", () => {
         userIds: [],
         teamIds: [],
         addRules: false,
+        translator: dashboardTranslator("en"),
       }),
     ).rejects.toThrow("can't be shown");
   });
@@ -400,6 +437,7 @@ describe("the on-call rules that run a policy", () => {
       policyName: "Ops",
       incident: false,
       alert: true,
+      translator: dashboardTranslator("en"),
     });
 
     expect(callsFor(createSpy, IncidentOnCallRule)).toEqual([]);
@@ -424,6 +462,7 @@ describe("the on-call rules that run a policy", () => {
       policyName: "Ops",
       incident: true,
       alert: true,
+      translator: dashboardTranslator("en"),
     });
 
     expect(
@@ -435,6 +474,47 @@ describe("the on-call rules that run a policy", () => {
     ).toBe("Page Ops for every incident");
     expect(callsFor(createSpy, AlertOnCallRule)).toHaveLength(1);
   });
+
+  test.each(["de", "ar", "fa", "ja"])(
+    "read in %s, are named and described in the reader's language, the policy's own name kept as written (#7995)",
+    async (language: string) => {
+      await OnCallSetupApi.addEveryNewEventRules({
+        policyId: POLICY_ID,
+        policyName: "Ops",
+        incident: true,
+        alert: true,
+        translator: dashboardTranslator(language),
+      });
+
+      const incident: IncidentOnCallRule = callsFor(
+        createSpy,
+        IncidentOnCallRule,
+      )[0]!["model"] as IncidentOnCallRule;
+      const alert: AlertOnCallRule = callsFor(createSpy, AlertOnCallRule)[0]![
+        "model"
+      ] as AlertOnCallRule;
+
+      expect(incident.name).toBe(
+        dashboardTranslator(language).translateTemplate(
+          "Page {{policy}} for every incident",
+          { policy: "Ops" },
+        ),
+      );
+      expect(alert.name).toBe(
+        dashboardTranslator(language).translateTemplate(
+          "Page {{policy}} for every alert",
+          { policy: "Ops" },
+        ),
+      );
+
+      for (const rule of [incident, alert]) {
+        expect(rule.name).toContain("Ops");
+        expect(rule.name).not.toContain("for every");
+        expect(rule.description).toBeTruthy();
+        expect(rule.description).not.toContain("Added when the policy");
+      }
+    },
+  );
 });
 
 describe("what happens if nobody answers", () => {

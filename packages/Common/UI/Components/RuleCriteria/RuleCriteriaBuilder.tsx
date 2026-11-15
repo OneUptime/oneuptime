@@ -255,6 +255,8 @@ const RuleCriteriaBuilder: <TEntity>(
       return {
         value: fieldName,
         label: getRuleCriteriaFieldTitle(field, fieldName),
+        // A field's title is the product's words, looked up ("Incident Title").
+        isUserContent: false,
       };
     },
   );

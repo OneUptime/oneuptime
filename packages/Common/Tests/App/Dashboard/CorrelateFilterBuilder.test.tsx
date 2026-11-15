@@ -1324,10 +1324,15 @@ describe("CorrelateFilterBuilder translation", () => {
     expect(leadCell(1)).toHaveTextContent(/^OR$/);
   });
 
-  test("the empty hint and delete labels are translated, number kept outside", () => {
+  /*
+   * The delete button's name is one sentence, its number a value (#8076):
+   * Japanese puts the number before the verb, which "Remove condition" with
+   * the number tacked on never could.
+   */
+  test("the empty hint and delete labels are translated, the number a value of one sentence", () => {
     mockTranslations["No conditions yet. Add one to start."] =
       "Aun no hay condiciones.";
-    mockTranslations["Remove condition"] = "Quitar condicion";
+    mockTranslations["Remove condition {{number}}"] = "条件 {{number}} を削除";
 
     renderHarness([]);
     expect(screen.getByTestId("correlate-builder-empty")).toHaveTextContent(
@@ -1337,7 +1342,7 @@ describe("CorrelateFilterBuilder translation", () => {
     fireEvent.click(screen.getByTestId("correlate-add-condition"));
     expect(screen.getByTestId("correlate-condition-delete-0")).toHaveAttribute(
       "aria-label",
-      "Quitar condicion 1",
+      "条件 1 を削除",
     );
   });
 });

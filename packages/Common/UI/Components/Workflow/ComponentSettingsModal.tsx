@@ -463,7 +463,12 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       title="Outputs"
       description="What runs after this step."
     >
-      <ComponentPortViewer name="" description="" ports={outPorts} />
+      <ComponentPortViewer
+        name=""
+        description=""
+        ports={outPorts}
+        metadata={component.metadata}
+      />
     </ComponentSettingsSection>
   ) : null;
 

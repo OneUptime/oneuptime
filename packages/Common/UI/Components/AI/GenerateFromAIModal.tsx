@@ -18,6 +18,12 @@ export interface AITemplate {
   id: string;
   name: string;
   content?: string;
+  /*
+   * The name is a record's - a template the project wrote - drawn as
+   * written. Left out, it is one of OneUptime's own templates, named in
+   * the product's words and looked up ("Standard Postmortem").
+   */
+  isNameUserContent?: boolean | undefined;
 }
 
 export interface GenerateFromAIModalProps {
@@ -51,6 +57,7 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
       return {
         label: template.name,
         value: template.id,
+        isUserContent: Boolean(template.isNameUserContent),
       };
     },
   );

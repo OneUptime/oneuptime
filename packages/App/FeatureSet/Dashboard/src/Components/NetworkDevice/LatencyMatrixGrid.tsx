@@ -5,6 +5,7 @@ import LatencyMatrix, {
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
 
 export interface ComponentProps {
   matrix: LatencyMatrix;
@@ -104,7 +105,7 @@ const renderCellContent: (
           : undefined
       }
     >
-      {translator.translateTemplate("{{latency}} ms", { latency: latency })}
+      {formatMilliseconds(translator, latency)}
     </td>
   );
 };

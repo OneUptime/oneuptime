@@ -27,6 +27,14 @@ export interface ComponentProps {
   isCardStyle?: boolean | undefined;
   // What the field means, shown in an (i) tooltip beside the title.
   tooltip?: string | undefined;
+  /*
+   * The title is drawn as given, never looked up, by the rule a badge's
+   * text reads by (Pill.isUserContent): a record's name - a postmortem
+   * status a project named "Open" stays "Open", never the verb "Abrir" - or
+   * words already in the reader's language. Left out, the title is the
+   * product's words, looked up.
+   */
+  isTitleUserContent?: boolean | undefined;
 }
 
 /*
@@ -55,7 +63,9 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
   const translator: Translator = useTranslator();
-  const translatedTitle: string | undefined = translateString(props.title);
+  const translatedTitle: string | undefined = props.isTitleUserContent
+    ? props.title
+    : translateString(props.title);
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
   const translatedSideLinkText: string | undefined = translateString(

@@ -160,10 +160,8 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  translatableTerm,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
@@ -1230,13 +1228,15 @@ const IncidentView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: translatableTerm(
+            stateName: recordNameInSentence(
+              StateListType.IncidentState,
               acknowledgeState?.name || "Acknowledged",
             ),
           })}
           icon={IconProp.Check}
           value={getTimeToStateText(
             {
+              stateList: StateListType.IncidentState,
               startedAt: responseTimes.startedAt,
               reachedAt: responseTimes.acknowledgedAt,
               stateName: acknowledgeState?.name,
@@ -1256,11 +1256,15 @@ const IncidentView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: translatableTerm(resolvedState?.name || "Resolved"),
+            stateName: recordNameInSentence(
+              StateListType.IncidentState,
+              resolvedState?.name || "Resolved",
+            ),
           })}
           icon={IconProp.CheckCircle}
           value={getTimeToStateText(
             {
+              stateList: StateListType.IncidentState,
               startedAt: responseTimes.startedAt,
               reachedAt: responseTimes.resolvedAt,
               stateName: resolvedState?.name,

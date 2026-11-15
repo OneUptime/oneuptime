@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { withNoBreakSpacesInLocale } from "../../Types/NoBreakSpaces";
 import { createTranslator, Translator } from "../../Types/Translator";
 import { getSameAsEnglishMarks } from "../../UI/esbuild-locales";
 import { DASHBOARD_LANGUAGES } from "./TranslatedLanguages";
@@ -48,6 +49,38 @@ export function readDashboardLocale(language: string): Record<string, string> {
   ) as Record<string, string>;
 
   cache.set(language, words);
+
+  return words;
+}
+
+const drawnCache: Map<string, Record<string, string>> = new Map<
+  string,
+  Record<string, string>
+>();
+
+/*
+ * `language`'s file as the Dashboard hands it to i18next: its own wordings
+ * set as the language sets a line, each number with its unit and French's
+ * marks with their words (Utils/i18n.ts, Types/NoBreakSpaces). For a test
+ * whose page reads a string with t() and whose expectation comes from the
+ * Translator, which sets them too.
+ */
+export function readDashboardLocaleAsDrawn(
+  language: string,
+): Record<string, string> {
+  const cached: Record<string, string> | undefined = drawnCache.get(language);
+
+  if (cached) {
+    return cached;
+  }
+
+  const words: Record<string, string> = withNoBreakSpacesInLocale({
+    locale: readDashboardLocale(language),
+    language,
+    english: readDashboardLocale("en"),
+  }) as Record<string, string>;
+
+  drawnCache.set(language, words);
 
   return words;
 }

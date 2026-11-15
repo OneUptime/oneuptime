@@ -16,12 +16,16 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   EVERY_NEW_ALERT_RULE_DESCRIPTION,
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
   EVERY_NEW_INCIDENT_RULE_DESCRIPTION,
   PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
 } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 import Permission, { UserPermission } from "../../../Types/Permission";
+import { Translator } from "../../../Types/Translator";
+import UserLanguage from "../../../Server/Utils/Notification/UserLanguage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
  * A NEW PROJECT'S FIRST ON-CALL POLICY PAGES FOR EVERY INCIDENT AND ALERT.
@@ -191,6 +195,9 @@ beforeEach(() => {
   loggerErrorSpy = jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
   });
+
+  // The creator saved no language (English) unless a test says (#7995).
+  jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
 });
 
 afterEach(() => {
@@ -443,5 +450,163 @@ describe("once the policy is saved", () => {
 
     expect(incidentRuleCreates).toHaveLength(0);
     expect(alertRuleCreates).toHaveLength(0);
+  });
+});
+
+/*
+ * ISSUE #7995: THE TWO RULES IN THE LANGUAGE OF THE PERSON WHO MADE THEM.
+ *
+ * The rules are records the project's people then see and edit, so they
+ * start in the creator's language: the one the create says it was made in
+ * (the language the Dashboard is read in, or Ask AI's request's), else the
+ * creator's saved one, else English. A language OneUptime does not write in
+ * is not one. Only new rules change: nothing here renames a rule.
+ */
+describe("the two rules, in the creator's language (#7995)", () => {
+  function asked(language: unknown): JSONObject {
+    return {
+      ...ASK,
+      [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: language,
+    } as JSONObject;
+  }
+
+  // The two rules as `language`'s Dashboard words them, for `policyName`.
+  function expectRulesIn(language: string, policyName: string): void {
+    const translator: Translator = dashboardTranslator(language);
+
+    expect(incidentRuleCreates[0]!.data.name).toBe(
+      translator.translateTemplate("Page {{policy}} for every incident", {
+        policy: policyName,
+      }),
+    );
+    expect(alertRuleCreates[0]!.data.name).toBe(
+      translator.translateTemplate("Page {{policy}} for every alert", {
+        policy: policyName,
+      }),
+    );
+    expect(incidentRuleCreates[0]!.data.description).toBe(
+      translator.translateText(EVERY_NEW_INCIDENT_RULE_DESCRIPTION),
+    );
+    expect(alertRuleCreates[0]!.data.description).toBe(
+      translator.translateText(EVERY_NEW_ALERT_RULE_DESCRIPTION),
+    );
+  }
+
+  test.each(["de", "ar", "fa", "ja"])(
+    "a create that says it was made in %s names and describes the rules in it, whatever the creator saved",
+    async (language: string) => {
+      const saved: jest.SpyInstance = jest
+        .spyOn(UserLanguage, "getLanguage")
+        .mockResolvedValue("fr" as never);
+
+      await createPolicy(asked(language), callerProps(), "Payments on-call");
+
+      expectRulesIn(language, "Payments on-call");
+      expect(incidentRuleCreates[0]!.data.name).not.toContain("for every");
+      expect(alertRuleCreates[0]!.data.description).not.toBe(
+        EVERY_NEW_ALERT_RULE_DESCRIPTION,
+      );
+      // The language the create says decides: the saved one is not read.
+      expect(saved).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a create that says no language takes the creator's saved one", async () => {
+    const saved: jest.SpyInstance = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("de" as never);
+
+    await createPolicy(ASK, callerProps(), "Payments on-call");
+
+    expectRulesIn("de", "Payments on-call");
+    expect(saved).toHaveBeenCalledWith(CALLER_ID);
+  });
+
+  test("with no language said and none saved, the rules read in English, byte for byte as before", async () => {
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+
+    await createPolicy(ASK, callerProps(), "Payments on-call");
+
+    expect(incidentRuleCreates[0]!.data.name).toBe(
+      "Page Payments on-call for every incident",
+    );
+    expect(alertRuleCreates[0]!.data.name).toBe(
+      "Page Payments on-call for every alert",
+    );
+    expect(incidentRuleCreates[0]!.data.description).toBe(
+      EVERY_NEW_INCIDENT_RULE_DESCRIPTION,
+    );
+    expect(alertRuleCreates[0]!.data.description).toBe(
+      EVERY_NEW_ALERT_RULE_DESCRIPTION,
+    );
+  });
+
+  test.each([
+    ["a language OneUptime does not write in", "xx"],
+    ["a tag rather than a code", "de-DE"],
+    ["something that is not text", 42],
+  ])(
+    "%s is no language: the saved one stands, else English",
+    async (_label: string, value: unknown) => {
+      const saved: jest.SpyInstance = jest
+        .spyOn(UserLanguage, "getLanguage")
+        .mockResolvedValue("ja" as never);
+
+      await createPolicy(asked(value), callerProps(), "Payments on-call");
+
+      expectRulesIn("ja", "Payments on-call");
+      expect(saved).toHaveBeenCalledWith(CALLER_ID);
+
+      incidentRuleCreates.length = 0;
+      alertRuleCreates.length = 0;
+      saved.mockResolvedValue("en" as never);
+
+      await createPolicy(asked(value), callerProps(), "Payments on-call");
+
+      expect(incidentRuleCreates[0]!.data.name).toBe(
+        "Page Payments on-call for every incident",
+      );
+    },
+  );
+
+  test("the policy's own name goes into the rule as written, in any language", async () => {
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+
+    await createPolicy(asked("de"), callerProps(), "Zahlungen 24/7 (EU)");
+
+    expect(incidentRuleCreates[0]!.data.name).toContain("Zahlungen 24/7 (EU)");
+    expect(alertRuleCreates[0]!.data.name).toContain("Zahlungen 24/7 (EU)");
+  });
+
+  test("a create that asks for no rules reads no language", async () => {
+    const saved: jest.SpyInstance = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("de" as never);
+
+    await createPolicy(undefined);
+    await createPolicy({ [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: "de" });
+
+    expect(incidentRuleCreates).toHaveLength(0);
+    expect(alertRuleCreates).toHaveLength(0);
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  test("readEveryNewEventRulesLanguage: the create's, else the saved one", async () => {
+    const saved: jest.SpyInstance = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("hi" as never);
+
+    expect(
+      await OnCallDutyPolicyService.readEveryNewEventRulesLanguage({
+        miscDataProps: asked("zh-TW"),
+        props: callerProps(),
+      }),
+    ).toBe("zh-TW");
+    expect(
+      await OnCallDutyPolicyService.readEveryNewEventRulesLanguage({
+        props: callerProps(),
+      }),
+    ).toBe("hi");
+    expect(saved).toHaveBeenCalledTimes(1);
   });
 });

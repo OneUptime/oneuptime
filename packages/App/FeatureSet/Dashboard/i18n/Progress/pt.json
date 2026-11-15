@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9271
+    "keys": 52780,
+    "untranslated": 9021
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -53,6 +53,7 @@
     "Celsius",
     "Chat",
     "Chats",
+    "Chrome, Safari, Firefox",
     "ClickHouse",
     "Client ID",
     "Client Secret",
@@ -72,6 +73,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Daemons",
     "Datacenter",
@@ -184,6 +186,7 @@
     "Namespaces",
     "Nav",
     "Normal",
+    "OID Collection Template",
     "OK",
     "OSD",
     "OSDs",
@@ -244,12 +247,15 @@
     "Runbook \"{{name}}\"",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "SHA",
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
+    "SLOs ({{count}})",
     "SSH",
     "ScheduledMaintenance",
     "Script",
@@ -292,6 +298,7 @@
     "URLs",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Uplink",

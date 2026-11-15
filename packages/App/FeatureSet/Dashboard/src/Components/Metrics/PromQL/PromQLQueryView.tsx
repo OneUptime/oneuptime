@@ -262,7 +262,7 @@ const PromQLQueryView: FunctionComponent<ComponentProps> = (
 
   const metricOptions: Array<DropdownOption> = useMemo(() => {
     return metricNames.map((name: string): DropdownOption => {
-      return { value: name, label: name };
+      return { value: name, label: name, isUserContent: true };
     });
   }, [metricNames]);
 

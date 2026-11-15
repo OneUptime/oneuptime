@@ -387,7 +387,7 @@ describe("the every-mode protections", () => {
         ["a", "b", "c", "d", "e", "f"],
         dashboardTranslator("fr"),
       ),
-    ).toBe("a ; b ; c ; d ; e ; et f");
+    ).toBe("a\u202F; b\u202F; c\u202F; d\u202F; e\u202F; et f");
   });
 
   /*

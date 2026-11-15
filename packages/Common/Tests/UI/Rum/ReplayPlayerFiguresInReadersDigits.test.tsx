@@ -814,7 +814,7 @@ describe("the header, the stage and the rail, figure by figure", () => {
     ) as HTMLElement;
 
     expect(withoutIsolateMarks(body.getAttribute("title") || "")).toBe(
-      "رفتن به ۰:۰۲٫۰ (۱ ثانیه زودتر) و باز کردن جزئیات",
+      "رفتن به ۰:۰۲٫۰ (۱\u00A0ثانیه زودتر) و باز کردن جزئیات",
     );
   });
 

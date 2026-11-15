@@ -486,7 +486,7 @@ describe("PlanPickerCopy: the saving beside Yearly", () => {
         saving: { percent: 15, isSameForEveryPlan: false },
         translator: translatorFor("de"),
       }),
-    ).toBe("Bis zu 15 % sparen");
+    ).toBe("Bis zu 15\u00A0% sparen");
     expect(
       getYearlySavingText({
         saving: { percent: 15, isSameForEveryPlan: false },

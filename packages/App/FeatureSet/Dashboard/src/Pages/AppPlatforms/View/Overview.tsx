@@ -55,7 +55,7 @@ import {
   fetchSpanMetrics,
   formatBytes,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
   SpanMetrics,
   TimePoint,
@@ -556,7 +556,7 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "p95 latency",
-      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
       valueNote: traceNote,
       icon: IconProp.Clock,
       iconColor: "emerald",

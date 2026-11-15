@@ -614,7 +614,10 @@ describe("replay correlation panel wiring", () => {
 
   test("the sub-second formatters and enum labels are what the panel renders", () => {
     expect(panelSource).toContain("formatReplayClockSkew(d.clockSkewMs)");
-    expect(panelSource).toContain("formatReplayMilliseconds(gap.missingMs)");
+    // A gap's milliseconds in the language of the sentence that holds them (#7418).
+    expect(panelSource).toContain(
+      "duration: composedValue( (sentence: Translator): string => { return formatReplayMilliseconds( gap.missingMs, sentence, );",
+    );
     expect(panelSource).toContain("getReplayConsentStateLabel(d.consentState)");
     expect(panelSource).toContain(
       "getReplayTriggerReasonLabel(d.triggerReason)",

@@ -524,7 +524,11 @@ describe("the server contract the Traces chart depends on (TraceAggregationServi
 describe("trace rows (TraceRow)", () => {
   test("REGRESSION: the status dot is announced as an image, with its label and meaning", () => {
     expect(TRACE_ROW.source).toContain(
-      '<span role="img" aria-label={translator.translateTemplate("Status: {{status}}", { status: translatableTerm(statusName), })} title={`${plainStatusName}: ${translator.translateText(status.description)}`}',
+      '<span role="img" aria-label={translator.translateTemplate("Status: {{status}}", { status: translatableTerm(statusName), })} title={translator.translateTemplate("{{label}}: {{identifier}}", { label: translatableTerm(status.label), identifier: translatableTerm(status.description), })}',
+    );
+    // Its title is one line with the reader's own colon, never English's joined on (#8076).
+    expect(TRACE_ROW.source).not.toContain(
+      "title={`${plainStatusName}: ${translator.translateText(status.description)}`}",
     );
     // The old dot: a plain span, its aria-label never read, naming "Unset".
     expect(TRACE_ROW.source).not.toContain(

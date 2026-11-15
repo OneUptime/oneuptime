@@ -856,6 +856,7 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
                 dropdownOptions: teams.map((team: MattermostTeamOption) => {
                   return {
                     label: team.displayName || team.name,
+                    isUserContent: true,
                     value: team.id,
                   };
                 }),

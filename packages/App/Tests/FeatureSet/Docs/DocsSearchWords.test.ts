@@ -1,12 +1,18 @@
 import {
+  DOCS_SEARCH_COMPOUNDING_LANGUAGES,
   DOCS_SEARCH_QUESTION_WORDS,
   DOCS_SEARCH_SYNONYMS,
+  DOCS_SEARCH_WORD_ENDINGS,
   DocsSearchSynonym,
   DocsVocabulary,
   DocsVocabularyMatch,
+  DocsWordEndings,
+  ENGLISH_ENDINGS,
   foldDocsSearchWord,
+  getDocsSearchQuestionPhrases,
   getDocsSearchQuestionWords,
   getDocsSearchSynonyms,
+  getDocsWordEndings,
   getTypoAllowance,
   isWithinEditDistance,
 } from "../../../FeatureSet/Docs/Utils/DocsSearchWords";
@@ -38,6 +44,65 @@ describe("foldDocsSearchWord", () => {
     expect(foldDocsSearchWord("ऑन-कॉल")).toBe("ऑन-कॉल");
     expect(foldDocsSearchWord("ДЕЖУРСТВО")).toBe("дежурство");
     expect(foldDocsSearchWord("ステータス")).toBe("ステータス");
+  });
+});
+
+/*
+ * The endings a word is compared without, per language (#7875): a page's
+ * word and a question's alike.
+ */
+describe("the word endings", () => {
+  it("are listed by docs language, each ending once", () => {
+    for (const [language, forms] of Object.entries(DOCS_SEARCH_WORD_ENDINGS)) {
+      expect(SUPPORTED_DOCS_LANGUAGE_CODES).toContain(language);
+      expect(forms.endings.length).toBeGreaterThan(0);
+      expect(new Set<string>(forms.endings).size).toBe(forms.endings.length);
+      expect(forms.shortestStem).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("are every spaced language's, and English's for English and German", () => {
+    expect(Object.keys(DOCS_SEARCH_WORD_ENDINGS).sort()).toEqual(
+      SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
+        // Written without spaces: no endings to take off.
+        return !["ja", "zh-CN", "zh-TW"].includes(language);
+      }).sort(),
+    );
+    expect(DOCS_SEARCH_WORD_ENDINGS["en"]).toBe(ENGLISH_ENDINGS);
+    expect(DOCS_SEARCH_WORD_ENDINGS["de"]).toBe(ENGLISH_ENDINGS);
+    expect(ENGLISH_ENDINGS.endings).toEqual([
+      "ing",
+      "ers",
+      "ed",
+      "es",
+      "en",
+      "er",
+      "s",
+      "e",
+    ]);
+  });
+
+  it("are a language's own for a word of its script, English's for a Latin-script word, and none otherwise", () => {
+    const russian: DocsWordEndings = DOCS_SEARCH_WORD_ENDINGS["ru"]!;
+
+    expect(getDocsWordEndings("сайта", "ru")).toBe(russian);
+    expect(getDocsWordEndings("monitors", "ru")).toBe(ENGLISH_ENDINGS);
+    expect(getDocsWordEndings("monitors", "sv")).toBe(
+      DOCS_SEARCH_WORD_ENDINGS["sv"],
+    );
+    expect(getDocsWordEndings("сайта", "en")).toBeNull();
+    expect(getDocsWordEndings("監視", "ja")).toBeNull();
+    expect(getDocsWordEndings("monitors", "ja")).toBe(ENGLISH_ENDINGS);
+    expect(getDocsWordEndings("monitors", undefined)).toBe(ENGLISH_ENDINGS);
+    expect(getDocsWordEndings("monitors", "constructor")).toBe(ENGLISH_ENDINGS);
+  });
+
+  it("join words into the compounds of the languages that write them, not German's", () => {
+    for (const language of DOCS_SEARCH_COMPOUNDING_LANGUAGES) {
+      expect(SUPPORTED_DOCS_LANGUAGE_CODES).toContain(language);
+    }
+    // German's results are as they were (#7875).
+    expect(DOCS_SEARCH_COMPOUNDING_LANGUAGES.has("de")).toBe(false);
   });
 });
 
@@ -219,6 +284,18 @@ describe("the synonyms", () => {
       getDocsSearchSynonyms("en").get("pager"),
     );
   });
+
+  it("reads a Nordic reader's word for a website as the docs' (#7875)", () => {
+    expect(getDocsSearchSynonyms("da").get("hjemmeside")).toEqual([
+      { words: "websted", isWordStart: false },
+    ]);
+    expect(getDocsSearchSynonyms("no").get("hjemmeside")).toEqual([
+      { words: "nettsted", isWordStart: false },
+    ]);
+    expect(getDocsSearchSynonyms("sv").get("hemsida")).toEqual([
+      { words: "webbplats", isWordStart: false },
+    ]);
+  });
 });
 
 /*
@@ -237,11 +314,83 @@ describe("the question words", () => {
     expect(german.has(foldDocsSearchWord("Können"))).toBe(true);
   });
 
-  it("are none in a language without a list, or one the docs do not have", () => {
+  it("are none in English, or a language the docs do not have", () => {
     // English's are left out of every page and every question, by the reader's tokenizer.
     expect(getDocsSearchQuestionWords("en").size).toBe(0);
     expect(getDocsSearchQuestionWords("xx").size).toBe(0);
     expect(getDocsSearchQuestionWords("constructor").size).toBe(0);
+  });
+
+  it("are listed for every docs language but English (#7875)", () => {
+    expect(Object.keys(DOCS_SEARCH_QUESTION_WORDS).sort()).toEqual(
+      SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
+        return language !== "en";
+      }).sort(),
+    );
+  });
+
+  it.each([
+    ["fr", ["comment", "je", "mon", "puis-je"]],
+    ["es", ["como", "puedo", "mi"]],
+    ["it", ["come", "posso", "mio"]],
+    ["pt", ["como", "faco", "para", "meu"]],
+    ["nl", ["hoe", "ik", "mijn"]],
+    ["da", ["hvordan", "jeg", "mit", "min"]],
+    ["no", ["hvordan", "jeg", "mitt"]],
+    ["sv", ["hur", "jag", "min", "kan"]],
+    ["ru", ["как", "мой", "моего", "свой"]],
+    ["ko", ["어떻게", "내", "해야", "하나요"]],
+    ["hi", ["मैं", "अपनी", "कैसे", "करूँ"]],
+    ["fa", ["چطور", "را", "کنم"]],
+    ["ja", ["どうすればいいですか", "するには", "を"]],
+    ["zh-CN", ["如何", "我的"]],
+    ["zh-TW", ["如何", "我的"]],
+  ] as Array<[string, Array<string>]>)(
+    "%s: the question's own words are %p",
+    (language: string, words: Array<string>) => {
+      const listed: ReadonlySet<string> = getDocsSearchQuestionWords(language);
+
+      expect(
+        words.filter((word: string): boolean => {
+          return !listed.has(word);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  it("never hold a word a page is named for", () => {
+    // "Website", "monitor" and "site" are what is asked, in any language.
+    for (const language of Object.keys(DOCS_SEARCH_QUESTION_WORDS)) {
+      const listed: ReadonlySet<string> = getDocsSearchQuestionWords(language);
+
+      for (const word of [
+        "website",
+        "monitor",
+        "site",
+        "web",
+        "сайт",
+        "监控",
+      ]) {
+        expect({ language, word, listed: listed.has(word) }).toEqual({
+          language,
+          word,
+          listed: false,
+        });
+      }
+    }
+  });
+
+  it("are cut out of Chinese and Japanese longest first, and are none for a spaced language", () => {
+    const chinese: ReadonlyArray<string> =
+      getDocsSearchQuestionPhrases("zh-CN");
+
+    expect(chinese).toContain("如何");
+    expect(chinese.indexOf("我们的")).toBeLessThan(chinese.indexOf("我"));
+    expect(getDocsSearchQuestionPhrases("ja")[0]).toBe(
+      "どうすればいいでしょうか",
+    );
+    expect(getDocsSearchQuestionPhrases("fr")).toEqual([]);
+    expect(getDocsSearchQuestionPhrases("en")).toEqual([]);
   });
 
   it("are listed by docs language, and none is a word a synonym reads", () => {

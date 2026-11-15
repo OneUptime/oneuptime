@@ -8,11 +8,16 @@ import {
   DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
   DEFAULT_STATUS_NAMES,
 } from "../../Types/StatusPage/DefaultStatusNames";
-import { createTranslator, Translator } from "../../Types/Translator";
+import {
+  createTranslator,
+  TemplateValue,
+  Translator,
+} from "../../Types/Translator";
 import {
   getDefaultRecordNames,
   isDefaultRecordName,
   isRecordNameAsWritten,
+  recordNameInSentence,
   translateRecordName,
 } from "../../Utils/DefaultRecordNames";
 import { DEFAULT_POSTMORTEM_STATUSES } from "../../Utils/Incident/PostmortemStatus";
@@ -224,5 +229,117 @@ describe("a record's name in the reader's words", () => {
     expect(
       translateRecordName(spanish, StateListType.IncidentState, undefined),
     ).toBe("");
+  });
+});
+
+/*
+ * A RECORD'S NAME IN A SENTENCE (#8064): one of OneUptime's default names
+ * goes in as a term, translated with the sentence and only then; any other
+ * name as written, never looked up.
+ */
+describe("a record's name in a sentence", () => {
+  const SPANISH_SENTENCES: Record<string, string> = {
+    ...SPANISH,
+    "Mark as {{state}}": "Marcar como {{state}}",
+    "Not yet {{stateName}}": "Todavía no {{stateName}}",
+  };
+
+  const spanishSentences: Translator = createTranslator(
+    (text: string | undefined): string | undefined => {
+      return text === undefined ? undefined : SPANISH_SENTENCES[text];
+    },
+    "es",
+  );
+
+  const english: Translator = createTranslator(undefined, "en");
+
+  test("a default name goes in as a term, in the sentence's language", () => {
+    const value: TemplateValue = recordNameInSentence(
+      StateListType.IncidentState,
+      "Resolved",
+    );
+
+    expect(value).toEqual({ translatableTerm: "Resolved", inSentence: false });
+    expect(
+      spanishSentences.translateTemplate("Mark as {{state}}", { state: value }),
+    ).toBe("Marcar como Resuelto");
+    expect(
+      english.translateTemplate("Mark as {{state}}", { state: value }),
+    ).toBe("Mark as Resolved");
+  });
+
+  test("a project's own name goes in as written: Open is never Abrir", () => {
+    const value: TemplateValue = recordNameInSentence(
+      StateListType.IncidentState,
+      "Open",
+    );
+
+    expect(value).toBe("Open");
+    expect(
+      spanishSentences.translateTemplate("Mark as {{state}}", { state: value }),
+    ).toBe("Marcar como Open");
+  });
+
+  test("another list's default is the project's own here", () => {
+    // Operational is a default monitor status, not an incident state.
+    expect(
+      recordNameInSentence(StateListType.IncidentState, "Operational"),
+    ).toBe("Operational");
+    // High is a default alert severity, not an incident severity.
+    expect(recordNameInSentence(StateListType.IncidentSeverity, "High")).toBe(
+      "High",
+    );
+    expect(recordNameInSentence(StateListType.AlertSeverity, "High")).toEqual({
+      translatableTerm: "High",
+      inSentence: false,
+    });
+  });
+
+  test("a sentence the reader's language does not word yet reads English whole", () => {
+    expect(
+      spanishSentences.translateTemplate("Reopen {{state}} now", {
+        state: recordNameInSentence(StateListType.IncidentState, "Resolved"),
+      }),
+    ).toBe("Reopen Resolved now");
+  });
+
+  test("in the middle of a sentence a default name is cased for it; a project's is not", () => {
+    expect(
+      english.translateTemplate("Not yet {{stateName}}", {
+        stateName: recordNameInSentence(
+          StateListType.IncidentState,
+          "Acknowledged",
+          { inSentence: true },
+        ),
+      }),
+    ).toBe("Not yet acknowledged");
+    expect(
+      english.translateTemplate("Not yet {{stateName}}", {
+        stateName: recordNameInSentence(
+          StateListType.IncidentState,
+          "Mitigated",
+          { inSentence: true },
+        ),
+      }),
+    ).toBe("Not yet Mitigated");
+  });
+
+  test("a default name with space around it is the default, trimmed", () => {
+    expect(
+      recordNameInSentence(StateListType.MonitorStatus, " Offline "),
+    ).toEqual({ translatableTerm: "Offline", inSentence: false });
+  });
+
+  test("no name is no text", () => {
+    expect(recordNameInSentence(StateListType.IncidentState, "")).toBe("");
+    expect(recordNameInSentence(StateListType.IncidentState, undefined)).toBe(
+      "",
+    );
+    expect(recordNameInSentence(StateListType.IncidentState, null)).toBe("");
+  });
+
+  test("a record of no list's table is always written as it is", () => {
+    expect(recordNameInSentence("Label", "Resolved")).toBe("Resolved");
+    expect(recordNameInSentence(undefined, "Resolved")).toBe("Resolved");
   });
 });

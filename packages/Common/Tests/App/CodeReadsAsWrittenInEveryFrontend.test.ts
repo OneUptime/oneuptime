@@ -4,6 +4,7 @@ import path from "path";
 import type { i18n as I18nInstance, TOptions } from "i18next";
 import type { SpyInstance } from "jest-mock";
 import { setCodeApartInSentence } from "../../Types/CodeInSentence";
+import { withNoBreakSpacesInLocale } from "../../Types/NoBreakSpaces";
 
 /*
  * EVERY FRONTEND SETS CODE APART IN ITS ARABIC AND PERSIAN SENTENCES.
@@ -166,7 +167,17 @@ describe.each(FRONTENDS)("%s", (frontend: string) => {
     await i18n.loadLanguages(RIGHT_TO_LEFT);
 
     for (const language of RIGHT_TO_LEFT) {
-      for (const leaf of leavesOf(readLocale(frontend, language))) {
+      /*
+       * The locale as the frontend hands it to i18next: each number with
+       * its unit (withNoBreakSpacesInLocale, Common/Types/NoBreakSpaces).
+       */
+      const shipped: LocaleTree = withNoBreakSpacesInLocale({
+        locale: readLocale(frontend, language),
+        language,
+        english: readLocale(frontend, "en"),
+      }) as LocaleTree;
+
+      for (const leaf of leavesOf(shipped)) {
         const shown: string = setCodeApartInSentence(leaf.text, language);
 
         if (shown === leaf.text) {

@@ -36,7 +36,12 @@ export type TableWidgetHeading =
   | {
       words: AIActionTableWords;
       title?: undefined;
-      description?: undefined;
+      /*
+       * A line that is data, for words with no line of their own: a
+       * runbook's or a team's description, an incident's title (issue
+       * #7977). It is drawn as written.
+       */
+      description?: string | undefined;
     };
 
 /*
@@ -86,7 +91,7 @@ export default class WidgetBuilder {
       id: "",
       type: AIChatWidgetType.Table,
       title: english.title,
-      description: english.description,
+      description: words.description ? english.description : params.description,
       data: {
         columns: params.columns,
         rows: params.rows.map((row: JSONObject, index: number): JSONObject => {

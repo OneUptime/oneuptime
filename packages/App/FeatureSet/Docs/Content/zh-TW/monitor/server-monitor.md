@@ -3,7 +3,7 @@
 Server / VM 監測器透過 OneUptime 基礎設施代理程式（`oneuptime-infrastructure-agent`）監控一台機器。這個代理程式是一個小型服務，每 30 秒向 OneUptime 回報一次 CPU、記憶體、磁碟、負載、網路和正在執行的處理程序。本頁說明如何將代理程式連接到 Server / VM 監測器、代理程式回報哪些內容，以及如何撰寫判斷伺服器上線或離線的條件。
 
 > [!IMPORTANT]
-> **建立監測器** 已不再提供 **Server / VM**。你已有的 Server / VM 監測器會繼續運作，本頁的所有內容都適用於它們。若要監控新的伺服器，請改為建立 [主機監測器](/docs/monitor/host-monitor)：它會依據 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 傳送的主機指標發出警示。
+> **建立監測器** 已不再提供 **伺服器 / 虛擬機器**。你已有的 Server / VM 監測器會繼續運作，本頁的所有內容都適用於它們。若要監控新的伺服器，請改為建立 [主機監測器](/docs/monitor/host-monitor)：它會依據 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 傳送的主機指標發出警示。
 
 :::cards
 - [連接代理程式](#連接代理程式): 安裝代理程式、提供監測器的密鑰，然後啟動它。

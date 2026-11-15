@@ -183,7 +183,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
   const isPipeline: boolean = props.dataStoreKind === DataStoreKind.MongoDb;
   const columnOptions: Array<DropdownOption> = (props.columns || []).map(
     (column: DataAssetColumn): DropdownOption => {
-      return { value: column.name, label: column.name };
+      return { value: column.name, label: column.name, isUserContent: true };
     },
   );
 

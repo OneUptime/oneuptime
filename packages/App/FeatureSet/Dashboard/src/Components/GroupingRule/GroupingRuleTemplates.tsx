@@ -186,7 +186,7 @@ const GroupingRuleTemplates: <TBaseModel extends BaseModel>(
                   <div className="mt-4 flex justify-end">
                     <Button
                       title={GROUPING_RULE_COPY.addRule}
-                      ariaLabel={`${translate(GROUPING_RULE_COPY.addRule)}: ${name}`}
+                      ariaLabel={translate("Add Rule: {{name}}", { name })}
                       icon={IconProp.Add}
                       buttonStyle={ButtonStyleType.OUTLINE}
                       buttonSize={ButtonSize.Small}

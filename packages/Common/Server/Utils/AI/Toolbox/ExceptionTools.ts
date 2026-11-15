@@ -8,6 +8,8 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { AI_READ_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -129,7 +131,11 @@ export const TopExceptionsTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Top exceptions, last ${lastSeenWithinHours}h (${serialized.rowCount} found)`,
+      // In the reader's language (issue #7980).
+      ...citationSentence(AI_READ_CITATIONS.topExceptions, {
+        hours: countFigure(lastSeenWithinHours),
+        count: countFigure(serialized.rowCount),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.Exceptions,
       },

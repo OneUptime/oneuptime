@@ -43,6 +43,22 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
+
+/*
+ * An OSD's apply or commit latency, whole, in the reader's words ("12 ms",
+ * "۱۲ میلی‌ثانیه"; issue #7418), or a dash when it did not report one.
+ */
+export const formatOsdLatency: (
+  milliseconds: number | null,
+  translator: Translator,
+) => string = (milliseconds: number | null, translator: Translator): string => {
+  return milliseconds === null
+    ? "—"
+    : formatMilliseconds(translator, milliseconds, {
+        maximumFractionDigits: 0,
+      });
+};
 
 /*
  * The OSDs list reads the CephResource Postgres inventory (kind=Osd)
@@ -110,7 +126,7 @@ const CephClusterOsds: FunctionComponent<
                 latency:
                   readings.applyLatencyMs !== null ||
                   readings.commitLatencyMs !== null
-                    ? `${readings.applyLatencyMs !== null ? readings.applyLatencyMs.toFixed(0) : "—"} / ${readings.commitLatencyMs !== null ? readings.commitLatencyMs.toFixed(0) : "—"} ms`
+                    ? `${formatOsdLatency(readings.applyLatencyMs, translator)} / ${formatOsdLatency(readings.commitLatencyMs, translator)}`
                     : "—",
                 [CEPH_USED_PERCENT_ATTRIBUTE]: formatCephReadingNumber(
                   readings.usedPercent,

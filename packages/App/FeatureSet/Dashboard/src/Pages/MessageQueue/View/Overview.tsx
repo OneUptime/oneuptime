@@ -97,6 +97,7 @@ import {
   MessageQueueLivenessStatus,
   formatMessageQueueCount,
   formatMessageQueueDurationMs,
+  formatMessageQueueDurationMsInLanguage,
   formatMessageQueueErrorRate,
   getMessageQueueDocsRoute,
   getMessageQueueLivenessDescription,
@@ -781,7 +782,10 @@ const MessageQueueOverview: FunctionComponent<
     },
     {
       title: "p95 processing time",
-      value: formatMessageQueueDurationMs(m.p95ProcessingMs),
+      value: formatMessageQueueDurationMsInLanguage(
+        m.p95ProcessingMs,
+        translator,
+      ),
       // No broker measures it: say what gives it rather than a dash.
       valueNote: needsConsumerTraces
         ? MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES

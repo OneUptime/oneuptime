@@ -148,6 +148,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
       toOption: (cluster: DockerSwarmCluster): DropdownOption => {
         return {
           label: cluster.name || "Unknown",
+          // Its own name as written; "Unknown" in the reader's words.
+          isUserContent: Boolean(cluster.name),
           value: cluster.name || "",
         };
       },

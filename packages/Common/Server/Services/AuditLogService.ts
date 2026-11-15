@@ -5,13 +5,20 @@ import AnalyticsDatabaseService, {
 } from "./AnalyticsDatabaseService";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { AuditLogRecorder } from "../Enterprise/EnterpriseServerModule";
+import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
+import CountBy from "../Types/AnalyticsDatabase/CountBy";
 import CreateManyBy from "../Types/AnalyticsDatabase/CreateManyBy";
+import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
+import FindBy from "../Types/AnalyticsDatabase/FindBy";
+import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
 import logger from "../Utils/Logger";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AuditLog from "../../Models/AnalyticsModels/AuditLog";
 import { AUDIT_LOG_EXPORT_SOURCE_COLUMNS } from "../../Types/AuditLog/Export/AuditLogExportRecord";
+import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
+import { withAuditLogResourceTypeSpellings } from "../../Utils/AuditLog/AuditLogResourceTypes";
 import { SessionAuditEvent } from "../../Types/AuditLog/AuditLogSessionEvent";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -78,6 +85,60 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
     }
 
     return await super.createMany(createBy);
+  }
+
+  /*
+   * A read that names a resource type finds it by either of its names: an
+   * entry about an On-Call Schedule is stored as "On-Call Policy Schedule"
+   * (the name the model keeps for the API, Terraform and this log), and the
+   * Dashboard's Resource Type filter, a resource's own page and the API may
+   * name it by the name on screen (#7580). Every list, count, chart and
+   * existence check reads the same entries
+   * (Common/Utils/AuditLog/AuditLogResourceTypes). findOneBy and
+   * findOneById pass through onBeforeFind.
+   */
+  protected override async onBeforeFind(
+    findBy: FindBy<AuditLog>,
+  ): Promise<OnFind<AuditLog>> {
+    const onFind: OnFind<AuditLog> = await super.onBeforeFind(findBy);
+
+    return {
+      ...onFind,
+      findBy: {
+        ...onFind.findBy,
+        query: withAuditLogResourceTypeSpellings(onFind.findBy.query),
+      },
+    };
+  }
+
+  // The count beside the list counts the entries the list reads.
+  protected override async onBeforeCount(
+    countBy: CountBy<AuditLog>,
+  ): Promise<CountBy<AuditLog>> {
+    const prepared: CountBy<AuditLog> = await super.onBeforeCount(countBy);
+
+    return {
+      ...prepared,
+      query: withAuditLogResourceTypeSpellings(prepared.query),
+    };
+  }
+
+  public override async aggregateBy(
+    aggregateBy: AggregateBy<AuditLog>,
+  ): Promise<AggregatedResult> {
+    return await super.aggregateBy({
+      ...aggregateBy,
+      query: withAuditLogResourceTypeSpellings(aggregateBy.query),
+    });
+  }
+
+  public override async existsBy(
+    existsBy: ExistsBy<AuditLog>,
+  ): Promise<boolean> {
+    return await super.existsBy({
+      ...existsBy,
+      query: withAuditLogResourceTypeSpellings(existsBy.query),
+    });
   }
 
   public invalidateProjectSettings(projectId: ObjectID): void {
