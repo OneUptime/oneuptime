@@ -754,10 +754,65 @@ describe("the listener, over HTTP", () => {
   });
 
   /*
-   * OneUptime reads only JSON and form bodies, so any other body reaches the
-   * monitor empty. The listener used to read application/octet-stream too,
-   * under express.raw's 100 KB default: a larger one was answered 413, not
-   * the 200 a device is promised, and was never forwarded at all.
+   * Amazon SNS posts its subscription confirmations and notifications as
+   * JSON labelled text/plain, and OneUptime reads that as the JSON it is
+   * (IncomingRequestBody, #7723): so does the listener, so a topic pointed
+   * at the probe reaches the monitor as it would have directly.
+   */
+  test("forwards JSON sent as text/plain, as Amazon SNS sends it, parsed", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const confirmation: Record<string, string> = {
+      Type: "SubscriptionConfirmation",
+      TopicArn: "arn:aws:sns:eu-west-1:123456789012:oneuptime-alerts",
+      SubscribeURL:
+        "https://sns.eu-west-1.amazonaws.com/?Action=ConfirmSubscription&TopicArn=arn:aws:sns:eu-west-1:123456789012:oneuptime-alerts&Token=2336412f37fb687f",
+      Token: "2336412f37fb687f",
+    };
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain; charset=UTF-8",
+        "x-amz-sns-message-type": "SubscriptionConfirmation",
+      },
+      body: JSON.stringify(confirmation),
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect((await forwarded(spy))["data"]).toEqual(confirmation);
+  });
+
+  test("inflates gzip JSON sent as text/plain, and forwards it parsed", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await send({
+      method: "POST",
+      headers: { "Content-Type": "text/plain", "Content-Encoding": "gzip" },
+      body: zlib.gzipSync(JSON.stringify({ status: "healthy" })),
+    });
+
+    expect((await forwarded(spy))["data"]).toEqual({ status: "healthy" });
+  });
+
+  test("forwards plain text empty, as OneUptime would read it", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: "backup finished",
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect((await forwarded(spy))["data"]).toEqual({});
+  });
+
+  /*
+   * OneUptime reads only JSON and form bodies, and JSON sent as text/plain,
+   * so any other body reaches the monitor empty. The listener used to read
+   * application/octet-stream too, under express.raw's 100 KB default: a
+   * larger one was answered 413, not the 200 a device is promised, and was
+   * never forwarded at all.
    */
   test.each([
     ["application/octet-stream", 200 * 1024],
