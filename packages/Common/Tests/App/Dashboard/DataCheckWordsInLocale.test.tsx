@@ -96,6 +96,11 @@ import {
   DATA_CHECK_FACTS_LINE_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckFactsLine";
 import { DATA_CHECK_TYPE_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckTypeWords";
+import { DATA_CHECK_FORMAT_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckFormatWords";
+import {
+  DATA_CHECK_FORMATS,
+  DataCheckFormat,
+} from "../../../Types/DataObservability/DataCheckFormats";
 import SuggestedDataChecks, {
   SUGGESTED_CHECK_BUTTONS_CLASS_NAME,
   SUGGESTED_CHECK_FACTS_TEST_ID,
@@ -107,6 +112,7 @@ import SuggestedDataChecks, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/SuggestedDataChecks";
 import DataObservabilityReconciliationsPage, {
   RECONCILIATION_MEASURES_LINE_CLASS_NAME,
+  RECONCILIATION_STATUS_MESSAGE_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Reconciliations";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
@@ -145,7 +151,11 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 interface CapturedColumn {
   title?: string;
+  field?: Record<string, unknown>;
   getElement?: (item: never) => ReactElement;
+  hideBelowLargeScreen?: boolean;
+  foldInto?: string;
+  showTitleWhenFolded?: boolean;
 }
 
 interface CapturedFormField {
@@ -172,6 +182,12 @@ const CHECK: string = "10000000-0000-4000-8000-000000000301";
 
 // The languages the tab is read in below, from the locale files themselves.
 const LANGUAGES: Array<string> = ["de", "ar"];
+
+/*
+ * Languages whose Format dropdown read English (#7532): Dutch and Italian
+ * left Country Code English, and no language had ISO Date.
+ */
+const FORMAT_LANGUAGES: Array<string> = ["nl", "it"];
 
 // Languages whose Dismiss can break inside a button: Japanese anywhere, Persian at its space.
 const BREAKABLE_DISMISS_LANGUAGES: Array<string> = ["ja", "fa"];
@@ -546,9 +562,11 @@ beforeAll(async () => {
     lng: "en",
     fallbackLng: "en",
     resources: Object.fromEntries(
-      [...LANGUAGES, ...BREAKABLE_DISMISS_LANGUAGES].map((language: string) => {
-        return [language, { translation: readDashboardLocale(language) }];
-      }),
+      [...LANGUAGES, ...BREAKABLE_DISMISS_LANGUAGES, ...FORMAT_LANGUAGES].map(
+        (language: string) => {
+          return [language, { translation: readDashboardLocale(language) }];
+        },
+      ),
     ),
     interpolation: { escapeValue: false },
     keySeparator: false,
@@ -1104,6 +1122,119 @@ describe("the Check dropdown and the Check filter (#7223)", () => {
   );
 });
 
+// The Format dropdown of the check form, as DataCheckTable hands it to ModelTable.
+async function formatOptions(): Promise<Array<DropdownOption>> {
+  await act(async () => {
+    render(<DataCheckTable dataAssetId={new ObjectID(TABLE)} />);
+  });
+
+  const form: CapturedFormField | undefined = (
+    latestProps()["formFields"] as Array<CapturedFormField>
+  ).find((field: CapturedFormField): boolean => {
+    return Boolean(field.field?.["formatPreset"]);
+  });
+
+  expect(form?.dropdownOptions).toBeDefined();
+
+  return form!.dropdownOptions!;
+}
+
+// Each option, as a Dropdown draws it picked, in the language i18next is in.
+function drawnOptions(options: Array<DropdownOption>): Array<string> {
+  return options.map((option: DropdownOption): string => {
+    const { container } = render(
+      <Dropdown
+        options={options}
+        value={option}
+        onChange={() => {}}
+        ariaLabel="Format"
+      />,
+    );
+    const drawn: string = withoutIsolateMarks(
+      container.querySelector(".ou-select__single-value")?.textContent || "",
+    );
+
+    cleanup();
+
+    return drawn;
+  });
+}
+
+describe("the Format dropdown (#7532)", () => {
+  test("offers every format, each by its name, its value what is saved", async () => {
+    const options: Array<DropdownOption> = await formatOptions();
+
+    expect(
+      options.map((option: DropdownOption) => {
+        return option.value;
+      }),
+    ).toEqual([...DATA_CHECK_FORMATS]);
+    expect(
+      options.map((option: DropdownOption) => {
+        return option.label;
+      }),
+    ).toEqual(
+      DATA_CHECK_FORMATS.map((format: DataCheckFormat): string => {
+        return DATA_CHECK_FORMAT_LABELS[format];
+      }),
+    );
+  });
+
+  test("in English, each format reads exactly as before", async () => {
+    const options: Array<DropdownOption> = await formatOptions();
+
+    cleanup();
+
+    expect(drawnOptions(options)).toEqual([
+      "Email",
+      "UUID",
+      "Country Code",
+      "URL",
+      "IP Address",
+      "ISO Date",
+      "Phone Number",
+      "Custom",
+    ]);
+  });
+
+  test.each([...FORMAT_LANGUAGES, ...LANGUAGES])(
+    "in %s, each format reads as the language's file words it, Country Code and ISO Date never in English",
+    async (language: string) => {
+      const options: Array<DropdownOption> = await formatOptions();
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      cleanup();
+      await inLanguage(language);
+
+      const drawn: Array<string> = drawnOptions(options);
+
+      expect(drawn).toEqual(
+        DATA_CHECK_FORMATS.map((format: DataCheckFormat): string => {
+          return words[format]!;
+        }),
+      );
+      expect(drawn).not.toContain(DataCheckFormat.CountryCode);
+      expect(drawn).not.toContain(DataCheckFormat.IsoDate);
+      // UUID is written as it is, in every language.
+      expect(drawn[DATA_CHECK_FORMATS.indexOf(DataCheckFormat.Uuid)]).toBe(
+        "UUID",
+      );
+    },
+  );
+
+  test("in Dutch, the two formats the issue named read Landcode and ISO-datum", async () => {
+    const options: Array<DropdownOption> = await formatOptions();
+
+    cleanup();
+    await inLanguage("nl");
+
+    const drawn: Array<string> = drawnOptions(options);
+
+    expect(drawn).toContain("Landcode");
+    expect(drawn).toContain("ISO-datum");
+  });
+});
+
 describe("a reconciliation's measures (#7223)", () => {
   test("in English, the line under its name reads exactly as before", async () => {
     expect(await reconciliationLine("en", reconciliation())).toBe(
@@ -1147,6 +1278,174 @@ describe("a reconciliation's measures (#7223)", () => {
     // A table's cell keeps its words on one line unless told otherwise.
     expect(classes).toEqual(
       expect.arrayContaining(["block", "whitespace-normal", "break-words"]),
+    );
+    expect(classes).not.toContain("truncate");
+  });
+});
+
+/*
+ * #7534: at 1280px beside the side menu, the German Checks list ran 46px
+ * past its card and the English Reconciliations list cut its Status
+ * badges, under the sticky Run Now column. Where a list does not fit its
+ * card, the table folds the columns its page marks foldable, under the
+ * column each names (TableFit; DataObservabilityListsAt1280 draws them).
+ */
+describe("the lists' columns fold where they do not fit their card (#7534)", () => {
+  // Every column, as the page hands it to ModelTable.
+  function columns(): Array<CapturedColumn> {
+    return latestProps()["columns"] as Array<CapturedColumn>;
+  }
+
+  // The column whose field is `field`, and the one each folds into.
+  function byField(field: string): CapturedColumn {
+    const found: CapturedColumn | undefined = columns().find(
+      (candidate: CapturedColumn): boolean => {
+        return Boolean(candidate.field?.[field]);
+      },
+    );
+
+    expect(found).toBeDefined();
+
+    return found!;
+  }
+
+  test.each(["en", ...LANGUAGES])(
+    "in %s, a check's Alert folds under its Status, named; no other column folds",
+    async (language: string) => {
+      await inLanguage(language);
+      await act(async () => {
+        render(<DataCheckTable />);
+      });
+
+      const alert: CapturedColumn = byField("alertCondition");
+
+      expect({
+        hideBelowLargeScreen: alert.hideBelowLargeScreen,
+        foldInto: alert.foldInto,
+        showTitleWhenFolded: alert.showTitleWhenFolded,
+      }).toEqual({
+        hideBelowLargeScreen: true,
+        foldInto: "lastRunStatus",
+        showTitleWhenFolded: true,
+      });
+      // It folds into a column the list draws.
+      expect(byField("lastRunStatus").hideBelowLargeScreen).toBeFalsy();
+      expect(
+        columns()
+          .filter((column: CapturedColumn): boolean => {
+            return Boolean(column.hideBelowLargeScreen);
+          })
+          .map((column: CapturedColumn): string | undefined => {
+            return column.title;
+          }),
+      ).toEqual(["Alert"]);
+    },
+  );
+
+  test("a table's own Checks tab folds its Alert the same way", async () => {
+    await act(async () => {
+      render(<DataCheckTable dataAssetId={new ObjectID(TABLE)} />);
+    });
+
+    expect(byField("alertCondition").foldInto).toBe("lastRunStatus");
+  });
+
+  test.each(["en", ...LANGUAGES])(
+    "in %s, a reconciliation's Target folds under its Source and its Difference under its Status, each named",
+    async (language: string) => {
+      await inLanguage(language);
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <DataObservabilityReconciliationsPage
+              pageRoute={new Route("/")}
+              currentProject={null}
+              hasPaymentMethod={false}
+            />
+          </MemoryRouter>,
+        );
+      });
+
+      for (const [field, into] of [
+        ["targetDataAsset", "sourceDataAsset"],
+        ["difference", "status"],
+      ] as Array<[string, string]>) {
+        const column: CapturedColumn = byField(field);
+
+        expect({
+          field,
+          hideBelowLargeScreen: column.hideBelowLargeScreen,
+          foldInto: column.foldInto,
+          showTitleWhenFolded: column.showTitleWhenFolded,
+        }).toEqual({
+          field,
+          hideBelowLargeScreen: true,
+          foldInto: into,
+          showTitleWhenFolded: true,
+        });
+        expect(byField(into).hideBelowLargeScreen).toBeFalsy();
+      }
+
+      // The name, the source and the status are always drawn.
+      expect(
+        columns()
+          .filter((column: CapturedColumn): boolean => {
+            return !column.hideBelowLargeScreen;
+          })
+          .map((column: CapturedColumn): string | undefined => {
+            return column.title;
+          }),
+      ).toEqual(["Reconciliation", "Source", "Status"]);
+    },
+  );
+
+  test("why a reconciliation waits or failed wraps under its badge, never one line cut short", async () => {
+    const item: DataReconciliation = reconciliation();
+
+    Object.assign(item, {
+      status: "Waiting",
+      statusMessage:
+        "The sides were last read 42 minutes apart: waiting for both to be read together.",
+    });
+
+    await inLanguage("de");
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <DataObservabilityReconciliationsPage
+            pageRoute={new Route("/")}
+            currentProject={null}
+            hasPaymentMethod={false}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    const element: ReactElement = (
+      capturedColumn("Status").getElement as (
+        item: DataReconciliation,
+      ) => ReactElement
+    )(item);
+
+    cleanup();
+
+    const { container } = render(<MemoryRouter>{element}</MemoryRouter>);
+    const message: HTMLElement = within(container).getByText(
+      item.statusMessage!,
+    );
+
+    expect(message.className).toBe(RECONCILIATION_STATUS_MESSAGE_CLASS_NAME);
+
+    const classes: Array<string> =
+      RECONCILIATION_STATUS_MESSAGE_CLASS_NAME.split(" ");
+
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        "block",
+        "max-w-xs",
+        "whitespace-normal",
+        "break-words",
+      ]),
     );
     expect(classes).not.toContain("truncate");
   });
