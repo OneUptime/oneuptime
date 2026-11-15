@@ -143,7 +143,7 @@ Adressen, eller en firewall foran den, svarer ikke på ICMP-ekkoanmodninger fra 
 :::
 
 :::details En IPv6-adresse fejler altid
-Sonden, der kørte tjekket, har ingen IPv6-forbindelse; fejlen siger det. Kør monitoren på en sonde med IPv6: se [Brugerdefinerede probes](/docs/probe/custom-probe).
+Sonden, der kørte tjekket, har ingen IPv6-forbindelse; fejlen siger det. Kør monitoren på en sonde med IPv6: se [Brugerdefinerede sonder](/docs/probe/custom-probe).
 :::
 
 :::details Pakketab og jitter er tomme
@@ -155,6 +155,6 @@ Sonden, der kørte tjekket, kan ikke sende ping, så den tjekkede i stedet TCP-p
 :::cards
 - [Ping-monitor](/docs/monitor/ping-monitor): Ping en vært på navn, og følg DNS-ændringer.
 - [Port-monitor](/docs/monitor/port-monitor): Tjek en tjeneste på adressen, ikke kun adressen.
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Tjek private adresser og IPv6-adresser fra dit eget netværk.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Tjek private adresser og IPv6-adresser fra dit eget netværk.
 - [Hændelser](/docs/incidents/index): Hvad der sker, efter at monitoren har erklæret en.
 :::

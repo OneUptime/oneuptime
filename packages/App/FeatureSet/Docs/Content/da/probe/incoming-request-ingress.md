@@ -41,7 +41,7 @@ Kan dine tjenester allerede nå `https://oneuptime.com` (eller din selvhostede U
 
 ## Før du begynder
 
-- **En kørende brugerdefineret sonde.** Dens **Status** viser **Forbundet**. Se [Brugerdefinerede probes](/docs/probe/custom-probe) for at installere en.
+- **En kørende brugerdefineret sonde.** Dens **Status** viser **Forbundet**. Se [Brugerdefinerede sonder](/docs/probe/custom-probe) for at installere en.
 - **En overvågning af indgående anmodninger.** Dens heartbeat-URL indeholder den hemmelige nøgle, din tjeneste sender: se [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor).
 - **En port på sondens vært, som dine tjenester kan nå.** Eksemplerne bruger `3875`.
 
@@ -176,7 +176,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Hvor længe hver videresendelse til OneUptime må tage, i millisekunder. En værdi under `1000` falder tilbage til standarden. |
 | `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Hvor mange gange en mislykket videresendelse prøves igen. `0` slår nye forsøg fra. |
 
-Sondens almindelige variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` og proxyvariablerne) gælder alle: se [Brugerdefinerede probes](/docs/probe/custom-probe) for den fulde liste.
+Sondens almindelige variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` og proxyvariablerne) gælder alle: se [Brugerdefinerede sonder](/docs/probe/custom-probe) for den fulde liste.
 
 ## Sikkerhedsovervejelser
 
@@ -192,7 +192,7 @@ Sondens almindelige variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` og proxy
 :::
 
 :::details Sonden logger `Probe ingress: failed to forward to <url> after N attempts`
-Sonden kunne ikke nå OneUptime, heller ikke efter sine nye forsøg. Tjek sondens udgående forbindelse, dens proxyindstillinger og værdien af `ONEUPTIME_URL`. Viser sonden også **Afbrudt**, så se [Brugerdefinerede probes](/docs/probe/custom-probe) for at finde ud af, hvor dens forespørgsler går i stå.
+Sonden kunne ikke nå OneUptime, heller ikke efter sine nye forsøg. Tjek sondens udgående forbindelse, dens proxyindstillinger og værdien af `ONEUPTIME_URL`. Viser sonden også **Afbrudt**, så se [Brugerdefinerede sonder](/docs/probe/custom-probe) for at finde ud af, hvor dens forespørgsler går i stå.
 :::
 
 :::details Sonden logger `Probe ingress: probe ID not available, forwarding without it`
@@ -211,5 +211,5 @@ Anmodningen nåede aldrig frem til sonden. Tjek, at tjenesten kan nå sondens v�
 
 :::cards
 - [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor): Beslut, hvad der tæller som et sundt heartbeat.
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Installér sonden, og se hver indstilling, den læser.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Installér sonden, og se hver indstilling, den læser.
 :::

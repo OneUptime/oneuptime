@@ -46,7 +46,7 @@ flowchart TB
 
 ## Før du begynder
 
-- Logs, der ankommer til OneUptime, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) eller en probe.
+- Logs, der ankommer til OneUptime, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) eller en sonde.
 - Tilladelse til at ændre pipelines. Projektejere og administratorer har den; alle andre skal have tilladelserne **Create Log Pipeline** og **Create Log Pipeline Processor**.
 
 ## Opret en pipeline
@@ -110,7 +110,7 @@ De to skilletegn skal være forskellige, må ikke indeholde hinanden og må ikke
 
 ### Eksempel: Sophos XGS-firewall
 
-OneUptime læser selv syslog fra Sophos og FortiGate som `sophos.*`- og `fortigate.*`-attributter (se [Netværksbegivenheder](/docs/monitor/network-events)); dette eksempel bygger det samme i hånden, som du ville gøre for et format, det ikke kender. Når en Sophos XGS-firewall sender syslog til en [probe](/docs/monitor/network-device-monitor), gemmes hver besked som en log for netværksenheden med syslog-beskeden som indhold. Sådan fortolker du den:
+OneUptime læser selv syslog fra Sophos og FortiGate som `sophos.*`- og `fortigate.*`-attributter (se [Netværksbegivenheder](/docs/monitor/network-events)); dette eksempel bygger det samme i hånden, som du ville gøre for et format, det ikke kender. Når en Sophos XGS-firewall sender syslog til en [sonde](/docs/monitor/network-device-monitor), gemmes hver besked som en log for netværksenheden med syslog-beskeden som indhold. Sådan fortolker du den:
 
 :::steps
 #### Opret en pipeline til firewallen
