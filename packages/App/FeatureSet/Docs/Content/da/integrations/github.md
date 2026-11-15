@@ -46,9 +46,9 @@ Resten af denne side bygger workflowet. Det kræver:
 ## Gem tokenet
 
 :::steps
-1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**.
 2. Giv den navnet `GITHUB_TOKEN`, og klik på **Næste**.
-3. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+3. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
 En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så tokenet aldrig vises i en kørsel.

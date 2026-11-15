@@ -1,6 +1,14 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
-import { translationKey } from "Common/Types/Translator";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/Types/Translator";
+import {
+  formatReaderFigure,
+  isEnglishDateLanguage,
+} from "Common/Types/DateLanguage";
 
 /*
  * Shared presentation metadata for the topology views: raw enum values
@@ -237,39 +245,85 @@ export const HEALTH_COLORS: Record<TrafficHealth, string> = {
   unknown: "#94a3b8",
 };
 
+/*
+ * A RATE OF CALLS AND A SHARE OF ERRORS, IN THE READER'S LANGUAGE (#7725).
+ *
+ * The service map's cards, its connections and its list wrote "600/min"
+ * and "10.0%" in Latin digits with an English unit, beside a Persian card's
+ * "۱۲ پاد" and a German one's "Fehler". Handed the reader's translator,
+ * each is written the way the reader's language writes figures - "600/Min.",
+ * "۶۰۰/دقیقه", "10,0 %", "۱۰٫۰٪", Latin digits in Arabic - and the rate's
+ * unit is a sentence of the locale ("{{rate}}/min"). English reads exactly
+ * as it always did ("1.2k/min", "45/min", "0.4/min", "10.0%", "<0.1%"), and
+ * so does every caller that hands no translator.
+ */
+const CALLS: PluralTemplate = {
+  one: "{{count}} call",
+  other: "{{count}} calls",
+};
+
+export const CALL_RATE_PER_MINUTE: string = translationKey("{{rate}}/min");
+
+// A per-minute figure as `language` writes it; English shortens thousands.
+function writePerMinute(perMinute: number, language: string): string {
+  if (isEnglishDateLanguage(language)) {
+    if (perMinute >= 1000) {
+      return `${(perMinute / 1000).toFixed(1)}k`;
+    }
+    if (perMinute >= 10) {
+      return `${Math.round(perMinute)}`;
+    }
+    return perMinute.toFixed(1);
+  }
+  // Every digit of a large rate, grouped the reader's way: "12.345", "۱۲٬۳۴۵".
+  return perMinute >= 10
+    ? formatReaderFigure(Math.round(perMinute), { decimals: 0, language })
+    : formatReaderFigure(perMinute, { decimals: 1, language });
+}
+
 /** "1.2k/min", "45/min", "0.4/min" — human call-rate over a window. */
 export function formatCallRate(
   callCount: number,
   windowSeconds: number,
+  translator?: Translator | undefined,
 ): string {
+  if (!translator) {
+    if (windowSeconds <= 0) {
+      return `${callCount} calls`;
+    }
+    return `${writePerMinute((callCount / windowSeconds) * 60, "en")}/min`;
+  }
   if (windowSeconds <= 0) {
-    return `${callCount} calls`;
+    return translator.translatePlural(CALLS, callCount);
   }
-  const perMinute: number = (callCount / windowSeconds) * 60;
-  if (perMinute >= 1000) {
-    return `${(perMinute / 1000).toFixed(1)}k/min`;
-  }
-  if (perMinute >= 10) {
-    return `${Math.round(perMinute)}/min`;
-  }
-  return `${perMinute.toFixed(1)}/min`;
+  return translator.translateTemplate(CALL_RATE_PER_MINUTE, {
+    rate: writePerMinute((callCount / windowSeconds) * 60, translator.language),
+  });
 }
 
+/** "10.0%", "<0.1%", "0%"; "—" when there are no calls to divide. */
 export function formatErrorRate(
   callCount: number | undefined,
   errorCount: number | undefined,
+  translator?: Translator | undefined,
 ): string {
   if (!callCount || callCount <= 0) {
     return "—";
   }
   const percent: number = ((errorCount || 0) / callCount) * 100;
+  // Without a translator, as English writes it whatever the page's language.
+  const language: string = translator?.language || "en";
   if (percent === 0) {
-    return "0%";
+    return formatReaderFigure(0, { decimals: 0, isPercent: true, language });
   }
   if (percent < 0.1) {
-    return "<0.1%";
+    return `<${formatReaderFigure(0.1, { decimals: 1, isPercent: true, language })}`;
   }
-  return `${percent.toFixed(1)}%`;
+  return formatReaderFigure(percent, {
+    decimals: 1,
+    isPercent: true,
+    language,
+  });
 }
 
 /** Edge stroke width scaled by call volume (log so heavy edges stay sane). */

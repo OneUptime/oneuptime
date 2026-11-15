@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Des sondes situées dans plusieurs régions vérifient l'adresse : elle doit donc être joignable depuis Internet. Le forfait Free comprend 10 moniteurs actifs.
+Des sondes situées dans plusieurs régions vérifient l'adresse : elle doit donc être joignable depuis Internet, et un incident n'est ouvert que lorsque toutes la trouvent en panne. Le forfait Free comprend 10 moniteurs actifs. Ils sont facturés à l'usage, donc le projet a d'abord besoin d'un moyen de paiement : sans moyen de paiement, la première étape le signale, avec **Ajouter un mode de paiement**.
 @tab Auto-hébergé
-L'adresse est vérifiée par la propre sonde de votre serveur : elle doit donc être joignable depuis celui-ci. Pour que vous soyez prévenu par e-mail, le serveur doit pouvoir envoyer des e-mails : son administrateur principal configure l'e-mail à `/admin/setup`, comme le montre le [Guide de l'auto-hébergement](/docs/installation/self-hosting-guide). L'administrateur principal ne devient pas propriétaire de ce qu'il crée : pour être prévenu par e-mail, il s'ajoute donc lui-même sur la page **Propriétaires** du moniteur.
+L'adresse est vérifiée par la propre sonde de votre serveur : elle doit donc être joignable depuis celui-ci. Pour que vous soyez prévenu par e-mail, le serveur doit pouvoir envoyer des e-mails : son administrateur principal configure l'e-mail à `/admin/setup`, comme le montre le [Guide de l'auto-hébergement](/docs/installation/self-hosting-guide).
 :::
 
 ## Étapes

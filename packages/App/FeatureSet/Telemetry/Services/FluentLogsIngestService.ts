@@ -39,6 +39,9 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import FluentRecordTimeUtil, {
+  FluentRecordTime,
+} from "../Utils/FluentRecordTime";
 
 class FluentLogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -262,9 +265,18 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           const ingestionDate: Date = OneUptimeDate.getCurrentDate();
           const ingestionDateTime: string =
             OneUptimeDate.toClickhouseDateTime(ingestionDate);
-          const timeUnixNano: string = Math.trunc(
-            OneUptimeDate.toUnixNano(ingestionDate),
-          ).toString();
+          /*
+           * When the log happened: the record's own time, else the time
+           * Fluentd gave the event (the guide's fluentd_time), else now
+           * (FluentRecordTime, issue #8010). Fluentd's HTTP output sends
+           * only the record, so before every log was stored at the time it
+           * was processed here: a backlog, or a batch sent again after an
+           * outage, all at the time it arrived.
+           */
+          const recordTime: FluentRecordTime = FluentRecordTimeUtil.read(
+            entry,
+            ingestionDate,
+          );
 
           const body: string = this.extractBodyFromEntry(entry);
           const severityInfo: { number: number; text: LogSeverity } =
@@ -276,7 +288,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
 
           const entryAttributes: Dictionary<
             AttributeType | Array<AttributeType>
-          > = this.buildFluentAttributes(entry);
+          > = this.buildFluentAttributes(entry, recordTime.field);
 
           const attributes: Dictionary<AttributeType | Array<AttributeType>> = {
             ...baseAttributes,
@@ -305,8 +317,11 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             entityKeys: serviceMetadata.entityKeys || [],
             // serviceEntityKey from the resolved service; '' for the rest.
             ...getScalarEntityKeyColumns(serviceMetadata),
-            time: OneUptimeDate.toClickhouseDateTime64(ingestionDate),
-            timeUnixNano,
+            time: OneUptimeDate.toClickhouseDateTime64(
+              recordTime.timeDate,
+              recordTime.timeUnixNano,
+            ),
+            timeUnixNano: recordTime.timeUnixNano,
             severityNumber: severityInfo.number,
             severityText: severityInfo.text,
             attributes,
@@ -570,13 +585,19 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     return undefined;
   }
 
+  /*
+   * Every field but the ones read as the log's body, severity, trace and
+   * span, and the one its time was read from (`timeField`): a time field
+   * that held no time stays an attribute, as every time field did before.
+   */
   private static buildFluentAttributes(
     entry: JSONObject,
+    timeField: string | null = null,
   ): Dictionary<AttributeType | Array<AttributeType>> {
     const attributes: Dictionary<AttributeType | Array<AttributeType>> = {};
 
     for (const [key, value] of Object.entries(entry)) {
-      if (this.EXCLUDED_ATTRIBUTE_FIELDS.has(key)) {
+      if (this.EXCLUDED_ATTRIBUTE_FIELDS.has(key) || key === timeField) {
         continue;
       }
 

@@ -38,6 +38,7 @@ import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Every reconciliation: one measure of two tables - rows, a column's sum or
@@ -402,7 +403,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
               return (
                 <div className="min-w-0">
                   <span className="block truncate text-sm text-gray-900">
-                    {item.sourceDataAsset?.assetKey || "-"}
+                    {item.sourceDataAsset?.assetKey || <TableEmptyValue />}
                   </span>
                   <span className="block text-xs text-gray-500">
                     {formatNumber(item.sourceValue)}
@@ -420,7 +421,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
               return (
                 <div className="min-w-0">
                   <span className="block truncate text-sm text-gray-900">
-                    {item.targetDataAsset?.assetKey || "-"}
+                    {item.targetDataAsset?.assetKey || <TableEmptyValue />}
                   </span>
                   <span className="block text-xs text-gray-500">
                     {formatNumber(item.targetValue)}
@@ -436,7 +437,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
             getElement: (item: DataReconciliation): ReactElement => {
               return item.difference === undefined ||
                 item.difference === null ? (
-                <span className="text-sm text-gray-500">-</span>
+                <TableEmptyValue />
               ) : (
                 <div className="text-sm text-gray-700">
                   <span className="block">{formatNumber(item.difference)}</span>

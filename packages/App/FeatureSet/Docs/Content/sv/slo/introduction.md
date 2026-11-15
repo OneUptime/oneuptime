@@ -197,7 +197,7 @@ Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:
 | --- | --- | --- |
 | **Mål** | **Mål (%)** och **Tröskel för riskzon (%)**, med **Redigera mål**. | Visar det driftstopp som målet tillåter, till exempel ”43 min 12 s driftstopp per fönster på 30 dagar”. |
 | **Efterlevnadsperiod** | **Fönstertyp**, **Fönster (dagar)** och **Tidszon**, med **Redigera period**. | Regler för förbrukningstakt behåller sina trösklar när fönstret ändras, så gå igenom dem efteråt. |
-| **Beräkning av driftstopp** | **Läge för flera monitorer** och **Statusar för driftstoppsövervakare**, med **Redigera beräkning av driftstopp**. | Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare. |
+| **Beräkning av driftstopp** | **Läge för flera monitorer** och **Monitorstatusar för driftstopp**, med **Redigera beräkning av driftstopp**. | Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare. |
 | **Utvärdering** | Reglaget **Utvärdera det här SLO:et**, som sparar så snart du slår om det. | Att stänga av det kräver bekräftelse, eftersom det också löser SLO:ets öppna larm och incidenter för förbrukningstakt. |
 | **Arkivera SLO** | **Arkivera** eller **Avarkivera**. | Se [Arkivera ett SLO](#arkivera-ett-slo). |
 

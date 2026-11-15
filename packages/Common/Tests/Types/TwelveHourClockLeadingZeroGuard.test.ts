@@ -1,6 +1,11 @@
+// UX rule: Docs/ux/README.md#numbers-dates-and-plurals
 import { describe, expect, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
+import {
+  findTwoDigitHoursOnAnyClock,
+  readScannedSources,
+  ScannedSource,
+  TWO_DIGIT_HOUR,
+} from "../Helpers/IntlHourScan";
 
 /*
  * A TWO-DIGIT HOUR IS ASKED OF INTL ONLY ON A 24-HOUR CLOCK.
@@ -8,172 +13,30 @@ import path from "path";
  * A 12-hour time has no leading zero in any language: "5:14 AM", "오전
  * 5:14", "上午5:14", "5:14 am", "5:14 ص". Intl writes the zero wherever it
  * is asked for hour "2-digit", whatever the clock, so every localized date
- * on a 12-hour clock read "오전 05:14" (issue #7279). An Intl options object
- * that asks for a two-digit hour pins a 24-hour clock in the same object
- * (hour12: false, or hourCycle "h23" or "h24"); a time on the reader's clock
- * asks getHourOption, and one on its language's own clock (a calendar's
- * grid, a chart's axis) asks getLocaleClockHourOption
- * (Common/Types/DateLanguage).
+ * on a 12-hour clock read "오전 05:14" (issue #7279), and the mobile app
+ * "Nov 5, 05:14 AM" (#7650). An Intl options object that asks for a
+ * two-digit hour pins a 24-hour clock in the same object (hour12: false, or
+ * hourCycle "h23" or "h24"); a time on the reader's clock asks
+ * getHourOption, and one on its language's own clock (a calendar's grid, a
+ * chart's axis) asks getLocaleClockHourOption (Common/Types/DateLanguage).
+ * The mobile app asks its own getHourOption (MobileApp/src/utils/date).
+ *
+ * Its twin, TwentyFourHourClockLeadingZeroGuard, keeps the zero of a
+ * 24-hour time. Both read the front ends listed in Helpers/IntlHourScan.
  */
 
-const PACKAGES: string = path.resolve(__dirname, "..", "..", "..");
-const REPOSITORY: string = path.resolve(PACKAGES, "..");
-
-const DIRECTORIES: Array<string> = [
-  "packages/Common/UI",
-  "packages/Common/Types",
-  "packages/Common/Utils",
-  "packages/Common/Server",
-  "packages/App/FeatureSet",
-  // The enterprise edition, when it is in the checkout.
-  "ee",
-];
-
-const SKIPPED_DIRECTORIES: ReadonlyArray<string> = [
-  "node_modules",
-  "Tests",
-  "build",
-  "dist",
-  "public",
-];
-
-const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;
-const TEST_FILE: RegExp = /\.(test|spec)\.tsx?$/;
-
-// An options object's two-digit hour: hour: "2-digit".
-const TWO_DIGIT_HOUR: RegExp = /\bhour\s*:\s*(["'`])2-digit\1/g;
-
-// A two-digit hour set on its own, apart from the object's clock.
-const TWO_DIGIT_HOUR_SET: RegExp = /\.hour\s*=\s*(["'`])2-digit\1/g;
-
-// A 24-hour clock, pinned in the same object.
-const TWENTY_FOUR_HOUR_CLOCK: RegExp =
-  /\bhour12\s*:\s*false\b|\bhourCycle\s*:\s*(["'`])h2[34]\1/;
-
-const WHITESPACE: RegExp = /\s+/g;
-
-// The object literal around `index`: from its "{" to its "}".
-const enclosingObject: (text: string, index: number) => string = (
-  text: string,
-  index: number,
-): string => {
-  let depth: number = 0;
-  let start: number = index;
-
-  while (start > 0) {
-    start--;
-
-    const character: string = text[start]!;
-
-    if (character === "}") {
-      depth++;
-    } else if (character === "{") {
-      if (depth === 0) {
-        break;
-      }
-
-      depth--;
-    }
-  }
-
-  depth = 0;
-  let end: number = index;
-
-  while (end < text.length) {
-    const character: string = text[end]!;
-
-    if (character === "{") {
-      depth++;
-    } else if (character === "}") {
-      if (depth === 0) {
-        break;
-      }
-
-      depth--;
-    }
-
-    end++;
-  }
-
-  return text.slice(start, end + 1);
-};
-
-const lineOf: (text: string, index: number) => number = (
-  text: string,
-  index: number,
-): number => {
-  return text.slice(0, index).split("\n").length;
-};
-
-export const findTwoDigitHoursOnAnyClock: (
-  file: string,
-  text: string,
-) => Array<string> = (file: string, text: string): Array<string> => {
-  const found: Array<string> = [];
-
-  for (const match of text.matchAll(TWO_DIGIT_HOUR)) {
-    const options: string = enclosingObject(text, match.index!);
-
-    if (!TWENTY_FOUR_HOUR_CLOCK.test(options)) {
-      found.push(
-        `${file}:${lineOf(text, match.index!)} ${options.replace(WHITESPACE, " ")}`,
-      );
-    }
-  }
-
-  for (const match of text.matchAll(TWO_DIGIT_HOUR_SET)) {
-    found.push(`${file}:${lineOf(text, match.index!)} ${match[0]}`);
-  }
-
-  return found;
-};
-
-const sourceFiles: (directory: string) => Array<string> = (
-  directory: string,
-): Array<string> => {
-  const files: Array<string> = [];
-
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const full: string = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      if (!SKIPPED_DIRECTORIES.includes(entry.name)) {
-        files.push(...sourceFiles(full));
-      }
-
-      continue;
-    }
-
-    if (SOURCE_FILE.test(entry.name) && !TEST_FILE.test(entry.name)) {
-      files.push(full);
-    }
-  }
-
-  return files;
-};
+// A test, a test's setup or a dependency: not what the product writes.
+const NOT_PRODUCT_CODE: RegExp =
+  /\.(test|spec)\.tsx?$|\/__tests__\/|\/node_modules\//;
 
 describe("a two-digit hour is asked for only on a 24-hour clock", () => {
   test("no product code asks Intl for a two-digit hour on a 12-hour clock", () => {
     const found: Array<string> = [];
     let twoDigitHours: number = 0;
 
-    for (const directory of DIRECTORIES) {
-      const full: string = path.join(REPOSITORY, directory);
-
-      if (!fs.existsSync(full)) {
-        continue;
-      }
-
-      for (const file of sourceFiles(full)) {
-        const text: string = fs.readFileSync(file, "utf8");
-        const relative: string = path
-          .relative(REPOSITORY, file)
-          .split(path.sep)
-          .join("/");
-
-        twoDigitHours += Array.from(text.matchAll(TWO_DIGIT_HOUR)).length;
-        found.push(...findTwoDigitHoursOnAnyClock(relative, text));
-      }
+    for (const source of readScannedSources()) {
+      twoDigitHours += Array.from(source.text.matchAll(TWO_DIGIT_HOUR)).length;
+      found.push(...findTwoDigitHoursOnAnyClock(source.file, source.text));
     }
 
     /*
@@ -182,6 +45,30 @@ describe("a two-digit hour is asked for only on a 24-hour clock", () => {
      */
     expect(twoDigitHours).toBeGreaterThanOrEqual(3);
     expect(found).toEqual([]);
+  });
+
+  test("the sweep reads every front end, the mobile app too, and no tests", () => {
+    const files: Array<string> = readScannedSources().map(
+      (source: ScannedSource): string => {
+        return source.file;
+      },
+    );
+
+    expect(files).toEqual(
+      expect.arrayContaining([
+        "packages/Common/Types/DateLanguage.ts",
+        "packages/Common/UI/Components/Feed/FeedTime.ts",
+        "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftTime.ts",
+        // Which asked for two digits on every clock (#7650).
+        "packages/MobileApp/src/utils/date.ts",
+        "packages/MobileApp/src/components/MonitorSummaryView.tsx",
+      ]),
+    );
+    expect(
+      files.filter((file: string): boolean => {
+        return NOT_PRODUCT_CODE.test(file);
+      }),
+    ).toEqual([]);
   });
 
   test.each<[string, number]>([
@@ -196,6 +83,11 @@ describe("a two-digit hour is asked for only on a 24-hour clock", () => {
     ['new Intl.DateTimeFormat(locale, {\n  hour: "2-digit",\n})', 1],
     ['{ hour: "2-digit", hourCycle: "h12" }', 1],
     ['options.hour = "2-digit";', 1],
+    // The mobile app's form before #7650: the phone's own clock.
+    [
+      'date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })',
+      1,
+    ],
     // A pinned 24-hour clock keeps its zero: "05:14".
     ['{ hour: "2-digit", minute: "2-digit", hour12: false }', 0],
     ['{ hour: "2-digit", minute: "2-digit", hourCycle: "h23" }', 0],

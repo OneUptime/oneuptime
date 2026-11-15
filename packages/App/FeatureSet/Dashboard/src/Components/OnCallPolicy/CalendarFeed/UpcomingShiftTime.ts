@@ -1,4 +1,4 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import { getHourOption, getNumberLocale } from "Common/Types/DateLanguage";
 import { Moment } from "Common/Types/Date";
 import {
   FeedClock,
@@ -256,7 +256,7 @@ export const formatShiftDateTime: (date: Date, clock: FeedClock) => string = (
       weekday: "short",
       month: "short",
       day: "numeric",
-      hour: "numeric",
+      hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       hour12: clock.use12HourClock,
     },
@@ -312,7 +312,7 @@ export const formatShiftFullDateTime: (
       year: "numeric",
       month: "long",
       day: "numeric",
-      hour: "numeric",
+      hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       hour12: clock.use12HourClock,
     },

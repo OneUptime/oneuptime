@@ -33,8 +33,8 @@ Sonden rapporterar bara:
 |---|---|
 | **Antal rader** | Antalet rader som frågan returnerade (begränsat av gränsen Max Rows). |
 | **Skalärvärde** | Den första kolumnen i den första raden. Det är det naturliga värdet för en fråga av typen `SELECT COUNT(*)`. |
-| **First Row** | Den första raden som par av kolumn och värde, visad i kontrollens sammanfattning som sammanhang. |
-| **Execution Time** | Hur lång tid kontrollen tog, i millisekunder — anslutningen inräknad, inte bara frågan. |
+| **Första raden** | Den första raden som par av kolumn och värde, visad i kontrollens sammanfattning som sammanhang. |
+| **Körtid** | Hur lång tid kontrollen tog, i millisekunder — anslutningen inräknad, inte bara frågan. |
 | **Frågefel** | Ett rensat felmeddelande om frågan misslyckades. |
 
 Hela resultatmängden skickas aldrig till OneUptime, så kunddata kopieras inte till OneUptimes lagring.
@@ -250,7 +250,7 @@ Koppla en jourpolicy till kriteriet så att rätt personer kallas in. En SQL-fr�
 
 - Frågan körs vid varje kontroll, så håll den billig. Använd index och smala tidsfönster, och lita på Statement Timeout som skyddsnät.
 - Bara antalet rader, den första cellen (skalär) och den första raden rapporteras — utforma frågan så att värdet du vill larma på är den första kolumnen.
-- Om resultatet kortas av för att det överskred Max Rows visar kontrollens sammanfattning **Rows Truncated**: "Yes (result capped)". Höj Max Rows bara om du behöver det; större resultatmängder kostar mer minne på sonden.
+- Om resultatet kortas av för att det överskred Max Rows visar kontrollens sammanfattning **Rader avkortade**: "Ja (resultatet är begränsat)". Höj Max Rows bara om du behöver det; större resultatmängder kostar mer minne på sonden.
 - Skrivningar och DDL avvisas alltid. Om du behöver testa en skrivväg är det inte det här monitorn är till för.
 - Föredra en övervakningshemlighet framför ett lösenord i vanlig text, så att inloggningsuppgifterna förblir krypterade när de lagras.
 - En kontroll vars fråga misslyckas försöks igen en sekund senare, upp till tre gånger till, innan den rapporterar felet, så att ett kort anslutningsavbrott inte gör monitorn offline. På en självhostad sond anger `PROBE_MONITOR_RETRY_LIMIT` hur många gånger.

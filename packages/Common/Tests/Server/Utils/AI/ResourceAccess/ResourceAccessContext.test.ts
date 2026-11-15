@@ -250,7 +250,7 @@ describe("ResourceAccessContext.describeMissingAccessForHumans", () => {
       ResourceAccessContext.describeMissingAccessForHumans(hostWithoutAgent());
 
     expect(text).toContain(
-      'OneUptime AI could not run commands on Host "db-host": no Host AI agent is connected.',
+      'OneUptime AI could not run commands on host "db-host": no Host AI agent is connected.',
     );
     expect(text).toContain("Install the Host AI agent");
   });

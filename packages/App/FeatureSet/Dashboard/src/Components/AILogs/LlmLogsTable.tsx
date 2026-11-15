@@ -27,6 +27,7 @@ import AiTokenCount, {
 } from "Common/Types/AI/AiTokenCount";
 import { getLlmLogCacheFacts } from "./LlmLogTokens";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface LlmLogsTableProps {
   query?: Query<LlmLog>;
@@ -77,7 +78,7 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       type: FieldType.Text,
       getElement: (item: LlmLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;
@@ -172,7 +173,7 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
             getElement: (item: LlmLog): ReactElement => {
               const cents: number = item["costInUSDCents"] as number;
               if (cents === undefined || cents === null) {
-                return <p>-</p>;
+                return <TableEmptyValue />;
               }
               const usd: number = cents / 100;
               return <p>${usd.toFixed(4)}</p>;

@@ -97,7 +97,7 @@
 
 **它放弃什么：**
 
-- 每个已稳定的实例和卷的状态历史，以及基于这些序列的图表或监控器。一个部分稳定后，`openstack_nova_server_status`、`openstack_cinder_volume_gb` 和 `openstack_cinder_volume_status` 就会停止。需要监控某个实例的监控器应选择它的项目，见下文。
+- 每个已稳定的实例和卷的状态历史，以及基于这些序列的图表或监视器。一个部分稳定后，`openstack_nova_server_status`、`openstack_cinder_volume_gb` 和 `openstack_cinder_volume_status` 就会停止。需要监控某个实例的监视器应选择它的项目，见下文。
 - `openstack_placement_resource_provider_allocations` 和 `openstack_nova_server_local_gb`，无论它们属于谁。探测器完全不再向 Placement 询问分配情况。
 
 **若仍要保留某个实例的序列**，请打开云的 **设置**，然后进入 **每个实例的真实用量**。**仅我选择的项目和聚合** 会保留这些项目的所有实例和卷，无论云有多大。**每个实例** 会为整个云关闭摘要模式。当每次收集的指标超过约 480 MiB 时，探测器会拒绝这样做，而不是把它们保存在内存中：这样的云请使用代理。
@@ -173,7 +173,7 @@ KEYSTONE_DATABASE_URL=mysql+pymysql://oneuptime:secret@db.example:3306/keystone
 OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 ```
 
-**它涵盖什么。** 名称相同的相同序列，因此每个页面、监控器和告警模板对它们的读取方式都相同。测试会逐个名称、逐个标签地要求它们与 API 导出器的一致。
+**它涵盖什么。** 名称相同的相同序列，因此每个页面、监视器和告警模板对它们的读取方式都相同。测试会逐个名称、逐个标签地要求它们与 API 导出器的一致。
 
 **它不涵盖什么：**
 
@@ -184,7 +184,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 | 网络的 MTU | 显示为未知 |
 | `openstack_placement_resource_provider_allocations`，提供者的 generation | 无人读取它们 |
 | 每个项目的配额和限额 | 它可以读取，但在 10,000 个项目时，每次抓取会有 790,000 个数据点，所以代理将它们省略。要保留它们，请删除 `otel-collector-config.yaml` 中的那条规则 |
-| API 是否应答 | `openstack_<service>_up` 表示的是它的数据库是否应答。API 已停止而数据库健康时仍读为运行中，所以请用[网站监控器](/docs/monitor/website-monitor)监视 API 本身 |
+| API 是否应答 | `openstack_<service>_up` 表示的是它的数据库是否应答。API 已停止而数据库健康时仍读为运行中，所以请用[网站监视器](/docs/monitor/website-monitor)监视 API 本身 |
 
 **验证到什么程度。** 这些序列读自导出器的源码和代理所固定标签处的自带测试，并且每一项都与 OneUptime 读取的内容一致。它尚未在真实数据库上运行过。
 
@@ -207,7 +207,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 在如此繁忙的机器上，余量并不宽裕。更早的一个小时，平均负载约为 42 并曾达到 95，运行中一次收集的最后一行在 124 秒时才落地，于是下一次收集被跳过，而其他所有预算都保持住了。
 
-**这里没有涵盖的内容。** 模拟 API 立即应答，因此这与您的 API 有多快无关：[一次收集的时间允许什么](#通过探测器)才是关于这一点的。它不包含探测器与摄取之间的 HTTP 服务器和队列，也不包含 ClickHouse，所以图表或监控器对序列的读取不在其中，只有清单的写入和读取。这些行的形态与真实的 DevStack 相似，而数量是编造的。没有任何这种规模的云对它运行过。
+**这里没有涵盖的内容。** 模拟 API 立即应答，因此这与您的 API 有多快无关：[一次收集的时间允许什么](#通过探测器)才是关于这一点的。它不包含探测器与摄取之间的 HTTP 服务器和队列，也不包含 ClickHouse，所以图表或监视器对序列的读取不在其中，只有清单的写入和读取。这些行的形态与真实的 DevStack 相似，而数量是编造的。没有任何这种规模的云对它运行过。
 
 ## 页面读取什么
 
@@ -230,5 +230,5 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 :::cards
 - [OpenStack 代理](/docs/telemetry/openstack): 安装代理。
 - [无需代理的 OpenStack](/docs/telemetry/openstack-agentless): 用探测器收集云。
-- [OpenStack 监控器](/docs/monitor/openstack-monitor): 对到达的数据发出告警。
+- [OpenStack 监视器](/docs/monitor/openstack-monitor): 对到达的数据发出告警。
 :::

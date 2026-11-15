@@ -33,8 +33,8 @@ De sonde meldt alleen:
 |---|---|
 | **Aantal rijen** | Het aantal rijen dat de query teruggaf (begrensd door de limiet Max Rows). |
 | **Scalaire waarde** | De eerste kolom van de eerste rij. Dit is de natuurlijke waarde voor een query in de stijl van `SELECT COUNT(*)`. |
-| **First Row** | De eerste rij als paren van kolom en waarde, getoond in de samenvatting van de controle voor context. |
-| **Execution Time** | Hoe lang de controle duurde, in milliseconden, inclusief het verbinden en niet alleen de query. |
+| **Eerste rij** | De eerste rij als paren van kolom en waarde, getoond in de samenvatting van de controle voor context. |
+| **Uitvoeringstijd** | Hoe lang de controle duurde, in milliseconden, inclusief het verbinden en niet alleen de query. |
 | **Queryfout** | Een opgeschoonde foutmelding als de query mislukte. |
 
 De volledige resultaatset wordt nooit naar OneUptime gestuurd, dus klantgegevens worden niet naar de opslag van OneUptime gekopieerd.
@@ -250,7 +250,7 @@ Koppel een on-callbeleid aan het criterium, zodat de juiste mensen worden opgero
 
 - De query draait bij elke controle, dus houd hem goedkoop. Gebruik indexen en smalle tijdvensters, en vertrouw op de Statement Timeout als vangnet.
 - Alleen het aantal rijen, de eerste cel (scalair) en de eerste rij worden gemeld: ontwerp uw query zo dat de waarde waarop u wilt waarschuwen in de eerste kolom staat.
-- Wordt het resultaat afgekapt omdat het Max Rows overschreed, dan toont de samenvatting van de controle **Rows Truncated**: "Yes (result capped)". Verhoog Max Rows alleen als u het nodig hebt; grotere resultaatsets kosten meer geheugen op de sonde.
+- Wordt het resultaat afgekapt omdat het Max Rows overschreed, dan toont de samenvatting van de controle **Rijen afgekapt**: "Ja (resultaat begrensd)". Verhoog Max Rows alleen als u het nodig hebt; grotere resultaatsets kosten meer geheugen op de sonde.
 - Schrijfacties en DDL worden altijd geweigerd. Moet u een schrijfpad testen, dan is deze monitor daar niet voor.
 - Geef de voorkeur aan een monitorgeheim boven een wachtwoord in platte tekst, zodat de inloggegevens versleuteld opgeslagen blijven.
 - Een controle waarvan de query mislukt, wordt een seconde later opnieuw geprobeerd, tot nog drie keer, voordat de fout wordt gemeld, zodat een korte verbindingsonderbreking de monitor niet offline zet. Op een zelfgehoste sonde bepaalt `PROBE_MONITOR_RETRY_LIMIT` hoe vaak.

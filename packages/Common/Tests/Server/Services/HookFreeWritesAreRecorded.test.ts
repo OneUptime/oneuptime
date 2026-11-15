@@ -490,6 +490,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Huntress/HuntressConnectionsToWorkflows.ts": {
     "(module) Incident": Why.Migration,
   },
+  "packages/Common/Server/Utils/Incident/PostmortemActionItemCodeTasks.ts": {
+    // A postmortem's action item is done as its pull request merges; the incident's feed says so (#6801).
+    "PostmortemActionItemCodeTasks.onPullRequestMerged IncidentPostmortemActionItem":
+      Why.Automation,
+  },
   "packages/Common/Server/Utils/Monitor/MonitorResource.ts": {
     "MonitorResourceUtil.monitorResource Monitor": Why.Reported,
   },

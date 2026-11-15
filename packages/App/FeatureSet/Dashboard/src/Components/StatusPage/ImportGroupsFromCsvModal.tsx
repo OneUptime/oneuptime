@@ -45,6 +45,7 @@ import React, {
 } from "react";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Bulk CSV import for Status Page Groups, reached from the ⋯ menu on the
@@ -562,14 +563,14 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                           {row.description ? (
                             <IsolatedText text={row.description} />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.viewMode || "—"}
+                          {row.viewMode || <TableEmptyValue />}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {describeOptions(row) || "—"}
+                          {describeOptions(row) || <TableEmptyValue />}
                         </td>
                       </tr>
                     );
@@ -647,7 +648,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                               }
                             />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                       </tr>

@@ -156,9 +156,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             type: FieldType.Text,
             // As the form's cards name it: "Azure OpenAI / Microsoft Foundry".
             getElement: (item: LlmProvider): ReactElement => {
-              return (
-                <LlmProviderTypeLabel llmType={item.llmType} emptyText="-" />
-              );
+              return <LlmProviderTypeLabel llmType={item.llmType} />;
             },
           },
           {

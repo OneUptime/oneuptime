@@ -1,6 +1,7 @@
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 export interface ComponentProps {
   text: string;
@@ -16,7 +17,7 @@ const ExpandableText: FunctionComponent<ComponentProps> = (
   const maxLength: number = props.maxLength || 80;
 
   if (!props.text || props.text === "-") {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const isLong: boolean = props.text.length > maxLength;

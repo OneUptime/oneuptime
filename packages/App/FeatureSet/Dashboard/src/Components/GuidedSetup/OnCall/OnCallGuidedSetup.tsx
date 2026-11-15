@@ -36,6 +36,7 @@ import {
   getOnCallSummaryRows,
   getPhoneBreaks,
   getPolicyBreaks,
+  getRunWithoutPolicy,
   getVerifiedMethodsOfType,
   isOnCallSetupFinished,
   isPhoneBalanceTooLow,
@@ -264,6 +265,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
    */
   const [isPolicyMadeElsewhere, setIsPolicyMadeElsewhere] =
     useState<boolean>(false);
+  /*
+   * The run's policy was deleted - in another tab, or by a teammate - so
+   * the step opened again to make or pick one (#7516): said first in the
+   * step, until a policy is set up.
+   */
+  const [isPolicyDeleted, setIsPolicyDeleted] = useState<boolean>(false);
   const [reminders, setReminders] = useState<SetupReminderStatuses>({});
 
   // Step 3.
@@ -316,7 +323,58 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     setOpenStepKey(next);
   };
 
-  // The run's policy and whether a page reaches each of its people.
+  /*
+   * THE RUN'S POLICY WAS DELETED - in another tab, or by a teammate - while
+   * this page was open (#7516). The run forgets it and what was built on
+   * it, as the page does when it opens on a policy that is gone; the
+   * project's policies are read again (or, unreadable, the ones read before
+   * lose the one that is gone), and "Who else is on call?" opens on making
+   * or picking one, saying why first. A step after it never opens on a
+   * policy that is gone, where its button could only do nothing.
+   */
+  const forgetDeletedPolicy: (
+    deletedPolicyId: string,
+  ) => Promise<void> = async (deletedPolicyId: string): Promise<void> => {
+    const latest: PolicyChoiceFacts | null =
+      await OnCallSetupApi.loadPolicyChoices().catch(() => {
+        return null;
+      });
+    const nextChoices: PolicyChoiceFacts | null =
+      latest ||
+      (choices
+        ? {
+            ...choices,
+            policies: choices.policies.filter(
+              (entry: { id: string }): boolean => {
+                return entry.id !== deletedPolicyId;
+              },
+            ),
+          }
+        : null);
+
+    setRun(store.save(getRunWithoutPolicy()));
+    setPolicy(null);
+    setResponders([]);
+    setTestResult(null);
+    setReminders({});
+    setShowNotReceivedHelp(false);
+    setIsPolicyMadeElsewhere(false);
+    setIsPolicyDeleted(true);
+
+    if (nextChoices) {
+      setChoices(nextChoices);
+      setChosenPolicyId(nextChoices.policies[0]?.id || "");
+    }
+
+    setOpenStepKey(OnCallSetupStep.WhoElse);
+  };
+
+  /*
+   * The run's policy and whether a page reaches each of its people; null
+   * when it is gone, and then forgotten (forgetDeletedPolicy). A read that
+   * fails throws, for the step to say why: a policy is never taken for
+   * gone because the server could not be reached.
+   */
   const readPolicy: (
     policyId: string,
     refresh: boolean,
@@ -324,27 +382,64 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     policyId: string,
     refresh: boolean,
   ): Promise<Array<WhoIsToldBreak> | null> => {
-    const loaded: OnCallPolicyRecord | null = await OnCallSetupApi.loadPolicy(
-      policyId,
-    ).catch(() => {
+    const loaded: OnCallPolicyRecord | null =
+      await OnCallSetupApi.loadPolicy(policyId);
+
+    if (!loaded) {
+      await forgetDeletedPolicy(policyId);
       return null;
-    });
-    const people: Array<ResponderReach> = loaded
-      ? await OnCallSetupApi.loadPolicyReadiness({
-          policyId: policyId,
-          refresh: refresh,
-        }).catch(() => {
-          return [];
-        })
-      : [];
+    }
+
+    const people: Array<ResponderReach> =
+      await OnCallSetupApi.loadPolicyReadiness({
+        policyId: policyId,
+        refresh: refresh,
+      }).catch(() => {
+        return [];
+      });
 
     setPolicy(loaded);
     setResponders(people);
 
-    // What still stands between the policy and its people; null when it is gone.
-    return loaded
-      ? getPolicyBreaks({ policy: loaded, responders: people })
-      : null;
+    // What still stands between the policy and its people.
+    return getPolicyBreaks({ policy: loaded, responders: people });
+  };
+
+  /*
+   * The policy read again once something was saved to it: null when it is
+   * gone (and forgotten), undefined when the read failed - what was saved
+   * stays saved, and the step moves on with what was read before rather
+   * than offer to save it twice.
+   */
+  const readPolicyAfterSaving: (
+    policyId: string,
+  ) => Promise<Array<WhoIsToldBreak> | null | undefined> = async (
+    policyId: string,
+  ): Promise<Array<WhoIsToldBreak> | null | undefined> => {
+    return await readPolicy(policyId, false).catch(() => {
+      return undefined;
+    });
+  };
+
+  /*
+   * Whether the run's policy is still there, read just before a step that
+   * needs it moves on (#7516). Gone: the run forgets it, and "Who else is
+   * on call?" opens again. Unreadable: the step says why, and stays.
+   */
+  const isPolicyStillThere: (policyId: string) => Promise<boolean> = async (
+    policyId: string,
+  ): Promise<boolean> => {
+    try {
+      if (await OnCallSetupApi.loadPolicy(policyId)) {
+        return true;
+      }
+    } catch (err) {
+      setSaveError(API.getFriendlyMessage(err));
+      return false;
+    }
+
+    await forgetDeletedPolicy(policyId);
+    return false;
   };
 
   const readReach: (refresh: boolean) => Promise<void> = async (
@@ -379,24 +474,26 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       let loadedPolicy: OnCallPolicyRecord | null = null;
       let loadedResponders: Array<ResponderReach> = [];
       let loadedResult: OnCallTestPageResult | null = null;
+      let isRunPolicyGone: boolean = false;
 
       const policyId: string | boolean | undefined =
         nextRun[OnCallRunValue.PolicyId];
 
       if (typeof policyId === "string") {
-        loadedPolicy = await OnCallSetupApi.loadPolicy(policyId).catch(() => {
-          return null;
-        });
+        /*
+         * A read that fails is the page's error, as the project's other
+         * reads are: the run is never forgotten, nor its policy said to be
+         * deleted, because the server could not be reached.
+         */
+        loadedPolicy = await OnCallSetupApi.loadPolicy(policyId);
 
         if (!loadedPolicy) {
-          // The policy is gone: everything after "who is reached" starts again.
-          nextRun = store.save({
-            [OnCallRunValue.PolicyId]: null,
-            [OnCallRunValue.PolicyIsExisting]: null,
-            [OnCallRunValue.NoAnswerDone]: null,
-            [OnCallRunValue.TestExecutionLogId]: null,
-            [OnCallRunValue.TestSkipped]: null,
-          });
+          /*
+           * The policy is gone: everything after "who is reached" starts
+           * again, and the step says why (#7516).
+           */
+          nextRun = store.save(getRunWithoutPolicy());
+          isRunPolicyGone = true;
         } else {
           loadedResponders = await OnCallSetupApi.loadPolicyReadiness({
             policyId: policyId,
@@ -428,6 +525,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       setPolicy(loadedPolicy);
       setResponders(loadedResponders);
       setTestResult(loadedResult);
+      setIsPolicyDeleted(isRunPolicyGone);
       setOpenStepKey(
         getFirstOpenStepKey(
           getOnCallProgress({
@@ -1010,17 +1108,28 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         const chosen: OnCallPolicyRecord | null =
           await OnCallSetupApi.loadPolicy(policyId);
 
+        /*
+         * The policy picked was deleted since the project's policies were
+         * read (#7516): nothing is added to it, and the step offers the
+         * project's policies as they are now.
+         */
+        if (!chosen) {
+          await forgetDeletedPolicy(policyId);
+          setIsSaving(false);
+          return;
+        }
+
         // Who is on its first level already is not added twice.
         const newUserIds: Array<string> = userIds.filter(
           (id: string): boolean => {
-            return !chosen?.levels[0]?.userIds.includes(id);
+            return !chosen.levels[0]?.userIds.includes(id);
           },
         );
 
         if (mayEditLevels && newUserIds.length + teamIds.length > 0) {
           await OnCallSetupApi.addToFirstLevel({
             policyId: policyId,
-            firstLevelId: chosen?.levels[0]?.id || null,
+            firstLevelId: chosen.levels[0]?.id || null,
             userIds: newUserIds,
             teamIds: teamIds,
           });
@@ -1057,6 +1166,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           setChoices(latest);
           setChosenPolicyId(latest.policies[0]?.id || "");
           setIsPolicyMadeElsewhere(latest.policies.length > 0);
+          // The newer reason is the one said.
+          setIsPolicyDeleted(false);
           setIsSaving(false);
           return;
         }
@@ -1068,6 +1179,9 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         });
         saveRun({ [OnCallRunValue.PolicyId]: policyId });
       }
+
+      // The run has a policy again: why it lost the last one is said no more.
+      setIsPolicyDeleted(false);
 
       /*
        * Everyone reached and the policy runs: on to the next step. Otherwise
@@ -1089,26 +1203,40 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     setIsSaving(false);
   };
 
-  // Adds the on-call rules nothing ran the policy by, then moves on.
+  /*
+   * Adds the on-call rules nothing ran the policy by, then moves on - once
+   * the policy is read again, just before: deleted since, in another tab or
+   * by a teammate, the run forgets it and the step stays open to make or
+   * pick one, with nothing added (#7516); its rules added since by another
+   * tab or device are not added twice, as a second pair would run the
+   * policy twice for every new incident and alert (#7252). Only the kinds
+   * still missing are added, and only when the button offered to.
+   */
   const continueFromPeople: () => Promise<void> = async (): Promise<void> => {
     setSaveError("");
 
-    if (policy && isMissingRules && mayAddRules && missingRules) {
-      setIsSaving(true);
+    if (!policy) {
+      return;
+    }
 
-      try {
-        /*
-         * The policy's rules are read again just before they are added:
-         * another tab or device may have added them since, and a second
-         * pair would run the policy twice for every new incident and alert
-         * (#7252). Only the kinds still missing are added.
-         */
-        const latest: OnCallPolicyRecord | null =
-          await OnCallSetupApi.loadPolicy(policy.id);
-        const stillMissing: { incident: boolean; alert: boolean } | null =
-          latest ? getMissingRuleKinds(latest) : null;
+    setIsSaving(true);
 
-        if (stillMissing && (stillMissing.incident || stillMissing.alert)) {
+    try {
+      const latest: OnCallPolicyRecord | null = await OnCallSetupApi.loadPolicy(
+        policy.id,
+      );
+
+      if (!latest) {
+        await forgetDeletedPolicy(policy.id);
+        setIsSaving(false);
+        return;
+      }
+
+      if (isMissingRules && mayAddRules) {
+        const stillMissing: { incident: boolean; alert: boolean } =
+          getMissingRuleKinds(latest);
+
+        if (stillMissing.incident || stillMissing.alert) {
           await OnCallSetupApi.addEveryNewEventRules({
             policyId: policy.id,
             policyName: policy.name,
@@ -1117,16 +1245,21 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           });
         }
 
-        await readPolicy(policy.id, false);
-      } catch (err) {
-        setSaveError(API.getFriendlyMessage(err));
-        setIsSaving(false);
-        return;
+        // Gone meanwhile: forgotten, and the step stays open.
+        if ((await readPolicyAfterSaving(policy.id)) === null) {
+          setIsSaving(false);
+          return;
+        }
+      } else {
+        setPolicy(latest);
       }
-
+    } catch (err) {
+      setSaveError(API.getFriendlyMessage(err));
       setIsSaving(false);
+      return;
     }
 
+    setIsSaving(false);
     openNextStep(OnCallSetupStep.WhoElse);
   };
 
@@ -1245,14 +1378,45 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       })
     : "";
 
+  /*
+   * Why the step is open again with no policy: the run's was deleted
+   * (#7516). Said first; in the step's polite live region when the step can
+   * make or pick one, so a screen reader hears why Continue led back here.
+   */
+  const policyDeletedLine: ReactElement =
+    isPolicyDeleted && !policy ? (
+      <p
+        className="text-sm text-gray-700"
+        data-testid="on-call-setup-policy-deleted"
+      >
+        {translator.translateText(ON_CALL_SETUP_COPY.policyDeleted)}
+      </p>
+    ) : (
+      <></>
+    );
+
   let whoContent: ReactElement;
 
   if (policy) {
     whoContent = (
       <div className="space-y-4">
-        <p className="text-sm text-gray-700" data-testid="on-call-setup-policy">
-          {whoDoneLine}
-        </p>
+        {/*
+         * The step's polite live region, where the make-or-pick branch has
+         * it: Continue that finds the policy deleted (#7516) turns the step
+         * to making or picking one, and the same region then says why.
+         */}
+        <div
+          className="space-y-4"
+          aria-live="polite"
+          data-testid="on-call-setup-who-help"
+        >
+          <p
+            className="text-sm text-gray-700"
+            data-testid="on-call-setup-policy"
+          >
+            {whoDoneLine}
+          </p>
+        </div>
         {readinessList}
         {breakLines(
           policyBreaks.filter((brk: WhoIsToldBreak): boolean => {
@@ -1281,6 +1445,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   } else if (!isExistingMode && !mayCreatePolicy) {
     whoContent = (
       <div data-testid="on-call-setup-cannot-create">
+        <div aria-live="polite" data-testid="on-call-setup-who-help">
+          {isPolicyDeleted ? (
+            <div className="mb-4">{policyDeletedLine}</div>
+          ) : (
+            <></>
+          )}
+        </div>
         <Alert
           type={AlertType.INFO}
           title={
@@ -1303,6 +1474,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           aria-live="polite"
           data-testid="on-call-setup-who-help"
         >
+          {policyDeletedLine}
           {isPolicyMadeElsewhere && isExistingMode ? (
             <p
               className="text-sm text-gray-700"
@@ -1400,15 +1572,31 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
    */
   const secondLevel: PolicyLevel | undefined = policy?.levels[1];
 
+  /*
+   * Saves what happens when nobody answers - once the policy is read again,
+   * just before: deleted since, in another tab or by a teammate, the run
+   * forgets it and "Who else is on call?" opens again, with nothing written
+   * to a policy that is gone and the step never left with a button that
+   * does nothing (#7516).
+   */
   const saveNoAnswer: () => Promise<void> = async (): Promise<void> => {
     setSaveError("");
     setNoAnswerError("");
 
     if (!policy) {
+      setOpenStepKey(OnCallSetupStep.WhoElse);
       return;
     }
 
     if (secondLevel || noAnswerChoice === NoAnswerChoice.Nothing) {
+      setIsSaving(true);
+      const isThere: boolean = await isPolicyStillThere(policy.id);
+      setIsSaving(false);
+
+      if (!isThere) {
+        return;
+      }
+
       saveRun({ [OnCallRunValue.NoAnswerDone]: true });
       openNextStep(OnCallSetupStep.NoAnswer);
       return;
@@ -1433,6 +1621,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     setIsSaving(true);
 
     try {
+      if (!(await OnCallSetupApi.loadPolicy(policy.id))) {
+        await forgetDeletedPolicy(policy.id);
+        setIsSaving(false);
+        return;
+      }
+
       if (noAnswerChoice === NoAnswerChoice.Escalate) {
         const userIds: Array<string> = pickedIds(
           nextPeople,
@@ -1478,7 +1672,16 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         });
       }
 
-      await readPolicy(policy.id, false);
+      /*
+       * Read again for the summary. Gone meanwhile: forgotten, and "Who
+       * else is on call?" is open. A read that fails leaves what was read
+       * before: what was saved is saved, and is not saved twice.
+       */
+      if ((await readPolicyAfterSaving(policy.id)) === null) {
+        setIsSaving(false);
+        return;
+      }
+
       saveRun({ [OnCallRunValue.NoAnswerDone]: true });
       openNextStep(OnCallSetupStep.NoAnswer);
     } catch (err) {
@@ -1684,6 +1887,28 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const isAcknowledged: boolean =
     testResult?.status === OnCallTestPageStatus.Acknowledged;
 
+  /*
+   * Skipping the test leads to the summary, read from the records - once
+   * the policy is read again: deleted since, in another tab or by a
+   * teammate, there is nothing to sum up, and "Who else is on call?" opens
+   * again instead (#7516).
+   */
+  const skipTest: () => Promise<void> = async (): Promise<void> => {
+    setSaveError("");
+
+    if (!policy) {
+      setOpenStepKey(OnCallSetupStep.WhoElse);
+      return;
+    }
+
+    if (!(await isPolicyStillThere(policy.id))) {
+      return;
+    }
+
+    saveRun({ [OnCallRunValue.TestSkipped]: true });
+    setOpenStepKey(null);
+  };
+
   const testContent: ReactElement = (
     <div className="space-y-4">
       {executionLogId ? (
@@ -1737,6 +1962,27 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
               onResult={(result: OnCallTestPageResult) => {
                 setTestResult(result);
               }}
+              onClose={() => {
+                /*
+                 * The dialog closed: a policy deleted meanwhile, in another
+                 * tab or by a teammate, could not be tested (#7516). The
+                 * run forgets it, and "Who else is on call?" opens again; a
+                 * read that fails changes nothing.
+                 */
+                const policyId: string = policy.id;
+
+                void OnCallSetupApi.loadPolicy(policyId)
+                  .then((latest: OnCallPolicyRecord | null) => {
+                    if (!latest) {
+                      return forgetDeletedPolicy(policyId);
+                    }
+
+                    return undefined;
+                  })
+                  .catch(() => {
+                    // The step stays as it is.
+                  });
+              }}
             />
           ) : (
             <></>
@@ -1758,8 +2004,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             buttonStyle={ButtonStyleType.LINK}
             dataTestId="on-call-setup-skip-test"
             onClick={() => {
-              saveRun({ [OnCallRunValue.TestSkipped]: true });
-              setOpenStepKey(null);
+              void skipTest();
             }}
           />
         </div>
@@ -1946,6 +2191,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             setRun(store.save({ [OnCallRunValue.ReachConfirmed]: true }));
             setPolicy(null);
             setIsPolicyMadeElsewhere(false);
+            setIsPolicyDeleted(false);
             setResponders([]);
             setTestResult(null);
             setReminders({});

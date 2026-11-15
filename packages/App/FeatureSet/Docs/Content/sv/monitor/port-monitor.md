@@ -98,7 +98,7 @@ För ett värdnamn mäter sonden kontrollen i två faser:
 | **DNS-uppslag** | Kontrollens början | Det första TCP-anslutningsförsöket |
 | **TCP-anslutning** | Det första TCP-anslutningsförsöket | Att anslutningen tas emot, inklusive tiden för att växla mellan IPv6- och IPv4-adresser |
 
-**Total Connection Time (DNS + TCP)** löper från kontrollens början tills anslutningen tas emot. Det är också portmonitorns svarstid, så befintliga kriterier, larm och diagram som använder svarstiden fortsätter att fungera.
+**Total anslutningstid (DNS + TCP)** löper från kontrollens början tills anslutningen tas emot. Det är också portmonitorns svarstid, så befintliga kriterier, larm och diagram som använder svarstiden fortsätter att fungera.
 
 När målet är en IP-adress finns inget DNS-uppslag, så den fasen utelämnas. Kontrollresultat från innan fastiderna fanns visar bara den totala anslutningstiden.
 

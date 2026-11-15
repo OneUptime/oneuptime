@@ -375,7 +375,9 @@ const DataSecurityDataStores: FunctionComponent<
             getElement: (item: DataStore): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {translator.translateText(item.environment) || "—"}
+                  {translator.translateText(item.environment) || (
+                    <TableEmptyValue />
+                  )}
                 </span>
               );
             },

@@ -11,11 +11,11 @@ En domæne-monitor læser dit domænes registreringspost efter en tidsplan for a
 
 ## Sådan virker det
 
-Ved hver kontrol slår en sonde domænets registreringspost op via RDAP eller WHOIS, afhængigt af **Lookup Method**, og ensretter det, den finder: udløbsdatoen, registratoren, navneserverne og statuskoderne. Et opslag, der fejler, forsøges igen, op til det antal genforsøg, du angiver. Derefter kører OneUptime posten gennem monitorens kriterier.
+Ved hver kontrol slår en sonde domænets registreringspost op via RDAP eller WHOIS, afhængigt af **Opslagsmetode**, og ensretter det, den finder: udløbsdatoen, registratoren, navneserverne og statuskoderne. Et opslag, der fejler, forsøges igen, op til det antal genforsøg, du angiver. Derefter kører OneUptime posten gennem monitorens kriterier.
 
 ```mermaid title="Sådan læser et opslag registreringen"
 flowchart TB
-    method{"Lookup Method"} -->|"Auto eller RDAP"| rdap["Spørg TLD'ens<br/>RDAP-server"]
+    method{"Opslagsmetode"} -->|"Auto eller RDAP"| rdap["Spørg TLD'ens<br/>RDAP-server"]
     method -->|"WHOIS"| whois["Spørg TLD'ens<br/>WHOIS-server"]
     rdap -->|"Post fundet"| record["Registreringspost"]
     rdap -->|"Ingen RDAP eller en fejl,<br/>med Auto"| whois
@@ -56,7 +56,7 @@ Indtast et **Navn**, for eksempel `example.com registration`, og klik derefter p
 
 ### Indtast domænet
 
-Indtast **Domænenavn**, for eksempel `example.com`. Lad **Lookup Method** stå på **Auto**, medmindre du har en grund til andet (se [Opslagsmetoder](#opslagsmetoder)).
+Indtast **Domænenavn**, for eksempel `example.com`. Lad **Opslagsmetode** stå på **Auto**, medmindre du har en grund til andet (se [Opslagsmetoder](#opslagsmetoder)).
 
 ### Test den
 
@@ -76,7 +76,7 @@ Behold eller skift **Sonder** og **Overvågningsinterval** (det starter på **Hv
 | Felt | Standard | Hvad du skal angive |
 | --- | --- | --- |
 | **Domænenavn** | Ingen | Det registrerede domæne, for eksempel `example.com`. En indsat adresse virker også: `https://example.com/pricing` læses som `example.com`. |
-| **Lookup Method** | **Auto** | **Auto**, **RDAP** eller **WHOIS**. Se [Opslagsmetoder](#opslagsmetoder). |
+| **Opslagsmetode** | **Auto** | **Auto**, **RDAP** eller **WHOIS**. Se [Opslagsmetoder](#opslagsmetoder). |
 | **Timeout (ms)** (under **Flere felter**) | `10000` | Hvor længe der ventes på hvert registreringsopslag, i millisekunder. |
 | **Genforsøg** (under **Flere felter**) | `3` | Genforsøg, efter at det første forsøg er mislykket. `0` betyder et enkelt forsøg. |
 
@@ -163,11 +163,11 @@ Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet
 ## Fejlfinding
 
 :::details WHOIS-serveren "answered without any registration data"
-TLD'ens WHOIS-vært er nedlagt, begrænser sonden eller er kortvarigt i stykker. En nedlagt vært, som den, der stadig er tilknyttet Identity Digitals TLD'er, svarer `TLD is not supported.` hver gang. Hvis fejlen fortsætter med **Lookup Method** på **WHOIS**, så skift til **Auto**, så sonden læser TLD'ens RDAP-tjeneste, hvor der er en.
+TLD'ens WHOIS-vært er nedlagt, begrænser sonden eller er kortvarigt i stykker. En nedlagt vært, som den, der stadig er tilknyttet Identity Digitals TLD'er, svarer `TLD is not supported.` hver gang. Hvis fejlen fortsætter med **Opslagsmetode** på **WHOIS**, så skift til **Auto**, så sonden læser TLD'ens RDAP-tjeneste, hvor der er en.
 :::
 
 :::details Kontrollen fejler med "No RDAP service is published"
-Monitoren bruger **RDAP**, og TLD'en offentliggør ingen RDAP-tjeneste, som mange ccTLD'er ikke gør. Skift **Lookup Method** til **Auto**, der falder tilbage til WHOIS.
+Monitoren bruger **RDAP**, og TLD'en offentliggør ingen RDAP-tjeneste, som mange ccTLD'er ikke gør. Skift **Opslagsmetode** til **Auto**, der falder tilbage til WHOIS.
 :::
 
 :::details Domænet rapporteres som ikke registreret

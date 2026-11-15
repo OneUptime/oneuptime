@@ -316,7 +316,11 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
       <p className="text-sm text-gray-500">
         {translator.translateText(TELEMETRY_SETUP_COPY.sendHelp)}
       </p>
-      <TelemetryDocumentation telemetryType="traces" isBare={true} />
+      <TelemetryDocumentation
+        telemetryType="traces"
+        everySignal={true}
+        isBare={true}
+      />
       <div>
         <h3 className="mb-2 text-sm font-semibold text-gray-900">
           {translator.translateText(TELEMETRY_SETUP_COPY.waitTitle)}

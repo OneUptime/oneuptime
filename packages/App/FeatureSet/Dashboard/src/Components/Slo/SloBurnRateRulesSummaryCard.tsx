@@ -25,6 +25,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -292,15 +293,15 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                         )}
                       </div>
                       <span className="flex-shrink-0 text-xs tabular-nums text-gray-500">
-                        {currentBurnRate === null
-                          ? "—"
-                          : translator.translateTemplate("{{rate}} now", {
-                              rate:
-                                formatSloBurnRate(
-                                  currentBurnRate,
-                                  translator,
-                                ) || "",
-                            })}
+                        {currentBurnRate === null ? (
+                          <EmptyValue isSmall={true} />
+                        ) : (
+                          translator.translateTemplate("{{rate}} now", {
+                            rate:
+                              formatSloBurnRate(currentBurnRate, translator) ||
+                              "",
+                          })
+                        )}
                       </span>
                     </div>
                   ) : (

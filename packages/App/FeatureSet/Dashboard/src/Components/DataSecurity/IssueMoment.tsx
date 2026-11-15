@@ -1,5 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   value: Date | string | undefined | null;
@@ -15,7 +16,7 @@ const IssueMoment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (!props.value) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const date: Date = OneUptimeDate.fromString(props.value);

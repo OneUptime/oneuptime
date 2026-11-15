@@ -107,7 +107,7 @@ flowchart TB
 > `container.cpu.utilization` 就是 `podman stats` 輸出的數字在代理程式每個 30 秒間隔內的平均值：100% 是一個完整的 CPU 核心，而不是容器的全部 CPU 配額。被分配多個核心的容器在健康時也會遠高於 100，所以請為這類容器調高閾值。
 
 > [!NOTE]
-> `container.restarts` 是 Podman 維護的累計值，直到手動重新啟動或重新建立的容器讓它從 0 重新開始，所以代理程式還會在每個樣本裡傳送 `container.restarts.increase`：自它上一次對該容器取樣以來的重新啟動次數。**Container Restart Loop** 與 Docker 一樣會把它們相加，因此無論樣本相隔多遠，每次重新啟動都會計入，而手動重新啟動不算在內。舊版代理程式不會傳送 `container.restarts.increase`：請先[升級它](/docs/telemetry/podman-host#升級代理程式)。在那之前用該範本建立的監控器讀取的是 `container.restarts` 在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動：請刪除它，再用範本重新建立。
+> `container.restarts` 是 Podman 維護的累計值，直到手動重新啟動或重新建立的容器讓它從 0 重新開始，所以代理程式還會在每個樣本裡傳送 `container.restarts.increase`：自它上一次對該容器取樣以來的重新啟動次數。**Container Restart Loop** 與 Docker 一樣會把它們相加，因此無論樣本相隔多遠，每次重新啟動都會計入，而手動重新啟動不算在內。舊版代理程式不會傳送 `container.restarts.increase`：請先[升級它](/docs/telemetry/podman-host#升級代理程式)。在那之前用該範本建立的監測器讀取的是 `container.restarts` 在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動：請刪除它，再用範本重新建立。
 
 > [!CAUTION]
 > `container.uptime` 只存在於正在執行的容器。停止後一直保持停止的容器不會傳送任何資料，所以 **Container Restarted (Low Uptime)** 範本捕捉的是重新啟動和重新部署，而不是永久關閉。設計為執行不到兩分鐘的容器，在整個生命週期內都會處於警示狀態。
@@ -187,7 +187,7 @@ flowchart TB
 | 2 | Check if _monitor name_ is online | 第一個查詢有資料 | 將監測器標記為 **運作中**。 |
 
 > [!IMPORTANT]
-> 值為 `0` 也是資料，因此經常為零的指標（例如重新啟動次數或錯誤數）不會讓監控器離線。要針對某個值告警，請從範本開始，或新增帶有閾值的條件。當完全沒有資料到達且沒有任何條件符合時，監控器會保持原有狀態，未解決的事件也保持開啟：沉默不等於恢復。OneUptime 本身未接收資料的時間絕不算作無資料：視窗包含這段時間的檢查會改為等待，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值為 `0` 也是資料，因此經常為零的指標（例如重新啟動次數或錯誤數）不會讓監測器離線。要針對某個值告警，請從範本開始，或新增帶有閾值的條件。當完全沒有資料到達且沒有任何條件符合時，監測器會保持原有狀態，未解決的事件也保持開啟：沉默不等於恢復。OneUptime 本身未接收資料的時間絕不算作無資料：視窗包含這段時間的檢查會改為等待，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 收集的日誌
 
@@ -292,7 +292,7 @@ OneUptime 以 `resource.host.name` 識別主機，代理程式從 `PODMAN_HOST_N
 :::
 
 :::details 重新啟動警示從不觸發，或一直不會清除
-直接拿 `container.restarts` 與閾值比較的監控器（例如用重新啟動範本的早期版本建立的監控器）會因容器的歷史而觸發，而且一直不會清除：這個總數只會成長。在 **Container Restart Loop** 改為讀取 `container.restarts.increase` 之前用它建立的監控器，量測的是總數在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動。舊版代理程式不會傳送 `container.restarts.increase`：請[升級代理程式](/docs/telemetry/podman-host#升級代理程式)，然後刪除該監控器，再重新建立 **Container Restart Loop**。
+直接拿 `container.restarts` 與閾值比較的監測器（例如用重新啟動範本的早期版本建立的監測器）會因容器的歷史而觸發，而且一直不會清除：這個總數只會成長。在 **Container Restart Loop** 改為讀取 `container.restarts.increase` 之前用它建立的監測器，量測的是總數在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動。舊版代理程式不會傳送 `container.restarts.increase`：請[升級代理程式](/docs/telemetry/podman-host#升級代理程式)，然後刪除該監測器，再重新建立 **Container Restart Loop**。
 :::
 
 ## 後續步驟

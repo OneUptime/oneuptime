@@ -58,6 +58,7 @@ import React, {
   useState,
 } from "react";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   /*
@@ -568,9 +569,11 @@ const RetrohuntGroups: FunctionComponent<GroupsProps> = (
                           : undefined
                       }
                     >
-                      {group.lastFiredAt
-                        ? OneUptimeDate.fromNow(group.lastFiredAt)
-                        : "-"}
+                      {group.lastFiredAt ? (
+                        OneUptimeDate.fromNow(group.lastFiredAt)
+                      ) : (
+                        <TableEmptyValue />
+                      )}
                     </td>
                   )}
                 </tr>

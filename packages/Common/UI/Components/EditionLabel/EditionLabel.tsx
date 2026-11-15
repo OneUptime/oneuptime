@@ -64,6 +64,7 @@ import { getReaderDateLocale } from "../../../Types/DateLanguage";
 import { getIsolatedLine } from "../IsolatedText/IsolatedLine";
 import { ReadingDirection } from "../../../Types/ReadingDirection";
 import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
+import EmptyValue from "../Detail/EmptyValue";
 
 /*
  * The edition pill and its dialog. This component only READS the license
@@ -2032,7 +2033,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       {translator.translateText("Expires")}
                     </dt>
                     <dd className="mt-1 text-sm font-medium tabular-nums text-gray-900">
-                      {licenseExpiresAtText || "—"}
+                      {licenseExpiresAtText || <EmptyValue />}
                     </dd>
                   </div>
                 </dl>

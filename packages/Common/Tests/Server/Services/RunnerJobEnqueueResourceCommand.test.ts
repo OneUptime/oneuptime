@@ -793,7 +793,7 @@ describe("RunnerJobService.enqueueAiResourceCommand", () => {
       );
 
       expect(refusal.refusalCode).toBe("policy_denied");
-      expect(refusal.message).toContain("Denied by the Host command policy");
+      expect(refusal.message).toContain("Denied by the host command policy");
     });
 
     it("enqueues a database catalog read and names the database server in refusals", async () => {
