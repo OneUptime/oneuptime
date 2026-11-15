@@ -360,9 +360,11 @@ describe("every Dashboard page hands its charts their words in the reader's lang
       (count: number, source: { words: ChartWordsOfSource }): number => {
         return (
           count +
-          source.words.words.filter((word: { source?: string }): boolean => {
-            return Boolean(word.source);
-          }).length
+          source.words.words.filter(
+            (word: { source?: string | undefined }): boolean => {
+              return Boolean(word.source);
+            },
+          ).length
         );
       },
       0,

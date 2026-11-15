@@ -16,6 +16,10 @@ import {
   DOCKER_SWARM_INSTALL_METHODS,
   getDockerSwarmSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import {
+  CEPH_INSTALL_METHODS,
+  getCephSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -138,6 +142,30 @@ export function getDockerSwarmSetupGuideWays(): Array<SetupGuideWay> {
       return getDockerSwarmSetupGuide({
         oneuptimeUrl: reader.oneuptimeUrl,
         apiKey: reader.apiKey,
+        method: option,
+        clusterName: name,
+      });
+    },
+  });
+}
+
+/*
+ * Ceph's guide also tells a reader with a key from one without: the install
+ * script's command carries only a real key (CephDocumentationCard).
+ */
+export function getCephSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: CEPH_INSTALL_METHODS,
+    names: ["ceph-1", "Prod Ceph 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof CEPH_INSTALL_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getCephSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
         method: option,
         clusterName: name,
       });
