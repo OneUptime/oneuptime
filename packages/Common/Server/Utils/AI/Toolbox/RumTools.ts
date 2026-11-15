@@ -43,8 +43,14 @@ import {
   AI_READ_TELEMETRY_TABLE_LINES,
   AI_READ_TELEMETRY_TABLE_TITLES,
   AI_READ_WEB_VITAL_RATINGS,
+  AI_READ_RUM_CLIENT_TYPES,
 } from "../../../../Types/AI/AIReadTableWords";
-import { citationSentence, countFigure, windowValues } from "./ReadTableWords";
+import {
+  citationSentence,
+  countFigure,
+  windowValues,
+  termCells,
+} from "./ReadTableWords";
 import {
   getRumApplicationStatus,
   getRumApplicationStatusWords,
@@ -194,13 +200,20 @@ export const QueryRumApplicationsTool: ObservabilityTool = {
                 title: aiActionSentence(
                   AI_READ_TELEMETRY_TABLE_TITLES.rumApplications,
                 ),
-                // Each status as the RUM pages' pill says it.
-                cells: rows.map(
-                  (row: JSONObject): Record<string, AIActionTableCell> => {
-                    return typeof row["status"] === "string"
-                      ? { status: aiActionTerm(row["status"]) }
-                      : {};
-                  },
+                /*
+                 * Each status as the RUM pages' pill says it, and its
+                 * client, browser or mobile (issue #8313).
+                 */
+                cells: termCells(
+                  rows,
+                  { clientType: RUM_CLIENT_TYPE_WORDS },
+                  rows.map(
+                    (row: JSONObject): Record<string, AIActionTableCell> => {
+                      return typeof row["status"] === "string"
+                        ? { status: aiActionTerm(row["status"]) }
+                        : {};
+                    },
+                  ),
                 ),
               },
               columns: [
@@ -226,6 +239,12 @@ export const QueryRumApplicationsTool: ObservabilityTool = {
           : undefined,
     };
   },
+};
+
+// A RUM application's client, as its row stores it (issue #8313).
+const RUM_CLIENT_TYPE_WORDS: Readonly<Record<string, string>> = {
+  browser: AI_READ_RUM_CLIENT_TYPES.browser,
+  mobile: AI_READ_RUM_CLIENT_TYPES.mobile,
 };
 
 function valuesByName(result: AggregatedResult): Map<string, number> {

@@ -171,6 +171,8 @@ import UserService from "Common/Server/Services/UserService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
+import { useInMemoryOwnerNotificationDeliveries } from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
+
 import "../../../../FeatureSet/Workers/Jobs/IncidentOwners/SendUnresolvedReminderNotification";
 
 import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
@@ -294,6 +296,12 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Whom each record tells is written down before it is taken, and each
+     * owner told through it (OwnerNotificationDeliveries, #8199).
+     */
+    useInMemoryOwnerNotificationDeliveries();
 
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
       return new Date(NOW);

@@ -497,7 +497,7 @@ MCP सर्वर स्टेटलेस है: वह न सेशन id 
 | सुरक्षा | Security Event, Threat Intel Indicator |
 | बदलाव और लागत | Change Event, Kubernetes Cost Allocation |
 
-टूल के नाम snake case में हैं: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` और `count_incidents`, या टेलीमेट्री के लिए `list_logs` और `count_spans`।
+टूल के नाम snake case में हैं: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` और `count_incidents`, या टेलीमेट्री के लिए `list_logs` और `count_spans`। `create_incident` और `create_alert` भी `ownerUsers` और `ownerTeams` लेते हैं: उन उपयोगकर्ताओं और टीमों की id जो शुरू से रिकॉर्ड के मालिक हैं, जिन्हें बताया जाता है कि वह बना।
 
 ## अगले कदम
 
