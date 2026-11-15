@@ -531,6 +531,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
             modelAPI={AdminModelAPI}
             name="Add User to Project"
             title={t("pages.userProjects.addToProjectTitle")}
+            isTitleTranslated={true}
             description={t("pages.userProjects.addToProjectDescription")}
             onClose={() => {
               setShowAddToProjectModal(false);

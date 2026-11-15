@@ -118,6 +118,8 @@ export interface ComponentProps<
    */
   onReset: () => void;
   title?: string | undefined;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description?: string | undefined;
   /*
    * False once the viewer has customized anything, which is when Reset earns
@@ -964,6 +966,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
   return (
     <Modal
       title={props.title || "Customize Columns"}
+      isTitleTranslated={Boolean(props.title) && props.isTitleTranslated}
       description={
         props.description ||
         "Choose which columns to show and drag them into the order you want."

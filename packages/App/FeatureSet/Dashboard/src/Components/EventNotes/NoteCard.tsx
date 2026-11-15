@@ -555,6 +555,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
       {isDeleteConfirmOpen && (
         <ConfirmModal
           title={tx(props.copy.deleteTitle)}
+          isTitleTranslated={true}
           description={tx(props.copy.deleteDescription)}
           submitButtonText={tx("Delete note")}
           submitButtonType={ButtonStyleType.DANGER}

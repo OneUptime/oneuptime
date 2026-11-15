@@ -541,7 +541,7 @@ resource "oneuptime_escalation_rule_team" "sre" {
 }
 ```
 
-모니터의 기준은 자신이 여는 인시던트의 `on_call_policy_ids`를 통해 정책을 호출합니다. [인시던트와 알림](/docs/terraform/monitor-steps#인시던트와-알림)을 참조하세요.
+모니터의 기준은 자신이 여는 인시던트의 `on_call_policy_ids`를 통해 정책을 호출합니다. [인시던트와 경고](/docs/terraform/monitor-steps#인시던트와-경고)을 참조하세요.
 
 ## 인시던트와 유지 관리
 

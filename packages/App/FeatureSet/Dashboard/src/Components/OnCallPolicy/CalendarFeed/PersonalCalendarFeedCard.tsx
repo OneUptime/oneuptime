@@ -274,9 +274,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
    */
   const generateControl: ReactElement = isOnPlan ? (
     <Button
-      title={
-        translateString("Generate calendar link") || "Generate calendar link"
-      }
+      title="Generate calendar link"
       icon={IconProp.Link}
       buttonStyle={ButtonStyleType.PRIMARY}
       isLoading={isBusy}

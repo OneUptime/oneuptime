@@ -7,7 +7,7 @@
 :::cards
 - [애플리케이션 계측](#애플리케이션-계측): OpenTelemetry 계측이 이미 보내는 메시징 스팬.
 - [브로커 상태 메트릭](#브로커-상태-메트릭): 브로커의 백로그, 지연, 데드 레터를 시스템별로.
-- [알림](#알림): 바로 쓸 수 있는 템플릿과 늦게 도착하는 메트릭 또는 카운터.
+- [경고](#경고): 바로 쓸 수 있는 템플릿과 늦게 도착하는 메트릭 또는 카운터.
 - [문제 해결](#문제-해결): 생성되지 않은 큐, 또는 비어 있는 브로커 상태.
 :::
 
@@ -306,7 +306,7 @@ service:
 
 - **`stats`는 설정하지 마세요.** 설정하지 않으면 각 메트릭이 기간마다 하나의 요약으로 도착하며, OneUptime은 이를 읽습니다. 설정하면 각 통계가 별도의 시리즈가 되어 차트에서 섞입니다.
 - `discovery.limit`은 반드시 설정해야 하며, 스크레이프당 읽는 메트릭 수의 상한입니다. 큐당 약 아홉 개입니다. 각 메트릭은 스크레이프마다 `GetMetricData` 하위 쿼리 네 개를 사용하며, AWS가 이에 비용을 청구합니다.
-- `delay`는 CloudWatch가 기간을 게시하기를 기다리므로(몇 분이 걸립니다), 이 구성에서는 큐의 브로커 메트릭이 11분에서 17분 늦게 도착합니다: 이 메트릭에 대한 모니터에는 더 긴 창이 필요합니다([알림](#알림)의 **늦게 도착하는 메트릭** 참조).
+- `delay`는 CloudWatch가 기간을 게시하기를 기다리므로(몇 분이 걸립니다), 이 구성에서는 큐의 브로커 메트릭이 11분에서 17분 늦게 도착합니다: 이 메트릭에 대한 모니터에는 더 긴 창이 필요합니다([경고](#경고)의 **늦게 도착하는 메트릭** 참조).
 - 하나의 리시버는 하나의 리전과 하나의 네임스페이스를 읽습니다: 리전마다 인스턴스를 추가하세요.
 
 **스트리밍 중**은 CloudWatch가 메트릭을 게시하는 대로 푸시합니다. `AWS/SQS`(및 `AWS/SNS`) 네임스페이스에 대해 출력 형식이 **OpenTelemetry 1.0**인 CloudWatch Metric Stream을 만들고, 대상이 HTTP 엔드포인트(액세스 키를 가진 Collector)인 Amazon Data Firehose 스트림으로 전달하세요. Firehose는 포트 443의 `https://`로만 전달하므로, Collector에는 인증서와 공개 포트 443이 필요합니다(예: 로드 밸런서 뒤):
@@ -963,7 +963,7 @@ service:
 | `rabbitmq.message.dropped` | 삭제됨 | 카운터, 초당으로 표시 |
 | `rabbitmq.consumer.count` | 컨슈머 | 게이지 |
 
-## 알림
+## 경고
 
 큐는 브로커 메트릭에 대한 **메트릭** 모니터로 감시합니다([메트릭 모니터](/docs/monitor/metrics-monitor) 참조).
 
@@ -1024,7 +1024,7 @@ service:
 | Pub/Sub 구독의 백로그가 늘어남 | `pubsub.googleapis.com/subscription/num_undelivered_messages` | `resource.subscription_id` = `orders-billing` | Max |
 | 아무도 RabbitMQ 큐를 소비하지 않음 | `rabbitmq.consumer.count` | `resource.rabbitmq.queue.name` = `orders` | Min |
 
-하나의 모니터로 시스템의 모든 큐를 감시하려면 그 속성으로 필터링하는 대신 그룹화하세요: 그러면 각 큐가 따로 경고를 보냅니다([시리즈별 알림](/docs/monitor/metrics-monitor#시리즈별-알림group-by) 참조). RabbitMQ 큐의 깊이(`rabbitmq.message.current`)는 `state` = `ready`와 `state` = `unacknowledged`의 두 시리즈로 도착합니다. **모니터 생성**이 만드는 모니터는 큐 페이지와 같은 방식으로 이를 합산합니다: 상태별 쿼리 `a_ready`와 `a_unacknowledged`, 그리고 수식 `a_ready + a_unacknowledged`를 사용하며, 시작 임계값은 이 수식의 별칭 `a`에 적용됩니다. 직접 만드는 모니터도 같은 방식으로, 조건을 수식에 두세요.
+하나의 모니터로 시스템의 모든 큐를 감시하려면 그 속성으로 필터링하는 대신 그룹화하세요: 그러면 각 큐가 따로 경고를 보냅니다([시리즈별 경고](/docs/monitor/metrics-monitor#시리즈별-경고group-by) 참조). RabbitMQ 큐의 깊이(`rabbitmq.message.current`)는 `state` = `ready`와 `state` = `unacknowledged`의 두 시리즈로 도착합니다. **모니터 생성**이 만드는 모니터는 큐 페이지와 같은 방식으로 이를 합산합니다: 상태별 쿼리 `a_ready`와 `a_unacknowledged`, 그리고 수식 `a_ready + a_unacknowledged`를 사용하며, 시작 임계값은 이 수식의 별칭 `a`에 적용됩니다. 직접 만드는 모니터도 같은 방식으로, 조건을 수식에 두세요.
 
 **늦게 도착하는 메트릭.** 클라우드 모니터링 API는 값을 측정 시점보다 몇 분 뒤에 게시합니다: `aws_cloudwatch` 리시버의 최신 포인트는 이 페이지의 구성에서 11분에서 17분 전의 것이고, 리시버의 기본 5분 `period`로는 최대 25분 전의 것입니다. `googlecloudmonitoring` 리시버는 최대 9분입니다. 따라서 SQS, SNS, Pub/Sub 메트릭에 대한 모니터에는 그보다 긴 창이 필요하며, 그렇지 않으면 데이터를 보지 못해 절대 트리거되지 않습니다. **모니터 생성**은 이런 모니터를 30분과 15분 창으로 시작합니다.
 

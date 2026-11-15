@@ -260,7 +260,8 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
 
   return (
     <ModelFormModal<OnCallDutyPolicyUserOverride>
-      title={skipText || "Skip until…"}
+      title={skipText || (translator.translateText("Skip until…") as string)}
+      isTitleTranslated={true}
       name="Skip in the rotation"
       description={description}
       modelType={OnCallDutyPolicyUserOverride}

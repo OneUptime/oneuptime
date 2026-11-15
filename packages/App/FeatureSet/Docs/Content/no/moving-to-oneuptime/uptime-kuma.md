@@ -68,7 +68,7 @@ Hver monitor kontrolleres fra prosjektets sonder, akkurat som en du oppretter se
 ## Hva som ikke overføres
 
 - **Oppetidshistorikk, svartider og hendelser.** OneUptime begynner å kontrollere når importen er ferdig.
-- **Varsler.** Velg i OneUptime hvem som får beskjed, som beskrevet i [Fullfør byttet](#fullfør-byttet).
+- **Varslinger.** Velg i OneUptime hvem som får beskjed, som beskrevet i [Fullfør byttet](#fullfør-byttet).
 - **Passord, og headere som kan inneholde en hemmelighet.** En monitor som logger inn, eller som sender en `Authorization`-, informasjonskapsel- eller token-header, overføres uten den: Legg den til med en [monitorhemmelighet](/docs/monitor/monitor-secrets).
 - **Omvendte monitorer**, som regnes som oppe når kontrollen feiler. OneUptime har ingen monitor som gjør det.
 - **Docker-, database-, spillserver-, MQTT- og andre monitorer som OneUptime ikke har noe tilsvarende for.** Forhåndsvisningen nevner hver av dem.

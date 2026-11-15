@@ -821,6 +821,7 @@ function useEventStateActions<T extends BaseModel>(
     modals = (
       <BulkChangeStateModal
         title={title}
+        isTitleTranslated={true}
         description={description}
         submitButtonText={submitButtonText}
         stateFieldKey={definition.stateIdField}

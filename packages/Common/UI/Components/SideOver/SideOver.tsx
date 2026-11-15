@@ -27,13 +27,26 @@ export enum SideOverSize {
 }
 
 export interface ComponentProps {
+  // In English, looked up here - unless isTitleTranslated says otherwise.
   title: string;
+  /*
+   * The title is in the reader's words already - a sentence the page built
+   * around a value - or is a record's own name ("checkout-api"), and is
+   * drawn as given: looked up again, a translation, or a name, that is
+   * itself an English key reads as another word (#8633).
+   */
+  isTitleTranslated?: boolean | undefined;
+  // In English, looked up here - unless isDescriptionTranslated says otherwise.
   description: string;
+  // The description is in the reader's words already, drawn as given.
+  isDescriptionTranslated?: boolean | undefined;
   onClose: () => void;
   onSubmit?: (() => void) | undefined;
   children: ReactElement | Array<ReactElement>;
   submitButtonDisabled?: boolean | undefined;
   submitButtonText?: string | undefined;
+  // The submit button's text is in the reader's words already, drawn as given (Button's isTitleTranslated).
+  isSubmitButtonTextTranslated?: boolean | undefined;
   /*
    * Spinner on the submit button, and a disable that comes with it — the same
    * affordance Modal has always forwarded to its footer. Without it a panel
@@ -212,7 +225,9 @@ const SideOver: FunctionComponent<ComponentProps> = (
                     id={titleId}
                     data-testid="side-over-title"
                   >
-                    {translateString(props.title) ?? props.title}
+                    {props.isTitleTranslated
+                      ? props.title
+                      : translateString(props.title) ?? props.title}
                   </h2>
                   {/* A panel with nothing to add under its title says nothing. */}
                   {props.description ? (
@@ -222,7 +237,10 @@ const SideOver: FunctionComponent<ComponentProps> = (
                       data-testid="side-over-description"
                     >
                       {readAsWritten(
-                        translateString(props.description) ?? props.description,
+                        props.isDescriptionTranslated
+                          ? props.description
+                          : translateString(props.description) ??
+                              props.description,
                         translator.language,
                       )}
                     </p>
@@ -326,6 +344,10 @@ const SideOver: FunctionComponent<ComponentProps> = (
                 {props.onSubmit && (
                   <Button
                     title={props.submitButtonText || "Save"}
+                    isTitleTranslated={
+                      Boolean(props.submitButtonText) &&
+                      props.isSubmitButtonTextTranslated
+                    }
                     disabled={props.submitButtonDisabled}
                     isLoading={props.submitButtonIsLoading}
                     onClick={() => {

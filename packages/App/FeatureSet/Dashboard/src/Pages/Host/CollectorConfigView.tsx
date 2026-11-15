@@ -658,6 +658,7 @@ const CollectorConfigView: FunctionComponent<
           title={translator.translateTemplate("Version {{number}}", {
             number: String(shownVersion.versionNumber || 1),
           })}
+          isTitleTranslated={true}
           // What changed, who saved it and when: the row it was opened from.
           description={[
             translator.translateTemplate(
@@ -708,6 +709,7 @@ const CollectorConfigView: FunctionComponent<
           title={translator.translateTemplate("Put version {{number}} back?", {
             number: String(versionToPutBack.versionNumber || 1),
           })}
+          isTitleTranslated={true}
           description={translator.translateTemplate(
             "Its hosts get the config of version {{number}} again, saved as a new version. Every version stays in the list.",
             {

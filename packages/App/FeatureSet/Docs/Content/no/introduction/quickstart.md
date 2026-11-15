@@ -80,7 +80,7 @@ Trykk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged` og velg **Varsle rett
 
 ![Steget «Hvordan skal vi nå deg?», med «Slå på SMS og anrop» uthevet](screen:paging-reach-you)
 
-Under **Hvordan skal vi nå deg?** står e-posten du logger inn med, allerede. For push-varsler installerer du appen OneUptime On-Call fra App Store eller Google Play, logger inn og klikker på **Kontroller på nytt**. For også å få SMS og anrop klikker du på **Slå på SMS og anrop**, skriver nummeret ditt i **Telefonnummeret ditt** og klikker på **Send meg en kode på SMS**: På OneUptime Cloud betales SMS og anrop fra prosjektets saldo, så steget ber deg først fylle på. Klikk på **Fortsett**.
+Under **Hvordan skal vi nå deg?** står e-posten du logger inn med, allerede. For push-varslinger installerer du appen OneUptime On-Call fra App Store eller Google Play, logger inn og klikker på **Kontroller på nytt**. For også å få SMS og anrop klikker du på **Slå på SMS og anrop**, skriver nummeret ditt i **Telefonnummeret ditt** og klikker på **Send meg en kode på SMS**: På OneUptime Cloud betales SMS og anrop fra prosjektets saldo, så steget ber deg først fylle på. Klikk på **Fortsett**.
 
 ### Velg hvem andre som tilkalles
 
@@ -96,7 +96,7 @@ Under **Send et testoppkall** klikker du på **Test denne policyen**, velger en 
 :::
 
 > [!NOTE]
-> SMS og telefonanrop er slått av i et nytt prosjekt. En Prosjekteier, en Faktureringsadministrator eller noen med Manage Billing slår dem på i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varsler → Varslingskanaler**.
+> SMS og telefonanrop er slått av i et nytt prosjekt. En Prosjekteier, en Faktureringsadministrator eller noen med Manage Billing slår dem på i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varslinger → Varslingskanaler**.
 
 To vaktregler utløser policyen: én ved hver nye hendelse og én ved hvert nye varsel. For å se den første åpner du **Hendelser** fra menyen **Produkter**, folder ut **Regler** i sidemenyen og velger **Vaktregler**: Den treffer **Alle hendelser**. For å utløse policyen bare ved noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Incident On-Call Rule** for å legge til din egen.
 
@@ -158,7 +158,7 @@ Klikk på **Løs** på hendelsens side. Varslingen stopper, og hendelsen forsvin
 ## Feilsøking
 
 :::details Jeg ble ikke varslet
-Åpne hendelsen, og velg **Vaktutførelser** i sidemenyen: der ser du om policyen din kjørte, og hvem den varslet. Kjørte den ikke, sjekk at vaktregelen din er slått på og nevner policyen. Kjørte den, sjekk at metodene dine under **Brukerinnstillinger → Varselmetoder** er verifisert.
+Åpne hendelsen, og velg **Vaktutførelser** i sidemenyen: der ser du om policyen din kjørte, og hvem den varslet. Kjørte den ikke, sjekk at vaktregelen din er slått på og nevner policyen. Kjørte den, sjekk at metodene dine under **Brukerinnstillinger → Varslingsmetoder** er verifisert.
 :::
 
 :::details Hendelsen vises ikke på statussiden min

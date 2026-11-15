@@ -43,7 +43,7 @@ Klikk på **Neste** for å komme til **Berørte ressurser**. Velg **Monitorer** 
 
 ### Velg hvem som får høre om det
 
-Velg statussidene under **Vis hendelse på disse statussidene**. **Varsler til abonnenter**, sammenslått, sier på én linje når hendelsen vises på dem, og hvem som får beskjed og når; åpne den for å velge **På en dato og et klokkeslett** under **Publiser på statussider**, eller for å endre **Når hendelsen planlegges**, **Når hendelsen starter**, **Når hendelsen slutter** eller **Påminnelser før hendelsen**.
+Velg statussidene under **Vis hendelse på disse statussidene**. **Varslinger til abonnenter**, sammenslått, sier på én linje når hendelsen vises på dem, og hvem som får beskjed og når; åpne den for å velge **På en dato og et klokkeslett** under **Publiser på statussider**, eller for å endre **Når hendelsen planlegges**, **Når hendelsen starter**, **Når hendelsen slutter** eller **Påminnelser før hendelsen**.
 
 ### Opprett den
 
@@ -66,7 +66,7 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 | **Endre monitorstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
 | **Andre berørte ressurser**          | **Berørte ressurser** | Ingen                        | Verter, klynger, databaser, nettverkslokasjoner, tjenester og mer.               |
 | **Vis hendelse på disse statussidene** | **Berørte ressurser** | Ingen                      | Statussidene som viser hendelsen og gir abonnentene sine beskjed.                |
-| **Varsler til abonnenter**           | **Berørte ressurser** | Publisert med en gang, alle tre tidspunktene på, ingen påminnelser | Når hendelsen vises på disse sidene, og når abonnentene deres får beskjed. |
+| **Varslinger til abonnenter**           | **Berørte ressurser** | Publisert med en gang, alle tre tidspunktene på, ingen påminnelser | Når hendelsen vises på disse sidene, og når abonnentene deres får beskjed. |
 
 To ting fyller ut skjemaet for deg underveis:
 
@@ -90,7 +90,7 @@ I det øyeblikket du klikker på **Opprett vedlikeholdshendelse**, går OneUptim
 5. **Runbook-regler starter** runbookene som matcher hendelsen.
 6. **Påminnelser planlegges**, når en påminnelsesregel matcher, for eierne.
 
-Innen et minutt etter at den publiseres, som skjer med en gang med mindre du har valgt et **Publiser den**, får abonnentene på statussidene dens beskjed om at den er planlagt, med mindre du har slått av **Når hendelsen planlegges**. Arbeidsflytutløseren **On Create Maintenance Event** starter enhver arbeidsflyt som er bygget på den, og eierne får høre om den hvis de har slått på det varselet: se [Varselinnstillinger](/docs/notifications/notification-settings).
+Innen et minutt etter at den publiseres, som skjer med en gang med mindre du har valgt et **Publiser den**, får abonnentene på statussidene dens beskjed om at den er planlagt, med mindre du har slått av **Når hendelsen planlegges**. Arbeidsflytutløseren **On Create Maintenance Event** starter enhver arbeidsflyt som er bygget på den, og eierne får høre om den hvis de har slått på den varslingen: se [Varslingsinnstillinger](/docs/notifications/notification-settings).
 
 ## Publiser den senere
 

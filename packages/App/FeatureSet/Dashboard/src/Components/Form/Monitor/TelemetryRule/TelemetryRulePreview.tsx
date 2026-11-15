@@ -411,6 +411,7 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
               title={translator.translateTemplate("Use {{value}}", {
                 value: translator.formatNumber(suggestion),
               })}
+              isTitleTranslated={true}
               buttonSize={ButtonSize.Small}
               buttonStyle={ButtonStyleType.NORMAL}
               icon={IconProp.Bolt}

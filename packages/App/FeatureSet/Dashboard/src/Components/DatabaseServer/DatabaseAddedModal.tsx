@@ -77,6 +77,8 @@ const DatabaseAddedModal: FunctionComponent<ComponentProps> = (
   return (
     <ResourceAddedModal
       title={heading?.title || props.name}
+      // The record's own name, as written, when the documentation has no heading for it.
+      isTitleTranslated={!heading}
       description={heading?.description || ""}
       modelType={DatabaseServer}
       recordId={props.databaseId}

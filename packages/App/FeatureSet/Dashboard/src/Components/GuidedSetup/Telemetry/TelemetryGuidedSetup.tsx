@@ -648,6 +648,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
                     },
                     picked.length,
                   )}
+                  isTitleTranslated={true}
                   buttonStyle={ButtonStyleType.PRIMARY}
                   isLoading={isSaving}
                   disabled={needsBillingConsent && !hasAcknowledgedBilling}

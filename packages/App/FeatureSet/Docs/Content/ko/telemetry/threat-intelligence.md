@@ -12,13 +12,13 @@
 
 ## 작동 방식
 
-```mermaid title="피드에서 알림까지"
+```mermaid title="피드에서 경고까지"
 flowchart TB
     taxii["목록, TAXII 컬렉션<br/>또는 Google SecOps"] -->|"피드의 간격마다<br/>폴링"| indicators["지표: IP,<br/>도메인, URL,<br/>이메일, 해시"]
     events["새 보안 이벤트"] --> tag["도착할 때<br/>threat.* 속성으로<br/>태그"]
     indicators --> tag
     indicators --> match["매분 최근<br/>이벤트와 대조"]
-    match --> act["케이스, 알림,<br/>선택적 인시던트,<br/>탐지 결과"]
+    match --> act["케이스, 경고,<br/>선택적 인시던트,<br/>탐지 결과"]
 ```
 
 ## 시작하기 전에

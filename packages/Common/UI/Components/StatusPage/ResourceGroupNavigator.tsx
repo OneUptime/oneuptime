@@ -819,6 +819,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
                   total: translator.formatNumber(props.hiddenRowCount),
                 },
               )}
+              isTitleTranslated={true}
               icon={IconProp.ChevronDown}
               buttonSize={ButtonSize.Small}
               buttonStyle={ButtonStyleType.NORMAL}

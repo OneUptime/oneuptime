@@ -17,7 +17,7 @@ OneUptime Docker 에이전트는 Docker 호스트에서 실행하는 컨테이�
 flowchart TB
     containers["내 컨테이너"] -->|"통계와<br/>로그 파일"| agent["Docker 에이전트"]
     agent -->|"HTTPS를 통한 OTLP"| oneuptime["OneUptime"]
-    oneuptime -->|"인시던트나 알림을<br/>조사"| ai["Docker AI 에이전트"]
+    oneuptime -->|"인시던트나 경고를<br/>조사"| ai["Docker AI 에이전트"]
     ai -->|"읽기 전용<br/>docker 명령"| containers
 ```
 

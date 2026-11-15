@@ -582,6 +582,7 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
             <div className="mt-6 flex justify-center">
               <Button
                 title={t("form.tryAgain")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.NORMAL}
                 icon={IconProp.Refresh}
                 className="md:!ml-0"
@@ -657,6 +658,7 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
         <div className="mt-8 flex justify-center">
           <Button
             title={t("form.submitAnother")}
+            isTitleTranslated={true}
             buttonStyle={ButtonStyleType.NORMAL}
             className="md:!ml-0"
             dataTestId="form-submit-another"

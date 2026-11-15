@@ -447,6 +447,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate("Connection diagnostics: {{name}}", {
         name: connection.name || providerTitle,
       })}
+      isTitleTranslated={true}
       description={translator.translateTemplate(
         "Check access, inspect what {{provider}} returns, and review imports. Times are shown in UTC; hover a time for your local clock.",
         { provider: providerTitle },
@@ -753,6 +754,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
               title={translator.translateTemplate("Preview {{records}}", {
                 records,
               })}
+              isTitleTranslated={true}
               buttonStyle={ButtonStyleType.OUTLINE}
               disabled={disableActions || Boolean(rangeError)}
               onClick={(): void => {

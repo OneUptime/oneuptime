@@ -483,6 +483,7 @@ const StatusTimeline: FunctionComponent<ComponentProps> = (
           <div className="flex justify-center border-t border-gray-100 pt-4">
             <Button
               title={translator.translateText("Show the period before")}
+              isTitleTranslated={true}
               icon={IconProp.ChevronLeft}
               buttonStyle={ButtonStyleType.NORMAL}
               buttonSize={ButtonSize.Small}
@@ -502,6 +503,7 @@ const StatusTimeline: FunctionComponent<ComponentProps> = (
                   },
                   Math.min(foldedCount, STATUS_TIMELINE_MORE_ENTRIES_STEP),
                 )}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
                 dataTestId="status-timeline-show-more"
@@ -529,6 +531,7 @@ const StatusTimeline: FunctionComponent<ComponentProps> = (
                 {props.onLoadOlder && (
                   <Button
                     title={translator.translateText("Load older changes")}
+                    isTitleTranslated={true}
                     buttonStyle={ButtonStyleType.NORMAL}
                     buttonSize={ButtonSize.Small}
                     isLoading={props.isLoadingOlder}

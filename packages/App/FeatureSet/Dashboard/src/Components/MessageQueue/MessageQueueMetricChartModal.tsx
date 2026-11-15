@@ -342,6 +342,7 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={title}
+      isTitleTranslated={true}
       description={description}
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}

@@ -683,6 +683,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
       {view.canGetFromProvider ? (
         <Button
           title={getFromProviderTitle}
+          isTitleTranslated={true}
           icon={IconProp.DocumentArrowDown}
           buttonStyle={ButtonStyleType.NORMAL}
           buttonSize={ButtonSize.Small}

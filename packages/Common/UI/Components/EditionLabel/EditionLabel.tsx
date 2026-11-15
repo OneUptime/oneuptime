@@ -1957,6 +1957,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return (
       <Modal
         title={editionName}
+        isTitleTranslated={true}
         description={translator.translateText(modalDescription)}
         rightElement={modalRightElement}
         submitButtonText={

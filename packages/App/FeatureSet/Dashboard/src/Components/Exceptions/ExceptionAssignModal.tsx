@@ -43,6 +43,7 @@ const ExceptionAssignModal: FunctionComponent<ComponentProps> = (
           props.count,
         ) as string
       }
+      isTitleTranslated={true}
       description="Pick one person or one team. Pick nobody to unassign them."
       submitButtonText={isUnassigning ? "Unassign" : "Assign"}
       onClose={props.onClose}

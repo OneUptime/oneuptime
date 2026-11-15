@@ -354,6 +354,7 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate(BackupsCopy.restoreTitle, {
         time: backupTime,
       })}
+      isTitleTranslated={true}
       // What a restore replaces, unless this one cannot happen at all.
       description={
         cannotRestoreAtAll ? undefined : BackupsCopy.restoreDescription

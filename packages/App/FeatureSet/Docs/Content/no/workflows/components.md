@@ -208,7 +208,7 @@ Tilkoblinger til loopback- (`localhost`, `127.0.0.1`), link-local- og skymetadat
 
 ## Paging
 
-Tilkall personer fra en arbeidsflyt: hver person får en oppringning, en SMS, et pushvarsel eller en e-post, slik personens egne vaktregler sier, til noen bekrefter. Det finnes en blokk for hver måte å si hvem som skal tilkalles på. Søk etter `page` i panelet **Legg til komponent**.
+Tilkall personer fra en arbeidsflyt: hver person får en oppringning, en SMS, en pushvarsling eller en e-post, slik personens egne vaktregler sier, til noen bekrefter. Det finnes en blokk for hver måte å si hvem som skal tilkalles på. Søk etter `page` i panelet **Legg til komponent**.
 
 | Blokk                       | Hvem den tilkaller |
 | --------------------------- | ------------------ |
