@@ -29048,7 +29048,6 @@
   "Which on-call policies": "कौन-सी ऑन-कॉल नीतियां",
   "Which maintenance events": "कौन-से रखरखाव इवेंट",
   "Who joins the channel": "चैनल में कौन शामिल होता है",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "आपका GitHub खाता अभी तक ऐप के किसी इंस्टॉलेशन को प्रबंधित नहीं करता है। कृपया इसे “Connect with GitHub App” से इंस्टॉल करें।",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "आपका GitHub खाता एक से अधिक खातों पर ऐप को प्रबंधित करता है। वह खाता चुनें जिसकी रिपॉज़िटरी इस प्रोजेक्ट को उपयोग करनी चाहिए।",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "अगले 30 दिनों की आपकी शिफ्ट। समय {{timezone}} में दिखाए गए हैं।",
   "at least {{time}}": "कम से कम {{time}}",
@@ -54288,5 +54287,6 @@
   "Total running processes on the server": "सर्वर पर चल रही प्रक्रियाओं की कुल संख्या",
   "Value of a polled SNMP OID": "पोल किए गए SNMP OID का मान",
   "All of these must match for this criteria to be met:": "इस मानदंड के पूरा होने के लिए ये सभी फ़िल्टर मेल खाने चाहिए:",
-  "Any of these can match for this criteria to be met:": "इनमें से कोई एक फ़िल्टर मेल खाने पर यह मानदंड पूरा होता है:"
+  "Any of these can match for this criteria to be met:": "इनमें से कोई एक फ़िल्टर मेल खाने पर यह मानदंड पूरा होता है:",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "आपका GitHub खाता अभी तक ऐप के किसी इंस्टॉलेशन को प्रबंधित नहीं करता है। कृपया इसे “{{connectGitHub}}” से इंस्टॉल करें।"
 }

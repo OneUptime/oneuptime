@@ -29048,7 +29048,6 @@
   "Which on-call policies": "کدام سیاست‌های آنکال",
   "Which maintenance events": "کدام رویدادهای تعمیر و نگهداری",
   "Who joins the channel": "چه کسانی به کانال می‌پیوندند",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «اتصال GitHub» نصب کنید.",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "حساب GitHub شما برنامه را در بیش از یک حساب مدیریت می‌کند. حسابی را انتخاب کنید که این پروژه باید از مخزن‌های آن استفاده کند.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "نوبت‌های شما در ۳۰ روز آینده. زمان‌ها به وقت {{timezone}} است.",
   "at least {{time}}": "دست‌کم {{time}}",
@@ -54288,5 +54287,6 @@
   "Total running processes on the server": "تعداد کل فرایندهای در حال اجرا روی سرور",
   "Value of a polled SNMP OID": "مقدار یک OID پرسیده‌شدهٔ SNMP",
   "All of these must match for this criteria to be met:": "برای برآورده شدن این معیار، همهٔ این فیلترها باید مطابقت داشته باشند:",
-  "Any of these can match for this criteria to be met:": "برای برآورده شدن این معیار، مطابقت یکی از این فیلترها کافی است:"
+  "Any of these can match for this criteria to be met:": "برای برآورده شدن این معیار، مطابقت یکی از این فیلترها کافی است:",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «{{connectGitHub}}» نصب کنید."
 }

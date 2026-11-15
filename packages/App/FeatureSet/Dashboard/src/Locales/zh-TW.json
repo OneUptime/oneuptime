@@ -29048,7 +29048,6 @@
   "Which on-call policies": "哪些待命策略",
   "Which maintenance events": "哪些維護事件",
   "Who joins the channel": "誰會加入頻道",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "您的 GitHub 帳號尚未管理此應用程式的任何安裝。請透過「Connect with GitHub App」安裝。",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "您的 GitHub 帳號在多個帳號上管理此應用程式。請選擇此專案要使用其存放庫的帳號。",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "您未來 30 天的班次。時間以 {{timezone}} 顯示。",
   "at least {{time}}": "至少 {{time}}",
@@ -54288,5 +54287,6 @@
   "Total running processes on the server": "伺服器上正在執行的處理程序總數",
   "Value of a polled SNMP OID": "輪詢的 SNMP OID 的值",
   "All of these must match for this criteria to be met:": "以下篩選器須全部符合，才滿足此條件：",
-  "Any of these can match for this criteria to be met:": "以下篩選器任一符合，即滿足此條件："
+  "Any of these can match for this criteria to be met:": "以下篩選器任一符合，即滿足此條件：",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "您的 GitHub 帳號尚未管理此應用程式的任何安裝。請透過「{{connectGitHub}}」安裝。"
 }

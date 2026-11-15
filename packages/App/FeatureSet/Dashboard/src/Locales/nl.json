@@ -29048,7 +29048,6 @@
   "Which on-call policies": "Welk bereikbaarheidsbeleid",
   "Which maintenance events": "Welke onderhoudsgebeurtenissen",
   "Who joins the channel": "Wie lid wordt van het kanaal",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Je GitHub-account beheert nog geen installatie van de app. Installeer de app met ‘Connect with GitHub App’.",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Je GitHub-account beheert de app op meer dan één account. Kies het account waarvan dit project de repository's moet gebruiken.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "Uw diensten in de komende 30 dagen. Tijden in tijdzone {{timezone}}.",
   "at least {{time}}": "minstens {{time}}",
@@ -54288,5 +54287,6 @@
   "Total running processes on the server": "Totaal aantal actieve processen op de server",
   "Value of a polled SNMP OID": "Waarde van een opgevraagde SNMP-OID",
   "All of these must match for this criteria to be met:": "Al deze filters moeten overeenkomen om aan dit criterium te voldoen:",
-  "Any of these can match for this criteria to be met:": "Eén van deze filters is genoeg om aan dit criterium te voldoen:"
+  "Any of these can match for this criteria to be met:": "Eén van deze filters is genoeg om aan dit criterium te voldoen:",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Je GitHub-account beheert nog geen installatie van de app. Installeer de app met ‘{{connectGitHub}}’."
 }

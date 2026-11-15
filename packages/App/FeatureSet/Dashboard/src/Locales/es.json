@@ -29048,7 +29048,6 @@
   "Which on-call policies": "Qué políticas de guardia",
   "Which maintenance events": "Qué eventos de mantenimiento",
   "Who joins the channel": "Quién se une al canal",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Tu cuenta de GitHub todavía no administra ninguna instalación de la aplicación. Instálala con «Conectar con la GitHub App».",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Tu cuenta de GitHub administra la aplicación en más de una cuenta. Elige aquella cuyos repositorios debe usar este proyecto.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "Tus turnos de los próximos 30 días. Horas en la zona horaria {{timezone}}.",
   "at least {{time}}": "al menos {{time}}",
@@ -54288,5 +54287,6 @@
   "Total running processes on the server": "Total de procesos en ejecución en el servidor",
   "Value of a polled SNMP OID": "Valor de un OID SNMP consultado",
   "All of these must match for this criteria to be met:": "Todos estos filtros deben coincidir para que se cumpla este criterio:",
-  "Any of these can match for this criteria to be met:": "Basta con que coincida uno de estos filtros para que se cumpla este criterio:"
+  "Any of these can match for this criteria to be met:": "Basta con que coincida uno de estos filtros para que se cumpla este criterio:",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Tu cuenta de GitHub todavía no administra ninguna instalación de la aplicación. Instálala con «{{connectGitHub}}»."
 }

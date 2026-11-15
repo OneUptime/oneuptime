@@ -29048,7 +29048,6 @@
   "Which on-call policies": "Hvilke vaktpolicyer",
   "Which maintenance events": "Hvilke vedlikeholdshendelser",
   "Who joins the channel": "Hvem som blir med i kanalen",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "GitHub-kontoen din administrerer ennå ingen installasjon av appen. Installer den med «Connect with GitHub App».",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "GitHub-kontoen din administrerer appen på mer enn én konto. Velg den som har repositoriene dette prosjektet skal bruke.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "Vaktene dine de neste 30 dagene. Tider i tidssonen {{timezone}}.",
   "at least {{time}}": "minst {{time}}",
@@ -54288,5 +54287,6 @@
   "Total running processes on the server": "Kjørende prosesser totalt på serveren",
   "Value of a polled SNMP OID": "Verdien av en forespurt SNMP-OID",
   "All of these must match for this criteria to be met:": "Alle disse filtrene må samsvare for at dette kriteriet er oppfylt:",
-  "Any of these can match for this criteria to be met:": "Ett av disse filtrene er nok for at dette kriteriet er oppfylt:"
+  "Any of these can match for this criteria to be met:": "Ett av disse filtrene er nok for at dette kriteriet er oppfylt:",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "GitHub-kontoen din administrerer ennå ingen installasjon av appen. Installer den med «{{connectGitHub}}»."
 }

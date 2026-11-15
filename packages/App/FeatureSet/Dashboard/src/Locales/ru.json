@@ -29048,7 +29048,6 @@
   "Which on-call policies": "Какие политики дежурства",
   "Which maintenance events": "Какие события обслуживания",
   "Who joins the channel": "Кто присоединяется к каналу",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Ваша учётная запись GitHub пока не управляет ни одной установкой приложения. Установите его с помощью «Connect with GitHub App».",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Ваша учётная запись GitHub управляет приложением в нескольких учётных записях. Выберите ту, репозитории которой должен использовать этот проект.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "Ваши смены на ближайшие 30 дней. Время указано в часовом поясе {{timezone}}.",
   "at least {{time}}": "как минимум {{time}}",
@@ -54288,5 +54287,6 @@
   "Total running processes on the server": "Всего запущенных процессов на сервере",
   "Value of a polled SNMP OID": "Значение опрошенного OID SNMP",
   "All of these must match for this criteria to be met:": "Чтобы критерий выполнился, должны совпасть все эти фильтры:",
-  "Any of these can match for this criteria to be met:": "Чтобы критерий выполнился, достаточно совпадения любого из этих фильтров:"
+  "Any of these can match for this criteria to be met:": "Чтобы критерий выполнился, достаточно совпадения любого из этих фильтров:",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Ваша учётная запись GitHub пока не управляет ни одной установкой приложения. Установите его с помощью «{{connectGitHub}}»."
 }

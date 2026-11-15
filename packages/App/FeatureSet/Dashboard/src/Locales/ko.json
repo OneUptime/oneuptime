@@ -29048,7 +29048,6 @@
   "Which on-call policies": "대상 온콜 정책",
   "Which maintenance events": "대상 유지 관리 이벤트",
   "Who joins the channel": "채널에 참여하는 사람",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "회원님의 GitHub 계정은 아직 앱 설치를 관리하지 않습니다. 'Connect with GitHub App'으로 설치하세요.",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "회원님의 GitHub 계정은 둘 이상의 계정에서 앱을 관리합니다. 이 프로젝트에서 사용할 저장소가 있는 계정을 선택하세요.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "향후 30일 동안의 근무입니다. 시간은 {{timezone}} 기준입니다.",
   "at least {{time}}": "최소 {{time}}",
@@ -54288,5 +54287,6 @@
   "Total running processes on the server": "서버에서 실행 중인 프로세스의 총수",
   "Value of a polled SNMP OID": "폴링한 SNMP OID의 값",
   "All of these must match for this criteria to be met:": "이 기준을 충족하려면 이 필터가 모두 일치해야 합니다:",
-  "Any of these can match for this criteria to be met:": "이 필터 중 하나만 일치해도 이 기준이 충족됩니다:"
+  "Any of these can match for this criteria to be met:": "이 필터 중 하나만 일치해도 이 기준이 충족됩니다:",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "회원님의 GitHub 계정은 아직 앱 설치를 관리하지 않습니다. '{{connectGitHub}}' 버튼으로 설치하세요."
 }
