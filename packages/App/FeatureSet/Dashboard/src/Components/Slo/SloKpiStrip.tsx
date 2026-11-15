@@ -42,6 +42,12 @@ import {
   getSloBudgetRunwayTextInLanguage,
   SloBudgetRunwayText,
 } from "./SloOverviewTextInLanguage";
+import {
+  getRequestBudgetRemainingOfTotalInLanguage,
+  getRequestBudgetRemainingSecondsEquivalent,
+  getRequestWindowFill,
+} from "./SloRequestTextInLanguage";
+import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -141,13 +147,30 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     atRiskThresholdPercentage: slo.atRiskThresholdPercentage,
   });
 
-  const windowFill: SloRollingWindowFill | null = getRollingWindowFill({
+  /*
+   * A request SLO's budget is counted in requests, and its window fills as
+   * OneUptime counts its services' older requests (SloRequestTextInLanguage).
+   */
+  const isRequestSlo: boolean = isRequestSliType(slo.sliType);
+
+  const requestCounting: Parameters<typeof getRequestWindowFill>[0] = {
+    sliType: slo.sliType,
     windowType: slo.windowType,
     windowDays: slo.windowDays,
-    targetPercentage: slo.targetPercentage,
-    errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
-    multiMonitorMode: slo.multiMonitorMode,
-  });
+    timezone: slo.timezone,
+    firstAccumulatedBucketStartAt: slo.firstAccumulatedBucketStartAt,
+    lastAccumulatedBucketEndAt: slo.lastAccumulatedBucketEndAt,
+  };
+
+  const windowFill: SloRollingWindowFill | null = isRequestSlo
+    ? getRequestWindowFill(requestCounting)
+    : getRollingWindowFill({
+        windowType: slo.windowType,
+        windowDays: slo.windowDays,
+        targetPercentage: slo.targetPercentage,
+        errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
+        multiMonitorMode: slo.multiMonitorMode,
+      });
 
   let budgetFallbackText: string = translator.translateTemplate(
     SLO_NOT_EVALUATED_TEXT,
@@ -172,15 +195,28 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     }
   }
 
-  const budgetDurationText: string =
-    getErrorBudgetRemainingOfTotalInLanguage(
-      {
-        remainingSeconds: slo.errorBudgetRemainingSeconds,
-        totalSeconds: slo.errorBudgetTotalSeconds,
-      },
-      translator,
-      NOTE_OPTIONS,
-    ) ?? budgetFallbackText;
+  const requestBudgetText: string | null = isRequestSlo
+    ? getRequestBudgetRemainingOfTotalInLanguage(
+        {
+          sliType: slo.sliType,
+          remainingEvents: slo.errorBudgetRemainingEvents,
+          totalEvents: slo.errorBudgetTotalEvents,
+        },
+        translator,
+        NOTE_OPTIONS,
+      )
+    : null;
+
+  const budgetDurationText: string = isRequestSlo
+    ? requestBudgetText ?? translator.translateTemplate(SLO_NOT_EVALUATED_TEXT)
+    : getErrorBudgetRemainingOfTotalInLanguage(
+        {
+          remainingSeconds: slo.errorBudgetRemainingSeconds,
+          totalSeconds: slo.errorBudgetTotalSeconds,
+        },
+        translator,
+        NOTE_OPTIONS,
+      ) ?? budgetFallbackText;
 
   /*
    * A young rolling window's budget is still growing, which is why its
@@ -250,26 +286,47 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
 
   // ---- Runway ----------------------------------------------------------------
 
+  /*
+   * A request SLO's runway is projected from the share of its budget left
+   * over the time its counts cover, as if that share were time - which it
+   * is at steady traffic (getRequestBudgetRemainingSecondsEquivalent).
+   */
+  const runwayRemainingSeconds: number | undefined | null = isRequestSlo
+    ? getRequestBudgetRemainingSecondsEquivalent({
+        ...requestCounting,
+        targetPercentage: slo.targetPercentage,
+        errorBudgetRemainingPercentage: slo.errorBudgetRemainingPercentage,
+      })
+    : slo.errorBudgetRemainingSeconds;
+
   const runway: SloBudgetRunway = getSloBudgetRunway({
     windowType: slo.windowType,
     windowDays: slo.windowDays,
     timezone: slo.timezone,
     targetPercentage: slo.targetPercentage,
-    multiMonitorMode: slo.multiMonitorMode,
-    errorBudgetRemainingSeconds: slo.errorBudgetRemainingSeconds,
+    multiMonitorMode: isRequestSlo ? undefined : slo.multiMonitorMode,
+    errorBudgetRemainingSeconds: runwayRemainingSeconds,
     currentBurnRate: slo.currentBurnRate,
     now: props.now,
   });
 
-  const runwayText: SloBudgetRunwayText = getSloBudgetRunwayTextInLanguage(
+  const timeRunwayText: SloBudgetRunwayText = getSloBudgetRunwayTextInLanguage(
     {
       runway: runway,
-      errorBudgetRemainingSeconds: slo.errorBudgetRemainingSeconds,
+      errorBudgetRemainingSeconds: runwayRemainingSeconds,
       windowDays: slo.windowDays,
     },
     translator,
     NOTE_OPTIONS,
   );
+
+  // An overspent request budget says by how many requests, never a duration.
+  const runwayText: SloBudgetRunwayText =
+    isRequestSlo &&
+    runway.kind === SloBudgetRunwayKind.Overspent &&
+    requestBudgetText
+      ? { ...timeRunwayText, description: requestBudgetText }
+      : timeRunwayText;
 
   const isRunwayPlaceholder: boolean =
     runway.kind === SloBudgetRunwayKind.NotEvaluated ||

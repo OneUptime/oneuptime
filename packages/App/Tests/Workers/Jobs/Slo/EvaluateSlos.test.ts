@@ -6207,7 +6207,7 @@ describe("Slo:EvaluateSlos worker", () => {
             return makeSlo({ sliType: SliType.Metric });
           },
           arrange: (): void => {},
-          reason: "SLI type is not Monitor Uptime",
+          reason: "SLI type is not one OneUptime measures",
         },
         {
           label: "monitors whose rows no longer exist",
@@ -6590,8 +6590,9 @@ describe("Slo:EvaluateSlos worker", () => {
 
     /*
      * Time-based SLIs have no sample count - every second of the window is a
-     * sample - so the worker does not read the column at all, and a Slow
-     * leak rule someone gave one fires on the same burn.
+     * sample - so a Slow leak rule someone gave one fires on the same burn.
+     * The worker reads the column for request SLIs, whose requests are their
+     * samples, and a Monitor Uptime SLO's burn windows ignore it.
      */
     test("a minimum sample count does not hold back a time-based SLI's slow leak", async () => {
       burnRuleService.findBy.mockResolvedValue(
@@ -6611,7 +6612,7 @@ describe("Slo:EvaluateSlos worker", () => {
         }
       ).select;
 
-      expect(select["minimumSampleCount"]).toBeUndefined();
+      expect(select["minimumSampleCount"]).toBe(true);
       expect(select["refireSuppressionMinutes"]).toBe(true);
     });
 
