@@ -11,6 +11,7 @@ import { getKubernetesSetupGuide } from "../../Kubernetes/Utils/DocumentationMar
 import { HOST_COLLECTOR_VERSION } from "../../../Components/AgentVersion/AgentKind";
 import { HOST_COLLECTOR_FILESYSTEM_EXCLUSION } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 import { getHostAiAgentInstallCommand } from "../../../Components/ResourceAiAgent/ResourceAiAgentInstall";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How the OpenTelemetry Collector gets onto the host. Every method runs the
@@ -852,10 +853,12 @@ cat /sys/class/dmi/id/bios_version     # device.firmware.version`,
 }
 
 function getHardwareTopic(method: HostInstallMethod): SetupGuideTopic {
-  const title: string =
-    "Record the serial number, make, model and firmware version";
-  const summary: string =
-    "Stamp the hardware facts no detector can read onto the host's Inventory item.";
+  const title: string = translationKey(
+    "Record the serial number, make, model and firmware version",
+  );
+  const summary: string = translationKey(
+    "Stamp the hardware facts no detector can read onto the host's Inventory item.",
+  );
 
   if (method === "windows") {
     return {
@@ -1064,8 +1067,9 @@ The first line downloads the script as \`install.sh\`, so you can read it before
   };
 }
 
-export const HOST_COLLECTOR_UPGRADE_TOPIC_TITLE: string =
-  "Upgrade the collector";
+export const HOST_COLLECTOR_UPGRADE_TOPIC_TITLE: string = translationKey(
+  "Upgrade the collector",
+);
 
 /*
  * How to move the collector to the release this OneUptime pins. The config
