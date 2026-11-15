@@ -817,6 +817,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
       "packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
     kind: "keys",
   },
+  /*
+   * Why a data alert most likely happened (its Why This Happened card,
+   * #8343): each likely cause's title the server words, as a whole sentence
+   * with the names and counts it gives as values, for the Dashboard to word
+   * in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataObservability/DataAlertCauseTitles.ts",
+    kind: "keys",
+  },
 ];
 
 /*

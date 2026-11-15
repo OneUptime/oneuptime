@@ -1,5 +1,9 @@
 import DataObservabilityApi from "./DataObservabilityApi";
 import {
+  getDataAlertCauseKindLabel,
+  getDataAlertCauseTitle,
+} from "./DataAlertCauseWords";
+import {
   DataAlertExplanation,
   DataAlertFeedback,
   DataAlertImpactItem,
@@ -21,6 +25,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * Why a data alert most likely happened, what it reaches, and what the person
@@ -31,6 +36,70 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
 export interface ComponentProps {
   alertId: ObjectID;
 }
+
+// Each likely cause's line, for its tests.
+export const DATA_ALERT_CAUSE_TEST_ID: string = "data-alert-cause";
+export const DATA_ALERT_CAUSE_KIND_TEST_ID: string = "data-alert-cause-kind";
+export const DATA_ALERT_CAUSE_TITLE_TEST_ID: string = "data-alert-cause-title";
+export const DATA_ALERT_CAUSE_DETAIL_TEST_ID: string =
+  "data-alert-cause-detail";
+
+/*
+ * A likely cause: its kind and its title in the reader's words (#8343),
+ * when it happened, and what the source system said about it, as it said
+ * it. A title that is a record's own words, and what a source system said,
+ * are set apart, so a Latin name on an Arabic or Persian page keeps its
+ * own direction and its marks.
+ */
+const LikelyCause: FunctionComponent<{
+  cause: DataAlertLikelyCause;
+}> = (props: { cause: DataAlertLikelyCause }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const cause: DataAlertLikelyCause = props.cause;
+  const title: { text: string; isAsWritten: boolean } = getDataAlertCauseTitle(
+    translator,
+    cause,
+  );
+
+  return (
+    <li className="text-sm" data-testid={DATA_ALERT_CAUSE_TEST_ID}>
+      <span
+        className="font-medium text-gray-900"
+        data-testid={DATA_ALERT_CAUSE_KIND_TEST_ID}
+      >
+        {getDataAlertCauseKindLabel(translator, cause.kind)}
+      </span>
+      <span className="text-gray-700">
+        {" "}
+        <InlineSeparator markOnly />{" "}
+        <span data-testid={DATA_ALERT_CAUSE_TITLE_TEST_ID}>
+          {title.isAsWritten ? <bdi>{title.text}</bdi> : title.text}
+        </span>
+      </span>
+      {cause.at ? (
+        <span className="text-gray-500">
+          {" "}
+          <InlineSeparator markOnly />{" "}
+          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            OneUptimeDate.fromString(cause.at),
+          )}
+        </span>
+      ) : (
+        <></>
+      )}
+      {cause.detail ? (
+        <IsolatedLine
+          as="div"
+          text={cause.detail}
+          className="mt-0.5 text-xs text-gray-500"
+          dataTestId={DATA_ALERT_CAUSE_DETAIL_TEST_ID}
+        />
+      ) : (
+        <></>
+      )}
+    </li>
+  );
+};
 
 /*
  * Each answer by its name, a key every language words: the buttons were
@@ -163,33 +232,10 @@ const DataAlertExplanationCard: FunctionComponent<ComponentProps> = (
             {explanation.causes.map(
               (cause: DataAlertLikelyCause, index: number): ReactElement => {
                 return (
-                  <li
+                  <LikelyCause
                     key={`${cause.kind}:${cause.title}:${index}`}
-                    className="text-sm"
-                  >
-                    <span className="font-medium text-gray-900">
-                      {translator.translateText(cause.kind)}
-                    </span>
-                    <span className="text-gray-700"> · {cause.title}</span>
-                    {cause.at ? (
-                      <span className="text-gray-500">
-                        {" "}
-                        <InlineSeparator markOnly />{" "}
-                        {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                          OneUptimeDate.fromString(cause.at),
-                        )}
-                      </span>
-                    ) : (
-                      <></>
-                    )}
-                    {cause.detail ? (
-                      <div className="mt-0.5 text-xs text-gray-500">
-                        {cause.detail}
-                      </div>
-                    ) : (
-                      <></>
-                    )}
-                  </li>
+                    cause={cause}
+                  />
                 );
               },
             )}

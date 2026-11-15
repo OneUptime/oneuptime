@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test and a storage array, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment and a storage array, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -121,6 +121,7 @@ describe("the keys that name their meaning", () => {
         "Open (status)",
         "Table (database object)",
         "Test (dbt test)",
+        "Test (environment)",
         "View (database object)",
       ].sort(),
     );
@@ -131,6 +132,8 @@ describe("the keys that name their meaning", () => {
     expect(getWordOfMeaningKey("Created (import result)")).toBe("Created");
     // #7535: the dbt Tests card's column of tests, the noun.
     expect(getWordOfMeaningKey("Test (dbt test)")).toBe("Test");
+    // #8342: a data store's Test environment, the noun.
+    expect(getWordOfMeaningKey("Test (environment)")).toBe("Test");
     // #7522: the storage widgets' column, which English reads as "Array".
     expect(getWordOfMeaningKey("Array (storage array)")).toBe("Array");
     expect(getWordOfMeaningKey("Array")).toBeUndefined();

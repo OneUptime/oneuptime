@@ -1,3 +1,4 @@
+import DataStoreEnvironment from "Common/Types/DataSecurity/DataStoreEnvironment";
 import { DataStoreFamily } from "Common/Types/DataSecurity/DataStoreKind";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -37,6 +38,46 @@ export function getDataStoreFamilyTitle(
     DATA_STORE_FAMILY_TITLES[family as DataStoreFamily];
 
   return title ? translator.translateText(title) || title : family;
+}
+
+/*
+ * WHICH ENVIRONMENT A STORE SERVES, AS A NOUN (#8342).
+ *
+ * An environment is stored as its English word (DataStoreEnvironment), and
+ * "Test" is also the Test buttons' key, which most languages word as the
+ * verb: a German store's Test environment read "Testen" beside
+ * "Produktion", a Spanish one "Probar" ("to try"). Each environment is
+ * drawn from a key of its own here - the test environment's names its
+ * meaning, "Test (environment)", which English still reads as "Test" - and
+ * never by looking its stored value up. The stored value stays "Test".
+ */
+export const DATA_STORE_ENVIRONMENT_TITLES: Readonly<
+  Record<DataStoreEnvironment, string>
+> = {
+  [DataStoreEnvironment.Production]: translationKey("Production"),
+  [DataStoreEnvironment.Staging]: translationKey("Staging"),
+  [DataStoreEnvironment.Development]: translationKey("Development"),
+  [DataStoreEnvironment.Test]: translationKey("Test (environment)"),
+  [DataStoreEnvironment.Unknown]: translationKey("Unknown"),
+};
+
+// A store's environment in the reader's words; one it does not know, as stored.
+export function getDataStoreEnvironmentTitle(
+  translator: Translator,
+  environment: DataStoreEnvironment | string | null | undefined,
+): string {
+  if (!environment) {
+    return "";
+  }
+
+  const title: string | undefined = Object.prototype.hasOwnProperty.call(
+    DATA_STORE_ENVIRONMENT_TITLES,
+    environment,
+  )
+    ? DATA_STORE_ENVIRONMENT_TITLES[environment as DataStoreEnvironment]
+    : undefined;
+
+  return title ? translator.translateText(title) || title : environment;
 }
 
 /*
@@ -151,11 +192,11 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("AI Conversations"),
   // Families, each as the noun it is drawn with
   ...Object.values(DATA_STORE_FAMILY_TITLES),
-  // Environments
-  translationKey("Production"),
-  translationKey("Staging"),
-  translationKey("Development"),
-  translationKey("Test"),
+  // Environments, each as the noun it is drawn with (Unknown is an exposure's too, above)
+  DATA_STORE_ENVIRONMENT_TITLES[DataStoreEnvironment.Production],
+  DATA_STORE_ENVIRONMENT_TITLES[DataStoreEnvironment.Staging],
+  DATA_STORE_ENVIRONMENT_TITLES[DataStoreEnvironment.Development],
+  DATA_STORE_ENVIRONMENT_TITLES[DataStoreEnvironment.Test],
   // Who can reach a store, how, and where a finding is
   translationKey("Account"),
   translationKey("Role"),

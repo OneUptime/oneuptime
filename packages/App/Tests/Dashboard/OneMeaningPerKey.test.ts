@@ -114,6 +114,19 @@ const TITLED_WITH_THE_DATABASES_TABLE: ReadonlyArray<string> = [
 ];
 
 /*
+ * The model columns that relate a record to the table it is about: a
+ * table's owning team and user, and a report that a table's data looks
+ * wrong (#8344). The model's metadata calls them by the word, "Table"
+ * (TableColumn's withTitleAsItsWord), for the API reference and the
+ * server's messages.
+ */
+const MODEL_COLUMNS_OF_THE_DATABASES_TABLE: ReadonlyArray<string> = [
+  "packages/Common/Models/DatabaseModels/DataAssetOwnerTeam.ts",
+  "packages/Common/Models/DatabaseModels/DataAssetOwnerUser.ts",
+  "packages/Common/Models/DatabaseModels/DataIssueReport.ts",
+];
+
+/*
  * A table's Metrics: the chip that says which table its charts are scoped
  * to. Its label is a value of a map, which the extractor does not read, so
  * only its source is checked.
@@ -283,6 +296,7 @@ describe("one meaning per key", () => {
       [
         "Components/DataObservability/DataAssetKindWords.ts",
         ...TITLED_WITH_THE_DATABASES_TABLE,
+        ...MODEL_COLUMNS_OF_THE_DATABASES_TABLE,
       ].sort(),
     );
 
@@ -340,6 +354,36 @@ describe("one meaning per key", () => {
     }
   });
 
+  /*
+   * #8344: a table's owners and a data issue report titled their table
+   * column with the bare "Table", which French reads as "Tableau" and
+   * Chinese as 表格 wherever the Dashboard draws a model's own column
+   * titles (a form's permission error, a reset dialog).
+   */
+  test("no Data Observability model titles a column of a database's table with the bare Table", () => {
+    const DATA_OBSERVABILITY_MODEL: RegExp =
+      /^packages\/Common\/Models\/DatabaseModels\/Data(Asset|Issue|Check|Pipeline|Reconciliation|Product|Alert)/;
+
+    for (const file of filesLookingUp("Table")) {
+      expect({
+        file,
+        isDataObservabilityModel: DATA_OBSERVABILITY_MODEL.test(file),
+      }).toEqual({ file, isDataObservabilityModel: false });
+    }
+
+    for (const file of MODEL_COLUMNS_OF_THE_DATABASES_TABLE) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf8",
+      );
+
+      expect({ file, bareTable: BARE_TABLE_TITLE.test(source) }).toEqual({
+        file,
+        bareTable: false,
+      });
+    }
+  });
+
   test("the checks above find a bare Table title (negative control)", () => {
     for (const bare of [
       '          title: "Table",\n',
@@ -389,6 +433,103 @@ describe("one meaning per key", () => {
     expect(filesLookingUp("Test")).not.toContain(
       "Components/DataObservability/DbtTestTable.tsx",
     );
+  });
+
+  /*
+   * #8342: Data Security named a store's Test environment with the shared
+   * "Test", the Test buttons' verb: a German store read "Testen" beside
+   * "Produktion", a Spanish one "Probar". The environment is its own key,
+   * looked up only by Data Security's words for environments and the
+   * store form's options; no Data Security page looks up the bare Test, nor
+   * draws an environment by looking its stored value up.
+   */
+  test("a store's test environment is its own key, looked up only by Data Security's environment words, which never look up the bare Test", () => {
+    expect(filesLookingUp("Test (environment)")).toEqual([
+      "Components/DataSecurity/DataSecurityCatalogTerms.ts",
+      "Components/DataSecurity/StoreFieldOptions.ts",
+    ]);
+
+    const DATA_SECURITY_FILE: RegExp = /^(Components|Pages)\/DataSecurity\//;
+
+    for (const file of filesLookingUp("Test")) {
+      expect({
+        file,
+        isDataSecurity: DATA_SECURITY_FILE.test(file),
+      }).toEqual({ file, isDataSecurity: false });
+    }
+  });
+
+  test("no Data Security page draws a store's environment by looking its stored value up", () => {
+    const LOOKED_UP_ENVIRONMENT: RegExp =
+      /translate(?:Text|Term)\(\s*[\w.?]*environment\b/;
+
+    for (const file of [
+      "Pages/DataSecurity/DataStores.tsx",
+      "Pages/DataSecurity/StoreView/Overview.tsx",
+      "Pages/DataSecurity/StoreView/Settings.tsx",
+    ]) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, SOURCE, file),
+        "utf8",
+      );
+
+      expect({
+        file,
+        looksUpTheEnvironment: LOOKED_UP_ENVIRONMENT.test(source),
+        drawsItsTitle: source.includes("getDataStoreEnvironmentTitle("),
+      }).toEqual({ file, looksUpTheEnvironment: false, drawsItsTitle: true });
+    }
+
+    // The check finds the lookup it replaced (negative control).
+    expect(
+      LOOKED_UP_ENVIRONMENT.test(
+        "{translator.translateText(item.environment) || (",
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * #8343: a data alert's Why This Happened card headed each likely cause
+   * with its stored kind, looked up as it was stored. Each kind has its
+   * name in DataAlertCauseWords; "Deploy" and "Database" are nouns
+   * wherever they are looked up, so a cause shares them.
+   */
+  test("a likely cause's kinds are looked up by the cause's words, and Deploy is a deploy wherever it is looked up", () => {
+    for (const key of [
+      "Upstream Alert",
+      "Failed Run",
+      "Failing Writes",
+      "Schema Change",
+    ]) {
+      expect({ key, files: filesLookingUp(key) }).toEqual({
+        key,
+        files: ["Components/DataObservability/DataAlertCauseWords.ts"],
+      });
+    }
+
+    // A deploy marker on a chart, and a deploy before a data alert: the noun.
+    expect(filesLookingUp("Deploy")).toEqual([
+      "Components/DataObservability/DataAlertCauseWords.ts",
+      "Components/Metrics/Utils/UseEventTimeReferenceLines.ts",
+    ]);
+
+    const card: string = fs.readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        SOURCE,
+        "Components/DataObservability/DataAlertExplanationCard.tsx",
+      ),
+      "utf8",
+    );
+
+    const LOOKED_UP_CAUSE_KIND: RegExp = /translateText\(\s*cause\.kind\b/;
+
+    expect(LOOKED_UP_CAUSE_KIND.test(card)).toBe(false);
+    // The check finds the lookup it replaced (negative control).
+    expect(
+      LOOKED_UP_CAUSE_KIND.test("{translator.translateText(cause.kind)}"),
+    ).toBe(true);
+    expect(card.includes("getDataAlertCauseKindLabel(")).toBe(true);
   });
 
   test("no page names a data asset's kind by looking up its stored value", () => {
@@ -723,6 +864,44 @@ describe("the locales word each meaning as its own", () => {
           .toLocaleLowerCase(language)
           .includes(noun.toLocaleLowerCase(language) || "?"),
       }).toEqual({ language, worded: true, inItsCheckType: true });
+    }
+  });
+
+  /*
+   * #8342: a store's Test environment read the Test buttons' verb -
+   * "Testen", "Probar", "Tester". It is the noun an environment is named
+   * with, beside Production and Staging.
+   */
+  test("a test environment is worded as the noun, never the Test buttons' verb, where a language words them apart", () => {
+    const WORDS: Record<string, { verb: string; noun: string }> = {
+      de: { verb: "Testen", noun: "Test" },
+      fr: { verb: "Tester", noun: "Test" },
+      es: { verb: "Probar", noun: "Pruebas" },
+      nl: { verb: "Testen", noun: "Test" },
+      sv: { verb: "Testa", noun: "Test" },
+      pt: { verb: "Testar", noun: "Teste" },
+    };
+
+    for (const language of Object.keys(WORDS)) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        verb: locale["Test"],
+        noun: locale["Test (environment)"],
+      }).toEqual({ language, ...WORDS[language] });
+    }
+
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+      const noun: string = locale["Test (environment)"] || "";
+
+      expect({
+        language,
+        worded: noun.length > 0 && noun !== "Test (environment)",
+      }).toEqual({ language, worded: true });
     }
   });
 
