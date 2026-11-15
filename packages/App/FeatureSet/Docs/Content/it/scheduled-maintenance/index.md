@@ -85,10 +85,10 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 | ----------------- | --------------------------------------------------------------------------------------------- |
 | **Panoramica** | **Panoramica**, **Cronologia stato**, **Descrizione**, **Runbook** |
 | **Team** | **Proprietari** |
-| **Notifiche**      | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
+| **Notifiche**      | **Log di notifica** e **Log IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
 | **Note**          | **Note private** e **Note pubbliche**                                                          |
 | **Sviluppatori**  | **Terraform**, **API**, **CLI** e **Assistenti IA**: l'evento gestito dal codice               |
-| **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina evento di manutenzione**          |
+| **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina evento di manutenzione**          |
 
 **Panoramica**, **Team** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.
 

@@ -55690,5 +55690,9 @@
   "which led to {{steps}}": "which led to {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} hasn't run yet. Its fields show up here after it does.",
   "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "HA": "HA",
+  "Insights (explorer analytics)": "Insights (explorer analytics)",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

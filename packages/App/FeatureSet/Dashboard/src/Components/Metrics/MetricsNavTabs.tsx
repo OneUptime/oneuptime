@@ -43,7 +43,7 @@ const MetricsNavTabs: FunctionComponent<Props> = (
     },
     {
       key: "insights",
-      label: "Insights",
+      label: "Insights (explorer analytics)",
       icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.METRICS_INSIGHTS] as Route,

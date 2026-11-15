@@ -71,6 +71,18 @@ export interface SessionToSignOut {
   sessionId: ObjectID;
 }
 
+/*
+ * The session a browser's sign-out cookie for one status page names
+ * (JsonWebTokenPurpose.StatusPageSessionSignOut), read by
+ * JSONWebToken.decodeStatusPageSessionToSignOut: which status page, whose
+ * session there - a StatusPagePrivateUser's - and which.
+ */
+export interface StatusPageSessionToSignOut {
+  statusPageId: ObjectID;
+  userId: ObjectID;
+  sessionId: ObjectID;
+}
+
 class JSONWebToken {
   /*
    * A dashboard session's access token, the only token the API takes as a
@@ -161,6 +173,41 @@ class JSONWebToken {
           ? Math.ceil(data.expiresInSeconds)
           : 0,
       purpose: JsonWebTokenPurpose.UserSessionSignOut,
+    });
+  }
+
+  /*
+   * Which session a browser holds on one status page, for its sign-out on
+   * that page and nothing else (JsonWebTokenPurpose.StatusPageSessionSignOut):
+   * CookieUtil.setStatusPagePrivateUserCookie keeps it in a cookie sent
+   * only to that page's sign-out, beside the session's refresh token and
+   * for as long (issue #8671).
+   *
+   * It says which page, whose session and which, and nothing else: no
+   * address, so no reader of a person's token, of this release or of one
+   * before tokens said what they were for, takes it for a session. Read
+   * only by decodeStatusPageSessionToSignOut.
+   */
+  @CaptureSpan()
+  public static signStatusPageSessionSignOutToken(data: {
+    statusPageId: ObjectID;
+    // The StatusPagePrivateUser whose session it is.
+    userId: ObjectID;
+    sessionId: ObjectID;
+    // As long as the session's refresh token: a whole number of seconds.
+    expiresInSeconds: number;
+  }): string {
+    return JSONWebToken.sign({
+      data: {
+        userId: data.userId,
+        statusPageId: data.statusPageId.toString(),
+        sessionId: data.sessionId,
+      },
+      expiresInSeconds:
+        Number.isFinite(data.expiresInSeconds) && data.expiresInSeconds > 0
+          ? Math.ceil(data.expiresInSeconds)
+          : 0,
+      purpose: JsonWebTokenPurpose.StatusPageSessionSignOut,
     });
   }
 
@@ -395,6 +442,21 @@ class JSONWebToken {
           JSONWebToken.isId(claims["sessionId"])
         );
 
+      /*
+       * Which session a browser's sign-out names on one status page
+       * (signStatusPageSessionSignOutToken): it says so, and names its
+       * status page, its private user and its session, and no SSO
+       * provider.
+       */
+      case JsonWebTokenPurpose.StatusPageSessionSignOut:
+        return (
+          claimedPurpose === JsonWebTokenPurpose.StatusPageSessionSignOut &&
+          !JSONWebToken.namesSsoProvider(claims) &&
+          JSONWebToken.isId(claims["statusPageId"]) &&
+          JSONWebToken.isId(claims["userId"]) &&
+          JSONWebToken.isId(claims["sessionId"])
+        );
+
       default:
         return false;
     }
@@ -409,7 +471,8 @@ class JSONWebToken {
    * has expired is taken too, for the one use that asks.
    *
    * A browser's sign-out cookie names a person too, but holds no address
-   * and is no one's identity: it is read only by decodeSessionToSignOut,
+   * and is no one's identity: it is read only by decodeSessionToSignOut
+   * (a dashboard's) or decodeStatusPageSessionToSignOut (a status page's),
    * and refused here whatever is asked.
    */
   @CaptureSpan()
@@ -419,9 +482,12 @@ class JSONWebToken {
     options?: DecodeOptions,
   ): JSONWebTokenData {
     try {
-      if (purpose === JsonWebTokenPurpose.UserSessionSignOut) {
+      if (
+        purpose === JsonWebTokenPurpose.UserSessionSignOut ||
+        purpose === JsonWebTokenPurpose.StatusPageSessionSignOut
+      ) {
         throw new BadDataException(
-          "A sign-out cookie is read only by JSONWebToken.decodeSessionToSignOut.",
+          "A sign-out cookie is read only by JSONWebToken.decodeSessionToSignOut or decodeStatusPageSessionToSignOut.",
         );
       }
 
@@ -506,6 +572,37 @@ class JSONWebToken {
       );
 
       return {
+        userId: new ObjectID(decoded["userId"] as string),
+        sessionId: new ObjectID(decoded["sessionId"] as string),
+      };
+    } catch (e) {
+      logger.error(e);
+      throw new BadDataException(INVALID_TOKEN_MESSAGE);
+    }
+  }
+
+  /*
+   * The session a browser's sign-out cookie for a status page names
+   * (JsonWebTokenPurpose.StatusPageSessionSignOut,
+   * signStatusPageSessionSignOutToken), if OneUptime signed it for that and
+   * it has not expired. Throws otherwise, as decode does: a status page's
+   * access token, a dashboard's sign-out cookie or anything else is
+   * refused here exactly as a token that does not verify. For
+   * POST /status-page-identity-api/logout/<status page> to end that session
+   * of that reader on that page and nothing else (issue #8671).
+   */
+  @CaptureSpan()
+  public static decodeStatusPageSessionToSignOut(
+    token: string,
+  ): StatusPageSessionToSignOut {
+    try {
+      const decoded: JSONObject = JSONWebToken.readClaimsFor(
+        token,
+        JsonWebTokenPurpose.StatusPageSessionSignOut,
+      );
+
+      return {
+        statusPageId: new ObjectID(decoded["statusPageId"] as string),
         userId: new ObjectID(decoded["userId"] as string),
         sessionId: new ObjectID(decoded["sessionId"] as string),
       };

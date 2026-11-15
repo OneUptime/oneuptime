@@ -63,7 +63,7 @@ Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne
 | **Branding** | Titolo della pagina, descrizione, logo, tema e favicon della dashboard pubblica. |
 | **Domini personalizzati** | Ospitare la dashboard pubblica sul tuo dominio. |
 | **Impostazioni** | Duplicare, esportare o archiviare la dashboard. |
-| **Registri di audit** | Ogni modifica fatta alla dashboard, e chi l'ha fatta. |
+| **Log di audit** | Ogni modifica fatta alla dashboard, e chi l'ha fatta. |
 | **Elimina** | Eliminare la dashboard per sempre. |
 
 ## Creare la tua prima dashboard

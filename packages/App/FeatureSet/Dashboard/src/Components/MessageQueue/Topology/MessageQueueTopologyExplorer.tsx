@@ -668,7 +668,9 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                               {row.node.label}
                             </button>
                             <span className="mt-0.5 block text-xs text-gray-500">
-                              {row.node.subtitle}
+                              {getValueOrQuietDash(row.node.subtitle, {
+                                isSmall: true,
+                              })}
                             </span>
                           </span>
                         </div>
@@ -917,7 +919,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                     {node.label}
                   </span>
                   <span className="block truncate text-xs text-gray-500">
-                    {node.subtitle}
+                    {getValueOrQuietDash(node.subtitle, { isSmall: true })}
                   </span>
                 </span>
               </button>

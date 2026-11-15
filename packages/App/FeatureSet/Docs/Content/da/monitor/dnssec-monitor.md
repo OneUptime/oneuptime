@@ -62,7 +62,7 @@ Indtast den zone, der skal valideres, i **Zone (domænenavn)**, for eksempel `ex
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser, hvad hver kontrol fandt.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser, hvad hver kontrol fandt.
 
 ### Gennemgå kriterierne
 
@@ -130,7 +130,7 @@ Standardkriterierne holder ikke selv øje med signaturudløb eller navneserverko
 ## Fejlfinding
 
 :::details Kæden rapporteres som brudt, men zonen validerer med `dig`
-En af resolverne i **Resolvere** returnerede ikke AD-flaget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-tjek**, i **Overvågningstestresultat** og i hver kontrols resumé, viser hver resolvers svar og fejl. Fjern de resolvere, sonden ikke kan nå, og angiv kun validerende resolvere.
+En af resolverne i **Resolvere** returnerede ikke AD-flaget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-tjek**, i **Monitortestresultat** og i hver kontrols resumé, viser hver resolvers svar og fejl. Fjern de resolvere, sonden ikke kan nå, og angiv kun validerende resolvere.
 :::
 
 :::details Navneservere rapporteres som inkonsistente lige efter en ændring

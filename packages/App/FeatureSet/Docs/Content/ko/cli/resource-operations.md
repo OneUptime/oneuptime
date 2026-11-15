@@ -34,7 +34,7 @@ oneuptime resources
 
 | 유형 | 담는 내용 |
 | --- | --- |
-| `database` | 관리하는 레코드: 모니터, 인시던트, 알림, 상태 페이지, 팀 등 |
+| `database` | 관리하는 레코드: 모니터, 인시던트, 경고, 상태 페이지, 팀 등 |
 | `analytics` | 텔레메트리: 로그, 스팬, 메트릭, 예외 및 기타 이벤트 |
 
 `oneuptime resources --type database` 또는 `--type analytics`로 한 유형만 볼 수 있습니다. [명령 참조](/docs/cli/command-reference#리소스)에 모든 명령이 있습니다.
@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## 인지, 해결, 메모 추가
 
-인시던트, 알림, 그 에피소드, 유지 관리 이벤트에는 대시보드 버튼이 하는 일을 하는 명령이 있습니다.
+인시던트, 경고, 그 에피소드, 유지 관리 이벤트에는 대시보드 버튼이 하는 일을 하는 명령이 있습니다.
 
 | 명령 | 하는 일 | 리소스 |
 | --- | --- | --- |
@@ -190,7 +190,7 @@ oneuptime incident add-note 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --note "Rolled 
 oneuptime incident resolve 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 ```
 
-`acknowledge`는 `Incident 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 acknowledged: it is in Acknowledged now.`라고 응답합니다. 이미 그 상태이거나 그보다 뒤의 상태인 레코드는 그대로 둡니다. 명령은 그렇다고 알리고 `0`으로 끝납니다. `-o json`이면 레코드의 `_id`, `action`, 무언가 바뀌었는지를 나타내는 `changed`, 레코드가 있는 `state`로 응답합니다. 알림과 알림 에피소드는 내부 메모만 받습니다.
+`acknowledge`는 `Incident 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 acknowledged: it is in Acknowledged now.`라고 응답합니다. 이미 그 상태이거나 그보다 뒤의 상태인 레코드는 그대로 둡니다. 명령은 그렇다고 알리고 `0`으로 끝납니다. `-o json`이면 레코드의 `_id`, `action`, 무언가 바뀌었는지를 나타내는 `changed`, 레코드가 있는 `state`로 응답합니다. 경고와 경고 에피소드는 내부 메모만 받습니다.
 
 ## 레코드 삭제
 

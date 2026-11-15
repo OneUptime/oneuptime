@@ -6,7 +6,7 @@ OneUptime-provideren virker med [OpenTofu](https://opentofu.org), som den virker
 - [Brug provideren med OpenTofu](#brug-provideren-med-opentofu): Den samme konfiguration, kørt med `tofu`.
 - [Hvad der er anderledes end Terraform](#hvad-der-er-anderledes-end-terraform): Registre, låsefiler, `.tofu`-filer og versioner.
 - [Flyt en konfiguration til OpenTofu](#flyt-en-konfiguration-til-opentofu): Skift en eksisterende konfiguration i fire trin.
-- [Et genbrugeligt modul](#et-genbrugeligt-modul): Overvågninger, en vagtpolitik og en statusside for én tjeneste.
+- [Et genbrugeligt modul](#et-genbrugeligt-modul): Monitorer, en vagtpolitik og en statusside for én tjeneste.
 :::
 
 ## Brug provideren med OpenTofu
@@ -97,7 +97,7 @@ Commit `.terraform.lock.hcl`, og kør fremover konfigurationen med `tofu`, også
 
 ## Et genbrugeligt modul
 
-[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) i OneUptime-repositoriet indeholder konfigurationer, der kan køres med det samme, og et modul, der sætter én tjeneste op: en overvågning af websitet for hver adresse, du giver det, en etiket på alt, det opretter, en vagtpolitik med én eskaleringsregel, og en statusside, der viser overvågningerne. Det er almindelig HCL, så det virker også under Terraform.
+[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) i OneUptime-repositoriet indeholder konfigurationer, der kan køres med det samme, og et modul, der sætter én tjeneste op: en monitor af websitet for hver adresse, du giver det, en etiket på alt, det opretter, en vagtpolitik med én eskaleringsregel, og en statusside, der viser monitorerne. Det er almindelig HCL, så det virker også under Terraform.
 
 ```hcl title="main.tf"
 module "storefront" {

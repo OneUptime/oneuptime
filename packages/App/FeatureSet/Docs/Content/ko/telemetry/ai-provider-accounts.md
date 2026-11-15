@@ -1,12 +1,12 @@
 # AI 공급자 계정
 
-앱을 바꾸지 않고도 AI 공급자 계정이 무엇을 얼마나 사용했고 비용이 얼마였는지 확인하세요. OpenAI, Anthropic, Azure OpenAI 및 Microsoft Foundry, Amazon Bedrock, Google Vertex AI 계정을 읽기만 할 수 있는 자격 증명으로 연결하면, OneUptime이 15분마다 그 사용량을 **사용량**, **예산**, 그리고 알림을 걸 수 있는 메트릭으로 읽어 옵니다. Cursor 팀도 같은 방식으로 관리자 API 키로 연결하며, 매시간 읽습니다.
+앱을 바꾸지 않고도 AI 공급자 계정이 무엇을 얼마나 사용했고 비용이 얼마였는지 확인하세요. OpenAI, Anthropic, Azure OpenAI 및 Microsoft Foundry, Amazon Bedrock, Google Vertex AI 계정을 읽기만 할 수 있는 자격 증명으로 연결하면, OneUptime이 15분마다 그 사용량을 **사용량**, **예산**, 그리고 경고를 걸 수 있는 메트릭으로 읽어 옵니다. Cursor 팀도 같은 방식으로 관리자 API 키로 연결하며, 매시간 읽습니다.
 
 :::cards
 - [계정 연결하기](#계정-연결하기): 공급자를 고르고, 자격 증명을 붙여 넣고, 테스트한 뒤 연결합니다.
 - [공급자별로 얻는 것](#공급자별로-얻는-것): 비용, 토큰, 요청과 공급자별 그룹 기준.
 - [사용량 보기](#사용량-보기): 모델, 사람, 프로젝트 또는 리소스, API 키, 연결별로 봅니다.
-- [예산과 알림](#예산과-알림): 청구 금액에 대한 일일 예산과 메트릭 알림.
+- [예산과 알림](#예산과-알림): 청구 금액에 대한 일일 예산과 메트릭 경고.
 :::
 
 ## 작동 방식
@@ -166,9 +166,9 @@ Enterprise 요금제에서는 Cursor가 OpenTelemetry Export로 사용량을 발
 
 ## 예산과 알림
 
-예산은 둘 중 하나만 셉니다. **예산**에서 예산을 만들고 **지출 집계 기준**을 **공급자 계정**으로 설정합니다. 이 예산은 연결된 계정에 UTC 하루 동안 청구된 금액을 세며, **LLM 공급자(선택 사항)** 및 **LLM 모델(선택 사항)** 값을 설정하면 그것으로 범위를 좁힙니다. 공급자는 하루 사용량을 몇 분에서 몇 시간 늦게 보고하므로, 몇 분 안에 알림을 받으려면 대신 **내 AI 호출**에 예산을 거세요.
+예산은 둘 중 하나만 셉니다. **예산**에서 예산을 만들고 **지출 집계 기준**을 **공급자 계정**으로 설정합니다. 이 예산은 연결된 계정에 UTC 하루 동안 청구된 금액을 세며, **LLM 공급자(선택 사항)** 및 **LLM 모델(선택 사항)** 값을 설정하면 그것으로 범위를 좁힙니다. 공급자는 하루 사용량을 몇 분에서 몇 시간 늦게 보고하므로, 몇 분 안에 경고를 받으려면 대신 **내 AI 호출**에 예산을 거세요.
 
-각 계정의 사용량은 메트릭 세 개로 저장되며, [대시보드](/docs/dashboards/index)에 차트로 그리거나 [메트릭 모니터](/docs/monitor/metrics-monitor)로 알림을 걸 수 있습니다.
+각 계정의 사용량은 메트릭 세 개로 저장되며, [대시보드](/docs/dashboards/index)에 차트로 그리거나 [메트릭 모니터](/docs/monitor/metrics-monitor)로 경고를 걸 수 있습니다.
 
 | 메트릭 | 내용 |
 | --- | --- |
@@ -234,8 +234,8 @@ Cursor의 Admin API는 팀당 분당 20개 요청, 사용량 이벤트는 60개�
 ## 다음 단계
 
 :::cards
-- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 자체 앱 AI 호출의 대화, 알림, 비용.
+- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 자체 앱 AI 호출의 대화, 경고, 비용.
 - [회사의 AI 도구](/docs/telemetry/ai-company-tools): 직원들이 Claude Enterprise와 Microsoft 365 Copilot에 묻는 내용.
 - [AI 게이트웨이](/docs/telemetry/ai-gateways): LiteLLM, Portkey, OpenRouter를 거치는 모든 모델 호출을 추적합니다.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 공급자 메트릭에 알림을 겁니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 공급자 메트릭에 경고를 겁니다.
 :::

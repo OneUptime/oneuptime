@@ -560,18 +560,65 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  // Ends the live session a refresh token belongs to, and answers whether there was one.
   public async revokeSessionByRefreshToken(
     refreshToken: string,
     options?: RevokeSessionOptions,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const session: Model | null =
       await this.findActiveSessionByRefreshToken(refreshToken);
 
     if (!session || !session.id) {
-      return;
+      return false;
     }
 
     await this.revokeSessionById(session.id, options);
+
+    return true;
+  }
+
+  /*
+   * Ends `sessionId` when it is a live session of `statusPagePrivateUserId`
+   * on `statusPageId`, and answers whether there was one: the session a
+   * browser's sign-out cookie for that page names, when the refresh token
+   * its sign-out sent matches none (POST /status-page-identity-api/logout,
+   * issue #8671). The refresh token is rotated at every renewal and only
+   * the new one is kept, so a browser whose renewal's answer was lost signs
+   * out with the one the renewal replaced. A session of anybody else, of
+   * another page, one already over, or a login code not yet exchanged is
+   * left as it is - a sign-out replayed later ends nothing a second time.
+   */
+  public async revokeLiveSessionOfPrivateUser(
+    data: {
+      statusPageId: ObjectID;
+      statusPagePrivateUserId: ObjectID;
+      sessionId: ObjectID;
+    },
+    options?: RevokeSessionOptions,
+  ): Promise<boolean> {
+    const session: Model | null = await this.findOneBy({
+      query: {
+        _id: data.sessionId,
+        statusPageId: data.statusPageId,
+        statusPagePrivateUserId: data.statusPagePrivateUserId,
+        isRevoked: false,
+      },
+      select: {
+        _id: true,
+        additionalInfo: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!session || !session.id || this.isLoginCodeSession(session)) {
+      return false;
+    }
+
+    await this.revokeSessionById(session.id, options);
+
+    return true;
   }
 
   /*

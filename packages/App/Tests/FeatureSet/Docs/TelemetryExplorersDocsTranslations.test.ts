@@ -118,6 +118,35 @@ const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
 };
 
 /*
+ * The key a bold label on a page is drawn from, where the page's word is
+ * also another key's. An explorer's Insights tab is "Insights (explorer
+ * analytics)", which English reads as "Insights": the bare "Insights" is
+ * OneUptime AI's findings, which Spanish names "Hallazgos" beside the tab's
+ * "Análisis" and Italian "Insight" beside "Analisi" (#8629).
+ */
+const EXPLORER_INSIGHTS_TAB: string = "Insights (explorer analytics)";
+
+const LABEL_KEYS_ON_PAGE: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  [LOGS_EXPLORER]: { Insights: EXPLORER_INSIGHTS_TAB },
+  [TRACES_EXPLORER]: { Insights: EXPLORER_INSIGHTS_TAB },
+  [METRICS_EXPLORER]: { Insights: EXPLORER_INSIGHTS_TAB },
+  [EXCEPTIONS]: { Insights: EXPLORER_INSIGHTS_TAB },
+};
+
+// A bold label of `page` as `language`'s Dashboard draws it there.
+function drawnOnPage(language: string, page: string, label: string): string {
+  const key: string | undefined = LABEL_KEYS_ON_PAGE[page]?.[label];
+
+  if (!key || language === "en") {
+    return drawnActionLabel(language, label);
+  }
+
+  return drawnActionLabel(language, key);
+}
+
+/*
  * The names, longest first: "OneUptime Cloud" goes before "OneUptime" takes
  * its first word.
  */
@@ -195,7 +224,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [`**${label}**`, `**${drawnOnPage(language, page, label)}**`];
     }),
     ...dashboardPaths(page).map((segments: Array<string>): [string, string] => {
       return [drawnPath("en", segments), drawnPath(language, segments)];
@@ -474,7 +503,7 @@ function labelsMissingFromTheirLines(
         continue;
       }
 
-      const drawn: string = drawnActionLabel(language, span);
+      const drawn: string = drawnOnPage(language, page, span);
 
       expected.set(drawn, (expected.get(drawn) || 0) + boldCount(line, span));
     }

@@ -23,7 +23,7 @@ flowchart TB
     collector -->|"OTLP over HTTPS"| oneuptime
 ```
 
-Supervisoren beder OneUptime om værtens konfiguration cirka hvert 30. sekund med din indtagelsesnøgle og rapporterer, hvilken konfiguration værten kører, og om den startede. Værten registreres under **Værter**, når supervisoren første gang forbinder, med maskinens navn, og dens sider fyldes ud, efterhånden som dens målinger og logs ankommer.
+Supervisoren beder OneUptime om værtens konfiguration cirka hvert 30. sekund med din indtagelsesnøgle og rapporterer, hvilken konfiguration værten kører, og om den startede. Værten registreres under **Værter**, når supervisoren første gang forbinder, med maskinens navn, og dens sider fyldes ud, efterhånden som dens metrikker og logs ankommer.
 
 Hver vært kører én konfiguration, valgt i denne rækkefølge:
 
@@ -76,7 +76,7 @@ Hver OneUptime leverer sine egne installationsprogrammer, så en selvhostet OneU
 
 ### Vent på værten
 
-Dialogens sidste trin viser, når værten forbinder, med et link til den. På listen vises den som **Starter**, indtil dens første målinger ankommer, normalt inden for et minut, og derefter med sin tilstand, **Sund**, når intet på den bør ses på, og sin collector **Kører**. Værtens side **Topologi** tegner på ét kort, hvad der kører på den, hvad der kalder den, og hvad den kalder: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
+Dialogens sidste trin viser, når værten forbinder, med et link til den. På listen vises den som **Starter**, indtil dens første metrikker ankommer, normalt inden for et minut, og derefter med sin tilstand, **Sund**, når intet på den bør ses på, og sin collector **Kører**. Værtens side **Topologi** tegner på ét kort, hvad der kører på den, hvad der kalder den, og hvad den kalder: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
 ## Se, hvilke værter der kræver opmærksomhed
@@ -91,7 +91,7 @@ Nedenunder siger hver værts **Status** med ét ord, hvordan den har det, med å
 | **Forringet** | Noget bør ses på: et filsystem eller dets inodes mere end 85 % fuldt, hukommelse mere end 90 % brugt, swap mere end 80 % brugt, et 15-minutters belastningsgennemsnit over det dobbelte af dens kerner, en mislykket systemd-unit eller en collector-konfiguration, der ikke startede. |
 | **Usund** | Noget er kritisk: et filsystem eller dets inodes mere end 95 % fuldt, eller hukommelse mere end 95 % brugt. |
 | **Rapporterer ikke** | Der er ikke kommet noget fra den i 15 minutter. Dens seneste målinger er ikke længere sande, så dens række viser ingen tal og siger, hvornår den sidst rapporterede. |
-| **Starter** | Dens collector registrerede sig inden for de seneste ti minutter, og dens første målinger er på vej. En vært, der ikke har sendt noget derefter, viser **Ingen data endnu**. |
+| **Starter** | Dens collector registrerede sig inden for de seneste ti minutter, og dens første metrikker er på vej. En vært, der ikke har sendt noget derefter, viser **Ingen data endnu**. |
 | **Rapporterer** | Den rapporterer, men sender ingen af de målinger, disse regler bedømmer, som en vært, hvis collector er konfigureret uden `hostmetrics`. |
 
 Målingerne er værtens seneste rapport, som OneUptime gemmer på værten cirka én gang i minuttet, så listen har intet tidsrum at vælge. En bjælke bliver gul, hvor en vært bør ses på, og rød, hvor den er kritisk. **CPU** er optaget tid på tværs af alle kerner og bliver gul over 90 %, aldrig rød: en travl CPU er en vært i arbejde, og belastningsgennemsnittet siger, hvornår arbejde hober sig op. **Disk** er det mest fyldte filsystem med dets monteringspunkt nedenunder, som `df` viser sin `Use%`: plads reserveret til root tæller ikke med.

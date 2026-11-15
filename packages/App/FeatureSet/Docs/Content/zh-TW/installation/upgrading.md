@@ -612,7 +612,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 OneUptime 12 把兩個元件合併為一個。**Runbook Agent**（您安裝在自己的主機上、用於執行運行手冊步驟的容器）和 **AI Agent**（負責 AI 程式碼修正的服務）現在是同一個元件：**OneUptime Runner**，以 Docker 映像檔 `oneuptime/runner` 提供。舊映像檔 `oneuptime/runbook-agent` 和 `oneuptime/ai-agent` 不再建置或發布——現有標籤仍可拉取，但永遠不會再收到更新。
 
-Runner 是一個已安裝的容器，可以擁有多項 **能力**，在儀表板中依 Runner 開關：**執行操作手冊**（預設開啟）、**Runs AI Code Fixes**（預設關閉）和 **執行 AI 修復指令**（預設關閉）。能力的變更會在 Runner 的下一次心跳時生效——無需重新啟動。該元件的日常運作方式請參閱 [Runner](/docs/runbooks/agents)。
+Runner 是一個已安裝的容器，可以擁有多項 **能力**，在儀表板中依 Runner 開關：**執行運行手冊**（預設開啟）、**Runs AI Code Fixes**（預設關閉）和 **執行 AI 修復指令**（預設關閉）。能力的變更會在 Runner 的下一次心跳時生效——無需重新啟動。該元件的日常運作方式請參閱 [Runner](/docs/runbooks/agents)。
 
 您需要做什麼取決於您的部署方式：
 

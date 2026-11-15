@@ -41,7 +41,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Unntak**
 
 ### Velg hva monitoren skal fortelle deg om
 
-Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Hvilket som helst unntak** eller **For mange unntak**. Hvert valg fyller ut regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette den opp selv. **Et nytt unntak**, **Et løst unntak kommer tilbake** og **Unntakene topper seg** varsler ved et unntak som ses for første gang, ved et som kom tilbake etter at du løste det, og ved en økning langt over det som er normalt for den timen i uken.
+Under **Hva skal denne monitoren fortelle deg om?** velger du **Hvilket som helst unntak** eller **For mange unntak**. Hvert valg fyller ut regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette den opp selv. **Et nytt unntak**, **Et løst unntak kommer tilbake** og **Unntakene topper seg** varsler ved et unntak som ses for første gang, ved et som kom tilbake etter at du løste det, og ved en økning langt over det som er normalt for den timen i uken.
 
 ### Velg unntakene som skal telles
 
@@ -132,7 +132,7 @@ Kriteriene til en unntaksmonitor har fire slags **Filtertype**: **Antall unntak*
 
 Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. Bare **Antall unntak** har dem: se [Topper sammenlignet med det normale](#topper-sammenlignet-med-det-normale).
 
-En unntaksmonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne overvåkingen fortelle deg om?**:
+En unntaksmonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne monitoren fortelle deg om?**:
 
 | Valg | Regel | Hva som skjer |
 | --- | --- | --- |

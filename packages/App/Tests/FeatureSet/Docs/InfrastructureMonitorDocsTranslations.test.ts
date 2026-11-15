@@ -48,6 +48,11 @@ import {
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { getAllPodmanAlertTemplates } from "Common/Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "Common/Types/Monitor/ProxmoxAlertTemplates";
+import {
+  ProxmoxMetricCategory,
+  getAllProxmoxMetricCategories,
+  getProxmoxMetricCategoryLabel,
+} from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -1111,6 +1116,39 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         expect(between[0]).toContain(name);
       }
     }
+  });
+
+  /*
+   * Proxmox's page lists the catalog under one heading per group of its
+   * Custom Metric picker, in the picker's order. The picker heads its
+   * groups in the reader's words since the catalog's categories are keys
+   * (#8653), so each heading says it as the picker does.
+   */
+  it("heads each table of Proxmox's metrics as the Custom Metric picker heads its group", () => {
+    const english: Array<DocsHeading> = scanMarkdown(
+      englishPage(PROXMOX),
+    ).headings;
+    const translated: Array<DocsHeading> = scanMarkdown(
+      readPage(language, PROXMOX),
+    ).headings;
+    const start: number = english.findIndex((heading: DocsHeading): boolean => {
+      return heading.level === 2 && heading.text === "Collected Metrics";
+    });
+
+    expect(start).toBeGreaterThan(-1);
+    expect(translated.length).toBe(english.length);
+
+    getAllProxmoxMetricCategories().forEach(
+      (category: ProxmoxMetricCategory, index: number) => {
+        const label: string = getProxmoxMetricCategoryLabel(category);
+
+        expect(english[start + 1 + index]?.text).toBe(label);
+        expect({
+          category,
+          heading: translated[start + 1 + index]?.text,
+        }).toEqual({ category, heading: drawnActionLabel(language, label) });
+      },
+    );
   });
 
   it("says the increases carry what the counts carry, naming each count, as the English page does", () => {

@@ -122,6 +122,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getChartDescriptionText } from "./Utils/ChartDescription";
 import {
   FILTER_SERIES_TEMPLATE,
   MORE_SERIES_TEMPLATE,
@@ -3201,7 +3202,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           firstQuery.metricAliasData?.legend ||
           queryMetricName ||
           "",
-        description: firstQuery.metricAliasData?.description || "",
+        // A metric's own description in the reader's words (#8572).
+        description: getChartDescriptionText(
+          firstQuery.metricAliasData,
+          translator,
+        ),
         metricInfo,
         exemplarPoints: chartExemplars.length > 0 ? chartExemplars : undefined,
         onExemplarClick:

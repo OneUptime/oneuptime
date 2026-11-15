@@ -15,7 +15,7 @@ Il risultato è una normale metrica. Visualizzatela in **Esplora metriche** e ne
 
 Usate una regola di registrazione dei log quando il numero che vi interessa esiste solo nei vostri log: i riepiloghi SLA di un firewall, un job batch che registra quanto è durato, le dimensioni delle risposte di un log di accesso, o semplicemente quanti log di errore scrive un servizio ogni minuto.
 
-Le regole di registrazione dei log si trovano in **Registri → Impostazioni → Regole di registrazione**. Le loro equivalenti per metriche e span sono in **Metriche → Impostazioni → Regole di registrazione** e **Tracce → Impostazioni → Regole di registrazione**.
+Le regole di registrazione dei log si trovano in **Log → Impostazioni → Regole di registrazione**. Le loro equivalenti per metriche e span sono in **Metriche → Impostazioni → Regole di registrazione** e **Tracce → Impostazioni → Regole di registrazione**.
 
 ## Come funziona una regola
 
@@ -42,7 +42,7 @@ La modifica della definizione di una regola si applica dal minuto successivo che
 :::steps
 ### Aprire le regole di registrazione
 
-Andate in **Registri → Impostazioni → Regole di registrazione** e scegliete **Crea: Log Recording Rule**.
+Andate in **Log → Impostazioni → Regole di registrazione** e scegliete **Crea: Log Recording Rule**.
 
 ### Dare un nome alla regola
 
@@ -127,12 +127,12 @@ flowchart TB
 ### Far arrivare i log, con i loro campi come attributi
 
 1. Inviate il syslog del firewall a OneUptime: vedete [Syslog](/docs/telemetry/syslog).
-2. In **Registri → Impostazioni → Pipeline**, aggiungete una pipeline con un processore che divide le coppie `key=value` del corpo in attributi del log, così che ogni riepilogo porti `log_type`, `log_component`, `profile_name`, `gw_name`, `latency`, `jitter` e `packet_loss` come attributi. Il [Key=Value Parser](/docs/telemetry/log-pipelines#keyvalue-parser) fa proprio questo.
-3. Aprite l'explorer **Registri** e controllate i nomi degli attributi su un log SLA. Se la vostra pipeline aggiunge un prefisso, usate i nomi con prefisso qui sotto.
+2. In **Log → Impostazioni → Pipeline**, aggiungete una pipeline con un processore che divide le coppie `key=value` del corpo in attributi del log, così che ogni riepilogo porti `log_type`, `log_component`, `profile_name`, `gw_name`, `latency`, `jitter` e `packet_loss` come attributi. Il [Key=Value Parser](/docs/telemetry/log-pipelines#keyvalue-parser) fa proprio questo.
+3. Aprite l'explorer **Log** e controllate i nomi degli attributi su un log SLA. Se la vostra pipeline aggiunge un prefisso, usate i nomi con prefisso qui sotto.
 
 ### Creare la regola di registrazione
 
-In **Registri → Impostazioni → Regole di registrazione**, create una regola:
+In **Log → Impostazioni → Regole di registrazione**, create una regola:
 
 - **Nome:** SD-WAN gateway latency
 - **Nome della metrica di output:** scegliete **Modifica** e digitate `sdwan.gateway.latency.ms`

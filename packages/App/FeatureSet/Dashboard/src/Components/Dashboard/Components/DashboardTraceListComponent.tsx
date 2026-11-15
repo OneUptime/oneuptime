@@ -1,4 +1,5 @@
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -285,7 +286,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
             title={startTime.title}
           >
-            {startTime.label}
+            {getValueOrQuietDash(startTime.label, { isSmall: true })}
           </td>
         </tr>
       );

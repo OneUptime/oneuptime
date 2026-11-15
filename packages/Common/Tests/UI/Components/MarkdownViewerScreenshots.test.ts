@@ -1812,3 +1812,52 @@ describe("the real MarkdownViewer shows a link's text in nested brackets, code o
     },
   );
 });
+
+/*
+ * ISSUE #8668: the brackets the middle of an over-long line held paired
+ * with brackets in view, so the dashboard showed a link across the whole
+ * middle that remark alone does not read, or lost the kept end's link.
+ */
+describe("the real MarkdownViewer pairs the brackets the middle of an over-long line leaves unmatched (#8668)", () => {
+  const FILLER: string = "log line text ".repeat(5000);
+
+  const cases: Array<RenderCase> = [
+    {
+      name: "a ']' in the middle closes the kept start's label, with no link",
+      text: `see [a ${"b".repeat(1100)}] ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    },
+    {
+      name: "two ']' in the middle close two labels of the kept start",
+      text: `see [a [b ${"c ".repeat(600)}] d ] ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    },
+    {
+      name: "a '[' the middle leaves open is closed by the kept end's ']'",
+      text: `see [a ${"x ".repeat(600)}${FILLER}[c ${"y ".repeat(600)}] then](/x) now`,
+    },
+    {
+      name: "both at once",
+      text: `see [a [b ${"c ".repeat(600)}] ${FILLER}[d ${"y ".repeat(600)}] then](/x) now`,
+    },
+  ];
+
+  let report: RenderReport;
+
+  beforeAll(() => {
+    report = renderWithRealViewer(cases);
+  }, 600000);
+
+  test.each([
+    ["a ']' in the middle closes the kept start's label, with no link", []],
+    ["two ']' in the middle close two labels of the kept start", []],
+    ["a '[' the middle leaves open is closed by the kept end's ']'", ["/x"]],
+    ["both at once", ["/x"]],
+  ])(
+    "%s: links as remark alone links it",
+    (name: string, hrefs: Array<string>) => {
+      const rendered: { ok: boolean; html?: string } = report.rendered[name]!;
+
+      expect({ name: name, ok: rendered.ok }).toEqual({ name: name, ok: true });
+      expect(hrefsIn(rendered.html!)).toEqual(hrefs);
+    },
+  );
+});

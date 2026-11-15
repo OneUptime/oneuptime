@@ -346,7 +346,7 @@ describe("getNotice", () => {
 
     expect(notice!.subject).toBe("Logs ingestion budget 85% used in Acme");
     expect(notice!.html).toContain(
-      "Acme has used 85% of its daily logs ingestion budget of 10 GB (the warning is at 80%).",
+      "Acme has used 85% of its daily logs ingestion budget of 10\u00A0GB (the warning is at 80%).",
     );
     expect(notice!.html).toContain("2026-11-10 00:00 UTC");
     expect(notice!.html).toContain("Only the instance admin can change");

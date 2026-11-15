@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { getValueOrQuietDash } from "../Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import CopyableButton from "../CopyableButton/CopyableButton";
 import Icon from "../Icon/Icon";
@@ -185,7 +186,7 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
                             </pre>
                           </details>
                         ) : (
-                          <span>{item.value}</span>
+                          <span>{getValueOrQuietDash(item.value)}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">

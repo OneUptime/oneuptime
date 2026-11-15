@@ -444,9 +444,16 @@ describe.each(LANGUAGES)("the trace widgets in %s", (language: string) => {
     for (const [name, status] of SPANS) {
       const presentation: SpanStatusPresentation =
         getSpanStatusPresentation(status);
-      const pill: HTMLElement = within(rowFor(name)).getByText(
-        word(language, presentation.label),
-      );
+      /*
+       * The pill, not the quiet dash's words for a screen reader: a span
+       * with no start time draws the quiet dash, and "Not set" is the word
+       * some languages have for Unset too ("Nicht festgelegt").
+       */
+      const pill: HTMLElement = within(rowFor(name))
+        .getAllByText(word(language, presentation.label))
+        .find((element: HTMLElement): boolean => {
+          return !element.classList.contains("sr-only");
+        })!;
 
       expect(pill).toHaveAttribute(
         "title",

@@ -205,7 +205,8 @@ const formatPercent: (value: number | null) => string = (
 
 /*
  * A size in the reader's digits, in the unit and rounding every telemetry
- * page writes (getBytesReading): "12 GiB", "1.5 KiB", plain bytes whole.
+ * page writes (getBytesReading): "12 GiB", "1.5 KiB", plain bytes whole,
+ * the figure held to its unit by a no-break space (#8457).
  */
 const formatMemoryBytes: (bytes: number | null | undefined) => string = (
   bytes: number | null | undefined,
@@ -216,7 +217,7 @@ const formatMemoryBytes: (bytes: number | null | undefined) => string = (
   const reading: BytesReading = getBytesReading(bytes);
   return `${formatReaderFigure(reading.value, {
     decimals: reading.decimals,
-  })} ${reading.unit}`;
+  })}\u00A0${reading.unit}`;
 };
 
 const formatBytesPerSec: (value: number | null) => string = (

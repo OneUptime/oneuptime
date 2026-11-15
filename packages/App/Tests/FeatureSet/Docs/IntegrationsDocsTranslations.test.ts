@@ -1180,7 +1180,7 @@ describe("the Integrations Overview's catalog, in every language", () => {
     sv: { alert: "larm", incident: "incident" },
     ru: { alert: "оповещени", incident: "инцидент" },
     ja: { alert: "アラート", incident: "インシデント" },
-    ko: { alert: "알림", incident: "인시던트" },
+    ko: { alert: "경고", incident: "인시던트" },
     "zh-CN": { alert: "警报", incident: "事件" },
     "zh-TW": { alert: "警示", incident: "事件" },
     hi: { alert: "अलर्ट", incident: "घटना" },

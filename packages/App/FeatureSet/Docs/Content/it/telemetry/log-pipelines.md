@@ -2,7 +2,7 @@
 
 Le pipeline dei log trasformano i log mentre OneUptime li acquisisce, prima che vengano memorizzati. Una pipeline ha un **filtro** che decide a quali log si applica e un elenco ordinato di **processori** che modificano ciascuno quei log: estrarre campi dal messaggio, correggere la gravità, rinominare un attributo o contrassegnare il log con una categoria.
 
-Le pipeline si trovano in **Registri → Impostazioni → Pipeline**.
+Le pipeline si trovano in **Log → Impostazioni → Pipeline**.
 
 :::cards
 - [Come viene eseguita una pipeline](#come-viene-eseguita-una-pipeline): Dove si collocano le pipeline nell'acquisizione e in quale ordine vengono eseguite.
@@ -31,7 +31,7 @@ flowchart TB
 - **Le pipeline vengono eseguite in ordine**: quello dell'elenco, che cambiate trascinando le righe. Una pipeline tocca solo i log a cui corrisponde il suo filtro, e viene eseguita ogni pipeline il cui filtro corrisponde, non solo la prima.
 - **Anche i processori vengono eseguiti in ordine**, e ciascuno vede ciò che ha prodotto il precedente, quindi un parser deve venire prima di un processore che legge i campi che estrae. Anche il filtro di una pipeline successiva vede ciò che le pipeline precedenti hanno cambiato.
 - **L'elaborazione avviene all'acquisizione.** La modifica di una pipeline riguarda i log che arrivano dopo, entro circa un minuto; i log già memorizzati non vengono rielaborati.
-- **Un processore non scarta né svuota mai un log.** Una riga che un parser non riesce a leggere passa invariata. Per scartare log, usate **Registri → Impostazioni → Filtri di scarto**.
+- **Un processore non scarta né svuota mai un log.** Una riga che un parser non riesce a leggere passa invariata. Per scartare log, usate **Log → Impostazioni → Filtri di scarto**.
 - **Vengono eseguiti solo pipeline e processori abilitati.** Disattivatene uno nella sua pagina per metterlo in pausa senza perderne la configurazione.
 
 ## Tipi di processore
@@ -54,7 +54,7 @@ flowchart TB
 :::steps
 ### Creare la pipeline
 
-Andate in **Registri → Impostazioni → Pipeline** e fate clic su **Crea: Pipeline registri**. Assegnatele un **Nome**, per esempio *Analizzare i log del firewall*, e createla. Si apre la pagina della pipeline.
+Andate in **Log → Impostazioni → Pipeline** e fate clic su **Crea: Pipeline log**. Assegnatele un **Nome**, per esempio *Analizzare i log del firewall*, e createla. Si apre la pagina della pipeline.
 
 ### Scegliere a quali log si applica
 
@@ -115,7 +115,7 @@ OneUptime legge da solo il syslog di Sophos e FortiGate come attributi `sophos.*
 :::steps
 #### Creare una pipeline per il firewall
 
-Andate in **Registri → Impostazioni → Pipeline** e create una pipeline. Assegnatele un filtro che corrisponda ai log del firewall, per esempio l'attributo personalizzato `networkDevice.name` è uguale a `hq-firewall` (`attributes.networkDevice.name = 'hq-firewall'`), oppure **Corpo del log** contiene `log_component=` per includere ogni riga Sophos.
+Andate in **Log → Impostazioni → Pipeline** e create una pipeline. Assegnatele un filtro che corrisponda ai log del firewall, per esempio l'attributo personalizzato `networkDevice.name` è uguale a `hq-firewall` (`attributes.networkDevice.name = 'hq-firewall'`), oppure **Corpo del log** contiene `log_component=` per includere ogni riga Sophos.
 
 #### Aggiungere il parser
 

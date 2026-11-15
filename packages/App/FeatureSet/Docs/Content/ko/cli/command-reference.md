@@ -197,7 +197,7 @@ oneuptime <resource> fields
 
 ### `oneuptime <resource> acknowledge`
 
-인시던트, 알림 또는 그 에피소드를 대시보드 버튼처럼 프로젝트의 인지됨 상태로 옮깁니다. 이미 인지됨이거나 그보다 뒤의 상태인 레코드는 그대로 둡니다.
+인시던트, 경고 또는 그 에피소드를 대시보드 버튼처럼 프로젝트의 인지됨 상태로 옮깁니다. 이미 인지됨이거나 그보다 뒤의 상태인 레코드는 그대로 둡니다.
 
 ```bash
 oneuptime <resource> acknowledge <id>
@@ -209,7 +209,7 @@ oneuptime <resource> acknowledge <id>
 
 ### `oneuptime <resource> resolve`
 
-인시던트, 알림 또는 그 에피소드를 프로젝트의 해결됨 상태로 옮깁니다.
+인시던트, 경고 또는 그 에피소드를 프로젝트의 해결됨 상태로 옮깁니다.
 
 ```bash
 oneuptime <resource> resolve <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-인시던트, 알림, 그 에피소드 또는 유지 관리 이벤트에 메모를 추가합니다.
+인시던트, 경고, 그 에피소드 또는 유지 관리 이벤트에 메모를 추가합니다.
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]
@@ -309,7 +309,7 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime dbt upload`
 
-빌드 후 CI나 dbt Cloud 작업에서 dbt 프로젝트의 아티팩트를 데이터 관측 가능성으로 보냅니다. 프로젝트의 모델은 그 모델이 만드는 테이블에 계보와 함께 표시되고, 테스트는 OneUptime의 점검 옆에 표시되며 알림을 발생시킬 수 있고, 각 빌드는 프로젝트 파이프라인의 실행이 됩니다. dbt의 대상 폴더에서 `manifest.json`과 `run_results.json`을 읽고, 데이터 관측 가능성이 읽는 부분만 보냅니다. 쓰기에는 API 키가 아니라 텔레메트리 수집 키를 사용합니다. 대시보드의 데이터 관측 가능성 문서 페이지에 CI 작업에서 사용하는 예가 있습니다.
+빌드 후 CI나 dbt Cloud 작업에서 dbt 프로젝트의 아티팩트를 데이터 관측 가능성으로 보냅니다. 프로젝트의 모델은 그 모델이 만드는 테이블에 계보와 함께 표시되고, 테스트는 OneUptime의 점검 옆에 표시되며 경고를 발생시킬 수 있고, 각 빌드는 프로젝트 파이프라인의 실행이 됩니다. dbt의 대상 폴더에서 `manifest.json`과 `run_results.json`을 읽고, 데이터 관측 가능성이 읽는 부분만 보냅니다. 쓰기에는 API 키가 아니라 텔레메트리 수집 키를 사용합니다. 대시보드의 데이터 관측 가능성 문서 페이지에 CI 작업에서 사용하는 예가 있습니다.
 
 ```bash
 oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]

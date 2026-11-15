@@ -56,7 +56,7 @@ En ny monitor börjar med **vCenter Stopped Reporting** under **Vad som ska larm
 
 - **Ändra** - välj en annan [mall](#färdiga-larmmallar). Den sätter mätvärdet, attributfiltren, aggregeringen, tidsintervallet, grupperingen och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** (under **Fler fält**) - välj ett mätvärde i **VMware Metric** och sätt sedan **Aggregering** och **Tidsintervall**. Formuläret grupperar det efter objektet det beskriver, så varje värd, VM eller datastore bedöms för sig, och [filtren](#monitorinställningar) begränsar det till ett datacenter, ett kluster, en värd, en VM, en datastore eller en resurspool.
-- **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mått**, med filter på attribut som `disk_state`, `power_state` eller `status`. Använd **Gruppera efter** med ett [identitetsattribut](#identitetsattribut) för att bedöma varje objekt för sig.
+- **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mätvärden**, med filter på attribut som `disk_state`, `power_state` eller `status`. Använd **Gruppera efter** med ett [identitetsattribut](#identitetsattribut) för att bedöma varje objekt för sig.
 
 ### Kontrollera kriterierna
 
@@ -84,7 +84,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **VMware Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur stickprov kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönstret som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Senaste 5 minuterna**; mallar sätter sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 vCenter läses en gång per insamlingsintervall, 2 minuter som standard, så ett fönster på 1 minut innehåller kanske inget stickprov alls. Håll fönstret på 5 minuter eller mer, och längre om du har ökat insamlingsintervallet för ett stort inventarium.
 
@@ -300,7 +300,7 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 | 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mätvärde som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Terraform
 

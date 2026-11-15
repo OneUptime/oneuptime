@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import OneUptimeDate from "Common/Types/Date";
@@ -200,7 +201,7 @@ const DatabaseServerSummaryStrip: FunctionComponent<ComponentProps> = (
                 {tile.value}
               </div>
               <div className="mt-1 truncate text-xs text-gray-500">
-                {tile.sublabel}
+                {getValueOrQuietDash(tile.sublabel, { isSmall: true })}
               </div>
             </div>
           );

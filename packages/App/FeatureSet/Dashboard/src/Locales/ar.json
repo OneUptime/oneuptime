@@ -55461,11 +55461,11 @@
   "Recommended rules": "القواعد الموصى بها",
   "Refresh the page to change this rule": "حدّث الصفحة لتغيير هذه القاعدة",
   "Request Path: {{path}}": "مسار الطلب: {{path}}",
-  "Resource Pool Ballooned Memory": "الذاكرة المستعادة (Ballooned) لمجمّعات الموارد",
-  "Resource Pool CPU Shares": "حصص CPU لمجمّعات الموارد",
-  "Resource Pool Granted Memory": "الذاكرة الممنوحة لمجمّعات الموارد",
-  "Resource Pool Memory Shares": "حصص الذاكرة لمجمّعات الموارد",
-  "Resource Pool Swapped Memory": "الذاكرة المبدّلة لمجمّعات الموارد",
+  "Resource Pool Ballooned Memory": "الذاكرة المستعادة (Ballooned) لتجمّعات الموارد",
+  "Resource Pool CPU Shares": "حصص CPU لتجمّعات الموارد",
+  "Resource Pool Granted Memory": "الذاكرة الممنوحة لتجمّعات الموارد",
+  "Resource Pool Memory Shares": "حصص الذاكرة لتجمّعات الموارد",
+  "Resource Pool Swapped Memory": "الذاكرة المبدّلة لتجمّعات الموارد",
   "Retention in days for log records. Per-severity values take precedence over the logs default; leave any field blank to fall back.": "مدة الاحتفاظ بالسجلات بالأيام. تتقدم القيم لكل مستوى خطورة على الافتراضي للسجلات، واترك أي حقل فارغًا للرجوع إليه.",
   "Retention in days for metric data points.": "مدة الاحتفاظ بنقاط بيانات المقاييس بالأيام.",
   "Retention in days for profile samples.": "مدة الاحتفاظ بعينات ملفات التعريف بالأيام.",
@@ -55690,5 +55690,9 @@
   "which led to {{steps}}": "ما أدى إلى {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "لم تعمل {{step}} بعد. تظهر حقولها هنا بعد أن تعمل.",
   "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "HA": "HA",
+  "Insights (explorer analytics)": "الرؤى",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

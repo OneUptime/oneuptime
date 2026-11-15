@@ -177,7 +177,7 @@ Imposta `OTEL_SERVICE_NAME` sul nome proprio della Function App. È il nome che 
 ### Limitazioni
 
 - Le **app C# in-process** non possono usare OpenTelemetry: spostale prima sul modello a worker isolato.
-- Lo **streaming dei log** nel portale di Azure non funziona mentre l'host è in modalità OpenTelemetry, e l'elenco _Recent function invocations_ del portale richiede la telemetria in Application Insights. Usa invece le pagine **Registri** e **Tracce** della funzione in OneUptime.
+- Lo **streaming dei log** nel portale di Azure non funziona mentre l'host è in modalità OpenTelemetry, e l'elenco _Recent function invocations_ del portale richiede la telemetria in Application Insights. Usa invece le pagine **Log** e **Tracce** della funzione in OneUptime.
 - La sezione `logging.applicationInsights` di `host.json` non si applica più quando `telemetryMode` è `OpenTelemetry`.
 - **Istanze** elenca i valori di `faas.instance`. Dei rilevatori qui sopra, solo quello per Node.js lo imposta, quindi la pagina resta vuota per la telemetria dell'host e del worker .NET.
 
@@ -187,7 +187,7 @@ Appena la funzione invia uno span, un log o una metrica, compare in **Funzioni s
 
 - **Invocazioni**, **tasso di errore** e **durata p95**, calcolati dalle tue tracce su un intervallo di tempo a tua scelta, con grafici di tendenza.
 - **Istanze**: un elenco in tempo reale dei valori di `faas.instance` che la funzione riporta.
-- Pagine **Registri**, **Tracce** e **Metriche** complete, limitate a questa funzione.
+- Pagine **Log**, **Tracce** e **Metriche** complete, limitate a questa funzione.
 
 Una funzione mostra **Riceve dati** finché arriva la sua telemetria, e **Nessuna invocazione recente** dopo 15 minuti senza telemetria, il che è normale tra un'esecuzione e l'altra: una funzione invia telemetria solo mentre è in esecuzione. Una funzione aggiunta tramite l'API mostra **In attesa di dati** finché non arriva la sua prima telemetria.
 
@@ -214,7 +214,7 @@ Controlla, in quest'ordine:
 :::
 
 :::details La funzione è elencata, ma le sue pagine sono vuote
-**Panoramica**, **Registri**, **Tracce** e **Metriche** della funzione mostrano la telemetria il cui `faas.name` è esattamente uguale al nome della funzione, maiuscole comprese. Una funzione identificata da una `cloud.platform` FaaS e dal suo `service.name` non ha bisogno di un proprio `faas.name`: OneUptime scrive il `service.name` sulla telemetria come `faas.name` man mano che arriva. La telemetria memorizzata prima che OneUptime iniziasse a compilare `faas.name` non viene aggiornata e resta fuori dalle pagine: invoca la funzione per inviare nuova telemetria. Controlla anche l'intervallo di tempo in cima alla pagina.
+**Panoramica**, **Log**, **Tracce** e **Metriche** della funzione mostrano la telemetria il cui `faas.name` è esattamente uguale al nome della funzione, maiuscole comprese. Una funzione identificata da una `cloud.platform` FaaS e dal suo `service.name` non ha bisogno di un proprio `faas.name`: OneUptime scrive il `service.name` sulla telemetria come `faas.name` man mano che arriva. La telemetria memorizzata prima che OneUptime iniziasse a compilare `faas.name` non viene aggiornata e resta fuori dalle pagine: invoca la funzione per inviare nuova telemetria. Controlla anche l'intervallo di tempo in cima alla pagina.
 :::
 
 :::details La funzione mostra "Nessuna invocazione recente"
