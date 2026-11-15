@@ -1544,8 +1544,9 @@ const instanceCpuSaturatedTemplate: OpenStackAlertTemplate = {
 const instanceDiskLatencyHighTemplate: OpenStackAlertTemplate = {
   id: "openstack-instance-disk-latency-high",
   name: "Instance Disk Latency High",
-  summary: `An instance's disk takes over ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms per request for 15 minutes.`,
-  description: `Alert when reads or writes on one of an instance's disks take more than ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms on average for 15 minutes, read from openstack.instance.disk.read.latency and openstack.instance.disk.write.latency. A disk with no requests has no latency, so an idle disk never fires this. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server show <instance>\` for its volumes, then the storage pool and backend behind them.`,
+  // The picker draws the summary and the description: each figure held to its unit (#8457).
+  summary: `An instance's disk takes over ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS}\u00A0ms per request for 15 minutes.`,
+  description: `Alert when reads or writes on one of an instance's disks take more than ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS}\u00A0ms on average for 15 minutes, read from openstack.instance.disk.read.latency and openstack.instance.disk.write.latency. A disk with no requests has no latency, so an idle disk never fires this. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server show <instance>\` for its volumes, then the storage pool and backend behind them.`,
   category: "Compute",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {

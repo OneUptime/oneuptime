@@ -201,12 +201,16 @@ export default class NtpMonitorUtil {
     return absolute >= 100 ? 0 : absolute >= 10 ? 1 : absolute >= 1 ? 2 : 3;
   }
 
-  // 0.042 ms, 12.3 ms, 1,532 ms: three significant digits at most below 1 s.
+  /*
+   * 0.042 ms, 12.3 ms, 1,532 ms: three significant digits at most below 1 s,
+   * held to "ms" by a no-break space, so the incident's page never ends a
+   * line with the figure and starts the next with its unit (#8457).
+   */
   public static formatMilliseconds(value: number): string {
     return `${value.toLocaleString("en-US", {
       maximumFractionDigits:
         NtpMonitorUtil.getMillisecondsFractionDigits(value),
-    })} ms`;
+    })}\u00A0ms`;
   }
 
   // "12.3 ms ahead of the probe", "1,532 ms behind the probe".
