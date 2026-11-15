@@ -123,6 +123,14 @@ import {
 import { Amber600, Indigo500 } from "../../../Types/BrandColors";
 import { areSimilarColors } from "../../../Utils/DistinctColor";
 import { colorOf } from "../../UI/Components/ColorPicker/ColorPickerDriver";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/incident-role/count"]);
 
 type RoleRow = {
   _id: string;

@@ -156,7 +156,9 @@ beforeAll(async (): Promise<void> => {
           "What you'll need": "Was Sie brauchen",
           "A read-only credential": "Ein schreibgeschützter Zugang",
           "Add connection": "Verbindung hinzufügen",
-          Connect: "Verbinden",
+          // Each one sentence, the product where German puts it (#8483).
+          "Connect {{provider}}": "{{provider}} verbinden",
+          "{{provider}} Setup guide": "Einrichtungsanleitung für {{provider}}",
           "Setup guide": "Einrichtungsanleitung",
           "(opens in a new tab)": "(öffnet in einem neuen Tab)",
           // Bait: neither of these may be looked up.
@@ -1168,11 +1170,11 @@ describe("SecurityEventConnectionsEmptyState", () => {
       renderEmptyState({ translations: german });
 
       expect(
-        screen.getByRole("button", { name: "Verbinden Microsoft Sentinel" }),
+        screen.getByRole("button", { name: "Microsoft Sentinel verbinden" }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole("link", {
-          name: "Microsoft Sentinel Einrichtungsanleitung (öffnet in einem neuen Tab)",
+          name: "Einrichtungsanleitung für Microsoft Sentinel (öffnet in einem neuen Tab)",
         }),
       ).toBeInTheDocument();
       expect(

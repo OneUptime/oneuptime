@@ -82,6 +82,10 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
 
 `json_array true` はバッファーのチャンクごとに 1 つの JSON 配列として送り、`flush_interval 10s` は 10 秒ごとにバッファーを送ります。`chunk_limit_size 900k` は各リクエストを、このエンドポイントで OneUptime が受け付ける上限の 1 MB 未満に保ちます。
 
+`@type file` は、まだ送っていないバッチを `path` が示すフォルダーに保持するので、Fluentd を再起動してもどれも失われません。Fluentd の既定であるメモリー上のバッファーは、保持していたものを失います。Fluentd のユーザーはそのフォルダーに書き込める必要があります。`/var/log/fluent` は fluent-package の、`/var/log/td-agent` は td-agent の、`/fluentd/log` は `fluent/fluentd` イメージのフォルダーです。`total_limit_size 512m` はそこに最大 512 MB まで保持し、いっぱいになると、バッチが送られるまで Fluentd はそれ以上レコードを受け取りません。
+
 `retryable_response_codes 429,502,503,504` は、OneUptime が混み合っているとき (`429`) や再起動中のとき (`502`、`503`、`504`) にバッチを送り直します。これがないと、Fluentd は `503` 以外の応答でバッチを破棄します。`retry_max_interval 30s` は再試行の間隔を最大 30 秒に保ち、`retry_timeout 72h` は 72 時間たっても送れないバッチを破棄します。`record_transformer` フィルターは、Fluentd が各レコードに付けた時刻を `fluentd_time` として加えます。HTTP 出力はレコードしか送らず、OneUptime はログの時刻をレコードから読み取るためです。
 
 ### Fluentd を再起動する
@@ -113,7 +119,7 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
 
 ## 完全な例
 
-この構成は、ポート `24224` で Fluentd の forward プロトコルを使ってレコードを受け取り、すべて OneUptime に送ります。
+この構成は、ポート `24224` で Fluentd の forward プロトコルを使って、このホストからだけレコードを受け取り、すべて OneUptime に送ります。
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
 </label>
 ```
 
-異なるソースを異なるサービスとして送るには、タグごとに `<match>` セクションを 1 つずつ使い、それぞれに独自の `x-oneuptime-service-name` を設定します。
+`bind 127.0.0.1` はこのホストからだけレコードを受け取ります。たとえば、`localhost:24224` に送る Docker の `fluentd` ログドライバーのレコードです。異なるソースを異なるサービスとして送るには、タグごとに `<match>` セクションを 1 つずつ使い、それぞれに独自の `x-oneuptime-service-name` とバッファーの独自の `path` を設定します。1 つのパスに 2 つのバッファーがあると、Fluentd は起動しません。
+
+## ほかのホストからレコードを受け取る
+
+`bind 0.0.0.0` で `<security>` セクションがないと、ポート `24224` に届く人は誰でも、あなたの取り込みキーで OneUptime にログを送れます。ほかのホストの Fluentd や Fluent Bit からレコードを受け取るには、すべてのアドレスで待ち受け、送信元ごとに共有キーを求め、TLS を使います。完全な例の `<source>` セクションを次のものに置き換えます。
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` と `private_key_path` は、このホストの名前 (ここでは `fluentd.example.com`) の証明書とその鍵で、Fluentd のユーザーが読める必要があります。鍵にパスフレーズがないと Fluentd は警告します。`private_key_passphrase` でパスフレーズを設定できます。`YOUR_SHARED_KEY` を、`openssl rand -base64 32` で作ったような長いランダムな秘密に置き換え、各送信元にも同じものを設定します。
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+Fluent Bit の `forward` 出力も同じ設定 `Shared_Key`、`Self_Hostname`、`tls On`、`tls.ca_file` を受け付けます。
+
+キーのない送信元や TLS を使わない送信元は拒否されます。キーそのものがネットワークを流れることはなく、双方がキーを持っていることを証明し合います。TLS がないと、ホスト間のネットワーク上の誰もがレコードを読めます。ホストのファイアウォールでは、ポート `24224` を送信元のホストにだけ開けてください。ログガイドの Docker Compose ファイルで Fluentd を動かしている場合は、そこでもポートをすべてのアドレスに公開し (`"24224:24224"`)、証明書のフォルダーをコンテナーにマウントします。
 
 ## レコードの読み取り方
 
@@ -209,11 +274,15 @@ Fluentd のログも、ほかのログと同じように [ログパイプライ�
 :::
 
 :::details Fluentd が `429`、`502`、`503`、`504` を記録する
-OneUptime が混み合っているか、再起動中です。上の設定と同じように `<match>` セクションに `retryable_response_codes 429,502,503,504` があれば、Fluentd はバッチを保持して送り直します。ない場合、Fluentd はバッチを破棄します。
+OneUptime が混み合っているか、再起動中です。上の設定と同じように `<match>` セクションに `retryable_response_codes 429,502,503,504` があれば、Fluentd はバッチを保持して送り直します。ない場合、Fluentd はバッチを破棄します。`<buffer>` セクションに `@type file` があれば、Fluentd は再起動してもバッチを保持します。
 :::
 
 :::details ログに自身の時刻ではなく、OneUptime が受け取った時刻が表示される
-OneUptime はログの時刻をそのレコードから読み取りますが、Fluentd の HTTP 出力はレコードしか送りません。`<parse>` セクションはレコードから `time` フィールドを取り除くので、そこに `keep_time_key true` を加えてください。上の設定の `record_transformer` フィルターも加えてください。Fluentd が各レコードに付けた時刻を `fluentd_time` として加えます。
+OneUptime はログの時刻をそのレコードから読み取りますが、Fluentd の HTTP 出力はレコードしか送りません。`<parse>` セクションはレコードから `time` フィールドをイベントの時刻として取り除くので、そこに `time_key fluentd_time` を加えて、どのレコードの時刻も読まず `time` をそのまま残すようにしてください。上の設定の `record_transformer` フィルターも加えてください。Fluentd が各レコードに付けた時刻を `fluentd_time` として加えます。
+:::
+
+:::details `time` が `null`、`true`、リスト、オブジェクトの JSON 行が届かない
+Fluentd の `json` パーサーは行の `time` フィールドをイベントの時刻として読み、`time` がテキストでも数値でもない行を警告なしで破棄します。上と同じように、その `<parse>` セクションに `time_key fluentd_time` を加えてください。そうすると Fluentd は `time` をレコードにそのまま残します。上の `record_transformer` フィルターがあれば、OneUptime はログを Fluentd が読んだ時刻 `fluentd_time` で保存し、なければ OneUptime が受け取った時刻で保存します。
 :::
 
 :::details ログが `Fluentd` サービスで届く

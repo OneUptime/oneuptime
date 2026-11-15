@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment";
 
@@ -38,7 +39,7 @@ const defaultedPrivateNetworkPolicies: Array<
   ["false", { ...OPTED_IN, privateNetworkAccessIsAllowed: false }],
 ];
 
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

@@ -131,6 +131,18 @@ import { PLAN_LEFTOVER_NOTE_TEST_ID } from "../../../../App/FeatureSet/Dashboard
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Route from "../../../Types/API/Route";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/custom-role-permission/get-list",
+  "/custom-role/get-list",
+  "/label/get-list",
+]);
 
 interface PageCase {
   name: string;

@@ -23,6 +23,14 @@ import {
   sectionToggle,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/alert-state/get-list", "/incident-state/get-list"]);
 
 /*
  * A device's own menu, rendered against the real RouteMap.

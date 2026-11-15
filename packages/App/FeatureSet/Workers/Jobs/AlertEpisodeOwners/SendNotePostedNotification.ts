@@ -1,6 +1,5 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -12,7 +11,6 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertEpisodeInternalNoteService from "Common/Server/Services/AlertEpisodeInternalNoteService";
 import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
-import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
@@ -26,11 +24,81 @@ import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpi
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
+import Select from "Common/Server/Types/Database/Select";
+import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What a note is read with.
+const NOTE_SELECT: Select<AlertEpisodeInternalNote> = {
+  _id: true,
+  note: true,
+  alertEpisodeId: true,
+  projectId: true,
+};
+
+// What the episode of a note is read with.
+const EPISODE_SELECT: Select<AlertEpisode> = {
+  _id: true,
+  title: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  currentAlertState: {
+    name: true,
+    color: true,
+  },
+  alertSeverity: {
+    name: true,
+    color: true,
+  },
+  episodeNumber: true,
+  episodeNumberWithPrefix: true,
+};
 
 RunCron(
   "AlertEpisodeOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8509) - told first, exactly
+     * them, and the feed item a run that told them all left unwritten
+     * (#8510) (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.AlertEpisodeInternalNotePosted],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const note: AlertEpisodeInternalNote | null =
+          await AlertEpisodeInternalNoteService.findOneById({
+            id: delivery.notification.eventId,
+            select: NOTE_SELECT,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const episode: AlertEpisode | null = note
+          ? await readEpisode(delivery.notification.resourceId)
+          : null;
+
+        if (!note || !episode) {
+          await delivery.giveUp("the alert episode or its note is gone");
+          return;
+        }
+
+        await notifyOwnersOfNote({
+          note: note,
+          episode: episode,
+          delivery: delivery,
+        });
+      },
+    });
+
     const privateNotes: Array<AlertEpisodeInternalNote> =
       await AlertEpisodeInternalNoteService.findAllBy({
         query: {
@@ -40,21 +108,36 @@ RunCron(
           isRoot: true,
         },
         skip: 0,
-        select: {
-          _id: true,
-          note: true,
-          alertEpisodeId: true,
-          projectId: true,
-        },
+        select: NOTE_SELECT,
       });
 
-    const privateNoteIds: Array<string> = privateNotes.map(
-      (note: AlertEpisodeInternalNote) => {
-        return note._id!;
-      },
-    );
-
     for (const note of privateNotes) {
+      // Get the alert episode
+      const episode: AlertEpisode | null = await readEpisode(
+        note.alertEpisodeId!,
+      );
+
+      /*
+       * Whom it is to tell - the episode's owners, or the project's when it
+       * has none - written before the take: a worker stopped from here on
+       * leaves them to be told by a later run, and one stopped before the
+       * take leaves the note to be read again.
+       */
+      const delivery: OwnerNotificationDelivery | null = episode
+        ? await OwnerNotificationDeliveries.planForOwnersOf({
+            notification: {
+              kind: OwnerNotificationKind.AlertEpisodeInternalNotePosted,
+              projectId: episode.projectId!,
+              resourceId: episode.id!,
+              eventId: note.id!,
+            },
+            findOwners: () => {
+              return AlertEpisodeService.findOwners(episode.id!);
+            },
+            writesFeedItem: true,
+          })
+        : null;
+
       await AlertEpisodeInternalNoteService.updateOneById({
         id: note.id!,
         data: {
@@ -64,109 +147,122 @@ RunCron(
           isRoot: true,
         },
       });
-    }
 
-    const notes: Array<BaseModel> = [...privateNotes];
+      if (!episode || !delivery) {
+        continue;
+      }
 
-    for (const noteObject of notes) {
-      const note: BaseModel = noteObject as BaseModel;
-
-      // Get the alert episode
-      const episode: AlertEpisode | null =
-        await AlertEpisodeService.findOneById({
-          id: note.getColumnValue("alertEpisodeId")! as ObjectID,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            title: true,
-            description: true,
-            projectId: true,
-            project: {
-              name: true,
-            },
-            currentAlertState: {
-              name: true,
-              color: true,
-            },
-            alertSeverity: {
-              name: true,
-              color: true,
-            },
-            episodeNumber: true,
-            episodeNumberWithPrefix: true,
-          },
+      try {
+        await notifyOwnersOfNote({
+          note: note,
+          episode: episode,
+          delivery: delivery,
         });
-
-      if (!episode) {
-        continue;
+      } catch (e) {
+        logger.error("Error in sending alert episode note notification", {
+          projectId: episode.projectId?.toString(),
+          alertEpisodeId: episode.id?.toString(),
+        });
+        logger.error(e, {
+          projectId: episode.projectId?.toString(),
+          alertEpisodeId: episode.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      // Find owners
-      let doesResourceHasOwners: boolean = true;
-      let owners: Array<User> = await AlertEpisodeService.findOwners(
-        note.getColumnValue("alertEpisodeId")! as ObjectID,
-      );
+async function readEpisode(episodeId: ObjectID): Promise<AlertEpisode | null> {
+  return await AlertEpisodeService.findOneById({
+    id: episodeId,
+    props: {
+      isRoot: true,
+    },
+    select: EPISODE_SELECT,
+  });
+}
 
-      if (owners.length === 0) {
-        doesResourceHasOwners = false;
-        // Fall back to project owners
-        owners = await ProjectService.getOwners(
-          note.getColumnValue("projectId") as ObjectID,
-        );
-      }
+// A person told, as the episode's feed names them.
+function feedLine(user: User): string {
+  return OwnerNotificationFeedText.notifiedLineMarkdown(
+    OwnerNotificationFeedText.nameAndEmail({
+      name: user.name?.toString(),
+      email: user.email?.toString(),
+    }),
+  );
+}
 
-      if (owners.length === 0) {
-        continue;
-      }
+/*
+ * Tells the delivery's owners that a note was posted on the episode, each
+ * once (OwnerNotificationDelivery.tell), and says in the episode's feed whom
+ * it reached - those a stopped run told first among them.
+ */
+async function notifyOwnersOfNote(data: {
+  note: AlertEpisodeInternalNote;
+  episode: AlertEpisode;
+  delivery: OwnerNotificationDelivery;
+}): Promise<void> {
+  const note: AlertEpisodeInternalNote = data.note;
+  const episode: AlertEpisode = data.episode;
+  const delivery: OwnerNotificationDelivery = data.delivery;
 
-      const episodeNumberStr: string =
-        episode.episodeNumberWithPrefix ||
-        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
+  if (!delivery.hasWorkToDo) {
+    return;
+  }
 
-      const episodeIdentifier: string =
-        episode.episodeNumber !== undefined
-          ? `${episodeNumberStr} (${episode.title})`
-          : episode.title!;
+  const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
 
-      const vars: Dictionary<string> = {
-        episodeTitle: episode.title!,
-        episodeNumber: episodeNumberStr,
-        projectName: episode.project!.name!,
-        currentState: episode.currentAlertState!.name!,
-        ...EmailColorUtil.getTemplateVariables(
-          "currentState",
-          episode.currentAlertState?.color,
-        ),
-        note: await Markdown.convertToHTML(
-          (note.getColumnValue("note")! as string) || "",
-          MarkdownContentType.Email,
-        ),
-        episodeSeverity: episode.alertSeverity?.name || "Not Set",
-        ...EmailColorUtil.getTemplateVariables(
-          "episodeSeverity",
-          episode.alertSeverity?.color,
-        ),
-        episodeViewLink: (
-          await AlertEpisodeService.getEpisodeLinkInDashboard(
-            episode.projectId!,
-            episode.id!,
-          )
-        ).toString(),
-      };
+  const episodeNumberStr: string =
+    episode.episodeNumberWithPrefix ||
+    (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
 
-      if (doesResourceHasOwners === true) {
-        vars["isOwner"] = "true";
-      }
+  const episodeIdentifier: string =
+    episode.episodeNumber !== undefined
+      ? `${episodeNumberStr} (${episode.title})`
+      : episode.title!;
 
-      if (privateNoteIds.includes(note._id!)) {
-        vars["isPrivateNote"] = "true";
-      }
+  const vars: Dictionary<string> = {
+    episodeTitle: episode.title!,
+    episodeNumber: episodeNumberStr,
+    projectName: episode.project!.name!,
+    currentState: episode.currentAlertState!.name!,
+    ...EmailColorUtil.getTemplateVariables(
+      "currentState",
+      episode.currentAlertState?.color,
+    ),
+    note: await Markdown.convertToHTML(
+      note.note || "",
+      MarkdownContentType.Email,
+    ),
+    episodeSeverity: episode.alertSeverity?.name || "Not Set",
+    ...EmailColorUtil.getTemplateVariables(
+      "episodeSeverity",
+      episode.alertSeverity?.color,
+    ),
+    episodeViewLink: (
+      await AlertEpisodeService.getEpisodeLinkInDashboard(
+        episode.projectId!,
+        episode.id!,
+      )
+    ).toString(),
+  };
 
-      let moreEpisodeFeedInformationInMarkdown: string = "";
+  if (doesResourceHasOwners === true) {
+    vars["isOwner"] = "true";
+  }
 
-      for (const user of owners) {
+  // Only private notes are posted on an episode.
+  vars["isPrivateNote"] = "true";
+
+  // Whom a run that stopped part way told already.
+  let moreEpisodeFeedInformationInMarkdown: string = delivery.toldEarlier
+    .map(feedLine)
+    .join("");
+
+  for (const user of delivery.owners) {
+    const isTold: boolean = await delivery.tell(
+      user,
+      async (): Promise<void> => {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertEpisodeOwnerNotePosted,
           vars: vars,
@@ -230,31 +326,37 @@ RunCron(
           alertEpisodeId: episode.id!,
           eventType,
         });
+      },
+    );
 
-        moreEpisodeFeedInformationInMarkdown +=
-          OwnerNotificationFeedText.notifiedLineMarkdown(
-            OwnerNotificationFeedText.nameAndEmail({
-              name: user.name?.toString(),
-              email: user.email?.toString(),
-            }),
-          );
-      }
-
-      const episodeFeedText: string = OwnerNotificationFeedText.notePosted({
-        recordNoun: "alert episode",
-        isProjectOwners: !doesResourceHasOwners,
-        isPrivateNote: true,
-      });
-
-      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
-        alertEpisodeId: episode.id!,
-        projectId: episode.projectId!,
-        alertEpisodeFeedEventType:
-          AlertEpisodeFeedEventType.OwnerNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: episodeFeedText,
-        moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
-      });
+    if (isTold) {
+      moreEpisodeFeedInformationInMarkdown += feedLine(user);
     }
-  },
-);
+  }
+
+  /*
+   * Written by the run that set out to tell the owners, or by the one that
+   * took up the feed item a run that told them all left unwritten (#8510):
+   * a run that found every owner told already writes none.
+   */
+  if (!delivery.isFeedItemToWrite) {
+    return;
+  }
+
+  const episodeFeedText: string = OwnerNotificationFeedText.notePosted({
+    recordNoun: "alert episode",
+    isProjectOwners: !doesResourceHasOwners,
+    isPrivateNote: true,
+  });
+
+  await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+    alertEpisodeId: episode.id!,
+    projectId: episode.projectId!,
+    alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OwnerNotificationSent,
+    displayColor: Blue500,
+    feedInfoInMarkdown: episodeFeedText,
+    moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
+  });
+
+  await delivery.feedItemWritten();
+}

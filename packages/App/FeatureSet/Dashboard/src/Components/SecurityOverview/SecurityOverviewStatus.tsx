@@ -29,6 +29,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -107,10 +108,17 @@ const AttentionLink: FunctionComponent<{
           />
           {/* Pretty: a label that wraps never leaves "up" alone on its last line. */}
           <span className="min-w-0 text-pretty text-gray-700 group-hover:underline">
-            <span className="font-semibold tabular-nums text-gray-900">
-              {translator.formatNumber(props.item.count)}
-            </span>{" "}
-            {translator.translatePlural(props.item.label, props.item.count)}
+            <TranslatedSentence
+              template={props.item.label}
+              count={props.item.count}
+              slots={{
+                count: (
+                  <span className="font-semibold tabular-nums text-gray-900">
+                    {translator.formatNumber(props.item.count)}
+                  </span>
+                ),
+              }}
+            />
           </span>
           {/*
            * Forward in the reading direction: left in a right-to-left page,

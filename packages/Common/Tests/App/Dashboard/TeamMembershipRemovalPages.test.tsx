@@ -143,6 +143,12 @@ import {
   dashboardTranslator,
   isWordedInDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "00000000-0000-4000-8000-000000000001",

@@ -8,6 +8,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * Contract under test - the dashboard half of "Run now"
@@ -28,11 +29,11 @@ function successResponse(body: JSONObject): HTTPResponse<JSONObject> {
 
 function mockPost(
   response: HTTPResponse<JSONObject> | HTTPErrorResponse,
-): jest.SpiedFunction<typeof API.post> {
+): SpyInstance<typeof API.post> {
   return jest.spyOn(API, "post").mockResolvedValue(response as never) as any;
 }
 
-function lastPostArgs(spy: jest.SpiedFunction<typeof API.post>): {
+function lastPostArgs(spy: SpyInstance<typeof API.post>): {
   url: URL;
   data: JSONObject;
   headers?: Record<string, string> | undefined;
@@ -91,7 +92,7 @@ describe("RunNetworkRule.run", () => {
 
   describe("the request", () => {
     it("posts to the site assignment endpoint for that rule kind", async () => {
-      const spy: jest.SpiedFunction<typeof API.post> = mockPost(
+      const spy: SpyInstance<typeof API.post> = mockPost(
         successResponse(SITE_RUN_RESULT),
       );
 
@@ -106,7 +107,7 @@ describe("RunNetworkRule.run", () => {
     });
 
     it("posts to the label rule endpoint for that rule kind", async () => {
-      const spy: jest.SpiedFunction<typeof API.post> = mockPost(
+      const spy: SpyInstance<typeof API.post> = mockPost(
         successResponse(LABEL_RUN_RESULT),
       );
 
@@ -126,7 +127,7 @@ describe("RunNetworkRule.run", () => {
      * have to survive this hop.
      */
     it("passes the caller's headers through", async () => {
-      const spy: jest.SpiedFunction<typeof API.post> = mockPost(
+      const spy: SpyInstance<typeof API.post> = mockPost(
         successResponse(SITE_RUN_RESULT),
       );
 
@@ -140,7 +141,7 @@ describe("RunNetworkRule.run", () => {
     });
 
     it("sends the overwrite flag off unless it was asked for", async () => {
-      const spy: jest.SpiedFunction<typeof API.post> = mockPost(
+      const spy: SpyInstance<typeof API.post> = mockPost(
         successResponse(SITE_RUN_RESULT),
       );
 
@@ -159,7 +160,7 @@ describe("RunNetworkRule.run", () => {
      * true, so anything else would leave the checkbox looking broken.
      */
     it("sends the overwrite flag as a literal boolean", async () => {
-      const spy: jest.SpiedFunction<typeof API.post> = mockPost(
+      const spy: SpyInstance<typeof API.post> = mockPost(
         successResponse(SITE_RUN_RESULT),
       );
 
@@ -176,7 +177,7 @@ describe("RunNetworkRule.run", () => {
 
     // A label run has nothing to overwrite, so it must not carry the flag.
     it("never sends the overwrite flag for a label rule", async () => {
-      const spy: jest.SpiedFunction<typeof API.post> = mockPost(
+      const spy: SpyInstance<typeof API.post> = mockPost(
         successResponse(LABEL_RUN_RESULT),
       );
 
@@ -194,7 +195,7 @@ describe("RunNetworkRule.run", () => {
      * back as a 404 that says nothing about the real problem.
      */
     it("refuses to post a rule with no id", async () => {
-      const spy: jest.SpiedFunction<typeof API.post> = mockPost(
+      const spy: SpyInstance<typeof API.post> = mockPost(
         successResponse(SITE_RUN_RESULT),
       );
 

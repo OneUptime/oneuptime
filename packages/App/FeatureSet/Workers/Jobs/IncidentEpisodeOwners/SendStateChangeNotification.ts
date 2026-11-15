@@ -14,7 +14,6 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import IncidentEpisodeStateTimelineService from "Common/Server/Services/IncidentEpisodeStateTimelineService";
 import IncidentStateService from "Common/Server/Services/IncidentStateService";
-import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
@@ -22,7 +21,6 @@ import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
-import User from "Common/Models/DatabaseModels/User";
 import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
 import { Blue500 } from "Common/Types/BrandColors";
@@ -32,11 +30,85 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
+import Select from "Common/Server/Types/Database/Select";
+import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What each state change is read with.
+const STATE_TIMELINE_SELECT: Select<IncidentEpisodeStateTimeline> = {
+  _id: true,
+  createdAt: true,
+  startsAt: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  incidentEpisodeId: true,
+  incidentStateId: true,
+  incidentState: {
+    name: true,
+    color: true,
+  },
+};
+
+// What the episode of a state change is read with.
+const EPISODE_SELECT: Select<IncidentEpisode> = {
+  _id: true,
+  title: true,
+  projectId: true,
+  description: true,
+  episodeNumber: true,
+  episodeNumberWithPrefix: true,
+  incidentSeverity: {
+    name: true,
+    color: true,
+  },
+};
 
 RunCron(
   "IncidentEpisodeOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8509) - told first, exactly
+     * them, and the feed item a run that told them all left unwritten
+     * (#8510) (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.IncidentEpisodeStateChanged],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const episodeStateTimeline: IncidentEpisodeStateTimeline | null =
+          await IncidentEpisodeStateTimelineService.findOneById({
+            id: delivery.notification.eventId,
+            select: STATE_TIMELINE_SELECT,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const episode: IncidentEpisode | null = episodeStateTimeline
+          ? await readEpisode(delivery.notification.resourceId)
+          : null;
+
+        if (!episodeStateTimeline || !episode) {
+          await delivery.giveUp(
+            "the incident episode or its state change is gone",
+          );
+          return;
+        }
+
+        await notifyOwnersOfStateChange({
+          episodeStateTimeline: episodeStateTimeline,
+          episode: episode,
+          delivery: delivery,
+        });
+      },
+    });
+
     // Get all state timelines that need owner notification
     const episodeStateTimelines: Array<IncidentEpisodeStateTimeline> =
       await IncidentEpisodeStateTimelineService.findAllBy({
@@ -47,21 +119,7 @@ RunCron(
           isRoot: true,
         },
         skip: 0,
-        select: {
-          _id: true,
-          createdAt: true,
-          startsAt: true,
-          projectId: true,
-          project: {
-            name: true,
-          },
-          incidentEpisodeId: true,
-          incidentStateId: true,
-          incidentState: {
-            name: true,
-            color: true,
-          },
-        },
+        select: STATE_TIMELINE_SELECT,
       });
 
     for (const episodeStateTimeline of episodeStateTimelines) {
@@ -72,31 +130,31 @@ RunCron(
       }
 
       // Get the incident episode
-      const episode: IncidentEpisode | null =
-        await IncidentEpisodeService.findOneById({
-          id: episodeId,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            title: true,
-            projectId: true,
-            description: true,
-            episodeNumber: true,
-            episodeNumberWithPrefix: true,
-            incidentSeverity: {
-              name: true,
-              color: true,
-            },
-          },
-        });
+      const episode: IncidentEpisode | null = await readEpisode(episodeId);
 
       if (!episode) {
         continue;
       }
 
-      const incidentState: IncidentState = episodeStateTimeline.incidentState!;
+      /*
+       * Whom it is to tell - the episode's owners, or the project's when it
+       * has none - written before the take: a worker stopped from here on
+       * leaves them to be told by a later run, and one stopped before the
+       * take leaves the state change to be read again.
+       */
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: {
+            kind: OwnerNotificationKind.IncidentEpisodeStateChanged,
+            projectId: episodeStateTimeline.projectId!,
+            resourceId: episode.id!,
+            eventId: episodeStateTimeline.id!,
+          },
+          findOwners: () => {
+            return IncidentEpisodeService.findOwners(episode.id!);
+          },
+          writesFeedItem: true,
+        });
 
       await IncidentEpisodeStateTimelineService.updateOneById({
         id: episodeStateTimeline.id!,
@@ -108,88 +166,139 @@ RunCron(
         },
       });
 
-      // Fetch the previous state timeline entry
-      let previousState: IncidentState | null = null;
-      let previousStateDuration: string = "";
-
-      if (
-        episodeStateTimeline.incidentEpisodeId &&
-        episodeStateTimeline.startsAt
-      ) {
-        const previousTimeline: IncidentEpisodeStateTimeline | null =
-          await IncidentEpisodeStateTimelineService.findOneBy({
-            query: {
-              incidentEpisodeId: episodeStateTimeline.incidentEpisodeId,
-              startsAt: QueryHelper.lessThan(episodeStateTimeline.startsAt),
-            },
-            sort: {
-              startsAt: SortOrder.Descending,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              incidentStateId: true,
-              startsAt: true,
-              createdAt: true,
-            },
-          });
-
-        if (previousTimeline?.incidentStateId) {
-          previousState = await IncidentStateService.findOneById({
-            id: previousTimeline.incidentStateId,
-            props: {
-              isRoot: true,
-            },
-            select: {
-              name: true,
-              color: true,
-            },
-          });
-
-          const previousStartTime: Date | undefined =
-            previousTimeline.startsAt || previousTimeline.createdAt;
-          const currentStartTime: Date | undefined =
-            episodeStateTimeline.startsAt || episodeStateTimeline.createdAt;
-
-          if (previousStartTime && currentStartTime) {
-            const durationInSeconds: number =
-              OneUptimeDate.getDifferenceInSeconds(
-                currentStartTime,
-                previousStartTime,
-              );
-            previousStateDuration =
-              OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
-                durationInSeconds,
-              );
-          }
-        }
-      }
-
-      // Find owners
-      let doesResourceHasOwners: boolean = true;
-      let owners: Array<User> = await IncidentEpisodeService.findOwners(
-        episode.id!,
-      );
-
-      if (owners.length === 0) {
-        doesResourceHasOwners = false;
-        owners = await ProjectService.getOwners(
-          episodeStateTimeline.projectId!,
+      try {
+        await notifyOwnersOfStateChange({
+          episodeStateTimeline: episodeStateTimeline,
+          episode: episode,
+          delivery: delivery,
+        });
+      } catch (e) {
+        logger.error(
+          "Error in sending incident episode state change notification",
+          {
+            projectId: episode.projectId?.toString(),
+            incidentEpisodeId: episode.id?.toString(),
+          },
         );
+        logger.error(e, {
+          projectId: episode.projectId?.toString(),
+          incidentEpisodeId: episode.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      if (owners.length === 0) {
-        continue;
+async function readEpisode(
+  episodeId: ObjectID,
+): Promise<IncidentEpisode | null> {
+  return await IncidentEpisodeService.findOneById({
+    id: episodeId,
+    props: {
+      isRoot: true,
+    },
+    select: EPISODE_SELECT,
+  });
+}
+
+/*
+ * Tells the delivery's owners that the episode's state changed, each once
+ * (OwnerNotificationDelivery.tell), and says in the episode's feed whom it
+ * reached - those a stopped run told first among them.
+ */
+async function notifyOwnersOfStateChange(data: {
+  episodeStateTimeline: IncidentEpisodeStateTimeline;
+  episode: IncidentEpisode;
+  delivery: OwnerNotificationDelivery;
+}): Promise<void> {
+  const episodeStateTimeline: IncidentEpisodeStateTimeline =
+    data.episodeStateTimeline;
+  const episode: IncidentEpisode = data.episode;
+  const delivery: OwnerNotificationDelivery = data.delivery;
+
+  if (!delivery.hasWorkToDo) {
+    return;
+  }
+
+  const incidentState: IncidentState = episodeStateTimeline.incidentState!;
+
+  // Fetch the previous state timeline entry
+  let previousState: IncidentState | null = null;
+  let previousStateDuration: string = "";
+
+  if (episodeStateTimeline.incidentEpisodeId && episodeStateTimeline.startsAt) {
+    const previousTimeline: IncidentEpisodeStateTimeline | null =
+      await IncidentEpisodeStateTimelineService.findOneBy({
+        query: {
+          incidentEpisodeId: episodeStateTimeline.incidentEpisodeId,
+          startsAt: QueryHelper.lessThan(episodeStateTimeline.startsAt),
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          incidentStateId: true,
+          startsAt: true,
+          createdAt: true,
+        },
+      });
+
+    if (previousTimeline?.incidentStateId) {
+      previousState = await IncidentStateService.findOneById({
+        id: previousTimeline.incidentStateId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          name: true,
+          color: true,
+        },
+      });
+
+      const previousStartTime: Date | undefined =
+        previousTimeline.startsAt || previousTimeline.createdAt;
+      const currentStartTime: Date | undefined =
+        episodeStateTimeline.startsAt || episodeStateTimeline.createdAt;
+
+      if (previousStartTime && currentStartTime) {
+        const durationInSeconds: number = OneUptimeDate.getDifferenceInSeconds(
+          currentStartTime,
+          previousStartTime,
+        );
+        previousStateDuration =
+          OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+            durationInSeconds,
+          );
       }
+    }
+  }
 
-      let moreEpisodeFeedInformationInMarkdown: string = "";
+  const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
 
-      const episodeNumberStr: string =
-        episode.episodeNumberWithPrefix ||
-        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
+  let moreEpisodeFeedInformationInMarkdown: string = "";
 
-      for (const user of owners) {
+  // Whom a run that stopped part way told already.
+  for (const user of delivery.toldEarlier) {
+    moreEpisodeFeedInformationInMarkdown +=
+      OwnerNotificationFeedText.notifiedLineMarkdown(
+        await UserService.getUserMarkdownString({
+          userId: user.id!,
+          projectId: episodeStateTimeline.projectId!,
+        }),
+      );
+  }
+
+  const episodeNumberStr: string =
+    episode.episodeNumberWithPrefix ||
+    (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
+
+  for (const user of delivery.owners) {
+    const isTold: boolean = await delivery.tell(
+      user,
+      async (): Promise<void> => {
         const episodeIdentifier: string =
           episode.episodeNumber !== undefined
             ? `${episodeNumberStr} (${episode.title})`
@@ -312,29 +421,42 @@ RunCron(
           incidentEpisodeId: episode.id!,
           eventType,
         });
+      },
+    );
 
-        moreEpisodeFeedInformationInMarkdown +=
-          OwnerNotificationFeedText.notifiedLineMarkdown(
-            await UserService.getUserMarkdownString({
-              userId: user.id!,
-              projectId: episodeStateTimeline.projectId!,
-            }),
-          );
-      }
-
-      await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
-        incidentEpisodeId: episode.id!,
-        projectId: episode.projectId!,
-        incidentEpisodeFeedEventType:
-          IncidentEpisodeFeedEventType.OwnerNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
-          isProjectOwners: !doesResourceHasOwners,
-          recordNoun: "incident episode",
-          stateName: incidentState.name,
-        }),
-        moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
-      });
+    if (isTold) {
+      moreEpisodeFeedInformationInMarkdown +=
+        OwnerNotificationFeedText.notifiedLineMarkdown(
+          await UserService.getUserMarkdownString({
+            userId: user.id!,
+            projectId: episodeStateTimeline.projectId!,
+          }),
+        );
     }
-  },
-);
+  }
+
+  /*
+   * Written by the run that set out to tell the owners, or by the one that
+   * took up the feed item a run that told them all left unwritten (#8510):
+   * a run that found every owner told already writes none.
+   */
+  if (!delivery.isFeedItemToWrite) {
+    return;
+  }
+
+  await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+    incidentEpisodeId: episode.id!,
+    projectId: episode.projectId!,
+    incidentEpisodeFeedEventType:
+      IncidentEpisodeFeedEventType.OwnerNotificationSent,
+    displayColor: Blue500,
+    feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+      isProjectOwners: !doesResourceHasOwners,
+      recordNoun: "incident episode",
+      stateName: incidentState.name,
+    }),
+    moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
+  });
+
+  await delivery.feedItemWritten();
+}

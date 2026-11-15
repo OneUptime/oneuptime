@@ -16,6 +16,23 @@ import {
   sectionTitlesInOrder,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/alert-state/get-list",
+  "/alert/count",
+  "/cloud-account/*/get-item",
+  "/cloud-resource/*/get-item",
+  "/incident-state/get-list",
+  "/incident/count",
+  "/scheduled-maintenance-state/get-list",
+  "/scheduled-maintenance/count",
+]);
 
 /*
  * The Cloud menus: the product's (its Overview, the accounts, every

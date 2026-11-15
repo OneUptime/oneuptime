@@ -253,7 +253,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
       });
     }
 
-    const uptime: string = formatUptime(row.uptimeSeconds);
+    const uptime: string = formatUptime(row.uptimeSeconds, translator);
     if (uptime) {
       summaryFields.push({
         title: "Uptime",
