@@ -15,15 +15,15 @@ Los paneles siguen los [permisos](/docs/permissions/index) de tu proyecto. Cada 
 
 | Para | Se necesita |
 | --- | --- |
-| Leer paneles | `ReadDashboard`, o un rol del proyecto: Project Owner, Project Admin, Project Member, Viewer o un rol Settings |
-| Crear paneles | `CreateDashboard`, Project Owner o Project Admin |
-| Cambiar un panel: sus widgets, variables, uso compartido y marca, y archivarlo | `EditDashboard`, Project Owner o Project Admin |
-| Eliminar un panel | `DeleteDashboard`, Project Owner o Project Admin |
-| Añadir y quitar propietarios | Los permisos de propietarios de paneles, Project Owner, Project Admin o Project Member |
-| Añadir y cambiar dominios personalizados | Los permisos de dominios de paneles, Project Owner, Project Admin, Project Member, Settings Admin o Settings Member |
-| Crear reglas del propietario y reglas de etiquetas | Los permisos de reglas, Project Owner o Project Admin |
+| Leer paneles | `ReadDashboard`, o un rol del proyecto: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor o un rol Settings |
+| Crear paneles | `CreateDashboard`, Propietario del proyecto o Administrador del proyecto |
+| Cambiar un panel: sus widgets, variables, uso compartido y marca, y archivarlo | `EditDashboard`, Propietario del proyecto o Administrador del proyecto |
+| Eliminar un panel | `DeleteDashboard`, Propietario del proyecto o Administrador del proyecto |
+| Añadir y quitar propietarios | Los permisos de propietarios de paneles, Propietario del proyecto, Administrador del proyecto o Miembro del proyecto |
+| Añadir y cambiar dominios personalizados | Los permisos de dominios de paneles, Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de ajustes o Miembro de ajustes |
+| Crear reglas del propietario y reglas de etiquetas | Los permisos de reglas, Propietario del proyecto o Administrador del proyecto |
 
-Así, un Project Member lee todos los paneles, pero necesita `CreateDashboard` y `EditDashboard` para construirlos. Leer, editar y eliminar pueden limitarse cada uno a los paneles que posee un equipo, o a los paneles que llevan ciertas etiquetas: consulta [Alcance: hasta dónde llega un permiso concedido](/docs/permissions/index#alcance-hasta-dónde-llega-un-permiso-concedido).
+Así, un Miembro del proyecto lee todos los paneles, pero necesita `CreateDashboard` y `EditDashboard` para construirlos. Leer, editar y eliminar pueden limitarse cada uno a los paneles que posee un equipo, o a los paneles que llevan ciertas etiquetas: consulta [Alcance: hasta dónde llega un permiso concedido](/docs/permissions/index#alcance-hasta-dónde-llega-un-permiso-concedido).
 
 Asígnalos en la página **Permisos** de un equipo: abre **Productos → Equipos** y elige el equipo.
 

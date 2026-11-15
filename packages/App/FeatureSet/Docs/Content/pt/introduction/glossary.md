@@ -436,7 +436,7 @@ Veja [Conceitos básicos](/docs/introduction/core-concepts#os-tipos-de-regra).
 
 ### Função
 
-Quatro coisas diferentes: as permissões que uma equipe concede, como Project Owner ou Project Admin; uma **Função personalizada** que você monta a partir de permissões; uma **Função no incidente**, o papel que alguém desempenha em um incidente; e uma **Network Device Role**, o que um dispositivo faz na sua rede.
+Quatro coisas diferentes: as permissões que uma equipe concede, como Proprietário do projeto ou Administrador do projeto; uma **Função personalizada** que você monta a partir de permissões; uma **Função no incidente**, o papel que alguém desempenha em um incidente; e uma **Network Device Role**, o que um dispositivo faz na sua rede.
 
 Veja [Usuários, equipes e permissões](/docs/permissions/index).
 

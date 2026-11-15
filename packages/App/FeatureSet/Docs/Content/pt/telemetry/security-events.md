@@ -67,13 +67,13 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 
 ## Antes de começar
 
-Os dados de segurança só são lidos pelos papéis Project Owner e Project Admin e pelos três papéis de segurança; os outros papéis não veem nada em Security Events. Veja [Papéis](/docs/permissions/reference#funções).
+Os dados de segurança só são lidos pelos papéis Proprietário do projeto e Administrador do projeto e pelos três papéis de segurança; os outros papéis não veem nada em Security Events. Veja [Papéis](/docs/permissions/reference#funções).
 
 | Papel | O que pode fazer |
 | --- | --- |
-| Security Admin | Tudo: eventos, casos, playbooks, regras de detecção, feeds de inteligência de ameaças e conexões |
-| Security Member | Ler eventos e inteligência de ameaças, tratar casos, executar playbooks e aprovar as etapas deles, e criar, alterar e excluir regras de detecção e feeds. Não pode configurar playbooks nem conexões, nem excluir dados de segurança. |
-| Security Viewer | Ler eventos, casos, playbooks, regras, feeds, indicadores e conexões |
+| Administrador de segurança | Tudo: eventos, casos, playbooks, regras de detecção, feeds de inteligência de ameaças e conexões |
+| Membro de segurança | Ler eventos e inteligência de ameaças, tratar casos, executar playbooks e aprovar as etapas deles, e criar, alterar e excluir regras de detecção e feeds. Não pode configurar playbooks nem conexões, nem excluir dados de segurança. |
+| Visualizador de segurança | Ler eventos, casos, playbooks, regras, feeds, indicadores e conexões |
 
 ## Enviar eventos de segurança
 
@@ -305,7 +305,7 @@ Uma caçada é uma pesquisa sobre seus eventos de segurança salva com um nome: 
 
 Em **Eventos**, pesquise e filtre até a lista mostrar o que você procura, depois abra **Caçadas** na barra de ferramentas e escolha **Salvar como caçada**. Dê um nome a ela, escolha se ela é executada em um agendamento, e a página dela se abre. **Eventos → Caçadas** lista as caçadas do projeto, cada uma com sua pesquisa, a frequência com que é executada, quem ela avisa e o que sua última execução encontrou; **Criar: Caçada** ali recebe a pesquisa como você a digitaria em **Eventos**. Um projeto guarda até 200 caçadas. Uma pesquisa pode ler uma [lista de observação](#listas-de-observação), como `user:%vip_users%` faz, e uma caçada que lê uma lista que o projeto não tem é recusada ao salvar.
 
-A página de uma caçada é a pesquisa dela, aberta no explorador de eventos. Mude ali a pesquisa ou os filtros, e o cabeçalho da caçada oferece **Salvar alterações** e **Descartar alterações**. **Editar** muda o nome, a pesquisa, até quando ela olha para trás, o agendamento e quem ela avisa, e **Excluir caçada** fica no menu dela. A partir de Security Member é possível salvar, alterar e excluir caçadas, e um Security Viewer pode abri-las.
+A página de uma caçada é a pesquisa dela, aberta no explorador de eventos. Mude ali a pesquisa ou os filtros, e o cabeçalho da caçada oferece **Salvar alterações** e **Descartar alterações**. **Editar** muda o nome, a pesquisa, até quando ela olha para trás, o agendamento e quem ela avisa, e **Excluir caçada** fica no menu dela. A partir de Membro de segurança é possível salvar, alterar e excluir caçadas, e um Visualizador de segurança pode abri-las.
 
 Uma caçada salva com filtros da barra lateral de Eventos os mostra em **Editar** sob **Filtros**, como Eventos os desenha, cada um com um x para removê-lo. Adicione filtros na página da caçada, pela barra lateral.
 
@@ -340,7 +340,7 @@ Cada execução agendada é guardada por 90 dias. **Histórico de execuções**,
 
 A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e a janela que ela leu, e leva à página da caçada nesses eventos; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
 
-Para publicar no Slack, no Microsoft Teams ou no Mattermost o que as caçadas encontram, adicione uma regra a **Regras de caçadas** em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams** ou **Mattermost**), abaixo das regras que publicam os [casos de segurança](/docs/telemetry/security-cases#publique-em-canais-do-slack-do-microsoft-teams-e-do-mattermost). Uma regra nomeia os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, as caçadas a que se aplica, por **Nome da caçada**: um nome que é o seu texto, o contém, começa ou termina com ele. Cada vez que uma execução agendada encontra eventos, ela publica a caçada, sua pesquisa, quantos eventos e quando, com um link para eles, e nenhuma das palavras próprias de um evento. Uma regra de caçadas é configurada por uma função que pode configurar playbooks de segurança, como Project Owner, Project Admin ou Security Admin.
+Para publicar no Slack, no Microsoft Teams ou no Mattermost o que as caçadas encontram, adicione uma regra a **Regras de caçadas** em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams** ou **Mattermost**), abaixo das regras que publicam os [casos de segurança](/docs/telemetry/security-cases#publique-em-canais-do-slack-do-microsoft-teams-e-do-mattermost). Uma regra nomeia os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, as caçadas a que se aplica, por **Nome da caçada**: um nome que é o seu texto, o contém, começa ou termina com ele. Cada vez que uma execução agendada encontra eventos, ela publica a caçada, sua pesquisa, quantos eventos e quando, com um link para eles, e nenhuma das palavras próprias de um evento. Uma regra de caçadas é configurada por uma função que pode configurar playbooks de segurança, como Proprietário do projeto, Administrador do projeto ou Administrador de segurança.
 
 ### Guardar eventos em um caso
 

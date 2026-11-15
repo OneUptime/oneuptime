@@ -112,10 +112,10 @@ flowchart TB
 | --- | --- |
 | **Waiting** | An on-call rule set to **Only during working hours** makes the run wait until those hours begin: it says when paging starts, and pages nobody until then. It ends without paging if the incident or alert is acknowledged or resolved first. It starts paging at once if the incident or alert changes and now matches an on-call rule that pages right away. |
 | **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes did not finish starting: it moves on to **Executing** and pages from where its start stopped. A direct page or a test page still here is stopped as **Error**. |
-| **Executing** | The run is paging. OneUptime moves it on every minute. |
+| **Executing** | The run is paging. OneUptime moves it on every minute. A step that fails for a moment, because the database could not be reached for example, is tried again a minute later, then 2 and 4 minutes later, then every 5 minutes. |
 | **Execution Completed** | Someone acknowledged, the incident or alert was resolved, every rule and repeat was used, or the policy was archived. |
 | **Execution Completed - No One Notified** | The run went through every rule and paged nobody: usually a schedule with nobody on call, or a level with no responders. |
-| **Error** | The run failed. **View Status Message** says why. |
+| **Error** | The run failed: a step failed in a way a retry cannot fix, such as an escalation rule that was deleted, or failed 10 tries in a row, over about 37 minutes. **View Status Message** says why. |
 
 You find execution logs in three places:
 

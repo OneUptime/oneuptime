@@ -23,7 +23,7 @@ Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo
 
 ## Antes de empezar
 
-- En OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
+- En OneUptime, el rol Propietario del proyecto, Administrador del proyecto o Administrador de seguridad. Los roles Miembro de seguridad y Visor de seguridad pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
 - Un ID de cliente de Falcon (CID) y un usuario de la consola de Falcon que pueda gestionar clientes de API: el rol Falcon Administrator, o un rol personalizado con el permiso API clients and keys.
 - HTTPS saliente de la aplicación y los workers de OneUptime hacia el host de API de tu nube de Falcon, que aparece en **Nube de Falcon** más abajo.
 

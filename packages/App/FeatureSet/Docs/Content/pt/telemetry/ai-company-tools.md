@@ -29,7 +29,7 @@ Os chats chegam do mesmo jeito que as chamadas de IA das suas aplicações, ent�
 
 ## Antes de começar
 
-- O papel Project Owner ou Project Admin. Só eles podem conectar, alterar ou remover uma ferramenta.
+- O papel Proprietário do projeto ou Administrador do projeto. Só eles podem conectar, alterar ou remover uma ferramenta.
 - Um administrador da ferramenta, para criar a credencial: a seção de cada ferramenta, abaixo, diz qual.
 - Sua equipe avisada, e a resposta do seu time jurídico ou de RH.
 

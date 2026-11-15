@@ -58,7 +58,7 @@ Per avviarne una a mano:
 3. Si apre la pagina dell'esecuzione.
 :::
 
-Avviare un'esecuzione richiede Project Owner, Project Admin, Project Member, Runbook Admin o Runbook Member, oppure l'autorizzazione **Create Runbook Execution**. Runbook Viewer e Viewer vedono **Esegui ora** bloccato, con il motivo. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
+Avviare un'esecuzione richiede Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei runbook o Membro dei runbook, oppure l'autorizzazione **Create Runbook Execution**. Visualizzatore dei runbook e Visualizzatore vedono **Esegui ora** bloccato, con il motivo. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
 
 ## La vista dell'esecuzione
 
@@ -128,7 +128,7 @@ Un'esecuzione è un record unico e immutabile. Per eseguire di nuovo il runbook,
 ## Risoluzione dei problemi
 
 :::details Run Now è bloccato
-Il tuo ruolo legge i runbook ma non li esegue: il pulsante dice «Non hai l'autorizzazione per avviare esecuzioni di runbook in questo progetto.» Chiedi Runbook Member oppure l'autorizzazione **Create Runbook Execution**.
+Il tuo ruolo legge i runbook ma non li esegue: il pulsante dice «Non hai l'autorizzazione per avviare esecuzioni di runbook in questo progetto.» Chiedi il ruolo Membro dei runbook oppure l'autorizzazione **Create Runbook Execution**.
 :::
 
 :::details L'avvio di un'esecuzione fallisce con "Runbook is disabled" o "Runbook has no steps to run"

@@ -87,7 +87,7 @@ Sous les enregistrements, Signaux connectés cherche dans vos journaux et traces
 
 ## Qui voit quoi
 
-- Signaux connectés et la carte **Sécurité** d'un enregistrement demandent un rôle qui peut lire les événements de sécurité : Security Admin, Security Member, Security Viewer, Project Owner ou Project Admin. Les autres ne voient de données de sécurité sur aucune page. Voir [Rôles](/docs/permissions/reference#rôles).
+- Signaux connectés et la carte **Sécurité** d'un enregistrement demandent un rôle qui peut lire les événements de sécurité : Administrateur de la sécurité, Membre de la sécurité, Lecteur de la sécurité, Propriétaire du projet ou Administrateur du projet. Les autres ne voient de données de sécurité sur aucune page. Voir [Rôles](/docs/permissions/reference#rôles).
 - La carte **Sécurité** d'un incident demande un rôle qui peut lire les dossiers de sécurité.
 - Chaque enregistrement est lu avec votre propre rôle, et ce qu'il porte aussi : un rôle qui ne peut pas lire les plannings d'astreinte ne voit pas ceux d'un membre. Un type d'enregistrement que votre rôle ne peut pas lire est omis, et la page le dit ; un qui n'a pas pu être lu à l'instant le dit aussi, avec **Réessayer**.
 - La page d'un enregistrement n'affiche sa carte **Sécurité** que dans un projet qui utilise Événements de sécurité : un qui a reçu un événement de sécurité au cours des 7 derniers jours.
@@ -123,7 +123,7 @@ La carte est affichée pour un moniteur qui vérifie un hôte, une adresse ou un
 :::
 
 :::details La page dit que votre rôle ne peut pas voir un type d'enregistrement
-Chaque enregistrement est lu avec votre propre rôle. Demandez à un Project Owner ou à un Project Admin un rôle qui peut lire ce type d'enregistrement.
+Chaque enregistrement est lu avec votre propre rôle. Demandez à un Propriétaire du projet ou à un Administrateur du projet un rôle qui peut lire ce type d'enregistrement.
 :::
 
 ## Étapes suivantes

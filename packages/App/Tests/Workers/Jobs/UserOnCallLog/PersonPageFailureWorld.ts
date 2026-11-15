@@ -14,6 +14,21 @@ import UserNotificationRuleService from "Common/Server/Services/UserNotification
 import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import UserService from "Common/Server/Services/UserService";
+import Project from "Common/Models/DatabaseModels/Project";
+import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
+import OnCallNotificationAlertingService from "Common/Server/Services/OnCallNotificationAlertingService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import UserCallService from "Common/Server/Services/UserCallService";
+import UserEmailService from "Common/Server/Services/UserEmailService";
+import UserMattermostService from "Common/Server/Services/UserMattermostService";
+import UserMicrosoftTeamsService from "Common/Server/Services/UserMicrosoftTeamsService";
+import UserPushService from "Common/Server/Services/UserPushService";
+import UserSlackService from "Common/Server/Services/UserSlackService";
+import UserSmsService from "Common/Server/Services/UserSmsService";
+import UserTelegramService from "Common/Server/Services/UserTelegramService";
+import UserWhatsAppService from "Common/Server/Services/UserWhatsAppService";
 import logger from "Common/Server/Utils/Logger";
 import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
 import URL from "Common/Types/API/URL";
@@ -68,6 +83,10 @@ export enum PersonPageStep {
   GiveBack = "GiveBack",
   // A write of the log's status.
   WriteStatus = "WriteStatus",
+  // A read of whether the person is a member of the project (ProjectMembership.isMember).
+  ReadMembership = "ReadMembership",
+  // The fallback's read of the person's verified push device.
+  ReadFallbackMethods = "ReadFallbackMethods",
 }
 
 // What the database throws as it loses a connection, as pg throws it.
@@ -167,6 +186,13 @@ export default class PersonPageFailureWorld {
   public cache: Map<string, string> = new Map();
   public isRedisDown: boolean = false;
   public isIncidentAcknowledged: boolean = false;
+  /*
+   * The person's verified phone the fallback pages when no rule of theirs
+   * matches (executeFallbackNotification); none when null.
+   */
+  public fallbackDevice: UserPush | null = null;
+  // Every page the project's admins were told could not reach the person by a rule.
+  public undeliverableAlerts: number = 0;
   public errors: Array<string> = [];
   public warnings: Array<string> = [];
   // Every status written to a log, in order.
@@ -268,6 +294,7 @@ export default class PersonPageFailureWorld {
     this.installRules();
     this.installIncident();
     this.installDelivery();
+    this.installFallback();
   }
 
   // The ticks the jobs registered with RunCron as they were imported.
@@ -655,7 +682,11 @@ export default class PersonPageFailureWorld {
       );
     }) as never);
 
-    jest.spyOn(ProjectMembership, "isMember").mockResolvedValue(true as never);
+    jest.spyOn(ProjectMembership, "isMember").mockImplementation((async () => {
+      this.throwIfStopped();
+      this.hit(PersonPageStep.ReadMembership, []);
+      return true;
+    }) as never);
 
     jest
       .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "updateOneById")
@@ -789,7 +820,8 @@ export default class PersonPageFailureWorld {
         this.notifications.push({
           id: id.toString(),
           logId: args.data.userNotificationLogId!.toString(),
-          ruleId: args.data.userNotificationRuleId!.toString(),
+          // The fallback pages through rules it never saves: no rule of its own.
+          ruleId: args.data.userNotificationRuleId?.toString() || "",
           createdAt: new Date(this.clock),
         });
 
@@ -850,6 +882,65 @@ export default class PersonPageFailureWorld {
 
         this.hit(PersonPageStep.Push, []);
       }) as never);
+  }
+
+  /*
+   * What the start's no-rule handling and the fallback read: no opt-out, the
+   * fallback on, and the person's one verified method - a phone - or none.
+   */
+  private installFallback(): void {
+    jest
+      .spyOn(UserNotificationRuleService, "findOneBy")
+      .mockResolvedValue(null as never);
+
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
+      this.throwIfStopped();
+      const project: Project = new Project();
+      project.id = PROJECT_ID;
+      project.disableOnCallNotificationFallback = false;
+      return project;
+    }) as never);
+
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false as never);
+
+    jest.spyOn(UserPushService, "findOneBy").mockImplementation((async () => {
+      this.throwIfStopped();
+      this.hit(PersonPageStep.ReadFallbackMethods, []);
+      return this.fallbackDevice
+        ? Object.assign(new UserPush(), this.fallbackDevice)
+        : null;
+    }) as never);
+
+    for (const service of [
+      UserEmailService,
+      UserSmsService,
+      UserCallService,
+      UserWhatsAppService,
+      UserTelegramService,
+      UserSlackService,
+      UserMicrosoftTeamsService,
+      UserMattermostService,
+    ]) {
+      jest
+        .spyOn(service as never, "findOneBy" as never)
+        .mockResolvedValue(null as never);
+    }
+
+    jest
+      .spyOn(CustomNotificationChannelService, "getChannelsPagingEveryone")
+      .mockResolvedValue([] as never);
+
+    jest
+      .spyOn(OnCallNotificationAlertingService, "notifyOfUndeliverablePage")
+      .mockImplementation((async () => {
+        this.undeliverableAlerts++;
+      }) as never);
+
+    jest
+      .spyOn(IncidentSeverityService, "findOneById")
+      .mockResolvedValue({ name: "Sev1" } as never);
   }
 
   private plan(step: PersonPageStep, failure: PlannedFailure): void {

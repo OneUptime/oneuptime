@@ -28,7 +28,7 @@ Una sonda que ha perdido su propia conexión de red no informa de ningún result
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Una sonda que pueda llegar al servidor DNS.** Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo. Para consultar un servidor DNS de una red privada, como un resolutor interno, use una [sonda personalizada](/docs/probe/custom-probe) dentro de esa red.
 
 ## Crear un monitor de DNS

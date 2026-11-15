@@ -15,15 +15,15 @@ Os painéis seguem as [permissões](/docs/permissions/index) do seu projeto. Cad
 
 | Para | É preciso |
 | --- | --- |
-| Ler painéis | `ReadDashboard`, ou um papel no projeto: Project Owner, Project Admin, Project Member, Viewer ou um papel Settings |
-| Criar painéis | `CreateDashboard`, Project Owner ou Project Admin |
-| Alterar um painel: os widgets, as variáveis, o compartilhamento e a marca dele, e arquivá-lo | `EditDashboard`, Project Owner ou Project Admin |
-| Excluir um painel | `DeleteDashboard`, Project Owner ou Project Admin |
-| Adicionar e remover proprietários | As permissões de proprietários de painel, Project Owner, Project Admin ou Project Member |
-| Adicionar e alterar domínios personalizados | As permissões de domínios de painel, Project Owner, Project Admin, Project Member, Settings Admin ou Settings Member |
-| Criar regras de proprietário e regras de rótulos | As permissões de regras, Project Owner ou Project Admin |
+| Ler painéis | `ReadDashboard`, ou um papel no projeto: Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador ou um papel Settings |
+| Criar painéis | `CreateDashboard`, Proprietário do projeto ou Administrador do projeto |
+| Alterar um painel: os widgets, as variáveis, o compartilhamento e a marca dele, e arquivá-lo | `EditDashboard`, Proprietário do projeto ou Administrador do projeto |
+| Excluir um painel | `DeleteDashboard`, Proprietário do projeto ou Administrador do projeto |
+| Adicionar e remover proprietários | As permissões de proprietários de painel, Proprietário do projeto, Administrador do projeto ou Membro do projeto |
+| Adicionar e alterar domínios personalizados | As permissões de domínios de painel, Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de configurações ou Membro de configurações |
+| Criar regras de proprietário e regras de rótulos | As permissões de regras, Proprietário do projeto ou Administrador do projeto |
 
-Então um Project Member lê todos os painéis, mas precisa de `CreateDashboard` e `EditDashboard` para montá-los. Ler, editar e excluir podem, cada um, ser limitados aos painéis que uma equipe possui, ou aos painéis que têm certos rótulos: veja [Escopo: até onde vai uma permissão concedida](/docs/permissions/index#escopo-até-onde-vai-uma-permissão-concedida).
+Então um Membro do projeto lê todos os painéis, mas precisa de `CreateDashboard` e `EditDashboard` para montá-los. Ler, editar e excluir podem, cada um, ser limitados aos painéis que uma equipe possui, ou aos painéis que têm certos rótulos: veja [Escopo: até onde vai uma permissão concedida](/docs/permissions/index#escopo-até-onde-vai-uma-permissão-concedida).
 
 Atribua-as na página **Permissões** de uma equipe: abra **Produtos → Equipes** e escolha a equipe.
 

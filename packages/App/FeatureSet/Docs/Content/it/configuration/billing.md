@@ -35,7 +35,7 @@ La [pagina dei prezzi](https://oneuptime.com/pricing) confronta i piani.
 ## Prima di iniziare
 
 - **OneUptime Cloud.** La sezione **Fatturazione e fatture** delle **Impostazioni del progetto** esiste solo su OneUptime Cloud ed è chiusa all'inizio: fai clic sul suo titolo per aprirla.
-- **Un ruolo che può leggere la fatturazione.** I Project Owner, chi ha **Manage Billing** e i tre ruoli di fatturazione leggono ogni pagina di fatturazione. Vedi [Chi può fare che cosa](#chi-può-fare-che-cosa).
+- **Un ruolo che può leggere la fatturazione.** I Proprietari del progetto, chi ha **Manage Billing** e i tre ruoli di fatturazione leggono ogni pagina di fatturazione. Vedi [Chi può fare che cosa](#chi-può-fare-che-cosa).
 
 ## Il tuo piano e le postazioni
 
@@ -144,13 +144,13 @@ Quando un saldo non basta, il messaggio non viene inviato oppure OneUptime AI si
 
 | Per | Serve |
 | --- | --- |
-| Leggere le pagine di fatturazione: il piano, le fatture, l'utilizzo, i saldi e i metodi di pagamento | Project Owner, **Manage Billing**, **Amministratore della fatturazione**, **Membro della fatturazione** o **Visualizzatore della fatturazione** |
-| Scaricare una fattura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Amministratore della fatturazione** o **Membro della fatturazione** |
-| Cambiare l'indirizzo di fatturazione e l'email delle fatture | Project Owner, **Manage Billing**, **Amministratore della fatturazione** o **Membro della fatturazione** |
-| Attivare o disattivare SMS, chiamate, WhatsApp o Telegram | Project Owner, **Manage Billing** o **Amministratore della fatturazione** |
-| Aggiungere un metodo di pagamento | Project Owner, **Manage Billing** o **Create Payment Method** |
-| Pagare una fattura | Project Owner, **Manage Billing** o **Edit Invoices** |
-| Cambiare il piano, ricaricare un saldo o cambiare la ricarica automatica | Project Owner o **Manage Billing** |
+| Leggere le pagine di fatturazione: il piano, le fatture, l'utilizzo, i saldi e i metodi di pagamento | Proprietario del progetto, **Manage Billing**, **Amministratore della fatturazione**, **Membro della fatturazione** o **Visualizzatore della fatturazione** |
+| Scaricare una fattura | Proprietario del progetto, Amministratore del progetto, **Manage Billing**, **Read Invoices**, **Amministratore della fatturazione** o **Membro della fatturazione** |
+| Cambiare l'indirizzo di fatturazione e l'email delle fatture | Proprietario del progetto, **Manage Billing**, **Amministratore della fatturazione** o **Membro della fatturazione** |
+| Attivare o disattivare SMS, chiamate, WhatsApp o Telegram | Proprietario del progetto, **Manage Billing** o **Amministratore della fatturazione** |
+| Aggiungere un metodo di pagamento | Proprietario del progetto, **Manage Billing** o **Create Payment Method** |
+| Pagare una fattura | Proprietario del progetto, **Manage Billing** o **Edit Invoices** |
+| Cambiare il piano, ricaricare un saldo o cambiare la ricarica automatica | Proprietario del progetto o **Manage Billing** |
 
 Un pulsante che non puoi usare appare bloccato e dice chi può. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index#team) per i ruoli di fatturazione.
 

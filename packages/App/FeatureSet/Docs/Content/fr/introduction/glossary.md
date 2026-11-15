@@ -436,7 +436,7 @@ Voir [Concepts clés](/docs/introduction/core-concepts#les-types-de-règles).
 
 ### Rôle
 
-Quatre choses différentes : les autorisations qu'accorde une équipe, comme Project Owner ou Project Admin ; un **Rôle personnalisé** que vous composez à partir d'autorisations ; un **Rôle d'incident**, le rôle que joue quelqu'un dans un incident ; et un **Rôle d'équipement réseau**, ce que fait un appareil sur votre réseau.
+Quatre choses différentes : les autorisations qu'accorde une équipe, comme Propriétaire du projet ou Administrateur du projet ; un **Rôle personnalisé** que vous composez à partir d'autorisations ; un **Rôle d'incident**, le rôle que joue quelqu'un dans un incident ; et un **Rôle d'équipement réseau**, ce que fait un appareil sur votre réseau.
 
 Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 

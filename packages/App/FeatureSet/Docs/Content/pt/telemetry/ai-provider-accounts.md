@@ -25,7 +25,7 @@ O uso de uma conta é o que foi cobrado dela, um dia de cada vez. Ele não tem c
 
 ## Antes de começar
 
-- O papel Project Owner ou Project Admin. Só eles podem conectar, alterar ou remover uma conta; todos que leem a telemetria do projeto veem as conexões e o uso.
+- O papel Proprietário do projeto ou Administrador do projeto. Só eles podem conectar, alterar ou remover uma conta; todos que leem a telemetria do projeto veem as conexões e o uso.
 - Uma credencial da conta, de alguém que a administra. A seção de cada provedor, abaixo, diz qual e onde ela é criada.
 - Nada para instalar: o OneUptime chama a API do provedor a partir dos próprios servidores.
 

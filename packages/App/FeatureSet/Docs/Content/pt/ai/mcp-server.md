@@ -430,7 +430,7 @@ Estas funcionam sem credenciais, só com as ferramentas de páginas de status p�
 | O que o agente faz | Escolha em **Acesso** |
 | --- | --- |
 | Só lê | **Visualizador**, ou adicione permissões de leitura na página da chave |
-| Também cria, atualiza e exclui | **Administrador do projeto**, ou adicione o papel Project Admin na página da chave |
+| Também cria, atualiza e exclui | **Administrador do projeto**, ou adicione o papel Administrador do projeto na página da chave |
 
 Dê a cada chave o mínimo de que ela precisa, rotacione as chaves com regularidade, mantenha uma chave separada para cada ambiente e acompanhe no OneUptime o que cada chave faz.
 

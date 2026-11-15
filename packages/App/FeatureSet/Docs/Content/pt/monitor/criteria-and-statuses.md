@@ -176,7 +176,7 @@ Arraste o status pela alça. Um status mais abaixo na lista conta como pior que 
 Um status não faz nada até que um critério leve monitores até ele. Escolha-o em **Alterar status do monitor para** no critério que deve defini-lo.
 :::
 
-Os status operacional e offline são marcados como **Integrado**: você pode renomeá-los e mudar a cor deles, mas não excluí-los. No OneUptime Cloud, criar ou alterar um status exige o plano Growth. Gerenciar status exige o papel Project Owner, Project Admin ou Monitor Admin, ou um papel personalizado com a permissão de status de monitor correspondente.
+Os status operacional e offline são marcados como **Integrado**: você pode renomeá-los e mudar a cor deles, mas não excluí-los. No OneUptime Cloud, criar ou alterar um status exige o plano Growth. Gerenciar status exige o papel Proprietário do projeto, Administrador do projeto ou Administrador de monitores, ou um papel personalizado com a permissão de status de monitor correspondente.
 
 ### A linha do tempo de status
 
