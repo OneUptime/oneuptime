@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - **Instellingen** zijn wat je invult. Instellingen met **(Optioneel)** mogen leeg blijven. Minder gebruikte instellingen zijn ingeklapt onder **Meer velden**.
-- **Outputs** zijn de punten aan de onderrand. De meeste blokken hebben **Succes** en **Fout**; [Conditions](#conditions) heeft **Ja** en **Nee**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Standaard**.
+- **Uitvoer** zijn de punten aan de onderrand. De meeste blokken hebben **Succes** en **Fout**; [Conditions](#conditions) heeft **Ja** en **Nee**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Standaard**.
 - **Returns** zijn de waarden die een blok aan latere blokken doorgeeft, zoals de **Antwoordlichaam** van een API. Een later blok leest er een met `{{local.components.<block ID>.returnValues.<value ID>}}`; de knop **{ }** in een instelling voegt hem voor je in. Zie [Variabelen](/docs/workflows/variables#componentuitvoer-data-uit-eerdere-blokken).
 
 Een blok dat **Fout** neemt, geeft de fout door aan de blokken die op **Fout** zijn aangesloten, en de uitvoering gaat daar verder. Is er niets op **Fout** aangesloten, dan mislukt de uitvoering: wat ze verder nog deed, loopt door, daarna eindigt ze met de status **Fout**, en de vermelding van het blok in **Stappen** van de uitvoering zegt waarom. Een verplichte instelling die leeg is gelaten, of een instelling die nooit kan werken, stopt de uitvoering daarentegen met een fout.

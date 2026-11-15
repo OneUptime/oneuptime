@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - **Innstillinger** er det du fyller ut. Innstillinger merket **(Valgfritt)** kan stå tomme. Mindre brukte innstillinger er foldet sammen under **Flere felt**.
-- **Outputs** er punktene på den nederste kanten. De fleste blokker har **Suksess** og **Feil**; [Conditions](#conditions) har **Ja** og **Nei**, og [Switch / Case](#switch-case) har én for hvert av tilfellene sine, i tillegg til **Standard**.
+- **Utdata** er punktene på den nederste kanten. De fleste blokker har **Suksess** og **Feil**; [Conditions](#conditions) har **Ja** og **Nei**, og [Switch / Case](#switch-case) har én for hvert av tilfellene sine, i tillegg til **Standard**.
 - **Returns** er verdiene en blokk gir videre til senere blokker, som et API sin **Svartekst**. En senere blokk leser en med `{{local.components.<block ID>.returnValues.<value ID>}}`; knappen **{ }** i en innstilling setter den inn for deg. Se [Variabler](/docs/workflows/variables#komponentutdata-data-fra-tidligere-blokker).
 
 En blokk som tar **Feil**, gir feilen videre til blokkene som er koblet til **Feil**, og kjøringen fortsetter der. Er ingenting koblet til **Feil**, mislykkes kjøringen: det den ellers holdt på med, kjører videre, deretter slutter den med statusen **Feil**, og blokkens oppføring under kjøringens **Trinn** sier hvorfor. En påkrevd innstilling som er latt stå tom, eller en innstilling som aldri kan virke, stopper derimot kjøringen med en feil.

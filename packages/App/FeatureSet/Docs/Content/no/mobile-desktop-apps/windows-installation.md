@@ -61,7 +61,7 @@ Appen viser varsler gjennom nettleseren sin, når du har registrert nettleseren 
 Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Edge on Windows`, eller endre det, og klikk på **Registrer enhet** igjen. Når nettleseren spør om OneUptime kan vise varsler, velger du **Tillat**.
 
 ### Send en test
-Klikk på **Send Test Notification** i dialogen **Browser Registered**. Vises ingenting, ser du på Windows' egne varselinnstillinger: se [Feilsøking](#feilsøking).
+Klikk på **Send testvarsel** i dialogen **Nettleser registrert**. Vises ingenting, ser du på Windows' egne varselinnstillinger: se [Feilsøking](#feilsøking).
 :::
 
 En nettleser ringer ikke høyere enn Windows tillater: den kan ikke overstyre Ikke forstyrr. Bruk mobilappen med kritiske varsler for varsler som må vekke deg: se [Android-installasjon](/docs/mobile-desktop-apps/android-installation#ring-gjennom-lydløs) eller [iOS-installasjon](/docs/mobile-desktop-apps/ios-installation#ring-gjennom-lydløs).

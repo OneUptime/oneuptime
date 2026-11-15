@@ -61,7 +61,7 @@ Open in de app **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **
 Klik op **Apparaat registreren**, houd de voorgestelde **Apparaatnaam**, zoals `Edge on Windows`, of wijzig hem, en klik opnieuw op **Apparaat registreren**. Wanneer de browser vraagt of OneUptime meldingen mag tonen, kiest u **Toestaan**.
 
 ### Een test sturen
-Klik in het dialoogvenster **Browser Registered** op **Send Test Notification**. Verschijnt er niets, kijk dan naar de meldingsinstellingen van Windows: zie [Probleemoplossing](#probleemoplossing).
+Klik in het dialoogvenster **Browser geregistreerd** op **Testmelding versturen**. Verschijnt er niets, kijk dan naar de meldingsinstellingen van Windows: zie [Probleemoplossing](#probleemoplossing).
 :::
 
 Een browser klinkt niet harder dan Windows toestaat: hij kan Niet storen niet negeren. Gebruik voor oproepen die u moeten wekken de mobiele app met kritieke meldingen: zie [Android-installatie](/docs/mobile-desktop-apps/android-installation#door-de-stille-modus-heen-klinken) of [iOS-installatie](/docs/mobile-desktop-apps/ios-installation#door-de-stille-modus-heen-klinken).

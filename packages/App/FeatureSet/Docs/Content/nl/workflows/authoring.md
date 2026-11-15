@@ -47,7 +47,7 @@ Sleep blokken waarheen je wilt; het canvas klikt ze daarbij vast aan een raster.
 | **Identifier** (onder **ID**)         | De korte ID op het blok, zoals `log-1`. Hiermee verwijzen andere blokken naar dit blok, dus hernoemen breekt elke `{{local.components.…}}`-verwijzing die ernaar wijst. De kop van het blok is de eigen naam van het component en kan niet worden gewijzigd.                                                    |
 | **Instellingen**                      | Wat het blok nodig heeft om zijn werk te doen: een URL, een Slack-kanaal, de tekst van een bericht. Optionele velden zijn gemarkeerd met **(Optioneel)**; al het andere is verplicht. Een aan/uit-schakelaar heeft geen van beide, omdat die altijd een waarde heeft. Minder gebruikte instellingen zijn ingeklapt onder **Meer velden**, waarvan de kop ze noemt en de ingevulde toont. |
 | **Input**                             | Het punt aan de bovenrand, waar lijnen van eerdere blokken binnenkomen. Triggers hebben er geen: er draait niets vóór hen.                                                                                                                                                                                     |
-| **Outputs**                           | De punten langs de onderrand, met het label er direct boven, waar lijnen naar de volgende blokken vertrekken. Veel blokken hebben aparte uitgangen **Succes** en **Fout**, zodat je beide gevallen kunt afhandelen.                                                                                         |
+| **Uitvoer**                           | De punten langs de onderrand, met het label er direct boven, waar lijnen naar de volgende blokken vertrekken. Veel blokken hebben aparte uitgangen **Succes** en **Fout**, zodat je beide gevallen kunt afhandelen.                                                                                         |
 
 ## Blokken verbinden
 
@@ -88,7 +88,7 @@ Het dialoogvenster opent op waarvoor je waarschijnlijk kwam. Bij een **Webhook**
 
 Daaronder, van boven naar beneden:
 
-- **ID**, **Invoer** en **Outputs**, naast elkaar — de identifier van het blok, vanwaar het wordt bereikt en wat erna draait.
+- **ID**, **Invoer** en **Uitvoer**, naast elkaar — de identifier van het blok, vanwaar het wordt bereikt en wat erna draait.
 - **Returns** — de gegevens die dit blok aan latere stappen doorgeeft. Elke waarde toont de exacte verwijzing die haar leest, met een knop om die te kopiëren.
 - **How to use** — wat het blok doet in één zin, de stappen om het in te stellen, een voorbeeld om te kopiëren en de fouten die vaak worden gemaakt. Het voorbeeld is opgebouwd uit jouw workflow: het gebruikt de ID van dit blok, en de waarden van de trigger waar het gegevens in een bericht zet. **Meer informatie** opent de langere uitleg, en de links gaan naar de volledige gids. Elk blok heeft er een, en de knop **How to use** bovenaan het dialoogvenster springt er direct naartoe.
 

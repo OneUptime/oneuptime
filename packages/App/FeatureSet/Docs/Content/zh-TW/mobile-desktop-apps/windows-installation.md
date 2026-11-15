@@ -61,7 +61,7 @@ flowchart TB
 點選 **註冊裝置**，保留建議的 **裝置名稱**（例如 `Edge on Windows`）或修改它，然後再次點選 **註冊裝置**。當瀏覽器詢問是否允許 OneUptime 顯示通知時，選擇 **允許**。
 
 ### 傳送測試
-在 **Browser Registered** 對話方塊中，點選 **Send Test Notification**。如果什麼都沒有出現，請檢查 Windows 本身的通知設定：請參閱 [疑難排解](#疑難排解)。
+在 **瀏覽器已註冊** 對話方塊中，點選 **傳送測試通知**。如果什麼都沒有出現，請檢查 Windows 本身的通知設定：請參閱 [疑難排解](#疑難排解)。
 :::
 
 瀏覽器的通知音量不會超過 Windows 允許的程度：它無法略過「請勿打擾」。對於必須叫醒你的呼叫，請使用開啟了重大警示的行動應用程式：請參閱 [Android 安裝](/docs/mobile-desktop-apps/android-installation#穿透靜音模式) 或 [iOS 安裝](/docs/mobile-desktop-apps/ios-installation#穿透靜音模式)。

@@ -39,7 +39,7 @@ flowchart TB
 
 | 공급자 | 설명 |
 | ------------------------ | ---------------------------------------------------------------------- |
-| **Auto**(기본값) | 상태 페이지 형식을 자동으로 감지합니다 |
+| **자동**(기본값) | 상태 페이지 형식을 자동으로 감지합니다 |
 | **Atlassian Statuspage** | Atlassian Statuspage 기반 상태 페이지(JSON API) |
 | **incident.io** | incident.io 기반 상태 페이지(예: `https://status.openai.com`) |
 | **OneUptime Status Page** | OneUptime으로 만든 상태 페이지: 각 리소스의 상태와 유지 관리 중인 항목 |
@@ -48,7 +48,7 @@ flowchart TB
 
 ### 자동 감지
 
-**Auto** 로 설정하면 OneUptime은 다음 순서로 상태 페이지 형식을 자동으로 감지합니다.
+**자동** 로 설정하면 OneUptime은 다음 순서로 상태 페이지 형식을 자동으로 감지합니다.
 
 1. 먼저 incident.io 상태 페이지 API(`/proxy/<host>`)를 시도합니다.
 2. 다음으로 Atlassian Statuspage JSON API(`/api/v2/status.json`, `/api/v2/components.json`, `/api/v2/incidents/unresolved.json`)를 시도합니다.
@@ -70,7 +70,7 @@ flowchart TB
 
 ### 상태 페이지 URL 입력
 
-**상태 페이지 URL** 을 입력합니다. 형식을 알고 있는 경우가 아니면 **공급자** 는 **Auto** 로 둡니다.
+**상태 페이지 URL** 을 입력합니다. 형식을 알고 있는 경우가 아니면 **공급자** 는 **자동** 로 둡니다.
 
 ### 필요하면 구성 요소 고르기
 
@@ -94,7 +94,7 @@ flowchart TB
 | 옵션 | 입력할 내용 | 기본값 |
 | --- | --- | --- |
 | **상태 페이지 URL** | 상태 페이지의 URL. Atlassian Statuspage나 incident.io 기반 사이트는 보통 루트 URL입니다(예: `https://status.example.com`). RSS/Atom 피드는 피드 URL을 직접 입력합니다. | — |
-| **공급자** | 형식을 감지하려면 **Auto**, 알고 있다면 **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS**, **Atom** 중 하나. | **Auto** |
+| **공급자** | 형식을 감지하려면 **자동**, 알고 있다면 **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS**, **Atom** 중 하나. | **자동** |
 | **구성 요소** | 지켜볼 구성 요소. 페이지 자체의 목록에서 고르거나 입력합니다. | 페이지 전체 |
 | **구성 요소 그룹 필터** | 모니터의 범위를 좁힐 그룹. **추가 필드** 아래에 있습니다. | 모든 그룹 |
 | **타임아웃 (ms)** | 상태 페이지를 기다리는 최대 시간. **추가 필드** 아래에 있습니다. | `10000`(10초) |
@@ -152,7 +152,7 @@ OneUptime은 기본적으로 상태 페이지에서 정말 중요한 것, 즉 �
 
 ## OneUptime 상태 페이지
 
-OneUptime으로 만든 상태 페이지(다른 팀의 프로젝트, 또는 OneUptime Cloud나 셀프 호스팅 OneUptime에 있는 공급업체의 페이지)를 지켜보려면 공급자로 **OneUptime Status Page** 를 선택하거나 **Auto** 로 두세요. **상태 페이지 URL** 에는 페이지 자체의 주소를 입력합니다. 도메인이 있으면 `https://status.example.com` 같은 도메인을, 없으면 `https://oneuptime.com/status-page/<status-page-id>` 를 입력하세요.
+OneUptime으로 만든 상태 페이지(다른 팀의 프로젝트, 또는 OneUptime Cloud나 셀프 호스팅 OneUptime에 있는 공급업체의 페이지)를 지켜보려면 공급자로 **OneUptime Status Page** 를 선택하거나 **자동** 로 두세요. **상태 페이지 URL** 에는 페이지 자체의 주소를 입력합니다. 도메인이 있으면 `https://status.example.com` 같은 도메인을, 없으면 `https://oneuptime.com/status-page/<status-page-id>` 를 입력하세요.
 
 모니터는 페이지의 요약 `/status-page-api/summary/<page>` 를 읽습니다([요약 읽기](/docs/status-pages/public-api#요약-읽기) 참고). 페이지가 방문자에게 보여 주는 것만 읽고, 다른 프로젝트의 그 밖의 내용은 읽지 않습니다. 페이지의 각 리소스(모니터 또는 모니터 그룹)는 페이지가 붙인 이름으로, 페이지의 그룹 안에 있는 구성 요소가 됩니다. 다른 그룹 안의 그룹은 `Core / Databases` 처럼 표시됩니다. 리소스는 **구성 요소** 에서 고르고, 그룹 하나를 지켜보려면 **구성 요소 그룹 필터** 를 사용하세요.
 
@@ -215,7 +215,7 @@ OneUptime으로 만든 상태 페이지(다른 팀의 프로젝트, 또는 OneUp
 
 ## 자주 쓰는 상태 페이지 URL
 
-자주 쓰는 서비스의 상태 페이지 목록입니다. 상당수가 Atlassian Statuspage나 incident.io를 사용하므로 **Auto** 공급자가 자동으로 감지합니다. 둘 다 기반이 아니고 피드도 아닌 페이지는 도달 가능성 검사만 받습니다. 그런 경우 공급자가 RSS나 Atom 피드를 게시한다면 대신 그 피드를 모니터링하세요.
+자주 쓰는 서비스의 상태 페이지 목록입니다. 상당수가 Atlassian Statuspage나 incident.io를 사용하므로 **자동** 공급자가 자동으로 감지합니다. 둘 다 기반이 아니고 피드도 아닌 페이지는 도달 가능성 검사만 받습니다. 그런 경우 공급자가 RSS나 Atom 피드를 게시한다면 대신 그 피드를 모니터링하세요.
 
 | 서비스 | 상태 페이지 URL |
 | ---------------------------- | --------------------------------------------- |

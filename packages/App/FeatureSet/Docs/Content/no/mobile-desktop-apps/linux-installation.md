@@ -60,7 +60,7 @@ Appen viser varsler gjennom nettleseren sin, når du har registrert nettleseren 
 Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Chrome on Linux`, eller endre det, og klikk på **Registrer enhet** igjen. Når nettleseren spør om OneUptime kan vise varsler, velger du **Tillat**.
 
 ### Send en test
-Klikk på **Send Test Notification** i dialogen **Browser Registered**. Skrivebordet ditt viser det gjennom varslingstjenesten sin; vises ingenting, se [Feilsøking](#feilsøking).
+Klikk på **Send testvarsel** i dialogen **Nettleser registrert**. Skrivebordet ditt viser det gjennom varslingstjenesten sin; vises ingenting, se [Feilsøking](#feilsøking).
 :::
 
 En nettleser kan ikke ringe gjennom Ikke forstyrr på skrivebordet ditt. Bruk mobilappen med kritiske varsler for varsler som må vekke deg: se [Android-installasjon](/docs/mobile-desktop-apps/android-installation#ring-gjennom-lydløs).
