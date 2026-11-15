@@ -15,8 +15,8 @@ import { copyOwnValues, writeOwnValue } from "../LookupTable";
  *
  * Labels are named by whoever wrote them - an exporter, an OTLP attribute,
  * a query's label_replace - and one named __proto__ is a label like any
- * other. A spread or an assignment drops it (this code's ES2017 target
- * compiles a spread to Object.assign), so a label set is copied with
+ * other. An assignment drops it, and so did a spread compiled for a target
+ * below ES2018 (to Object.assign), so a label set is copied with
  * copyOwnValues and a label is written with writeOwnValue, and read with
  * promQLLabelValue.
  */

@@ -10,6 +10,7 @@ import {
   FaasCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import { readOwnValue } from "Common/Utils/LookupTable";
 
 /*
  * A CLOUD LOGGING ENTRY, AS PUB/SUB PUSHES IT, AS ONE OTLP LOG RECORD.
@@ -420,9 +421,15 @@ export function buildCloudLoggingResourceLogs(data: {
   // The monitored resource, as the receiver stores a metric's: its type and labels.
   const stored: Record<string, string> = {};
 
+  /*
+   * The alias is read as the table's own key (readOwnValue): a resource
+   * type an entry names "constructor" or "toString" is not one of its
+   * aliases, and a plain read handed the resolver a function for it.
+   */
   if (entry.resourceType) {
     stored[`resource.${GCP_RESOURCE_TYPE_ATTRIBUTE}`] =
-      LOG_RESOURCE_TYPE_ALIASES[entry.resourceType] || entry.resourceType;
+      readOwnValue(LOG_RESOURCE_TYPE_ALIASES, entry.resourceType) ||
+      entry.resourceType;
   }
 
   for (const key of Object.keys(labels)) {
