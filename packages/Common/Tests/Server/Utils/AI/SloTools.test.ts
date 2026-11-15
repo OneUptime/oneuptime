@@ -1788,8 +1788,33 @@ describe("query_slos — a request SLO", () => {
       goodEventCount: true,
       totalEventCount: true,
       latencyThresholdInMilliseconds: true,
+      requestFilter: true,
       services: { _id: true, name: true },
     });
+
+    // No filter: every request of its services counts, and nothing is said.
+    expect(result.dataForLlm).not.toContain("requestFilter");
+  });
+
+  test("reads which of its services' requests it counts (#8444)", async () => {
+    const slo: ServiceLevelObjective = buildRequestSlo();
+    slo.requestFilter = "@http.route:/checkout* -@http.route:/health";
+
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(slo as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "@http.route:/checkout* -@http.route:/health",
+    );
   });
 
   test("a monitor uptime SLO reads as it did, with no request fields", async () => {

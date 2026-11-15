@@ -61,6 +61,7 @@ import DockerDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pa
 import PodmanDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/Documentation";
 import DockerSwarmDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Documentation";
 import CephDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Documentation";
+import IoTDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Documentation";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -83,6 +84,8 @@ import { getDockerSwarmSetupGuide } from "../../../../App/FeatureSet/Dashboard/s
 import { DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationTranslations";
 import { getCephSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
+import { getIoTSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
+import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -97,6 +100,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   Podman: {},
   DockerSwarm: {},
   Ceph: {},
+  IoT: {},
 };
 
 /*
@@ -117,6 +121,14 @@ function dockerSwarmGuide(): SetupGuideContent {
     oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "install-script",
+  });
+}
+
+function iotGuide(): SetupGuideContent {
+  return getIoTSetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    method: "opentelemetry-sdk",
   });
 }
 
@@ -238,6 +250,9 @@ beforeAll(async () => {
     ).default;
     WORDS["Ceph"]![language] = (
       await CEPH_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["IoT"]![language] = (
+      await IOT_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -423,6 +438,53 @@ describe("Docker Swarm > Help > Documentation", () => {
 
       // The install script is the English's, in every language.
       expect(drawn).toContain("install.sh");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+});
+
+describe("IoT > Help > Documentation", () => {
+  test.each(["de", "ar"])(
+    "in %s, the IoT guide and its title in the reader's words, the OpenTelemetry names as written",
+    async (language: string) => {
+      await drawIn(language, <IoTDocumentationPage {...PAGE_PROPS} />);
+
+      const drawn: string = drawnTexts().join("\n");
+
+      for (const piece of getSetupGuideWordPieces(iotGuide())) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: false,
+        });
+      }
+      for (const piece of getSetupGuideWordPieces(
+        inLanguage("IoT", iotGuide(), language),
+      )) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: true,
+        });
+      }
+
+      // The card's own words, and the model topic's, come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect Your IoT Fleet"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect Your IoT Fleet")).toBeNull();
+      expect(
+        screen.getByText(locale["Point the SDK at OneUptime"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["How OneUptime models IoT"]!),
+      ).toBeInTheDocument();
+      // The attributes and variables the device sets are the English's.
+      expect(drawn).toContain("iot.fleet.name");
+      expect(drawn).toContain("OTEL_RESOURCE_ATTRIBUTES");
       for (const markdown of mockDrawnMarkdown) {
         expect(markdown.readingDirection).toBe(
           language === "ar" ? "rtl" : "ltr",

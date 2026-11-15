@@ -151,6 +151,87 @@ describe("More monitor types' line in the reader's language", () => {
     expect(more).not.toHaveTextContent("Selected");
   });
 
+  /*
+   * The line names the choice as its row and the summary do. It used to
+   * look the title up even for a product's name (isTitleProductName), which
+   * the rows and the summary draw as written: a product named "Resend" read
+   * "Resend" on its row and "Ausgewählt: Erneut senden" on More's line, the
+   * German for the verb.
+   */
+  test("German: a product's name folded away is named as written, as its row and the summary name it", () => {
+    const productOptions: Array<CardSelectOptionGroup> = [
+      OPTIONS[0]!,
+      {
+        label: "Providers",
+        options: [
+          {
+            value: "resend",
+            title: "Resend",
+            description: "Check a page loads and responds.",
+            icon: IconProp.Email,
+            isTitleProductName: true,
+          },
+          {
+            value: "responder",
+            title: "Incident Responder",
+            description: "Check a page loads and responds.",
+            icon: IconProp.User,
+            isUserContent: true,
+          },
+        ],
+      },
+    ];
+
+    const ProductPicker: (props: {
+      initial: string;
+    }) => ReactElement = (props: { initial: string }): ReactElement => {
+      const [value, setValue] = useState<string | undefined>(props.initial);
+
+      return (
+        <CardSelect
+          options={productOptions}
+          value={value}
+          onChange={setValue}
+          catalog={CATALOG}
+        />
+      );
+    };
+
+    // The words a lookup would give: what the line must not say.
+    expect(readLocale("de")["Resend"]).toBe("Erneut senden");
+
+    for (const [initial, name] of [
+      ["resend", "Resend"],
+      ["responder", "Incident Responder"],
+    ] as Array<[string, string]>) {
+      render(<ProductPicker initial={initial} />);
+
+      // The summary names it as written...
+      expect(screen.getByTestId("card-select-summary-title")).toHaveTextContent(
+        new RegExp(`^${name}$`),
+      );
+
+      fireEvent.click(screen.getByTestId("card-select-change"));
+
+      // ...and so does its row, open under More...
+      expect(
+        screen.getByTestId(`card-select-option-${initial}`),
+      ).toHaveTextContent(name);
+
+      fireEvent.click(screen.getByTestId("card-select-more"));
+
+      // ...and More's line, folded, in a German sentence.
+      expect(
+        screen.getByTestId("card-select-more-selection"),
+      ).toHaveTextContent(new RegExp(`^Ausgewählt: ${name}$`));
+      expect(
+        screen.getByTestId("card-select-more"),
+      ).toHaveAccessibleDescription(`Ausgewählt: ${name}`);
+
+      cleanup();
+    }
+  });
+
   test("Persian: the sentence the Persian file words, the type's name in it", async () => {
     await act(async (): Promise<void> => {
       await i18next.changeLanguage("fa");

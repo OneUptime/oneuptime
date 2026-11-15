@@ -165,7 +165,7 @@ Un aviso que no se envía indica el motivo en los **Registros de guardia** de la
 - el saldo del proyecto no pudo pagarlo, y quién puede añadir saldo;
 - el canal está apagado en el proyecto, y quién puede encenderlo.
 
-Los propietarios del proyecto reciben un correo sobre ello una vez, hasta que se recargue el saldo o el canal vuelva a estar encendido.
+Los Propietarios del proyecto reciben un correo sobre ello una vez, hasta que se recargue el saldo o el canal vuelva a estar encendido.
 
 Un aviso que no pudo llegar al servicio de notificaciones de OneUptime dice `Could not reach the Notification service to send this (ECONNREFUSED).`, con el código del error de red entre los paréntesis. Un aviso cuyo envío nunca terminó, por ejemplo porque un servidor se reinició mientras lo enviaba, dice `Sending did not finish within 15 minutes, so this notification may not have been sent.` Si el envío termina después de todo, su resultado sustituye ese mensaje.
 

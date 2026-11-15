@@ -43,6 +43,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { formatSlaCountdown } from "./SlaCountdown";
 
 interface SlaTimerProps {
   deadline: Date | undefined;
@@ -113,17 +114,6 @@ const SlaTimer: FunctionComponent<SlaTimerProps> = (
     props.isCompleted && props.completedAt ? props.completedAt : currentTime;
   const diffMs: number = deadline.getTime() - referenceTime.getTime();
   const isOverdue: boolean = diffMs < 0;
-  const absDiffMs: number = Math.abs(diffMs);
-
-  const days: number = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
-  const hours: number = Math.floor(
-    (absDiffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-  );
-  const minutes: number = Math.floor(
-    (absDiffMs % (1000 * 60 * 60)) / (1000 * 60),
-  );
-  const seconds: number = Math.floor((absDiffMs % (1000 * 60)) / 1000);
-
   // Determine color based on progress
   let progressColor: string = "bg-green-500";
   let textColor: string = "text-green-600";
@@ -144,27 +134,12 @@ const SlaTimer: FunctionComponent<SlaTimerProps> = (
     textColor = "text-yellow-600";
   }
 
-  const formatTimeUnit: (value: number, unit: string) => string = (
-    value: number,
-    unit: string,
-  ): string => {
-    return `${value}${unit}`;
-  };
-
+  // "2d 3h 4m 5s" in the reader's short units and digits (#8455).
   const getTimeDisplay: () => string = (): string => {
-    const parts: string[] = [];
-    if (days > 0) {
-      parts.push(formatTimeUnit(days, "d"));
-    }
-    if (hours > 0 || days > 0) {
-      parts.push(formatTimeUnit(hours, "h"));
-    }
-    if (minutes > 0 || hours > 0 || days > 0) {
-      parts.push(formatTimeUnit(minutes, "m"));
-    }
-    parts.push(formatTimeUnit(seconds, "s"));
-
-    return parts.join(" ");
+    return formatSlaCountdown(diffMs, {
+      countsDays: true,
+      translator: translator,
+    });
   };
 
   return (
@@ -295,14 +270,6 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
 
   const diffMs: number = nextDue.getTime() - currentTime.getTime();
   const isOverdue: boolean = diffMs < 0;
-  const absDiffMs: number = Math.abs(diffMs);
-
-  const hours: number = Math.floor(absDiffMs / (1000 * 60 * 60));
-  const minutes: number = Math.floor(
-    (absDiffMs % (1000 * 60 * 60)) / (1000 * 60),
-  );
-  const seconds: number = Math.floor((absDiffMs % (1000 * 60)) / 1000);
-
   // Calculate progress within current interval
   const elapsedInInterval: number =
     currentTime.getTime() - lastReference.getTime();
@@ -325,16 +292,9 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
     textColor = "text-yellow-600";
   }
 
+  // "26h 4m 5s": the note's interval can run past a day (#8455).
   const getTimeDisplay: () => string = (): string => {
-    const parts: string[] = [];
-    if (hours > 0) {
-      parts.push(`${hours}h`);
-    }
-    if (minutes > 0 || hours > 0) {
-      parts.push(`${minutes}m`);
-    }
-    parts.push(`${seconds}s`);
-    return parts.join(" ");
+    return formatSlaCountdown(diffMs, { translator: translator });
   };
 
   return (

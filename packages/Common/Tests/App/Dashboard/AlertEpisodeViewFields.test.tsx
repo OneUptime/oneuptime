@@ -167,6 +167,17 @@ import AlertEpisodeOwnerUser from "../../../Models/DatabaseModels/AlertEpisodeOw
 import Team from "../../../Models/DatabaseModels/Team";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import { getEventStartTileText } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventOverview";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/on-call-page/pass-on/alert-episode/*",
+  "/workspace-channel-link/alert-episode/*",
+]);
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/alerts"),

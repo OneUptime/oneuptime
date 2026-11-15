@@ -138,7 +138,7 @@ Klik op de kaart **Huidig saldo** van de pagina op **Saldo bijvullen**. Vul een 
 Klik op de kaart **Automatisch bijvullen** op **Automatisch bijvullen bewerken** en zet **Automatisch opwaarderen inschakelen** aan. Het staat bij het begin uit. Staat het aan, dan vult OneUptime $20 bij zodra het saldo tot $10 daalt, of de bedragen die u kiest.
 :::
 
-Als een saldo niet kan betalen, wordt het bericht niet verstuurd of stopt OneUptime AI, en krijgen de eigenaren van het project een e-mail. Zie [Als een oproep niet wordt verstuurd](/docs/on-call/escalation-rules#wanneer-een-oproep-niet-wordt-verstuurd) en [Als de AI-tegoeden op zijn](/docs/ai/ai-sre#als-het-ai-tegoed-op-is).
+Als een saldo niet kan betalen, wordt het bericht niet verstuurd of stopt OneUptime AI, en krijgen de Projecteigenaren een e-mail. Zie [Als een oproep niet wordt verstuurd](/docs/on-call/escalation-rules#wanneer-een-oproep-niet-wordt-verstuurd) en [Als de AI-tegoeden op zijn](/docs/ai/ai-sre#als-het-ai-tegoed-op-is).
 
 ## Wie wat mag
 

@@ -27,7 +27,7 @@ flowchart TB
 ## Voordat u begint
 
 - **Een gekoppeld Google Cloud-project.** Koppel het eerst onder **Cloud → Koppelen**: zie [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts).
-- **Een projecteigenaar of beheerder.** Alleen zij kunnen een streamsleutel maken en het streamen stoppen.
+- **Een Projecteigenaar of Projectbeheerder.** Alleen zij kunnen een streamsleutel maken en het streamen stoppen.
 - **Google Cloud Shell**, aangemeld als **Owner** van de projecten, of als iemand die er serviceaccounts, Pub/Sub-topics en logsinks mag maken.
 - **Een HTTPS-adres, bij een zelf gehoste OneUptime.** Pub/Sub pusht alleen naar `https://`-adressen, met een certificaat dat Google vertrouwt, en het adres moet vanuit Google Cloud bereikbaar zijn.
 

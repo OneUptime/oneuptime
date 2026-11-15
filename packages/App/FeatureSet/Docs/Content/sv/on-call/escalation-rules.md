@@ -165,7 +165,7 @@ Ett larm som inte skickas säger varför i personens **Jourloggar** (Användarin
 - projektets saldo kunde inte betala för det, och vem som kan fylla på saldot;
 - kanalen är avstängd i projektet, och vem som kan slå på den.
 
-Projektets ägare får ett e-postmeddelande om det en gång, tills saldot har fyllts på eller kanalen är på igen.
+Projektägarna får ett e-postmeddelande om det en gång, tills saldot har fyllts på eller kanalen är på igen.
 
 Ett larm som inte nådde OneUptimes aviseringstjänst säger `Could not reach the Notification service to send this (ECONNREFUSED).`, med nätverksfelets kod inom parentesen. Ett larm vars sändning aldrig blev klar, till exempel för att en server startade om under sändningen, säger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sändningen klar ändå ersätter resultatet det meddelandet.
 

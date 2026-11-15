@@ -69,7 +69,7 @@ Et banner sier deretter hvor mange påminnelser som ble sendt, hoppet over eller
 
 ## Den ukentlige e-posten om beredskap
 
-Én gang i uken sjekker OneUptime hvert prosjekt som har en vaktpolicy. Er noen der **Utilgjengelig** eller **Må settes opp**, får eierne av prosjektet én e-post som viser dem i to grupper, hvem som ikke kan tilkalles i det hele tatt og hvem som kan nås med hull, opptil 20 navn i hver, med en lenke til siden Beredskap.
+Én gang i uken sjekker OneUptime hvert prosjekt som har en vaktpolicy. Er noen der **Utilgjengelig** eller **Må settes opp**, får Prosjekteierne én e-post som viser dem i to grupper, hvem som ikke kan tilkalles i det hele tatt og hvem som kan nås med hull, opptil 20 navn i hver, med en lenke til siden Beredskap.
 
 En uke der alle er klare, sender ingenting, så e-posten betyr alltid at noe må rettes. Når noen ikke kan tilkalles i det hele tatt, starter emnet med `[Action Required]`.
 
@@ -100,7 +100,7 @@ Listen inneholder bare folk som en vaktpolicy kan tilkalle. Et teammedlem som ik
 :::
 
 :::details Eierne får aldri den ukentlige e-posten
-Den sendes bare i en uke der noen er **Utilgjengelig** eller **Må settes opp**, og bare til eierne av prosjektet.
+Den sendes bare i en uke der noen er **Utilgjengelig** eller **Må settes opp**, og bare til Prosjekteierne.
 :::
 
 ## Neste steg

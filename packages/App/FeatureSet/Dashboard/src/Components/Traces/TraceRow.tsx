@@ -11,6 +11,7 @@ import {
   translatableTerm,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatCompactDurationAgo } from "../../Utils/Milliseconds";
 import { SpanEntityDisplay, getSpanEntityDisplay } from "./TracesEntityDisplay";
 import {
   SpanStatusPresentation,
@@ -34,31 +35,31 @@ export interface TraceRowProps {
   onToggle?: (() => void) | undefined;
 }
 
+// "5m ago", in the reader's language and digits ("۵ دقیقه پیش"; #8455).
 function formatRelativeTime(time: Date, translator: Translator): string {
   const now: Date = new Date();
   const diffMs: number = now.getTime() - time.getTime();
   const sec: number = Math.floor(diffMs / 1000);
   if (sec < 60) {
-    return translator.translateTemplate("{{count}}s ago", { count: sec });
+    return formatCompactDurationAgo(translator, { seconds: sec });
   }
   const min: number = Math.floor(sec / 60);
   if (min < 60) {
-    return translator.translateTemplate("{{count}}m ago", { count: min });
+    return formatCompactDurationAgo(translator, { minutes: min });
   }
   const hr: number = Math.floor(min / 60);
   if (hr < 24) {
-    return translator.translateTemplate("{{count}}h ago", { count: hr });
+    return formatCompactDurationAgo(translator, { hours: hr });
   }
   const day: number = Math.floor(hr / 24);
   if (day < 30) {
-    return translator.translateTemplate("{{count}}d ago", { count: day });
+    return formatCompactDurationAgo(translator, { days: day });
   }
   const mo: number = Math.floor(day / 30);
   if (mo < 12) {
-    return translator.translateTemplate("{{count}}mo ago", { count: mo });
+    return formatCompactDurationAgo(translator, { months: mo });
   }
-  const yr: number = Math.floor(mo / 12);
-  return translator.translateTemplate("{{count}}y ago", { count: yr });
+  return formatCompactDurationAgo(translator, { years: Math.floor(mo / 12) });
 }
 
 const TraceRow: FunctionComponent<TraceRowProps> = (

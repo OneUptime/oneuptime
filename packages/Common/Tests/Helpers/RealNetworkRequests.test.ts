@@ -14,10 +14,12 @@ import {
   failIfSent,
   failureFor,
   isLetThrough,
+  isRefusedOnPurpose,
   isLocalServerUrl,
   isNetworkUrl,
   runningSuite,
   senderOf,
+  refuseRequestsTo,
   takeRequestsSent,
 } from "./RealNetworkRequests";
 
@@ -364,6 +366,107 @@ describe("the test that sent one", () => {
     );
     expect(output).toMatch(/Tests:\s+1 failed, 1 passed, 2 total/);
   }, 300000);
+});
+
+describe("routes a suite refuses on purpose", () => {
+  const routes: ReadonlySet<string> = new Set<string>([
+    "/resource-ai-access/status",
+    "/vmware-resource/inventory-summary/",
+  ]);
+
+  test("fail no test, wherever the service's prefix puts them", () => {
+    for (const url of [
+      "http://localhost/api/resource-ai-access/status",
+      "http://api/resource-ai-access/status",
+      "https://oneuptime.example.com/api/vmware-resource/inventory-summary/7b5e",
+    ]) {
+      expect({
+        url,
+        onPurpose: isRefusedOnPurpose(aRequest({ url }), routes),
+      }).toEqual({ url, onPurpose: true });
+    }
+
+    expect(() => {
+      failIfSent(
+        "Tests/App/Dashboard/Some.test.tsx",
+        [aRequest({ url: "http://localhost/api/resource-ai-access/status" })],
+        [],
+        routes,
+      );
+    }).not.toThrow();
+  });
+
+  test("a * segment stands for one segment, a record's id, and no more", () => {
+    const projectItem: ReadonlySet<string> = new Set<string>([
+      "/project/*/get-item",
+    ]);
+
+    for (const [url, onPurpose] of [
+      ["http://localhost/api/project/7b5e1c/get-item", true],
+      ["http://api/project/7b5e1c/get-item", true],
+      ["http://localhost/api/project/get-item", false],
+      ["http://localhost/api/project/7b5e1c/extra/get-item", false],
+      ["http://localhost/api/project/7b5e1c/get-list", false],
+      ["http://localhost/api/subproject/7b5e1c/get-item", false],
+    ] as Array<[string, boolean]>) {
+      expect({
+        url,
+        onPurpose: isRefusedOnPurpose(aRequest({ url }), projectItem),
+      }).toEqual({ url, onPurpose });
+    }
+  });
+
+  test("any other request of the suite still fails it", () => {
+    for (const url of [
+      "http://localhost/api/resource-ai-access/other",
+      "http://localhost/api/global-config/vars",
+      "http://localhost/api/vmware-resource/inventory-summary",
+    ]) {
+      expect({
+        url,
+        onPurpose: isRefusedOnPurpose(aRequest({ url }), routes),
+      }).toEqual({ url, onPurpose: false });
+    }
+
+    expect(() => {
+      failIfSent(
+        "Tests/App/Dashboard/Some.test.tsx",
+        [
+          aRequest({ url: "http://localhost/api/resource-ai-access/status" }),
+          aRequest({ url: "http://localhost/api/global-config/vars" }),
+        ],
+        [],
+        routes,
+      );
+    }).toThrow(
+      "This test sent a request to the network, which Tests/jest.setup.ts refused at once:\n  POST http://localhost/api/global-config/vars",
+    );
+  });
+
+  test("are named from their start, and declared for the running suite: its own refusals still happen at once", async () => {
+    expect(() => {
+      refuseRequestsTo(["resource-ai-access/status"]);
+    }).toThrow('name a route from its start, as "/resource-ai-access/status"');
+
+    refuseRequestsTo(["/this-suite-only/status"]);
+
+    const request: XMLHttpRequest = new XMLHttpRequest();
+    const events: Array<string> = eventsOf(request);
+
+    request.open("POST", "http://localhost/api/this-suite-only/status");
+    request.send();
+    await settle();
+
+    expect(events).toContain("error 4");
+
+    const sent: Array<RealRequest> = takeRequestsSent();
+
+    expect(sent).toHaveLength(1);
+    expect(isRefusedOnPurpose(sent[0]!)).toBe(true);
+    expect(() => {
+      failIfSent(THIS_SUITE, sent, []);
+    }).not.toThrow();
+  });
 });
 
 describe("requests let through", () => {

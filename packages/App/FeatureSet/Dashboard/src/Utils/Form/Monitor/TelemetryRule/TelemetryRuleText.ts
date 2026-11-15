@@ -22,12 +22,14 @@ import {
 } from "Common/Types/DateLanguage";
 import { TelemetryRulePreviewSummary } from "Common/Types/Monitor/TelemetryRulePreview";
 import {
+  getGlobalTranslator,
   TemplateValue,
   TranslatableTerm,
   translatableTerm,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Milliseconds";
 
 /*
  * The words of a telemetry monitor's rule editor - "When to alert" and
@@ -110,12 +112,16 @@ export const TELEMETRY_RULE_WINDOW_OPTIONS: Array<TelemetryRuleWindowOption> = [
 
 /*
  * The window options for a rule, with the one it holds added when the API
- * stored another length (90 seconds), so the dropdown never drops it.
+ * stored another length (90 seconds), so the dropdown never drops it: "90s"
+ * in English, the reader's short unit and digits in their language ("90
+ * Sek.", "۹۰ ثانیه"; #8455).
  */
 export const getWindowOptions: (
   current: number | undefined,
+  translator?: Translator,
 ) => Array<TelemetryRuleWindowOption> = (
   current: number | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): Array<TelemetryRuleWindowOption> => {
   if (
     !current ||
@@ -130,7 +136,14 @@ export const getWindowOptions: (
 
   return [
     ...TELEMETRY_RULE_WINDOW_OPTIONS,
-    { value: current, label: `${current}s` },
+    {
+      value: current,
+      label: formatCompactDuration(
+        translator,
+        { seconds: current },
+        { decimals: 3, dropTrailingZeros: true },
+      ),
+    },
   ].sort((a: TelemetryRuleWindowOption, b: TelemetryRuleWindowOption) => {
     return a.value - b.value;
   });
@@ -468,7 +481,7 @@ export const TelemetryRuleCopy: {
   ),
   whatHappensTitle: translationKey("What happens"),
   whatHappensDescription: translationKey(
-    "An alert or incident notifies its owners, or the project's owners when it has none. Pick an on-call policy to page whoever is on call.",
+    "An alert or incident notifies its owners, or the Project Owners when it has none. Pick an on-call policy to page whoever is on call.",
   ),
   conditionTitle: translationKey("Condition"),
   logCountTitle: translationKey("Number of logs"),

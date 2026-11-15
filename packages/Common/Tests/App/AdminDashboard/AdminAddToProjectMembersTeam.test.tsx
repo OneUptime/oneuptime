@@ -390,6 +390,12 @@ import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import Navigation from "../../../UI/Utils/Navigation";
 import User from "../../../UI/Utils/User";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const mockGetList: jest.MockedFunction<any> =
   AdminModelAPI.getList as unknown as jest.MockedFunction<any>;

@@ -16,6 +16,7 @@
   "50 USD",
   "500 USD",
   "75 USD",
+  "@http.route:/checkout* -@http.route:/health",
   "@key:value @another.key:value",
   "AB:CD:EF:...",
   "AI",

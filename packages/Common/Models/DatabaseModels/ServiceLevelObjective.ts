@@ -762,6 +762,46 @@ export default class ServiceLevelObjective extends BaseModel {
   })
   public latencyThresholdInMilliseconds?: number = undefined;
 
+  /*
+   * Which of its services' requests a request SLO counts (#8444): a traces
+   * search, in the Traces explorer's own syntax - `@http.route:/checkout*
+   * -@http.route:/health` - of span attributes and the span's name. Empty
+   * counts every request its services serve. Validated by
+   * ServiceLevelObjectiveService (Common/Utils/Slo/SloRequestFilter).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjective,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjective,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Request Filter",
+    description:
+      "For request SLI types: count only the requests that match this traces search of span attributes and the span's name, such as @http.route:/checkout* -@http.route:/health. Empty counts every request of the SLO's services.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public requestFilter?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

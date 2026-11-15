@@ -96,6 +96,12 @@ jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import MagicLinkPage from "../../../../App/FeatureSet/Accounts/src/Pages/MagicLink";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const STORAGE_KEY: string = "oneuptime-sensitive-url-token";
 const TOKEN: string = "6f1c7e4a-2b3d-4c5e-8f90-a1b2c3d4e5f6";
