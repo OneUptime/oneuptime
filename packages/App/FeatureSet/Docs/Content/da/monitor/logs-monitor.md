@@ -85,7 +85,7 @@ Hver log gemmes med en af syv alvorligheder. For logs fra OpenTelemetry kommer d
 | Alvorlighed | OpenTelemetrys alvorlighedsnumre |
 | --- | --- |
 | **Spor** | 1–4 |
-| **Debug** | 5–8 |
+| **Fejlfinding** | 5–8 |
 | **Information** | 9–12 |
 | **Advarsel** | 13–16 |
 | **Fejl** | 17–20 |

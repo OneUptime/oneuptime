@@ -64,14 +64,14 @@ Die neue Zahl gilt für jeden Datensatz, der ab dann ankommt und keine eigene Ü
 
 ### Für das ganze Projekt
 
-Unter dem Standard, eingeklappt unter **Weitere Einstellungen**, legt die Karte **Aufbewahrung nach Telemetrietyp** Tage für jeden Telemetrietyp fest. Klicken Sie auf **Edit Overrides**, füllen Sie die Felder aus, die Sie brauchen, und lassen Sie den Rest leer:
+Unter dem Standard, eingeklappt unter **Weitere Einstellungen**, legt die Karte **Aufbewahrung nach Telemetrietyp** Tage für jeden Telemetrietyp fest. Klicken Sie auf **Überschreibungen bearbeiten**, füllen Sie die Felder aus, die Sie brauchen, und lassen Sie den Rest leer:
 
 | Typ | Felder |
 | --- | --- |
-| Protokolle | **Logs default (days)**, und ein Feld für jeden Protokoll-Schweregrad |
-| Traces | **Traces default (days)**, und ein Feld für jeden Span-Status: Fehler, OK und Nicht festgelegt |
-| Metriken | **Metrics default (days)** |
-| Profile | **Profiles default (days)** |
+| Protokolle | **Standard für Logs (Tage)**, und ein Feld für jeden Protokoll-Schweregrad |
+| Traces | **Standard für Traces (Tage)**, und ein Feld für jeden Span-Status: Fehler, OK und Nicht festgelegt |
+| Metriken | **Standard für Metriken (Tage)** |
+| Profile | **Standard für Profile (Tage)** |
 
 Ein leeres Feld fällt auf die nächste Einstellung der obigen Reihenfolge zurück, sodass ein Schweregrad ohne eigene Tage seine Protokolle so lange aufbewahrt wie der Protokoll-Standard.
 

@@ -151,7 +151,7 @@ Selecteer de **Sondes** die de database bereiken en een **Bewakingsinterval**, e
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hoe lang er op het opzetten van een verbinding wordt gewacht. |
 | **Statement Timeout (ms)** | `15000` | `60000` | De harde bovengrens voor hoe lang de query mag lopen. |
-| **Max Rows** | `100` | `1000` | De bovengrens van rijen die uit de database worden teruggelezen. |
+| **Max. rijen** | `100` | `1000` | De bovengrens van rijen die uit de database worden teruggelezen. |
 
 Een waarde boven het maximum wordt verlaagd tot het maximum.
 

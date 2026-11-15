@@ -445,7 +445,7 @@ const SecurityEntityRiskViewPage: FunctionComponent<
               value={
                 activity?.lastSeen
                   ? OneUptimeDate.fromNow(activity.lastSeen)
-                  : "-"
+                  : undefined
               }
             />
           </EventStatBar>

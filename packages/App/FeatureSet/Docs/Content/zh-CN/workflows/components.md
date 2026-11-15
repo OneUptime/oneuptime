@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - **设置** 是你要填写的内容。标有 **（可选）** 的设置可以留空。不常用的设置折叠在 **更多字段** 下。
-- **Outputs** 是底部边缘的点。大多数块有 **成功** 和 **错误**；[Conditions](#conditions) 有 **是** 和 **否**；[Switch / Case](#switch-case) 每个分支有一个，另有 **默认**。
+- **输出** 是底部边缘的点。大多数块有 **成功** 和 **错误**；[Conditions](#conditions) 有 **是** 和 **否**；[Switch / Case](#switch-case) 每个分支有一个，另有 **默认**。
 - **Returns** 是块传给后续块的值，例如 API 的 **响应主体**。后续块用 `{{local.components.<block ID>.returnValues.<value ID>}}` 读取；设置中的 **{ }** 按钮会替你插入。参见 [变量](/docs/workflows/variables#组件输出来自前面块的数据)。
 
 选择了 **错误** 的块会把失败交给连接到 **错误** 的块，运行在那里继续。如果 **错误** 上没有连接任何东西，运行就会失败：它正在做的其他事情照常运行，然后运行以状态 **错误** 结束，运行的 **步骤** 中该块的条目会说明原因。而留空的必填设置，或者永远不可能生效的设置，会以错误停止运行。
@@ -463,9 +463,9 @@ Zabbix 接受了更新时触发 **已更新**；无法连接 Zabbix 或 Zabbix �
 | **Create One Monitor**   | 根据一个 JSON 对象添加一条记录。                                               |
 | **Create Many Monitors** | 根据一个 JSON 数组添加多条记录。                                               |
 | **Update One Monitor**   | 把要写入的数据应用到一条匹配的记录。                                           |
-| **Update Many Monitors** | 把要写入的数据应用到匹配的记录，最多 **Limit** 条。                            |
+| **Update Many Monitors** | 把要写入的数据应用到匹配的记录，最多 **上限** 条。                            |
 | **Delete One Monitor**   | 删除一条匹配的记录。                                                           |
-| **Delete Many Monitors** | 删除匹配的记录，最多 **Limit** 条。                                            |
+| **Delete Many Monitors** | 删除匹配的记录，最多 **上限** 条。                                            |
 
 同一组还给你四个触发器——**On Create Monitor**、**On Update Monitor**、**On Create or Update Monitor** 和 **On Delete Monitor**。参见 [触发器](/docs/workflows/triggers#oneuptime-事件触发器)。
 
@@ -533,7 +533,7 @@ Create One 上的 **JSON Object**、Create Many 上的 **JSON Array** 以及 Upd
 
 OneUptime 自己填写的字段在你写入记录时不会提供：记录的 `_id`、**创建于**、**更新于**、**创建者**、slug、记录编号和通知状态。谁在何时创建、归档或解决了一条记录，从来不由工作流设置：工作流创建的记录没有创建者；工作流在其他字段旁边为这些字段之一发送的值会被忽略；而一个除此之外什么都不发送的 Update 会失败，并给出提到这些字段的消息。更新只提供记录存在之后还可以更改的字段。查询仍然提供 ID、时间戳和 **创建者**，因为它们便于筛选。**Deleted At** 在任何地方都不提供：记录会被彻底删除，所以它总是空的。
 
-**跳过** 和 **Limit** 是 Find Many、Update Many 和 Delete Many 上的两个数字字段，位于 **更多字段** 下——`Skip: 0` 配合 `Limit: 100` 取前一百个匹配项。**Limit** 默认是 `10`，在 Update Many 和 Delete Many 上，它限制的是实际写入的记录数，而不仅仅是返回的数量。所以 `Items Deleted: 10` 表示删除了十条记录，而不是匹配了十条。想更改超过十条时，请调高 **Limit**。
+**跳过** 和 **上限** 是 Find Many、Update Many 和 Delete Many 上的两个数字字段，位于 **更多字段** 下——`Skip: 0` 配合 `Limit: 100` 取前一百个匹配项。**上限** 默认是 `10`，在 Update Many 和 Delete Many 上，它限制的是实际写入的记录数，而不仅仅是返回的数量。所以 `Items Deleted: 10` 表示删除了十条记录，而不是匹配了十条。想更改超过十条时，请调高 **上限**。
 
 按查询执行的 Delete One 和 Delete Many 从不清空一段历史。对于监视器的状态事件，以及事件、警报、维护事件和事件分组的状态历史，它们从不删除记录的当前状态，并会保留覆盖最近 90 天中任何一部分的每个监视器状态事件，这样状态页面就不会把监视器显示为灰色。运行的日志会说明保留了多少条。要删除某一个特定事件，请按它的 `_id` 查询。
 

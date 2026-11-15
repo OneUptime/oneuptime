@@ -188,8 +188,8 @@ Per essere chiamato con un messaggio diretto quando sei di reperibilità, aggiun
 
 :::steps
 1. Collega il tuo account Slack (vedi [Collegare Slack](#collegare-slack)).
-2. Vai in **Impostazioni utente** > **Metodi di notifica**, apri la scheda **App dell'area di lavoro** e fai clic su **Add Slack Account**.
-3. Fai clic su **Send Test Message** nella sua riga. Il messaggio arriva nei tuoi messaggi diretti di Slack.
+2. Vai in **Impostazioni utente** > **Metodi di notifica**, apri la scheda **App dell'area di lavoro** e fai clic su **Aggiungi account Slack**.
+3. Fai clic su **Invia messaggio di prova** nella sua riga. Il messaggio arriva nei tuoi messaggi diretti di Slack.
 :::
 
 Aggiungerlo lo inserisce subito nelle tue regole di reperibilità, quindi da quel momento le chiamate ti raggiungono in Slack. Cambia quali chiamate riceve in **Impostazioni utente** > **Come contattarmi**.

@@ -1,4 +1,5 @@
 import AlertStateUtil from "../../Utils/AlertState";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import IncidentStateUtil from "../../Utils/IncidentState";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -389,7 +390,7 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
               : "text-gray-900"
           }`}
         >
-          {data.count === null ? "—" : data.count}
+          {data.count === null ? <EmptyFigure /> : data.count}
         </span>
       </Link>
     );

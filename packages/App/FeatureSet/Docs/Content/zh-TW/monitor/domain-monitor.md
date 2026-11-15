@@ -4,7 +4,7 @@
 
 :::cards
 - [建立監測器](#建立網域監測器): 在主控台中完成六個步驟。
-- [查詢方式](#查詢方式): RDAP、WHOIS，以及為什麼預設使用 **Auto**。
+- [查詢方式](#查詢方式): RDAP、WHOIS，以及為什麼預設使用 **自動**。
 - [預設條件](#預設條件): 不需設定，提前 30 天發出到期警告。
 - [疑難排解](#疑難排解): 已停用的 WHOIS 伺服器、Proxy 和缺少的日期。
 :::
@@ -41,7 +41,7 @@ flowchart TB
 | 各註冊管理機構的 RDAP 伺服器 | HTTPS，連接埠 443 | RDAP 查詢。 |
 | WHOIS 伺服器 | TCP 連接埠 43 | WHOIS 查詢。 |
 
-RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 設定。WHOIS 透過原始通訊端執行，不會遵循這些設定。如果探測器連不到 `data.iana.org`，**Auto** 會改用 WHOIS，並在五分鐘後再次嘗試 IANA。
+RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 設定。WHOIS 透過原始通訊端執行，不會遵循這些設定。如果探測器連不到 `data.iana.org`，**自動** 會改用 WHOIS，並在五分鐘後再次嘗試 IANA。
 
 ## 建立網域監測器
 
@@ -56,7 +56,7 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 
 ### 輸入網域
 
-輸入 **網域名稱**，例如 `example.com`。除非有理由，否則請讓 **查詢方式** 保持為 **Auto**（請參閱 [查詢方式](#查詢方式)）。
+輸入 **網域名稱**，例如 `example.com`。除非有理由，否則請讓 **查詢方式** 保持為 **自動**（請參閱 [查詢方式](#查詢方式)）。
 
 ### 測試
 
@@ -76,13 +76,13 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 | 欄位 | 預設值 | 要填寫的內容 |
 | --- | --- | --- |
 | **網域名稱** | 無 | 已註冊的網域，例如 `example.com`。貼上的位址也可以：`https://example.com/pricing` 會被讀作 `example.com`。 |
-| **查詢方式** | **Auto** | **Auto**、**RDAP** 或 **WHOIS**。請參閱 [查詢方式](#查詢方式)。 |
+| **查詢方式** | **自動** | **自動**、**RDAP** 或 **WHOIS**。請參閱 [查詢方式](#查詢方式)。 |
 | **逾時（ms）**（在 **更多欄位** 下） | `10000` | 等待每次註冊查詢的時間，單位為毫秒。 |
 | **重試**（在 **更多欄位** 下） | `3` | 第一次嘗試失敗後的重試次數。`0` 表示只嘗試一次。 |
 
 每次失敗的查詢都會重試，兩次嘗試之間暫停一秒。即使註冊管理機構回答網域未註冊，或它沒有註冊服務，也會重試，以防這個回答只是一次暫時性故障。只有格式錯誤的網域名稱會立即回報，不進行查詢。
 
-逾時適用於每個請求，而不是整個檢查：一次先嘗試 RDAP、再改用 WHOIS 的 **Auto** 檢查，花費的時間可能是兩倍甚至更久。
+逾時適用於每個請求，而不是整個檢查：一次先嘗試 RDAP、再改用 WHOIS 的 **自動** 檢查，花費的時間可能是兩倍甚至更久。
 
 ### 查詢方式
 
@@ -90,11 +90,11 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 
 | 方式 | 行為 |
 | --- | --- |
-| **Auto** | 預設。TLD 發布了 RDAP 服務時使用 RDAP；沒有發布，或 RDAP 查詢失敗時，改用 WHOIS。 |
+| **自動** | 預設。TLD 發布了 RDAP 服務時使用 RDAP；沒有發布，或 RDAP 查詢失敗時，改用 WHOIS。 |
 | **RDAP** | 只使用 RDAP。如果 TLD 沒有發布 RDAP 服務，會以明確的錯誤失敗。 |
 | **WHOIS** | 只使用 WHOIS。 |
 
-**RDAP**（[RFC 9083](https://www.rfc-editor.org/rfc/rfc9083)）是 ICANN 規定的 WHOIS 替代方案。每個 TLD 的權威伺服器透過 [IANA 的引導登錄表](https://www.rfc-editor.org/rfc/rfc9224) 尋找，因此在註冊管理機構遷移時也能保持正確。每個 gTLD 都會發布一個。當 TLD 的 RDAP 伺服器表示網域未註冊時，**Auto** 會把它當成答案，不會再詢問 WHOIS。
+**RDAP**（[RFC 9083](https://www.rfc-editor.org/rfc/rfc9083)）是 ICANN 規定的 WHOIS 替代方案。每個 TLD 的權威伺服器透過 [IANA 的引導登錄表](https://www.rfc-editor.org/rfc/rfc9224) 尋找，因此在註冊管理機構遷移時也能保持正確。每個 gTLD 都會發布一個。當 TLD 的 RDAP 伺服器表示網域未註冊時，**自動** 會把它當成答案，不會再詢問 WHOIS。
 
 **WHOIS** 沒有對應的探索機制——用戶端隨附一張從 TLD 到 WHOIS 主機的固定對照表，而這些表會過時。Identity Digital 的每個 TLD（`.digital`、`.email`、`.life`、`.today`、`.zone` 以及另外約 290 個）仍對應到一台已停用的主機，該主機現在對每個查詢都只回傳字面文字 `TLD is not supported.`，而不是記錄。對於許多完全不發布 RDAP 服務的 ccTLD（例如 `.io`、`.co`、`.de`、`.ch` 和 `.jp`），WHOIS 仍是唯一的選擇。
 
@@ -112,7 +112,7 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 | **網域名稱伺服器** | **包含**、**不包含**、**開頭是**、**結尾是**、**等於**、**不等於** | 網域的名稱伺服器。只要其中任何一個符合即符合。 |
 | **網域狀態碼** | **包含**、**不包含**、**開頭是**、**結尾是**、**等於**、**不等於** | 網域的 EPP 狀態碼。只要其中任何一個符合即符合。 |
 
-無論是哪種通訊協定回應，狀態碼都會正規化為它們的 EPP 名稱（`clientTransferProhibited`），因此當 **Auto** 在 RDAP 和 WHOIS 之間切換時，條件仍能持續符合。註冊商的 _名稱_ 取決於回應服務發布的內容，在兩種通訊協定之間可能略有不同，因此對於 **網域註冊商** 條件，請優先使用 **包含** 而不是 **等於**。
+無論是哪種通訊協定回應，狀態碼都會正規化為它們的 EPP 名稱（`clientTransferProhibited`），因此當 **自動** 在 RDAP 和 WHOIS 之間切換時，條件仍能持續符合。註冊商的 _名稱_ 取決於回應服務發布的內容，在兩種通訊協定之間可能略有不同，因此對於 **網域註冊商** 條件，請優先使用 **包含** 而不是 **等於**。
 
 日期會正規化為 ISO 8601。註冊管理機構以無法解析的格式發布的日期會被省略而不是儲存，這樣到期條件就無法判斷、也不會符合，而不是一直默默地回答「未到期」。
 
@@ -163,11 +163,11 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 ## 疑難排解
 
 :::details WHOIS 伺服器「answered without any registration data」
-該 TLD 的 WHOIS 主機已停用、正在對探測器限速，或暫時故障。已停用的主機（例如 Identity Digital 的 TLD 仍對應到的那台）每次都回答 `TLD is not supported.`。如果在 **查詢方式** 為 **WHOIS** 時故障持續發生，請切換到 **Auto**，讓探測器在有 RDAP 服務的地方讀取該 TLD 的 RDAP 服務。
+該 TLD 的 WHOIS 主機已停用、正在對探測器限速，或暫時故障。已停用的主機（例如 Identity Digital 的 TLD 仍對應到的那台）每次都回答 `TLD is not supported.`。如果在 **查詢方式** 為 **WHOIS** 時故障持續發生，請切換到 **自動**，讓探測器在有 RDAP 服務的地方讀取該 TLD 的 RDAP 服務。
 :::
 
 :::details 檢查失敗，並顯示「No RDAP service is published」
-監測器使用的是 **RDAP**，而該 TLD 沒有發布 RDAP 服務，許多 ccTLD 都是如此。請將 **查詢方式** 切換為會改用 WHOIS 的 **Auto**。
+監測器使用的是 **RDAP**，而該 TLD 沒有發布 RDAP 服務，許多 ccTLD 都是如此。請將 **查詢方式** 切換為會改用 WHOIS 的 **自動**。
 :::
 
 :::details 網域被回報為未註冊
@@ -175,7 +175,7 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 :::
 
 :::details Proxy 後方的探測器上查詢失敗
-RDAP 會經過探測器的 Proxy 設定，WHOIS 不會。請為 WHOIS 允許對外的 TCP 連接埠 43，或者對發布了 RDAP 服務的 TLD 使用 **Auto** 或 **RDAP**。
+RDAP 會經過探測器的 Proxy 設定，WHOIS 不會。請為 WHOIS 允許對外的 TCP 連接埠 43，或者對發布了 RDAP 服務的 TLD 使用 **自動** 或 **RDAP**。
 :::
 
 :::details 到期日是空白的，到期條件從不觸發

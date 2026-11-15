@@ -204,7 +204,7 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
             iconColor="amber"
             value={
               readings.applyLatencyMs === null
-                ? "—"
+                ? undefined
                 : formatCephLatency(readings.applyLatencyMs)
             }
             sublabel={
@@ -229,7 +229,7 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
             iconColor="violet"
             value={
               readings.pgCount === null
-                ? "—"
+                ? undefined
                 : translator.formatNumber(Math.round(readings.pgCount))
             }
             sublabel="held on this OSD"

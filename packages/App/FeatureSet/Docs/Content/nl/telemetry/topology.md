@@ -51,12 +51,12 @@ Elke service toont zijn status, berekend uit de aanroepen die hij in de laatste 
 | Status | Wanneer |
 | --- | --- |
 | **Gezond** | Hooguit 1% van de ontvangen aanroepen mislukte. |
-| **Some errors** | Meer dan 1% en minder dan 5% mislukte. |
-| **High error rate** | 5% of meer mislukte. |
-| **Entry point** | Hij ontving geen aanroepen, maar deed er wel: een webfrontend of een geplande taak. |
-| **No calls observed** | Hij deed noch ontving een aanroep. |
+| **Enkele fouten** | Meer dan 1% en minder dan 5% mislukte. |
+| **Hoog foutpercentage** | 5% of meer mislukte. |
+| **Ingangspunt** | Hij ontving geen aanroepen, maar deed er wel: een webfrontend of een geplande taak. |
+| **Geen aanroepen waargenomen** | Hij deed noch ontving een aanroep. |
 
-Een service met een actief incident of een actieve waarschuwing toont in plaats daarvan hoeveel, en net als een service met **Some errors** of een **High error rate** telt hij als een die aandacht vraagt.
+Een service met een actief incident of een actieve waarschuwing toont in plaats daarvan hoeveel, en net als een service met de status **Enkele fouten** of **Hoog foutpercentage** telt hij als een die aandacht vraagt.
 
 :::steps
 ### De services vinden die aandacht vragen

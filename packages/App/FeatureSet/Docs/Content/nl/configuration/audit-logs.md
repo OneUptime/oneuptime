@@ -43,7 +43,7 @@ Ga naar **Projectinstellingen → Auditlogboeken → Instellingen**. **Auditlogb
 
 ### De instellingen bewerken
 
-Klik op **Edit Audit Log Settings**.
+Klik op **Instellingen van auditlogboeken bewerken**.
 
 ### Het aanzetten
 

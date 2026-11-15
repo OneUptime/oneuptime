@@ -410,7 +410,7 @@ A página de cada chave, em **Configurações do projeto → Telemetria e APM �
 | **Habilitado** | Desligue para parar na hora de aceitar dados enviados com a chave, sem excluí-la. |
 | **Expira em** | Depois dessa data a chave é recusada. Vazio significa que ela nunca expira. |
 | **Requests Per Minute Limit** | O máximo de requisições OTLP/HTTP por minuto aceitas com a chave, somando todos os clientes que a usam. Vazio significa sem limite numa chave de servidor, e 6.000 numa chave de navegador. |
-| **Last Used At** | Quando dados foram aceitos pela última vez com a chave. Use para encontrar chaves que podem ser trocadas ou excluídas com segurança. |
+| **Usado pela última vez em** | Quando dados foram aceitos pela última vez com a chave. Use para encontrar chaves que podem ser trocadas ou excluídas com segurança. |
 
 **Redefinir chave secreta** na página da chave substitui o segredo. Toda aplicação e todo collector que envia com o antigo é recusado até você atualizá-lo. Para chaves de navegador, como trocar uma chave com segurança e o que cada recusa significa, veja [Chaves de ingestão](/docs/telemetry/ingestion-keys).
 

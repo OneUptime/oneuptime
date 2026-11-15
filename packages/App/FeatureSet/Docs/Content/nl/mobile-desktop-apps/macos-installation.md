@@ -67,7 +67,7 @@ Open in de app **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **
 Klik op **Apparaat registreren**, houd de voorgestelde **Apparaatnaam**, zoals `Safari on macOS`, of wijzig hem, en klik opnieuw op **Apparaat registreren**. Wanneer macOS of de browser vraagt of OneUptime meldingen mag sturen, kiest u **Sta toe**.
 
 ### Een test sturen
-Klik in het dialoogvenster **Browser Registered** op **Send Test Notification**. Verschijnt er niets, kijk dan naar de berichtgevingsinstellingen van de Mac: zie [Probleemoplossing](#probleemoplossing).
+Klik in het dialoogvenster **Browser geregistreerd** op **Testmelding versturen**. Verschijnt er niets, kijk dan naar de berichtgevingsinstellingen van de Mac: zie [Probleemoplossing](#probleemoplossing).
 :::
 
 Een browser kan niet door een Focus zoals Niet storen heen klinken. Gebruik voor oproepen die u moeten wekken de mobiele app met kritieke meldingen: zie [iOS-installatie](/docs/mobile-desktop-apps/ios-installation#door-de-stille-modus-heen-klinken).
