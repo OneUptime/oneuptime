@@ -844,11 +844,7 @@ export function formatDatabaseMetricValue(
     return inLanguage(`${formatDatabaseCount(value)}%`, translator);
   }
   if (cleanUnit === "ms") {
-    return writeMillisecondsFigure(
-      formatDatabaseCount(value),
-      translator,
-      `${formatDatabaseCount(value)} ms`,
-    );
+    return writeMillisecondsFigure(formatDatabaseCount(value), translator);
   }
   return inLanguage(
     withUnitWord(formatDatabaseCount(value), cleanUnit),
@@ -902,18 +898,16 @@ export function formatDatabaseLatencyMs(
  * Milliseconds whose figure a formatter above wrote ("250", "2.5k"), in the
  * reader's language: "۲۵۰ میلی‌ثانیه", "250 ملي ث" - the words the p95
  * tile beside a chart uses (formatMilliseconds' key, #8349). English, or
- * no translator, reads `english`, exactly as it always did.
+ * no translator, reads "250 ms", "2.5k ms", exactly as it always did.
  */
 function writeMillisecondsFigure(
   figure: string,
   translator: Translator | undefined,
-  english: string,
 ): string {
-  if (!translator || isEnglishDateLanguage(translator.language)) {
-    return english;
-  }
-  return translator.translateTemplate(MILLISECONDS_TEMPLATE, {
-    value: writeDatabaseFigureInLanguage(figure, translator.language),
+  const reader: Translator = translator || ENGLISH_FIGURES;
+
+  return reader.translateTemplate(MILLISECONDS_TEMPLATE, {
+    value: writeDatabaseFigureInLanguage(figure, reader.language),
   });
 }
 
@@ -991,11 +985,10 @@ export function formatDatabaseMetricAxisValue(
     if (Math.abs(value) > 0 && Math.abs(value) < 1) {
       const milliseconds: string = formatDatabaseAxisNumber(value * 1000);
 
-      return writeMillisecondsFigure(
-        milliseconds,
-        translator,
-        `${ENGLISH_FIGURES.formatNumber(Number(milliseconds))} ms`,
-      );
+      // English writes the figure as formatMilliseconds does, as it always read.
+      return !translator || isEnglishDateLanguage(translator.language)
+        ? formatMilliseconds(ENGLISH_FIGURES, Number(milliseconds))
+        : writeMillisecondsFigure(milliseconds, translator);
     }
     return formatDatabaseSeconds(value, translator);
   }
@@ -1004,7 +997,7 @@ export function formatDatabaseMetricAxisValue(
   }
   const number: string = formatDatabaseAxisNumber(value);
   if (cleanUnit === "ms") {
-    return writeMillisecondsFigure(number, translator, `${number} ms`);
+    return writeMillisecondsFigure(number, translator);
   }
   if (DATABASE_AXIS_SHORT_UNITS.includes(cleanUnit)) {
     return inLanguage(`${number}%`, translator);

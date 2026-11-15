@@ -23,7 +23,7 @@ import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
 } from "../../Charts/Utils/useHistogramRangeSelection";
 import TelemetryLoadErrorMessage from "./TelemetryLoadErrorMessage";
-import { writeFigureInLanguage } from "../../../../Types/DateLanguage";
+import { formatChartCount } from "../../Charts/Utils/ChartCount";
 import {
   getChartRowValues,
   getYAxisWidthForValuesInPx,
@@ -104,23 +104,10 @@ function formatTickTime(time: string): string {
  * digits and decimal sign with the scale letter kept ("1,5K", "۱٫۵K"), as
  * the tooltip beside it writes its counts in their digits (#8349).
  */
-export function formatYAxisTick(
+export const formatYAxisTick: (
   value: number,
   language?: string | undefined,
-): string {
-  if (value >= 1000000) {
-    return writeFigureInLanguage(`${(value / 1000000).toFixed(1)}M`, language);
-  }
-
-  if (value >= 1000) {
-    return writeFigureInLanguage(
-      `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`,
-      language,
-    );
-  }
-
-  return writeFigureInLanguage(value.toString(), language);
-}
+) => string = formatChartCount;
 
 const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
   props: TelemetryHistogramProps,
@@ -179,11 +166,15 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
    * stacked bars' tallest total among them - never narrower than its 48 px
    * (#8349).
    */
-  const yAxisTickFormatter: (value: number) => string =
-    props.valueFormatter ||
-    ((value: number): string => {
-      return formatYAxisTick(value, translator.language);
-    });
+  // One function while the formatter and the language stay: the axis keeps its bars.
+  const yAxisTickFormatter: (value: number) => string = useMemo(() => {
+    return (
+      props.valueFormatter ||
+      ((value: number): string => {
+        return formatYAxisTick(value, translator.language);
+      })
+    );
+  }, [props.valueFormatter, translator.language]);
 
   const yAxisWidth: number = useMemo(() => {
     return getYAxisWidthForValuesInPx({

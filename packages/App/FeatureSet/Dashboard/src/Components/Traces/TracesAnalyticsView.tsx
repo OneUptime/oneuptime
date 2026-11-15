@@ -976,20 +976,24 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
    * it do, in the reader's language ("۴۲ میلی‌ثانیه", "1,5K"), and is as wide
    * as its widest tick at its 11 px, never narrower than it was (#8349).
    */
-  const yAxisFormatter: (value: number) => string = isDuration
-    ? (value: number): string => {
-        return formatDurationMsInLanguage(value, translator);
-      }
-    : formatCount;
+  const yAxisFormatter: (value: number) => string = useMemo(() => {
+    return isDuration
+      ? (value: number): string => {
+          return formatDurationMsInLanguage(value, translator);
+        }
+      : formatCount;
+  }, [isDuration, translator.language]);
 
-  const yAxisWidth: number = getYAxisWidthForValuesInPx({
-    values: getChartRowValues(pivotedData, seriesKeys, {
-      isStacked: !isDuration,
-    }),
-    formatter: yAxisFormatter,
-    minWidthInPx: 64,
-    tickFontSizeInPx: 11,
-  });
+  const yAxisWidth: number = useMemo(() => {
+    return getYAxisWidthForValuesInPx({
+      values: getChartRowValues(pivotedData, seriesKeys, {
+        isStacked: !isDuration,
+      }),
+      formatter: yAxisFormatter,
+      minWidthInPx: 64,
+      tickFontSizeInPx: 11,
+    });
+  }, [pivotedData, seriesKeys, isDuration, yAxisFormatter]);
 
   const renderTimeseries: () => ReactElement = (): ReactElement => {
     if (pivotedData.length === 0) {

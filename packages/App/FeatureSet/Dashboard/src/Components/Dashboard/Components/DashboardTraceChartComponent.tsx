@@ -231,11 +231,13 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
    * do, in the reader's language ("۴۲ میلی‌ثانیه", "1,5K"), and the axis is
    * as wide as its widest tick, never narrower than it was (#8349).
    */
-  const valueFormatter: (value: number) => string = isDuration
-    ? (value: number): string => {
-        return formatDurationMsInLanguage(value, translator);
-      }
-    : formatCount;
+  const valueFormatter: (value: number) => string = useMemo(() => {
+    return isDuration
+      ? (value: number): string => {
+          return formatDurationMsInLanguage(value, translator);
+        }
+      : formatCount;
+  }, [isDuration, translator.language]);
 
   const yAxisWidth: number = useMemo(() => {
     return getYAxisWidthForValuesInPx({
@@ -245,7 +247,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
       formatter: valueFormatter,
       minWidthInPx: 56,
     });
-  }, [pivotedData, seriesKeys, isDuration, translator.language]);
+  }, [pivotedData, seriesKeys, isDuration, valueFormatter]);
 
   const renderChart: () => ReactElement = (): ReactElement => {
     const sharedAxes: ReactElement = (
