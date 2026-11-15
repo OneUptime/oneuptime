@@ -1455,4 +1455,60 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
     expect(result.statusMessage).toBe(row.statusMessage);
     expect(result.statusMessageCode).toBeUndefined();
   });
+
+  /*
+   * #7550: a message the Notification service refused, or that failed with
+   * no words, carries the code of OneUptime's own line beside its English,
+   * so the reader's Dashboard words it - read from the row as it is.
+   */
+  test("a failed message's own OneUptime line goes out with its code beside its English", async () => {
+    await deliver({
+      userSms: {
+        id: METHOD_ID,
+        phone: new Phone("+15550100"),
+        isVerified: true,
+      },
+    });
+
+    const row: UserOnCallLogTimeline = createdRows[0]!;
+
+    row.id = new ObjectID("abababab-abab-4bab-8bab-abababababab");
+    row.status = UserNotificationStatus.Error;
+
+    for (const [statusMessage, code] of [
+      [
+        "The Notification service refused to send this (HTTP 400): Invalid number.",
+        {
+          code: OnCallTestPageLineCode.NotificationServiceRefused,
+          statusCode: 400,
+          words: "Invalid number.",
+        },
+      ],
+      [
+        "Error sending SMS.",
+        {
+          code: OnCallTestPageLineCode.SendFailed,
+          channel: OnCallPageChannel.SMS,
+        },
+      ],
+      [
+        "Could not reach the Notification service to send this (ENOTFOUND).",
+        {
+          code: OnCallTestPageLineCode.NotificationServiceNotReached,
+          reason: "ENOTFOUND",
+        },
+      ],
+    ] as Array<[string, unknown]>) {
+      row.statusMessage = statusMessage;
+
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: row,
+        isDelivered: false,
+      });
+
+      // The English stays, for every other reader of the API.
+      expect(result.statusMessage).toBe(statusMessage);
+      expect(result.statusMessageCode).toEqual(code);
+    }
+  });
 });
