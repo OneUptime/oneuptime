@@ -453,6 +453,12 @@ export class Service extends ProjectReferencesService<Model> {
     templateId: ObjectID;
     data: Model;
     props: DatabaseCommonInteractionProps;
+    /*
+     * What the create carries beside the incident: the owners a workflow's
+     * Create One Incident names (Types/Workflow/OwnersOnCreateSetting),
+     * asked about and added as a REST create's are, beside the template's.
+     */
+    miscDataProps?: JSONObject | undefined;
   }): Promise<Model> {
     const projectId: ObjectID | undefined =
       data.props.tenantId || data.data.projectId;
@@ -500,6 +506,7 @@ export class Service extends ProjectReferencesService<Model> {
     const createBy: CreateBy<Model> = {
       data: data.data,
       props: data.props,
+      ...(data.miscDataProps ? { miscDataProps: data.miscDataProps } : {}),
     };
 
     this.templateDeclarations.set(createBy, data.templateId);

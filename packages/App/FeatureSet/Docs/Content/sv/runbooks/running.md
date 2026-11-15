@@ -58,7 +58,7 @@ Så startar du en manuellt:
 3. Körningssidan öppnas.
 :::
 
-För att starta en körning krävs Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member, eller behörigheten **Create Runbook Execution**. Runbook Viewer och Viewer ser **Kör nu** låst, med skälet. Se [Behörigheter](/docs/runbooks/configuration#behörigheter).
+För att starta en körning krävs Projektägare, Projektadministratör, Projektmedlem, Runbook-administratör eller Runbook-medlem, eller behörigheten **Create Runbook Execution**. Runbook-tittare och Tittare ser **Kör nu** låst, med skälet. Se [Behörigheter](/docs/runbooks/configuration#behörigheter).
 
 ## Körningsvyn
 
@@ -128,7 +128,7 @@ En körning är en engångspost som inte ändras. Klicka på **Kör igen** på e
 ## Felsökning
 
 :::details Run Now är låst
-Din roll läser runbooks men kör dem inte: knappen säger "Du har inte behörighet att starta runbook-körningar i det här projektet." Be om Runbook Member eller behörigheten **Create Runbook Execution**.
+Din roll läser runbooks men kör dem inte: knappen säger "Du har inte behörighet att starta runbook-körningar i det här projektet." Be om Runbook-medlem eller behörigheten **Create Runbook Execution**.
 :::
 
 :::details Att starta en körning misslyckas med "Runbook is disabled" eller "Runbook has no steps to run"

@@ -26,7 +26,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Un ruolo che può invitare.** Project Owner, Project Admin o un ruolo con l'autorizzazione **Invite New Members**. Puoi invitare persone solo in un team di cui hai tu stesso le autorizzazioni, perché un invito dà loro l'accesso del team.
+- **Un ruolo che può invitare.** Proprietario del progetto, Amministratore del progetto o un ruolo con l'autorizzazione **Invite New Members**. Puoi invitare persone solo in un team di cui hai tu stesso le autorizzazioni, perché un invito dà loro l'accesso del team.
 - **Su OneUptime Cloud, spazio nel tuo piano.** Ogni persona del progetto è una postazione sulla sua fattura, dal momento in cui viene invitata. Il piano Free ha spazio per una persona. Vedi [Fatturazione e utilizzo](/docs/configuration/billing#il-tuo-piano-e-le-postazioni).
 - **Niente SCIM Push Groups.** Finché il tuo provider di identità gestisce i team del progetto tramite SCIM Push Groups, inviti e rimuovi le persone lì, non in OneUptime.
 
@@ -47,7 +47,7 @@ Scrivi il suo indirizzo in **E-mail**. Se nessun account OneUptime lo usa ancora
 
 ### Scegliere il team
 
-**Team** parte dal team dei membri del progetto: il team che ha Project Member per tutto il progetto, oppure quello chiamato Members. Scegli un altro team per dare più accesso, o meno. **Team** resta vuoto quando il progetto non ha un team del genere, o quando tu stesso non potresti invitarvi nessuno.
+**Team** parte dal team dei membri del progetto: il team che ha Membro del progetto per tutto il progetto, oppure quello chiamato Members. Scegli un altro team per dare più accesso, o meno. **Team** resta vuoto quando il progetto non ha un team del genere, o quando tu stesso non potresti invitarvi nessuno.
 
 ### Inviare l'invito
 
@@ -86,7 +86,7 @@ Filtra l'elenco per **Utente**, **Stato** o **Team**. Fai clic su una riga per a
 | --- | --- |
 | **Profilo** | Il suo nome, l'indirizzo email, la foto e l'ID utente. |
 | **Team** | I team di cui fa parte. Qui aggiungi o rimuovi un team. |
-| **Prontezza**, **Metodi di notifica**, **Come contattarmi** | Se può essere chiamata, e come. Visibile ai Project Owner, ai Project Admin, alla persona stessa e a chi può leggere le regole di notifica degli altri. Vedi [Prontezza e report](/docs/on-call/readiness). |
+| **Prontezza**, **Metodi di notifica**, **Come contattarmi** | Se può essere chiamata, e come. Visibile ai Proprietari del progetto, agli Amministratori del progetto, alla persona stessa e a chi può leggere le regole di notifica degli altri. Vedi [Prontezza e report](/docs/on-call/readiness). |
 | **Campi personalizzati** | I campi personalizzati del progetto per le persone, se ne ha. |
 | **Rimuovi dal progetto** | Toglierla dal progetto. |
 

@@ -37,7 +37,7 @@ Une requête est un span d'entrée de l'un des services du SLO : le span où une
 ## Avant de commencer
 
 - Les services envoient des traces à OneUptime : voir [OpenTelemetry](/docs/telemetry/open-telemetry). Chacun d'eux figure dans le [catalogue des services](/docs/telemetry/services) sous son `service.name`.
-- Un rôle autorisé à créer des SLO : Project Owner, Project Admin ou un rôle personnalisé avec la permission Create Service Level Objective.
+- Un rôle autorisé à créer des SLO : Propriétaire du projet, Administrateur du projet ou un rôle personnalisé avec la permission Create Service Level Objective.
 
 ## Créer un SLO de requêtes
 

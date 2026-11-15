@@ -92,7 +92,7 @@ Se [Utlösare för arbetsflöden](/docs/workflows/triggers) för de fält som va
 Två åtgärder på ett problem ber OneUptime AI om hjälp. Båda skickar till OneUptime AI problemets titel och allvarlighetsgrad, datalagrets namn, typ, region och moln-ID, dess känslighet och datatyper, bevisen, varför kontrollen spelar roll och åtgärden för datalagrets moln – aldrig ett fynds prov. Båda körs under projektets reglage och gränser för OneUptime AI.
 
 - **Förklara med AI** skriver, för datalagrets ägare, vad som är fel, vad som kan hända och de exakta stegen för att åtgärda det i deras moln. Förklaringen sparas på problemets **Tidslinje**. Alla som kan läsa Datasäkerhet kan fråga.
-- **Åtgärda med AI** ber OneUptime AI att åtgärda problemet i din infrastrukturkod – Terraform, CloudFormation, Bicep eller liknande – med den minsta ändring som får kontrollen att godkännas, och att öppna en pull request. Den kräver att arkivet som innehåller datalagrets infrastrukturkod är anslutet under **Kod**: välj det under **Arkiv** när projektet har flera. Pull requesten visas under **Kod** (se [Kod](/docs/ai/ai-agent)). Rollen Security Member och högre kan fråga.
+- **Åtgärda med AI** ber OneUptime AI att åtgärda problemet i din infrastrukturkod – Terraform, CloudFormation, Bicep eller liknande – med den minsta ändring som får kontrollen att godkännas, och att öppna en pull request. Den kräver att arkivet som innehåller datalagrets infrastrukturkod är anslutet under **Kod**: välj det under **Arkiv** när projektet har flera. Pull requesten visas under **Kod** (se [Kod](/docs/ai/ai-agent)). Rollen Säkerhetsmedlem och högre kan fråga.
 
 ### Fråga AI
 

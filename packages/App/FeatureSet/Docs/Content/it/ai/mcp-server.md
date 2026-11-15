@@ -430,7 +430,7 @@ Queste funzionano senza credenziali, con i soli strumenti delle pagine di stato 
 | Cosa fa l'agente | Scegli in **Accesso** |
 | --- | --- |
 | Legge soltanto | **Visualizzatore**, oppure aggiungi permessi di lettura nella pagina della chiave |
-| Crea, aggiorna ed elimina anche | **Amministratore del progetto**, oppure aggiungi il ruolo Project Admin nella pagina della chiave |
+| Crea, aggiorna ed elimina anche | **Amministratore del progetto**, oppure aggiungi il ruolo Amministratore del progetto nella pagina della chiave |
 
 Dai a ogni chiave il minimo che le serve, ruota le chiavi regolarmente, tieni una chiave separata per ogni ambiente e controlla in OneUptime cosa fa ogni chiave.
 
@@ -497,7 +497,7 @@ Il server MCP è senza stato: non emette né traccia id di sessione, quindi ogni
 | Sicurezza | Security Event, Threat Intel Indicator |
 | Modifiche e costi | Change Event, Kubernetes Cost Allocation |
 
-Gli strumenti hanno nomi in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` e `count_incidents`, oppure `list_logs` e `count_spans` per la telemetria.
+Gli strumenti hanno nomi in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` e `count_incidents`, oppure `list_logs` e `count_spans` per la telemetria. `create_incident` e `create_alert` accettano anche `ownerUsers` e `ownerTeams`: gli ID degli utenti e dei team a cui il record appartiene fin dall'inizio, che vengono avvisati della sua creazione.
 
 ## Passi successivi
 

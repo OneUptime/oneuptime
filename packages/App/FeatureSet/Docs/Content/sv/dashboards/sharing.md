@@ -139,9 +139,9 @@ På en egeninstallation slås anpassade domäner för instrumentpaneler på med 
 
 ### Vem som kan kontrollera och utfärda på nytt
 
-**Kontrollera nu**, beställning av en domäns certifikat och **Reissue SSL** ändrar domänen, så de kräver behörighet att redigera den: **Edit Dashboard Domain**, eller en roll som innehåller den (Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member).
+**Kontrollera nu**, beställning av en domäns certifikat och **Reissue SSL** ändrar domänen, så de kräver behörighet att redigera den: **Edit Dashboard Domain**, eller en roll som innehåller den (Projektägare, Projektadministratör, Projektmedlem, Inställningsadministratör eller Inställningsmedlem).
 
-Den som bara kan läsa domänen, till exempel en Viewer eller en Settings Viewer, ser fortfarande kolumnen **Status** och posten som ska läggas till i **DNS-inställning**. För dem är **Kontrollera nu** och **Reissue SSL** låsta, och säger vilken behörighet som krävs. OneUptime fortsätter i vilket fall som helst att kontrollera varje domän och beställa dess certifikat på egen hand.
+Den som bara kan läsa domänen, till exempel en Tittare eller en Inställningstittare, ser fortfarande kolumnen **Status** och posten som ska läggas till i **DNS-inställning**. För dem är **Kontrollera nu** och **Reissue SSL** låsta, och säger vilken behörighet som krävs. OneUptime fortsätter i vilket fall som helst att kontrollera varje domän och beställa dess certifikat på egen hand.
 
 Samma sak gäller API-nycklar. En nyckel som bara kan läsa instrumentpanelsdomäner kan inte anropa `verify-cname`, `order-ssl` eller `reissue-ssl` på `/dashboard-domain`. Ge den **Read Dashboard Domain** och **Edit Dashboard Domain** om den behöver det.
 

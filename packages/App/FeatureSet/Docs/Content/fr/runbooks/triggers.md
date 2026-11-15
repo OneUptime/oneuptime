@@ -163,7 +163,7 @@ return { host };
 
 ## Qui peut configurer les déclencheurs
 
-Une planification ou un webhook démarre des exécutions sans personne présente ; en configurer un demande donc l'autorisation de modifier le runbook et de l'exécuter : Project Owner, Project Admin ou Runbook Admin, ou **Edit Runbook** associé à Project Member, Runbook Member ou **Create Runbook Execution**. Les libellés auxquels un rôle est limité comptent, comme pour **Exécuter maintenant**. Voir ou réinitialiser l'URL du webhook demande la même chose.
+Une planification ou un webhook démarre des exécutions sans personne présente ; en configurer un demande donc l'autorisation de modifier le runbook et de l'exécuter : Propriétaire du projet, Administrateur du projet ou Administrateur des runbooks, ou **Edit Runbook** associé à Membre du projet, Membre des runbooks ou **Create Runbook Execution**. Les libellés auxquels un rôle est limité comptent, comme pour **Exécuter maintenant**. Voir ou réinitialiser l'URL du webhook demande la même chose.
 
 Désactiver une planification ou un webhook ne démarre rien et ne demande donc que l'autorisation de modifier le runbook. Une personne qui peut modifier le runbook sans pouvoir l'exécuter voit la page **Déclencheurs** avec **Configurer la planification** verrouillé, et apprend qui peut voir l'URL du webhook.
 
@@ -178,7 +178,7 @@ Une exécution était encore en cours et la planification ignore ces heures-là,
 :::
 
 :::details L'enregistrement d'une planification échoue avec "You do not have permission to set up this runbook's schedule or webhook."
-Configurer un déclencheur demande l'autorisation d'exécuter le runbook en plus de celle de le modifier. Demandez Runbook Admin, ou Runbook Member ou **Create Runbook Execution** en plus de **Edit Runbook**.
+Configurer un déclencheur demande l'autorisation d'exécuter le runbook en plus de celle de le modifier. Demandez le rôle Administrateur des runbooks, ou le rôle Membre des runbooks ou **Create Runbook Execution** en plus de **Edit Runbook**.
 :::
 
 :::details Un appel reçoit la réponse "No runbook webhook answers at this URL."

@@ -25,7 +25,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
+- **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och Projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
 - **En UptimeRobot-API-nyckel.** Read-only API key räcker: importen skriver aldrig till UptimeRobot. Main API key fungerar också, men en nyckel för en enda monitor läser bara den monitorn.
 - **En betalningsmetod, i OneUptime Cloud.** Monitorer som kör kontroller faktureras efter användning, även med abonnemanget Free, så lägg till en under **Projektinställningar** > **Fakturering och fakturor** > **Fakturering** innan du importerar. Utan en visas de monitorerna som inte överförda.
 
@@ -82,7 +82,7 @@ En import skapar högst 2 000 poster: högst 1 000 monitorer och 50 statussidor.
 
 I OneUptime Cloud behöver monitorer som kör kontroller en betalningsmetod, och det ditt abonnemang inte har plats för visas som inte överfört, med det som krävs.
 
-En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera objekt och starta importen. Projektägare och projektadministratörer ser förloppet och rapporten för varje import.
+En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera objekt och starta importen. Projektägare och Projektadministratörer ser förloppet och rapporten för varje import.
 
 ## Slutför bytet
 

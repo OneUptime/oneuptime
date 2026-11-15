@@ -37,7 +37,7 @@ Derfra fungerer et anmodnings-SLO som ethvert andet SLO. Dets status, forbrugsra
 ## Før du begynder
 
 - Tjenesterne sender spor til OneUptime: se [OpenTelemetry](/docs/telemetry/open-telemetry). Hver af dem findes i [tjenestekataloget](/docs/telemetry/services) under sit `service.name`.
-- En rolle, der må oprette SLO'er: Project Owner, Project Admin eller en tilpasset rolle med tilladelsen Create Service Level Objective.
+- En rolle, der må oprette SLO'er: Projektejer, Projektadministrator eller en tilpasset rolle med tilladelsen Create Service Level Objective.
 
 ## Opret et anmodnings-SLO
 

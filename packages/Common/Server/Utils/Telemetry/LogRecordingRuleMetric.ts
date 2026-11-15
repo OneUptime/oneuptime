@@ -9,6 +9,7 @@ import LogRecordingRuleDefinition, {
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import { LogRecordingRulePoint } from "./LogRecordingRuleQuery";
+import { writeOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * What a log recording rule writes: the metric rows for its points, in the
@@ -44,9 +45,10 @@ export default class LogRecordingRuleMetric {
     return input.points.map((point: LogRecordingRulePoint): JSONObject => {
       const attributes: Record<string, string> = {};
 
+      // Each group-by key as the row's own attribute, "__proto__" included.
       for (const [key, value] of Object.entries(point.groupValues)) {
         if (value !== "") {
-          attributes[key] = value;
+          writeOwnValue(attributes, key, value);
         }
       }
 

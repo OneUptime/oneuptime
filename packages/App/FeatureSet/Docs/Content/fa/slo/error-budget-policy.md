@@ -295,7 +295,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 | **Edit SLO Error Budget Policy Tier** | سطح‌ها را تغییر دهد و آن‌ها را روشن یا خاموش کند. |
 | **Delete SLO Error Budget Policy Tier** | سطح‌ها را حذف کند. |
 
-این مجوزها در گروه SLO یک نقش هستند. نقش‌های Project Owner و Project Admin همه آن‌ها را دارند، و نقش‌های Project Member و Viewer می‌توانند سطح‌ها را بخوانند.
+این مجوزها در گروه SLO یک نقش هستند. نقش‌های مالک پروژه و مدیر پروژه همه آن‌ها را دارند، و نقش‌های عضو پروژه و بیننده می‌توانند سطح‌ها را بخوانند.
 
 ## هنوز در دسترس نیست
 

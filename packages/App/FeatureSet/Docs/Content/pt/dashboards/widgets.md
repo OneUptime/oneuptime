@@ -146,8 +146,8 @@ Os widgets de traces contam só os spans raiz, como faz o explorador de traces, 
 
 | Widget | O que mostra | Filtros |
 | --- | --- | --- |
-| **Lista de incidentes** | Incidentes com o estado e a severidade deles. | Não resolvidos, reconhecidos ou resolvidos; severidade, estado, monitores e rótulos. |
-| **Lista de alertas** | Alertas com o estado e a severidade deles. | Não resolvidos, reconhecidos ou resolvidos; severidade, estado, monitores e rótulos. |
+| **Lista de incidentes** | Incidentes com o estado e a severidade deles. | Não resolvidos, confirmados ou resolvidos; severidade, estado, monitores e rótulos. |
+| **Lista de alertas** | Alertas com o estado e a severidade deles. | Não resolvidos, confirmados ou resolvidos; severidade, estado, monitores e rótulos. |
 | **Lista de monitores** | Monitores com o status atual deles. | Operacionais ou não, status, tipo de monitor e rótulos, ou uma **Variável de rótulo** que as pessoas escolhem na barra de ferramentas. |
 
 Como a maioria dos widgets de lista, estes três podem desenhar uma colmeia de células coloridas por status em vez de uma tabela: escolha isso em **Modo de visualização**. Eles mostram o estado atual, seja qual for o intervalo de tempo do painel.

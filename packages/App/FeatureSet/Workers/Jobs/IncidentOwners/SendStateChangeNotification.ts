@@ -30,14 +30,85 @@ import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
+import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What each state change is read with.
+const STATE_TIMELINE_SELECT: Select<IncidentStateTimeline> = {
+  _id: true,
+  createdAt: true,
+  startsAt: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  incidentId: true,
+  incidentStateId: true,
+  incidentState: {
+    name: true,
+    color: true,
+  },
+};
+
+// What the incident of a state change is read with.
+const INCIDENT_SELECT: Select<Incident> = {
+  _id: true,
+  title: true,
+  description: true,
+  projectId: true,
+  incidentNumber: true,
+  incidentNumberWithPrefix: true,
+  incidentSeverity: {
+    name: true,
+    color: true,
+  },
+};
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8199) - told first, exactly
+     * them, from the state change as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.IncidentStateChanged],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const incidentStateTimeline: IncidentStateTimeline | null =
+          await IncidentStateTimelineService.findOneById({
+            id: delivery.notification.eventId,
+            select: STATE_TIMELINE_SELECT,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const incident: Incident | null = incidentStateTimeline
+          ? await readIncident(delivery.notification.resourceId)
+          : null;
+
+        if (!incidentStateTimeline || !incident) {
+          await delivery.giveUp("the incident or its state change is gone");
+          return;
+        }
+
+        await notifyOwnersOfStateChange({
+          incidentStateTimeline: incidentStateTimeline,
+          incident: incident,
+          delivery: delivery,
+        });
+      },
+    });
+
     // get all scheduled events of all the projects.
 
     const incidentStateTimelines: Array<IncidentStateTimeline> =
@@ -49,26 +120,10 @@ RunCron(
           isRoot: true,
         },
         skip: 0,
-        select: {
-          _id: true,
-          createdAt: true,
-          startsAt: true,
-          projectId: true,
-          project: {
-            name: true,
-          },
-          incidentId: true,
-          incidentStateId: true,
-          incidentState: {
-            name: true,
-            color: true,
-          },
-        },
+        select: STATE_TIMELINE_SELECT,
       });
 
     for (const incidentStateTimeline of incidentStateTimelines) {
-      let moreIncidentFeedInformationInMarkdown: string = "";
-
       const incidentId: ObjectID = incidentStateTimeline.incidentId!;
 
       if (!incidentId) {
@@ -77,30 +132,23 @@ RunCron(
 
       // get incident
 
-      const incident: Incident | null = await IncidentService.findOneById({
-        id: incidentId,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          title: true,
-          description: true,
-          projectId: true,
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-          incidentSeverity: {
-            name: true,
-            color: true,
-          },
-        },
-      });
+      const incident: Incident | null = await readIncident(incidentId);
 
       if (!incident) {
         continue;
       }
 
-      const incidentState: IncidentState = incidentStateTimeline.incidentState!;
+      /*
+       * Whom it is to tell, written before the take: a worker stopped from
+       * here on leaves them to be told by a later run, and one stopped
+       * before the take leaves the state change to be read again.
+       */
+      const delivery: OwnerNotificationDelivery = await planOwnersOfStateChange(
+        {
+          incidentStateTimeline: incidentStateTimeline,
+          incident: incident,
+        },
+      );
 
       await IncidentStateTimelineService.updateOneById({
         id: incidentStateTimeline.id!,
@@ -112,104 +160,198 @@ RunCron(
         },
       });
 
-      // Fetch the previous state timeline entry
-      let previousState: IncidentState | null = null;
-      let previousStateDuration: string = "";
-
-      if (incidentStateTimeline.incidentId && incidentStateTimeline.startsAt) {
-        const previousTimeline: IncidentStateTimeline | null =
-          await IncidentStateTimelineService.findOneBy({
-            query: {
-              incidentId: incidentStateTimeline.incidentId,
-              startsAt: QueryHelper.lessThan(incidentStateTimeline.startsAt),
-            },
-            sort: {
-              startsAt: SortOrder.Descending,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              incidentStateId: true,
-              startsAt: true,
-              createdAt: true,
-            },
-          });
-
-        if (previousTimeline?.incidentStateId) {
-          previousState = await IncidentStateService.findOneById({
-            id: previousTimeline.incidentStateId,
-            props: {
-              isRoot: true,
-            },
-            select: {
-              name: true,
-              color: true,
-            },
-          });
-
-          /*
-           * Calculate how long the incident was in the previous state
-           * Use startsAt if available, otherwise fall back to createdAt
-           */
-          const previousStartTime: Date | undefined =
-            previousTimeline.startsAt || previousTimeline.createdAt;
-          const currentStartTime: Date | undefined =
-            incidentStateTimeline.startsAt || incidentStateTimeline.createdAt;
-
-          if (previousStartTime && currentStartTime) {
-            const durationInSeconds: number =
-              OneUptimeDate.getDifferenceInSeconds(
-                currentStartTime,
-                previousStartTime,
-              );
-            previousStateDuration =
-              OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
-                durationInSeconds,
-              );
-          }
-        }
+      try {
+        await notifyOwnersOfStateChange({
+          incidentStateTimeline: incidentStateTimeline,
+          incident: incident,
+          delivery: delivery,
+        });
+      } catch (e) {
+        logger.error("Error in sending incident state change notification", {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
+        logger.error(e, {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      // now find owners.
+async function readIncident(incidentId: ObjectID): Promise<Incident | null> {
+  return await IncidentService.findOneById({
+    id: incidentId,
+    props: {
+      isRoot: true,
+    },
+    select: INCIDENT_SELECT,
+  });
+}
 
-      let doesResourceHasOwners: boolean = true;
+/*
+ * Whom the state change's notification tells - the incident's owners, or
+ * the project's when it has none - written down before the state change is
+ * taken (OwnerNotificationDeliveries.plan). A failure to read them tells
+ * nobody, as it did when it came after the take.
+ */
+async function planOwnersOfStateChange(data: {
+  incidentStateTimeline: IncidentStateTimeline;
+  incident: Incident;
+}): Promise<OwnerNotificationDelivery> {
+  let owners: Array<User> = [];
+  let isProjectOwners: boolean = false;
 
-      let owners: Array<User> = await IncidentService.findOwners(incident.id!);
+  try {
+    owners = await IncidentService.findOwners(data.incident.id!);
 
-      if (owners.length === 0) {
-        doesResourceHasOwners = false;
+    if (owners.length === 0) {
+      isProjectOwners = true;
 
-        // find project owners.
-        owners = await ProjectService.getOwners(
-          incidentStateTimeline.projectId!,
-        );
-      }
+      // find project owners.
+      owners = await ProjectService.getOwners(
+        data.incidentStateTimeline.projectId!,
+      );
+    }
+  } catch (e) {
+    logger.error("Error in reading the owners of an incident's state change", {
+      projectId: data.incident.projectId?.toString(),
+      incidentId: data.incident.id?.toString(),
+    });
+    logger.error(e);
+    owners = [];
+  }
 
-      if (owners.length === 0) {
-        continue;
-      }
+  return await OwnerNotificationDeliveries.plan({
+    notification: {
+      kind: OwnerNotificationKind.IncidentStateChanged,
+      projectId: data.incidentStateTimeline.projectId!,
+      resourceId: data.incident.id!,
+      eventId: data.incidentStateTimeline.id!,
+    },
+    owners: owners,
+    isProjectOwners: isProjectOwners,
+  });
+}
 
-      // Every resource the incident's Affected Resources card lists.
-      const resourcesAffected: string = LinkedAffectedResources.getText({
-        resources: await LinkedAffectedResources.readForIncident({
-          service: IncidentService,
-          projectId: incident.projectId!,
-          incidentId: incident.id!,
-        }),
-        fallback: "",
+/*
+ * Tells the delivery's owners that the incident's state changed, each once
+ * (OwnerNotificationDelivery.tell), and says in the incident's feed whom it
+ * reached - those a stopped run told first among them.
+ */
+async function notifyOwnersOfStateChange(data: {
+  incidentStateTimeline: IncidentStateTimeline;
+  incident: Incident;
+  delivery: OwnerNotificationDelivery;
+}): Promise<void> {
+  const incidentStateTimeline: IncidentStateTimeline =
+    data.incidentStateTimeline;
+  const incident: Incident = data.incident;
+  const delivery: OwnerNotificationDelivery = data.delivery;
+
+  if (delivery.owners.length === 0) {
+    return;
+  }
+
+  let moreIncidentFeedInformationInMarkdown: string = "";
+
+  const incidentState: IncidentState = incidentStateTimeline.incidentState!;
+
+  // Fetch the previous state timeline entry
+  let previousState: IncidentState | null = null;
+  let previousStateDuration: string = "";
+
+  if (incidentStateTimeline.incidentId && incidentStateTimeline.startsAt) {
+    const previousTimeline: IncidentStateTimeline | null =
+      await IncidentStateTimelineService.findOneBy({
+        query: {
+          incidentId: incidentStateTimeline.incidentId,
+          startsAt: QueryHelper.lessThan(incidentStateTimeline.startsAt),
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          incidentStateId: true,
+          startsAt: true,
+          createdAt: true,
+        },
       });
 
-      const incidentNumberStr: string =
-        incident.incidentNumberWithPrefix ||
-        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+    if (previousTimeline?.incidentStateId) {
+      previousState = await IncidentStateService.findOneById({
+        id: previousTimeline.incidentStateId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          name: true,
+          color: true,
+        },
+      });
 
-      const incidentDescriptionHtml: string = await Markdown.convertToHTML(
-        incident.description! || "",
-        MarkdownContentType.Email,
+      /*
+       * Calculate how long the incident was in the previous state
+       * Use startsAt if available, otherwise fall back to createdAt
+       */
+      const previousStartTime: Date | undefined =
+        previousTimeline.startsAt || previousTimeline.createdAt;
+      const currentStartTime: Date | undefined =
+        incidentStateTimeline.startsAt || incidentStateTimeline.createdAt;
+
+      if (previousStartTime && currentStartTime) {
+        const durationInSeconds: number = OneUptimeDate.getDifferenceInSeconds(
+          currentStartTime,
+          previousStartTime,
+        );
+        previousStateDuration =
+          OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+            durationInSeconds,
+          );
+      }
+    }
+  }
+
+  const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
+
+  // Every resource the incident's Affected Resources card lists.
+  const resourcesAffected: string = LinkedAffectedResources.getText({
+    resources: await LinkedAffectedResources.readForIncident({
+      service: IncidentService,
+      projectId: incident.projectId!,
+      incidentId: incident.id!,
+    }),
+    fallback: "",
+  });
+
+  const incidentNumberStr: string =
+    incident.incidentNumberWithPrefix ||
+    (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+
+  const incidentDescriptionHtml: string = await Markdown.convertToHTML(
+    incident.description! || "",
+    MarkdownContentType.Email,
+  );
+
+  // Whom a run that stopped part way told already.
+  for (const user of delivery.toldEarlier) {
+    moreIncidentFeedInformationInMarkdown +=
+      OwnerNotificationFeedText.notifiedLineMarkdown(
+        await UserService.getUserMarkdownString({
+          userId: user.id!,
+          projectId: incidentStateTimeline.projectId!,
+        }),
       );
+  }
 
-      for (const user of owners) {
+  for (const user of delivery.owners) {
+    const isTold: boolean = await delivery.tell(
+      user,
+      async (): Promise<void> => {
         // Build the "Was X for Y" string
         const previousStateDurationText: string =
           previousState?.name && previousStateDuration
@@ -345,36 +487,43 @@ RunCron(
           incidentId: incident.id!,
           eventType,
         });
+      },
+    );
 
-        moreIncidentFeedInformationInMarkdown +=
-          OwnerNotificationFeedText.notifiedLineMarkdown(
-            await UserService.getUserMarkdownString({
-              userId: user.id!,
-              projectId: incidentStateTimeline.projectId!,
-            }),
-          );
-      }
-
-      await IncidentFeedService.createIncidentFeedItem({
-        incidentId: incident.id!,
-        projectId: incident.projectId!,
-        incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
-          isProjectOwners: !doesResourceHasOwners,
-          recordNoun: "incident",
-          stateName: incidentState.name,
-        }),
-        moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
-        /*
-         * The feed only. That the owners were told is a side effect of the
-         * state change, which the channel was told of itself: posting it to
-         * Slack and Microsoft Teams said the same change twice.
-         */
-        workspaceNotification: {
-          sendWorkspaceNotification: false,
-        },
-      });
+    if (isTold) {
+      moreIncidentFeedInformationInMarkdown +=
+        OwnerNotificationFeedText.notifiedLineMarkdown(
+          await UserService.getUserMarkdownString({
+            userId: user.id!,
+            projectId: incidentStateTimeline.projectId!,
+          }),
+        );
     }
-  },
-);
+  }
+
+  // Every owner was told already: the run that told them said so.
+  if (!delivery.hasSetOutToTellAnyone) {
+    return;
+  }
+
+  await IncidentFeedService.createIncidentFeedItem({
+    incidentId: incident.id!,
+    projectId: incident.projectId!,
+    incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
+    displayColor: Blue500,
+    feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+      isProjectOwners: !doesResourceHasOwners,
+      recordNoun: "incident",
+      stateName: incidentState.name,
+    }),
+    moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
+    /*
+     * The feed only. That the owners were told is a side effect of the
+     * state change, which the channel was told of itself: posting it to
+     * Slack and Microsoft Teams said the same change twice.
+     */
+    workspaceNotification: {
+      sendWorkspaceNotification: false,
+    },
+  });
+}

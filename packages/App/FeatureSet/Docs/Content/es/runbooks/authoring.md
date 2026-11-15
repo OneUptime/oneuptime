@@ -11,9 +11,9 @@ Un runbook se escribe como una lista ordenada de pasos en su página **Pasos**. 
 
 ## Antes de empezar
 
-- **Un rol que escriba runbooks.** Project Owner, Project Admin y Runbook Admin crean runbooks y guardan sus pasos. Con permisos granulares necesitas **Create Runbook** y **Edit Runbook**. Consulta [Permisos](/docs/runbooks/configuration#permisos).
+- **Un rol que escriba runbooks.** Propietario del proyecto, Administrador del proyecto y Administrador de runbooks crean runbooks y guardan sus pasos. Con permisos granulares necesitas **Create Runbook** y **Edit Runbook**. Consulta [Permisos](/docs/runbooks/configuration#permisos).
 - **Un Runner, para los pasos Bash, SSH y kubectl.** Estos pasos se ejecutan en un [Runner](/docs/runbooks/agents) dentro de tu propia infraestructura, nunca en el Worker de OneUptime. Instala uno primero. Un paso que no elige ningún Runner se ejecuta en el [Runner predeterminado del proyecto](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto), si has definido uno; si no, un paso JavaScript se ejecuta en un [Runner global](/docs/runbooks/agents#runners-globales).
-- **Una variable secreta, para los pasos SSH y kubectl.** La clave, la contraseña o el kubeconfig con que inicia sesión un paso es una [variable de runbook](/docs/runbooks/variables) secreta. Project Owner y Project Admin crean las variables, y Runbook Admin las elige en los pasos que escribe. Un paso kubectl puede usar en su lugar el acceso propio del Runner.
+- **Una variable secreta, para los pasos SSH y kubectl.** La clave, la contraseña o el kubeconfig con que inicia sesión un paso es una [variable de runbook](/docs/runbooks/variables) secreta. Propietario del proyecto y Administrador del proyecto crean las variables, y Administrador de runbooks las elige en los pasos que escribe. Un paso kubectl puede usar en su lugar el acceso propio del Runner.
 - **Un proveedor de LLM, para los pasos de IA.** Consulta [Proveedores de LLM](/docs/ai/llm-provider).
 
 ## Crear un runbook nuevo

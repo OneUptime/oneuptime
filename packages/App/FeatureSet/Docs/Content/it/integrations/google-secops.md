@@ -22,7 +22,7 @@ Ogni strada normalizza ciò che arriva in [OCSF](https://schema.ocsf.io/), l'Ope
 
 ## Prima di iniziare
 
-- Per il connettore gestito, in OneUptime, il ruolo Project Owner, Project Admin o Security Admin. I ruoli Security Member e Security Viewer possono leggere le connessioni, ma non crearle.
+- Per il connettore gestito, in OneUptime, il ruolo Proprietario del progetto, Amministratore del progetto o Amministratore della sicurezza. I ruoli Membro della sicurezza e Visualizzatore della sicurezza possono leggere le connessioni, ma non crearle.
 - Per il webhook e l'inoltro UDM, una chiave di ingestione: apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di ingestione**.
 - Per il connettore gestito, il permesso di creare un account di servizio Google Cloud nel progetto a cui è associata la tua istanza SecOps.
 

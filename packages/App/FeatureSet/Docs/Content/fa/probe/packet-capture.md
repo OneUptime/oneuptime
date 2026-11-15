@@ -188,10 +188,10 @@ spec:
 
 | دسترسی | به کسی اجازه می‌دهد | چه کسی به‌طور پیش‌فرض دارد |
 | --- | --- | --- |
-| **Start Packet Capture** | ضبط‌ها را شروع و متوقف کند | Project Owner, Project Admin |
-| **Download Packet Capture** | فایل‌های ضبط را دانلود کند | Project Owner, Project Admin |
-| **Delete Packet Capture** | ضبط‌ها و فایل‌هایشان را حذف کند | Project Owner, Project Admin |
-| **Read Packet Capture** | ضبط‌ها را ببیند: کی اجرا شدند، روی کدام پراب و با کدام فیلتر | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | ضبط‌ها را شروع و متوقف کند | مالک پروژه، مدیر پروژه |
+| **Download Packet Capture** | فایل‌های ضبط را دانلود کند | مالک پروژه، مدیر پروژه |
+| **Delete Packet Capture** | ضبط‌ها و فایل‌هایشان را حذف کند | مالک پروژه، مدیر پروژه |
+| **Read Packet Capture** | ضبط‌ها را ببیند: کی اجرا شدند، روی کدام پراب و با کدام فیلتر | مالک پروژه، مدیر پروژه، عضو پروژه، بیننده |
 
 برای دادن **Start Packet Capture** یا **Download Packet Capture** به یک تیم، آن را زیر **تنظیمات ← تیم‌ها** باز کنید و دسترسی را در صفحهٔ **دسترسی‌ها** آن اضافه کنید. [دسترسی‌ها](/docs/permissions/index) را ببینید.
 

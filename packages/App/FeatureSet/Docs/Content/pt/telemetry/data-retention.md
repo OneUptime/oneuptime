@@ -41,7 +41,7 @@ Em detalhe, o OneUptime lê estas configurações nesta ordem, e a primeira defi
 
 ## Antes de começar
 
-- **Uma função que altere o projeto.** Project Owner ou Project Admin mudam a retenção do projeto. A retenção de um serviço ou recurso exige a função que altera as outras configurações dele.
+- **Uma função que altere o projeto.** Proprietário do projeto ou Administrador do projeto mudam a retenção do projeto. A retenção de um serviço ou recurso exige a função que altera as outras configurações dele.
 - **Para as substituições, a Edição Enterprise ou o plano Scale.** Uma instalação de hospedagem própria precisa de uma licença Enterprise, e um projeto do OneUptime Cloud do plano Scale ou superior. A retenção padrão do projeto existe em todas as edições e planos.
 
 ## Mudar a retenção do projeto

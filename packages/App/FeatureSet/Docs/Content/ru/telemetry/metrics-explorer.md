@@ -37,7 +37,7 @@ flowchart TB
 ## Перед началом
 
 - **Поступающие метрики.** Отправляйте их через [OpenTelemetry](/docs/telemetry/open-telemetry) или от агента, например [OpenTelemetry Collector для хостов](/docs/telemetry/host-otel-collector) или [агента Kubernetes](/docs/telemetry/kubernetes-agent).
-- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Metrics. О том, какие метрики она читает, см. [Телеметрия](/docs/permissions/index#телеметрия).
+- **Роль, которая читает телеметрию.** Владелец проекта, Администратор проекта, Участник проекта, Зритель, Администратор телеметрии, Участник телеметрии или Зритель телеметрии либо пользовательская роль с разрешением Read Metrics. О том, какие метрики она читает, см. [Телеметрия](/docs/permissions/index#телеметрия).
 
 ## Найти метрику
 

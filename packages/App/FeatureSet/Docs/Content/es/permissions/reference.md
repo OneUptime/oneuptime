@@ -19,7 +19,7 @@ Cada rol y cada permiso tiene una fila con estas columnas:
 
 ## Roles
 
-{{PERMISSION_ROLE_COUNT}} roles. Cuatro de ellos abarcan todo el proyecto: Project Owner, Project Admin, Project Member y Viewer. Cada uno de los demás cubre un área del producto, como los incidentes o los monitores, con nivel Admin, Member o Viewer. Son los que ofrece **Añadir rol** en la página **Permisos** de un equipo y en la página de una clave de API.
+{{PERMISSION_ROLE_COUNT}} roles. Cuatro de ellos abarcan todo el proyecto: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto y Visor. Cada uno de los demás cubre un área del producto, como los incidentes o los monitores, con nivel Administrador, Miembro o Visor. Son los que ofrece **Añadir rol** en la página **Permisos** de un equipo y en la página de una clave de API.
 
 {{PERMISSION_ROLE_TABLES}}
 

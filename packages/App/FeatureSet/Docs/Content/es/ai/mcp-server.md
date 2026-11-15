@@ -430,7 +430,7 @@ Estas funcionan sin credenciales, solo con las herramientas de páginas de estad
 | Lo que hace el agente | Elegir en **Acceso** |
 | --- | --- |
 | Solo lee | **Visor**, o añade permisos de lectura en la página de la clave |
-| También crea, actualiza y elimina | **Administrador del proyecto**, o añade el rol Project Admin en la página de la clave |
+| También crea, actualiza y elimina | **Administrador del proyecto**, o añade el rol Administrador del proyecto en la página de la clave |
 
 Da a cada clave lo mínimo que necesita, rota las claves con regularidad, usa una clave distinta para cada entorno y vigila en OneUptime lo que hace cada clave.
 
@@ -497,7 +497,7 @@ El servidor MCP no tiene estado: ni emite ni rastrea ids de sesión, así que ca
 | Seguridad | Security Event, Threat Intel Indicator |
 | Cambios y costes | Change Event, Kubernetes Cost Allocation |
 
-Las herramientas se nombran en snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` y `count_incidents`, o `list_logs` y `count_spans` para la telemetría.
+Las herramientas se nombran en snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` y `count_incidents`, o `list_logs` y `count_spans` para la telemetría. `create_incident` y `create_alert` también aceptan `ownerUsers` y `ownerTeams`: los ids de los usuarios y equipos que poseen el registro desde el principio, a quienes se avisa de que se creó.
 
 ## Próximos pasos
 

@@ -3,7 +3,7 @@
 Un monitor controlla qualcosa che gestite, come un sito web, un'API, un host o un cluster Kubernetes, e vi avvisa quando smette di funzionare. **Crea monitor** chiede prima cosa monitorare, poi cosa controllare e infine con quale frequenza. Tutto, tranne il tipo, il nome e cosa controllare, parte con valori predefiniti adatti alla maggior parte dei monitor.
 
 > [!NOTE]
-> Per creare un monitor serve il ruolo Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+> Per creare un monitor serve il ruolo Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 
 ## Informazioni sul monitor
 

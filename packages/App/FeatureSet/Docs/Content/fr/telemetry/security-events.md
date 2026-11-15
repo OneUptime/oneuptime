@@ -67,13 +67,13 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 
 ## Avant de commencer
 
-Seuls les rôles Project Owner et Project Admin, ainsi que les trois rôles de sécurité, lisent les données de sécurité ; les autres rôles ne voient rien dans Événements de sécurité. Voir [Rôles](/docs/permissions/reference#rôles).
+Seuls les rôles Propriétaire du projet et Administrateur du projet, ainsi que les trois rôles de sécurité, lisent les données de sécurité ; les autres rôles ne voient rien dans Événements de sécurité. Voir [Rôles](/docs/permissions/reference#rôles).
 
 | Rôle | Ce qu'il peut faire |
 | --- | --- |
-| Security Admin | Tout : événements, dossiers, playbooks, règles de détection, flux de renseignement et connexions |
-| Security Member | Lire les événements et le renseignement, traiter les dossiers, exécuter des playbooks et approuver leurs étapes, et créer, modifier et supprimer des règles de détection et des flux. Il ne peut ni configurer de playbooks ou de connexions, ni supprimer de données de sécurité. |
-| Security Viewer | Lire les événements, les dossiers, les playbooks, les règles, les flux, les indicateurs et les connexions |
+| Administrateur de la sécurité | Tout : événements, dossiers, playbooks, règles de détection, flux de renseignement et connexions |
+| Membre de la sécurité | Lire les événements et le renseignement, traiter les dossiers, exécuter des playbooks et approuver leurs étapes, et créer, modifier et supprimer des règles de détection et des flux. Il ne peut ni configurer de playbooks ou de connexions, ni supprimer de données de sécurité. |
+| Lecteur de la sécurité | Lire les événements, les dossiers, les playbooks, les règles, les flux, les indicateurs et les connexions |
 
 ## Envoyer des événements de sécurité
 
@@ -305,7 +305,7 @@ Une chasse est une recherche sur vos événements de sécurité enregistrée sou
 
 Sur **Événements**, recherchez et filtrez jusqu'à ce que la liste montre ce que vous cherchez, puis ouvrez **Chasses** dans la barre d'outils et choisissez **Enregistrer comme chasse**. Nommez-la, choisissez si elle s'exécute selon une planification, et sa page s'ouvre. **Événements → Chasses** liste les chasses du projet, chacune avec sa recherche, sa fréquence, qui elle prévient et ce que sa dernière exécution a trouvé ; **Créer : Chasse** y prend la recherche telle que vous la taperiez sur **Événements**. Un projet conserve jusqu'à 200 chasses. Une recherche peut lire une [liste de surveillance](#listes-de-surveillance), comme le fait `user:%vip_users%`, et une chasse qui lit une liste que le projet n'a pas est refusée à l'enregistrement.
 
-La page d'une chasse est sa recherche, ouverte dans l'explorateur des événements. Modifiez-y la recherche ou les filtres, et l'en-tête de la chasse propose **Enregistrer les modifications** et **Annuler les modifications**. **Modifier** change son nom, sa recherche, jusqu'où elle remonte, sa planification et qui elle prévient, et **Supprimer la chasse** se trouve dans son menu. À partir de Security Member, on peut enregistrer, modifier et supprimer des chasses, et un Security Viewer peut les ouvrir.
+La page d'une chasse est sa recherche, ouverte dans l'explorateur des événements. Modifiez-y la recherche ou les filtres, et l'en-tête de la chasse propose **Enregistrer les modifications** et **Annuler les modifications**. **Modifier** change son nom, sa recherche, jusqu'où elle remonte, sa planification et qui elle prévient, et **Supprimer la chasse** se trouve dans son menu. À partir de Membre de la sécurité, on peut enregistrer, modifier et supprimer des chasses, et un Lecteur de la sécurité peut les ouvrir.
 
 Une chasse enregistrée avec des filtres de la barre latérale d'Événements les affiche dans **Modifier** sous **Filtres**, comme Événements les dessine, chacun avec un x pour le retirer. Ajoutez des filtres sur la page de la chasse, depuis la barre latérale.
 
@@ -340,7 +340,7 @@ Chaque exécution planifiée est conservée 90 jours. **Historique des exécutio
 
 La notification **Une chasse a trouvé des événements de sécurité** nomme la chasse et sa recherche, le nombre d'événements trouvés par son exécution et la fenêtre qu'elle a lue, et renvoie vers la page de la chasse sur ces événements ; aucun mot d'un événement n'y figure. Tout le monde la reçoit par e-mail et push, et choisit ses canaux sous **Paramètres utilisateur → Paramètres de notification**. Comme les autres e-mails de routine, elle peut être retenue dans un [récapitulatif d'e-mails](/docs/emails/notification-rollup).
 
-Pour publier dans Slack, Microsoft Teams ou Mattermost ce que trouvent les chasses, ajoutez une règle à **Règles des chasses** sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams** ou **Mattermost**), sous les règles qui publient les [dossiers de sécurité](/docs/telemetry/security-cases#publier-dans-des-canaux-slack-microsoft-teams-et-mattermost). Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les chasses auxquelles elle s'applique, par **Nom de la chasse** : un nom qui est votre texte, le contient, commence par lui ou se termine par lui. Chaque fois qu'une exécution planifiée trouve des événements, elle publie la chasse, sa recherche, combien d'événements et quand, avec un lien vers eux, et aucun des mots propres à un événement. Une règle de chasse est mise en place par un rôle qui peut configurer des playbooks de sécurité, comme Project Owner, Project Admin ou Security Admin.
+Pour publier dans Slack, Microsoft Teams ou Mattermost ce que trouvent les chasses, ajoutez une règle à **Règles des chasses** sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams** ou **Mattermost**), sous les règles qui publient les [dossiers de sécurité](/docs/telemetry/security-cases#publier-dans-des-canaux-slack-microsoft-teams-et-mattermost). Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les chasses auxquelles elle s'applique, par **Nom de la chasse** : un nom qui est votre texte, le contient, commence par lui ou se termine par lui. Chaque fois qu'une exécution planifiée trouve des événements, elle publie la chasse, sa recherche, combien d'événements et quand, avec un lien vers eux, et aucun des mots propres à un événement. Une règle de chasse est mise en place par un rôle qui peut configurer des playbooks de sécurité, comme Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité.
 
 ### Conserver des événements sur un dossier
 

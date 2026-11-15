@@ -32,7 +32,7 @@ import logger from "../Logger";
 export interface OnCallRuleClaimInFlight {
   // The claim's key in executedNotificationRules: the rule's id, or a repeat's key.
   claimKey: string;
-  // The rule it sends.
+  // The rule it sends: none (empty) for the fallback, which has no rule of its own.
   ruleId: string;
   // When it was claimed: the value the claim holds.
   claimedAt: Date;
@@ -196,7 +196,6 @@ export class OnCallRuleClaims {
         typeof kept.claimKey !== "string" ||
         !kept.claimKey ||
         typeof kept.ruleId !== "string" ||
-        !kept.ruleId ||
         typeof kept.claimedAt !== "number" ||
         !Number.isFinite(kept.claimedAt) ||
         kept.claimedAt <= 0

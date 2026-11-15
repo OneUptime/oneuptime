@@ -24,7 +24,7 @@ flowchart LR
 
 ## Før du begynner
 
-- **En rolle som kan endre prosjektet.** Project Owners og Project Admins endrer de fleste av disse innstillingene. Fakturering, varslingskanaler og sletting av prosjektet krever mer, som hver seksjon sier.
+- **En rolle som kan endre prosjektet.** Prosjekteiere og Prosjektadministratorer endrer de fleste av disse innstillingene. Fakturering, varslingskanaler og sletting av prosjektet krever mer, som hver seksjon sier.
 - **I OneUptime Cloud: abonnementet som inkluderer en innstilling.** Noen innstillinger krever et abonnement: se [Innstillinger som krever et abonnement](/docs/configuration/billing#innstillinger-som-krever-et-abonnement).
 
 ## Finn en innstilling
@@ -50,11 +50,11 @@ flowchart LR
 
 **Prosjektdetaljer** viser prosjektets navn og ID:
 
-- **Prosjektnavn**: klikk på **Rediger Prosjekt** for å gi prosjektet nytt navn. Et navn har minst 2 tegn. Å gi nytt navn krever en Project Owner eller tillatelse til å redigere prosjektet eller administrere fakturering.
+- **Prosjektnavn**: klikk på **Rediger Prosjekt** for å gi prosjektet nytt navn. Et navn har minst 2 tegn. Å gi nytt navn krever en Prosjekteier eller tillatelse til å redigere prosjektet eller administrere fakturering.
 - **Prosjekt-ID**: kopier den til API-et, CLI-en og Terraform, eller når du skriver til støtte.
 - **Data Residency**: i OneUptime Cloud, hvor prosjektets data skal ligge, når OneUptime har registrert det. Bare OneUptime angir det.
 
-**Tilgang for kundestøtte** avgjør i OneUptime Cloud om OneUptimes støtteteam kan åpne prosjektet. Slå på **Gi OneUptime-støtte tilgang til dette prosjektet** når du vil ha hjelp: OneUptime spør først, fordi støtte da kan se og endre alt i prosjektet, og du klikker på **Gi støtte tilgang**. Slå det av når de er ferdige: det lagres med en gang. Project Owners og Project Admins endrer det.
+**Tilgang for kundestøtte** avgjør i OneUptime Cloud om OneUptimes støtteteam kan åpne prosjektet. Slå på **Gi OneUptime-støtte tilgang til dette prosjektet** når du vil ha hjelp: OneUptime spør først, fordi støtte da kan se og endre alt i prosjektet, og du klikker på **Gi støtte tilgang**. Slå det av når de er ferdige: det lagres med en gang. Prosjekteiere og Prosjektadministratorer endrer det.
 
 ## Produkter
 
@@ -66,9 +66,9 @@ På en selv-hostet server kan en hovedadministrator også slå av et produkt for
 
 Et nytt prosjekt starter med det eieren sa på Hjem at det skal brukes til: det grunnleggende, innstillingene og det disse målene trenger, vises, og resten skjules. Et prosjekt som hoppet over spørsmålet, eller som ble opprettet før det, viser alle produkter. Så snart noen endrer listen her, endrer ikke målene den lenger.
 
-Hvert produkt sier hva det er for dette prosjektet: **I bruk**, **Ikke satt opp** eller, i OneUptime Cloud, abonnementet det trenger. Når et skjult produkt begynner å motta data, sier Hjem fra til prosjekteierne og -administratorene og tilbyr **Vis det** eller **Hold skjult**.
+Hvert produkt sier hva det er for dette prosjektet: **I bruk**, **Ikke satt opp** eller, i OneUptime Cloud, abonnementet det trenger. Når et skjult produkt begynner å motta data, sier Hjem fra til Prosjekteiere og Prosjektadministratorer og tilbyr **Vis det** eller **Hold skjult**.
 
-Prosjekteiere, prosjektadministratorer og alle som kan redigere prosjektet, endrer den; alle andre i prosjektet kan se den.
+Prosjekteiere, Prosjektadministratorer og alle som kan redigere prosjektet, endrer den; alle andre i prosjektet kan se den.
 
 ## Etiketter
 
@@ -96,7 +96,7 @@ For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for 
 
 **Prosjektinnstillinger → Varsler** inneholder hvordan prosjektet sender varsler:
 
-- **Varslingskanaler**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Project Owner, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
+- **Varslingskanaler**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
 - **Varsellogger**: hvert varsel prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**.
 - **Mobilapper**: hvor du får appene for iOS og Android. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
 
@@ -127,7 +127,7 @@ Klikk på **Slett Prosjekt**. OneUptime sletter prosjektet og tar deg ut av det.
 :::
 
 > [!CAUTION]
-> Sletting av prosjektet kan ikke angres. Det krever en Project Owner eller tillatelse til å slette prosjektet.
+> Sletting av prosjektet kan ikke angres. Det krever en Prosjekteier eller tillatelse til å slette prosjektet.
 
 I OneUptime Cloud sier du opp et prosjekts abonnement ved å slette prosjektet: faktureringen stopper når prosjektet er slettet. Et prosjekt som faktureres via en skymarkedsplass, får en siste belastning for forbruket sitt, og kjøpet på markedsplassen forblir aktivt til du sier det opp der.
 
@@ -138,7 +138,7 @@ Alle seksjoner unntatt **Grunnleggende** er slått sammen fra start. Klikk på t
 :::
 
 :::details Rediger Prosjekt er låst
-Å gi nytt navn krever en Project Owner eller tillatelse til å redigere prosjektet eller administrere fakturering. Den låste knappen nevner tillatelsen du mangler.
+Å gi nytt navn krever en Prosjekteier eller tillatelse til å redigere prosjektet eller administrere fakturering. Den låste knappen nevner tillatelsen du mangler.
 :::
 
 :::details Slett Prosjekt forblir låst i dialogen

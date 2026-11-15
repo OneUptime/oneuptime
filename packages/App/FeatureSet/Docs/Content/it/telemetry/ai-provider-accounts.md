@@ -25,7 +25,7 @@ L'utilizzo di un account è ciò che gli è stato addebitato, un giorno alla vol
 
 ## Prima di iniziare
 
-- Il ruolo Project Owner o Project Admin. Solo loro possono collegare, modificare o rimuovere un account; chi legge la telemetria del progetto vede le connessioni e l'utilizzo.
+- Il ruolo Proprietario del progetto o Amministratore del progetto. Solo loro possono collegare, modificare o rimuovere un account; chi legge la telemetria del progetto vede le connessioni e l'utilizzo.
 - Una credenziale per l'account, da chi lo amministra. La sezione di ogni provider, più sotto, dice quale e dove si crea.
 - Niente da installare: OneUptime chiama l'API del provider dai propri server.
 

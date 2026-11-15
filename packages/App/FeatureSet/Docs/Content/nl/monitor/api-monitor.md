@@ -34,7 +34,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die de API kan bereiken.** De standaardsondes van uw project worden voor elke nieuwe monitor gekozen. Staat er een firewall voor de API, sta dan de [IP-adressen van de sondes van OneUptime Cloud](/docs/configuration/ip-addresses) toe. Een API in een privénetwerk heeft een [aangepaste sonde](/docs/probe/custom-probe) in dat netwerk nodig, die privéadressen mag bereiken: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 - **Inloggegevens als monitorgeheimen.** Heeft de API een sleutel of token nodig, bewaar die dan eerst als [monitorgeheim](/docs/monitor/monitor-secrets), zodat de monitor er alleen een verwijzing naar bevat.
 

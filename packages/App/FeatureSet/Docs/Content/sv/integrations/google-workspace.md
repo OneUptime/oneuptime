@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - En superadministratör i Google Workspace för att tillåta domänomfattande delegering, och en administratör som tjänstkontot agerar som, med behörigheten Reports. En superadministratör har den.
 - Ett Google Cloud-projekt där du kan skapa ett tjänstkonto och slå på Admin SDK API.
 - För Drive-aktivitet: en utgåva med granskningsloggen för Drive, till exempel Business Standard, Business Plus, Enterprise eller Education.

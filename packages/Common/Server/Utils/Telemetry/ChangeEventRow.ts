@@ -6,6 +6,7 @@ import {
   ChangeEventAttribute,
   RESERVED_CHANGE_ATTRIBUTE_PREFIX,
 } from "../../../Utils/Telemetry/ChangeEventFields";
+import { assignOwnValues, writeOwnValue } from "../../../Utils/LookupTable";
 /*
  * Type-only: pulling the ingest service's runtime graph into this pure
  * module would drag ClickHouse/DB deps into every test that touches it.
@@ -191,12 +192,17 @@ export function parseChangeEventIngestEntry(
         break;
       }
       const value: unknown = (rawAttributes as JSONObject)[key];
+      /*
+       * The sender's key, written as the map's own (writeOwnValue): an
+       * assignment dropped a key named "__proto__". buildChangeEventDbRow
+       * merges the map with assignOwnValues for the same reason.
+       */
       if (
         typeof value === "string" ||
         typeof value === "number" ||
         typeof value === "boolean"
       ) {
-        attributes[key] = String(value);
+        writeOwnValue(attributes, key, String(value));
       }
     }
   }
@@ -312,10 +318,15 @@ export function buildChangeEventDbRow(data: {
   const ingestionDate: Date = OneUptimeDate.getCurrentDate();
 
   let eventTime: Date = parsed.time || ingestionDate;
-  let attributes: Dictionary<string> = {
-    ...parsed.attributes,
-    ...(data.systemAttributes || {}),
-  };
+  /*
+   * Merged as own keys (assignOwnValues): the spread this was, compiled to
+   * Object.assign, dropped a posted attribute named "__proto__".
+   */
+  const attributes: Dictionary<string> = assignOwnValues<string>(
+    {},
+    parsed.attributes,
+    data.systemAttributes,
+  );
 
   const ageInDays: number = OneUptimeDate.getWholeDaysOfTimeBetween(
     eventTime,
@@ -329,10 +340,8 @@ export function buildChangeEventDbRow(data: {
     ageInDays > MAX_CHANGE_EVENT_AGE_IN_DAYS ||
     futureSkewInMinutes > MAX_CHANGE_EVENT_FUTURE_SKEW_IN_MINUTES
   ) {
-    attributes = {
-      ...attributes,
-      "oneuptime.original_time": String(parsed.time),
-    };
+    // The merged map is this row's own, so the key is added to it.
+    attributes["oneuptime.original_time"] = String(parsed.time);
     eventTime = ingestionDate;
   }
 

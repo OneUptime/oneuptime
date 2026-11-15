@@ -27,7 +27,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Un rol que pueda crear plantillas**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor Template. Cambiar una plantilla requiere los mismos roles, o el permiso Edit Monitor Template.
+- **Un rol que pueda crear plantillas**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor Template. Cambiar una plantilla requiere los mismos roles, o el permiso Edit Monitor Template.
 - **Permiso para actualizar los monitores vinculados.** Una sincronización escribe en cada monitor vinculado en su nombre, y omite los monitores que sus permisos no cubren.
 
 ## Crear una plantilla

@@ -1092,7 +1092,7 @@ Como el marcado llega a cada servicio por el que pasó una solicitud del navegad
 
 ## Quién puede ver una grabación
 
-Ver una grabación es un permiso distinto del de listar sesiones, y ninguno de los dos lo concede el rol Viewer de todo el proyecto. Los propietarios y administradores del proyecto los tienen todos.
+Ver una grabación es un permiso distinto del de listar sesiones, y ninguno de los dos lo concede el rol Visor de todo el proyecto. Los propietarios y administradores del proyecto los tienen todos.
 
 | Permiso | Da acceso a |
 | --- | --- |

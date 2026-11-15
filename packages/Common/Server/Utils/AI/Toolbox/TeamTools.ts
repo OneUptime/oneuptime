@@ -33,6 +33,7 @@ import {
   AI_READ_RECORD_TABLE_LINES,
   AI_READ_RECORD_TABLE_TERMS,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
 } from "../../../../Types/AI/AIReadTableWords";
 import { citationOf, citationSentence, countFigure } from "./ReadTableWords";
 
@@ -117,7 +118,10 @@ export const QueryTeamsTool: ObservabilityTool = {
         return {
           dataForLlm: serialized.text,
           rowCount: serialized.rowCount,
-          citationLabel: `Team ${teamId.toString()}`,
+          // In the reader's language (issue #8311).
+          ...citationSentence(AI_TOOL_CITATIONS.teamById, {
+            id: teamId.toString(),
+          }),
           citationTarget: {
             type: AIChatCitationTargetType.Teams,
           },

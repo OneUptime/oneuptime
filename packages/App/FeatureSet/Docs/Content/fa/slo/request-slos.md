@@ -37,7 +37,7 @@ flowchart TB
 ## پیش از شروع
 
 - سرویس‌ها ترِیس‌هایشان را به OneUptime می‌فرستند: [OpenTelemetry](/docs/telemetry/open-telemetry) را ببینید. هر کدام با `service.name` خود در [کاتالوگ سرویس](/docs/telemetry/services) آمده است.
-- نقشی که بتواند SLO بسازد: Project Owner، Project Admin یا نقشی سفارشی با دسترسی Create Service Level Objective.
+- نقشی که بتواند SLO بسازد: مالک پروژه، مدیر پروژه یا نقشی سفارشی با دسترسی Create Service Level Objective.
 
 ## ساختن یک SLO درخواست
 

@@ -25,7 +25,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Um projeto do OneUptime e o direito de criar o que você traz.** Proprietários e administradores do projeto podem trazer tudo. Outros papéis também podem executar uma importação e trazer os tipos de registro que podem criar. O resto aparece como não trazido, com o motivo.
+- **Um projeto do OneUptime e o direito de criar o que você traz.** Proprietários do projeto e Administradores do projeto podem trazer tudo. Outros papéis também podem executar uma importação e trazer os tipos de registro que podem criar. O resto aparece como não trazido, com o motivo.
 - **Uma chave de API do incident.io que só pode ver dados.** A importação nunca grava no incident.io, então a chave não precisa de permissão para criar, editar ou gerenciar nada.
 
 ## Importe sua conta do incident.io
@@ -79,7 +79,7 @@ Uma importação cria no máximo 2.000 registros: no máximo 500 pessoas, 200 eq
 
 No OneUptime Cloud, registros que o seu plano não inclui aparecem como não trazidos, com o plano de que precisam.
 
-Uma pré-visualização é guardada por um dia. Só a pessoa que leu a conta pode marcar itens e iniciá-la. Proprietários e administradores do projeto veem o progresso e o relatório de cada importação.
+Uma pré-visualização é guardada por um dia. Só a pessoa que leu a conta pode marcar itens e iniciá-la. Proprietários do projeto e Administradores do projeto veem o progresso e o relatório de cada importação.
 
 ## Conclua a troca
 

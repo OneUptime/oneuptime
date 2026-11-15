@@ -27,7 +27,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **En roll som kan skapa mallar**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor Template. Att ändra en mall kräver samma roller eller behörigheten Edit Monitor Template.
+- **En roll som kan skapa mallar**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor Template. Att ändra en mall kräver samma roller eller behörigheten Edit Monitor Template.
 - **Behörighet att uppdatera de länkade monitorerna.** En synkronisering skriver till varje länkad monitor som du och hoppar över de monitorer som dina behörigheter inte täcker.
 
 ## Skapa en mall

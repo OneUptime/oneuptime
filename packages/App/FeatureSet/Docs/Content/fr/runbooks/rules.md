@@ -42,7 +42,7 @@ Vous voyez toutes les exécutions, lancées par une règle ou non, sous **Runboo
 ## Avant de commencer
 
 - **Un runbook qui peut s'exécuter.** Il lui faut au moins une étape, et **Exécuter ce runbook** activé, sur sa page **Paramètres**. Voir [Rédiger un runbook](/docs/runbooks/authoring).
-- **L'autorisation de gérer les règles.** Project Owner, Project Admin et Runbook Admin créent des règles de runbook, comme toute personne ayant l'autorisation **Create Runbook Rule**.
+- **L'autorisation de gérer les règles.** Propriétaire du projet, Administrateur du projet et Administrateur des runbooks créent des règles de runbook, comme toute personne ayant l'autorisation **Create Runbook Rule**.
 
 ## Créer une règle de runbook
 

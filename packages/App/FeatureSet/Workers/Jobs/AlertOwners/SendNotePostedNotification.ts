@@ -1,6 +1,5 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -26,13 +25,87 @@ import User from "Common/Models/DatabaseModels/User";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import Select from "Common/Server/Types/Database/Select";
+import logger from "Common/Server/Utils/Logger";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What each note is read with.
+const NOTE_SELECT: Select<AlertInternalNote> = {
+  _id: true,
+  note: true,
+  alertId: true,
+  projectId: true,
+};
+
+// What the alert of a note is read with.
+const ALERT_SELECT: Select<Alert> = {
+  _id: true,
+  title: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  currentAlertState: {
+    name: true,
+    color: true,
+  },
+  alertSeverity: {
+    name: true,
+    color: true,
+  },
+  /*
+   * The series a grouped monitor raised this alert for, named in the
+   * monitor's place under Resources Affected, as the created email does.
+   */
+  seriesLabels: true,
+  alertNumber: true,
+  alertNumberWithPrefix: true,
+};
 
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8199) - told first, exactly
+     * them, from the note as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.AlertInternalNotePosted],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const note: AlertInternalNote | null =
+          await AlertInternalNoteService.findOneById({
+            id: delivery.notification.eventId,
+            select: NOTE_SELECT,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const alert: Alert | null = note
+          ? await readAlert(delivery.notification.resourceId)
+          : null;
+
+        if (!note || !alert) {
+          await delivery.giveUp("the alert or its note is gone");
+          return;
+        }
+
+        await notifyOwnersOfNote({
+          note: note,
+          alert: alert,
+          delivery: delivery,
+        });
+      },
+    });
+
     const privateNotes: Array<AlertInternalNote> =
       await AlertInternalNoteService.findAllBy({
         query: {
@@ -42,21 +115,27 @@ RunCron(
           isRoot: true,
         },
         skip: 0,
-        select: {
-          _id: true,
-          note: true,
-          alertId: true,
-          projectId: true,
-        },
+        select: NOTE_SELECT,
       });
 
-    const privateNoteIds: Array<string> = privateNotes.map(
-      (note: AlertInternalNote) => {
-        return note._id!;
-      },
-    );
-
     for (const note of privateNotes) {
+      // get all scheduled events of all the projects.
+      const alert: Alert | null = await readAlert(note.alertId!);
+
+      /*
+       * Whom it is to tell, written before the take: a worker stopped from
+       * here on leaves them to be told by a later run, and one stopped
+       * before the take leaves the note to be read again.
+       */
+      const delivery: OwnerNotificationDelivery | null = alert
+        ? await planOwnersOfNote({ note: note, alert: alert })
+        : null;
+
+      /*
+       * Marked as notified before its owners are told, so a note whose
+       * notification keeps failing is never read again on every run - one
+       * whose alert is gone too.
+       */
       await AlertInternalNoteService.updateOneById({
         id: note.id!,
         data: {
@@ -66,128 +145,170 @@ RunCron(
           isRoot: true,
         },
       });
+
+      if (!alert || !delivery) {
+        continue;
+      }
+
+      try {
+        await notifyOwnersOfNote({
+          note: note,
+          alert: alert,
+          delivery: delivery,
+        });
+      } catch (e) {
+        logger.error("Error in sending alert note posted notification", {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        });
+        logger.error(e, {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        });
+      }
     }
+  },
+);
 
-    const notes: Array<BaseModel> = [...privateNotes];
+async function readAlert(alertId: ObjectID): Promise<Alert | null> {
+  return await AlertService.findOneById({
+    id: alertId,
+    props: {
+      isRoot: true,
+    },
+    select: ALERT_SELECT,
+  });
+}
 
-    for (const noteObject of notes) {
-      const note: BaseModel = noteObject as BaseModel;
+/*
+ * Whom the note's notification tells - the alert's owners, or the project's
+ * when it has none - written down before the note is taken
+ * (OwnerNotificationDeliveries.plan). A failure to read them tells nobody,
+ * as it did when it came after the take.
+ */
+async function planOwnersOfNote(data: {
+  note: AlertInternalNote;
+  alert: Alert;
+}): Promise<OwnerNotificationDelivery> {
+  let owners: Array<User> = [];
+  let isProjectOwners: boolean = false;
 
-      // get all scheduled events of all the projects.
-      const alert: Alert | null = await AlertService.findOneById({
-        id: note.getColumnValue("alertId")! as ObjectID,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          title: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
-          },
-          currentAlertState: {
-            name: true,
-            color: true,
-          },
-          alertSeverity: {
-            name: true,
-            color: true,
-          },
-          /*
-           * The series a grouped monitor raised this alert for, named in the
-           * monitor's place under Resources Affected, as the created email does.
-           */
-          seriesLabels: true,
-          alertNumber: true,
-          alertNumberWithPrefix: true,
-        },
-      });
+  try {
+    owners = await AlertService.findOwners(data.alert.id!);
 
-      if (!alert) {
-        continue;
-      }
+    if (owners.length === 0) {
+      isProjectOwners = true;
 
-      // now find owners.
+      // find project owners.
+      owners = await ProjectService.getOwners(data.note.projectId!);
+    }
+  } catch (e) {
+    logger.error("Error in reading the owners of an alert's note", {
+      projectId: data.alert.projectId?.toString(),
+      alertId: data.alert.id?.toString(),
+    });
+    logger.error(e);
+    owners = [];
+  }
 
-      let doesResourceHasOwners: boolean = true;
+  return await OwnerNotificationDeliveries.plan({
+    notification: {
+      kind: OwnerNotificationKind.AlertInternalNotePosted,
+      projectId: data.alert.projectId!,
+      resourceId: data.alert.id!,
+      eventId: data.note.id!,
+    },
+    owners: owners,
+    isProjectOwners: isProjectOwners,
+  });
+}
 
-      let owners: Array<User> = await AlertService.findOwners(
-        note.getColumnValue("alertId")! as ObjectID,
-      );
+/*
+ * Tells the delivery's owners that a note was posted on the alert, each
+ * once (OwnerNotificationDelivery.tell), and says in the alert's feed whom
+ * it reached - those a stopped run told first among them.
+ */
+async function notifyOwnersOfNote(data: {
+  note: AlertInternalNote;
+  alert: Alert;
+  delivery: OwnerNotificationDelivery;
+}): Promise<void> {
+  const note: AlertInternalNote = data.note;
+  const alert: Alert = data.alert;
+  const delivery: OwnerNotificationDelivery = data.delivery;
 
-      if (owners.length === 0) {
-        doesResourceHasOwners = false;
+  if (delivery.owners.length === 0) {
+    return;
+  }
 
-        // find project owners.
-        owners = await ProjectService.getOwners(
-          note.getColumnValue("projectId") as ObjectID,
-        );
-      }
+  const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
 
-      if (owners.length === 0) {
-        continue;
-      }
+  const alertIdentifier: string =
+    alert.alertNumber !== undefined
+      ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title})`
+      : alert.title!;
 
-      const alertIdentifier: string =
-        alert.alertNumber !== undefined
-          ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title})`
-          : alert.title!;
+  const alertNumberStr: string =
+    alert.alertNumberWithPrefix ||
+    (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
-      const alertNumberStr: string =
-        alert.alertNumberWithPrefix ||
-        (alert.alertNumber ? `#${alert.alertNumber}` : "");
+  const vars: Dictionary<string> = {
+    alertTitle: alert.title!,
+    alertNumber: alertNumberStr,
+    projectName: alert.project!.name!,
+    currentState: alert.currentAlertState!.name!,
+    ...EmailColorUtil.getTemplateVariables(
+      "currentState",
+      alert.currentAlertState?.color,
+    ),
+    note: await Markdown.convertToHTML(
+      note.note || "",
+      MarkdownContentType.Email,
+    ),
+    // Every resource the alert's Affected Resources card lists.
+    resourcesAffected: LinkedAffectedResources.getText({
+      resources: await LinkedAffectedResources.readForAlert({
+        service: AlertService,
+        projectId: alert.projectId!,
+        alertId: alert.id!,
+      }),
+      seriesSummary: SeriesLabelDisplay.buildInlineSummary(alert.seriesLabels),
+      fallback: "None",
+    }),
+    alertSeverity: alert.alertSeverity!.name!,
+    ...EmailColorUtil.getTemplateVariables(
+      "alertSeverity",
+      alert.alertSeverity?.color,
+    ),
+    alertViewLink: (
+      await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
+    ).toString(),
+  };
 
-      const vars: Dictionary<string> = {
-        alertTitle: alert.title!,
-        alertNumber: alertNumberStr,
-        projectName: alert.project!.name!,
-        currentState: alert.currentAlertState!.name!,
-        ...EmailColorUtil.getTemplateVariables(
-          "currentState",
-          alert.currentAlertState?.color,
-        ),
-        note: await Markdown.convertToHTML(
-          (note.getColumnValue("note")! as string) || "",
-          MarkdownContentType.Email,
-        ),
-        // Every resource the alert's Affected Resources card lists.
-        resourcesAffected: LinkedAffectedResources.getText({
-          resources: await LinkedAffectedResources.readForAlert({
-            service: AlertService,
-            projectId: alert.projectId!,
-            alertId: alert.id!,
-          }),
-          seriesSummary: SeriesLabelDisplay.buildInlineSummary(
-            alert.seriesLabels,
-          ),
-          fallback: "None",
+  if (doesResourceHasOwners === true) {
+    vars["isOwner"] = "true";
+  }
+
+  // Every note this job tells of is private: an alert has no public notes.
+  vars["isPrivateNote"] = "true";
+
+  let moreAlertFeedInformationInMarkdown: string = "";
+
+  // Whom a run that stopped part way told already.
+  for (const user of delivery.toldEarlier) {
+    moreAlertFeedInformationInMarkdown +=
+      OwnerNotificationFeedText.notifiedLineMarkdown(
+        OwnerNotificationFeedText.nameAndEmail({
+          name: user.name?.toString(),
+          email: user.email?.toString(),
         }),
-        alertSeverity: alert.alertSeverity!.name!,
-        ...EmailColorUtil.getTemplateVariables(
-          "alertSeverity",
-          alert.alertSeverity?.color,
-        ),
-        alertViewLink: (
-          await AlertService.getAlertLinkInDashboard(
-            alert.projectId!,
-            alert.id!,
-          )
-        ).toString(),
-      };
+      );
+  }
 
-      if (doesResourceHasOwners === true) {
-        vars["isOwner"] = "true";
-      }
-
-      if (privateNoteIds.includes(note._id!)) {
-        vars["isPrivateNote"] = "true";
-      }
-
-      let moreAlertFeedInformationInMarkdown: string = "";
-
-      for (const user of owners) {
+  for (const user of delivery.owners) {
+    const isTold: boolean = await delivery.tell(
+      user,
+      async (): Promise<void> => {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerNotePosted,
           vars: vars,
@@ -250,33 +371,40 @@ RunCron(
           alertId: alert.id!,
           eventType,
         });
+      },
+    );
 
-        moreAlertFeedInformationInMarkdown +=
-          OwnerNotificationFeedText.notifiedLineMarkdown(
-            OwnerNotificationFeedText.nameAndEmail({
-              name: user.name?.toString(),
-              email: user.email?.toString(),
-            }),
-          );
-      }
-
-      const alertFeedText: string = OwnerNotificationFeedText.notePosted({
-        recordNoun: "alert",
-        isProjectOwners: !doesResourceHasOwners,
-        isPrivateNote: true,
-      });
-
-      await AlertFeedService.createAlertFeedItem({
-        alertId: alert.id!,
-        projectId: alert.projectId!,
-        alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: alertFeedText,
-        moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
-        workspaceNotification: {
-          sendWorkspaceNotification: false,
-        },
-      });
+    if (isTold) {
+      moreAlertFeedInformationInMarkdown +=
+        OwnerNotificationFeedText.notifiedLineMarkdown(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
     }
-  },
-);
+  }
+
+  // Every owner was told already: the run that told them said so.
+  if (!delivery.hasSetOutToTellAnyone) {
+    return;
+  }
+
+  const alertFeedText: string = OwnerNotificationFeedText.notePosted({
+    recordNoun: "alert",
+    isProjectOwners: !doesResourceHasOwners,
+    isPrivateNote: true,
+  });
+
+  await AlertFeedService.createAlertFeedItem({
+    alertId: alert.id!,
+    projectId: alert.projectId!,
+    alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
+    displayColor: Blue500,
+    feedInfoInMarkdown: alertFeedText,
+    moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+    workspaceNotification: {
+      sendWorkspaceNotification: false,
+    },
+  });
+}

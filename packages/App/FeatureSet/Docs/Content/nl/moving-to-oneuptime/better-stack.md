@@ -25,7 +25,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
+- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en Projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
 - **Een Uptime-API-token van Better Stack.** Gebruik een teamgebonden Uptime-token: het leest de monitoren, heartbeats en statuspagina's van dat team. De import schrijft nooit naar Better Stack.
 - **Een betaalmethode, in OneUptime Cloud.** Monitoren die controles uitvoeren, worden naar gebruik gefactureerd, ook met het Free-abonnement. Voeg er daarom vóór de import een toe onder **Projectinstellingen** > **Facturering en facturen** > **Facturering**. Zonder betaalmethode worden die monitoren getoond als niet overgenomen.
 
@@ -82,7 +82,7 @@ Eén import maakt hooguit 2.000 records aan: hooguit 1.000 monitoren en 50 statu
 
 In OneUptime Cloud hebben monitoren die controles uitvoeren een betaalmethode nodig, en wat niet meer in uw abonnement past, wordt getoond als niet overgenomen, met wat het nodig heeft.
 
-Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en projectbeheerders zien de voortgang en het rapport van elke import.
+Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en Projectbeheerders zien de voortgang en het rapport van elke import.
 
 ## Rond de overstap af
 

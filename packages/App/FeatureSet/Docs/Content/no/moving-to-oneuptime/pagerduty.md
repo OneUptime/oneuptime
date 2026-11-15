@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **En skrivebeskyttet REST-API-nøkkel fra PagerDuty.** Administratorer og kontoeiere i PagerDuty kan opprette en. Importen skriver aldri til PagerDuty, så nøkkelen trenger bare lesetilgang.
 - **PagerDuty-regionen din.** Hvis du logger inn på en adresse som slutter på `eu.pagerduty.com`, ligger kontoen din i Europa. Ellers ligger den i USA.
 
@@ -77,7 +77,7 @@ En PagerDuty-vaktplan forblir én OneUptime-vaktplan: Lagene går foran hverandr
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 
