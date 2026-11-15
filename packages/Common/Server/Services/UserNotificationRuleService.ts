@@ -152,6 +152,7 @@ import {
   OnCallPageKind,
   OnCallPageSmsWords,
 } from "../../Types/OnCallDutyPolicy/OnCallPageWords";
+import { StateListType } from "../../Utils/StateOrder";
 import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
 import { Translator } from "../../Types/Translator";
 import { getServerTranslator } from "../Utils/ServerTranslation";
@@ -5068,6 +5069,7 @@ export class Service extends ProjectReferencesService<Model> {
         kind: OnCallPageSmsKind.Alert,
         severityName: getOnCallPageStateName(
           translator,
+          StateListType.AlertSeverity,
           alert.alertSeverity?.name,
         ),
         number: this.getRecordNumberText(
@@ -5111,6 +5113,7 @@ export class Service extends ProjectReferencesService<Model> {
         kind: OnCallPageSmsKind.Incident,
         severityName: getOnCallPageStateName(
           translator,
+          StateListType.IncidentSeverity,
           incident.incidentSeverity?.name,
         ),
         number: this.getRecordNumberText(
@@ -5146,6 +5149,7 @@ export class Service extends ProjectReferencesService<Model> {
         kind: OnCallPageSmsKind.AlertEpisode,
         severityName: getOnCallPageStateName(
           translator,
+          StateListType.AlertSeverity,
           alertEpisode.alertSeverity?.name,
         ),
         number: this.getRecordNumberText(
@@ -5181,6 +5185,7 @@ export class Service extends ProjectReferencesService<Model> {
         kind: OnCallPageSmsKind.IncidentEpisode,
         severityName: getOnCallPageStateName(
           translator,
+          StateListType.IncidentSeverity,
           incidentEpisode.incidentSeverity?.name,
         ),
         number: this.getRecordNumberText(
@@ -6539,6 +6544,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectName: alert.project!.name!,
       currentState: getOnCallPageStateName(
         translator,
+        StateListType.AlertState,
         alert.currentAlertState!.name!,
       ),
       ...EmailColorUtil.getTemplateVariables(
@@ -6551,6 +6557,7 @@ export class Service extends ProjectReferencesService<Model> {
       ),
       alertSeverity: getOnCallPageStateName(
         translator,
+        StateListType.AlertSeverity,
         alert.alertSeverity!.name!,
       ),
       ...EmailColorUtil.getTemplateVariables(
@@ -6696,6 +6703,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectName: incident.project!.name!,
       currentState: getOnCallPageStateName(
         translator,
+        StateListType.IncidentState,
         incident.currentIncidentState!.name!,
       ),
       ...EmailColorUtil.getTemplateVariables(
@@ -6708,6 +6716,7 @@ export class Service extends ProjectReferencesService<Model> {
       ),
       incidentSeverity: getOnCallPageStateName(
         translator,
+        StateListType.IncidentSeverity,
         incident.incidentSeverity!.name!,
       ),
       ...EmailColorUtil.getTemplateVariables(
@@ -6951,6 +6960,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectName: alertEpisode.project!.name!,
       currentState: getOnCallPageStateName(
         translator,
+        StateListType.AlertState,
         alertEpisode.currentAlertState!.name!,
       ),
       ...EmailColorUtil.getTemplateVariables(
@@ -6963,6 +6973,7 @@ export class Service extends ProjectReferencesService<Model> {
       ),
       alertEpisodeSeverity: getOnCallPageStateName(
         translator,
+        StateListType.AlertSeverity,
         alertEpisode.alertSeverity!.name!,
       ),
       ...EmailColorUtil.getTemplateVariables(
@@ -7173,6 +7184,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectName: incidentEpisode.project!.name!,
       currentState: getOnCallPageStateName(
         translator,
+        StateListType.IncidentState,
         incidentEpisode.currentIncidentState!.name!,
       ),
       ...EmailColorUtil.getTemplateVariables(
@@ -7185,6 +7197,7 @@ export class Service extends ProjectReferencesService<Model> {
       ),
       incidentEpisodeSeverity: getOnCallPageStateName(
         translator,
+        StateListType.IncidentSeverity,
         incidentEpisode.incidentSeverity!.name!,
       ),
       ...EmailColorUtil.getTemplateVariables(
