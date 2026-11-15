@@ -1132,5 +1132,34 @@ describe("SLO Settings page - a request SLO", () => {
     expect(
       screen.queryByText("A request served within this counts as fast enough."),
     ).toBeNull();
+    // Nor a request filter (#8444).
+    expect(screen.queryByText("Every request of its services")).toBeNull();
+  });
+
+  // Which of the services' requests count (#8444).
+  test("names its request filter as written, and what it does", async () => {
+    serveSlo({
+      ...REQUEST_SLO,
+      requestFilter: "@http.route:/checkout* -@http.route:/health",
+    });
+    openSettings();
+
+    const code: HTMLElement = await screen.findByTestId(
+      "slo-settings-request-filter",
+    );
+
+    expect(code.tagName).toBe("CODE");
+    expect(code).toHaveTextContent(
+      "@http.route:/checkout* -@http.route:/health",
+    );
+    await findText("Only the requests that match this traces search count.");
+  });
+
+  test("with no request filter, says it counts every request of its services", async () => {
+    serveSlo(REQUEST_SLO);
+    openSettings();
+
+    await findText("Every request of its services");
+    expect(screen.queryByTestId("slo-settings-request-filter")).toBeNull();
   });
 });

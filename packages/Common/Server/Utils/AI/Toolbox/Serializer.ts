@@ -122,10 +122,17 @@ const REDACTION_RULES: Array<RedactionRule> = [
      * Each part of the address is length-bounded to the sizes RFC 5321 allows
      * (local part 64, domain 253, final label 63), so scanning a long tool
      * result for addresses stays in line with its length.
+     *
+     * The local part starts with a letter, a digit, "_", "%" or "+": a lone
+     * "-" or "." before an "@" is the search syntax's excluded attribute
+     * (`-@http.route:/health`, a request SLO's filter), not an address. An
+     * address after a dash is still found, from its first letter on:
+     * "-alice@example.com" reads "-[redacted-email]".
      */
     name: "email",
     placeholder: "[redacted-email]",
-    regex: /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g,
+    regex:
+      /[A-Za-z0-9_%+][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g,
     replacement: "[redacted-email]",
   },
   {

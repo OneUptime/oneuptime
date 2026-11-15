@@ -10,6 +10,7 @@ import SpanService from "../../../../Server/Services/SpanService";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import SloReleaseCheckMeasurement, {
   SLO_RELEASE_CHECK_MEASUREMENT_ERRORS,
+  SLO_RELEASE_CHECK_SELECT,
 } from "../../../../Server/Utils/Slo/SloReleaseCheckMeasurement";
 import SloRequestCounting from "../../../../Server/Utils/Slo/SloRequestCounting";
 import OneUptimeDate from "../../../../Types/Date";
@@ -143,6 +144,34 @@ describe("SloReleaseCheckMeasurement - a request SLO", () => {
     expect(count.mock.calls[0]![0].config.latencyThresholdInMilliseconds).toBe(
       250,
     );
+  });
+
+  /*
+   * A release is judged on the requests the SLO counts (#8444): its
+   * request filter reaches the recent count, beside the release's version.
+   */
+  test("judges the same requests the SLO counts: its request filter, beside the version", async () => {
+    const count: jest.SpiedFunction<
+      typeof SloRequestCounting.countRecentRequests
+    > = jest
+      .spyOn(SloRequestCounting, "countRecentRequests")
+      .mockResolvedValue({ goodCount: 10, totalCount: 10 });
+
+    await SloReleaseCheckMeasurement.measure({
+      slo: makeSlo({ requestFilter: "-@http.route:/health" }),
+      options: optionsOf({ serviceVersion: "2.0.1" }),
+      now: NOW,
+    });
+
+    const args: Parameters<typeof SloRequestCounting.countRecentRequests>[0] =
+      count.mock.calls[0]![0];
+
+    expect(args.config.requestFilter).toBe("-@http.route:/health");
+    expect(args.serviceVersion).toBe("2.0.1");
+  });
+
+  test("the check reads the SLO's request filter", () => {
+    expect(SLO_RELEASE_CHECK_SELECT.requestFilter).toBe(true);
   });
 
   test("no requests: no SLI, and no burn", async () => {

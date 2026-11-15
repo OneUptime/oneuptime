@@ -21,6 +21,8 @@ import {
   SloRequestCounts,
 } from "../../../../Utils/Slo/SloRequestSli";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import crypto from "crypto";
 
 /*
  * SloRequestCounting: how a request SLO's requests are counted from its
@@ -861,6 +863,159 @@ describe("SloRequestCounting.measure", () => {
     );
     expect(measurement.firstAccumulatedBucketStartAt).toEqual(
       at(SETTLED_END.getTime() - 60 * MINUTE),
+    );
+  });
+});
+
+/*
+ * A request filter (#8444): which of the services' requests count. Each
+ * term is compiled by the span table's own statement generator, so a glob,
+ * a "-", a list or a comparison means here what it means in the Traces
+ * explorer, and every value is a typed parameter - never inlined.
+ */
+describe("SloRequestCounting and a request filter", () => {
+  const range: SloRequestCountingRange = rangeOf(
+    SETTLED_END.getTime() - STEP,
+    SETTLED_END.getTime(),
+  );
+
+  const FILTER: string =
+    '@http.route:/checkout* -@http.route:/checkout/health name:"POST /checkout" @http.request.method:[POST, PUT] @http.response.status_code:>=200';
+
+  test("an SLO without a filter keeps the fingerprint it had before filters", () => {
+    const before: string = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          version: 1,
+          sliType: SliType.RequestSuccess,
+          serviceIds: [SERVICE_A.toString(), SERVICE_B.toString()].sort(),
+          latencyThresholdInMilliseconds: null,
+        }),
+      )
+      .digest("hex");
+
+    expect(SloRequestCounting.getFingerprint(SUCCESS)).toBe(before);
+    for (const empty of ["", "   ", null, undefined]) {
+      expect(
+        SloRequestCounting.getFingerprint({ ...SUCCESS, requestFilter: empty }),
+      ).toBe(before);
+    }
+  });
+
+  test("a filter starts the counting again; the same filter, trimmed, does not", () => {
+    const filtered: string = SloRequestCounting.getFingerprint({
+      ...SUCCESS,
+      requestFilter: "@http.route:/checkout*",
+    });
+
+    expect(filtered).not.toBe(SloRequestCounting.getFingerprint(SUCCESS));
+    expect(
+      SloRequestCounting.getFingerprint({
+        ...SUCCESS,
+        requestFilter: "  @http.route:/checkout*  ",
+      }),
+    ).toBe(filtered);
+    expect(
+      SloRequestCounting.getFingerprint({
+        ...SUCCESS,
+        requestFilter: "@http.route:/cart*",
+      }),
+    ).not.toBe(filtered);
+  });
+
+  test("each term narrows the count after the services, its values as typed parameters", () => {
+    const statement: Statement = SloRequestCounting.buildCountStatement({
+      projectId: PROJECT_ID,
+      config: { ...SUCCESS, requestFilter: FILTER },
+      range: range,
+    });
+    const sql: string = oneLine(statement);
+
+    // After the SLO's own filters, before the grouping.
+    expect(sql.indexOf("AND retentionDate >= now()")).toBeLessThan(
+      sql.indexOf("arrayExists"),
+    );
+    expect(sql.indexOf("arrayExists")).toBeLessThan(sql.indexOf("GROUP BY"));
+
+    // A glob: matched as the explorer matches it, by pattern.
+    expect(sql).toMatch(
+      /arrayExists\(\(k, v\) -> lowerUTF8\(k\) = lowerUTF8\(\{p\d+:String\}\) AND \(v ILIKE \{p\d+:String\}\)/,
+    );
+    // "-": anything but.
+    expect(sql).toMatch(
+      /\{p\d+:Identifier\}\[\{p\d+:String\}\] != \{p\d+:String\}/,
+    );
+    // name: the span's own name.
+    expect(sql).toMatch(/\{p\d+:Identifier\} = \{p\d+:String\}/);
+    // A list, and a number.
+    expect(sql).toMatch(/\[\{p\d+:String\}\] IN \{p\d+:Array\(String\)\}/);
+    expect(sql).toMatch(/toFloat64OrNull\(.*\) >= \{p\d+:Double\}/);
+
+    const values: Array<unknown> = paramValues(statement);
+
+    expect(values).toEqual(
+      expect.arrayContaining([
+        "http.route",
+        "/checkout%",
+        "/checkout/health",
+        "name",
+        "POST /checkout",
+        ["POST", "PUT"],
+        200,
+      ]),
+    );
+
+    // Never written into the SQL itself.
+    expect(sql).not.toContain("/checkout");
+    expect(sql).not.toContain("POST");
+  });
+
+  test("a filter that cannot be read is refused, never counted as every request", () => {
+    expect(() => {
+      SloRequestCounting.buildCountStatement({
+        projectId: PROJECT_ID,
+        config: { ...SUCCESS, requestFilter: "checkout" },
+        range: range,
+      });
+    }).toThrow(BadDataException);
+  });
+
+  test("no filter adds nothing", () => {
+    const plain: string = oneLine(
+      SloRequestCounting.buildCountStatement({
+        projectId: PROJECT_ID,
+        config: SUCCESS,
+        range: range,
+      }),
+    );
+    const empty: string = oneLine(
+      SloRequestCounting.buildCountStatement({
+        projectId: PROJECT_ID,
+        config: { ...SUCCESS, requestFilter: "  " },
+        range: range,
+      }),
+    );
+
+    expect(empty).toBe(plain);
+    expect(plain).not.toContain("arrayExists");
+  });
+
+  test("the release check's recent count reads the same filter, beside its version", () => {
+    const statement: Statement = SloRequestCounting.buildRecentCountStatement({
+      projectId: PROJECT_ID,
+      config: { ...LATENCY, requestFilter: "-@http.route:/health" },
+      range: range,
+      serviceVersion: "1.4.2",
+    });
+
+    expect(paramValues(statement)).toEqual(
+      expect.arrayContaining([
+        "resource.service.version",
+        "1.4.2",
+        "http.route",
+        "/health",
+      ]),
     );
   });
 });

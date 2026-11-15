@@ -100,6 +100,7 @@ import {
   getSettledRequestStepEnd,
   isRequestSliType,
 } from "Common/Utils/Slo/SloRequestSli";
+import { getSloRequestFilterError } from "Common/Utils/Slo/SloRequestFilter";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import SloMetricTypeUtil from "Common/Utils/Slo/SloMetricType";
 import SloUtil, {
@@ -875,6 +876,7 @@ async function measureRequestSlo(data: {
     serviceCount: serviceIds.length,
     latencyThresholdInMilliseconds: latencyThresholdInMilliseconds,
     targetPercentage: targetPercentage,
+    requestFilterError: getSloRequestFilterError(slo.requestFilter),
   });
 
   if (misconfiguredReason) {
@@ -934,6 +936,8 @@ async function measureRequestSlo(data: {
       sliType: sliType,
       serviceIds: serviceIds,
       latencyThresholdInMilliseconds: latencyThresholdInMilliseconds,
+      // Which of the services' requests count (#8444).
+      requestFilter: slo.requestFilter,
     },
     now: now,
     neededFrom: OneUptimeDate.getLesserDate(
@@ -1099,9 +1103,20 @@ function getRequestSloMisconfiguredReason(data: {
   serviceCount: number;
   latencyThresholdInMilliseconds: number | null;
   targetPercentage: number;
+  // What is wrong with the SLO's request filter, or null (#8444).
+  requestFilterError?: string | null | undefined;
 }): string | null {
   if (data.serviceCount === 0) {
     return "No services are chosen for this SLO, so there are no requests to measure. Choose the services whose requests it measures.";
+  }
+
+  /*
+   * The service refuses a filter it cannot read, so this is a filter
+   * written before a rule tightened, or straight into the database:
+   * counting every request instead would be a wrong SLI.
+   */
+  if (data.requestFilterError) {
+    return `This SLO's request filter cannot be read: ${data.requestFilterError} Fix it in Settings, What It Measures.`;
   }
 
   if (

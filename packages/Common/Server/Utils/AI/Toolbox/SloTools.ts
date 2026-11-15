@@ -475,6 +475,8 @@ export const QuerySlosTool: ObservabilityTool = {
             goodEventCount: true,
             totalEventCount: true,
             latencyThresholdInMilliseconds: true,
+            // Which of the services' requests it counts (#8444).
+            requestFilter: true,
             services: {
               _id: true,
               name: true,
@@ -534,6 +536,8 @@ export const QuerySlosTool: ObservabilityTool = {
                 services: joinNames(slo.services) || undefined,
                 latencyThresholdInMilliseconds:
                   slo.latencyThresholdInMilliseconds ?? undefined,
+                // Empty: every request of its services counts.
+                requestFilter: slo.requestFilter || undefined,
                 goodRequestCount: toCount(slo.goodEventCount),
                 totalRequestCount: toCount(slo.totalEventCount),
                 errorBudgetRemainingRequests: toCount(
