@@ -22,11 +22,8 @@ import {
   translationKey,
   Translator,
 } from "Common/Types/Translator";
-import {
-  formatDurationUnit,
-  isEnglishDateLanguage,
-} from "Common/Types/DateLanguage";
-import { formatMilliseconds } from "./Milliseconds";
+import { isEnglishDateLanguage } from "Common/Types/DateLanguage";
+import { formatDurationInUnit, formatMilliseconds } from "./Milliseconds";
 import { formatReplayDurationInLanguage } from "../Components/SessionReplay/ReplayTimelineMath";
 
 // The panel's own English, and a caller that hands in no sentence's translator.
@@ -495,8 +492,6 @@ export function formatReplayMilliseconds(
     );
   }
 
-  const isEnglish: boolean = isEnglishDateLanguage(translator.language);
-
   if (absolute < 60 * 1000) {
     const seconds: number = absolute / 1000;
     const rendered: string =
@@ -504,21 +499,20 @@ export function formatReplayMilliseconds(
         ? String(Math.round(seconds))
         : seconds.toFixed(1);
 
-    if (!isEnglish) {
-      const written: string | null = formatDurationUnit({
-        part: { count: (ms < 0 ? -1 : 1) * Number(rendered), unit: "second" },
-        locale: translator.language,
-        unitDisplay: "short",
-        maximumFractionDigits: 1,
-      });
-
-      if (written) {
-        return written;
-      }
-    }
-
-    return `${sign}${rendered}s`;
+    // The shared helper: English as written here, any other language Intl's.
+    return formatDurationInUnit(
+      translator,
+      (ms < 0 ? -1 : 1) * Number(rendered),
+      "second",
+      {
+        decimals: 1,
+        dropTrailingZeros: true,
+        english: `${sign}${rendered}s`,
+      },
+    );
   }
+
+  const isEnglish: boolean = isEnglishDateLanguage(translator.language);
 
   /*
    * Whole seconds, carried into the minutes: 119.6 s is "2m 00s", never
