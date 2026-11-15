@@ -34,7 +34,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import Typeof from "../../../Types/Typeof";
 import { And, DataSource } from "typeorm";
 import { FindOperator } from "typeorm/find-options/FindOperator";
-import { CompareType } from "../../../Types/Database/CompareBase";
+import CompareBase, { CompareType } from "../../../Types/Database/CompareBase";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
@@ -48,6 +48,43 @@ import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
  * (PostgresQuerySpans).
  */
 export default class QueryUtil {
+  /*
+   * What a comparison binds for Postgres (#8200). A Date is bound as the
+   * instant it is: ISO 8601 in UTC, to the millisecond, which a timestamptz
+   * column reads exactly whatever the zone of the process or the session.
+   *
+   * The operators' toString() is their text for people, not for the
+   * database. LessThan, GreaterThan and their kin write a Date as its day
+   * alone ("2026-11-15", in the process's zone), so a check on the server
+   * for "updated over 20 minutes ago" asked Postgres for "updated before
+   * today" and was off by up to a day. EqualTo and NotEqual write it as
+   * "Sun Nov 15 2026 10:00:00 GMT+0000 (Coordinated Universal Time)", which
+   * Postgres refuses.
+   *
+   * Anything else is bound as before. A query from the browser arrives with
+   * its instants already ISO text (JSON has no dates), which toString()
+   * hands back whole; a number, an id or a day written as text
+   * ("2026-11-15") is still that text.
+   */
+  private static getComparedValue(
+    key: string,
+    operator: CompareBase<CompareType>,
+  ): string {
+    const value: CompareType = operator.value;
+
+    if (value instanceof Date) {
+      if (isNaN(value.getTime())) {
+        throw new BadDataException(
+          `The filter on ${key} compares it with a date that is not valid.`,
+        );
+      }
+
+      return value.toISOString();
+    }
+
+    return operator.toString();
+  }
+
   /*
    * A relation filtered by ids - a plain id (`incident: "<id>"`) or several
    * in Includes (`incident: new Includes([...])`) - is a filter on the
@@ -315,7 +352,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.equalToOrNull(
-          query[key] as any,
+          QueryUtil.getComparedValue(key, query[key] as EqualToOrNull<any>),
         ) as FindOperator<any> as any;
       } else if (
         query[key] &&
@@ -323,7 +360,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.equalTo(
-          query[key] as any,
+          QueryUtil.getComparedValue(key, query[key] as EqualTo<any>),
         ) as FindOperator<any> as any;
       } else if (
         query[key] &&
@@ -339,7 +376,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.notEquals(
-          query[key] as any,
+          QueryUtil.getComparedValue(key, query[key] as NotEqual<any>),
         ) as FindOperator<any> as any;
       } else if (
         query[key] &&
@@ -420,7 +457,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.lessThan(
-          (query[key] as LessThan<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as LessThan<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -477,7 +517,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.greaterThan(
-          (query[key] as GreaterThan<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as GreaterThan<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -647,7 +690,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.greaterThanEqualTo(
-          (query[key] as GreaterThanOrEqual<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as GreaterThanOrEqual<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -655,7 +701,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.lessThanEqualTo(
-          (query[key] as LessThanOrEqual<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as LessThanOrEqual<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -663,7 +712,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.lessThanOrNull(
-          (query[key] as LessThanOrNull<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as LessThanOrNull<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -671,7 +723,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.greaterThanOrNull(
-          (query[key] as LessThanOrNull<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as GreaterThanOrNull<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
