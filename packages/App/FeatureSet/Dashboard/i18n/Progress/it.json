@@ -438,6 +438,7 @@
     "job",
     "kubectl set image deployment/web * -n web",
     "libvirt",
+    "log",
     "logging",
     "main",
     "max",
