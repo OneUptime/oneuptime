@@ -696,7 +696,7 @@ describe("the time to acknowledge after paging", () => {
         },
         GERMAN,
       ),
-    ).toBe("4 Minuten nach der Alarmierung");
+    ).toBe("4\u00A0Minuten nach der Alarmierung");
     expect(
       getAcknowledgedAfterPagingText(
         {
@@ -894,7 +894,7 @@ describe("how long impact had gone on when the record started", () => {
         },
         german,
       ),
-    ).toBe("3 Minuten nach Beginn der Auswirkungen");
+    ).toBe("3\u00A0Minuten nach Beginn der Auswirkungen");
   });
 });
 

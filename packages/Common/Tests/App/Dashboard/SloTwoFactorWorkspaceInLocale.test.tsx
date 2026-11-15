@@ -453,7 +453,7 @@ describe("the SLO overview's burn rate rules card in German", () => {
     expect(firstLine.contains(threshold)).toBe(false);
     expect(threshold.parentElement).toBe(row);
     expect(threshold.previousElementSibling).toBe(firstLine);
-    expect(threshold).toHaveTextContent(
+    expect(threshold.textContent).toContain(
       worded(
         DE,
         "At {{rate}} or faster over {{longWindow}} and {{shortWindow}}",

@@ -3914,5 +3914,21 @@
   "The logo for light backgrounds is used.": "밝은 배경용 로고가 사용됩니다.",
   "Dark mode will use the logo for light backgrounds.": "다크 모드에서는 밝은 배경용 로고를 사용합니다.",
   "OneUptime's icon is shown.": "OneUptime 아이콘이 표시됩니다.",
-  "Browser tabs will show OneUptime's icon again.": "브라우저 탭에 다시 OneUptime 아이콘이 표시됩니다."
+  "Browser tabs will show OneUptime's icon again.": "브라우저 탭에 다시 OneUptime 아이콘이 표시됩니다.",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}}년",
+  "{{count}}mo": "{{count}}개월",
+  "{{count}}d": "{{count}}일",
+  "{{count}}h": "{{count}}시간",
+  "{{count}}m": "{{count}}분",
+  "{{count}}s": "{{count}}초",
+  "{{count}}y ago": "{{count}}년 전",
+  "{{count}}mo ago": "{{count}}개월 전",
+  "{{count}}d ago": "{{count}}일 전",
+  "{{count}}h ago": "{{count}}시간 전",
+  "{{count}}m ago": "{{count}}분 전",
+  "{{count}}s ago": "{{count}}초 전",
+  "{{minutes}}m {{seconds}}s": "{{minutes}}분 {{seconds}}초",
+  "{{hours}}h {{minutes}}m": "{{hours}}시간 {{minutes}}분",
+  "{{days}}d {{hours}}h": "{{days}}일 {{hours}}시간"
 }

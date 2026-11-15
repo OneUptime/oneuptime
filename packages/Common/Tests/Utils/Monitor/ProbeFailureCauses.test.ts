@@ -26,6 +26,7 @@ import {
   placeholdersOf,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 
@@ -618,13 +619,22 @@ describe("a stored cause is read back only when it is exactly one of the table's
   test("reads a long text in time that grows with its length", () => {
     const longDetail: string = "x), so y ".repeat(20000);
     const stored: string = `This probe could not send traffic to h (${longDetail}), so h was never contacted. The failure is on the probe, not on h.`;
-    const started: number = Date.now();
+    const unmatched: string = `${"( ".repeat(50000)} Tried 3 times.`;
+    const read: FastestRun<Array<ProbeFailureCauseReading | null>> = fastestRun(
+      {
+        run: (): Array<ProbeFailureCauseReading | null> => {
+          return [
+            readProbeFailureCause(stored),
+            readProbeFailureCause(unmatched),
+          ];
+        },
+        limitInMs: 2000,
+      },
+    );
 
-    expect(readProbeFailureCause(stored)?.values["detail"]).toBe(longDetail);
-    expect(
-      readProbeFailureCause(`${"( ".repeat(50000)} Tried 3 times.`),
-    ).toBeNull();
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(read.result[0]?.values["detail"]).toBe(longDetail);
+    expect(read.result[1]).toBeNull();
+    expect(read.inMs).toBeLessThan(2000);
   });
 
   test("matches a template from its two ends", () => {

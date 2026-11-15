@@ -329,15 +329,15 @@ describe("a Duration in the reader's language", () => {
   );
 
   test.each([
-    ["de", 10 * DAY + 23 * HOUR, "10 Tage, 23 Stunden"],
-    ["de", DAY + HOUR, "1 Tag, 1 Stunde"],
+    ["de", 10 * DAY + 23 * HOUR, "10\u00A0Tage, 23\u00A0Stunden"],
+    ["de", DAY + HOUR, "1\u00A0Tag, 1\u00A0Stunde"],
     // French keeps a number and its unit together with a no-break space.
     ["fr", 10 * DAY + 23 * HOUR, "10\u00a0jours et 23\u00a0heures"],
-    ["es", 2 * HOUR + 5 * MINUTE, "2 horas y 5 minutos"],
+    ["es", 2 * HOUR + 5 * MINUTE, "2\u00A0horas y 5\u00A0minutos"],
     // Russian's own plurals, which a translated "{{count}} days" cannot say.
-    ["ru", 21 * DAY, "21 день"],
-    ["ru", 10 * DAY + 23 * HOUR, "10 дней 23 часа"],
-    ["ja", 10 * DAY + 23 * HOUR, "10 日 23 時間"],
+    ["ru", 21 * DAY, "21\u00A0день"],
+    ["ru", 10 * DAY + 23 * HOUR, "10\u00A0дней 23\u00A0часа"],
+    ["ja", 10 * DAY + 23 * HOUR, "10\u00A0日 23\u00A0時間"],
     ["zh-CN", 2 * HOUR + 5 * MINUTE, "2小时5分钟"],
   ])(
     "in %s, %i ms reads %s",

@@ -34,6 +34,7 @@ import UserNotificationEventType from "Common/Types/UserNotification/UserNotific
 import NotificationMethodUtil, {
   ColumnValueReader,
 } from "Common/UI/Utils/NotificationMethodUtil";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import { joinSentences } from "Common/UI/Utils/SentenceSeparator";
 import {
   PluralTemplate,
@@ -614,7 +615,7 @@ function getProviderDeliverySentence(
     line.words
       ? translator.translateTemplate(
           LOG_PAGE_LINE_SENTENCES.providerError,
-          { error: line.words },
+          { error: errorInSentence(line.words) },
           { setsValuesApart: true },
         )
       : "",
@@ -780,7 +781,7 @@ function getOutOfTriesSentence(
     line.words
       ? translator.translateTemplate(
           LOG_OWN_LINE_SENTENCES.lastTryFailedWith,
-          { error: line.words },
+          { error: errorInSentence(line.words) },
           { setsValuesApart: true },
         )
       : "",

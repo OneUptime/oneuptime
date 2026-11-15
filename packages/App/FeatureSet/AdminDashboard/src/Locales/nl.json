@@ -3914,5 +3914,21 @@
   "The logo for light backgrounds is used.": "Het logo voor lichte achtergronden wordt gebruikt.",
   "Dark mode will use the logo for light backgrounds.": "De donkere modus gebruikt het logo voor lichte achtergronden.",
   "OneUptime's icon is shown.": "Het pictogram van OneUptime wordt getoond.",
-  "Browser tabs will show OneUptime's icon again.": "Browsertabbladen tonen weer het pictogram van OneUptime."
+  "Browser tabs will show OneUptime's icon again.": "Browsertabbladen tonen weer het pictogram van OneUptime.",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} jr",
+  "{{count}}mo": "{{count}} mnd",
+  "{{count}}d": "{{count}}d",
+  "{{count}}h": "{{count}}u",
+  "{{count}}m": "{{count}}m",
+  "{{count}}s": "{{count}}s",
+  "{{count}}y ago": "{{count}} jr geleden",
+  "{{count}}mo ago": "{{count}} mnd geleden",
+  "{{count}}d ago": "{{count}} d geleden",
+  "{{count}}h ago": "{{count}} u geleden",
+  "{{count}}m ago": "{{count}} min geleden",
+  "{{count}}s ago": "{{count}} s geleden",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} min {{seconds}} s",
+  "{{hours}}h {{minutes}}m": "{{hours}}u {{minutes}}m",
+  "{{days}}d {{hours}}h": "{{days}}d {{hours}}u"
 }

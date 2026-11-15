@@ -3,6 +3,7 @@ import {
   ADDED_BY_PERSON,
   ADDED_THROUGH_API,
   RULE_EXCEPTIONS_TEST_IDS,
+  RULE_EXCEPTION_STATUS_LABELS,
   TIME_WINDOW_RANGE,
 } from "./RuleExceptionsCopy";
 import {
@@ -216,7 +217,7 @@ export const RuleExceptionStatusCell: FunctionComponent<StatusCellProps> = (
       data-testid={RULE_EXCEPTIONS_TEST_IDS.statusCell}
     >
       <Pill
-        text={status}
+        text={RULE_EXCEPTION_STATUS_LABELS[status]}
         color={getRuleExceptionStatusColor(status)}
         isMinimal={true}
       />
