@@ -140,7 +140,7 @@ La page de la clé tient aussi le compte : **Télémétrie refusée** liste ce q
 Pour les autres réponses qu'un exportateur OTLP peut recevoir, voir [Réponses](/docs/telemetry/open-telemetry#réponses).
 
 :::details Des données arrivent encore une minute après la désactivation de la clé
-Chaque serveur OneUptime garde ce qu'il sait d'une clé pendant une minute au plus, donc un changement les atteint tous en une minute environ. Les requêtes suivantes sont refusées.
+Chaque serveur OneUptime garde ce qu'il sait d'une clé pendant une minute au plus, donc un changement les atteint tous en une minute environ. Les requêtes suivantes sont refusées. Un client MQTT connecté avec la clé est déconnecté en quelques secondes.
 :::
 
 :::details Une clé de navigateur fonctionne sur mon portable mais pas en production
