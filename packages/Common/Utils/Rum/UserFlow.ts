@@ -1743,14 +1743,15 @@ export function normalizeUserFlowOptions(
   const anchorPage: string | null = merged.anchorPage
     ? UrlScrubber.normalizePathSpelling(merged.anchorPage)
     : null;
-  const hiddenPages: Array<string> = [];
+  /* Once each, in the order given: a pasted link can repeat a key. */
+  const hiddenPages: Set<string> = new Set<string>();
 
   for (const page of merged.hiddenPages || []) {
     const key: string = page ? UrlScrubber.normalizePathSpelling(page) : "";
 
     /* The anchor cannot be hidden: the map would have nothing to draw. */
-    if (key && key !== anchorPage && !hiddenPages.includes(key)) {
-      hiddenPages.push(key);
+    if (key && key !== anchorPage) {
+      hiddenPages.add(key);
     }
   }
 
@@ -1764,7 +1765,7 @@ export function normalizeUserFlowOptions(
       USER_FLOW_MIN_PAGES_PER_STEP,
       USER_FLOW_MAX_PAGES_PER_STEP,
     ),
-    hiddenPages: hiddenPages,
+    hiddenPages: Array.from(hiddenPages),
   };
 }
 

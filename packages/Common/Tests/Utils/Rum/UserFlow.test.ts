@@ -1520,6 +1520,21 @@ describe("options", () => {
     expect(normalizeUserFlowOptions(options)).toEqual(options);
   });
 
+  test("a link that repeats a hidden page many times hides it once, in order", () => {
+    const repeated: Array<string> = [];
+
+    for (let index: number = 0; index < 20000; index++) {
+      repeated.push(index % 2 === 0 ? "/men%c3%bc" : "/menu%CC%88");
+    }
+
+    const options: ReturnType<typeof normalizeUserFlowOptions> =
+      normalizeUserFlowOptions({
+        hiddenPages: ["/login", ...repeated, "/login", "/sso"],
+      });
+
+    expect(options.hiddenPages).toEqual(["/login", "/men%C3%BC", "/sso"]);
+  });
+
   test("an old spelling of the anchor and of a hidden page draws the merged rows", () => {
     const specs: Array<SessionSpec> = [
       { id: "1", pages: ["/home", "/caf%c3%a9", "/menu"] },
