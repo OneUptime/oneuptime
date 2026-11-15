@@ -102,7 +102,7 @@ Als je dienst hebt voor een beleid, laat de bel rechtsboven dat zien. Klik erop 
 ## Probleemoplossing
 
 :::details Niemand werd opgeroepen voor een nieuw incident
-Open de pagina **Bereikbaarheidsuitvoeringen** van het incident. Is die leeg, dan had het incident geen bereikbaarheidsbeleid: er is er geen op gekozen en geen bereikbaarheidsregel paste erbij. Een uitvoering met **Execution Completed - No One Notified** is door elke escalatieregel gegaan zonder iemand te vinden: meestal een schema waarin niemand dienst heeft. Zie [Uitvoeringslogboeken](/docs/on-call/policies#uitvoeringslogboeken). Een uitvoering met **Wachten** wacht op werktijden, voor een bereikbaarheidsregel op **Alleen tijdens werktijden**, en roept niemand op tot ze beginnen.
+Open de pagina **Bereikbaarheidsuitvoeringen** van het incident. Is die leeg, dan had het incident geen bereikbaarheidsbeleid: er is er geen op gekozen en geen bereikbaarheidsregel paste erbij. Een uitvoering met **Uitvoering voltooid - niemand gemeld** is door elke escalatieregel gegaan zonder iemand te vinden: meestal een schema waarin niemand dienst heeft. Zie [Uitvoeringslogboeken](/docs/on-call/policies#uitvoeringslogboeken). Een uitvoering met **Wachten** wacht op werktijden, voor een bereikbaarheidsregel op **Alleen tijdens werktijden**, en roept niemand op tot ze beginnen.
 :::
 
 :::details Iemand werd via het verkeerde kanaal opgeroepen, of helemaal niet

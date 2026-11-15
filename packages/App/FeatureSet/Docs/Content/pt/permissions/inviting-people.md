@@ -137,7 +137,7 @@ Um endereço pode receber 10 convites por hora, para projetos e páginas de stat
 :::details O e-mail de convite não chegou, ou o link expirou
 O convite não depende do e-mail. Peça à pessoa que se cadastre com o endereço convidado: o OneUptime envia para esse endereço um novo link para terminar de criar a conta. Quem já tem conta entra e encontra o convite esperando.
 
-Em um servidor auto-hospedado que ainda não consegue enviar e-mails, o cadastro também não consegue enviar um novo link por e-mail: em vez disso, pede à pessoa que solicite o seu link de convite. Depois que o administrador do servidor [configurar o e-mail](/docs/emails/smtp#abrir-o-formulário), o cadastro funciona como acima. Até lá, um administrador mestre pode remover a pessoa do projeto, convidá-la de novo e enviar a ela o novo link de convite, que funciona uma vez, só para esse endereço, por 7 dias.
+Em um servidor auto-hospedado que ainda não consegue enviar e-mails, o cadastro também não consegue enviar um novo link por e-mail: em vez disso, pede à pessoa que solicite o seu link de convite. Depois que o administrador do servidor [configurar o e-mail](/docs/emails/smtp#abrir-o-formulário), o cadastro funciona como acima. Até lá, um administrador mestre pode enviar a ela um novo link, que funciona uma vez, só para esse endereço, por 7 dias: em **Usuários**, abra o menu da linha da pessoa, **⋯**, e clique em **Obter link de convite**.
 :::
 
 :::details Convidar Usuário diz que os usuários são gerenciados pelo SCIM Push Groups

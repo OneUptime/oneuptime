@@ -1,4 +1,4 @@
-# Geplande onderhoud – Overzicht
+# Gepland onderhoud – Overzicht
 
 Een onderhoudsgebeurtenis kondigt gepland werk aan voordat het begint: een database-upgrade, een netwerkwijziging, een verhuizing naar nieuwe servers. OneUptime start en beëindigt de gebeurtenis op tijd, controleert de betrokken monitoren niet zolang het werk loopt en toont haar op je statuspagina's, zodat geplande downtime nooit op een storing lijkt. Deze pagina legt uit hoe een gebeurtenis verloopt, waar alles in het dashboard staat en wat een gebeurtenis verandert in de rest van OneUptime.
 
@@ -41,7 +41,7 @@ Aankondigingen worden behandeld in [Abonnees en aankondigingen](/docs/status-pag
 
 ## Waar gebeurtenissen vandaan komen
 
-- **Het formulier.** Klik op **Onderhoudsgebeurtenis aanmaken** in de lijst met gebeurtenissen, of op het tabblad **Geplande onderhoud** van een host, een cluster, een service, een netwerklocatie of een andere resource, die deze resource voor je selecteert. Zie [Onderhoudsgebeurtenissen maken](/docs/scheduled-maintenance/creating-events).
+- **Het formulier.** Klik op **Onderhoudsgebeurtenis aanmaken** in de lijst met gebeurtenissen, of op het tabblad **Gepland onderhoud** van een host, een cluster, een service, een netwerklocatie of een andere resource, die deze resource voor je selecteert. Zie [Onderhoudsgebeurtenissen maken](/docs/scheduled-maintenance/creating-events).
 - **Een sjabloon.** **Maken op basis van sjabloon** vult het formulier in vanuit een sjabloon dat je hebt opgeslagen voor terugkerend werk. Zie [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates).
 - **Een planning.** Een terugkerend sjabloon maakt volgens een planning een nieuwe gebeurtenis aan, bijvoorbeeld elke week of elke maand, zonder dat iemand het formulier opent.
 - **Een formulier.** Een formulier waarvan de inzendingen onderhoudsgebeurtenissen aanmaken, maakt van een wijzigingsverzoek een gebeurtenis. Zie [Wat een inzending aanmaakt](/docs/forms/on-submit#hoe-een-inzending-een-onderhoudsgebeurtenis-wordt).
@@ -50,7 +50,7 @@ Aankondigingen worden behandeld in [Abonnees en aankondigingen](/docs/status-pag
 
 ## Waar het onderhoud in het dashboard staat
 
-Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De lijst met gebeurtenissen staat op `/dashboard/{projectId}/scheduled-maintenance-events`, en het zijmenu bevat alles over onderhoud:
+Open **Gepland onderhoud** via het menu **Producten** in de bovenste balk. De lijst met gebeurtenissen staat op `/dashboard/{projectId}/scheduled-maintenance-events`, en het zijmenu bevat alles over onderhoud:
 
 | Sectie        | Wat je daar doet                                                                                                           |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -62,7 +62,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De l
 
 **Overzicht** en **Agenda** zijn open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **API**, **CLI** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
 
-De lijst toont **Nummer van geplande onderhoud**, **Titel**, **Huidige staat**, **Getroffen resources**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Markeren als {{state}}**, **Status wijzigen**, **Aan mij toewijzen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Labels toevoegen**, **Labels verwijderen** of **Verwijderen**. Het menu **⋯** aan het eind van de rij van elke gebeurtenis doet hetzelfde voor alleen die gebeurtenis: de stappen **Markeren als {{state}}** zolang de gebeurtenis ze kan zetten, **Status wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Eigenaar toevoegen**.
+De lijst toont **Nummer van gepland onderhoud**, **Titel**, **Huidige staat**, **Getroffen resources**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Markeren als {{state}}**, **Status wijzigen**, **Aan mij toewijzen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Labels toevoegen**, **Labels verwijderen** of **Verwijderen**. Het menu **⋯** aan het eind van de rij van elke gebeurtenis doet hetzelfde voor alleen die gebeurtenis: de stappen **Markeren als {{state}}** zolang de gebeurtenis ze kan zetten, **Status wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Eigenaar toevoegen**.
 
 **Onderhoudsagenda**, in het onderdeel **Agenda**, toont dezelfde gebeurtenissen op een maand, een week of een dag, en kan er agenda's van buiten het project naast tonen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar).
 

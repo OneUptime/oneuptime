@@ -16,7 +16,9 @@ import type { SpyInstance } from "jest-mock";
  *  - One answer: the products the project hides, the caller's pins, what
  *    is in use - only for what the caller may read - the plan each needs,
  *    and, for whoever may choose, the hidden products with data.
- *  - Usage is one statement, kept per project for five minutes.
+ *  - Usage is one statement, kept per project for five minutes, and read
+ *    again as soon as a product's first record, its records deleted or its
+ *    first data change it (#7465).
  *  - Only someone who may edit the project shows or hides a product; a
  *    product hidden while in use is kept hidden on purpose.
  *  - Pins are the caller's own, five at most, known products only.
@@ -52,6 +54,7 @@ import ProjectMilestoneService from "../../../Server/Services/ProjectMilestoneSe
 import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectUserPreferenceService from "../../../Server/Services/ProjectUserPreferenceService";
 import logger from "../../../Server/Utils/Logger";
+import ProjectUsageCache from "../../../Server/Utils/ProjectProducts/ProjectUsageCache";
 import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
 import {
   ServerProductOffReason,
@@ -63,7 +66,6 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
-import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
@@ -518,17 +520,17 @@ describe("usage is kept per project for a few minutes", () => {
   });
 
   test("after the time it asks again", async () => {
-    const start: Date = new Date("2026-11-12T10:00:00.000Z");
-    const now: SpyInstance<typeof OneUptimeDate.getCurrentDate> = jest
-      .spyOn(OneUptimeDate, "getCurrentDate")
+    const start: number = new Date("2026-11-12T10:00:00.000Z").getTime();
+    const now: SpyInstance<typeof Date.now> = jest
+      .spyOn(Date, "now")
       .mockReturnValue(start);
 
     await ProjectProductsService.getAnswer(OWNER());
-    now.mockReturnValue(new Date(start.getTime() + USAGE_TTL_IN_MS - 1));
+    now.mockReturnValue(start + USAGE_TTL_IN_MS - 1);
     await ProjectProductsService.getAnswer(OWNER());
     expect(usageQueries()).toBe(1);
 
-    now.mockReturnValue(new Date(start.getTime() + USAGE_TTL_IN_MS + 1));
+    now.mockReturnValue(start + USAGE_TTL_IN_MS + 1);
     await ProjectProductsService.getAnswer(OWNER());
     expect(usageQueries()).toBe(2);
   });
@@ -538,10 +540,135 @@ describe("usage is kept per project for a few minutes", () => {
     await ProjectProductsService.getProjectUsage(PROJECT_ID, {
       isFreshRead: true,
     });
-    ProjectProductsService.forgetUsage(PROJECT_ID);
+    await ProjectProductsService.forgetUsage(PROJECT_ID);
     await ProjectProductsService.getProjectUsage(PROJECT_ID);
 
     expect(usageQueries()).toBe(3);
+  });
+
+  test("the time is ProjectUsageCache's: five minutes", () => {
+    expect(USAGE_TTL_IN_MS).toBe(ProjectUsageCache.TTL_MS);
+    expect(USAGE_TTL_IN_MS).toBe(5 * 60 * 1000);
+  });
+});
+
+/*
+ * #7465: the products menu kept "Not set up" on Monitors, On-Call Duty and
+ * Logs for minutes after each was set up, through a reload, while Home
+ * counted the monitors and the policy - the answer's usage was kept five
+ * minutes, and nothing that set a product up told it.
+ */
+describe("the answer follows what the project uses (#7465)", () => {
+  const usageOf: (
+    answer: ProjectProductsAnswer,
+    product: ProductKey,
+  ) => ProductUsage | undefined = (
+    answer: ProjectProductsAnswer,
+    product: ProductKey,
+  ): ProductUsage | undefined => {
+    return answer.usage[product];
+  };
+
+  test("the project's first monitor: the next answer says Monitors is in use, not Not set up", async () => {
+    expect(
+      usageOf(
+        await ProjectProductsService.getAnswer(OWNER()),
+        ProductKey.Monitors,
+      ),
+    ).toBe(ProductUsage.NotSetUp);
+
+    records = { [ProductKey.Monitors]: true };
+    // What DatabaseService does once the monitor is written.
+    await ProjectUsageCache.afterCreate({
+      tableName: "Monitor",
+      row: { projectId: PROJECT_ID },
+    });
+
+    expect(
+      usageOf(
+        await ProjectProductsService.getAnswer(OWNER()),
+        ProductKey.Monitors,
+      ),
+    ).toBe(ProductUsage.InUse);
+  });
+
+  test("the project's first on-call policy: the next answer says On-Call Duty is in use", async () => {
+    await ProjectProductsService.getAnswer(OWNER());
+
+    records = { [ProductKey.OnCall]: true };
+    await ProjectUsageCache.afterCreate({
+      tableName: "OnCallDutyPolicy",
+      row: { projectId: PROJECT_ID },
+    });
+
+    expect(
+      usageOf(
+        await ProjectProductsService.getAnswer(MEMBER()),
+        ProductKey.OnCall,
+      ),
+    ).toBe(ProductUsage.InUse);
+  });
+
+  test("the project's first logs: the next answer says Logs is in use", async () => {
+    expect(
+      usageOf(await ProjectProductsService.getAnswer(OWNER()), ProductKey.Logs),
+    ).toBe(ProductUsage.NotSetUp);
+
+    milestones = [ActivationMilestone.FirstLogsReceived];
+    // What ProjectMilestoneService does once it keeps the milestone.
+    await ProjectUsageCache.afterMilestoneReached({
+      projectId: PROJECT_ID,
+      milestone: ActivationMilestone.FirstLogsReceived,
+    });
+
+    expect(
+      usageOf(await ProjectProductsService.getAnswer(OWNER()), ProductKey.Logs),
+    ).toBe(ProductUsage.InUse);
+  });
+
+  test("the last monitor deleted: the next answer says Not set up again", async () => {
+    records = { [ProductKey.Monitors]: true };
+    await ProjectProductsService.getAnswer(OWNER());
+
+    records = {};
+    await ProjectUsageCache.afterDelete({
+      tableName: "Monitor",
+      rows: [{ projectId: PROJECT_ID }],
+    });
+
+    expect(
+      usageOf(
+        await ProjectProductsService.getAnswer(OWNER()),
+        ProductKey.Monitors,
+      ),
+    ).toBe(ProductUsage.NotSetUp);
+  });
+
+  test("nothing set up meanwhile: every answer comes from the one statement", async () => {
+    for (let page: number = 0; page < 10; page++) {
+      await ProjectProductsService.getAnswer(page % 2 ? OWNER() : MEMBER());
+    }
+
+    // A note, a label: records of no product change nothing.
+    await ProjectUsageCache.afterCreate({
+      tableName: "Label",
+      row: { projectId: PROJECT_ID },
+    });
+    await ProjectProductsService.getAnswer(OWNER());
+
+    expect(usageQueries()).toBe(1);
+  });
+
+  test("another project's first monitor leaves this project's answer kept", async () => {
+    await ProjectProductsService.getAnswer(OWNER());
+
+    await ProjectUsageCache.afterCreate({
+      tableName: "Monitor",
+      row: { projectId: new ObjectID("99999999-9999-4999-8999-999999999999") },
+    });
+    await ProjectProductsService.getAnswer(OWNER());
+
+    expect(usageQueries()).toBe(1);
   });
 });
 

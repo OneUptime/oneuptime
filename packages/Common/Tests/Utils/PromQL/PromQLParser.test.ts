@@ -33,7 +33,14 @@ import {
   matchesEmptyValue,
   parsePromQL,
 } from "../../../Utils/PromQL/PromQLParser";
-import { compilePromQLRegex } from "../../../Utils/PromQL/PromQLRegex";
+import {
+  CompiledPromQLRegex,
+  compilePromQLRegex,
+  PromQLPatternError,
+  readNamedCapture,
+} from "../../../Utils/PromQL/PromQLRegex";
+import { WIDER_CASE_FOLDS } from "../../../Utils/PromQL/RE2CharacterClass";
+import { getCaseVariants } from "../../../Utils/LinearRegExp/CaseCanonicalization";
 import LinearRegExp, {
   LinearRegExpMatch,
 } from "../../../Utils/LinearRegExp/LinearRegExp";
@@ -287,14 +294,66 @@ describe("PromQL regular expressions", () => {
     expect(regex.test("errors")).toBe(false);
   });
 
-  test("read RE2's named groups", () => {
-    const match: LinearRegExpMatch | null = compilePromQLRegex(
+  test("read RE2's named groups, their names kept beside the pattern", () => {
+    const compiled: CompiledPromQLRegex = compilePromQLRegex(
       "(?P<host>[a-z]+):\\d+",
       { captures: true },
-    ).regex.exec("web:80");
+    );
+    const match: LinearRegExpMatch | null = compiled.regex.exec("web:80");
 
-    expect(match?.groups["host"]).toBe("web");
     expect(match?.captures).toEqual(["web"]);
+    expect(compiled.groupNames).toEqual(["host"]);
+    expect(
+      readNamedCapture({
+        captures: match!.captures,
+        groupNames: compiled.groupNames,
+        name: "host",
+      }),
+    ).toBe("web");
+    // JavaScript's groups have no names: RE2 takes names it does not.
+    expect(compiled.regex.source).toBe("^(?s:([a-z]+):[0-9]+)$");
+  });
+
+  /*
+   * RE2 takes a group name of letters, digits and _, a digit first too,
+   * and two groups of one name (isValidCaptureName, parse.go); $name reads
+   * the first of them that took part (Go's Regexp.Expand).
+   */
+  test("read RE2's group names JavaScript does not take", () => {
+    const digitFirst: CompiledPromQLRegex = compilePromQLRegex("(?P<1a>x)", {
+      captures: true,
+    });
+
+    expect(digitFirst.groupNames).toEqual(["1a"]);
+    expect(digitFirst.regex.exec("x")?.captures).toEqual(["x"]);
+
+    const twice: CompiledPromQLRegex = compilePromQLRegex(
+      "(?P<h>a)-(?P<h>b)|(?<h>c)",
+      { captures: true },
+    );
+
+    expect(twice.groupNames).toEqual(["h", "h", "h"]);
+
+    for (const [value, expected] of [
+      ["a-b", "a"],
+      ["c", "c"],
+    ]) {
+      expect(
+        readNamedCapture({
+          captures: twice.regex.exec(value!)!.captures,
+          groupNames: twice.groupNames,
+          name: "h",
+        }),
+      ).toBe(expected);
+    }
+
+    expect(
+      readNamedCapture({
+        captures: twice.regex.exec("c")!.captures,
+        groupNames: twice.groupNames,
+        name: "nosuch",
+      }),
+    ).toBeUndefined();
   });
 
   test("read POSIX classes", () => {
@@ -303,42 +362,91 @@ describe("PromQL regular expressions", () => {
   });
 
   /*
-   * The class names are looked up by the name the pattern writes. A name
-   * every object inherits (constructor, and any of them as a reader that
-   * folds case spells it) is a name no POSIX class has: the pattern keeps
-   * it as written, as it keeps [[:nosuch:]], and never reads the
-   * inherited function's source text into the character class.
+   * RE2 reads a POSIX class's name between "[:" and the first ":]" after
+   * it, and refuses a name it does not have: "invalid character class
+   * range: [:nosuch:]" (parseNamedClass, parse.go). Names are lowercase,
+   * and a name every object inherits (constructor, and any of them as a
+   * reader that folds case spells it) is a name no class has: refused, as
+   * [[:nosuch:]] is, never read as the inherited function's source text or
+   * as the letters it is written with.
    */
   test.each(INHERITED_PROPERTY_NAME_SPELLINGS)(
-    "[[:%s:]] names no POSIX class: the pattern keeps it as written",
+    "[[:%s:]] names no POSIX class: refused, as Prometheus refuses it",
     (name: string) => {
-      const pattern: string = `[[:${name}:]]`;
+      for (const [pattern, written] of [
+        [`[[:${name}:]]`, `[:${name}:]`],
+        [`[^[:${name}:]]`, `[:${name}:]`],
+        [`[[:^${name}:]]`, `[:^${name}:]`],
+        [`[[:digit:][:${name}:]]`, `[:${name}:]`],
+      ]) {
+        const refusal: unknown = refusalOf(pattern!);
 
-      expect(compilePromQLRegex(pattern).regex.source).toBe(
-        `^(?s:${pattern})$`,
-      );
-      expect(compilePromQLRegex(`[^[:${name}:]]`).regex.source).toBe(
-        `^(?s:[^[:${name}:]])$`,
+        expect(refusal).toBeInstanceOf(PromQLPatternError);
+        expect((refusal as PromQLPatternError).problem).toContain(
+          `names the character class ${written}, which Prometheus does not read either.`,
+        );
+      }
+    },
+  );
+
+  test.each([
+    ["[[:nosuch:]]", "[:nosuch:]"],
+    ["[[:constructor:]]", "[:constructor:]"],
+    ["[[:toString:]]", "[:toString:]"],
+    // RE2's names are case-sensitive.
+    ["[[:DIGIT:]]", "[:DIGIT:]"],
+    ["[[:Alpha:]]", "[:Alpha:]"],
+    // The name runs to the first ":]", wherever it is.
+    ["[[:al]pha:]]", "[:al]pha:]"],
+    ["[[:a:]b:]]", "[:a:]"],
+    ["[[::]]", "[::]"],
+    ["[[:^:]]", "[:^:]"],
+    ["[[: digit:]]", "[: digit:]"],
+  ])(
+    "%s, a POSIX class RE2 does not have, is refused with its name",
+    (pattern: string, written: string) => {
+      const refusal: unknown = refusalOf(pattern);
+
+      expect(refusal).toBeInstanceOf(PromQLPatternError);
+      expect((refusal as PromQLPatternError).problem).toBe(
+        `names the character class ${written}, which Prometheus does not read either. The classes are [:alnum:], [:alpha:], [:ascii:], [:blank:], [:cntrl:], [:digit:], [:graph:], [:lower:], [:print:], [:punct:], [:space:], [:upper:], [:word:] and [:xdigit:], written in lowercase, and [:^digit:] matches every character [:digit:] does not.`,
       );
     },
   );
 
-  test("[[:constructor:]] matches what [[:nosuch:]] matches, never the inherited function's text", () => {
-    const constructorClass: LinearRegExp =
-      compilePromQLRegex("[[:constructor:]]").regex;
-    const unknownClass: LinearRegExp = compilePromQLRegex("[[:nosuch:]]").regex;
+  /*
+   * RE2's 14 POSIX classes (posixGroup, perl_groups.go), each with a
+   * character it holds and one it does not, and [:^name:] for the rest.
+   */
+  test.each([
+    ["alnum", "a", "-"],
+    ["alpha", "Z", "1"],
+    ["ascii", "\u007f", "\u0080"],
+    ["blank", "\t", "\n"],
+    ["cntrl", "\u001f", " "],
+    ["digit", "7", "a"],
+    ["graph", "~", " "],
+    ["lower", "q", "Q"],
+    ["print", " ", "\u007f"],
+    ["punct", "!", "a"],
+    ["space", "\u000b", "a"],
+    ["upper", "Q", "q"],
+    ["word", "_", "-"],
+    ["xdigit", "F", "G"],
+  ])(
+    "[[:%s:]] holds %j and not %j, and its negation the other way round",
+    (name: string, member: string, other: string) => {
+      const positive: LinearRegExp = compilePromQLRegex(`[[:${name}:]]`).regex;
+      const negative: LinearRegExp = compilePromQLRegex(`[[:^${name}:]]`).regex;
 
-    // Both are the bracket [[:constructor:] (or [[:nosuch:]) and then "]".
-    expect(constructorClass.test("c]")).toBe(true);
-    expect(unknownClass.test("n]")).toBe(true);
-    // "function Object() { [native code] }" read as the class matched "c }]".
-    expect(constructorClass.test("c }]")).toBe(false);
-    expect(constructorClass.test("f }]")).toBe(false);
-    // A known class next to it still expands.
-    expect(
-      compilePromQLRegex("[[:constructor:]][[:digit:]]").regex.source,
-    ).toBe("^(?s:[[:constructor:]][0-9])$");
-  });
+      expect(positive.test(member)).toBe(true);
+      expect(positive.test(other)).toBe(false);
+      expect(negative.test(member)).toBe(false);
+      expect(negative.test(other)).toBe(true);
+      // A negated class holds what no class names: a newline, "é".
+      expect(negative.test("\u00e9")).toBe(true);
+    },
+  );
 
   /*
    * Each answer is Prometheus': a label matcher is compiled by
@@ -473,9 +581,18 @@ describe("PromQL regular expressions", () => {
     ["(a(?U)*)(a*)", "aaa", ["", "aaa"]],
     ["(a(?i)b|c)d", "Cd", ["C"]],
     ["(.*)", "a\nb", ["a\nb"]],
+    // Names RE2 takes and JavaScript does not: two of one name, a digit first.
+    ["(?P<a>x)(?P<a>y)", "xy", ["x", "y"]],
+    ["(?P<a>x)|(?P<a>y)", "y", [undefined, "y"]],
+    ["(?P<1a>x)", "x", ["x"]],
+    // A repeat after a flag group repeats what is before it.
+    ["(a)(?i)*", "aa", ["a"]],
+    ["(a*)(?i)*(a)", "aa", ["a", "a"]],
+    // ... a repeat too: (?:(a)*)? under (?U), where ?? is greedy.
+    ["(a)*(?U)??(a*)", "aa", ["a", ""]],
   ])(
     "%s on %j captures %j, as in Prometheus",
-    (pattern: string, value: string, captures: Array<string>) => {
+    (pattern: string, value: string, captures: Array<string | undefined>) => {
       const regex: LinearRegExp = compilePromQLRegex(pattern, {
         captures: true,
       }).regex;
@@ -497,8 +614,12 @@ describe("PromQL regular expressions", () => {
     const pattern: string = `(?i)${hosts.join("|")}`;
     const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
 
-    expect(regex.source).toBe(`^(?s:(?i:${hosts.join("|")}))$`);
+    // Each "s" holds the long s too, which JavaScript's i flag leaves out.
+    expect(regex.source).toBe(
+      `^(?s:(?i:${hosts.join("|").split("s").join("[s\u017f]")}))$`,
+    );
     expect(regex.test("HOST-199")).toBe(true);
+    expect(regex.test("ho\u017ft-199")).toBe(true);
     expect(regex.test("host-200")).toBe(false);
   });
 
@@ -522,20 +643,25 @@ describe("PromQL regular expressions", () => {
     (pattern: string) => {
       const refusal: unknown = refusalOf(pattern);
 
-      expect(refusal).toBeInstanceOf(SyntaxError);
-      expect((refusal as SyntaxError).message).toContain("Nothing to repeat");
+      expect(refusal).toBeInstanceOf(PromQLPatternError);
+      expect((refusal as PromQLPatternError).problem).toMatch(
+        /^repeats a repeat with \S+ right after it, which Prometheus does not read either\./,
+      );
     },
   );
 
-  test("a repeat after a flag group after a repeat is refused, never joined to the first", () => {
+  test("a repeat after a flag group after a repeat repeats the repeat, as RE2 reads it", () => {
     /*
-     * RE2 reads x*(?U)?? as a repeat of the repeat, (?:x*)?. Read as the
+     * RE2 reads x*(?U)?? as (?:x*)?, the ?? greedy under (?U). Read as the
      * one lazy repeat x*?, the groups after it would capture otherwise: on
      * "aa", Prometheus' (a)*(?U)??(a*) captures "a" and "", and (a)*?(a*)
-     * captures nothing and "aa".
+     * captures nothing and "aa" (the captures table above).
      */
-    expect(refusalOf("a*(?U)??")).toBeInstanceOf(SyntaxError);
-    expect(refusalOf("(a)*(?U)??(a*)")).toBeInstanceOf(SyntaxError);
+    expect(compilePromQLRegex("a*(?U)??").regex.source).toBe("^(?s:(?:a*)?)$");
+    expect(compilePromQLRegex("a*(?i)*").regex.source).toBe(
+      "^(?s:(?:a*)*(?i:))$",
+    );
+    expect(compilePromQLRegex("a*\\Q\\E+").regex.source).toBe("^(?s:(?:a*)+)$");
   });
 
   test("a repeat after an atom, a group or a bar is read", () => {
@@ -545,6 +671,492 @@ describe("PromQL regular expressions", () => {
     expect(compilePromQLRegex("a*|b*").regex.test("ab")).toBe(false);
     // (?U) writes nothing of its own: the repeat after it repeats the "a".
     expect(compilePromQLRegex("a(?U)*").regex.source).toBe("^(?s:a*?)$");
+  });
+
+  /*
+   * RE2's spellings that JavaScript reads otherwise or not at all (issue
+   * #8028), each answer Prometheus' own: a label matcher's reading
+   * (NewFastRegexMatcher's syntax.Parse, then ^(?s:...)$ compiled), asked
+   * of Prometheus v0.316.0 built with Go 1.27, where every row agrees with
+   * the regexp label_replace() compiles. JavaScript's own RegExp reads the
+   * compiled pattern the same way.
+   */
+  test.each([
+    // \A and \z: the value's start and end, under (?m) too (OpBeginText, OpEndText).
+    ["\\Aa", "a", true],
+    ["a\\A", "a", false],
+    ["(?m)a\\n\\Ab", "a\nb", false],
+    ["(?m)a\\n^b", "a\nb", true],
+    ["a\\z\\n", "a\n", false],
+    ["(?m)a$\\n", "a\n", true],
+    ["(?m)a\\z\\n", "a\n", false],
+    // \Q...\E: its text, to the end of the pattern when no \E follows.
+    ["\\Qa.b\\E+", "a.b", true],
+    ["\\Qa.b\\E+", "a.bb", true],
+    ["\\Qa.b\\E+", "axb", false],
+    ["\\Qa.b", "a.b", true],
+    ["\\Qa.b", "axb", false],
+    ["\\Q(?i)\\E", "(?i)", true],
+    ["\\Q(?i)\\E", "", false],
+    ["(?i)\\QaB\\E", "AB", true],
+    ["(?i)\\QaB\\E", "aC", false],
+    ["\\Q\\\\E", "\\", true],
+    ["\\Q\\\\E", "\\\\", false],
+    ["a\\Q\\E*", "", true],
+    ["a\\Q\\E*", "aa", true],
+    // \x41 and \x{41}: a code point; \x{1F600} one beyond U+FFFF.
+    ["\\x41", "A", true],
+    ["\\x41", "x41", false],
+    ["\\x{41}", "A", true],
+    ["\\x{41}", "x{41}", false],
+    ["\\x{0041}", "A", true],
+    ["\\x{1F600}", "\ud83d\ude00", true],
+    ["\\x{1F600}", "\ud83d", false],
+    ["\\x{1F600}+", "\ud83d\ude00\ud83d\ude00", true],
+    ["\\x{1F600}+", "\ud83d\ude00\ude00", false],
+    ["[\\x{1F600}-\\x{1F64F}]", "\ud83d\ude03", true],
+    ["[\\x{1F600}-\\x{1F64F}]", "\ud83d\ude50", false],
+    ["[\\x{1F600}-\\x{1F64F}]", "a", false],
+    ["[a\\x{1F600}]{2}", "a\ud83d\ude00", true],
+    ["[a\\x{1F600}]{2}", "\ud83d\ude00\ud83d\ude00", true],
+    ["[a\\x{1F600}]{2}", "aa", true],
+    // Octal: \0 and up to two more digits, or \1 to \7 and one or two more; \a is the bell.
+    ["\\101", "A", true],
+    ["\\0", "\u0000", true],
+    ["\\0", "0", false],
+    ["\\08", "\u00008", true],
+    ["\\0123", "\n3", true],
+    ["\\0123", "S", false],
+    ["\\400", "\u0100", true],
+    ["\\400", " 0", false],
+    ["\\777", "\u01ff", true],
+    ["\\a", "\u0007", true],
+    ["\\a", "a", false],
+    // RE2's \s is [\t\n\f\r ]: not \v, U+00A0 or the other spaces JavaScript's holds.
+    ["\\s", "\u000b", false],
+    ["\\s", "\u00a0", false],
+    ["\\s", "\ufeff", false],
+    ["\\s", " ", true],
+    ["\\s", "\t", true],
+    ["\\s", "\n", true],
+    ["\\s", "\f", true],
+    ["\\s", "\r", true],
+    ["[\\s]", "\u000b", false],
+    ["[\\s]", " ", true],
+    ["\\S", "\u000b", true],
+    ["\\S", "\u00a0", true],
+    ["\\S", " ", false],
+    ["[^\\s]", "\u000b", true],
+    ["[^\\s]", " ", false],
+    ["[a\\S]", "\u000b", true],
+    ["[a\\S]", " ", false],
+    ["[a\\S]", "a", true],
+    // [[:space:]] is not \s: it holds \v.
+    ["[[:space:]]", "\u000b", true],
+    ["[[:space:]]", "\u00a0", false],
+    // A {n} RE2 cannot read as a repeat - a leading zero, no first number - is a "{".
+    ["a{01}", "a{01}", true],
+    ["a{01}", "a", false],
+    ["a{00}", "a{00}", true],
+    ["a{00}", "", false],
+    ["a{1,02}", "a{1,02}", true],
+    ["a{1,02}", "a", false],
+    ["a{,5}", "a{,5}", true],
+    ["a{,5}", "a", false],
+    ["a{0}", "", true],
+    ["a{0}", "a{0}", false],
+    ["a{2,}", "aa", true],
+    ["a{2,}", "a", false],
+    // Repeats over 1000 in all are refused; these are not.
+    ["a{1000}", "a", false],
+    ["(a{100}){10}", "a", false],
+    ["((a{10}){10}){10}", "a", false],
+    ["(a{2}){500}", "a", false],
+    ["(a{1000}){1}", "a", false],
+    ["(a{1000}){0}", "", true],
+    ["(a{1000}){0,1}", "", true],
+    ["(a{600})*", "", true],
+    ["((a{600}){0}){2}", "", true],
+    ["(a{40}){5}(?i){5}", "", false],
+    // A repeat after a flag group repeats what came before it (repeat, parse.go).
+    ["a(?i)*", "", true],
+    ["a(?i)*", "aa", true],
+    ["a(?i)*", "A", false],
+    ["a(?i)+?", "aa", true],
+    ["ab(?i)*c", "abbc", true],
+    ["ab(?i)*c", "ac", true],
+    ["ab(?i)*c", "abBc", false],
+    ["a(?i)b(?-i)*c", "aBBc", true],
+    ["a(?i)b(?-i)*c", "abbc", true],
+    ["a(?i)b(?-i)*c", "aBbc", true],
+    ["[ab](?m)*", "ab", true],
+    ["[ab](?m)*", "abab", true],
+    // ... a repeat with a flag group or \Q\E between repeats the repeat.
+    ["a*(?i)*", "aa", true],
+    ["a*(?i)*", "A", false],
+    ["a*\\Q\\E*", "", true],
+    ["a*\\Q\\E*", "aa", true],
+    ["a*(?U)??", "", true],
+    ["a*(?U)??", "aa", true],
+    // ... and an assertion repeats as any other part.
+    ["^*", "", true],
+    ["^*", "a", false],
+    ["$+", "", true],
+    ["a\\b*", "a", true],
+    ["\\A+a", "a", true],
+    ["a\\z?", "a", true],
+    ["(?m)a^*", "a", true],
+    ["^{2}", "", true],
+    // (?i) joins what Go's case folding joins: the Kelvin sign with k, the long s with s, ...
+    ["(?i)k", "k", true],
+    ["(?i)k", "K", true],
+    ["(?i)k", "\u212a", true],
+    ["(?i)s", "s", true],
+    ["(?i)s", "S", true],
+    ["(?i)s", "\u017f", true],
+    ["(?i)K", "\u212a", true],
+    ["(?i)[k]", "\u212a", true],
+    ["(?i)[^k]", "\u212a", false],
+    ["(?i)[^k]", "K", false],
+    ["(?i)[^k]", "x", true],
+    ["(?i)[a-z]", "\u212a", true],
+    ["(?i)[a-z]", "\u017f", true],
+    ["(?i)[^a-z]", "\u212a", false],
+    ["(?i)[^a-z]", "\u017f", false],
+    ["(?i)[^a-z]", "1", true],
+    ["(?i)\\w", "\u212a", true],
+    ["(?i)\\w", "\u017f", true],
+    ["(?i)\\W", "\u212a", false],
+    ["(?i)\\W", "\u017f", false],
+    ["(?i)\\W", "-", true],
+    ["(?i)[\\W]", "\u212a", false],
+    ["(?i)[\\W]", "-", true],
+    ["(?i)\u00df", "\u1e9e", true],
+    ["(?i)\u00df", "ss", false],
+    ["(?i)\u212b", "\u00e5", true],
+    ["(?i)\u212b", "\u00c5", true],
+    ["(?i)\u00e5", "\u212b", true],
+    ["(?i)\u03b8", "\u03f4", true],
+    ["(?i)\u03b8", "\u03d1", true],
+    ["(?i)\u03b8", "\u0398", true],
+    ["(?i)\u2126", "\u03c9", true],
+    ["(?i)\u1f80", "\u1f88", true],
+    ["(?i)\u00e9", "\u00c9", true],
+    ["(?i)\u00e9", "e", false],
+    ["(?i)\\x{10400}", "\ud801\udc28", true],
+    ["(?i)\\x{10400}", "\ud801\udc00", true],
+    ["(?i)[\\x{10400}-\\x{10402}]", "\ud801\udc29", true],
+    ["(?i)[\\x{10400}-\\x{10402}]", "\ud801\udc2b", false],
+    ["(?i)\\QKs\\E", "\u212a\u017f", true],
+    ["(?i)[[:upper:]]", "a", true],
+    ["(?i)[[:upper:]]", "A", true],
+    ["(?i)[[:upper:]]", "\u017f", true],
+    ["(?i)[[:upper:]]", "\u212a", true],
+    ["(?i)[[:^upper:]]", "a", false],
+    ["(?i)[[:^upper:]]", "1", true],
+    ["(?i)[[:^upper:]]", "\u017f", false],
+    ["(?i)[[:^upper:]]", "\u212a", false],
+    ["(?i)[[:^lower:]]", "A", false],
+    ["(?i)[[:^lower:]]", "1", true],
+    // A range's ends are single characters: [\d-z] is \d, "-" and "z".
+    ["[\\d-z]", "5", true],
+    ["[\\d-z]", "-", true],
+    ["[\\d-z]", "z", true],
+    ["[\\d-z]", "y", false],
+    ["[A-[:digit:]]", "B]", true],
+    ["[A-[:digit:]]", "B", false],
+    ["[A-[:digit:]]", "[", false],
+    ["[%-[:digit:]]+", "%]", true],
+    ["[%-[:digit:]]+", "5]", true],
+    ["[%-[:digit:]]+", "d]", true],
+    ["[a-]", "-", true],
+    ["[a-]", "a", true],
+    ["[-a]", "-", true],
+    ["[-a]", "a", true],
+  ])(
+    "RE2's spelling: %s matching %j is %s, as in Prometheus",
+    (pattern: string, value: string, matches: boolean) => {
+      const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+
+      expect(regex.test(value)).toBe(matches);
+      expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
+    },
+  );
+
+  /*
+   * What Prometheus refuses, refused here too, each with the sentence the
+   * query's error says after "The pattern ... for the label ...".
+   */
+  test.each([
+    [
+      "\\C",
+      "uses \\C, one byte of a character, which Prometheus does not read either. Use . to match any one character.",
+    ],
+    ["[\\C]", "uses \\C, an escape which Prometheus does not read either."],
+    [
+      "(?=b)",
+      "uses the look-ahead (?=, which Prometheus does not read either. Match the text itself instead, or leave values out with a second matcher that uses !~.",
+    ],
+    ["(?!a)b", "uses the look-ahead (?!,"],
+    ["(?<=a)b", "uses the look-behind (?<=,"],
+    ["(?<!a)b", "uses the look-behind (?<!,"],
+    [
+      "a{1001}",
+      "repeats a part more than 1000 times ({1001}), counting a repeat inside another as the two counts multiplied, and Prometheus repeats a part at most 1000 times. Repeat it fewer times, or use * or + for any number of times.",
+    ],
+    ["a{0,1001}", "more than 1000 times ({0,1001})"],
+    ["a{1001,}", "more than 1000 times ({1001,})"],
+    // The count is refused first, before what it would repeat is read.
+    ["{1001}", "more than 1000 times ({1001})"],
+    ["a*{1001}", "more than 1000 times ({1001})"],
+    ["a{99999999999}", "more than 1000 times ({99999999999})"],
+    ["^{1001}", "more than 1000 times ({1001})"],
+    ["(a*){1001}", "more than 1000 times ({1001})"],
+    // A repeat inside a repeat counts both (repeatIsValid, parse.go).
+    ["(a{100}){11}", "more than 1000 times ({11})"],
+    ["((a{10}){10}){11}", "more than 1000 times ({11})"],
+    ["(a{2}){501}", "more than 1000 times ({501})"],
+    ["((a{600})*){2}", "more than 1000 times ({2})"],
+    ["(a{600}|b){2}", "more than 1000 times ({2})"],
+    ["(a{1000}){1,2}", "more than 1000 times ({1,2})"],
+    ["a{2}(?i){501}", "more than 1000 times ({501})"],
+    [
+      "a{2,1}",
+      "repeats a part {2,1} times, the least more than the most, which Prometheus does not read either. Write the smaller count first, as in {1,2}.",
+    ],
+    [
+      "\\e",
+      "uses \\e, an escape which Prometheus does not read either. Write the character itself, or its code as \\x{...}, such as \\x{41} for A.",
+    ],
+    ["\\cA", "uses \\c, an escape"],
+    ["\\u0041", "uses \\u, an escape"],
+    ["\\Z", "uses \\Z, an escape"],
+    ["\\G", "uses \\G, an escape"],
+    ["\\\u00e9", "uses \\\u00e9, an escape"],
+    ["\\x{110000}", "uses \\x{110000}, an escape"],
+    ["\\x{}", "uses \\x{}, an escape"],
+    ["\\x4", "uses \\x4, an escape"],
+    ["\\xZZ", "uses \\xZZ, an escape"],
+    ["\\x{41", "uses \\x{41, an escape"],
+    ["[\\b]", "uses \\b, an escape"],
+    ["[\\Q]", "uses \\Q, an escape"],
+    ["[\\A]", "uses \\A, an escape"],
+    ["[\\z]", "uses \\z, an escape"],
+    [
+      "[a-\\d]",
+      "ends the range a-\\d with a class, which Prometheus does not read either: a range runs from one character to another. Write the class beside the range, as in [a-z\\d].",
+    ],
+    ["[a-\\pL]", "ends the range a-\\p with a class"],
+    [
+      "[z-a]",
+      "holds the range z-a, whose end comes before its start, which Prometheus does not read either. Write the lower character first.",
+    ],
+    [
+      "[\\x{5A}-A]",
+      "holds the range \\x{5A}-A, whose end comes before its start",
+    ],
+    [
+      "(?P<>x)",
+      'names a group (?P<>, which Prometheus does not read either. A group\'s name is letters, digits and _, closed by ">": (?P<host>...).',
+    ],
+    ["(?P<a-b>x)", "names a group (?P<a-b>,"],
+    ["(?P<\u00e9>x)", "names a group (?P<\u00e9>,"],
+    ["(?<a$>x)", "names a group (?<a$>,"],
+    ["(?P<a", "names a group (?P<a,"],
+    [
+      "(?'a'x)",
+      "opens a group with (?', which Prometheus does not read either. A group is (...), (?:...) or (?P<name>...), and a flag group (?i), (?m), (?s) or (?U), or (?i:...) for a part.",
+    ],
+    ["(?#c)", "opens a group with (?#,"],
+    ["(?P=a)", "opens a group with (?P,"],
+    ["(?>a)", "opens a group with (?>,"],
+    ["(?i-)a", "opens a group with (?i-),"],
+    [
+      "\\Q\\E*",
+      "has the repeat * with nothing before it to repeat, which Prometheus does not read either. Write \\* to match the character itself.",
+    ],
+    ["(?i)*", "has the repeat * with nothing before it"],
+    ["a|+", "has the repeat + with nothing before it"],
+    ["(*)", "has the repeat * with nothing before it"],
+    [
+      "{2}",
+      "has the repeat {2} with nothing before it to repeat, which Prometheus does not read either. Write \\{ to match the character itself.",
+    ],
+    [
+      "\\pL",
+      "uses the Unicode class \\pL, which OneUptime cannot match yet, though Prometheus can. Write the characters it stands for in a bracket instead, such as [a-zA-Z].",
+    ],
+    ["\\p{Greek}", "uses the Unicode class \\p{Greek},"],
+    ["\\PL", "uses the Unicode class \\PL,"],
+    ["[\\p{L}]", "uses the Unicode class \\p{L},"],
+  ])(
+    "%s is refused, as Prometheus refuses it, with a sentence",
+    (pattern: string, problem: string) => {
+      const refusal: unknown = refusalOf(pattern);
+
+      expect(refusal).toBeInstanceOf(PromQLPatternError);
+      expect((refusal as PromQLPatternError).problem).toContain(problem);
+      // A SyntaxError still, and a sentence of its own.
+      expect(refusal).toBeInstanceOf(SyntaxError);
+      expect((refusal as PromQLPatternError).message).toBe(
+        `The pattern "${pattern}" ${(refusal as PromQLPatternError).problem}`,
+      );
+    },
+  );
+
+  test("\\Q ... \\E is its text: its characters, its letters folded under (?i)", () => {
+    expect(compilePromQLRegex("\\Q.*+?()[]{}|^$\\E").regex.source).toBe(
+      "^(?s:\\.\\*\\+\\?\\(\\)\\[\\]\\{\\}\\|\\^\\$)$",
+    );
+    expect(
+      compilePromQLRegex("\\Q.*+?()[]{}|^$\\E").regex.test(".*+?()[]{}|^$"),
+    ).toBe(true);
+    // \E ends it at its first \E; what follows is a pattern again.
+    expect(compilePromQLRegex("\\Qa|b\\E|c").regex.test("c")).toBe(true);
+    expect(compilePromQLRegex("\\Qa|b\\E|c").regex.test("a")).toBe(false);
+  });
+
+  /*
+   * A bracket that names characters beyond U+FFFF matches each whole, as
+   * RE2 does, even when it names all of them. Its surrogates, which RE2
+   * matches in no text, match no half of one either. Prometheus answered
+   * each row.
+   */
+  test.each([
+    ["[\\x{10000}-\\x{10FFFF}]", "😃", true],
+    ["[\\x{10000}-\\x{10FFFF}]", "a", false],
+    ["[\\x{10000}-\\x{10FFFF}]", "😃😃", false],
+    ["[a\\x{10000}-\\x{10FFFF}]{2}", "a😃", true],
+    ["[a\\x{10000}-\\x{10FFFF}]{2}", "aa", true],
+    ["[a\\x{10000}-\\x{10FFFF}]{2}", "a", false],
+    ["[\\x{D7FF}-\\x{E000}]+", "퟿", true],
+    ["[\\x{D7FF}-\\x{E000}]+", "😀", false],
+    ["[^\\x{1F600}]+", "😀", false],
+    ["[^\\x{1F600}]+", "😁😂", true],
+    ["[^\\x{1F600}]+", "a😀", false],
+  ])(
+    "%s matching %j is %s, each character beyond U+FFFF one, as in Prometheus",
+    (pattern: string, value: string, matches: boolean) => {
+      const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+
+      expect(regex.test(value)).toBe(matches);
+      expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
+    },
+  );
+
+  test("a code point beyond U+FFFF is one character to a repeat, as in RE2", () => {
+    // Written as its two code units, in a group for the repeat.
+    expect(compilePromQLRegex("\\x{1F600}{2}").regex.source).toBe(
+      "^(?s:(?:\\ud83d\\ude00){2})$",
+    );
+    expect(
+      compilePromQLRegex("\\x{1F600}{2}").regex.test(
+        "\ud83d\ude00\ud83d\ude00",
+      ),
+    ).toBe(true);
+    // Written in the pattern itself, it is one character as well.
+    expect(
+      compilePromQLRegex("\ud83d\ude00+").regex.test(
+        "\ud83d\ude00\ud83d\ude00",
+      ),
+    ).toBe(true);
+    expect(
+      compilePromQLRegex("\ud83d\ude00+").regex.test("\ud83d\ude00\ude00"),
+    ).toBe(false);
+  });
+
+  /*
+   * Decided, not matched as Prometheus does (PromQLRegex.ts's header): "."
+   * and a negated class read a character beyond U+FFFF as two, where RE2
+   * reads one; and a repeat whose iteration can match nothing captures as
+   * JavaScript's does.
+   */
+  test("what still differs from Prometheus, as decided", () => {
+    const emoji: string = "\ud83d\ude00";
+
+    // Prometheus: ^.$ matches an emoji, ^..$ does not.
+    expect(compilePromQLRegex(".").regex.test(emoji)).toBe(false);
+    expect(compilePromQLRegex("..").regex.test(emoji)).toBe(true);
+    expect(compilePromQLRegex("[^a]{2}").regex.test(emoji)).toBe(true);
+    // Either way, .* and .+ match every value, emoji or not.
+    expect(compilePromQLRegex(".+").regex.test(`a${emoji}`)).toBe(true);
+    // Prometheus captures "xx": its automaton leaves the repeat for "".
+    expect(
+      compilePromQLRegex("(?:|x)+(\\w*)", { captures: true }).regex.exec("xx")
+        ?.captures,
+    ).toEqual([""]);
+  });
+
+  /*
+   * WIDER_CASE_FOLDS holds the orbits of Go's case folding that
+   * JavaScript's i flag, without u, does not join whole. Held to the
+   * running engine, so a Node release that changes its case mappings
+   * fails here rather than folding otherwise unseen: each orbit is one
+   * JavaScript splits, and holds every code point JavaScript joins to one
+   * of its members; and every other letter's cases, by JavaScript's own
+   * lower and upper case, are ones JavaScript's i flag joins.
+   */
+  test("the case folds written out are those JavaScript's i flag does not make", () => {
+    const listed: Map<number, ReadonlyArray<number>> = new Map<
+      number,
+      ReadonlyArray<number>
+    >();
+
+    for (const orbit of WIDER_CASE_FOLDS) {
+      const joined: Set<number> = new Set<number>(getCaseVariants(orbit[0]!));
+
+      expect(
+        orbit.every((codePoint: number): boolean => {
+          return joined.has(codePoint);
+        }),
+      ).toBe(false);
+
+      for (const codePoint of orbit) {
+        expect(codePoint).toBeLessThanOrEqual(0xffff);
+
+        for (const variant of getCaseVariants(codePoint)) {
+          expect(orbit).toContain(variant);
+        }
+
+        listed.set(codePoint, orbit);
+      }
+    }
+
+    /*
+     * The dotless i's upper case is I, and Go keeps it apart from I and i
+     * (caseOrbit, unicode/tables.go), as JavaScript does.
+     */
+    const keptApart: ReadonlySet<number> = new Set<number>([0x0131]);
+    const unjoined: Array<string> = [];
+
+    for (let codeUnit: number = 0; codeUnit <= 0xffff; codeUnit++) {
+      if (codeUnit >= 0xd800 && codeUnit <= 0xdfff) {
+        continue;
+      }
+
+      const character: string = String.fromCharCode(codeUnit);
+      const variants: Set<number> = new Set<number>(getCaseVariants(codeUnit));
+
+      for (const other of [character.toLowerCase(), character.toUpperCase()]) {
+        if (other.length !== 1) {
+          continue;
+        }
+
+        const otherCodeUnit: number = other.charCodeAt(0);
+
+        if (
+          !variants.has(otherCodeUnit) &&
+          !(listed.get(codeUnit) ?? []).includes(otherCodeUnit) &&
+          !keptApart.has(codeUnit)
+        ) {
+          unjoined.push(
+            `U+${codeUnit.toString(16)} and U+${otherCodeUnit.toString(16)}`,
+          );
+        }
+      }
+    }
+
+    expect(unjoined).toEqual([]);
   });
 
   test("a pattern that is not a regular expression throws a SyntaxError", () => {
@@ -563,7 +1175,11 @@ describe("PromQL regular expressions", () => {
   test.each([
     ["(a)\\1", PatternProblemReason.BackReference],
     ["(?P<x>a)\\k<x>", PatternProblemReason.BackReference],
-    [".{0,50000}", PatternProblemReason.TooLarge],
+    // RE2 has no back-references: \1 and \8 without a group are refused too.
+    ["\\1", PatternProblemReason.BackReference],
+    ["\\8", PatternProblemReason.BackReference],
+    // Eleven repeats of 1000, each one Prometheus reads: too large to run.
+    [".{1000}".repeat(11), PatternProblemReason.TooLarge],
   ])(
     "%s is refused by the linear-time matcher",
     (pattern: string, reason: PatternProblemReason) => {
@@ -697,9 +1313,19 @@ describe("PromQL selectors", () => {
       { start: 8, end: 16 },
     ],
     [
-      'up{path!~".{0,50000}"}',
-      'The pattern ".{0,50000}" for the label "path" is too large to run. Shorten it, or repeat its parts fewer times.',
-      { start: 9, end: 21 },
+      `up{path!~"${".{1000}".repeat(11)}"}`,
+      `The pattern "${".{1000}".repeat(11)}" for the label "path" is too large to run. Shorten it, or repeat its parts fewer times.`,
+      { start: 9, end: 88 },
+    ],
+    [
+      'up{job=~"[[:nosuch:]]"}',
+      'The pattern "[[:nosuch:]]" for the label "job" names the character class [:nosuch:], which Prometheus does not read either. The classes are [:alnum:], [:alpha:], [:ascii:], [:blank:], [:cntrl:], [:digit:], [:graph:], [:lower:], [:print:], [:punct:], [:space:], [:upper:], [:word:] and [:xdigit:], written in lowercase, and [:^digit:] matches every character [:digit:] does not.',
+      { start: 8, end: 22 },
+    ],
+    [
+      'up{job=~"a{1001}"}',
+      'The pattern "a{1001}" for the label "job" repeats a part more than 1000 times ({1001}), counting a repeat inside another as the two counts multiplied, and Prometheus repeats a part at most 1000 times. Repeat it fewer times, or use * or + for any number of times.',
+      { start: 8, end: 17 },
     ],
   ])(
     "a pattern the linear-time matcher cannot run is refused with a sentence: %s",
