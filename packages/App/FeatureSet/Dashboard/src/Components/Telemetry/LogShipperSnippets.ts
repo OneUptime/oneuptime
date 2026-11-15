@@ -97,10 +97,10 @@ export const FLUENTD_POSITION_FILES: Record<FluentdRunsIn, string> = {
 export const FLUENTD_EVENT_TIME_KEY: string = "fluentd_time";
 
 /*
- * The answers Fluentd sends a batch again for: OneUptime busy (429, a
- * project over its rate) or restarting (502, 503 or 504 from the ingress).
- * Fluentd's own default is 503 alone, and it drops a batch on any other
- * answer (issue #8006).
+ * The answers Fluentd sends a batch again for: OneUptime busy (429, an
+ * ingestion key over its rate) or restarting (502, 503 or 504 from the
+ * ingress). Fluentd's own default is 503 alone, and it drops a batch on
+ * any other answer (issue #8006).
  */
 export const FLUENTD_RETRYABLE_RESPONSE_CODES: Array<number> = [
   429, 502, 503, 504,
@@ -128,7 +128,7 @@ export const FLUENTD_RETRYABLE_RESPONSE_CODES: Array<number> = [
  *  - the tail keeps its place in each file in a folder its user owns, on
  *    the host and in Docker Compose alike (FLUENTD_POSITION_FILES).
  *  - a batch OneUptime answers with 429, 502, 503 or 504 is sent again,
- *    about every 30 seconds at most, for up to 72 hours (Fluentd's own
+ *    at most about 30 seconds apart, for up to 72 hours (Fluentd's own
  *    retry_timeout, said here). Fluentd's default backoff doubles without
  *    a bound: after an hour's outage, its next try could be an hour away.
  *  - Fluentd's own logs (tagged fluent.info, fluent.warn, ...) go to the
