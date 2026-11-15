@@ -271,7 +271,7 @@ describe("the headline, as whole sentences", () => {
     renderHeadline({ language: "ja" });
 
     expect(screen.getByTestId("profiles-headline-text")).toHaveTextContent(
-      "checkout の CPU 時間 の 42% が JSON.parse で使われました。",
+      "checkout の CPU 時間の 42% が JSON.parse で使われました。",
     );
     cleanup();
 

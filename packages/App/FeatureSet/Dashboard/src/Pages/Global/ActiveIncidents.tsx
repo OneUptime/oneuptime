@@ -9,6 +9,8 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, {
   ListResult,
@@ -216,6 +218,10 @@ const ActiveIncidents: FunctionComponent<
                   <Pill
                     color={item.currentIncidentState.color || Black}
                     text={item.currentIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.currentIncidentState.name,
+                    )}
                   />
                 );
               }
@@ -239,6 +245,10 @@ const ActiveIncidents: FunctionComponent<
                   <Pill
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                   />
                 );
               }

@@ -17,8 +17,12 @@ import ts from "typescript";
  *
  * Pinned from App/Index.ts, comments removed: each is imported from
  * EnvironmentConfig and logged exactly once, only when it is set, right
- * after the cluster key's warning and before the next boot step - the
- * warnings an operator reads together, before anything connects to Valkey.
+ * after the cluster key's warning - the warnings an operator reads
+ * together, before anything connects to Valkey. Right after them come the
+ * notices about the server's own settings set by environment variables (its
+ * Twilio account, GLOBAL_TWILIO_, #7515; its email, GLOBAL_EMAIL_, #7738),
+ * which are read and said without waiting on anything, then the next boot
+ * step.
  */
 
 const INDEX_PATH: string = path.join(__dirname, "../../Index.ts");
@@ -31,6 +35,8 @@ const DATASTORE_PASSWORD_WARNING: string =
   "if (DatastorePasswordWarning) { logger.warn(DatastorePasswordWarning); }";
 const INBOUND_EMAIL_WEBHOOK_SECRET_WARNING: string =
   "if (InboundEmailWebhookSecretWarning) { logger.warn(InboundEmailWebhookSecretWarning); }";
+const SERVER_SETTINGS_NOTICES: string =
+  "const twilioEnvironment: ServerTwilioEnvironmentReading = getServerTwilioEnvironment();";
 const NEXT_STEP: string = "await Redis.connect();";
 const WHITESPACE: RegExp = /\s+/g;
 
@@ -109,9 +115,12 @@ describe("App/Index.ts says which shipped secrets the installation still holds",
     const inboundEmail: number = index.indexOf(
       INBOUND_EMAIL_WEBHOOK_SECRET_WARNING,
     );
+    const serverSettings: number = index.indexOf(SERVER_SETTINGS_NOTICES);
     const next: number = index.indexOf(NEXT_STEP);
 
     expect(clusterKey).toBeGreaterThan(-1);
+    expect(serverSettings).toBeGreaterThan(inboundEmail);
+    expect(next).toBeGreaterThan(serverSettings);
     expect(
       index
         .slice(clusterKey + CLUSTER_KEY_WARNING.length, registerProbeKey)
@@ -129,8 +138,13 @@ describe("App/Index.ts says which shipped secrets the installation still holds",
     ).toBe("");
     expect(
       index
-        .slice(inboundEmail + INBOUND_EMAIL_WEBHOOK_SECRET_WARNING.length, next)
+        .slice(
+          inboundEmail + INBOUND_EMAIL_WEBHOOK_SECRET_WARNING.length,
+          serverSettings,
+        )
         .trim(),
     ).toBe("");
+    // The notices wait on nothing: the next boot step is the first await.
+    expect(index.slice(serverSettings, next)).not.toContain("await ");
   });
 });

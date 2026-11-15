@@ -2,6 +2,7 @@ import LinearRegExp, {
   refusePatternTooLong,
 } from "../LinearRegExp/LinearRegExp";
 import { getLinearRegExp } from "../LinearRegExp/PatternCache";
+import lookupTable from "../LookupTable";
 
 /*
  * PromQL's regular expressions, read in JavaScript.
@@ -45,25 +46,26 @@ import { getLinearRegExp } from "../LinearRegExp/PatternCache";
  */
 
 /*
- * RE2's POSIX classes, by name. A Map, so a name such as constructor, which
- * names no class, finds none.
+ * Read by the name a pattern writes between `[:` and `:]`, so a Map: a
+ * plain object would read `[[:constructor:]]` as the source text of the
+ * function every object inherits, not as a name no class has.
  */
-const POSIX_CLASSES: ReadonlyMap<string, string> = new Map<string, string>([
-  ["alnum", "0-9A-Za-z"],
-  ["alpha", "A-Za-z"],
-  ["ascii", "\\x00-\\x7F"],
-  ["blank", "\\t "],
-  ["cntrl", "\\x00-\\x1F\\x7F"],
-  ["digit", "0-9"],
-  ["graph", "!-~"],
-  ["lower", "a-z"],
-  ["print", " -~"],
-  ["punct", "!-\\/:-@\\[-`{-~"],
-  ["space", "\\t\\n\\v\\f\\r "],
-  ["upper", "A-Z"],
-  ["word", "0-9A-Za-z_"],
-  ["xdigit", "0-9A-Fa-f"],
-]);
+const POSIX_CLASSES: ReadonlyMap<string, string> = lookupTable<string>({
+  alnum: "0-9A-Za-z",
+  alpha: "A-Za-z",
+  ascii: "\\x00-\\x7F",
+  blank: "\\t ",
+  cntrl: "\\x00-\\x1F\\x7F",
+  digit: "0-9",
+  graph: "!-~",
+  lower: "a-z",
+  print: " -~",
+  punct: "!-\\/:-@\\[-`{-~",
+  space: "\\t\\n\\v\\f\\r ",
+  upper: "A-Z",
+  word: "0-9A-Za-z_",
+  xdigit: "0-9A-Fa-f",
+});
 
 // A POSIX class inside a bracket, read where it starts: [:digit:], [:^digit:].
 const POSIX_CLASS_AT: RegExp = /\[:(\^?)([a-z]+):\]/y;

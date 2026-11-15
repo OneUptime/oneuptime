@@ -72,6 +72,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
@@ -160,6 +161,10 @@ import {
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
 import { figureInSentence } from "../../../Components/ResourcePart/SentenceDigits";
+import {
+  BytesReading,
+  getBytesReading,
+} from "../../../Components/TelemetryResource/telemetryFormat";
 
 interface ResourceLink {
   title: string;
@@ -193,20 +198,20 @@ const formatPercent: (value: number | null) => string = (
   return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
 
+/*
+ * A size in the reader's digits, in the unit and rounding every telemetry
+ * page writes (getBytesReading): "12 GiB", "1.5 KiB", plain bytes whole.
+ */
 const formatMemoryBytes: (bytes: number | null | undefined) => string = (
   bytes: number | null | undefined,
 ): string => {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
     return "—";
   }
-  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v: number = bytes;
-  let i: number = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${formatReaderFigure(v, { decimals: v < 10 ? 1 : 0 })} ${units[i]}`;
+  const reading: BytesReading = getBytesReading(bytes);
+  return `${formatReaderFigure(reading.value, {
+    decimals: reading.decimals,
+  })} ${reading.unit}`;
 };
 
 const formatBytesPerSec: (value: number | null) => string = (
@@ -1152,6 +1157,15 @@ const KubernetesClusterOverview: FunctionComponent<
           windowEnd: endDate,
           now: OneUptimeDate.getCurrentDate(),
           receivingGaps: receivingGapsInWindow,
+          /*
+           * The zone AnalyticsModelAPI.aggregate put on the heartbeat
+           * request - the reader's, for day buckets and longer - so its
+           * days are walked on the calendar the server cut them on.
+           */
+          timezone: AggregationIntervalUtil.getReaderTimezone({
+            startDate: startDate,
+            endDate: endDate,
+          }),
         });
       setReceivingGaps(receivingGapsInWindow);
       setAvailabilitySeries(

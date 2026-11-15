@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "{{total}} حادثه در این روز گزارش شده است",
     "scheduledMaintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
     "dayLabelWithMaintenance": "{{label}}، {{maintenance}}",
-    "oneMaintenanceEvent": "۱ تعمیر و نگهداری زمان‌بندی‌شده",
-    "maintenanceEvents": "{{total}} تعمیر و نگهداری زمان‌بندی‌شده",
+    "oneMaintenanceEvent": "۱ رویداد تعمیر و نگهداری",
+    "maintenanceEvents": "{{total}} رویداد تعمیر و نگهداری",
     "moreMaintenance": "+{{total}} مورد دیگر"
   },
   "liveStatus": {
@@ -448,6 +448,17 @@
   "Loading": "در حال بارگذاری",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} یک JSON معتبر نیست. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} یک YAML معتبر نیست. {{parserMessage}}",
+  "Click to reveal": "برای نمایش کلیک کنید",
+  "Click to copy": "برای کپی کلیک کنید",
+  "Main navigation": "ناوبری اصلی",
+  "Navigate to": "رفتن به",
+  "Navigation": "ناوبری",
+  "Breadcrumb": "مسیر صفحه",
+  "Skip to main content": "رفتن به محتوای اصلی",
+  "Copy": "کپی",
+  "Copied!": "کپی شد!",
+  "Copy failed": "کپی ناموفق بود",
+  "Hide": "پنهان کردن",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

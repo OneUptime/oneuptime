@@ -53,6 +53,7 @@ import OpenStackCloudConnection, {
 import OpenStackProbeCollectionStore, {
   OpenStackCollectionReportOutcome,
 } from "../Utils/OpenStack/OpenStackProbeCollectionStore";
+import OpenStackCheckStore from "../Utils/OpenStack/OpenStackCheckStore";
 import {
   OpenStackCollectionJob,
   OpenStackCollectionReport,
@@ -843,6 +844,30 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * Unarchived: collected and checked again at once. While it was archived the claims set its
+     * collection and its checks aside for up to a quarter of an hour at a time
+     * (Utils/Probe/ClaimSetAside), and restoring a cloud must not wait for that. Its own try: the
+     * cloud is saved already.
+     */
+    if (
+      updatedItemIds.length > 0 &&
+      Service.isUnarchive(onUpdate.updateBy.data)
+    ) {
+      try {
+        await OpenStackProbeCollectionStore.makeDueNow(this, updatedItemIds);
+        await OpenStackCheckStore.makeDueNow(this, {
+          ids: updatedItemIds,
+          byCloud: true,
+        });
+      } catch (error) {
+        logger.error(
+          "OpenStackCloudService.onUpdateSuccess: could not make an unarchived cloud's collection and checks due now; the claims pick them up within a quarter of an hour.",
+        );
+        logger.error(error as Error);
+      }
+    }
+
+    /*
      * An operator's AI access write: recorded on the feed, and the cloud marked
      * AI-configured.
      */
@@ -871,6 +896,15 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return onUpdate;
+  }
+
+  // Whether an update brings a cloud back from the archive.
+  public static isUnarchive(data: unknown): boolean {
+    return (
+      Boolean(data) &&
+      typeof data === "object" &&
+      (data as Record<string, unknown>)["isArchived"] === false
+    );
   }
 
   /*

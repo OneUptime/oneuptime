@@ -94,7 +94,7 @@ Abra um evento na lista para ver suas páginas. Seu menu lateral reúne:
 
 - **Visão geral** — o cabeçalho mostra o número, o título e o estado do evento, quanto falta para começar ou há quanto tempo ele dura, seus proprietários, as páginas de status em que aparece e quem o criou, e os botões que o fazem avançar. Abaixo, **Começa**, **Termina** e **Duração** mostram a janela planejada no seu fuso horário. O **Feed da manutenção programada** registra tudo o que aconteceu com o evento, ao lado dos cartões **Detalhes da manutenção** e **Recursos afetados**, e dos cartões **Medições** e **Campos personalizados** quando o seu projeto tem algum.
 - **Linha do tempo de estado** — cada estado em que o evento esteve, quando e por quanto tempo. Veja [Estados da manutenção](/docs/scheduled-maintenance/states#a-linha-do-tempo-de-estado).
-- **Notas públicas** — atualizações para suas páginas de status e os assinantes delas. As **Notas privadas** são só para a sua equipe.
+- **Notas públicas** — atualizações para suas páginas de status e os assinantes delas. As **Notas privadas** só podem ser lidas por quem pode ver o evento.
 - **Configurações** — **Visível na página de status**, que mostra ou oculta o evento nas suas páginas de status, e **Enviar lembretes**, que lembra os proprietários do evento até ele ser concluído. Cada chave salva no momento em que você a aciona.
 
 ## Solução de problemas

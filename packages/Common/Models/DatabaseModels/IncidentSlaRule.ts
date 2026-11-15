@@ -442,7 +442,7 @@ export default class IncidentSlaRule extends RuleBaseModel {
     type: TableColumnType.Number,
     title: "Internal Note Reminder Interval (Minutes)",
     description:
-      "How often (in minutes) to automatically post internal notes to unresolved incidents. Internal notes are only visible to your team. For example, set to 30 to remind your team every 30 minutes to provide an update. Leave empty to disable.",
+      "How often (in minutes) to automatically post internal notes to unresolved incidents. Only the people who can see an incident can read its internal notes. For example, set to 30 to remind your team every 30 minutes to provide an update. Leave empty to disable.",
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -514,7 +514,7 @@ export default class IncidentSlaRule extends RuleBaseModel {
     type: TableColumnType.Markdown,
     title: "Internal Note Reminder Template",
     description:
-      "The content of the automatic internal note posted to your team. Use variables like {{incidentTitle}}, {{elapsedTime}}, {{slaStatus}}, {{timeToResolutionDeadline}} to include dynamic incident data. If left empty, a default template will be used.",
+      "The content of the automatic internal note posted on the incident. Use variables like {{incidentTitle}}, {{elapsedTime}}, {{slaStatus}}, {{timeToResolutionDeadline}} to include dynamic incident data. If left empty, a default template will be used.",
   })
   @Column({
     type: ColumnType.Markdown,

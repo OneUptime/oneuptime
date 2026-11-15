@@ -42,6 +42,13 @@
     "errorOnSignUp": "Bitte vervollständigen Sie das Captcha, bevor Sie sich registrieren."
   },
   "login": {
+    "title": "Melden Sie sich bei Ihrem Konto an",
+    "subtitle": "Verwenden Sie Ihr Passwort, das SSO Ihrer Organisation oder einen Passkey.",
+    "sessionEnded": {
+      "lengthReached": "Sie wurden abgemeldet, weil Ihre Sitzung ihr Zeitlimit erreicht hat. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben.",
+      "inactive": "Sie wurden nach einer Zeit ohne Aktivität abgemeldet. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben."
+    },
+    "submitButton": "Anmelden",
     "passkey": {
       "signIn": "Mit einem Passkey anmelden",
       "inProgress": "Beenden oder brechen Sie die Passkey-Anmeldung ab, bevor Sie Ihr Passwort verwenden.",
@@ -57,13 +64,6 @@
       "insecure": "Passkeys benötigen eine sichere Verbindung (HTTPS). Sie können sich weiterhin mit Ihrem Passwort oder SSO anmelden.",
       "tryAgain": "Passkey erneut versuchen"
     },
-    "title": "Melden Sie sich bei Ihrem Konto an",
-    "subtitle": "Verwenden Sie Ihr Passwort, das SSO Ihrer Organisation oder einen Passkey.",
-    "sessionEnded": {
-      "lengthReached": "Sie wurden abgemeldet, weil Ihre Sitzung ihr Zeitlimit erreicht hat. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben.",
-      "inactive": "Sie wurden nach einer Zeit ohne Aktivität abgemeldet. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben."
-    },
-    "submitButton": "Anmelden",
     "forgotPassword": "Passwort vergessen?",
     "signInWithSso": "Mit SSO anmelden",
     "signInWithMicrosoft": "Mit Microsoft anmelden",
@@ -397,6 +397,9 @@
   "Copy": "Kopieren",
   "Copied!": "Kopiert!",
   "Copy failed": "Kopieren fehlgeschlagen",
+  "Hide": "Ausblenden",
+  "Click to reveal": "Zum Anzeigen klicken",
+  "Click to copy": "Zum Kopieren klicken",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Die SCIM-Bereitstellung wird angehalten, die Audit-Protokollierung zeichnet nichts mehr auf, die Enterprise-Konfiguration wird schreibgeschützt und die Enterprise-Admin-Dashboards werden gesperrt. Alles läuft wieder, sobald eine Lizenz aktiviert ist, und das Kern-Monitoring ist nie betroffen.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Ohne gültige Lizenz (nach der {{days}}-tägigen Testphase) wird die SCIM-Bereitstellung angehalten, die Audit-Protokollierung zeichnet nichts mehr auf, die Enterprise-Konfiguration wird schreibgeschützt und die Enterprise-Admin-Dashboards werden gesperrt. Alles läuft wieder, sobald eine Lizenz aktiviert ist, und das Kern-Monitoring ist nie betroffen.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Ohne gültige Lizenz (nach der {{days}}-tägigen Kulanzfrist) wird die SCIM-Bereitstellung angehalten, die Audit-Protokollierung zeichnet nichts mehr auf, die Enterprise-Konfiguration wird schreibgeschützt und die Enterprise-Admin-Dashboards werden gesperrt. Alles läuft wieder, sobald eine Lizenz aktiviert ist, und das Kern-Monitoring ist nie betroffen.",
@@ -607,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Klicken Sie, um eine Datei auszuwählen, oder ziehen Sie sie hierher.",
   "Click to add more or drag & drop.": "Klicken Sie, um weitere hinzuzufügen, oder ziehen Sie sie hierher.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP, bis zu {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Bis zu 10 Dateien mit je {{size}}: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Bis zu {{count}} Dateien mit je {{size}}: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "Eine Datei mit bis zu {{size}}: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
   "Chosen files": "Ausgewählte Dateien",
   "Remove": "Entfernen",
   "Replace": "Ersetzen",
@@ -618,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "Diese Dateien haben einen Typ, den dieses Feld nicht akzeptiert: {{fileNames}}.",
   "Add one file at a time.": "Fügen Sie jeweils nur eine Datei hinzu.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dieses Feld fasst bis zu {{count}} Dateien. Entfernen Sie eine, um eine weitere hinzuzufügen.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "Dieses Feld fasst eine Datei. Entfernen Sie sie, um eine andere hinzuzufügen.",
   "markdownCallouts": {
     "caution": "Vorsicht",
     "danger": "Gefahr",

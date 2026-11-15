@@ -14,6 +14,12 @@ import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { SERVER_LOCALES } from "Common/Server/Utils/ServerTranslation";
+import {
+  DASHBOARD_SHARED_TEXT_SOURCES,
+  findServerTextKeys,
+  getDashboardSharedKeys,
+  ServerTextKey,
+} from "Common/Scripts/I18n/ServerLocales";
 import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import { readStartTag } from "Common/Tests/Helpers/MarkupReferences";
 import MailService, {
@@ -201,9 +207,24 @@ interface WordedSentence {
   worded: string;
 }
 
+// Every sentence the server's code and email templates look up.
+const SERVER_TEXT_KEYS: Array<ServerTextKey> = findServerTextKeys();
+
+/*
+ * The words of a record the server makes for a person - a new monitor's
+ * criteria, the name a status page starts with ("{{project}} Status") -
+ * which the server's locale set copies from the Dashboard's
+ * (DASHBOARD_SHARED_TEXT_SOURCES, #7247). No email looks one up (the first
+ * test of the subscriber emails holds that), so they are no email's words,
+ * and a name a subscriber reads ("Zorbex Status") is not one of them left
+ * in English.
+ */
+const RECORD_WORDS: Set<string> = getDashboardSharedKeys(SERVER_TEXT_KEYS);
+
 /*
  * The sentences a language words apart from the English, of two words or
- * more - a single word ("Incident") can be part of a name in any email.
+ * more - a single word ("Incident") can be part of a name in any email -
+ * that an email can show: not a record's words (RECORD_WORDS).
  */
 const wordedApart: (language: string) => Array<WordedSentence> = (
   language: string,
@@ -219,7 +240,11 @@ const wordedApart: (language: string) => Array<WordedSentence> = (
 
   return Object.keys(english)
     .filter((key: string): boolean => {
-      return locale[key] !== english[key] && key.trim().includes(" ");
+      return (
+        locale[key] !== english[key] &&
+        key.trim().includes(" ") &&
+        !RECORD_WORDS.has(key)
+      );
     })
     .map((key: string): WordedSentence => {
       return { english: key, worded: locale[key]! };
@@ -768,6 +793,29 @@ describe("values in an email read from the right", () => {
 });
 
 describe("every subscriber email, in every language", () => {
+  /*
+   * The record words the check below leaves out are no email's: no
+   * template, and no file but the ones the server shares with the
+   * Dashboard, looks one up.
+   */
+  test("looks up none of the words of a record the server makes for a person", () => {
+    expect(RECORD_WORDS.has("{{project}} Status")).toBe(true);
+    expect(RECORD_WORDS.has("Check if {{monitorName}} is online")).toBe(true);
+
+    const lookedUpElsewhere: Array<string> = SERVER_TEXT_KEYS.filter(
+      (key: ServerTextKey): boolean => {
+        return (
+          RECORD_WORDS.has(key.key) &&
+          !DASHBOARD_SHARED_TEXT_SOURCES.includes(key.file)
+        );
+      },
+    ).map((key: ServerTextKey): string => {
+      return `${key.file}: ${key.key}`;
+    });
+
+    expect(lookedUpElsewhere).toEqual([]);
+  });
+
   test.each(SUBSCRIBER_TEMPLATES)(
     "%s reads none of OneUptime's English words in another language",
     async (templateType: EmailTemplateType) => {

@@ -330,7 +330,7 @@ curl https://oneuptime.com/mcp/tools
 
 - **`acknowledge_incident`** / **`resolve_incident`**: ダッシュボードのボタンと同じように、インシデントをプロジェクトの Acknowledged または Resolved の状態にします
 - **`acknowledge_alert`** / **`resolve_alert`**: アラートについて同じことを行います
-- **`add_incident_note`**: `visibility: "internal"`(チームのみ、既定)または `visibility: "public"`(ステータスページに投稿)でインシデントにメモを追加します。Markdown に対応しています
+- **`add_incident_note`**: `visibility: "internal"`(インシデントを閲覧できる人のみ、既定)または `visibility: "public"`(ステータスページに投稿)でインシデントにメモを追加します。Markdown に対応しています
 - **`add_alert_note`**: アラートに内部メモを追加します
 
 典型的な流れ: `list_incidents` → `acknowledge_incident` → `list_logs` で調査 → `add_incident_note`(公開) → `resolve_incident`。

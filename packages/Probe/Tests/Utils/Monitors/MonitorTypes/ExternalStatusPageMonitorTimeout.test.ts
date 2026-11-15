@@ -24,6 +24,8 @@ const axiosCalls: Array<{
 import ExternalStatusPageMonitorUtil from "../../../../Utils/Monitors/MonitorTypes/ExternalStatusPageMonitor";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
+import ExternalStatusPageMonitorResponse from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
+import Sleep from "Common/Types/Sleep";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { Readable } from "stream";
 
@@ -154,4 +156,38 @@ describe("ExternalStatusPageMonitorUtil timeout precedence", () => {
     expect(axiosCalls[4]!.signal).toBe(axiosCalls[5]!.signal);
     expect(axiosCalls[3]!.signal).not.toBe(axiosCalls[0]!.signal);
   });
+});
+
+describe("ExternalStatusPageMonitorUtil when every attempt timed out", () => {
+  beforeEach(() => {
+    jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
+    jest.spyOn(axios, "get").mockImplementation(async (): Promise<never> => {
+      throw Object.assign(new Error("timeout of 1000ms exceeded"), {
+        code: "ECONNABORTED",
+      });
+    });
+  });
+
+  test.each([
+    [0, "Request was tried 1 times and it timed out."],
+    [2, "Request was tried 3 times and it timed out."],
+  ])(
+    "%i retries store the probe's timeout sentence, byte for byte the English it always wrote",
+    async (retries: number, sentence: string) => {
+      const response: ExternalStatusPageMonitorResponse | null =
+        await ExternalStatusPageMonitorUtil.fetch(
+          { ...buildConfig(1000), retries: retries },
+          { isOnlineCheckRequest: true },
+        );
+
+      expect(response?.isOnline).toBe(false);
+      expect(response?.isTimeout).toBe(true);
+      /*
+       * Monitor criteria, root causes and logs compare this English; the
+       * summaries read it back (ProbeFailureReading) to word it.
+       */
+      expect(response?.failureCause).toBe(sentence);
+      expect(response?.totalAttempts).toBe(retries + 1);
+    },
+  );
 });

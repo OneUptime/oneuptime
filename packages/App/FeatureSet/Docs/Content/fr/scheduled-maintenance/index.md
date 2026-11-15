@@ -94,7 +94,7 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 
 - **Vue d'ensemble** — l'en-tête affiche le numéro, le titre et l'état de l'événement, le temps restant avant son début ou depuis combien de temps il dure, ses propriétaires, les pages de statut où il apparaît et qui l'a créé, et les boutons qui le font avancer. En dessous, **Commence**, **Se termine** et **Durée** montrent la fenêtre prévue dans votre fuseau horaire. Le **Fil d'activité de la maintenance planifiée** enregistre tout ce qui est arrivé à l'événement, à côté des cartes **Détails de la maintenance** et **Ressources affectées**, ainsi que des cartes **Mesures** et **Champs personnalisés** quand votre projet en a.
 - **Chronologie d'état** — chaque état dans lequel l'événement a été, quand et pendant combien de temps. Voir [États de la maintenance](/docs/scheduled-maintenance/states#la-chronologie-détat).
-- **Notes publiques** — des mises à jour pour vos pages de statut et leurs abonnés. Les **Notes privées** sont réservées à votre équipe.
+- **Notes publiques** — des mises à jour pour vos pages de statut et leurs abonnés. Les **Notes privées** ne peuvent être lues que par les personnes qui peuvent voir l'événement.
 - **Paramètres** — **Visible sur la page de statut**, qui affiche ou masque l'événement sur ses pages de statut, et **Envoyer des rappels**, qui rappelle l'événement à ses propriétaires jusqu'à ce qu'il soit achevé. Chaque interrupteur enregistre dès que vous le basculez.
 
 ## Dépannage

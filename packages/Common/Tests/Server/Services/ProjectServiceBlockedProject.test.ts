@@ -97,7 +97,11 @@ afterEach(() => {
 });
 
 describe("ProjectService.isProjectBlocked", () => {
-  test("reads isBlocked from the project row as root, and only that column", async () => {
+  /*
+   * With the project's sign-in rule, which every request in the project asks
+   * too (ProjectAccessRulesRead): one read of the row answers both.
+   */
+  test("reads isBlocked from the project row as root, with the sign-in rule and nothing else", async () => {
     findOneById.mockResolvedValue(storedProject({ isBlocked: true }) as never);
 
     await expect(ProjectService.isProjectBlocked(PROJECT_ID)).resolves.toBe(
@@ -107,7 +111,11 @@ describe("ProjectService.isProjectBlocked", () => {
     expect(findOneById).toHaveBeenCalledTimes(1);
     expect(findOneById).toHaveBeenCalledWith({
       id: PROJECT_ID,
-      select: { isBlocked: true },
+      select: {
+        isBlocked: true,
+        requireSsoForLogin: true,
+        requireSsoWithSsoProviderId: true,
+      },
       props: { isRoot: true, ignoreHooks: true },
     });
   });

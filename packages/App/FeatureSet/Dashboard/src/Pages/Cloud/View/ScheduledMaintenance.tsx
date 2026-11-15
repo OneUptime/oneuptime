@@ -38,7 +38,7 @@ const CloudResourceScheduledMaintenance: FunctionComponent<
         query={query}
         createFrom={{ kind: CreateFromRecordKind.CloudResource, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-        noItemsMessage="No scheduled maintenance events for this resource."
+        noItemsMessage="No maintenance events for this resource."
       />
     </Fragment>
   );

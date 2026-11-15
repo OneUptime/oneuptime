@@ -108,7 +108,7 @@ Een origin is een schema, een host en een optionele poort: `https://app.example.
 
 ## Een sleutel vervangen, uitschakelen of verwijderen
 
-De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter **Click to reveal**, en zijn **Last Used At**: de laatste keer dat OneUptime gegevens accepteerde die ermee waren verzonden.
+De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter **Klik om te tonen**, en zijn **Last Used At**: de laatste keer dat OneUptime gegevens accepteerde die ermee waren verzonden.
 
 | Om | Doe dit | Wat afzenders zien |
 | --- | --- | --- |

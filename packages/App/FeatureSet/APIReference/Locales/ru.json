@@ -262,7 +262,7 @@
       "countRequestTitle": "Запрос количества",
       "aggregateHeading": "Агрегация",
       "aggregateIntro": "Эта конечная точка выполняет агрегацию на стороне сервера (сумма, среднее, количество и процентили) по вашим {{title}} и группирует результаты по временным интервалам. Она используется для графиков и панелей мониторинга.",
-      "aggregateByDescription": "Агрегация для выполнения. Укажите aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp, а также необязательные query и groupBy.",
+      "aggregateByDescription": "Агрегация для выполнения. Укажите aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp, а также необязательные query и groupBy. По умолчанию размер временных интервалов определяется по окну; задайте необязательный aggregationInterval, чтобы зафиксировать его (Minute, Hour, Day, Week, Month, Year), например интервалы Day в окне длиной в неделю, или задайте Total, чтобы получить одно агрегированное значение на группу за всё окно, без разбиения по времени. Интервалы Day, Week, Month и Year начинаются в полночь по UTC, а недели — с понедельника; задайте необязательный timezone с названием часового пояса, например America/New_York, чтобы они начинались в полночь в этом часовом поясе. Название, которое не является известным часовым поясом, отклоняется.",
       "aggregateRequestTitle": "Запрос агрегации",
       "createHeading": "Создать {{title}}",
       "createIntro": "Эта конечная точка позволяет создать новый объект.",

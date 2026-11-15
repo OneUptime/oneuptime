@@ -22,6 +22,9 @@
  * metric and Data Source hosts share one definition.
  */
 
+import OneUptimeDate from "../../Types/Date";
+import Timezone from "../../Types/Timezone";
+
 export interface ValueWidgetPoint {
   timestamp: Date;
   value: number;
@@ -278,7 +281,72 @@ export interface FillValueWidgetSeriesGapsData {
   series: Array<ValueWidgetPoint>;
   // The interval the server bucketed the window at.
   bucketWidthMs: number;
+  /*
+   * The zone the server started its day and week buckets in, when the
+   * request carried one (AggregateBy.timezone, issue #7277): a bucket a
+   * whole number of days wide is then that many of the zone's calendar
+   * days, from its midnight, and 23 or 25 hours long where its clocks
+   * change. None for buckets on UTC's days, which are all 24 hours.
+   */
+  timezone?: Timezone | undefined;
 }
+
+const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+/*
+ * The start of the bucket after the one that starts at `startMs`, when a
+ * bucket is `days` of `timezone`'s calendar days: the start of the zone's
+ * day that many days on. Half a day past that many 24-hour days is inside
+ * that day whatever the clocks did in between (they move by two hours at
+ * most), and the day's start is where the server starts its bucket - its
+ * midnight, or the first instant after it on a day whose midnight the
+ * clocks skip.
+ */
+const getNextCalendarBucketStartMs: (
+  startMs: number,
+  days: number,
+  timezone: Timezone,
+) => number = (startMs: number, days: number, timezone: Timezone): number => {
+  return OneUptimeDate.getStartOfDay(
+    new Date(startMs + days * DAY_MS + DAY_MS / 2),
+    timezone,
+  ).getTime();
+};
+
+/*
+ * The slots of buckets of whole calendar days in a zone, `days` of its days
+ * apart: from the first reading's, up to the first at or after the last
+ * reading. Null when that is more than VALUE_WIDGET_MAX_FILLED_POINTS.
+ */
+const getCalendarBucketSlots: (data: {
+  firstMs: number;
+  lastMs: number;
+  days: number;
+  timezone: Timezone;
+}) => Array<number> | null = (data: {
+  firstMs: number;
+  lastMs: number;
+  days: number;
+  timezone: Timezone;
+}): Array<number> | null => {
+  const slots: Array<number> = [data.firstMs];
+
+  while (slots[slots.length - 1]! < data.lastMs) {
+    if (slots.length >= VALUE_WIDGET_MAX_FILLED_POINTS) {
+      return null;
+    }
+
+    slots.push(
+      getNextCalendarBucketStartMs(
+        slots[slots.length - 1]!,
+        data.days,
+        data.timezone,
+      ),
+    );
+  }
+
+  return slots;
+};
 
 /*
  * A sum's or a count's series with the empty buckets between its readings
@@ -304,6 +372,11 @@ export interface FillValueWidgetSeriesGapsData {
  *     month or year is not a fixed width, and a widget bucketed some other
  *     way must not get zeros between its real points);
  *   - the readings span more buckets than VALUE_WIDGET_MAX_FILLED_POINTS.
+ *
+ * Days and weeks in the reader's zone (`timezone`) are a grid of its
+ * calendar days, not of fixed widths: across a change of its clocks one
+ * day is 23 or 25 hours long, and a fixed step would put every later
+ * reading off the grid and fill nothing.
  */
 export const fillValueWidgetSeriesGaps: (
   data: FillValueWidgetSeriesGapsData,
@@ -320,6 +393,53 @@ export const fillValueWidgetSeriesGaps: (
   const firstMs: number = series[0]!.timestamp.getTime();
   const lastMs: number = series[series.length - 1]!.timestamp.getTime();
   const valuesByTime: Map<number, number> = new Map<number, number>();
+
+  /*
+   * Whole days in a zone, from a reading at the start of one of its days:
+   * the zone's calendar is the grid. Readings that are not on it - on
+   * UTC's midnights, say - are measured against the fixed width below.
+   */
+  if (
+    data.timezone &&
+    widthMs % DAY_MS === 0 &&
+    OneUptimeDate.getStartOfDay(new Date(firstMs), data.timezone).getTime() ===
+      firstMs
+  ) {
+    const slots: Array<number> | null = getCalendarBucketSlots({
+      firstMs: firstMs,
+      lastMs: lastMs,
+      days: widthMs / DAY_MS,
+      timezone: data.timezone,
+    });
+
+    if (!slots) {
+      return series;
+    }
+
+    const onTheGrid: Set<number> = new Set<number>(slots);
+
+    for (const point of series) {
+      const timeMs: number = point.timestamp.getTime();
+
+      if (!onTheGrid.has(timeMs)) {
+        return series;
+      }
+
+      valuesByTime.set(timeMs, point.value);
+    }
+
+    if (slots.length === series.length) {
+      // No bucket between the readings is empty.
+      return series;
+    }
+
+    return slots.map((slotMs: number): ValueWidgetPoint => {
+      return {
+        timestamp: new Date(slotMs),
+        value: valuesByTime.get(slotMs) ?? 0,
+      };
+    });
+  }
 
   for (const point of series) {
     const timeMs: number = point.timestamp.getTime();

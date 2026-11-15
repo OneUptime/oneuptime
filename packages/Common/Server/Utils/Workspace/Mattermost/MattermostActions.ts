@@ -88,6 +88,7 @@ import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../WorkspaceMemberActions";
 import WorkspaceNoteForm, {
+  SCHEDULED_MAINTENANCE_NOTE_NOUN,
   WORKSPACE_NOTE_FORM_TEXT,
   WorkspaceNoteFormType,
   WorkspaceSubmittedNote,
@@ -1264,7 +1265,9 @@ export default class MattermostActions {
                 value: WorkspaceNoteFormType.Public,
               },
               {
-                label: WORKSPACE_NOTE_FORM_TEXT.privateOption,
+                label: WorkspaceNoteForm.getPrivateOption(
+                  SCHEDULED_MAINTENANCE_NOTE_NOUN,
+                ),
                 value: WorkspaceNoteFormType.Private,
               },
             ],

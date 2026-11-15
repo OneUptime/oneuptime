@@ -130,9 +130,15 @@ export class CloudCostService extends AnalyticsDatabaseService<CloudCost> {
         : `${aggregateBy.aggregationType.toLocaleLowerCase()}(${aggregateColumn})`;
     const statement: Statement = SQL`SELECT `;
 
-    statement.append(
-      `${aggregation} as ${aggregateColumn}, ${AggregateUtil.buildBucketTimestampSelect(interval, timestampColumn)}`,
-    );
+    statement
+      .append(`${aggregation} as ${aggregateColumn}, `)
+      .append(
+        AggregateUtil.buildBucketTimestampSelectStatement(
+          interval,
+          timestampColumn,
+          aggregateBy.timezone,
+        ),
+      );
     statement.append(
       SQL`, map(${{
         type: TableColumnType.Text,

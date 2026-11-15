@@ -362,7 +362,7 @@ export default class ScheduledMaintenanceFormTarget
 
     if (!created.id) {
       throw new ServerException(
-        "The scheduled maintenance event was created without an id, so its submission could not be linked to it.",
+        "The maintenance event was created without an id, so its submission could not be linked to it.",
       );
     }
 

@@ -172,6 +172,8 @@ import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmort
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
 import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusTimelines";
 import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
+import EncryptGlobalConfigCredentials from "./EncryptGlobalConfigCredentials";
+import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1067,6 +1069,28 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RestampDevicesOfMonitorsNotChecked(),
+  /*
+   * Encrypts the server's credentials (GlobalConfig: SMTP, Twilio, the call
+   * and SMS gateway, Meta WhatsApp, Telegram, SendGrid, the Enterprise
+   * license) that were stored before their columns were encrypted (#7739).
+   * After the schema migration GlobalConfigCredentialsEncryptedColumns,
+   * which makes room for the ciphertext; idempotent; it writes only the
+   * server's settings row, so it sits above the runbook migrations that
+   * keep their places before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new EncryptGlobalConfigCredentials(),
+  /*
+   * NetworkEndpoint.coarseLastSeenAt (#8092): lastSeenAt copied in for the
+   * live endpoints that were seen, so the age-out of discovered devices,
+   * which now finds its candidates by that column, finds the ones no walk
+   * sees any more. After the schema migration
+   * AddNetworkEndpointCoarseLastSeenAt; Postgres only, paged, and
+   * idempotent; no ordering requirement among these, so it sits above the
+   * runbook moves, which keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillNetworkEndpointCoarseLastSeenAt(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

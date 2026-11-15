@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import MonitorUtil from "../../Utils/Monitor";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
@@ -9,7 +10,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
-import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
   ExpressRequest,
@@ -23,35 +23,16 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
-import MonitorService from "Common/Server/Services/MonitorService";
-import ProjectService from "Common/Server/Services/ProjectService";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
+import ProbePendingCount from "Common/Server/Utils/Probe/ProbePendingCount";
+import {
+  PROBE_SCHEDULING_BUSY_RETRY_AFTER_SECONDS,
+  ProbeSchedulingBusyError,
+} from "Common/Server/Utils/Probe/ProbeSchedulingLimiter";
 
 const router: ExpressRouter = Express.getRouter();
-
-type GetMonitorFetchQueryFunction = (probeId: ObjectID) => Query<MonitorProbe>;
-
-const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
-  probeId: ObjectID,
-): Query<MonitorProbe> => {
-  const monitorFetchQuery: Query<MonitorProbe> = {
-    probeId: probeId,
-    isEnabled: true,
-    nextPingAt: QueryHelper.lessThanEqualToOrNull(
-      OneUptimeDate.getCurrentDate(),
-    ),
-    monitor: {
-      ...MonitorService.getEnabledMonitorQuery(),
-    },
-    project: {
-      ...ProjectService.getActiveProjectStatusQuery(),
-    },
-  };
-
-  return monitorFetchQuery;
-};
 
 /*
  * This API returns the count of monitors pending to be probed for the authenticated probe.
@@ -97,22 +78,50 @@ router.post(
         );
       }
 
-      // Get count of monitors pending to be probed
-      const monitorProbesCount: PositiveNumber =
-        await MonitorProbeService.countBy({
-          query: getMonitorFetchQuery(probeId),
-          props: {
-            isRoot: true,
+      /*
+       * The monitors waiting for this probe, by the claim's own rule, up to
+       * PENDING_MONITOR_PROBE_COUNT_CAP - far more than autoscaling reads
+       * (MonitorProbeService.countMonitorProbesDueForProbing). Counted under
+       * the probe scheduling limit; while this server is too busy to count
+       * in time, the probe's last count, never 0 (ProbePendingCount).
+       */
+      let pendingCount: number;
+
+      try {
+        pendingCount = await ProbePendingCount.get(
+          probeId.toString(),
+          (): Promise<number> => {
+            return MonitorProbeService.countMonitorProbesDueForProbing({
+              probeId: probeId,
+              dueAt: OneUptimeDate.getCurrentDate(),
+            });
           },
-        });
+        );
+      } catch (err) {
+        if (err instanceof ProbeSchedulingBusyError) {
+          /*
+           * Busy, and no last count to give: an error, which the autoscaler
+           * reads as "no reading" and keeps the replicas it has, never a 0
+           * that would scale the probe down.
+           */
+          res.setHeader(
+            "Retry-After",
+            String(PROBE_SCHEDULING_BUSY_RETRY_AFTER_SECONDS),
+          );
+          res.status(429).send({ message: err.message });
+          return;
+        }
+
+        throw err;
+      }
 
       logger.debug(
-        `Pending monitor count for probe ${probeId.toString()}: ${monitorProbesCount.toNumber()}`,
+        `Pending monitor count for probe ${probeId.toString()}: ${pendingCount}`,
         getLogAttributesFromRequest(req as any),
       );
 
       return Response.sendJsonObjectResponse(req, res, {
-        count: monitorProbesCount.toNumber(),
+        count: pendingCount,
       });
     } catch (err) {
       return next(err);
@@ -123,6 +132,21 @@ router.post(
 router.post(
   "/monitor/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  /*
+   * Under the probe scheduling limit; a refused request claims nothing and
+   * is answered busy (ProbeSchedulingMiddleware).
+   */
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendEntityArrayResponse(
+        req,
+        res,
+        [],
+        new PositiveNumber(0),
+        Monitor,
+      );
+    },
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -352,6 +376,18 @@ router.post(
 router.post(
   "/monitor-test/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  // Under the probe scheduling limit, as /monitor/list is.
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendEntityArrayResponse(
+        req,
+        res,
+        [],
+        new PositiveNumber(0),
+        MonitorTest,
+      );
+    },
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

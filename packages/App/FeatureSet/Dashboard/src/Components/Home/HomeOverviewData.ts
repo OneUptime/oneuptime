@@ -221,7 +221,7 @@ export const fetchNotOperationalMonitors: (
       modelType: Monitor,
       query: {
         projectId: projectId,
-        ...NotOperationalMonitorQuery.getQuery(),
+        ...NotOperationalMonitorQuery.getQuery(projectId),
       },
       select: {
         _id: true,

@@ -8,8 +8,9 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import {
+  getUserFlowPageText,
   OTHER_PAGES_KEY,
   UserFlowAnalysis,
   UserFlowDirection,
@@ -27,6 +28,8 @@ import { buildSessionsForPageSearch } from "./UserFlowUrlState";
 import {
   formatUserFlowCount,
   formatUserFlowShare,
+  getUserFlowPathDirection,
+  getUserFlowPathLineDirection,
   pluralizeSessions,
 } from "./UserFlowFormat";
 import { UserFlowSelection } from "./UserFlowMap";
@@ -82,10 +85,14 @@ function Stat(props: {
 
   return (
     <div className="rounded-lg bg-gray-50 px-3 py-2" data-testid={props.testId}>
-      <div className="flex items-center gap-1">
-        <p className="min-w-0 text-xs font-medium text-gray-500">{label}</p>
-        <InfoTooltip label={label} text={props.tooltip} />
-      </div>
+      {/* The (i) after the label's last word (issue #7348). */}
+      <p className="text-xs font-medium text-gray-500">
+        <WordsWithInfoTooltip
+          text={label}
+          label={label}
+          description={props.tooltip}
+        />
+      </p>
       <p className={`text-lg font-semibold ${toneClass}`}>{props.value}</p>
       {props.hint ? (
         <p className="text-xs text-gray-500">{props.hint}</p>
@@ -157,17 +164,14 @@ function NeighbourList(props: {
        * The (i) sits in the title row, never inside the rows below: each
        * of those is a button that re-anchors the map.
        */}
-      <div className="mb-1.5 flex items-center gap-1">
-        <p className="min-w-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {title}
-        </p>
-        <InfoTooltip
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <WordsWithInfoTooltip
+          text={title}
           label={title}
-          text={props.tooltip}
-          className="font-normal normal-case"
-          dataTestId={`${props.testId}-info`}
+          description={props.tooltip}
+          infoDataTestId={`${props.testId}-info`}
         />
-      </div>
+      </p>
       {props.items.length === 0 ? (
         <p className="text-sm text-gray-400">
           {translator.translateText("None in this range.")}
@@ -177,15 +181,22 @@ function NeighbourList(props: {
           {props.items.map((item: UserFlowPageCount): ReactElement => {
             const share: number =
               props.total > 0 ? item.sessions / props.total : 0;
+            const pageText: string = getUserFlowPageText(item.page);
 
             return (
               <li key={item.page}>
                 <button
                   type="button"
                   className="group relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-md px-2 py-1 text-start text-sm hover:bg-indigo-50"
+                  /*
+                   * Only drawn: the path is set apart from the words
+                   * around it (setsValuesApart), so an Arabic or Persian
+                   * title names "/cart", not "cart/".
+                   */
                   title={translator.translateTemplate(
                     "Show paths from {{page}}",
-                    { page: item.page },
+                    { page: pageText },
+                    { setsValuesApart: true },
                   )}
                   onClick={(): void => {
                     props.onPick(item.page);
@@ -197,15 +208,18 @@ function NeighbourList(props: {
                     aria-hidden="true"
                   />
                   {/*
-                   * One page's path, with no arrow to point back: it reads
-                   * the way its letters do, "/home" from the left on any
-                   * page, as it does set apart in a transition's line.
+                   * One page's path reads from the left on any page,
+                   * "/home", not "home/", and "/الرئيسية" too, as it does
+                   * in a transition's line.
                    */}
                   <span
                     className="relative truncate font-mono text-xs text-gray-800 group-hover:text-indigo-700"
-                    dir={getLineDirection(item.page, translator.language)}
+                    dir={getUserFlowPathLineDirection(
+                      item.page,
+                      translator.language,
+                    )}
                   >
-                    {item.page}
+                    {pageText}
                   </span>
                   <span className="relative shrink-0 text-xs text-gray-500">
                     {formatUserFlowCount(item.sessions, translator)}
@@ -254,7 +268,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
   const header: (
     title: string,
     subtitle: string,
-    // The way a line read one way on every page reads; none for one value.
+    // The way a line read one way on every page reads: a transition, a path.
     lineDirection?: ReadingDirection | undefined,
   ) => ReactElement = (
     title: string,
@@ -262,15 +276,16 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
     lineDirection?: ReadingDirection | undefined,
   ): ReactElement => {
     /*
-     * One value - a page's path, the fold's name - has no arrow to point
-     * back, so it reads the way its letters do (getLineDirection): "/cart"
-     * from the left on a page read from the right too, not "cart/", as
-     * each page in a transition's line reads, set apart there. A
-     * transition's line, its two pages and the arrow between them, reads
-     * the map's way on every page (getOneWayLineDirection): by its letters,
-     * one between two folds named in Arabic or Persian, or into "/", was
-     * laid out from the right, its arrow pointing back. Either still
-     * starts where the page's lines do.
+     * A page's path reads from the left on every page
+     * (getUserFlowPathDirection): "/cart", not "cart/", and "/الرئيسية",
+     * not "الرئيسية/", on a page read from the right, as each page in a
+     * transition's line reads. A transition's line, its two pages and the
+     * arrow between them, reads the map's way on every page
+     * (getOneWayLineDirection): by its letters, one between two folds named
+     * in Arabic or Persian, or into "/", was laid out from the right, its
+     * arrow pointing back. One value with no direction of its own - the
+     * fold's count of pages, the root "/" - reads the way its letters do
+     * (getLineDirection). Each still starts where the page's lines do.
      */
     const titleDirection: ReadingDirection | undefined = lineDirection
       ? getOneWayLineDirection(lineDirection, translator.language)
@@ -321,10 +336,10 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
     // "Other pages" is the map's own name for a fold; a path is its own.
     const sourceLabel: string = source?.isOther
       ? translator.translateText(source.label) || source.label
-      : source?.label || link.fromPage;
+      : source?.label || getUserFlowPageText(link.fromPage);
     const targetLabel: string = target?.isOther
       ? translator.translateText(target.label) || target.label
-      : target?.label || link.toPage;
+      : target?.label || getUserFlowPageText(link.toPage);
 
     return (
       <div
@@ -343,6 +358,12 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           translator.translateText("Transition") || "Transition",
           LEFT_TO_RIGHT,
         )}
+        {/*
+         * Each sentence that names one of its pages is only drawn - a
+         * label, a button's words - so the page is set apart from its
+         * words (setsValuesApart): "/cart" in an Arabic or Persian
+         * sentence, not "cart/".
+         */}
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat
             label="Sessions"
@@ -351,9 +372,11 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             testId="user-flow-detail-sessions"
           />
           <Stat
-            label={translator.translateTemplate("Share of {{page}}", {
-              page: sourceLabel,
-            })}
+            label={translator.translateTemplate(
+              "Share of {{page}}",
+              { page: sourceLabel },
+              { setsValuesApart: true },
+            )}
             tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource}
             value={formatUserFlowShare(
               source && source.sessions > 0
@@ -363,9 +386,11 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             )}
           />
           <Stat
-            label={translator.translateTemplate("Share of {{page}}", {
-              page: targetLabel,
-            })}
+            label={translator.translateTemplate(
+              "Share of {{page}}",
+              { page: targetLabel },
+              { setsValuesApart: true },
+            )}
             tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget}
             value={formatUserFlowShare(
               target && target.sessions > 0
@@ -396,9 +421,11 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           <div className="flex flex-wrap gap-2">
             {link.toPage !== OTHER_PAGES_KEY ? (
               <Button
-                title={translator.translateTemplate("Paths after {{page}}", {
-                  page: targetLabel,
-                })}
+                title={translator.translateTemplate(
+                  "Paths after {{page}}",
+                  { page: targetLabel },
+                  { setsValuesApart: true },
+                )}
                 icon={IconProp.ArrowRight}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.OUTLINE}
@@ -411,9 +438,11 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             )}
             {link.fromPage !== OTHER_PAGES_KEY ? (
               <Button
-                title={translator.translateTemplate("Paths before {{page}}", {
-                  page: sourceLabel,
-                })}
+                title={translator.translateTemplate(
+                  "Paths before {{page}}",
+                  { page: sourceLabel },
+                  { setsValuesApart: true },
+                )}
                 icon={IconProp.ArrowLeft}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.OUTLINE}
@@ -499,6 +528,11 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
       data-testid="user-flow-detail"
       data-kind="node"
     >
+      {/*
+       * The line above the page's name is only drawn: the anchored page is
+       * set apart from its words (setsValuesApart), so an Arabic or Persian
+       * line names "/cart", not "cart/".
+       */}
       {header(
         node.label,
         graph.anchorPage && node.step === 0
@@ -515,11 +549,13 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
                       other: "{{count}} pages after {{page}}",
                     },
                 node.step,
-                { page: graph.anchorPage },
+                { page: getUserFlowPageText(graph.anchorPage) },
+                { setsValuesApart: true },
               )
             : translator.translateTemplate("Page {{number}} of the journey", {
                 number: translator.formatNumber(node.step + 1),
               }),
+        getUserFlowPathDirection(node.page),
       )}
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">

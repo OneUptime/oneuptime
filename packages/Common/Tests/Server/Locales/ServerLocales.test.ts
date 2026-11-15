@@ -7,6 +7,7 @@ import {
   ENGLISH,
   findKeysInSource,
   findServerTextKeys,
+  getDashboardSharedKeys,
   getLocalePath,
   LANGUAGES_WITHOUT_ONE_FORM,
   LocaleDictionary,
@@ -96,6 +97,13 @@ const hasWordsOfItsOwn: (sentence: string) => boolean = (
 };
 
 const english: LocaleDictionary = readLocale(ENGLISH);
+
+/*
+ * The sentences the Dashboard words (DASHBOARD_SHARED_TEXT_SOURCES): held to
+ * the Dashboard's wording instead (ServerLocalesDashboardWords.test.ts).
+ */
+const sharedWithDashboard: Set<string> =
+  getDashboardSharedKeys(findServerTextKeys());
 
 const sameAsEnglish: Record<string, Array<string>> = JSON.parse(
   fs.readFileSync(SAME_AS_ENGLISH_FILE, "utf8"),
@@ -196,6 +204,15 @@ describe("every language's file", () => {
 
           // A sentence of no words of its own reads the same in every language.
           if (!hasWordsOfItsOwn(english[key]!)) {
+            return false;
+          }
+
+          /*
+           * A sentence the Dashboard words reads as the Dashboard reads it,
+           * the same as English where the Dashboard's is ("{{monitorName}}
+           * is offline" in Dutch).
+           */
+          if (sharedWithDashboard.has(key)) {
             return false;
           }
 
@@ -335,6 +352,38 @@ describe("findKeysInSource", () => {
       ["Across lines: {{x}}", undefined],
       ['With "quotes" inside', undefined],
       ["{{count}} rows", "{{count}} row"],
+    ]);
+  });
+
+  test("reads a sentence in single quotes, which Prettier writes for one with double quotes in it", () => {
+    const keys: Array<ServerTextKey> = findKeysInSource({
+      file: "x.ts",
+      text: [
+        "translator.translateTemplate(",
+        "  'Checks if {{name}} does not contain \"{{keyword}}\"',",
+        "  { name: 1 },",
+        ");",
+        "translationKey('It\\'s {{name}}');",
+        "translator.translateText('Back\\\\slash');",
+        "translator.translateText('Escaped \\\"double\\\"');",
+        "translator.translatePlural({ one: '{{count}} \"row\"', other: '{{count}} \"rows\"' }, 2);",
+        'translator.translatePlural({ one: "{{count}} item", other: \'{{count}} "items"\' }, 2);',
+        "translator.translateText('Not closed",
+        "');",
+      ].join("\n"),
+    });
+
+    expect(
+      keys.map((key: ServerTextKey): [string, string | undefined] => {
+        return [key.key, key.one];
+      }),
+    ).toEqual([
+      ['Checks if {{name}} does not contain "{{keyword}}"', undefined],
+      ["It's {{name}}", undefined],
+      ["Back\\slash", undefined],
+      ['Escaped "double"', undefined],
+      ['{{count}} "rows"', '{{count}} "row"'],
+      ['{{count}} "items"', "{{count}} item"],
     ]);
   });
 

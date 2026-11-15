@@ -94,7 +94,7 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 
 - **Overzicht** — de kop toont het nummer, de titel en de status van de gebeurtenis, hoe lang het nog duurt tot ze begint of hoe lang ze al loopt, wie haar eigenaren zijn, op welke statuspagina's ze verschijnt en wie haar heeft aangemaakt, en de knoppen die haar verder zetten. Daaronder tonen **Begint**, **Eindigt** en **Duur** het geplande venster in je tijdzone. De **Feed van gepland onderhoud** legt alles vast wat er met de gebeurtenis is gebeurd, naast de kaarten **Onderhoudsgegevens** en **Getroffen resources**, en de kaarten **Metingen** en **Aangepaste velden** als je project die heeft.
 - **Statustijdlijn** — elke status waarin de gebeurtenis heeft gestaan, wanneer en hoe lang. Zie [Onderhoudsstatussen](/docs/scheduled-maintenance/states#de-statustijdlijn).
-- **Openbare notities** — updates voor je statuspagina's en hun abonnees. **Privénotities** zijn alleen voor je team.
+- **Openbare notities** — updates voor je statuspagina's en hun abonnees. **Privénotities** kan alleen lezen wie de gebeurtenis kan zien.
 - **Instellingen** — **Zichtbaar op statuspagina**, dat de gebeurtenis op haar statuspagina's toont of verbergt, en **Herinneringen sturen**, dat haar eigenaren herinnert tot ze voltooid is. Elke schakelaar slaat op zodra je hem omzet.
 
 ## Probleemoplossing

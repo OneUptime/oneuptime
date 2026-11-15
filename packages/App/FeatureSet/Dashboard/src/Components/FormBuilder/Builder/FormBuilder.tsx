@@ -22,6 +22,7 @@ import {
   updateFormField,
 } from "../FormBuilderState";
 import FormsCopy from "../FormsCopy";
+import LeaveWithoutSavingQuestion from "../../UnsavedChanges/LeaveWithoutSavingQuestion";
 import FormPreviewModal from "./FormPreviewModal";
 import QuestionCard from "./QuestionCard";
 import QuestionPalette, { PaletteItem } from "./QuestionPalette";
@@ -67,6 +68,8 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { announceModelHeaderChanged } from "Common/UI/Components/Page/ModelHeaderEvents";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
+import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -75,7 +78,6 @@ import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -103,8 +105,10 @@ import useAsyncEffect from "use-async-effect";
  *
  * Changes are a draft until Save Changes, which writes the questions in one
  * request - the server checks them against the form's target, and says what
- * is wrong if anything is. Closing or reloading the tab with unsaved changes
- * asks first.
+ * is wrong if anything is. Leaving the builder with unsaved changes asks
+ * first: another page opened from the side menu, a crumb or any link, the
+ * browser's Back and Forward buttons ("Leave without saving?", issue
+ * #7401), and closing or reloading the tab (the browser's own question).
  *
  * Over the questions, folded, is the form's Branding (FormBrandingSection):
  * its logo and favicon, the OneUptime ones until it has its own. They are
@@ -161,6 +165,18 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
   const targetType: FormTargetType = readFormTargetType(form?.targetType);
 
   const isDirty: boolean = !areFormFieldsEqual(fields, savedFields);
+
+  // A draft of the questions: nothing reloads the page under it.
+  useUnsavedChanges(isDirty);
+
+  /*
+   * And leaving it asks first (LeaveGuard): a side menu entry, a crumb, the
+   * header, the browser's Back and Forward buttons - and closing or
+   * reloading the tab, through the browser's own question, which the guard
+   * raises while it is held. Only the closing of the tab used to ask; the
+   * side menu, the crumbs and Back dropped the draft without a word.
+   */
+  const leavePrompt: LeavePrompt = useLeaveGuard(isDirty);
 
   const updateGate: PermissionGateResult = PermissionGate.check(
     new Form(),
@@ -262,26 +278,6 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
     setSelectedId(null);
     await load();
   }, [props.formId.toString()]);
-
-  // Leaving the page (closing the tab) with unsaved changes asks first.
-  useEffect(() => {
-    if (!isDirty) {
-      return;
-    }
-
-    const warn: (event: BeforeUnloadEvent) => void = (
-      event: BeforeUnloadEvent,
-    ): void => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", warn);
-
-    return () => {
-      window.removeEventListener("beforeunload", warn);
-    };
-  }, [isDirty]);
 
   const applyChange: (change: FormFieldsChange) => void = (
     change: FormFieldsChange,
@@ -816,6 +812,17 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+
+      {/*
+       * Someone is leaving the builder while its questions have unsaved
+       * changes. Keep Editing stays with the draft as it is; Discard Changes
+       * goes where they were going. Last, so it opens above the preview or
+       * any other dialog the builder has open.
+       */}
+      <LeaveWithoutSavingQuestion
+        prompt={leavePrompt}
+        description="You have unsaved changes to this form's questions. If you leave now, they will be lost."
+      />
     </>
   );
 };

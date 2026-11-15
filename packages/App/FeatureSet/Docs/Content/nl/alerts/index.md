@@ -33,7 +33,7 @@ Beide leggen een probleem vast, en beide kunnen wie dienst heeft oproepen. Het v
 | ---------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **Wat het is**               | Een probleem dat je team moet bekijken voordat gebruikers er last van hebben | Een probleem dat je gebruikers treft, zoals een storing |
 | **Op statuspagina's**        | Nooit                                                  | Kan verschijnen en informeert abonnees            |
-| **Notities**                 | Privénotities, alleen voor je team                     | Openbare notities voor klanten, en privénotities  |
+| **Notities**                 | Privénotities, alleen voor wie de waarschuwing kan zien                     | Openbare notities voor klanten, en privénotities  |
 | **Beginstatussen**           | **Geïdentificeerd**, **Bevestigd**, **Opgelost**            | **Geïdentificeerd**, **Bevestigd**, **Opgelost**       |
 | **Beginernstniveaus**        | **Hoog**, **Laag**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Nummers in een nieuw project** | `ALT-42`, en `AE-42` voor episodes                 | `INC-42`, en `IE-42` voor episodes                |

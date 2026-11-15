@@ -37,4 +37,49 @@ describe("ListData", () => {
     expect(jsonObject["skip"]).toEqual(0);
     expect(jsonObject["limit"]).toEqual(0);
   });
+
+  /*
+   * A list read that asked for its count up to a cap (countUpTo) and found
+   * more says so: the count is the cap, and isCountCapped is set. A count
+   * that is exact carries no flag, as before.
+   */
+  test("toJSON carries isCountCapped only when the count stopped at its cap", () => {
+    const capped: JSONObject = new ListData({
+      data: [],
+      count: new PositiveNumber(10000),
+      skip: new PositiveNumber(0),
+      limit: new PositiveNumber(10),
+      isCountCapped: true,
+    }).toJSON();
+
+    expect(capped["count"]).toBe(10000);
+    expect(capped["isCountCapped"]).toBe(true);
+
+    for (const isCountCapped of [false, undefined]) {
+      const exact: JSONObject = new ListData({
+        data: [],
+        count: new PositiveNumber(240),
+        skip: new PositiveNumber(0),
+        limit: new PositiveNumber(10),
+        isCountCapped: isCountCapped,
+      }).toJSON();
+
+      expect(Object.keys(exact)).not.toContain("isCountCapped");
+      expect(exact["count"]).toBe(240);
+    }
+  });
+
+  test("a capped count and has-more are told apart", () => {
+    const json: JSONObject = new ListData({
+      data: [],
+      count: new PositiveNumber(10000),
+      skip: new PositiveNumber(0),
+      limit: new PositiveNumber(10),
+      hasMore: true,
+      isCountCapped: true,
+    }).toJSON();
+
+    expect(json["hasMore"]).toBe(true);
+    expect(json["isCountCapped"]).toBe(true);
+  });
 });

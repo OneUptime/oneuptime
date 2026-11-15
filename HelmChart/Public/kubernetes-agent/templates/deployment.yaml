@@ -50,7 +50,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: CLUSTER_NAME
-              value: {{ .Values.clusterName | quote }}
+              value: {{ include "kubernetes-agent.clusterName" . | quote }}
             {{- with .Values.deployment.resources.limits.memory }}
             # Go runtime soft memory limit — see templates/daemonset.yaml.
             # Derived from .Values.deployment.resources.limits.memory so the

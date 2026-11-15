@@ -36,6 +36,15 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+/*
+ * What the Dashboard's index.ejs loads right after the runtime: left and
+ * right utilities follow the page's reading direction, so an Arabic page
+ * (?lang=ar) mirrors them as it does in the product.
+ */
+const readingDirection = path.join(
+  repository,
+  "packages/Common/UI/Styles/TailwindReadingDirection.js",
+);
 // Production imports Theme.css from src/Index.tsx; serve the same file.
 const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
 /*
@@ -44,6 +53,29 @@ const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
  * Inter font families resolve the way they do in the real dashboard.
  */
 const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};`;
+/*
+ * Inter, as production serves it: index.ejs declares the font and gives
+ * EVERY element Inter with a universal `*` rule. Without it the page falls
+ * back to the machine's font (DejaVu on a CI runner), which is wider, and a
+ * check of what fits on a line measures a page the product does not draw.
+ */
+const inter = path.join(
+  repository,
+  "packages/Common/Server/Static/Vendor/fonts/InterVariable.woff2",
+);
+const dashboardIndex = fs.readFileSync(
+  path.join(repository, "packages/App/FeatureSet/Dashboard/views/index.ejs"),
+  "utf8",
+);
+const universalRule = dashboardIndex.match(/^\s*\*\s*\{[^}]*\}/m);
+
+if (!universalRule) {
+  throw new Error(
+    "Dashboard index.ejs no longer has its universal `*` font rule",
+  );
+}
+
+const fontRules = `@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url("/fonts/InterVariable.woff2") format("woff2");}${universalRule[0]}`;
 /*
  * The role cards load avatars from /api/user/profile-picture/:userId and probe
  * icons come from /image/:fileId. Answer both with small generated SVGs so the
@@ -60,7 +92,7 @@ function avatarSvg(userId) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="${color}"/><text x="32" y="41" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="600" fill="#fff" text-anchor="middle">${initials}</text></svg>`;
 }
 const imageSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#e0e7ff"/><circle cx="32" cy="32" r="12" fill="#6366f1"/></svg>`;
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event notes preview</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event notes preview</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>${tailwindConfig}</script><style>${fontRules}body{margin:0;background:#f9fafb}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -88,9 +120,19 @@ async function main() {
       fs.createReadStream(tailwind).pipe(response);
       return;
     }
+    if (url.pathname === "/tailwind-reading-direction.js") {
+      response.setHeader("Content-Type", "application/javascript");
+      fs.createReadStream(readingDirection).pipe(response);
+      return;
+    }
     if (url.pathname === "/theme.css") {
       response.setHeader("Content-Type", "text/css");
       fs.createReadStream(theme).pipe(response);
+      return;
+    }
+    if (url.pathname === "/fonts/InterVariable.woff2") {
+      response.setHeader("Content-Type", "font/woff2");
+      fs.createReadStream(inter).pipe(response);
       return;
     }
     if (url.pathname.startsWith("/dist/")) {

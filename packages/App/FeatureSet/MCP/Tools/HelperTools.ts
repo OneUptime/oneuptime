@@ -99,10 +99,12 @@ export const RESOURCE_DESCRIPTIONS: Readonly<Record<string, string>> = {
     "History of state changes for alerts. Creating an entry changes the alert's state.",
   "Incident Public Note":
     "Status-page-visible notes on incidents, seen by customers and subscribers.",
-  "Incident Internal Note": "Internal team-only notes on incidents.",
+  "Incident Internal Note":
+    "Internal notes on incidents. Only the people who can see the incident can read them.",
   "Incident Alert":
     "Links an alert to an incident (many-to-many). Create one to link an alert to an incident, delete it to unlink. List these by incidentId to see an incident's linked alerts, or by alertId to see the incidents an alert is linked to.",
-  "Alert Internal Note": "Internal team-only notes on alerts.",
+  "Alert Internal Note":
+    "Internal notes on alerts. Only the people who can see the alert can read them.",
   "Status Page Announcement": "Announcements posted to your status pages.",
   "Scheduled Maintenance State":
     "Lifecycle states for maintenance events (e.g., Scheduled, Ongoing, Completed).",
@@ -288,7 +290,7 @@ function handleHelpTool(
         {
           tool: "add_incident_note",
           description:
-            "Add an internal (team-only) or public (status page) note to an incident",
+            "Add an internal note (only the people who can see the incident can read it) or a public note (on the status page) to an incident",
         },
         {
           tool: "count_incidents",

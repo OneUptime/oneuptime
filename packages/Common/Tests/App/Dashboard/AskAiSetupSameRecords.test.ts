@@ -33,6 +33,7 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import WebsiteDownApi from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi";
 import { parseWebsiteAddress } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import StatusPageSetupApi from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi";
+import { getDefaultStatusPageName } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
 import { DEFAULT_MONITORING_INTERVAL } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitoringIntervalDefault";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -45,10 +46,16 @@ import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResourc
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { createTranslator } from "../../../Types/Translator";
+import { createTranslator, Translator } from "../../../Types/Translator";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { GUIDED_SETUP_MONITORING_INTERVAL } from "../../../Utils/GuidedSetup/WebsiteMonitorRecords";
+import UserLanguage from "../../../Server/Utils/Notification/UserLanguage";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../Server/Utils/ServerTranslation";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
  * "THE RECORDS ARE THE SAME ONES THE GUIDED SETUP WOULD HAVE MADE FOR THE
@@ -63,6 +70,13 @@ import { GUIDED_SETUP_MONITORING_INTERVAL } from "../../../Utils/GuidedSetup/Web
  * with what its create carries, and the status page with each monitor on
  * it. The only difference is the project, which the browser leaves to the
  * server to fill from the request's tenant and the server sets itself.
+ *
+ * In every language (#7247): the monitor's criteria, and the incident and
+ * alert they open, are named in the language the person reads the
+ * Dashboard in - the guided setup with the Dashboard's translator, Ask AI
+ * with the server's for the language the Dashboard sent - and so is the
+ * name a status page the person does not name starts with, so the records
+ * are compared read in English, German, Arabic, Persian and Japanese.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -164,6 +178,8 @@ function comparable(record: unknown): unknown {
 
 let getListSpy: LooseSpy;
 let createSpy: LooseSpy;
+// The language saved on the person's account: none (English) unless a test says.
+let savedLanguage: LooseSpy;
 
 // What the browser handed the model API's creates, in order.
 function browserCreates(): Array<{ model: unknown; miscDataProps?: unknown }> {
@@ -220,6 +236,9 @@ beforeEach(() => {
   jest
     .spyOn(ProbeService, "countBy")
     .mockResolvedValue(new PositiveNumber(1) as never);
+  savedLanguage = jest
+    .spyOn(UserLanguage, "getLanguage")
+    .mockResolvedValue("en" as never) as unknown as LooseSpy;
 });
 
 afterEach(() => {
@@ -235,46 +254,109 @@ describe("the two ways in build one copy of each record", () => {
   });
 });
 
+// The monitor the website guided setup makes, in the browser, read with `translator`.
+async function guidedSetupMonitor(data: {
+  address: string;
+  isApi: boolean;
+  translator: Translator;
+}): Promise<Monitor> {
+  createSpy.mockResolvedValue({
+    data: { id: new ObjectID(MONITOR_ID) },
+  } as never);
+  await WebsiteDownApi.createMonitor({
+    address: parseWebsiteAddress(data.address)!,
+    isApi: data.isApi,
+    translator: data.translator,
+  });
+
+  return browserCreates()[browserCreates().length - 1]!.model as Monitor;
+}
+
+// The monitor Ask AI's approved set_up_website_monitoring makes on the server.
+async function askAiMonitor(data: {
+  address: string;
+  isApi: boolean;
+  context: ToolContext;
+}): Promise<Monitor> {
+  const serverCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
+    .spyOn(MonitorService, "create")
+    .mockImplementation((async (args: { data: Monitor }): Promise<Monitor> => {
+      const created: Monitor = args.data;
+      created._id = MONITOR_ID;
+      return created;
+    }) as never) as unknown as SpyInstance<(...args: Array<never>) => unknown>;
+
+  await SetUpWebsiteMonitoringTool.execute(
+    { address: data.address, isApi: data.isApi },
+    data.context,
+  );
+
+  const fromAskAi: Monitor = (
+    serverCreate.mock.calls[
+      serverCreate.mock.calls.length - 1
+    ]![0] as unknown as {
+      data: Monitor;
+    }
+  ).data;
+
+  expect(fromAskAi.projectId?.toString()).toBe(PROJECT_ID.toString());
+  delete (fromAskAi as unknown as Record<string, unknown>)["_id"];
+
+  return fromAskAi;
+}
+
+// Every criteria's name and description, and what each opens, as written.
+function criteriaWords(monitor: Monitor): Array<string> {
+  const words: Array<string> = [];
+
+  for (const step of monitor.monitorSteps?.data?.monitorStepsInstanceArray ||
+    []) {
+    for (const criteria of step.data?.monitorCriteria.data
+      ?.monitorCriteriaInstanceArray || []) {
+      words.push(criteria.data!.name, criteria.data!.description);
+
+      for (const opened of [
+        ...(criteria.data!.incidents || []),
+        ...(criteria.data!.alerts || []),
+      ]) {
+        words.push(opened.title, opened.description);
+      }
+    }
+  }
+
+  return words;
+}
+
+const MONITOR_CASES: Array<[string, string, boolean]> = [
+  ["a website", "example.com", false],
+  ["an API", "https://api.example.com/health", true],
+];
+
+/*
+ * The languages the records are compared in (#7247): English, German, and
+ * the two read from the right, whose values a message would set apart with
+ * isolate marks, and Japanese, whose sentences punctuate their own way.
+ */
+const RECORD_LANGUAGES: Array<string> = ["en", "de", "ar", "fa", "ja"];
+
 describe("the same records, for the same answers", () => {
-  test.each([
-    ["a website", "example.com", false],
-    ["an API", "https://api.example.com/health", true],
-  ])(
+  test.each(MONITOR_CASES)(
     "the monitor for %s is the website guided setup's",
     async (_kind: string, address: string, isApi: boolean) => {
       // The guided setup, in the browser, in English.
-      createSpy.mockResolvedValue({
-        data: { id: new ObjectID(MONITOR_ID) },
-      } as never);
-      await WebsiteDownApi.createMonitor({
-        address: parseWebsiteAddress(address)!,
+      const fromGuidedSetup: Monitor = await guidedSetupMonitor({
+        address: address,
         isApi: isApi,
         translator: createTranslator(undefined),
       });
-      const fromGuidedSetup: Monitor = browserCreates()[0]!.model as Monitor;
 
       // Ask AI, on the server, for the same answers.
-      const serverCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
-        .spyOn(MonitorService, "create")
-        .mockImplementation((async (args: {
-          data: Monitor;
-        }): Promise<Monitor> => {
-          const created: Monitor = args.data;
-          created._id = MONITOR_ID;
-          return created;
-        }) as never) as unknown as SpyInstance<
-        (...args: Array<never>) => unknown
-      >;
-      await SetUpWebsiteMonitoringTool.execute(
-        { address: address, isApi: isApi },
-        ctx,
-      );
-      const fromAskAi: Monitor = (
-        serverCreate.mock.calls[0]![0] as unknown as { data: Monitor }
-      ).data;
+      const fromAskAi: Monitor = await askAiMonitor({
+        address: address,
+        isApi: isApi,
+        context: ctx,
+      });
 
-      expect(fromAskAi.projectId?.toString()).toBe(PROJECT_ID.toString());
-      delete (fromAskAi as unknown as Record<string, unknown>)["_id"];
       expect(comparable(fromAskAi)).toEqual(comparable(fromGuidedSetup));
 
       // And the comparison reads what matters.
@@ -290,6 +372,100 @@ describe("the same records, for the same answers", () => {
       );
     },
   );
+
+  /*
+   * #7247: a person reading the Dashboard in German gets German criteria
+   * names from the guided setup, as Create Monitor gives them - and the
+   * same ones from Ask AI, which the Dashboard tells the language it is
+   * read in.
+   */
+  describe.each(RECORD_LANGUAGES)("read in %s", (language: string) => {
+    test.each(MONITOR_CASES)(
+      "the monitor for %s, its criteria and what they open named in the reader's language, is the website guided setup's",
+      async (_kind: string, address: string, isApi: boolean) => {
+        const fromGuidedSetup: Monitor = await guidedSetupMonitor({
+          address: address,
+          isApi: isApi,
+          translator: dashboardTranslator(language),
+        });
+        const fromAskAi: Monitor = await askAiMonitor({
+          address: address,
+          isApi: isApi,
+          context: { ...ctx, language: language },
+        });
+
+        expect(comparable(fromAskAi)).toEqual(comparable(fromGuidedSetup));
+
+        const words: Array<string> = criteriaWords(fromAskAi);
+
+        expect(words.length).toBeGreaterThan(4);
+        expect(words).toEqual(criteriaWords(fromGuidedSetup));
+        // A record keeps no invisible marks, in a language read from the right too.
+        expect(JSON.stringify(words)).not.toContain(FIRST_STRONG_ISOLATE);
+        expect(JSON.stringify(words)).not.toContain(POP_DIRECTIONAL_ISOLATE);
+
+        // In the reader's language: not the English a server without one writes.
+        const english: Array<string> = criteriaWords(
+          await askAiMonitor({
+            address: address,
+            isApi: isApi,
+            context: { ...ctx, language: "en" },
+          }),
+        );
+
+        if (language === "en") {
+          expect(words).toEqual(english);
+        } else {
+          expect(words).toHaveLength(english.length);
+          words.forEach((word: string, index: number) => {
+            expect([index, word]).not.toEqual([index, english[index]]);
+          });
+          expect(words[0]).toBe(
+            dashboardTranslator(language).translateTemplate(
+              "Check if {{monitorName}} is offline",
+              { monitorName: fromAskAi.name! },
+            ),
+          );
+        }
+      },
+    );
+  });
+
+  test("with no language from the Dashboard, the person's saved language words the monitor, as their Dashboard starts in it", async () => {
+    savedLanguage.mockResolvedValue("de" as never);
+
+    const fromGuidedSetup: Monitor = await guidedSetupMonitor({
+      address: "example.com",
+      isApi: false,
+      translator: dashboardTranslator("de"),
+    });
+    const fromAskAi: Monitor = await askAiMonitor({
+      address: "example.com",
+      isApi: false,
+      context: ctx,
+    });
+
+    expect(comparable(fromAskAi)).toEqual(comparable(fromGuidedSetup));
+    expect(savedLanguage).toHaveBeenCalledWith(new ObjectID(USER_ID));
+  });
+
+  test("the Dashboard's language wins over the saved one: the person reads it now", async () => {
+    savedLanguage.mockResolvedValue("fr" as never);
+
+    const fromGuidedSetup: Monitor = await guidedSetupMonitor({
+      address: "example.com",
+      isApi: false,
+      translator: dashboardTranslator("de"),
+    });
+    const fromAskAi: Monitor = await askAiMonitor({
+      address: "example.com",
+      isApi: false,
+      context: { ...ctx, language: "de" },
+    });
+
+    expect(comparable(fromAskAi)).toEqual(comparable(fromGuidedSetup));
+    expect(savedLanguage).not.toHaveBeenCalled();
+  });
 
   test("the project's first on-call policy, and what its create carries, are the guided setup's", async () => {
     await WebsiteDownApi.createPolicy({
@@ -408,4 +584,80 @@ describe("the same records, for the same answers", () => {
     expect(resourceFromAskAi.showUptimePercent).toBe(true);
     expect(resourceFromAskAi.monitorId?.toString()).toBe(MONITOR_ID);
   });
+
+  /*
+   * #7247: a page the person does not name starts with the project's name,
+   * in the language they read the Dashboard in - the guided setup fills its
+   * name field with it, and Ask AI names the page it proposes with it.
+   */
+  test.each(RECORD_LANGUAGES)(
+    "a status page the person does not name, read in %s, is named and made as the status page guided setup makes it",
+    async (language: string) => {
+      // The guided setup: the name it starts with, kept as it is.
+      const startingName: string = getDefaultStatusPageName({
+        translator: dashboardTranslator(language),
+        projectName: "Acme",
+      });
+      await StatusPageSetupApi.createStatusPage(startingName);
+      const page: { model: unknown } = browserCreates()[0]!;
+
+      // Ask AI, asked for a page without a name, by the same person.
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([
+          model(Monitor, { _id: MONITOR_ID, name: "example.com" }),
+        ] as never);
+      const pageCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
+        .spyOn(StatusPageService, "create")
+        .mockImplementation((async (args: {
+          data: StatusPage;
+        }): Promise<StatusPage> => {
+          return model(StatusPage, { ...args.data, _id: STATUS_PAGE_ID });
+        }) as never) as unknown as SpyInstance<
+        (...args: Array<never>) => unknown
+      >;
+      jest
+        .spyOn(StatusPageService, "getStatusPageURL")
+        .mockResolvedValue("" as never);
+      jest
+        .spyOn(StatusPageResourceService, "findBy")
+        .mockResolvedValue([] as never);
+      jest
+        .spyOn(StatusPageResourceService, "create")
+        .mockImplementation((async (args: {
+          data: StatusPageResource;
+        }): Promise<StatusPageResource> => {
+          return args.data;
+        }) as never);
+
+      const context: ToolContext = { ...ctx, language: language };
+      const prepared: { arguments: JSONObject } =
+        await PublishStatusPageTool.prepareMutation!(
+          { monitors: ["example.com"] },
+          context,
+        );
+      await PublishStatusPageTool.execute(prepared.arguments, context);
+
+      const pageFromAskAi: StatusPage = (
+        pageCreate.mock.calls[0]![0] as unknown as { data: StatusPage }
+      ).data;
+
+      expect(prepared.arguments["name"]).toBe(startingName);
+      expect(JSON.parse(JSON.stringify(pageFromAskAi))).toEqual(
+        JSON.parse(JSON.stringify(page.model)),
+      );
+      expect(pageFromAskAi.name).toBe(startingName);
+      // A record keeps no invisible marks, in a language read from the right too.
+      expect(startingName).not.toContain(FIRST_STRONG_ISOLATE);
+      expect(startingName).not.toContain(POP_DIRECTIONAL_ISOLATE);
+
+      if (language === "en") {
+        expect(startingName).toBe("Acme Status");
+      } else {
+        // In the reader's language: not the English a server without one writes.
+        expect(startingName).not.toBe("Acme Status");
+        expect(startingName).toContain("Acme");
+      }
+    },
+  );
 });

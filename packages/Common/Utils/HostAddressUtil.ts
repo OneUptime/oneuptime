@@ -91,4 +91,39 @@ export default class HostAddressUtil {
       ? `[${bare}]:${port}`
       : `${bare}:${port}`;
   }
+
+  /*
+   * A host with an optional port, without the port: what a server name, a
+   * certificate's name or a comparison of hosts takes from a HOST such as
+   * "oneuptime.example.com:8080".
+   *
+   * Cutting at the first ":" is wrong for IPv6, whose colons are its own
+   * (problem 2 above): "[2001:db8::1]:8080" became "[2001". So:
+   *   - a bracketed address is everything up to its closing bracket, and
+   *     keeps the brackets: "[2001:db8::1]:8080" is "[2001:db8::1]", which is
+   *     how nginx and Express name the host of such a request;
+   *   - an address without brackets has no port to take off, as its colons
+   *     are all its own: "2001:db8::1" stays as it is;
+   *   - a name or an IPv4 address loses what follows its one ":".
+   *
+   * The ingress's scripts (packages/Nginx: envsubst-on-templates.sh's
+   * HOST_WITHOUT_PORT, run.sh's PRIMARY_DOMAIN) take the port off by this
+   * same rule, so the ingress and the app agree on which host is their own.
+   */
+  public static stripPort(hostAndPort: string): string {
+    const value: string = (hostAndPort || "").trim();
+    const closingBracket: number = value.indexOf("]");
+
+    if (value.startsWith("[") && closingBracket !== -1) {
+      return value.substring(0, closingBracket + 1);
+    }
+
+    const colon: number = value.indexOf(":");
+
+    if (colon === -1 || colon !== value.lastIndexOf(":")) {
+      return value;
+    }
+
+    return value.substring(0, colon);
+  }
 }

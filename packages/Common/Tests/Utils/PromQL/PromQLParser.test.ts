@@ -45,6 +45,10 @@ import {
   PatternProblemError,
   PatternProblemReason,
 } from "../../../Utils/LinearRegExp/PatternProblem";
+import {
+  INHERITED_PROPERTY_NAMES,
+  INHERITED_PROPERTY_NAME_SPELLINGS,
+} from "../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -296,6 +300,44 @@ describe("PromQL regular expressions", () => {
   test("read POSIX classes", () => {
     expect(compilePromQLRegex("[[:digit:]]+").regex.test("123")).toBe(true);
     expect(compilePromQLRegex("[[:digit:]]+").regex.test("12a")).toBe(false);
+  });
+
+  /*
+   * The class names are looked up by the name the pattern writes. A name
+   * every object inherits (constructor, and any of them as a reader that
+   * folds case spells it) is a name no POSIX class has: the pattern keeps
+   * it as written, as it keeps [[:nosuch:]], and never reads the
+   * inherited function's source text into the character class.
+   */
+  test.each(INHERITED_PROPERTY_NAME_SPELLINGS)(
+    "[[:%s:]] names no POSIX class: the pattern keeps it as written",
+    (name: string) => {
+      const pattern: string = `[[:${name}:]]`;
+
+      expect(compilePromQLRegex(pattern).regex.source).toBe(
+        `^(?s:${pattern})$`,
+      );
+      expect(compilePromQLRegex(`[^[:${name}:]]`).regex.source).toBe(
+        `^(?s:[^[:${name}:]])$`,
+      );
+    },
+  );
+
+  test("[[:constructor:]] matches what [[:nosuch:]] matches, never the inherited function's text", () => {
+    const constructorClass: LinearRegExp =
+      compilePromQLRegex("[[:constructor:]]").regex;
+    const unknownClass: LinearRegExp = compilePromQLRegex("[[:nosuch:]]").regex;
+
+    // Both are the bracket [[:constructor:] (or [[:nosuch:]) and then "]".
+    expect(constructorClass.test("c]")).toBe(true);
+    expect(unknownClass.test("n]")).toBe(true);
+    // "function Object() { [native code] }" read as the class matched "c }]".
+    expect(constructorClass.test("c }]")).toBe(false);
+    expect(constructorClass.test("f }]")).toBe(false);
+    // A known class next to it still expands.
+    expect(
+      compilePromQLRegex("[[:constructor:]][[:digit:]]").regex.source,
+    ).toBe("^(?s:[[:constructor:]][0-9])$");
   });
 
   /*
@@ -789,7 +831,63 @@ describe("PromQL operators", () => {
     expect((parsePromQL("a atan2 b") as PromQLBinary).operator).toBe(
       PromQLBinaryOperator.Atan2,
     );
+    expect((parsePromQL("a UNLESS b") as PromQLBinary).operator).toBe(
+      PromQLBinaryOperator.Unless,
+    );
+    expect((parsePromQL("a aTaN2 b") as PromQLBinary).operator).toBe(
+      PromQLBinaryOperator.Atan2,
+    );
   });
+
+  /*
+   * A word after an expression is an operator only when it is one of the
+   * keyword operators. The words are looked up by what the query wrote, in
+   * lower case: a name every object inherits (constructor, __proto__, and
+   * the rest, in any case) is a word no operator is, so it is refused as
+   * "a b" is, as Prometheus refuses it ("unexpected identifier"). Read from
+   * a plain object, `up constructor up` was an operation whose operator was
+   * a function, refused only when it ran, with the function's source text.
+   */
+  test.each(INHERITED_PROPERTY_NAME_SPELLINGS)(
+    'refuses "a %s b" as it refuses "a b"',
+    (name: string) => {
+      const error: PromQLError = parseError(`a ${name} b`);
+
+      expect(error.message).toBe(
+        `Unexpected "${name}" at position 3: expected an operator or the end of the query.`,
+      );
+      expect(error.message).not.toContain("native code");
+      expect(error.message).not.toContain("[object Object]");
+      expect(error.position).toEqual({ start: 2, end: 2 + name.length });
+      expect(parseError(`a ${name}`).message).toBe(error.message);
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "reads %s as a metric name on either side of an operator",
+    (name: string) => {
+      for (const [query, operator] of [
+        [`${name} and ${name}`, PromQLBinaryOperator.And],
+        [`${name} / on (job) ${name}`, PromQLBinaryOperator.Div],
+        [`up or ${name}`, PromQLBinaryOperator.Or],
+        [`${name} unless up`, PromQLBinaryOperator.Unless],
+      ] as Array<[string, PromQLBinaryOperator]>) {
+        const binary: PromQLBinary = parsePromQL(query) as PromQLBinary;
+
+        expect({ query, operator: binary.operator }).toEqual({
+          query,
+          operator,
+        });
+      }
+
+      const both: PromQLBinary = parsePromQL(
+        `${name} and ${name}`,
+      ) as PromQLBinary;
+
+      expect((both.lhs as PromQLVectorSelector).name).toBe(name);
+      expect((both.rhs as PromQLVectorSelector).name).toBe(name);
+    },
+  );
 
   test("reads bool, on, ignoring, group_left and group_right", () => {
     const comparison: PromQLBinary = parsePromQL(

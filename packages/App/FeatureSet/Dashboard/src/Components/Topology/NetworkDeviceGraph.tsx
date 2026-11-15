@@ -1532,6 +1532,16 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
               {viewModel.nodes.map(
                 (nodeView: TopologyNodeView): ReactElement => {
                   const footprint: TopologyNodeFootprint = nodeView.footprint;
+                  /*
+                   * A device whose bound monitor nothing checks says why,
+                   * in the reader's language (issue #7346): on a line of
+                   * its own in the tooltip, and after the node's name for
+                   * a screen reader - without opening the drawer.
+                   */
+                  const statusNote: string | undefined = nodeView.statusNote
+                    ? translator.translateText(nodeView.statusNote) ||
+                      nodeView.statusNote
+                    : undefined;
                   return (
                     <g
                       key={nodeView.id}
@@ -1541,7 +1551,11 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       data-y={Math.round(nodeView.y)}
                       role="button"
                       tabIndex={0}
-                      aria-label={nodeView.ariaLabel}
+                      aria-label={
+                        statusNote
+                          ? [nodeView.ariaLabel, statusNote].join(". ")
+                          : nodeView.ariaLabel
+                      }
                       opacity={
                         nodeView.isDimmed
                           ? TOPOLOGY_DRAWING_STYLE.dimmedNodeOpacity
@@ -1593,7 +1607,11 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                         }
                       }}
                     >
-                      <title>{nodeView.tooltip}</title>
+                      <title>
+                        {statusNote
+                          ? [nodeView.tooltip, statusNote].join("\n")
+                          : nodeView.tooltip}
+                      </title>
 
                       {/*
                        * The attention halo. Only ever drawn while a health

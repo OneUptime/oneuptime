@@ -94,7 +94,7 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 
 - **Panoramica** — l'intestazione mostra il numero, il titolo e lo stato dell'evento, quanto manca all'inizio o da quanto è in corso, i suoi proprietari, le pagine di stato in cui compare e chi lo ha creato, e i pulsanti che lo fanno avanzare. Sotto, **Inizia**, **Termina** e **Durata** mostrano la finestra pianificata nel vostro fuso orario. Il **Feed della manutenzione programmata** registra tutto ciò che è successo all'evento, accanto alle schede **Dettagli della manutenzione** e **Risorse interessate**, e alle schede **Misurazioni** e **Campi personalizzati** quando il vostro progetto ne ha.
 - **Cronologia stato** — ogni stato in cui l'evento è stato, quando e per quanto tempo. Vedere [Stati della manutenzione](/docs/scheduled-maintenance/states#la-cronologia-di-stato).
-- **Note pubbliche** — aggiornamenti per le vostre pagine di stato e i loro iscritti. Le **Note private** sono solo per il vostro team.
+- **Note pubbliche** — aggiornamenti per le vostre pagine di stato e i loro iscritti. Le **Note private** può leggerle solo chi può vedere l'evento.
 - **Impostazioni** — **Visibile sulla pagina di stato**, che mostra o nasconde l'evento sulle sue pagine di stato, e **Invia promemoria**, che ricorda l'evento ai suoi proprietari finché non è completato. Ogni interruttore salva nel momento in cui lo spostate.
 
 ## Risoluzione dei problemi

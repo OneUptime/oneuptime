@@ -28,7 +28,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
         cardProps={{
           title: "Public or Private Note Templates for Maintenance Events",
           description:
-            "Ready-made text for maintenance updates. Pick one when writing a public or private note on a scheduled maintenance event, or when changing its state, and edit it before posting.",
+            "Ready-made text for maintenance updates. Pick one when writing a public or private note on a maintenance event, or when changing its state, and edit it before posting.",
         }}
         noItemsMessage={"No note templates found."}
         query={{

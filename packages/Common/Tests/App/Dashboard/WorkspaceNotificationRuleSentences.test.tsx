@@ -384,7 +384,7 @@ describe("the sentences that say what a rule does", () => {
     ],
     [
       NotificationRuleEventType.ScheduledMaintenance,
-      "Creates a channel like #sm-42 for each scheduled maintenance event.",
+      "Creates a channel like #sm-42 for each maintenance event.",
       "Invites owners as they are added.",
       "Archives the channel when the event is completed.",
     ],

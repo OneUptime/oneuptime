@@ -11,6 +11,7 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  RefObject,
   useEffect,
   useMemo,
   useRef,
@@ -20,6 +21,10 @@ import ModelForm, {
   FormType,
   ModelField,
 } from "Common/UI/Components/Forms/ModelForm";
+import {
+  BasicFormHandle,
+  FormProps,
+} from "Common/UI/Components/Forms/BasicForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
@@ -114,6 +119,11 @@ import { SubscriberAudienceRequest } from "../../Components/Incident/useSubscrib
 import BooleanValue from "Common/UI/Components/Detail/BooleanValue";
 import SubscriberNotificationPreviewButton from "../../Components/Incident/SubscriberNotificationPreviewButton";
 import { getIncidentCreatedPreviewRequest } from "../../Components/Incident/SubscriberNotificationPreviewRequests";
+import useNewIncidentNotifyDefault, {
+  NewIncidentNotifyDefault,
+} from "../../Components/Incident/useNewIncidentNotifyDefault";
+import { getNotifyBoxDescription } from "../../Components/Incident/NewIncidentNotifyDefaultCopy";
+import NotifySubscribersChangeToYes from "../../Components/Incident/NotifySubscribersChangeToYes";
 import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
   StatusPagesNotListingMonitorsWarning,
@@ -246,7 +256,10 @@ const toSeverityForMapping: ToSeverityForMappingFunction = (
 
 type IncidentFormPredicate = (values: FormValues<Incident>) => boolean;
 
-// 'Notify Status Page Subscribers', which starts ticked.
+/*
+ * 'Notify Status Page Subscribers', which starts as the project says
+ * (useNewIncidentNotifyDefault): ticked unless the project turned that off.
+ */
 const isNotifyTicked: IncidentFormPredicate = (
   values: FormValues<Incident>,
 ): boolean => {
@@ -374,8 +387,9 @@ const getPrivateScopeWarning: GetPrivateScopeWarningFunction = (
  * Resources Affected (the maintainer: "Limit to these status pages and
  * notify subscribers should be in advanced"). Folded, the header lists them
  * by name and shows each one that holds something (a template's labels,
- * owners or status pages, a private alert's privacy, notifying switched off)
- * with its value, and it opens by itself when one fails validation. The
+ * owners or status pages, a private alert's privacy, the notify box moved
+ * away from where the project starts it) with its value, and it opens by
+ * itself when one fails validation. The
  * review step lists a folded option only when it is set - except whether
  * subscribers are notified, which it always lists, with who that reaches and
  * a preview of what they will be sent, and the owners, which it always
@@ -582,6 +596,56 @@ const IncidentCreate: FunctionComponent<
   const recordToCreateFrom: RecordToCreateFromState = useRecordToCreateFrom(
     CreatedRecordKind.Incident,
   );
+
+  /*
+   * Whether 'Notify Status Page Subscribers' starts ticked: as the project
+   * says on Incidents > Settings > Subscriber Notifications, read as the
+   * page opens (ticked when it cannot be read). The form waits for it, since
+   * it latches where its boxes start.
+   */
+  const newIncidentNotifyDefault: NewIncidentNotifyDefault =
+    useNewIncidentNotifyDefault();
+
+  /*
+   * The form, for "Change to Yes" on its summary step to tick the notify
+   * box, and that line of the summary, which takes the focus once the link
+   * pressed is gone - without a ring, as an event header's value takes it
+   * once its Assign is done (EventPeopleFacts): the line itself turning to
+   * "Yes · Preview" shows where the keyboard is, and Tab goes on from it.
+   */
+  const formRef: MutableRefObject<FormProps<FormValues<Incident>>> = useRef<
+    FormProps<FormValues<Incident>>
+  >(null) as MutableRefObject<FormProps<FormValues<Incident>>>;
+  const notifyReviewLineRef: RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+
+  /*
+   * Whether the summary offers "Change to Yes" beside the notify box's
+   * "No": only where the project starts the box unticked (where it starts
+   * ticked, whoever unticked it saw it), and not for a private incident,
+   * which no status page shows.
+   */
+  const canTickNotifyOnReview: IncidentFormPredicate = (
+    values: FormValues<Incident>,
+  ): boolean => {
+    return (
+      !newIncidentNotifyDefault.isTickedByDefault &&
+      !isNotifyTicked(values) &&
+      (values as Record<string, unknown>)["isPrivate"] !== true
+    );
+  };
+
+  const tickNotifyOnReview: () => void = (): void => {
+    (formRef.current as unknown as BasicFormHandle | null)?.setFieldValue(
+      "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
+      true,
+    );
+
+    // The link pressed is gone: the line it was on keeps the focus.
+    window.setTimeout(() => {
+      notifyReviewLineRef.current?.focus();
+    }, 0);
+  };
 
   useEffect(() => {
     loadCustomFieldDefinitions();
@@ -1240,7 +1304,8 @@ const IncidentCreate: FunctionComponent<
   const isPageLoading: boolean =
     isLoading ||
     isLoadingCustomFieldDefinitions ||
-    recordToCreateFrom.isLoading;
+    recordToCreateFrom.isLoading ||
+    newIncidentNotifyDefault.isLoading;
 
   return (
     <Fragment>
@@ -1431,6 +1496,7 @@ const IncidentCreate: FunctionComponent<
               initialValues={formInitialValues}
               name="Create New Incident"
               id="create-incident-form"
+              formRef={formRef}
               onBeforeCreate={async (
                 item: Incident,
                 miscDataProps: JSONObject,
@@ -2123,12 +2189,19 @@ const IncidentCreate: FunctionComponent<
                       true,
                   },
 
+                  /*
+                   * Starts as the project says (Incidents > Settings >
+                   * Subscriber Notifications, #7606): ticked unless the
+                   * project turned that off. Where it starts unticked, its
+                   * question says so, here and on the summary.
+                   */
                   title: "Notify Status Page Subscribers",
                   stepId: "resources-affected",
-                  description:
-                    "Should status page subscribers be notified when this incident is created?",
+                  description: getNotifyBoxDescription(
+                    newIncidentNotifyDefault.isTickedByDefault,
+                  ),
                   fieldType: FormFieldSchemaType.Checkbox,
-                  defaultValue: true,
+                  defaultValue: newIncidentNotifyDefault.isTickedByDefault,
                   required: false,
                   collapsibleSection: advancedSection,
                   /*
@@ -2151,13 +2224,21 @@ const IncidentCreate: FunctionComponent<
                    * reaches under them. There is nothing to preview when
                    * nothing will be sent: notifying is off, the incident
                    * will be private, or it is on no monitor.
+                   *
+                   * Where the project starts the box unticked, its "No" has
+                   * "Change to Yes" beside it ("No · Change to Yes"):
+                   * telling subscribers is one click on the last step,
+                   * rather than going back two steps and opening More fields
+                   * on Resources Affected (canTickNotifyOnReview).
                    */
                   getSummaryElement: (item: FormValues<Incident>) => {
                     return (
                       <>
                         <div
-                          className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                          className="flex flex-wrap items-center gap-x-3 gap-y-1 focus:outline-none"
                           data-testid="incident-create-notify-subscribers-line"
+                          ref={notifyReviewLineRef}
+                          tabIndex={-1}
                         >
                           <BooleanValue
                             value={isNotifyTicked(item)}
@@ -2177,6 +2258,13 @@ const IncidentCreate: FunctionComponent<
                                   }),
                                 });
                               }}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                          {canTickNotifyOnReview(item) ? (
+                            <NotifySubscribersChangeToYes
+                              onClick={tickNotifyOnReview}
                             />
                           ) : (
                             <></>

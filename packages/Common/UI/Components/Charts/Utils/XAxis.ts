@@ -474,6 +474,138 @@ export default class XAxisUtil {
   }
 
   /*
+   * The start of the week `value` falls in on the reader's calendar: its
+   * Monday at midnight, as the server starts a week bucket (ISO weeks, in
+   * the reader's zone when the request carries it - AggregateBy.timezone).
+   * A week chart names each week by this Monday, so a week bucket lands on
+   * its slot whatever weekday the window starts on.
+   */
+  private static getStartOfWeek(value: Date): Date {
+    return OneUptimeDate.getStartOfCalendarUnit(
+      value,
+      "week",
+      OneUptimeDate.getCurrentTimezone(),
+    );
+  }
+
+  /*
+   * The first instant the formatter gives `value`'s label: where the
+   * bucket a point at `value` is drawn in begins, on every tier.
+   *
+   * getBucketStart answers the same for every tier up to a week. For the
+   * coarser ones it keeps the slot, which is what a row's date is for them
+   * (DataPointUtil), so this answers for those itself: the 1st of the month
+   * (or of the first month of a step of months) and 1 January, at the
+   * reader's midnight; for a step of two days, the even day the label
+   * names - and for the 1st of a month that follows a 31st, which is
+   * named after that 31st alone, the 1st itself.
+   */
+  private static getStartOfLabelledBucket(
+    value: Date,
+    precision: XAxisPrecision,
+  ): Date {
+    const timezone: Timezone = OneUptimeDate.getCurrentTimezone();
+
+    switch (precision) {
+      case XAxisPrecision.EVERY_TWO_DAYS:
+      case XAxisPrecision.EVERY_TWO_WEEKS: {
+        const evenDay: Date = XAxisUtil.getEvenDayOfTheMonth(value);
+        const reading: Date = new Date(
+          XAxisUtil.toClockReading(evenDay.getTime()),
+        );
+        const firstDay: Date =
+          reading.getUTCDate() % 2 === 0
+            ? evenDay
+            : OneUptimeDate.addRemoveCalendarUnits(evenDay, "day", 1, timezone);
+
+        return OneUptimeDate.getStartOfDay(firstDay, timezone);
+      }
+      case XAxisPrecision.EVERY_MONTH:
+        return OneUptimeDate.getStartOfCalendarUnit(value, "month", timezone);
+      case XAxisPrecision.EVERY_TWO_MONTHS:
+        return OneUptimeDate.getStartOfDay(
+          XAxisUtil.getFirstMonthOfTheStep(value, 2),
+          timezone,
+        );
+      case XAxisPrecision.EVERY_THREE_MONTHS:
+        return OneUptimeDate.getStartOfDay(
+          XAxisUtil.getFirstMonthOfTheStep(value, 3),
+          timezone,
+        );
+      case XAxisPrecision.EVERY_SIX_MONTHS:
+        return OneUptimeDate.getStartOfDay(
+          XAxisUtil.getFirstMonthOfTheStep(value, 6),
+          timezone,
+        );
+      case XAxisPrecision.EVERY_YEAR:
+        return OneUptimeDate.getStartOfCalendarUnit(value, "year", timezone);
+      default:
+        return XAxisUtil.getBucketStart(value, precision);
+    }
+  }
+
+  /*
+   * The walk's slots, and one more when the bucket that holds the window's
+   * end has none (issue #7278).
+   *
+   * The walk steps from the window's start and stops at its end, so every
+   * slot keeps the start's place in its bucket: a day axis from 3 Nov 14:42
+   * has its slots at 14:42. A window that ends earlier in its bucket than
+   * it starts - at 10 Nov 09:00 - stops after 9 Nov 14:42, since 10 Nov
+   * 14:42 is past the end, and the first nine hours of 10 Nov had no slot:
+   * the server's 10 Nov bucket had no row to land on and was not drawn.
+   * Weeks, months and the finer tiers walk the same way.
+   *
+   * The slot added is that bucket's start, found and checked with the same
+   * formatter DataPointUtil places a point with. On its bucket's boundary,
+   * it is the trailing slot getRenderableIntervals measures: kept when it
+   * has data or the window covers half of it, dropped when it is empty and
+   * the window barely reaches into it (an alert snapshot that ends a
+   * fraction of a second into a minute). A window that ends exactly where a
+   * bucket starts covers none of that bucket, and gets no slot for it.
+   */
+  private static withTheEndsBucket(
+    intervals: Array<Date>,
+    data: {
+      xAxisMin: XAxisMaxMin;
+      xAxisMax: XAxisMaxMin;
+      precision?: XAxisPrecision | undefined;
+    },
+    precision: XAxisPrecision,
+    endDate: Date,
+  ): Array<Date> {
+    const lastSlot: Date | undefined = intervals[intervals.length - 1];
+
+    if (!lastSlot) {
+      return intervals;
+    }
+
+    const bucketStart: Date = XAxisUtil.getStartOfLabelledBucket(
+      endDate,
+      precision,
+    );
+
+    if (
+      !(bucketStart.getTime() < endDate.getTime()) ||
+      !(bucketStart.getTime() > lastSlot.getTime())
+    ) {
+      return intervals;
+    }
+
+    const formatter: (value: Date) => string = XAxisUtil.getFormatter(data);
+    const endLabel: string = formatter(endDate);
+
+    if (
+      formatter(lastSlot) === endLabel ||
+      formatter(bucketStart) !== endLabel
+    ) {
+      return intervals;
+    }
+
+    return [...intervals, bucketStart];
+  }
+
+  /*
    * The slot `steps` steps of this precision after `start`, counted from
    * `start` itself rather than from the slot before, so a month step from
    * the 31st lands on each month's last day instead of drifting to the
@@ -813,9 +945,12 @@ export default class XAxisUtil {
     const stepInMs: number | undefined =
       XAxisUtil.getStepOfAnHourOrLessInMs(precision);
 
-    return stepInMs === undefined
-      ? intervals
-      : XAxisUtil.withEveryStepOnTheClock(intervals, stepInMs);
+    const walked: Array<Date> =
+      stepInMs === undefined
+        ? intervals
+        : XAxisUtil.withEveryStepOnTheClock(intervals, stepInMs);
+
+    return XAxisUtil.withTheEndsBucket(walked, data, precision, endDate);
   }
 
   /*
@@ -863,8 +998,11 @@ export default class XAxisUtil {
    * The intervals a chart should actually RENDER, which is the raw grid
    * minus a trailing slot that no data could ever land in.
    *
-   * getPrecisionIntervals walks inclusively to the window end, so the final
-   * slot is the start of whichever bucket CONTAINS that end. That bucket
+   * getPrecisionIntervals walks inclusively to the window end, and adds a
+   * slot for the end's bucket when the walk stopped short of it (see
+   * withTheEndsBucket), so the final slot is in whichever bucket CONTAINS
+   * that end - unless the window ends exactly where that bucket starts,
+   * and holds none of it. That bucket
    * runs past the end of the window, so the query never covered all of it —
    * and when the window ends at or just after a bucket boundary it covered
    * essentially none of it. The backend returns rows only for buckets that
@@ -1013,10 +1151,10 @@ export default class XAxisUtil {
    * spike it was aimed at.
    *
    * Every tier finer than a day rounds on the reader's clock, as the
-   * formatter does (it labels exactly this instant), and EVERY_DAY groups
-   * by the calendar day in the configured timezone, as its label does. The
-   * coarser tiers label a day or a month that does not reduce to one
-   * instant the slot could start at; they keep the slot start.
+   * formatter does (it labels exactly this instant), EVERY_DAY groups by
+   * the calendar day in the configured timezone, as its label does, and
+   * EVERY_WEEK by the week from its Monday, which its label names. The
+   * coarser tiers keep the slot start.
    */
   public static getBucketStart(value: Date, precision: XAxisPrecision): Date {
     const stepInMs: number | undefined =
@@ -1038,6 +1176,10 @@ export default class XAxisUtil {
         value,
         OneUptimeDate.getCurrentTimezone(),
       );
+    }
+
+    if (precision === XAxisPrecision.EVERY_WEEK) {
+      return XAxisUtil.getStartOfWeek(value);
     }
 
     return this.cloneDate(value);
@@ -1122,7 +1264,6 @@ export default class XAxisUtil {
           );
         };
       case XAxisPrecision.EVERY_DAY:
-      case XAxisPrecision.EVERY_WEEK:
         /*
          * Day and month both read in the configured timezone. These used
          * to be mixed inside one label — value.getDate() is the BROWSER's
@@ -1131,6 +1272,20 @@ export default class XAxisUtil {
          */
         return (value: Date) => {
           return XAxisUtil.getDayLabel(value, isDayLabelWithYear);
+        };
+      case XAxisPrecision.EVERY_WEEK:
+        /*
+         * The week's Monday, on the configured calendar: the day the
+         * server starts its week bucket on. Named after its own day, a
+         * slot walked from a window that starts on a Thursday read
+         * "Thursday" while every bucket read "Monday", and no week's
+         * total had a slot to land on.
+         */
+        return (value: Date) => {
+          return XAxisUtil.getDayLabel(
+            XAxisUtil.getStartOfWeek(value),
+            isDayLabelWithYear,
+          );
         };
       case XAxisPrecision.EVERY_TWO_DAYS:
       case XAxisPrecision.EVERY_TWO_WEEKS:

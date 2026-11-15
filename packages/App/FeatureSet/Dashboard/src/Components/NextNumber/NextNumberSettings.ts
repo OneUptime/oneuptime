@@ -133,7 +133,7 @@ export const ALERT_NEXT_NUMBERS: NextNumberPage = {
 export const SCHEDULED_MAINTENANCE_NEXT_NUMBERS: NextNumberPage = {
   name: "Scheduled Maintenance Next Number",
   cardDescription: translationKey(
-    "The number the next scheduled maintenance event gets. Moving from another tool? Start after its last number, so a number never means two events.",
+    "The number the next maintenance event gets. Moving from another tool? Start after its last number, so a number never means two events.",
   ),
   editDescription: translationKey(
     "New events count up from the number you set. A number is never used twice, so it must be higher than the highest used so far. Existing events keep their numbers.",

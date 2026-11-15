@@ -262,7 +262,7 @@
       "countRequestTitle": "Anzahl-Anfrage",
       "aggregateHeading": "Aggregieren",
       "aggregateIntro": "Dieser Endpunkt führt serverseitige Aggregationen (Summe, Durchschnitt, Anzahl und Perzentile) über Ihre {{title}} aus und gruppiert die Ergebnisse in Zeitintervalle. Er versorgt Diagramme und Dashboards.",
-      "aggregateByDescription": "Die auszuführende Aggregation. Geben Sie aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp sowie optional query und groupBy an.",
+      "aggregateByDescription": "Die auszuführende Aggregation. Geben Sie aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp sowie optional query und groupBy an. Standardmäßig wird die Größe der Zeitintervalle aus dem Zeitfenster abgeleitet; setzen Sie das optionale aggregationInterval, um sie festzulegen (Minute, Hour, Day, Week, Month, Year) – zum Beispiel Day-Intervalle über ein Zeitfenster von einer Woche – oder auf Total, um pro Gruppe einen einzigen Aggregatwert über das gesamte Zeitfenster ohne Zeitintervalle zu erhalten. Day-, Week-, Month- und Year-Intervalle beginnen um Mitternacht UTC, Wochen am Montag; setzen Sie die optionale timezone auf den Namen einer Zeitzone wie America/New_York, damit sie stattdessen um Mitternacht in dieser Zeitzone beginnen. Ein Name, der keine bekannte Zeitzone ist, wird abgelehnt.",
       "aggregateRequestTitle": "Aggregations-Anfrage",
       "createHeading": "{{title}} erstellen",
       "createIntro": "Mit diesem Endpunkt kannst du ein neues Objekt erstellen.",

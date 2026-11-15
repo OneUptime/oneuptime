@@ -39,7 +39,7 @@ Sleep een kaart aan zijn greep om hem te verplaatsen, of gebruik **Omhoog** en *
 
 ### Het formulier opslaan
 
-**Wijzigingen opslaan** slaat alle wijzigingen in één keer op. Tot je opslaat, zegt de bouwer **Niet-opgeslagen wijzigingen** en biedt **Wijzigingen verwerpen** aan, en vraagt de browser het na voordat je de pagina verlaat.
+**Wijzigingen opslaan** slaat alle wijzigingen in één keer op. Tot je opslaat, zegt de bouwer **Niet-opgeslagen wijzigingen** en biedt **Wijzigingen verwerpen** aan. Wie de bouwer verlaat voordat alles is opgeslagen, krijgt eerst een vraag. Een link in het zijmenu, het kruimelpad of de bovenste balk, of de knoppen Terug en Vooruit van je browser, openen **Verlaten zonder op te slaan?** met twee keuzes: **Doorgaan met bewerken** blijft in de bouwer met je wijzigingen, en **Wijzigingen verwerpen** gaat door naar de pagina die je opende. Het tabblad sluiten of opnieuw laden vraagt het via het eigen dialoogvenster van je browser.
 :::
 
 - **De kop van het formulier** toont de naam en beschrijving zoals de openbare pagina dat zal doen. **Naam en beschrijving bewerken** wijzigt ze.

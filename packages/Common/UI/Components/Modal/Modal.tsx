@@ -91,7 +91,51 @@ export interface ComponentProps {
    * moment too long) never presses it. Tab still reaches the button.
    */
   isInitialFocusOnDialog?: boolean | undefined;
+  /*
+   * The id of what the dialog says, when its words are in its body rather
+   * than under its title - a ConfirmModal's one sentence: a screen reader
+   * reads it out with the dialog's name ("Leave without saving?, You have
+   * unsaved changes ..."), not only the name and the focused button. A
+   * description under the title is read out instead.
+   */
+  describedById?: string | undefined;
 }
+
+/*
+ * A field drawn to be read, not changed: a read-only text field, or one
+ * marked aria-readonly. It can take the focus - to be read out, or copied -
+ * but a dialog does not start there: a caret and a focus ring on a field
+ * that takes nothing say "type here" to someone who cannot.
+ */
+export const isReadOnlyField: (element: HTMLElement) => boolean = (
+  element: HTMLElement,
+): boolean => {
+  if (
+    (element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement) &&
+    element.readOnly
+  ) {
+    return true;
+  }
+
+  return element.getAttribute("aria-readonly") === "true";
+};
+
+/*
+ * The first of `elements` that can be changed, else the first of them: a
+ * read-only field only when there is nothing else.
+ */
+const findFirstChangeable: (
+  elements: Array<HTMLElement>,
+) => HTMLElement | undefined = (
+  elements: Array<HTMLElement>,
+): HTMLElement | undefined => {
+  return (
+    elements.find((element: HTMLElement): boolean => {
+      return !isReadOnlyField(element);
+    }) || elements[0]
+  );
+};
 
 /*
  * Where focus starts when a dialog opens.
@@ -106,7 +150,10 @@ export interface ComponentProps {
  * deletes anything. The header's X is never the starting point, and nor is
  * anything else in the header: a control there (rightElement) is an aside -
  * a way to the help, say - and starting on it would take the focus away from
- * the field the dialog is for.
+ * the field the dialog is for. Nor is a field shown only to be read - an edit
+ * dialog's start time once it has started, drawn read-only so it can still
+ * be read (isReadOnlyField): the first field that can be changed comes
+ * before it, and Tab still reaches it.
  */
 export const pickInitialFocusElement: (data: {
   focusableElements: Array<HTMLElement>;
@@ -131,10 +178,10 @@ export const pickInitialFocusElement: (data: {
 
   const footer: HTMLElement | null = data.footer;
 
-  const firstOutsideTheFooter: HTMLElement | undefined = candidates.find(
-    (element: HTMLElement) => {
+  const firstOutsideTheFooter: HTMLElement | undefined = findFirstChangeable(
+    candidates.filter((element: HTMLElement) => {
       return !footer || !footer.contains(element);
-    },
+    }),
   );
 
   if (firstOutsideTheFooter || !footer) {
@@ -372,8 +419,18 @@ const Modal: FunctionComponent<ComponentProps> = (
             typeof element.checkVisibility !== "function" ||
             element.checkVisibility();
 
+          /*
+           * A control in a disabled fieldset carries no disabled attribute
+           * of its own, but it is disabled all the same: the browser neither
+           * focuses it nor tabs to it. A workflow step's settings on a view
+           * are held still that way (WorkflowViewOnlyFieldset), and a
+           * dropdown there - a react-select input, tabindex 0 - was picked
+           * as the field to start on: its focus() did nothing, and the focus
+           * stayed outside the dialog.
+           */
           return (
             !element.hasAttribute("disabled") &&
+            !element.matches(":disabled") &&
             element.getAttribute("aria-hidden") !== "true" &&
             isRendered
           );
@@ -469,13 +526,17 @@ const Modal: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        // The first control of a form in the body.
-        const lateField: HTMLElement | undefined = getFocusableElements().find(
-          (element: HTMLElement): boolean => {
+        /*
+         * The first control of a form in the body that can be changed - a
+         * read-only one only when there is nothing else - as where a dialog
+         * drawn at once starts (pickInitialFocusElement).
+         */
+        const lateField: HTMLElement | undefined = findFirstChangeable(
+          getFocusableElements().filter((element: HTMLElement): boolean => {
             const form: Element | null = element.closest(DIALOG_FORM_SELECTOR);
 
             return Boolean(form && content.contains(form));
-          },
+          }),
         );
 
         if (!lateField) {
@@ -686,7 +747,9 @@ const Modal: FunctionComponent<ComponentProps> = (
             className={`relative flex max-h-[calc(100dvh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-start shadow-2xl ring-1 ring-black/5 transition duration-150 ease-out focus:outline-none motion-reduce:transition-none sm:my-8 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl ${modalWidthClassName} ${panelTransitionClassName}`}
             data-testid="modal"
             aria-labelledby={titleId}
-            aria-describedby={translatedDescription ? descriptionId : undefined}
+            aria-describedby={
+              translatedDescription ? descriptionId : props.describedById
+            }
             role="dialog"
             aria-modal="true"
             tabIndex={-1}

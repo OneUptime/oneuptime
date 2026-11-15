@@ -33,7 +33,7 @@ Ambos registran un problema y ambos pueden avisar a quien esté de guardia. Lo q
 | -------------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **Qué es**                       | Un problema que tu equipo debe revisar antes de que afecte a los usuarios | Un problema que afecta a tus usuarios, como una caída |
 | **En páginas de estado**         | Nunca                                                  | Puede aparecer y avisa a los suscriptores         |
-| **Notas**                        | Notas privadas, solo para tu equipo                    | Notas públicas para los clientes y notas privadas |
+| **Notas**                        | Notas privadas, solo para quien puede ver la alerta                    | Notas públicas para los clientes y notas privadas |
 | **Estados iniciales**            | **Identificado**, **Reconocido**, **Resuelto**         | **Identificado**, **Reconocido**, **Resuelto**    |
 | **Gravedades iniciales**         | **Alta**, **Baja**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Números en un proyecto nuevo** | `ALT-42`, y `AE-42` para los episodios                 | `INC-42`, y `IE-42` para los episodios            |

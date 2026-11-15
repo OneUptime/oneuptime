@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "Serve l'ultima versione. Salva le modifiche, poi ricarica la pagina.",
   "This couldn't be loaded.": "Impossibile caricare questo contenuto.",
   "Something went wrong": "Qualcosa è andato storto",
-  "An unexpected error has occurred. Please reload the page to continue": "Si è verificato un errore imprevisto. Ricarica la pagina per continuare"
+  "An unexpected error has occurred. Please reload the page to continue": "Si è verificato un errore imprevisto. Ricarica la pagina per continuare",
+  "Click to reveal": "Fai clic per mostrare",
+  "Click to copy": "Fai clic per copiare",
+  "Copy": "Copia",
+  "Copied!": "Copiato!",
+  "Copy failed": "Copia non riuscita",
+  "Hide": "Nascondi"
 }

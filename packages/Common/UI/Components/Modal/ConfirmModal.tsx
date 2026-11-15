@@ -7,7 +7,7 @@ import ErrorExplanation, {
 } from "../ErrorMessage/ErrorExplanation";
 import Modal, { ModalSecondaryButton } from "./Modal";
 import useTranslateValue from "../../Utils/Translation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 
 export interface ComponentProps {
   title: string;
@@ -67,6 +67,12 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
   const { translateValue } = useTranslateValue();
   const translator: Translator = useTranslator();
   /*
+   * The dialog's sentence describes it (aria-describedby): a screen reader
+   * reads "Leave without saving?" together with what is lost, not only the
+   * title and the button the focus starts on.
+   */
+  const descriptionId: string = useId();
+  /*
    * The Error dialogs a failed row action or a failed delete opens hand
    * their message here: one nobody explained says what to do next, with
    * its reference (ErrorExplanation, #6836).
@@ -107,6 +113,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
       errorWhatFailed={props.errorWhatFailed}
       secondaryButton={props.secondaryButton}
       isInitialFocusOnDialog={props.isInitialFocusOnDialog}
+      describedById={descriptionId}
     >
       {/*
        * The modal body is already the scroll container. A second one here gave
@@ -115,6 +122,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
        */}
       <div>
         <div
+          id={descriptionId}
           data-testid="confirm-modal-description"
           className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-600"
         >

@@ -162,6 +162,7 @@ describe("the project picker", () => {
   test("marks a blocked project, and lists it", () => {
     render(
       <ProjectPickerMenuItem
+        id="project-picker-blocked-row"
         icon={IconProp.Folder}
         project={projectOf(BLOCKED_ID, true)}
         onProjectSelected={() => {}}
@@ -177,6 +178,7 @@ describe("the project picker", () => {
   test("marks nothing on a project that is not blocked", () => {
     render(
       <ProjectPickerMenuItem
+        id="project-picker-live-row"
         icon={IconProp.Folder}
         project={projectOf(LIVE_ID, false)}
         onProjectSelected={() => {}}

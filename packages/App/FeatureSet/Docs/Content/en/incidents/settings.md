@@ -20,6 +20,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
 | **Public Note Approval** | Have public notes approved before they are published, and choose who approves them. |
+| **Subscriber Notifications** | Choose whether **Notify Status Page Subscribers** starts ticked when someone declares an incident. On by default. |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Postmortem Statuses** | The statuses a postmortem moves through, from Not Started to Completed. |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
@@ -183,6 +184,14 @@ Most projects need one step. Add another when a note needs a second approval, fo
 - **Nobody approves their own note, or two steps of one note.** Whoever sent a note for approval cannot approve or reject it, and whoever approved one of its steps cannot approve another.
 
 Only project owners and admins can change these settings, and everyone who reads the notes can see who approves them. **Scheduled Maintenance → Settings → Public Note Approval** is the same page for scheduled maintenance events, with a switch and steps of its own. What a note does while it waits, and how approvers decide, is under [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
+
+## Subscriber notifications
+
+When someone declares an incident, **Notify Status Page Subscribers** starts ticked, so status page subscribers hear about the incident unless the person declaring it unticks the box. If your team works on an incident before anyone outside hears of it, start the box unticked instead: go to **Incidents → Settings → Subscriber Notifications** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) and turn off **Notify status page subscribers by default**. It is on in every project until you turn it off, and it saves as soon as you flip it. Only Project Owners and Project Admins can change it; for everyone else the switch is locked and says which permission it needs.
+
+While it is off, the box starts unticked on **Declare New Incident**, whether the incident is declared from the incidents list, a template, an alert or a monitor, and its description says it is unticked by default in this project. Subscribers are told only when the person declaring ticks it. On the summary, before you submit, its **No** has **Change to Yes** beside it, which ticks the box without going back to **Resources Affected**. It is not offered for a private incident, which no status page shows. The switch changes only where the box starts: the incident records what the box was left at, and one declared without notifying stays quiet, as [Declaring an Incident](/docs/incidents/declaring-incidents) describes.
+
+An incident declared from Slack or Microsoft Teams, or by asking OneUptime AI, follows the switch too: nothing there asks about subscribers, so while the switch is off it is declared without notifying them, and you can tell them later with a public note. Incidents created any other way — by monitors, or through the API, Terraform or workflows — keep their own `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, which notifies subscribers unless it is `false`. Over the API, the switch is the project's `notifyStatusPageSubscribersOfNewIncidentsByDefault`.
 
 ## Postmortem templates
 

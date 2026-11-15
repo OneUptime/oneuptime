@@ -249,9 +249,23 @@ test.describe("with CloudKitty", () => {
     await expect(page.getByTestId("openstack-spend-strip")).not.toContainText(
       "$",
     );
-    await expect(
-      page.getByTestId("openstack-spend-project-this-month").first(),
-    ).toContainText("CloudKitty");
+
+    /*
+     * The project CloudKitty rated says so beside its figure, and no other
+     * project does. Found by that figure, not by its place in the list: the
+     * largest come first, by cost where there is one and by vCPU-hours where
+     * nothing has a price, and the fixture's hours run from the 1st of the
+     * month to now, so from the 14th an unrated project's vCPU-hours pass
+     * CloudKitty's 321.50 and that project comes first.
+     */
+    const thisMonth: Locator = page.getByTestId(
+      "openstack-spend-project-this-month",
+    );
+
+    await expect(thisMonth.filter({ hasText: "321.50" })).toContainText(
+      "CloudKitty",
+    );
+    await expect(thisMonth.filter({ hasText: "CloudKitty" })).toHaveCount(1);
   });
 });
 

@@ -4,7 +4,7 @@
 {{> Logo this}}
 {{> EmailTitle title=(concat "Scheduled Maintenance " scheduledMaintenanceNumber ": " scheduledMaintenanceTitle) }}
 
-{{> InfoBlock info=(concat "A new scheduled maintenance has been created in the project - " projectName)}}
+{{> InfoBlock info=(concat "A new maintenance event has been created in the project - " projectName)}}
 
 {{> InfoBlock info="Here are the details: "}}
 
@@ -15,13 +15,13 @@
 {{> DetailBoxEnd this }}
 
 
-{{> InfoBlock info="You can view this scheduled maintenance by clicking on the button below - "}}
+{{> InfoBlock info="You can view this maintenance event by clicking on the button below - "}}
 
 {{> ButtonBlock buttonUrl=scheduledMaintenanceViewLink buttonText="View on Dashboard"}}
 
 {{> LinkBlock linkUrl=scheduledMaintenanceViewLink linkLabel="You can also copy and paste this link:"}}
 
-{{> InfoBlock info="You will be notified when the status of this scheduled maintenance changes."}}
+{{> InfoBlock info="You will be notified when the status of this maintenance event changes."}}
 
 {{> OwnerInfo this }}
 {{> UnsubscribeOwnerEmail this }}

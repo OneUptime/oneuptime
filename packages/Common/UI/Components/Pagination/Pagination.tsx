@@ -40,6 +40,12 @@ export interface ComponentProps {
    */
   hasMore?: boolean | undefined;
   /*
+   * Optional. The list counted up to a cap and more rows match:
+   * `totalItemsCount` is the cap, printed "of 10,000+" (ListCount.ts).
+   * Paged by prev/next, as `hasMore` pages, which the list sets with it.
+   */
+  isCountCapped?: boolean | undefined;
+  /*
    * Optional. Rows this page actually rendered. The analytics list
    * endpoints over-fetch one probe row to derive `hasMore` and count it
    * in `totalItemsCount`, even though it was dropped from the payload —
@@ -438,6 +444,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 singularLabel: props.singularLabel,
                 pluralLabel: props.pluralLabel,
                 hasMore: props.hasMore,
+                isCountCapped: props.isCountCapped,
               })}
         </p>
 

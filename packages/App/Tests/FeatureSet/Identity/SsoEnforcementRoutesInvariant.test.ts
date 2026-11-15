@@ -22,6 +22,7 @@ import FakeEnterpriseModule, {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { answerMultiTenantReadsProjectByProject } from "Common/Tests/Server/TestingUtils/MultiTenantReads";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import IdentityFeatureSet from "../../../FeatureSet/Identity/Index";
 import {
@@ -260,6 +261,8 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
     jest
       .spyOn(AccessTokenService, "getUserTenantAccessPermission")
       .mockResolvedValue(TENANT_PERMISSION);
+    // The fan-out's reads, answered through the stubbed lookups above.
+    answerMultiTenantReadsProjectByProject();
     jest
       .spyOn(UserMiddleware, "isSsoSatisfiedForProject")
       .mockResolvedValue(false);

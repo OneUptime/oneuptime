@@ -24,7 +24,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 ## پیش از شروع
 
 - در OneUptime، نقش Project Owner، Project Admin یا Security Admin. Security Member و Security Viewer می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
-- یک مستأجر Microsoft Entra با مجوز Microsoft Defender XDR: هر بار کاری Defender که به درگاه Microsoft Defender پیوسته باشد، مانند Defender for Endpoint، for Identity، for Office 365 یا for Cloud Apps.
+- یک مستأجر Microsoft Entra با پروانهٔ Microsoft Defender XDR: هر بار کاری Defender که به درگاه Microsoft Defender پیوسته باشد، مانند Defender for Endpoint، for Identity، for Office 365 یا for Cloud Apps.
 - یک نقش Entra که بتواند برنامه ثبت کند، مانند Application Administrator، و یک Global Administrator یا Privileged Role Administrator برای اعطای رضایت مدیر.
 - HTTPS خروجی از برنامه و کارگرهای OneUptime به `login.microsoftonline.com` و `graph.microsoft.com`، یا برای Azure Government به `login.microsoftonline.us` و `graph.microsoft.us`.
 
@@ -161,7 +161,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 :::details Last Error با `Microsoft Defender XDR alerts request` شروع می‌شود
 - `Microsoft Defender XDR alerts request failed (HTTP ...)`: Graph از فهرست کردن هشدارها خودداری کرد. پیام کد خطای Graph و یک راهنمایی را نام می‌برد:
-  - `403` (`Authorization_RequestDenied`): `SecurityAlert.Read.All` یا رضایت مدیر آن نیست، یا مستأجر مجوز Defender XDR ندارد. اعمال شدن رضایت چند دقیقه طول می‌کشد.
+  - `403` (`Authorization_RequestDenied`): `SecurityAlert.Read.All` یا رضایت مدیر آن نیست، یا مستأجر پروانهٔ Defender XDR ندارد. اعمال شدن رضایت چند دقیقه طول می‌کشد.
   - `401` (`InvalidAuthenticationToken`) پس از صدور یک توکن: معمولاً **ابر** با مستأجر جور نیست.
   - `429` (`TooManyRequests`): Graph برنامه را محدود می‌کند، و نظرسنجی بعدی همان پنجره را دوباره می‌خواند. پیام نمی‌تواند `Retry-After` در Graph را نقل کند، چون کلاینت HTTP در OneUptime هنگام خطا هیچ سرآیند پاسخی نگه نمی‌دارد. اگر تکرار شد، **فاصله فراخوانی (دقیقه)** را بالا ببرید.
   - `5xx`: مشکلی در سمت Graph. نظرسنجی بعدی دوباره تلاش می‌کند.

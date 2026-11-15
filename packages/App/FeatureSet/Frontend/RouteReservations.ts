@@ -78,6 +78,26 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
   "/airbyte",
   "/pyroscope",
   /*
+   * The intakes that speak another tool's protocol (#6797), at that tool's
+   * own paths: Prometheus remote write (/prometheus/api/v1/write), Loki's
+   * push API (/loki/api/v1/push), Splunk HEC (/services/collector/...), the
+   * Datadog Agent (/datadog/...) and Sentry's SDKs (/sentry/api/<project>/
+   * envelope and /store). HEC's /services/collector/health and Datadog's
+   * /datadog/api/v1/validate are GETs: unreserved, the fallbacks answered a
+   * client's health check with a web page at HTTP 200.
+   *
+   * The Agent also posts its logs to /api/v2/logs at the root (it adds that
+   * path to logs_dd_url, which takes none), under OneUptime's own /api. That
+   * route is reserved by its own path: /api as a whole is reserved on the
+   * dashboard list only (RouteReservationInvariants.test.ts).
+   */
+  "/prometheus",
+  "/loki",
+  "/services",
+  "/datadog",
+  "/sentry",
+  "/api/v2/logs",
+  /*
    * Queue-depth and shed-rate endpoints polled by the KEDA metrics-api
    * scaler (HelmChart/.../keda-scaledobjects.yaml). The worker and api tiers
    * only kept working because App/Index.ts mounts AppMetricsAPI on "/"

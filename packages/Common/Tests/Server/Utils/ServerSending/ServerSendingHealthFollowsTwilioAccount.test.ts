@@ -409,8 +409,15 @@ describe("what the server says of SMS and calls when the account changes without
     expect(storedHealth().call).toEqual(marked);
   });
 
-  test("email's news is written unmarked, as before", async () => {
+  test("email's news is marked with the email settings, which the Twilio account is no part of (#7803)", async () => {
     storedConfig = row({});
+
+    const email: ServerSendingSettingsFingerprints =
+      ServerSendingSettings.getFingerprints(
+        ServerSendingChannel.Email,
+        config(),
+      )!;
+
     setEnvironmentAccount();
 
     await ServerSendingStatus.recordOutcome({
@@ -419,7 +426,10 @@ describe("what the server says of SMS and calls when the account changes without
     });
 
     expect(storedHealth().email?.lastSucceededAt).toBeTruthy();
-    expect("settingsFingerprint" in storedHealth().email!).toBe(false);
+    expect(storedHealth().email?.settingsFingerprint).toBe(email.current);
+    expect(stateOf(ServerSendingChannel.Email)).toBe(
+      ServerSendingState.Working,
+    );
   });
 
   test("a gateway carries SMS and calls whatever the variables say: what it learned stays", async () => {

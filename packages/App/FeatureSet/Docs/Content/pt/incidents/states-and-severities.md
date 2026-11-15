@@ -37,7 +37,7 @@ flowchart TB
 
 O modelo `IncidentState` tem `name`, `description`, `color` e `order`, mais três booleanos: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Tudo o que o produto faz com os estados se baseia nesses booleanos e em `order` — nunca no nome do estado. É por isso que você pode renomear **Resolvido** para «Closed» sem quebrar nada: o indicador acompanha a linha.
 
-O modelo `IncidentSeverity` tem `name`, `description`, `color` e `order`, e nada mais. Não há indicadores. Nada no OneUptime trata por si só **Critical Incident** de forma diferente de **Minor Incident** — a severidade só importa onde você aponta algo para ela, como o critério de correspondência **Severidades dos incidentes** de uma regra de plantão.
+O modelo `IncidentSeverity` tem `name`, `description`, `color` e `order`, e nada mais. Não há indicadores. Nada no OneUptime trata por si só **Incidente crítico** de forma diferente de **Incidente menor** — a severidade só importa onde você aponta algo para ela, como o critério de correspondência **Severidades dos incidentes** de uma regra de plantão.
 
 Algumas regras rápidas:
 
@@ -138,9 +138,9 @@ Três severidades são criadas com o projeto, nesta ordem, da mais severa para a
 
 | Severidade            | `order` | Cor       | Descrição inicial                                                                                                                                                                         |
 | --------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Critical Incident** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
-| **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
-| **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
+| **Incidente crítico** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.                                                          |
+| **Incidente grave**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
+| **Incidente menor**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
 A severidade é obrigatória quando você declara um incidente, e é obrigatória em cada especificação de incidente nos critérios de um monitor, então todo incidente — manual ou automático — chega com uma. Veja [Declarar um incidente](/docs/incidents/declaring-incidents) para o fluxo de declaração e [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating) para o caminho guiado por monitores.
 
@@ -155,7 +155,7 @@ Duas diferenças em relação aos estados:
 - **Não há proteção contra exclusão.** Qualquer severidade pode ser excluída, incluindo as três iniciais.
 - **Não há indicadores a herdar, nem «Conta como».** Uma severidade nova se comporta exatamente como as iniciais — é um rótulo com uma cor e uma posição.
 
-Onde a severidade faz mais do que descrever: em **Incidentes → Regras → Regras de Plantão**, o campo **Severidades dos incidentes** de uma regra é um critério de correspondência. Listar **Critical Incident** ali é como se expressa «acionar a equipe de banco de dados para tudo o que for crítico» — a política de plantão fica na regra, não na severidade.
+Onde a severidade faz mais do que descrever: em **Incidentes → Regras → Regras de Plantão**, o campo **Severidades dos incidentes** de uma regra é um critério de correspondência. Listar **Incidente crítico** ali é como se expressa «acionar a equipe de banco de dados para tudo o que for crítico» — a política de plantão fica na regra, não na severidade.
 
 **Alterar a severidade de um incidente** — em **Editar** no cartão **Detalhes do incidente** do incidente, pela API ou pelo Terraform (`incidentSeverityId`), com um workflow ou com as ferramentas de IA — faz as mesmas quatro coisas, seja como for enviada: o feed do incidente recebe uma entrada **Incident updated** que nomeia a nova severidade, os prazos de SLA do incidente são recalculados, sua regra de lembrete é reavaliada, e as métricas de incidentes contam uma mudança de severidade. Salvar a severidade que o incidente já tem não faz nada disso, então editar só o título de um incidente deixa seus prazos de SLA, seus lembretes e sua contagem de mudanças de severidade como estavam. A severidade de um alerta funciona do mesmo jeito para a entrada de feed e os lembretes dele.
 

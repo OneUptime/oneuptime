@@ -21,6 +21,7 @@ import FakeEnterpriseModule, {
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
+import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 import {
   afterEach,
   beforeEach,
@@ -178,6 +179,8 @@ describe("UserMiddleware enforces SSO requirements in every edition", () => {
       AccessTokenService,
       "getUserTenantAccessPermission",
     ).mockResolvedValue(tenantPermission);
+    // The multi-tenant path's reads, answered through the lookup above.
+    answerMultiTenantReadsProjectByProject();
     // No SSO token on the request unless a test says otherwise.
     ssoSatisfied = getJestSpyOn(
       UserMiddleware,

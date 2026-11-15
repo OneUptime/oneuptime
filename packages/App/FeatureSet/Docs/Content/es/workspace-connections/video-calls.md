@@ -309,7 +309,7 @@ OneUptime no pudo poner la reunión en el calendario de su organizador, así que
 :::
 
 :::details La IA de OneUptime no pudo leer una transcripción
-La tarjeta dice por qué: la IA está desactivada para el proyecto, el proyecto alcanzó un límite diario de IA, o el proveedor de IA se negó. Una vez resuelto, **Volver a intentar** en la tarjeta la vuelve a leer.
+La tarjeta dice por qué: la IA está desactivada para el proyecto, el proyecto alcanzó un límite diario de IA, o el [proveedor de LLM](/docs/ai/llm-provider) del proyecto se negó. Una vez resuelto, **Volver a intentar** en la tarjeta la vuelve a leer.
 :::
 
 ## Próximos pasos

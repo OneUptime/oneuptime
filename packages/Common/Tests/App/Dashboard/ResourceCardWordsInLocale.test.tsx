@@ -23,11 +23,14 @@ import {
   NewRecordStart,
 } from "../../../Server/Utils/AI/Toolbox/NewRecords";
 import {
+  AI_ACTION_CARD_FACTS,
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
+  aiActionCardFact,
   AIActionCardWords,
   aiActionSentence,
   aiActionTerm,
+  withCurrentAIActionCardLines,
 } from "../../../Types/AI/AIActionWords";
 import { AiAffectedResourceKind } from "../../../Types/AI/AiAffectedResources";
 import {
@@ -386,5 +389,150 @@ describe("in Japanese", () => {
     expect(line).toContain("、");
     expect(line).not.toContain(", ");
     expect(line).not.toContain("Linked to");
+  });
+});
+
+/*
+ * A PRIVATE NOTE'S CARD SAVED WHEN ITS LINE SAID A TEAM (#7595).
+ *
+ * The card create_incident_note and create_alert_note left said "Private
+ * note added, for your team only", which read as one of OneUptime's Teams.
+ * The line is now its record's - "only for people who can see the
+ * incident" - and no locale file words the old one. A conversation saved
+ * before keeps the old line in its card's words: the card reads as its
+ * record's line now, in the reader's language, not as the English it
+ * stored.
+ */
+describe("a private note's card saved when its line said a team", () => {
+  const RETIRED_LINE: string = "Private note added, for your team only";
+
+  // The card a note tool left before the line was reworded.
+  function savedNoteCard(
+    kind: string,
+    line: string = RETIRED_LINE,
+  ): AIChatWidget {
+    return {
+      ...WidgetBuilder.actionCard({
+        title: "Internal note added",
+        heading: "INC-42 · Checkout down",
+        words: {
+          kind: aiActionTerm(kind),
+          line: [aiActionSentence(line)],
+          facts: [
+            aiActionCardFact(
+              AI_ACTION_CARD_FACTS.note,
+              "Rolled back the deploy.",
+            ),
+          ],
+        },
+      }),
+      id: "W1",
+    };
+  }
+
+  function drawnLine(widget: AIChatWidget, language: string): Array<string> {
+    return getDrawnResourceCard(widget, dashboardTranslator(language)).line.map(
+      (sentence: { text: string }): string => {
+        return withoutIsolateMarks(sentence.text);
+      },
+    );
+  }
+
+  test("as it was saved: its English says the old line, which no file words any more", () => {
+    const card: AIChatWidget = savedNoteCard(AI_ACTION_CARD_KINDS.incident);
+
+    expect(card.data.subheading).toBe(RETIRED_LINE);
+    expect(Object.values(AI_ACTION_CARD_LINES)).not.toContain(RETIRED_LINE);
+    expect(readDashboardLocale("en")[RETIRED_LINE]).toBeUndefined();
+    expect(DE[RETIRED_LINE]).toBeUndefined();
+  });
+
+  test("an incident's reads as the incident's line, an alert's as the alert's, in German", () => {
+    const incident: DrawnResourceCard = getDrawnResourceCard(
+      savedNoteCard(AI_ACTION_CARD_KINDS.incident),
+      dashboardTranslator("de"),
+    );
+
+    expect(incident.isWorded).toBe(true);
+    expect(incident.kind).toBe(DE["Incident"]);
+    expect(
+      drawnLine(savedNoteCard(AI_ACTION_CARD_KINDS.incident), "de"),
+    ).toEqual([DE[AI_ACTION_CARD_LINES.privateNoteAddedToIncident]]);
+    expect(drawnLine(savedNoteCard(AI_ACTION_CARD_KINDS.alert), "de")).toEqual([
+      DE[AI_ACTION_CARD_LINES.privateNoteAddedToAlert],
+    ]);
+    expect(DE[AI_ACTION_CARD_LINES.privateNoteAddedToIncident]).toContain(
+      "den Vorfall",
+    );
+    expect(DE[AI_ACTION_CARD_LINES.privateNoteAddedToAlert]).toContain(
+      "die Warnung",
+    );
+  });
+
+  test("on the page, in German: no English, no team", async () => {
+    await inLanguage("de");
+    render(
+      <WidgetRenderer
+        widgets={[savedNoteCard(AI_ACTION_CARD_KINDS.incident)]}
+      />,
+    );
+
+    const line: string = withoutIsolateMarks(
+      screen.getByTestId("ai-chat-resource-card-line").textContent || "",
+    );
+
+    expect(line).toBe(DE[AI_ACTION_CARD_LINES.privateNoteAddedToIncident]);
+    expect(line).not.toContain("Team");
+    expect(screen.getByTestId("ai-chat-resource-card")).not.toHaveTextContent(
+      "for your team only",
+    );
+  });
+
+  test("in English, the record's line, never the team", () => {
+    expect(
+      drawnLine(savedNoteCard(AI_ACTION_CARD_KINDS.incident), "en"),
+    ).toEqual(["Private note added, only for people who can see the incident"]);
+    expect(drawnLine(savedNoteCard(AI_ACTION_CARD_KINDS.alert), "en")).toEqual([
+      "Private note added, only for people who can see the alert",
+    ]);
+  });
+
+  test("only the old line of a note's card reads anew; anything else is as stored", () => {
+    // Another kind's card never held the line: it reads as stored.
+    const runbook: AIChatWidget = savedNoteCard(AI_ACTION_CARD_KINDS.runbook);
+    expect(getDrawnResourceCard(runbook, dashboardTranslator("de"))).toEqual(
+      expect.objectContaining({ isWorded: false, kind: "Runbook" }),
+    );
+    expect(drawnLine(runbook, "de")).toEqual([RETIRED_LINE]);
+
+    // The old line filled with values is not a line the tools wrote.
+    const filled: AIChatWidget = savedNoteCard(AI_ACTION_CARD_KINDS.incident);
+    filled.data.words!.line = [
+      aiActionSentence(RETIRED_LINE, { incident: "INC-42" }),
+    ];
+    expect(
+      getDrawnResourceCard(filled, dashboardTranslator("de")).isWorded,
+    ).toBe(false);
+
+    // A card whose words are the module's today is left as it is.
+    const current: AIActionCardWords = savedNoteCard(
+      AI_ACTION_CARD_KINDS.incident,
+      AI_ACTION_CARD_LINES.privateNoteAddedToIncident,
+    ).data.words!;
+    expect(withCurrentAIActionCardLines(current)).toBe(current);
+
+    // Not a card's words at all: as stored.
+    for (const value of [undefined, null, "line", { line: "x" }, { kind: 1 }]) {
+      expect(withCurrentAIActionCardLines(value)).toBe(value);
+    }
+  });
+
+  test("the card's stored words are left as saved: a copy reads anew", () => {
+    const card: AIChatWidget = savedNoteCard(AI_ACTION_CARD_KINDS.alert);
+    const saved: string = JSON.stringify(card.data.words);
+
+    getDrawnResourceCard(card, dashboardTranslator("de"));
+
+    expect(JSON.stringify(card.data.words)).toBe(saved);
   });
 });

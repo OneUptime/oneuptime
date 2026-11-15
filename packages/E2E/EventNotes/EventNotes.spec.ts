@@ -57,6 +57,11 @@ interface NotesPage {
   name: string;
   path: string;
   visibility: "public" | "private";
+  /*
+   * Who reads a note, beside Public or Private: a private note names its
+   * event, the people who can see it (#7595).
+   */
+  audienceHint: string;
   pageTitle: string;
   firstNote: string;
   hasSwitch: boolean;
@@ -69,6 +74,7 @@ const PAGES: Array<NotesPage> = [
     name: "incident-public-notes",
     path: `${INCIDENT}/public-notes`,
     visibility: "public",
+    audienceHint: "Visible on your status page",
     pageTitle: "INC-1042 Checkout API returning 502s for EU customers",
     firstNote: "A fix has been rolled out to every EU region",
     hasSwitch: true,
@@ -79,6 +85,7 @@ const PAGES: Array<NotesPage> = [
     name: "incident-private-notes",
     path: `${INCIDENT}/internal-notes`,
     visibility: "private",
+    audienceHint: "Only people who can see this incident can read this",
     pageTitle: "INC-1042 Checkout API returning 502s for EU customers",
     firstNote: "Watching the 5xx panel before closing out.",
     hasSwitch: true,
@@ -89,6 +96,7 @@ const PAGES: Array<NotesPage> = [
     name: "alert-private-notes",
     path: `${ALERT}/internal-notes`,
     visibility: "private",
+    audienceHint: "Only people who can see this alert can read this",
     pageTitle: "ALT-311 p99 latency above 2s on payments-worker",
     firstNote: "Scaling the consumer group from 6 to 12 pods.",
     hasSwitch: false,
@@ -99,6 +107,7 @@ const PAGES: Array<NotesPage> = [
     name: "scheduled-maintenance-public-notes",
     path: `${MAINTENANCE}/public-notes`,
     visibility: "public",
+    audienceHint: "Visible on your status page",
     pageTitle: "#58 Primary database failover drill",
     firstNote: "The failover drill starts at 22:00 UTC.",
     hasSwitch: true,
@@ -109,6 +118,8 @@ const PAGES: Array<NotesPage> = [
     name: "scheduled-maintenance-private-notes",
     path: `${MAINTENANCE}/internal-notes`,
     visibility: "private",
+    audienceHint:
+      "Only people who can see this maintenance event can read this",
     pageTitle: "#58 Primary database failover drill",
     firstNote: "Runbook reviewed.",
     hasSwitch: true,
@@ -119,6 +130,7 @@ const PAGES: Array<NotesPage> = [
     name: "incident-episode-public-notes",
     path: `${INCIDENT_EPISODE}/public-notes`,
     visibility: "public",
+    audienceHint: "Visible on your status page",
     pageTitle: "#12 EU edge network degradation",
     firstNote: "Several services in Europe are degraded.",
     hasSwitch: true,
@@ -129,6 +141,7 @@ const PAGES: Array<NotesPage> = [
     name: "incident-episode-private-notes",
     path: `${INCIDENT_EPISODE}/internal-notes`,
     visibility: "private",
+    audienceHint: "Only people who can see this episode can read this",
     pageTitle: "#12 EU edge network degradation",
     firstNote: "Grouped INC-1042, INC-1043 and INC-1045",
     hasSwitch: true,
@@ -139,6 +152,7 @@ const PAGES: Array<NotesPage> = [
     name: "alert-episode-private-notes",
     path: `${ALERT_EPISODE}/internal-notes`,
     visibility: "private",
+    audienceHint: "Only people who can see this episode can read this",
     pageTitle: "#7 Payments worker saturation",
     firstNote: "All 5 alerts in this episode",
     hasSwitch: false,
@@ -409,10 +423,11 @@ test.describe("every note page", () => {
       );
 
       const composer: Locator = await openComposer(page);
-      await expect(composer.getByTestId("note-audience")).toContainText(
-        notesPageCase.visibility === "public"
-          ? "Visible on your status page"
-          : "Only your team can see this",
+      await expect(composer.getByTestId("note-audience-hint")).toHaveText(
+        notesPageCase.audienceHint,
+      );
+      await expect(composer.getByTestId("note-audience")).not.toContainText(
+        "team",
       );
       await expect(composer.getByTestId("note-notify-checkbox")).toHaveCount(
         notesPageCase.visibility === "public" ? 1 : 0,
@@ -1614,7 +1629,309 @@ test.describe("small screens", () => {
       "Run:\n```\nnpm ci\n```",
     );
   });
+
+  /*
+   * Who can read a private note, beside Private (#7595): the sentence names
+   * the event, so it is longer than "Only your team can see this" was, and
+   * longer still in German. On a phone it wraps under the lock - nothing of
+   * it cut off or past the composer - and an Arabic page draws the lock on
+   * the right, where its sentence starts.
+   */
+  for (const [language, notesPageCase] of [
+    ["en", INCIDENT_PRIVATE],
+    ["de", INCIDENT_PRIVATE],
+    ["ar", INCIDENT_PRIVATE],
+    ["de", notesPage("scheduled-maintenance-private-notes")],
+    ["ar", notesPage("scheduled-maintenance-private-notes")],
+  ] as Array<[string, NotesPage]>) {
+    test(`${language}: the private composer says in full who can read the note, on ${notesPageCase.name}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, notesPageCase, `lang=${language}`);
+      const composer: Locator = await openComposer(page);
+      const badge: Locator = composer.getByTestId("note-audience");
+      const hint: Locator = composer.getByTestId("note-audience-hint");
+
+      // The sentence the language's Dashboard words it with, whole.
+      const sentence: string =
+        language === "en"
+          ? notesPageCase.audienceHint
+          : (await dashboardWords(language))[notesPageCase.audienceHint]!;
+      expect(sentence).toBeTruthy();
+      await expect(hint).toHaveText(sentence);
+      await expect(page.locator("html")).toHaveAttribute(
+        "dir",
+        language === "ar" ? "rtl" : "ltr",
+      );
+
+      // Nothing of it is cut off: no box of the badge is narrower than its words.
+      expect(
+        await badge.evaluate((element: HTMLElement): Array<string> => {
+          return [element, ...Array.from(element.querySelectorAll("span"))]
+            .filter((part: Element): boolean => {
+              return part.scrollWidth > part.clientWidth + 1;
+            })
+            .map((part: Element): string => {
+              return part.textContent || "";
+            });
+        }),
+      ).toEqual([]);
+
+      const [composerBox, badgeBox, lockBox, hintBox] = await boxesInOneFrame([
+        composer,
+        badge,
+        badge.locator("svg").first(),
+        hint,
+      ]);
+
+      // Inside the composer, and so on the phone's screen.
+      expect(badgeBox!.x).toBeGreaterThanOrEqual(composerBox!.x);
+      expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(
+        composerBox!.x + composerBox!.width + 0.5,
+      );
+      expect(hintBox!.x + hintBox!.width).toBeLessThanOrEqual(
+        badgeBox!.x + badgeBox!.width + 0.5,
+      );
+      // The lock where the sentence starts: on the left, or on the right in Arabic.
+      if (language === "ar") {
+        expect(lockBox!.x).toBeGreaterThan(hintBox!.x);
+      } else {
+        expect(lockBox!.x).toBeLessThan(hintBox!.x);
+      }
+      // The lock keeps its size beside a sentence of two lines.
+      expect(Math.round(lockBox!.width)).toBe(14);
+
+      await expectNoSidewaysScroll(page);
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await badge.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `${notesPageCase.name}-audience-${language}-mobile-synthetic.png`,
+        ),
+      });
+    });
+  }
 });
+
+/*
+ * The closed composer's row and the open composer's footer, on a laptop and
+ * a tablet (#7595). At 1280 px the row drew the whole "Private · Only people
+ * who can see this incident can read this" beside Templates and Draft with
+ * AI, and cut the prompt down to its first word: the row now says Private in
+ * a chip, and who can read the note when it is hovered. In a tablet's
+ * narrower column the footer squeezed its tools into three rows and broke
+ * the submit button's label in two ("Add / note"): the buttons now take a
+ * row of their own when the tools leave them no room.
+ */
+test.describe("the composer on a laptop and a tablet", () => {
+  for (const language of ["en", "de"]) {
+    test(`${language}: at 1280 px the prompt is whole, beside a Private chip that says who can read on hover`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await open(page, INCIDENT_PRIVATE, `lang=${language}`);
+      const words: Record<string, string> =
+        language === "en" ? {} : await dashboardWords(language);
+      const say: (key: string) => string = (key: string): string => {
+        return language === "en" ? key : words[key]!;
+      };
+
+      const prompt: Locator = page.getByTestId("note-composer-prompt");
+      const promptText: Locator = prompt.getByText(
+        say("Write a private note…"),
+        { exact: true },
+      );
+      const chip: Locator = prompt.getByTestId("note-audience-chip");
+
+      await expect(promptText).toBeVisible();
+      await expect(chip).toBeVisible();
+      await expect(prompt.getByTestId("note-audience")).toHaveCount(0);
+
+      // The prompt is whole: none of its words are cut off.
+      expect(
+        await promptText.evaluate((element: HTMLElement): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+      ).toBeLessThanOrEqual(1);
+
+      // On screen the chip is one word on one line; the sentence is read out.
+      await expect(chip.locator(":scope > span:not(.sr-only)")).toHaveText(
+        say("Private"),
+      );
+      await expect(chip.locator(".sr-only")).toHaveText(
+        say(INCIDENT_PRIVATE.audienceHint),
+      );
+      const [chipBox] = await boxesInOneFrame([chip]);
+      expect(chipBox!.height).toBeLessThanOrEqual(32);
+
+      await chip.hover();
+      await expect(page.getByRole("tooltip")).toHaveText(
+        say(INCIDENT_PRIVATE.audienceHint),
+      );
+
+      await expectNoSidewaysScroll(page);
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await prompt.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `incident-private-notes-prompt-${language}-1280-synthetic.png`,
+        ),
+      });
+    });
+  }
+
+  /*
+   * Beside a record's side menu a 768 px window leaves the row some 420 px:
+   * the prompt sat beside Templates and Draft with AI and was cut down to
+   * its first word ("Eine …"). The row is laid out by its own width now, so
+   * there the actions go under a whole prompt, and on a German phone they
+   * wrap rather than break Draft with AI's label in two.
+   */
+  for (const [language, width] of [
+    ["en", 768],
+    ["de", 768],
+    ["de", 390],
+  ] as Array<[string, number]>) {
+    test(`${language}: at ${width} px the prompt is whole, with its actions under it, each on one line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 900 });
+      await open(page, INCIDENT_PRIVATE, `lang=${language}`);
+      const words: Record<string, string> =
+        language === "en" ? {} : await dashboardWords(language);
+      const prompt: Locator = page.getByTestId("note-composer-prompt");
+      const promptText: Locator = prompt.getByText(
+        language === "en"
+          ? "Write a private note…"
+          : words["Write a private note…"]!,
+        { exact: true },
+      );
+      const actions: Locator = prompt.getByTestId(
+        "note-composer-prompt-actions",
+      );
+
+      await expect(promptText).toBeVisible();
+      expect(
+        await promptText.evaluate((element: HTMLElement): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+      ).toBeLessThanOrEqual(1);
+
+      const [textBox, actionsBox] = await boxesInOneFrame([
+        promptText,
+        actions,
+      ]);
+      expect(actionsBox!.y).toBeGreaterThanOrEqual(
+        textBox!.y + textBox!.height,
+      );
+
+      // No action's words run out of its button, across or down.
+      const buttons: Array<Locator> = await actions.getByRole("button").all();
+      expect(buttons.length).toBeGreaterThanOrEqual(2);
+      for (const button of buttons) {
+        expect(
+          await button.evaluate((element: HTMLElement): Array<number> => {
+            return [
+              element.scrollWidth - element.clientWidth,
+              element.scrollHeight - element.clientHeight,
+            ];
+          }),
+        ).toEqual([0, 0]);
+      }
+
+      // The chip waits for a wide screen; the open composer says it in full.
+      await expect(prompt.getByTestId("note-audience-chip")).toBeHidden();
+      await expectNoSidewaysScroll(page);
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await prompt.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `incident-private-notes-prompt-${language}-${width}-synthetic.png`,
+        ),
+      });
+    });
+  }
+
+  for (const [language, width, notesPageCase] of [
+    ["en", 768, INCIDENT_PRIVATE],
+    ["de", 1024, INCIDENT_PRIVATE],
+    ["de", 390, INCIDENT_PUBLIC],
+  ] as Array<[string, number, NotesPage]>) {
+    test(`${language}: at ${width} px the submit button's label is one line, inside the composer, on ${notesPageCase.name}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 900 });
+      await open(page, notesPageCase, `lang=${language}`);
+      const composer: Locator = await openComposer(page);
+      const submit: Locator = composer.getByTestId("note-submit");
+      const label: Locator = submit.locator(":scope > span").first();
+      const tools: Locator = composer.getByTestId("note-composer-tools");
+
+      const [composerBox, submitBox, labelBox, toolsBox, buttonsBox] =
+        await boxesInOneFrame([
+          composer,
+          submit,
+          label,
+          tools,
+          composer.getByTestId("note-composer-buttons"),
+        ]);
+      const lineHeight: number = await label.evaluate(
+        (element: HTMLElement): number => {
+          return parseFloat(window.getComputedStyle(element).lineHeight);
+        },
+      );
+
+      // The label is one line of words, and the button is in the composer.
+      expect(labelBox!.height).toBeLessThanOrEqual(lineHeight + 1);
+      expect(submitBox!.x).toBeGreaterThanOrEqual(composerBox!.x);
+      expect(submitBox!.x + submitBox!.width).toBeLessThanOrEqual(
+        composerBox!.x + composerBox!.width + 0.5,
+      );
+      // The buttons keep to the end of the composer's last row.
+      expect(buttonsBox!.y).toBeGreaterThanOrEqual(toolsBox!.y);
+      expect(
+        composerBox!.x + composerBox!.width - (submitBox!.x + submitBox!.width),
+      ).toBeLessThanOrEqual(24);
+
+      if (width >= 768) {
+        // The tools are one row, as tall as one of them.
+        expect(toolsBox!.height).toBeLessThanOrEqual(36);
+      }
+
+      await expectNoSidewaysScroll(page);
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await composer.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `${notesPageCase.name}-composer-${language}-${width}-synthetic.png`,
+        ),
+      });
+    });
+  }
+});
+
+// A Dashboard locale file, as the fixture's page reads it.
+async function dashboardWords(
+  language: string,
+): Promise<Record<string, string>> {
+  return JSON.parse(
+    await fs.readFile(
+      path.resolve(
+        __dirname,
+        `../../App/FeatureSet/Dashboard/src/Locales/${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
 
 /*
  * The rows the toolbar's buttons sit on, whether any reaches past the end of
@@ -1738,7 +2055,7 @@ test.describe("a private incident or episode", () => {
     await expect(composer).toBeVisible();
     await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
     await expect(composer.getByTestId("note-audience")).toHaveText(
-      "Private·Only your team can see this",
+      "Private·Only people who can see this incident can read this",
     );
     await expect(composer.locator('[contenteditable="true"]')).toBeFocused();
     await expect(cards(page).first()).toContainText(INCIDENT_PRIVATE.firstNote);

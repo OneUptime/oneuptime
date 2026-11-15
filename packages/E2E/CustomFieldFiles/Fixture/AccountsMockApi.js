@@ -14,6 +14,8 @@
  *   submit=slow   the submission takes about two seconds to send, in steps,
  *                 so its progress can be seen
  *   submit=busy   the form's hourly allowance of files is used up: 429
+ *   evidence=<n>  "Logs and captures" takes at most n files, as a form's
+ *                 question may say fewer than the 10 a question can take
  *
  * Recorded on window.__formFixture: every request (`requests`), every
  * submission's body as sent (`submissions`) and every request the fixture
@@ -33,6 +35,8 @@ const FORM_KEY = "70000000-0000-4000-8000-0000000000c1";
 
 const params = new URLSearchParams(window.location.search);
 const submitMode = params.get("submit") || "";
+const evidenceMaxFiles =
+  Number(params.get("evidence")) || FORM_FILE_QUESTION_MAX_FILES;
 
 const record = {
   requests: [],
@@ -71,7 +75,7 @@ const FORM = {
       label: "Logs and captures",
       type: "MultipleFiles",
       ...FILE_LIMITS,
-      maxFiles: FORM_FILE_QUESTION_MAX_FILES,
+      maxFiles: evidenceMaxFiles,
     },
   ],
 };

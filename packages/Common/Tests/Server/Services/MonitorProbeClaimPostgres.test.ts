@@ -1,6 +1,12 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import MonitorProbeService from "../../../Server/Services/MonitorProbeService";
+import {
+  SET_ASIDE_FOR_MINUTES,
+  SET_ASIDE_PER_CLAIM,
+  SET_ASIDE_ROUNDS_PER_CLAIM,
+  SET_ASIDE_SPREAD_IN_MINUTES,
+} from "../../../Server/Utils/Probe/ClaimSetAside";
 import logger from "../../../Server/Utils/Logger";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -38,7 +44,13 @@ import { DataSource, QueryRunner } from "typeorm";
  *   - never hands one row to two claims made at the same moment, and loses
  *     none;
  *   - does not hand out a row another instance claimed between this one's
- *     read and its claim.
+ *     read and its claim;
+ *   - sets aside the due rows nothing may probe that its read stepped over,
+ *     a quarter of an hour on, and never one it would hand out; skips one
+ *     another writer holds; moves no more than SET_ASIDE_PER_CLAIM a round
+ *     and SET_ASIDE_ROUNDS_PER_CLAIM rounds a claim;
+ *     and makeDueNowForMonitors brings one back, even while a set-aside of
+ *     it is in flight.
  *
  * Opt in with RUN_POSTGRES_MONITOR_PROBE_CLAIM_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
@@ -277,6 +289,36 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
       .sort();
   }
 
+  // Set aside by a claim made at `claimedAt`: SET_ASIDE_FOR_MINUTES on, plus the spread.
+  function expectSetAside(nextPingAt: Date | null, claimedAt: number): void {
+    expect(nextPingAt).not.toBeNull();
+    expect(nextPingAt!.getTime()).toBeGreaterThanOrEqual(
+      claimedAt + SET_ASIDE_FOR_MINUTES * MINUTE_IN_MS - 1000,
+    );
+    expect(nextPingAt!.getTime()).toBeLessThanOrEqual(
+      Date.now() +
+        (SET_ASIDE_FOR_MINUTES + SET_ASIDE_SPREAD_IN_MINUTES) * MINUTE_IN_MS +
+        1000,
+    );
+  }
+
+  async function monitorIdOf(id: ObjectID): Promise<ObjectID> {
+    const rows: Array<{ monitorId: string }> = await database.query(
+      `SELECT "monitorId" FROM "${schema}"."MonitorProbe" WHERE "_id" = $1`,
+      [id.toString()],
+    );
+    return new ObjectID(rows[0]!.monitorId);
+  }
+
+  async function dueCount(): Promise<number> {
+    const rows: Array<{ count: number }> = await database.query(
+      `SELECT COUNT(*)::int AS "count" FROM "${schema}"."MonitorProbe"
+       WHERE "probeId" = $1 AND "isEnabled" = true AND "nextPingAt" <= now()`,
+      [PROBE_ID.toString()],
+    );
+    return rows[0]!.count;
+  }
+
   async function holdRow(
     id: ObjectID,
   ): Promise<{ release: () => Promise<void> }> {
@@ -298,7 +340,7 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
 
   test("claims the due rows and writes each one's last ping and the next run of its own interval", async () => {
     const everyFive: ObjectID = await insertMonitorProbe({
-      nextPingAt: null,
+      nextPingAt: minutesAgo(4),
       monitoringInterval: "*/5 * * * *",
     });
     const alsoEveryFive: ObjectID = await insertMonitorProbe({
@@ -346,7 +388,12 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
     expect(await claim()).toEqual([]);
   });
 
-  test("a row the predicate leaves out is neither claimed nor moved", async () => {
+  /*
+   * Nothing the predicate leaves out is ever handed out. What is due on
+   * this probe's enabled rows is set aside (setAsideUnprobeable) - see the
+   * set-aside tests below - and the rest is not touched at all.
+   */
+  test("a row the predicate leaves out is never claimed: due on this probe, it is set aside; otherwise left alone", async () => {
     const due: ObjectID = await insertMonitorProbe({
       nextPingAt: minutesAgo(1),
     });
@@ -358,79 +405,123 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
     await insertProject(SUSPENDED_PROJECT, { subscriptionStatus: "unpaid" });
     await insertProject(DELETED_PROJECT, { deletedAt: minutesAgo(60) });
 
-    const leftOut: Array<ObjectID> = [
+    const untouched: Array<ObjectID> = [
       // Not due yet.
       await insertMonitorProbe({ nextPingAt: minutesAgo(-2) }),
+      // Another probe's.
       await insertMonitorProbe({
         nextPingAt: minutesAgo(1),
         probeId: OTHER_PROBE_ID,
       }),
+      // Switched off on the monitor: not in the claim's range at all.
       await insertMonitorProbe({ nextPingAt: minutesAgo(1), isEnabled: false }),
+    ];
+
+    /*
+     * Due before the probeable row: the claim's read steps over them, and
+     * the set-aside after it looks at exactly what it stepped over.
+     */
+    const setAside: Array<ObjectID> = [
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         deletedAt: minutesAgo(5),
       }),
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         monitor: { isArchived: true },
       }),
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         monitor: { disableActiveMonitoring: true },
       }),
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         monitor: { disableActiveMonitoringBecauseOfManualIncident: true },
       }),
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         monitor: {
           disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
         },
       }),
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         monitor: { deletedAt: minutesAgo(5) },
       }),
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         projectId: BLOCKED_PROJECT,
       }),
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         projectId: SUSPENDED_PROJECT,
       }),
       await insertMonitorProbe({
-        nextPingAt: minutesAgo(1),
+        nextPingAt: minutesAgo(2),
         projectId: DELETED_PROJECT,
       }),
     ];
 
     const before: Array<string | null> = [];
-    for (const id of leftOut) {
+    for (const id of untouched) {
       before.push((await scheduleOf(id)).nextPingAt?.toISOString() || null);
     }
 
+    const claimedAt: number = Date.now();
+
     expect(await claim()).toEqual([due.toString()]);
 
-    for (const [index, id] of leftOut.entries()) {
+    for (const [index, id] of untouched.entries()) {
       const { lastPingAt, nextPingAt } = await scheduleOf(id);
       expect(lastPingAt).toBeNull();
       expect(nextPingAt?.toISOString() || null).toBe(before[index]);
     }
+
+    for (const id of setAside) {
+      const { lastPingAt, nextPingAt } = await scheduleOf(id);
+      expectSetAside(nextPingAt, claimedAt);
+      // Still never handed out.
+      expect(lastPingAt).toBeNull();
+    }
   });
 
-  test("never-checked rows first, then the longest-waiting, and never more than the limit", async () => {
-    const never: ObjectID = await insertMonitorProbe({ nextPingAt: null });
+  test("the longest-waiting first, and never more than the limit", async () => {
     const oldest: ObjectID = await insertMonitorProbe({
       nextPingAt: minutesAgo(30),
+    });
+    const middle: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(10),
     });
     const newest: ObjectID = await insertMonitorProbe({
       nextPingAt: minutesAgo(1),
     });
 
-    expect(await claim(2)).toEqual(sorted([never, oldest]));
+    expect(await claim(2)).toEqual(sorted([oldest, middle]));
     expect(await claim(2)).toEqual([newest.toString()]);
+  });
+
+  /*
+   * A NULL nextPingAt was only ever a legacy row - a new one is due at
+   * creation - and the claim's read is a range of `nextPingAt <= now` so it
+   * can stop at its LIMIT. The set-aside makes any such row due now, and
+   * the next claim hands it out.
+   */
+  test("a legacy row with no nextPingAt is made due, and handed out by the next claim", async () => {
+    const never: ObjectID = await insertMonitorProbe({ nextPingAt: null });
+    const due: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(1),
+    });
+
+    const before: number = Date.now();
+
+    expect(await claim()).toEqual([due.toString()]);
+
+    const madeDue: Date | null = (await scheduleOf(never)).nextPingAt;
+    expect(madeDue).not.toBeNull();
+    expect(madeDue!.getTime()).toBeGreaterThanOrEqual(before - 1000);
+    expect(madeDue!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
+
+    expect(await claim()).toEqual([never.toString()]);
   });
 
   test("a row another writer holds is skipped at once, and claimed once it is free", async () => {
@@ -534,6 +625,287 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
     } as never);
 
     expect(await claim()).toEqual([free.toString()]);
-    expect(statements).toBe(2);
+    // The read, the claim, and the set-aside after them.
+    expect(statements).toBe(3);
+  });
+
+  /*
+   * The point of set-aside: a row nothing may probe stops being due, so the
+   * next claim's read no longer steps over it - its cost is its batch, not
+   * the probe's paused monitors and suspended projects.
+   */
+  test("a due row nothing may probe stops being due once a claim has stepped over it", async () => {
+    const paused: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 3; index++) {
+      paused.push(
+        await insertMonitorProbe({
+          nextPingAt: minutesAgo(30 + index),
+          monitor: { disableActiveMonitoring: true },
+        }),
+      );
+    }
+
+    const probeable: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(1),
+    });
+
+    expect(await dueCount()).toBe(4);
+
+    const claimedAt: number = Date.now();
+
+    expect(await claim()).toEqual([probeable.toString()]);
+
+    expect(await dueCount()).toBe(0);
+
+    for (const id of paused) {
+      expectSetAside((await scheduleOf(id)).nextPingAt, claimedAt);
+    }
+  });
+
+  test("a probeable row the claim had no room for is left due, never set aside", async () => {
+    const first: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(3),
+    });
+    const waiting: Array<ObjectID> = [
+      await insertMonitorProbe({ nextPingAt: minutesAgo(2) }),
+      await insertMonitorProbe({ nextPingAt: minutesAgo(1) }),
+    ];
+
+    const before: Array<string> = [];
+    for (const id of waiting) {
+      before.push((await scheduleOf(id)).nextPingAt!.toISOString());
+    }
+
+    expect(await claim(1)).toEqual([first.toString()]);
+
+    for (const [index, id] of waiting.entries()) {
+      expect((await scheduleOf(id)).nextPingAt!.toISOString()).toBe(
+        before[index],
+      );
+    }
+  });
+
+  /*
+   * The set-aside looks only at what the claim's read stepped over: rows
+   * due before the first one it could hand out. One due after it is looked
+   * at once it is the oldest.
+   */
+  test("looks only at what the read stepped over; a row behind the first candidate waits its turn", async () => {
+    const pausedAhead: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(20),
+      monitor: { disableActiveMonitoring: true },
+    });
+    const probeable: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(10),
+    });
+    const pausedBehind: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(5),
+      monitor: { isArchived: true },
+    });
+    const behindAt: string = (
+      await scheduleOf(pausedBehind)
+    ).nextPingAt!.toISOString();
+
+    const claimedAt: number = Date.now();
+
+    expect(await claim(1)).toEqual([probeable.toString()]);
+    expectSetAside((await scheduleOf(pausedAhead)).nextPingAt, claimedAt);
+    expect((await scheduleOf(pausedBehind)).nextPingAt!.toISOString()).toBe(
+      behindAt,
+    );
+
+    // Nothing left to hand out: everything due was stepped over.
+    expect(await claim(1)).toEqual([]);
+    expectSetAside((await scheduleOf(pausedBehind)).nextPingAt, claimedAt);
+  });
+
+  test("turning a monitor back on brings its set-aside probe back for the next claim", async () => {
+    const paused: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(5),
+      monitor: { disableActiveMonitoring: true },
+    });
+    const alreadyDue: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(5),
+      monitor: { disableActiveMonitoring: true },
+    });
+
+    expect(await claim()).toEqual([]);
+    expect((await scheduleOf(paused)).nextPingAt!.getTime()).toBeGreaterThan(
+      Date.now(),
+    );
+
+    // The monitor is turned on; MonitorService's hook makes its probes due.
+    const monitorId: ObjectID = await monitorIdOf(paused);
+    await database.query(
+      `UPDATE "${schema}"."Monitor" SET "disableActiveMonitoring" = false WHERE "_id" = $1`,
+      [monitorId.toString()],
+    );
+    await MonitorProbeService.makeDueNowForMonitors({
+      monitorIds: [monitorId],
+    });
+
+    expect(
+      (await scheduleOf(paused)).nextPingAt!.getTime(),
+    ).toBeLessThanOrEqual(Date.now());
+    expect(await claim()).toEqual([paused.toString()]);
+
+    /*
+     * LEAST: a row already due keeps its place in the queue. This one was
+     * set aside too, so put it back in the past first.
+     */
+    const earlier: Date = minutesAgo(30);
+    await database.query(
+      `UPDATE "${schema}"."MonitorProbe" SET "nextPingAt" = $2 WHERE "_id" = $1`,
+      [alreadyDue.toString(), earlier],
+    );
+    await MonitorProbeService.makeDueNowForMonitors({
+      monitorIds: [await monitorIdOf(alreadyDue)],
+    });
+    expect((await scheduleOf(alreadyDue)).nextPingAt!.getTime()).toBe(
+      earlier.getTime(),
+    );
+  });
+
+  /*
+   * Why makeDueNowForMonitors matches every row of the monitor rather than
+   * the ones with a nextPingAt in the future: a monitor turned on while a
+   * claim is setting its row aside. Its UPDATE waits for that claim's row
+   * lock and then writes over the row as the claim left it. Filtered on the
+   * future, it would have read the row before the claim's write - still in
+   * the past - left it alone, and the monitor would sit set aside.
+   */
+  test("bringing a probe back waits for a set-aside of it in flight, and wins", async () => {
+    const row: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(5),
+    });
+    const monitorId: ObjectID = await monitorIdOf(row);
+
+    const settingAside: QueryRunner = database.createQueryRunner();
+    await settingAside.connect();
+    await settingAside.startTransaction();
+    await settingAside.query(
+      `UPDATE "${schema}"."MonitorProbe" SET "nextPingAt" = now() + interval '15 minutes' WHERE "_id" = $1`,
+      [row.toString()],
+    );
+
+    let isDone: boolean = false;
+    const bringingBack: Promise<void> =
+      MonitorProbeService.makeDueNowForMonitors({
+        monitorIds: [monitorId],
+      }).then(() => {
+        isDone = true;
+      });
+
+    try {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 300);
+      });
+      // Waiting for the set-aside's row lock.
+      expect(isDone).toBe(false);
+    } finally {
+      await settingAside.commitTransaction();
+      await settingAside.release();
+    }
+
+    await bringingBack;
+
+    expect((await scheduleOf(row)).nextPingAt!.getTime()).toBeLessThanOrEqual(
+      Date.now(),
+    );
+  });
+
+  test("the set-aside skips a row another writer holds instead of waiting for it", async () => {
+    const held: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(10),
+      monitor: { disableActiveMonitoring: true },
+    });
+    const heldAt: string = (await scheduleOf(held)).nextPingAt!.toISOString();
+    const lock: { release: () => Promise<void> } = await holdRow(held);
+
+    const startedAt: number = Date.now();
+
+    try {
+      expect(await claim()).toEqual([]);
+    } finally {
+      await lock.release();
+    }
+
+    expect(Date.now() - startedAt).toBeLessThan(LOCK_TIMEOUT_MS / 2);
+    expect((await scheduleOf(held)).nextPingAt!.toISOString()).toBe(heldAt);
+
+    const claimedAt: number = Date.now();
+    expect(await claim()).toEqual([]);
+    expectSetAside((await scheduleOf(held)).nextPingAt, claimedAt);
+  });
+
+  /*
+   * A claim runs another set-aside round while a round moves a full batch,
+   * up to SET_ASIDE_ROUNDS_PER_CLAIM: an upgrade's backlog of rows paused
+   * long ago drains in a few claims, and the claim's own work stays bounded.
+   */
+  test("sets aside at most SET_ASIDE_PER_CLAIM rows a round and SET_ASIDE_ROUNDS_PER_CLAIM rounds a claim; the next claim the rest", async () => {
+    const extra: number = 5;
+    const perClaim: number = SET_ASIDE_PER_CLAIM * SET_ASIDE_ROUNDS_PER_CLAIM;
+
+    await database.query(
+      `WITH "paused" AS (
+         INSERT INTO "${schema}"."Monitor"
+           ("_id", "projectId", "name", "monitorType", "monitoringInterval",
+            "isArchived", "disableActiveMonitoring",
+            "disableActiveMonitoringBecauseOfManualIncident",
+            "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent")
+         SELECT gen_random_uuid(), $1, 'Website', 'Website', '* * * * *',
+                false, true, false, false
+         FROM generate_series(1, $2)
+         RETURNING "_id"
+       )
+       INSERT INTO "${schema}"."MonitorProbe"
+         ("_id", "projectId", "probeId", "monitorId", "isEnabled", "nextPingAt",
+          "createdAt", "updatedAt", "version")
+       SELECT gen_random_uuid(), $1, $3, "paused"."_id", true,
+              now() - interval '30 minutes', now(), now(), 1
+       FROM "paused"`,
+      [PROJECT_ID.toString(), perClaim + extra, PROBE_ID.toString()],
+    );
+
+    expect(await dueCount()).toBe(perClaim + extra);
+
+    expect(await claim()).toEqual([]);
+    expect(await dueCount()).toBe(extra);
+
+    expect(await claim()).toEqual([]);
+    expect(await dueCount()).toBe(0);
+  });
+
+  test("the pending count counts what may be probed and is due by the time asked", async () => {
+    await insertMonitorProbe({ nextPingAt: minutesAgo(10) });
+    await insertMonitorProbe({ nextPingAt: minutesAgo(1) });
+    // Not due, paused, another probe's, switched off: none count.
+    await insertMonitorProbe({ nextPingAt: minutesAgo(-5) });
+    await insertMonitorProbe({
+      nextPingAt: minutesAgo(10),
+      monitor: { disableActiveMonitoring: true },
+    });
+    await insertMonitorProbe({
+      nextPingAt: minutesAgo(10),
+      probeId: OTHER_PROBE_ID,
+    });
+    await insertMonitorProbe({ nextPingAt: minutesAgo(10), isEnabled: false });
+
+    await expect(
+      MonitorProbeService.countMonitorProbesDueForProbing({
+        probeId: PROBE_ID,
+        dueAt: new Date(),
+      }),
+    ).resolves.toBe(2);
+
+    // Waiting for more than two minutes: only the older one.
+    await expect(
+      MonitorProbeService.countMonitorProbesDueForProbing({
+        probeId: PROBE_ID,
+        dueAt: minutesAgo(2),
+      }),
+    ).resolves.toBe(1);
   });
 });

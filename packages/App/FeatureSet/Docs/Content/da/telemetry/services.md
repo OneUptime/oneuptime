@@ -6,7 +6,7 @@ Tjenester viser de applikationer og microservices, du kører. OneUptime tilføje
 - [Sådan kommer en tjeneste ind i kataloget](#sådan-kommer-en-tjeneste-ind-i-kataloget): Dens `service.name`, ved dens første telemetri.
 - [Find en tjeneste](#find-en-tjeneste): Listen, dens filtre og dens kolonner.
 - [En tjenestes sider](#en-tjenestes-sider): Alt om én tjeneste.
-- [Arkivér eller slet en tjeneste](#arkivér-eller-slet-en-tjeneste): Behold historikken, eller fjern den.
+- [Arkiver eller slet en tjeneste](#arkiver-eller-slet-en-tjeneste): Behold historikken, eller fjern den.
 :::
 
 ## Sådan kommer en tjeneste ind i kataloget
@@ -93,17 +93,17 @@ Den samme side rummer tjenestens opbevaring, sammenklappet under **Yderligere in
 
 Regler giver nye tjenester deres etiketter og ejere, når de oprettes, opdagede tjenester medregnet. Du finder dem under **Tjenester → Indstillinger → Ejerregler** og **Tjenester → Indstillinger → Etiketregler**; **Indstillinger** er foldet sammen fra start i sidemenuen. Se [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules).
 
-## Arkivér eller slet en tjeneste
+## Arkiver eller slet en tjeneste
 
-Arkivér en tjeneste, du ikke længere holder øje med, men hvis historik du vil beholde. En arkiveret tjeneste er skjult i **Alle tjenester**, men den bliver ved med at indsamle telemetri. Arkivér den fra dens side **Indstillinger**, eller markér flere i listen. For at hente en tilbage skal du åbne **Tjenester → Avanceret → Arkiveret**.
+Arkiver en tjeneste, du ikke længere holder øje med, men hvis historik du vil beholde. En arkiveret tjeneste er skjult i **Alle tjenester**, men den bliver ved med at indsamle telemetri. Arkiver den fra dens side **Indstillinger**, eller markér flere i listen. For at hente en tilbage skal du åbne **Tjenester → Avanceret → Arkiveret**.
 
 > [!WARNING]
-> Når du sletter en tjeneste, slettes også dens source maps samt de metrik-pipelineregler og LLM-omkostningsbudgetter, der er sat for den. Hvis OneUptime stadig modtager dens telemetri, oprettes tjenesten igen, uden de etiketter, ejere og indstillinger, du gav den. Arkivér den i stedet for at tage den af listen og beholde alt.
+> Når du sletter en tjeneste, slettes også dens source maps samt de metrik-pipelineregler og LLM-omkostningsbudgetter, der er sat for den. Hvis OneUptime stadig modtager dens telemetri, oprettes tjenesten igen, uden de etiketter, ejere og indstillinger, du gav den. Arkiver den i stedet for at tage den af listen og beholde alt.
 
 ## Fejlfinding
 
 :::details En tjeneste vises to gange
-To værdier af `service.name` nåede OneUptime, for eksempel fra to versioner af din opsætning eller efter en omdøbning i kun den ene ende. Telemetri matches på navn: sørg for, at hver instans rapporterer det samme `service.name`, og arkivér eller slet derefter den tjeneste, du ikke længere har brug for.
+To værdier af `service.name` nåede OneUptime, for eksempel fra to versioner af din opsætning eller efter en omdøbning i kun den ene ende. Telemetri matches på navn: sørg for, at hver instans rapporterer det samme `service.name`, og arkiver eller slet derefter den tjeneste, du ikke længere har brug for.
 :::
 
 :::details Min tjeneste er ikke i kataloget

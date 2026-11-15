@@ -10,6 +10,9 @@ import {
   CloudCostState,
 } from "../../../Types/Cloud/CloudCost";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
+import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -67,6 +70,7 @@ function summary(
 
 afterEach(() => {
   jest.restoreAllMocks();
+  OneUptimeDate.setUserTimezone(null);
 });
 
 describe("the sum asked for", () => {
@@ -81,6 +85,7 @@ describe("the sum asked for", () => {
       aggregateColumnName: "cost",
       aggregationTimestampColumnName: "day",
       aggregationInterval: AggregationInterval.Day,
+      timezone: Timezone.UTC,
       startTimestamp: START,
       endTimestamp: END,
       skip: 0,
@@ -126,6 +131,44 @@ describe("the sum asked for", () => {
         interval: AggregationInterval.Day,
       }).query,
     ).not.toHaveProperty("cloudAccountId");
+  });
+});
+
+/*
+ * A cloud bills by the UTC day: CloudCost.day is that day's start, and the
+ * trend fills and names UTC days (fillCloudCostDays). The read names UTC,
+ * so the reader's zone, which every other day chart is read in (#7277),
+ * never moves a bill to another day.
+ */
+describe("the days a cloud bills by", () => {
+  test("are UTC's for a reader in any zone: the read names UTC, and the reader's zone does not replace it", () => {
+    for (const reader of [
+      Timezone.AmericaNew_York,
+      Timezone.AsiaKolkata,
+      Timezone.PacificAuckland,
+    ]) {
+      OneUptimeDate.setUserTimezone(reader);
+
+      for (const interval of [
+        AggregationInterval.Day,
+        AggregationInterval.Week,
+        AggregationInterval.Month,
+      ]) {
+        const aggregateBy: AggregateBy<CloudCost> = buildCloudCostAggregateBy({
+          scope: scope({
+            startDate: new Date("2026-08-01T00:00:00.000Z"),
+            endDate: new Date("2026-11-01T00:00:00.000Z"),
+          }),
+          interval: interval,
+        });
+
+        expect(aggregateBy.timezone).toBe(Timezone.UTC);
+        // What AnalyticsModelAPI.aggregate sends.
+        expect(
+          AggregationIntervalUtil.withReaderTimezone(aggregateBy).timezone,
+        ).toBe(Timezone.UTC);
+      }
+    }
   });
 });
 
@@ -180,6 +223,7 @@ describe("each day of the window", () => {
     expect(request.aggregateBy.aggregationInterval).toBe(
       AggregationInterval.Day,
     );
+    expect(request.aggregateBy.timezone).toBe(Timezone.UTC);
   });
 });
 

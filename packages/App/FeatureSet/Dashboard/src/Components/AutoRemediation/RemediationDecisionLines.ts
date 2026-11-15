@@ -19,10 +19,8 @@ import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoReme
 import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediationFix";
 import { parseClusterRoundName } from "Common/Types/AutoRemediation/RemediationRoundName";
 import { isRemediationRoundFix } from "./RemediationFixHeader";
-import {
-  AI_RESOURCE_TYPE_INFO,
-  isAiResourceType,
-} from "Common/Types/ResourceAiAgent/AiResourceType";
+import { isAiResourceType } from "Common/Types/ResourceAiAgent/AiResourceType";
+import { getResourceSentenceName } from "Common/Types/AI/ResourceAiAccessPermissions";
 import { getResourceAiAgentDescriptor } from "../ResourceAiAgent/ResourceAiAgentDescriptors";
 import {
   translatableTerm,
@@ -362,14 +360,23 @@ function getSignalTerm(signal: RemediationDecisionSignal): TranslatableTerm {
   });
 }
 
+/*
+ * The kind of resource a line names, by its name for the middle of a
+ * sentence ("database server", "host", "Docker host"; "resource" for a
+ * kind this build does not know): a label's capital read wrong there, and
+ * "Database server" was a key no locale words (#7862). Where a language
+ * starts its sentence with it, it takes a capital there
+ * ('Database server "orders-db" could be fixed too...').
+ */
 function getResourceKindTerm(
   entry: AutoRemediationDecisionEntry,
 ): TranslatableTerm {
-  const displayName: string = isAiResourceType(entry.resourceType)
-    ? AI_RESOURCE_TYPE_INFO[entry.resourceType].displayName
-    : "Resource";
-
-  return translatableTerm(displayName, { inSentence: true });
+  return translatableTerm(
+    isAiResourceType(entry.resourceType)
+      ? getResourceSentenceName(entry.resourceType)
+      : translationKey("resource"),
+    { inSentence: true },
+  );
 }
 
 /*
@@ -1153,11 +1160,7 @@ export function getRemediationDecisionLines(input: {
           text: translator.translateTemplate(
             '{{resourceKind}} "{{resourceName}}" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.',
             {
-              resourceKind: translatableTerm(
-                isAiResourceType(entry.resourceType)
-                  ? AI_RESOURCE_TYPE_INFO[entry.resourceType].displayName
-                  : "Resource",
-              ),
+              resourceKind: getResourceKindTerm(entry),
               resourceName,
               signal: signalTerm,
             },

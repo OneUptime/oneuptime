@@ -164,13 +164,13 @@ Microsoft فقط به اپ‌ها اجازه می‌دهد رونوشت جلسه
 
 ### Zoom
 
-OneUptime برای هر حادثه از راه یک اپ **Server-to-Server OAuth** در Zoom یک جلسهٔ Zoom می‌سازد که میزبانش یک کاربر Zoom دارای لایسنس به انتخاب شماست.
+OneUptime برای هر حادثه از راه یک اپ **Server-to-Server OAuth** در Zoom یک جلسهٔ Zoom می‌سازد که میزبانش یک کاربر Zoom دارای پروانه به انتخاب شماست.
 
 :::steps
 1. در [Zoom App Marketplace](https://marketplace.zoom.us/)، **Develop** > **Build App** را برگزینید و یک اپ **Server-to-Server OAuth** بسازید. ساختن آن به یک مدیر حساب Zoom، یا نقشی که اپ‌های Server-to-Server OAuth را مجاز می‌کند، نیاز دارد.
 2. در صفحهٔ **Scopes** اپ، **meeting:write:meeting:admin** (ساختن جلسه برای یک کاربر) را بیفزایید. اپی که پیش از scopeهای جزئی ساخته شده می‌تواند به جای آن از **meeting:write:admin** استفاده کند. برای اینکه OneUptime [رونوشت تماس‌ها](#رونوشت-تماسها) را هم بخواند، **cloud_recording:read:list_recording_files:admin** و **cloud_recording:read:meeting_transcript:admin** را بیفزایید (یا **recording:read:admin** در اپی که پیش از scopeهای جزئی ساخته شده).
 3. اپ را **Activate** کنید، سپس **Account ID**، **Client ID** و **راز کلاینت** را از صفحهٔ **App Credentials** آن در فرم اتصال کپی کنید.
-4. **Meeting host** را وارد کنید: ایمیل یک کاربر Zoom دارای لایسنس، ترجیحاً یک حساب سرویس مانند incidents@example.com، تا وقتی افراد می‌روند جلسه‌ها همچنان کار کنند. جلسه‌هایی که میزبانشان یک کاربر Basic (رایگان) است پس از ۴۰ دقیقه پایان می‌یابند.
+4. **Meeting host** را وارد کنید: ایمیل یک کاربر Zoom دارای پروانه، ترجیحاً یک حساب سرویس مانند incidents@example.com، تا وقتی افراد می‌روند جلسه‌ها همچنان کار کنند. جلسه‌هایی که میزبانشان یک کاربر Basic (رایگان) است پس از ۴۰ دقیقه پایان می‌یابند.
 5. پاسخ‌دهندگان بدون انتظار برای میزبان می‌پیوندند، چون میزبان یک حساب سرویس است که هرگز نمی‌پیوندد. مطمئن شوید تنظیم **Waiting room** حساب Zoom شما در حالت روشن قفل نشده باشد، وگرنه هیچ‌کس نمی‌تواند وارد شود.
 :::
 
@@ -179,7 +179,7 @@ OneUptime برای هر حادثه از راه یک اپ **Server-to-Server OAut
 | Account ID | صفحهٔ **App Credentials** اپ |
 | Client ID | صفحهٔ **App Credentials** اپ |
 | Client secret | صفحهٔ **App Credentials** اپ |
-| Meeting host | ایمیل کاربر Zoom دارای لایسنس که میزبان همهٔ جلسه‌هاست |
+| Meeting host | ایمیل کاربر Zoom دارای پروانه که میزبان همهٔ جلسه‌هاست |
 
 ### Google Meet
 
@@ -198,13 +198,13 @@ OneUptime برای هر حادثه با Google Meet REST API یک Google Meet م
 
 ### Microsoft Teams
 
-OneUptime برای هر حادثه با Microsoft Graph یک جلسهٔ Microsoft Teams می‌سازد، از راه یک ثبت برنامه در Microsoft Entra که از طرف یک کاربر Teams دارای لایسنس جلسه برگزار می‌کند.
+OneUptime برای هر حادثه با Microsoft Graph یک جلسهٔ Microsoft Teams می‌سازد، از راه یک ثبت برنامه در Microsoft Entra که از طرف یک کاربر Teams دارای پروانه جلسه برگزار می‌کند.
 
 :::steps
 1. در [مرکز مدیریت Microsoft Entra](https://entra.microsoft.com/)، **App registrations** > **New registration** را باز کنید و یک برنامهٔ تک‌مستأجری ثبت کنید. **Directory (tenant) ID** و **Application (client) ID** آن را کپی کنید.
 2. زیر **API permissions**، مجوز **application** مربوط به Microsoft Graph، یعنی **OnlineMeetings.ReadWrite.All**، را بیفزایید (و برای اینکه [تماس‌های حادثه را هم ضبط و رونویسی کنید](#ضبط-و-رونویسی-هر-تماس)، **Calendars.ReadWrite** و **OnlineMeetingTranscript.Read.All** را)، سپس روی **Grant admin consent** کلیک کنید.
 3. زیر **Certificates & secrets**، یک راز کلاینت بسازید و **Value** آن را، نه Secret ID آن را، به‌عنوان **راز کلاینت** در فرم اتصال بچسبانید.
-4. برگزارکننده را برگزینید: یک کاربر Teams دارای لایسنس، ترجیحاً یک حساب سرویس. **Object ID** او را از **Users** در مرکز مدیریت Entra در **Organizer object ID** کپی کنید.
+4. برگزارکننده را برگزینید: یک کاربر Teams دارای پروانه، ترجیحاً یک حساب سرویس. **Object ID** او را از **Users** در مرکز مدیریت Entra در **Organizer object ID** کپی کنید.
 5. با یک سیاست دسترسی برنامه به اپ اجازه دهید برای برگزارکننده جلسه بسازد. در Teams PowerShell، پس از `Connect-MicrosoftTeams`، دو فرمان زیر را اجرا کنید.
 :::
 
@@ -309,7 +309,7 @@ OneUptime نتوانست جلسه را در تقویم برگزارکننده‌
 :::
 
 :::details OneUptime AI نتوانست یک رونوشت را بخواند
-کارت می‌گوید چرا: هوش مصنوعی برای پروژه خاموش است، پروژه به یک سقف روزانهٔ هوش مصنوعی رسیده، یا ارائه‌دهندهٔ هوش مصنوعی رد کرده است. وقتی برطرف شد، **تلاش دوباره** در کارت آن را دوباره می‌خواند.
+کارت می‌گوید چرا: هوش مصنوعی برای پروژه خاموش است، پروژه به یک سقف روزانهٔ هوش مصنوعی رسیده، یا [ارائه‌دهنده LLM](/docs/ai/llm-provider) پروژه رد کرده است. وقتی برطرف شد، **تلاش دوباره** در کارت آن را دوباره می‌خواند.
 :::
 
 ## گام‌های بعدی

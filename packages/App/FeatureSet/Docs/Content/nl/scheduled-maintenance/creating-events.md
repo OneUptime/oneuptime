@@ -124,7 +124,7 @@ Alles uit het formulier kun je op de pagina's van de gebeurtenis wijzigen, behal
 ## Notities plaatsen terwijl het werk loopt
 
 - **Openbare notities** zijn updates voor je klanten: ze verschijnen op de statuspagina's van de gebeurtenis, en elk ervan kan hun abonnees informeren met **Abonnees van de statuspagina een melding sturen**.
-- **Privénotities** zijn alleen voor je team.
+- **Privénotities** kan alleen lezen wie de gebeurtenis kan zien.
 
 Schrijf er een op de pagina **Openbare notities** of **Privénotities** van de gebeurtenis, of via het menu **Acties** van de **Feed van gepland onderhoud** met **Openbare notitie toevoegen** of **Privénotitie toevoegen**. Hetzelfde menu start een runbook met **Runbook uitvoeren**. Een notitiesjabloon vult tekst in die je team vaak schrijft: zie [Onderhoudsregels en instellingen](/docs/scheduled-maintenance/settings#notitiesjablonen).
 

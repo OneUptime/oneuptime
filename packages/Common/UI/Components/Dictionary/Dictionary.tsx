@@ -85,6 +85,129 @@ export interface ComponentProps {
 // What a read-only dictionary with no rows says (readOnly).
 export const DICTIONARY_NO_ROWS_TEXT: string = translationKey("None");
 
+/*
+ * A FILTER ROW WITH AN OPERATOR, LAID OUT BY THE ROOM IT HAS.
+ *
+ * The operator used to sit in a fifth of the row (120px at least), behind
+ * a clear button: "matches" and "does not match" both read "matc..." in
+ * English and "stim..." in German, so a filter and its opposite looked the
+ * same, and every operator worded in another language was cut (#7282).
+ * On a phone the key and the value were 65px boxes, and a list value's
+ * chips broke one letter a line.
+ *
+ * The rows hold the room they are drawn in (a container, not the window:
+ * the metric explorer, a monitor's criteria and a dashboard widget's
+ * settings each give the list a different width). With room for it, a row
+ * is one line: the key, an operator box wide enough for the longest
+ * operator any language writes (Russian's "не равно ни одному из"), the
+ * type when there is a choice of one, the value, and Delete. With less, it
+ * is two lines: the key, the operator and Delete, then the type and the
+ * value under them. On a phone each field takes the row's width under the
+ * one before it, with Delete beside the key. While a row takes more than
+ * one line, a line between rows says where each filter ends.
+ */
+export const DICTIONARY_OPERATOR_ROWS_CLASS_NAME: string =
+  "[container-type:inline-size]";
+
+export interface DictionaryOperatorRowClassNames {
+  // The row: its grid, and the line above it while it takes more than one.
+  row: string;
+  // Each field's place in the row's grid.
+  key: string;
+  operator: string;
+  type: string;
+  value: string;
+  // Delete: beside the key, or at the end of the line.
+  delete: string;
+}
+
+/*
+ * The classes of a filter row with an operator. A row with a choice of
+ * type has one more box to fit, so it goes onto one line only with more
+ * room (54rem, not 44rem). The type box holds the longest one-word type any
+ * language writes (Russian's "Логический") and German's "Boolescher Wert"
+ * on two lines, never "Booles...". The value has more room than the key: a
+ * list value's chips sit beside its own clear and open buttons, and a chip
+ * that ran out of room broke "productio" / "n".
+ *
+ * The two-line layout's range ends where the one-line layout's starts, so
+ * the two never apply at once and their order in the style sheet does not
+ * matter.
+ */
+export const getDictionaryOperatorRowClassNames: (
+  hasTypeChoice: boolean,
+) => DictionaryOperatorRowClassNames = (
+  hasTypeChoice: boolean,
+): DictionaryOperatorRowClassNames => {
+  const twoLines: string = hasTypeChoice
+    ? "[@container(min-width:36rem)_and_(max-width:53.99rem)]"
+    : "[@container(min-width:36rem)_and_(max-width:43.99rem)]";
+  const oneLine: string = hasTypeChoice
+    ? "[@container(min-width:54rem)]"
+    : "[@container(min-width:44rem)]";
+
+  if (hasTypeChoice) {
+    return {
+      row: [
+        "mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-3",
+        "border-t border-gray-100 pt-4 first:border-t-0 first:pt-0 last:mb-0",
+        `${twoLines}:grid-cols-[9.5rem_minmax(0,1fr)_14rem_auto]`,
+        `${oneLine}:grid-cols-[minmax(0,1fr)_14rem_9.5rem_minmax(0,1.5fr)_auto]`,
+        `${oneLine}:gap-y-0 ${oneLine}:border-t-0 ${oneLine}:pt-0`,
+      ].join(" "),
+      key: `col-start-1 row-start-1 min-w-0 ${twoLines}:col-span-2`,
+      operator: [
+        "col-start-1 min-w-0",
+        `${twoLines}:col-start-3 ${twoLines}:row-start-1`,
+        `${oneLine}:col-start-auto`,
+      ].join(" "),
+      type: [
+        "col-start-1 min-w-0",
+        `${twoLines}:row-start-2`,
+        `${oneLine}:col-start-auto`,
+      ].join(" "),
+      value: [
+        "col-start-1 min-w-0",
+        `${twoLines}:col-start-2 ${twoLines}:col-span-2 ${twoLines}:row-start-2`,
+        `${oneLine}:col-start-auto`,
+      ].join(" "),
+      delete: [
+        "col-start-2 row-start-1 flex flex-col justify-end pt-6",
+        `${twoLines}:col-start-4`,
+        `${oneLine}:col-start-auto ${oneLine}:row-start-auto`,
+      ].join(" "),
+    };
+  }
+
+  return {
+    row: [
+      "mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-3",
+      "border-t border-gray-100 pt-4 first:border-t-0 first:pt-0 last:mb-0",
+      `${twoLines}:grid-cols-[minmax(0,1fr)_14rem_auto]`,
+      `${oneLine}:grid-cols-[minmax(0,1fr)_14rem_minmax(0,1.25fr)_auto]`,
+      `${oneLine}:gap-y-0 ${oneLine}:border-t-0 ${oneLine}:pt-0`,
+    ].join(" "),
+    key: "col-start-1 row-start-1 min-w-0",
+    operator: [
+      "col-start-1 min-w-0",
+      `${twoLines}:col-start-2 ${twoLines}:row-start-1`,
+      `${oneLine}:col-start-auto`,
+    ].join(" "),
+    // Never drawn: a row without a choice of type has no type box.
+    type: "col-start-1 min-w-0",
+    value: [
+      "col-start-1 min-w-0",
+      `${twoLines}:col-span-2 ${twoLines}:row-start-2`,
+      `${oneLine}:col-start-auto`,
+    ].join(" "),
+    delete: [
+      "col-start-2 row-start-1 flex flex-col justify-end pt-6",
+      `${twoLines}:col-start-3`,
+      `${oneLine}:col-start-auto ${oneLine}:row-start-auto`,
+    ].join(" "),
+  };
+};
+
 interface Item {
   key: string;
   value: string | number | boolean | Array<string>;
@@ -283,25 +406,39 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
       },
     );
 
+  const showOperatorSelector: boolean = Boolean(props.enableOperators);
+  const operatorRowClassNames: DictionaryOperatorRowClassNames =
+    getDictionaryOperatorRowClassNames(valueTypes.length > 1);
+
   return (
     <div>
-      <div>
+      <div
+        className={
+          showOperatorSelector ? DICTIONARY_OPERATOR_ROWS_CLASS_NAME : undefined
+        }
+      >
         {data.map((item: Item, index: number) => {
           const operatorOption: DictionaryFilterOperatorOption =
             getOperatorOption(item.operator);
-          const showOperatorSelector: boolean = Boolean(props.enableOperators);
           const hideValueInput: boolean = Boolean(
             showOperatorSelector && operatorOption.hidesValueInput,
           );
           const valueColumnClass: string = showOperatorSelector
-            ? "ml-1 w-2/5"
+            ? operatorRowClassNames.value
             : "ml-1 w-1/2";
           const keyColumnClass: string = showOperatorSelector
-            ? "mr-1 w-2/5"
+            ? operatorRowClassNames.key
             : "mr-1 w-1/2";
+          const rowClassName: string = showOperatorSelector
+            ? operatorRowClassNames.row
+            : "flex items-start mb-4 last:mb-0";
 
           return (
-            <div key={index} className="flex items-start mb-4 last:mb-0">
+            <div
+              key={index}
+              className={rowClassName}
+              data-testid="dictionary-row"
+            >
               <div className={keyColumnClass}>
                 <div className="mb-1">
                   <FieldLabelElement
@@ -314,6 +451,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 <AutocompleteTextInput
                   value={item.key}
                   placeholder={props.keyPlaceholder}
+                  ariaLabel={translator.translateText("Key") || "Key"}
                   suggestions={props.keys}
                   isLoadingSuggestions={props.isLoadingKeys}
                   loadingMessage="Loading attributes..."
@@ -332,7 +470,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
               </div>
 
               {showOperatorSelector ? (
-                <div className="mr-1 ml-1 w-1/5 min-w-[120px]">
+                <div className={operatorRowClassNames.operator}>
                   <div className="mb-1">
                     <FieldLabelElement
                       title="Operator"
@@ -350,6 +488,16 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     options={operatorDropdownOptions}
                     isMultiSelect={false}
                     disabled={isReadOnly}
+                    ariaLabel="Operator"
+                    dataTestId="dictionary-operator"
+                    /*
+                     * A filter always compares somehow: clearing the
+                     * operator only put "=" back. And an operator is shown
+                     * whole, on a second line if its box is narrow, never
+                     * cut to "matc..." beside "does...".
+                     */
+                    isClearable={false}
+                    wrapsPickedValue={true}
                     onChange={(
                       selectedOption:
                         | DropdownValue
@@ -394,7 +542,13 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 </div>
               )}
               {valueTypes.length > 1 && (
-                <div className="ml-1 w-1/2">
+                <div
+                  className={
+                    showOperatorSelector
+                      ? operatorRowClassNames.type
+                      : "ml-1 w-1/2"
+                  }
+                >
                   <div className="mb-1">
                     <FieldLabelElement
                       title="Type"
@@ -412,6 +566,13 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     options={dropdownOptionsForValueTypes}
                     isMultiSelect={false}
                     disabled={isReadOnly}
+                    ariaLabel="Type"
+                    /*
+                     * A value always has a type: clearing it only put Text
+                     * back. A long type is shown whole, on a second line.
+                     */
+                    isClearable={false}
+                    wrapsPickedValue={true}
                     onChange={(
                       selectedOption:
                         | DropdownValue
@@ -519,6 +680,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                           ? "Number"
                           : props.valuePlaceholder
                       }
+                      ariaLabel={translator.translateText("Value") || "Value"}
                       suggestions={
                         operatorOption.expectsNumericValue
                           ? undefined
@@ -617,7 +779,13 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
               {isReadOnly ? (
                 <></>
               ) : (
-                <div className="ml-1 flex flex-col justify-end pt-6">
+                <div
+                  className={
+                    showOperatorSelector
+                      ? operatorRowClassNames.delete
+                      : "ml-1 flex flex-col justify-end pt-6"
+                  }
+                >
                   <Button
                     dataTestId={`delete-${item.key}`}
                     title="Delete"

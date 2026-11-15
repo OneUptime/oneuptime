@@ -21,10 +21,10 @@
  * from its settings - the same rules the Notification service sends by - and
  * from what the server remembers of its own last sends (GlobalConfig.
  * serverSendingHealth, written by the senders). Saving a channel's settings
- * starts it again at untested, and so does SMS and calls' Twilio account
- * changing without a save, when the GLOBAL_TWILIO_ environment variables
- * set it: what was learned with the account before is not read as this
- * one's (settingsFingerprint).
+ * starts it again at untested, and so do the settings of SMS, calls or
+ * email changing without a save, when the GLOBAL_TWILIO_ or GLOBAL_EMAIL_
+ * environment variables set them: what was learned with the settings
+ * before is not read as these ones' (settingsFingerprint).
  *
  * Who reads what:
  *
@@ -77,10 +77,11 @@ export interface ServerSendingHealthEntry {
   /*
    * Which settings the entry was learned with, for a channel whose settings
    * can change without anyone saving them: SMS and calls, whose Twilio
-   * account the GLOBAL_TWILIO_ environment variables can set (#7515, #7736).
-   * A keyed hash the server makes (Server/Utils/ServerSending/
+   * account the GLOBAL_TWILIO_ environment variables can set (#7515, #7736),
+   * and email, whose settings the GLOBAL_EMAIL_ ones can (#7738, #7803). A
+   * keyed hash the server makes (Server/Utils/ServerSending/
    * ServerSendingSettings), never a setting itself. Left out by entries
-   * written before there was one, and by the other channels.
+   * written before there was one, and by push.
    */
   settingsFingerprint?: string | undefined;
 }

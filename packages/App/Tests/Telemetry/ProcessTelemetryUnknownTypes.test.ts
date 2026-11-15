@@ -59,6 +59,19 @@ jest.mock(
   },
 );
 
+const processNetworkDevicePollFromQueue: jest.Mock = jest.fn();
+const processSnmpTrapBatchFromQueue: jest.Mock = jest.fn();
+jest.mock(
+  "../../FeatureSet/Telemetry/Jobs/ProbeIngest/ProcessCoalescedProbeIngest",
+  () => {
+    return {
+      __esModule: true,
+      processNetworkDevicePollFromQueue,
+      processSnmpTrapBatchFromQueue,
+    };
+  },
+);
+
 const deleteBody: jest.Mock = jest.fn();
 jest.mock("../../FeatureSet/Telemetry/Utils/TelemetryBodyStore", () => {
   return {
@@ -247,6 +260,8 @@ describe("ProcessTelemetry worker — telemetry this release cannot process", ()
       "incoming-email",
       "snmp-trap",
       "network-device-walk",
+      "network-device-poll",
+      "snmp-trap-batch",
     ]) {
       const job: FakeJob = telemetryJob({
         type: TelemetryType.ProbeIngest,
@@ -260,6 +275,9 @@ describe("ProcessTelemetry worker — telemetry this release cannot process", ()
 
     expect(processProbeFromQueue).toHaveBeenCalledTimes(2);
     expect(processIncomingEmailFromQueue).toHaveBeenCalledTimes(1);
+    // A device's newest poll and a sender's traps, coalesced in Redis.
+    expect(processNetworkDevicePollFromQueue).toHaveBeenCalledTimes(1);
+    expect(processSnmpTrapBatchFromQueue).toHaveBeenCalledTimes(1);
     expect(processSnmpTrapFromQueue).toHaveBeenCalledTimes(1);
     expect(processNetworkDeviceWalkFromQueue).toHaveBeenCalledTimes(1);
   });
@@ -320,6 +338,8 @@ describe("the kinds and types a release knows", () => {
       "incoming-email",
       "snmp-trap",
       "network-device-walk",
+      "network-device-poll",
+      "snmp-trap-batch",
     ];
 
     for (const kind of kinds) {

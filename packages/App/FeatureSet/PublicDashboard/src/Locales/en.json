@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "This needs the latest version. Save your changes, then reload the page.",
   "This couldn't be loaded.": "This couldn't be loaded.",
   "Something went wrong": "Something went wrong",
-  "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue"
+  "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
+  "Click to reveal": "Click to reveal",
+  "Click to copy": "Click to copy",
+  "Copy": "Copy",
+  "Copied!": "Copied!",
+  "Copy failed": "Copy failed",
+  "Hide": "Hide"
 }

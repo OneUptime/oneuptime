@@ -522,7 +522,8 @@ const FILE_PICKER_SENTENCES: Array<string> = [
   "Click to choose a file or drag & drop.",
   "Click to add more or drag & drop.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one",
   "Chosen files",
   "Remove",
   "Replace",
@@ -533,7 +534,26 @@ const FILE_PICKER_SENTENCES: Array<string> = [
   "These files are not a type this field takes: {{fileNames}}.",
   "Add one file at a time.",
   "This field holds up to {{count}} files. Remove one to add another.",
+  "This field holds up to {{count}} files. Remove one to add another._one",
 ];
+
+/*
+ * The picker's count-dependent sentences (issue #7421): the question's own
+ * most files, said in the words for that count. The "_one" key holds the
+ * sentence for exactly one file, which English words its own way - with no
+ * {{count}} - so each is checked against that sentence, not its key.
+ */
+const PLURAL_ONE_FORMS: Record<string, string> = {
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one":
+    "One file of up to {{size}}: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "This field holds up to {{count}} files. Remove one to add another._one":
+    "This field holds one file. Remove it to add another.",
+};
+
+// What English says for a flat key: the key itself, or a plural's one form.
+function englishOf(key: string): string {
+  return PLURAL_ONE_FORMS[key] || key;
+}
 
 /*
  * What a screen reader calls each callout (MarkdownQuote's
@@ -751,7 +771,19 @@ describe("the sentences the page looks up whole", () => {
     const en: Record<string, unknown> = readLocale("en");
 
     for (const sentence of FLAT_SENTENCES) {
-      expect(en[sentence]).toBe(sentence);
+      expect(en[sentence]).toBe(englishOf(sentence));
+    }
+  });
+
+  test("a count-dependent sentence's one form names no count, and follows its key", () => {
+    for (const key of Object.keys(PLURAL_ONE_FORMS)) {
+      const general: string = key.replace(/_one$/, "");
+
+      expect(FLAT_SENTENCES.indexOf(key)).toBe(
+        FLAT_SENTENCES.indexOf(general) + 1,
+      );
+      expect(general).toContain("{{count}}");
+      expect(englishOf(key)).not.toContain("{{count}}");
     }
   });
 
@@ -766,10 +798,12 @@ describe("the sentences the page looks up whole", () => {
 
         expect(typeof value).toBe("string");
         expect((value as string).trim().length).toBeGreaterThan(0);
-        expect(placeholders(value as string)).toEqual(placeholders(sentence));
+        expect(placeholders(value as string)).toEqual(
+          placeholders(englishOf(sentence)),
+        );
 
         if (!sameAsEnglish.includes(sentence)) {
-          expect(value).not.toBe(sentence);
+          expect(value).not.toBe(englishOf(sentence));
         }
       }
     },

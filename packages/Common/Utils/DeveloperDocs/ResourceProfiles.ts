@@ -729,7 +729,8 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       },
       {
         title: "Internal note",
-        description: "A note only your team sees.",
+        description:
+          "A private note: only the people who can see the incident can read it.",
         scopes: ["view"],
         modelType: IncidentInternalNote,
         operation: "create",
@@ -914,7 +915,8 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       },
       {
         title: "Internal note",
-        description: "A note only your team sees.",
+        description:
+          "A private note: only the people who can see the alert can read it.",
         scopes: ["view"],
         modelType: AlertInternalNote,
         operation: "create",

@@ -633,7 +633,7 @@ describe("getFeedItemMarkdown", () => {
  * entries below it, and the reason sat behind Show the full report.
  */
 describe("a follow-up check's entry", () => {
-  const FOLLOW_UP_LEAD: string = `${FOLLOW_UP_REPORT_LEAD_PREFIX} after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.`;
+  const FOLLOW_UP_LEAD: string = `${FOLLOW_UP_REPORT_LEAD_PREFIX} after alert #318 opened on host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.`;
 
   function followUpReport(analysis: string): string {
     return serverReport(analysis).replace(
@@ -649,7 +649,7 @@ describe("a follow-up check's entry", () => {
 
     expect(content.text).toBe(
       [
-        `**${AI_FOLLOW_UP_FEED_LEAD}** after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.`,
+        `**${AI_FOLLOW_UP_FEED_LEAD}** after alert #318 opened on host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.`,
         COMPACT_SUMMARY,
         `**Most likely root cause:** ${COMPACT_ROOT_CAUSE}`,
       ].join("\n\n"),

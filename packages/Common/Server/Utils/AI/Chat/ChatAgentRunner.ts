@@ -83,6 +83,7 @@ import AgentLoopDetector, {
 import AIRunLimitsReader from "../AIRunLimitsReader";
 import User from "../../../../Models/DatabaseModels/User";
 import AiTokenCount from "../../../../Types/AI/AiTokenCount";
+import { readRequestedReaderLanguage } from "../../../../Types/ReaderLanguage";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
 import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
@@ -165,6 +166,15 @@ export interface ChatTurnRequest {
   offersPageInfrastructure?: boolean | undefined;
   // LlmLog feature label (defaults to OBSERVABILITY_CHAT_FEATURE).
   feature?: string | undefined;
+  /*
+   * The language the person reads the Dashboard in, sent with the question
+   * and again with the approval that runs its actions: one of the codes
+   * OneUptime writes in, kept by the API only when it is one
+   * (readRequestedReaderLanguage). The tools read it as
+   * ToolContext.language, to write OneUptime's words into a record they
+   * make in it (#7247). It changes nothing the model is asked or told.
+   */
+  language?: string | undefined;
 }
 
 /*
@@ -1735,17 +1745,24 @@ export default class ChatAgentRunner {
   }
 
   /*
-   * The tools' context for one turn: the person's props, and the subject the
-   * turn is about, which a tool acting from a page reads.
+   * The tools' context for one turn: the person's props, the subject the
+   * turn is about, which a tool acting from a page reads, and the language
+   * the person reads the Dashboard in, which a tool writing OneUptime's
+   * words into a record reads (ToolContext.language).
    */
   private static buildToolContext(
     request: ChatTurnRequest,
     pageContext: AIChatPageContext | undefined,
   ): ToolContext {
+    const language: string | undefined = readRequestedReaderLanguage(
+      request.language,
+    );
+
     return {
       projectId: request.projectId,
       props: request.props,
       ...(pageContext ? { pageContext } : {}),
+      ...(language ? { language } : {}),
     };
   }
 

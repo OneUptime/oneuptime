@@ -134,6 +134,14 @@ export interface PeoplePickerFieldConfig {
    * back. Leave it out for a picker whose empty value needs no words.
    */
   whenNobodyPicked?: PeoplePickerNobodyPicked | undefined;
+  /*
+   * The picks shown, never changed, whoever opens the form: the chips
+   * alone, with no Change or Add button and no remove on a chip (the
+   * picker's readOnly). An Edit User Override dialog's "Who is away?" - a
+   * different person is another override. A disabled field, by contrast,
+   * keeps its button, locked.
+   */
+  isReadOnly?: boolean | undefined;
 }
 
 // What an empty picker stands for (PeoplePickerFieldConfig.whenNobodyPicked).

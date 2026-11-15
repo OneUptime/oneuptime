@@ -31,6 +31,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import Project from "../../../Models/DatabaseModels/Project";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
@@ -40,6 +41,7 @@ import IncidentAlertService from "../../../Server/Services/IncidentAlertService"
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import { getAffectedResourceKindService } from "../../../Server/Utils/AffectedResources/AffectedResourceSearch";
@@ -83,7 +85,11 @@ import WorkspaceMemberActions, {
  *     the person who picked it;
  *   - an alert's own channel: the form says it is declared from the alert,
  *     starts from its title and its resources, and the incident is linked
- *     to the alert - never to its monitor.
+ *     to the alert - never to its monitor;
+ *   - status page subscribers (#7606): the form asks nothing about them, so
+ *     the incident is declared as the project starts Notify Status Page
+ *     Subscribers on Declare New Incident - without notifying them where
+ *     the project starts it unticked, as always everywhere else.
  */
 
 jest.mock("../../../Server/Middleware/SlackAuthorization", () => {
@@ -615,6 +621,12 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
   let isAlertPrivate: boolean;
   let mayLinkAlert: boolean;
   let isAiOn: boolean;
+  /*
+   * The project's Notify status page subscribers by default (Incidents >
+   * Settings > Subscriber Notifications), and every read of it.
+   */
+  let notifiesByDefault: boolean;
+  let projectReads: Array<JSONObject>;
 
   beforeAll(async () => {
     app = await startSlackApp();
@@ -635,8 +647,21 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
     isAlertPrivate = false;
     mayLinkAlert = true;
     isAiOn = true;
+    notifiesByDefault = true;
+    projectReads = [];
 
     jest.spyOn(logger, "debug").mockImplementation((): void => {});
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async (
+      findOneById: JSONObject,
+    ) => {
+      projectReads.push(findOneById);
+
+      const project: Project = new Project();
+      project.id = findOneById["id"] as ObjectID;
+      project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
+        notifiesByDefault;
+      return project;
+    }) as never);
     // The project's AI switch, which Affected Resources' hint follows.
     jest
       .spyOn(AIService, "isProjectAIEnabled")
@@ -1479,6 +1504,127 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
           text: `The incident *<${INCIDENT_URL}|INC-43>* is not linked to 2 resources you picked: they were deleted or archived, or you may no longer view them.\n`,
         },
       ]);
+    });
+  });
+
+  /*
+   * The form asks nothing about status page subscribers. Where the project
+   * starts Notify Status Page Subscribers unticked on Declare New Incident,
+   * an incident declared here tells them nothing either; anywhere else it is
+   * declared exactly as before, the column not written at all.
+   */
+  describe("status page subscribers, as the project starts Notify Status Page Subscribers", () => {
+    async function declare(): Promise<Incident> {
+      await command("incident");
+      const view: JSONObject = await openedForm();
+      slackCalls = [];
+
+      await submit({
+        privateMetadata: view["private_metadata"] as string,
+        title: "Checkout is slow",
+        picks: [],
+      });
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(created).toHaveLength(1);
+      return created[0]!.data;
+    }
+
+    test("a project that starts the box unticked: declared without notifying them, the project read as OneUptime for that one column", async () => {
+      notifiesByDefault = false;
+
+      const incident: Incident = await declare();
+
+      expect(
+        incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(false);
+      // Still declared as Simon, and confirmed as always.
+      expect(created[0]!.props).toBe(memberProps);
+      expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([
+        {
+          channel: OPS_CHANNEL_ID,
+          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n`,
+        },
+      ]);
+      expect(projectReads).toEqual([
+        {
+          id: PROJECT_ID,
+          select: { notifyStatusPageSubscribersOfNewIncidentsByDefault: true },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+
+    test("a project that keeps it on: declared as always - the column is not written, so the incident notifies them", async () => {
+      const incident: Incident = await declare();
+
+      expect(
+        incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBeUndefined();
+      expect(projectReads).toHaveLength(1);
+    });
+
+    test("a project that cannot be read: declared all the same, as always", async () => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementation((async () => {
+          throw new Error("the database is not connected");
+        }) as never);
+
+      const incident: Incident = await declare();
+
+      expect(
+        incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBeUndefined();
+      expect(postedTo("https://slack.com/api/chat.postMessage")).toHaveLength(
+        1,
+      );
+    });
+
+    test("in a workspace connected to two projects, the project the form was drawn for decides - not the first one connected", async () => {
+      connectedProjects = [PROJECT_ID, STAGING_PROJECT_ID];
+      // Staging starts the box unticked; the first project keeps it ticked.
+      jest.spyOn(ProjectService, "findOneById").mockImplementation((async (
+        findOneById: JSONObject,
+      ) => {
+        projectReads.push(findOneById);
+
+        const project: Project = new Project();
+        project.id = findOneById["id"] as ObjectID;
+        project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
+          String(findOneById["id"]) !== STAGING_PROJECT_ID.toString();
+        return project;
+      }) as never);
+
+      const answer: RouteAnswer = await submit({
+        privateMetadata: JSON.stringify({
+          oneuptime: 1,
+          value: OPS_CHANNEL_ID,
+          projectId: STAGING_PROJECT_ID.toString(),
+        }),
+        title: "Checkout is slow",
+        picks: [],
+      });
+
+      expect(answer.status).toBe(200);
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(created).toHaveLength(1);
+      expect(created[0]!.data.projectId?.toString()).toBe(
+        STAGING_PROJECT_ID.toString(),
+      );
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(false);
+      expect(
+        projectReads.map((read: JSONObject): string => {
+          return String(read["id"]);
+        }),
+      ).toEqual([STAGING_PROJECT_ID.toString()]);
     });
   });
 

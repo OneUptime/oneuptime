@@ -323,11 +323,15 @@ export const EVENT_STATE_KINDS: Record<
         "Select the state to change alerts to. Alerts already at or past the selected state will be skipped.",
       ),
       bulkNoteTitle: translationKey("Private Note"),
+      /*
+       * Who reads it, without the word "team", which reads as one of
+       * OneUptime's Teams (#7595): a note is read through its alert.
+       */
       bulkNoteDescription: translationKey(
-        "Add an optional private note about this state change. Only your team can see it, and the same note is added to every alert you selected.",
+        "Add an optional private note about this state change. The same note is added to every alert you selected, and only people who can see an alert can read it.",
       ),
       rowNoteDescription: translationKey(
-        "Add an optional private note about this state change. Only your team can see it.",
+        "Add an optional private note about this state change. Only people who can see this alert can read it.",
       ),
       rowLockSentence: translationKey(
         "You do not have permission to change this alert's state.",
@@ -373,7 +377,7 @@ export const EVENT_STATE_KINDS: Record<
       ),
       bulkNoteTitle: translationKey("Private Note"),
       bulkNoteDescription: translationKey(
-        "Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected.",
+        "Add an optional private note about this state change. The same note is added to every episode you selected, and only people who can see an episode can read it.",
       ),
       rowNoteDescription: translationKey(
         "Post a private note about this state change.",
@@ -425,7 +429,7 @@ export const EVENT_STATE_KINDS: Record<
       ),
       bulkNoteTitle: translationKey("Private Note"),
       bulkNoteDescription: translationKey(
-        "Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected.",
+        "Add an optional private note about this state change. The same note is added to every episode you selected, and only people who can see an episode can read it.",
       ),
       rowNoteDescription: translationKey(
         "Post a private note about this state change.",
@@ -469,7 +473,7 @@ export const EVENT_STATE_KINDS: Record<
     words: {
       changeStateTitle: translationKey("Change Scheduled Maintenance State"),
       changeStateBulkDescription: translationKey(
-        "Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped.",
+        "Select the state to change maintenance events to. Events already at or past the selected state will be skipped.",
       ),
       bulkNoteTitle: translationKey("Public Note"),
       bulkNoteDescription: translationKey(

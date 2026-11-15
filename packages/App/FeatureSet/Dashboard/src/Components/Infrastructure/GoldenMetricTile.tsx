@@ -2,15 +2,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
-import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  getTileTitleWordsClassName,
-  TILE_TITLE_LONG_WORDS,
-} from "../TelemetryResource/TileTitleWords";
+import { TILE_TITLE_LONG_WORDS } from "../TelemetryResource/TileTitleWords";
 
 /*
  * Product-neutral golden-metric hero tile (extracted from the
@@ -184,23 +180,19 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
         {/*
          * A title longer than its box - one German word, "KNOTENVERFÜGBARKEIT"
          * - breaks inside it (hyphenated where the reader's language allows)
-         * instead of running under the icon.
+         * instead of running under the icon, and its (i) follows its last
+         * word on whichever line it ends (issue #7348).
          */}
-        <div className="flex min-w-0 items-center gap-1">
-          <span
-            className={`min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider ${getTileTitleWordsClassName(
-              { text: title, lang: titleLanguage },
-            )}`}
+        <div className="flex min-w-0">
+          <WordsWithInfoTooltip
+            className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+            dataTestId="golden-metric-tile-title"
+            text={title}
             lang={titleLanguage}
-            data-testid="golden-metric-tile-title"
-          >
-            <HyphenatedWords
-              text={title}
-              lang={titleLanguage}
-              rule={TILE_TITLE_LONG_WORDS}
-            />
-          </span>
-          <InfoTooltip label={props.title} text={props.description} />
+            rule={TILE_TITLE_LONG_WORDS}
+            label={props.title}
+            description={props.description}
+          />
         </div>
         <div
           className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}

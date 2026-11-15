@@ -59,6 +59,12 @@ import KubernetesClusterService from "../Services/KubernetesClusterService";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import QueryHelper from "../Types/Database/QueryHelper";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import AiRunRefusalException from "../../Types/Exception/AiRunRefusalException";
+import {
+  getAiRunRefusalMessage,
+  getNotAllowedRefusal,
+  getRecordNotFoundRefusal,
+} from "../../Types/AI/AiRunRefusal";
 import {
   KubernetesAiAccessGap,
   KubernetesAiAccessGapCode,
@@ -282,9 +288,8 @@ export async function assertSubjectReadableInTenant(data: {
         });
 
   if (!subject || !subject.projectId) {
-    throw new BadDataException(
-      `${data.subjectType === "incident" ? "Incident" : "Alert"} not found (or you do not have access to it).`,
-    );
+    // Its code beside it: Try again and Investigate now word it (#7359).
+    throw new AiRunRefusalException(getRecordNotFoundRefusal(data.subjectType));
   }
 
   CommonAPI.assertResourceBelongsToProject({
@@ -1048,7 +1053,7 @@ interface SubjectToInvestigate {
 
 async function readSubjectViewerMayInvestigate(
   req: ExpressRequest,
-  action: string,
+  action: "try_again" | "investigate_now",
 ): Promise<SubjectToInvestigate> {
   const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
   const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
@@ -1086,8 +1091,9 @@ async function readSubjectViewerMayInvestigate(
       viewerProps,
     }))
   ) {
+    // A 403 carries no code: the Dashboard words this sentence by its text.
     throw new NotAuthorizedException(
-      `You do not have permission to change this ${subjectType}, so you cannot ${action}.`,
+      getAiRunRefusalMessage(getNotAllowedRefusal(subjectType, action)),
     );
   }
 
@@ -1105,7 +1111,8 @@ async function readSubjectViewerMayInvestigate(
  * Only an authenticated member of the tenant who may read the record AND
  * change it may start it: the investigation posts its report to it.
  * Body: { subjectType: "incident" | "alert", subjectId }.
- * Response: { runId }, or 400 with what stopped it.
+ * Response: { runId }, or 400 with what stopped it: its English message
+ * and, beside it, its refusalCode (Types/AI/AiRunRefusal).
  */
 router.post(
   "/ai-investigation/investigate-now",
@@ -1117,7 +1124,7 @@ router.post(
   ): Promise<void> => {
     try {
       const subject: SubjectToInvestigate =
-        await readSubjectViewerMayInvestigate(req, "start its investigation");
+        await readSubjectViewerMayInvestigate(req, "investigate_now");
 
       const lane: RuleWaitLane =
         subject.subjectType === "alert" ? "Alert" : "Incident";
@@ -1128,7 +1135,7 @@ router.post(
       });
 
       if (!result.isStarted) {
-        throw new BadDataException(result.message);
+        throw new AiRunRefusalException(result.refusalCode);
       }
 
       Response.sendJsonObjectResponse(req, res, {
@@ -1150,7 +1157,8 @@ router.post(
  * report to it, the same rule as Investigate now and Ask AI's
  * start_investigation.
  * Body: { subjectType: "incident" | "alert", subjectId }.
- * Response: { runId }, or 400 with what stopped it.
+ * Response: { runId }, or 400 with what stopped it: its English message
+ * and, beside it, its refusalCode (Types/AI/AiRunRefusal).
  */
 router.post(
   "/ai-investigation/try-again",
@@ -1162,10 +1170,7 @@ router.post(
   ): Promise<void> => {
     try {
       const subject: SubjectToInvestigate =
-        await readSubjectViewerMayInvestigate(
-          req,
-          "start its investigation again",
-        );
+        await readSubjectViewerMayInvestigate(req, "try_again");
 
       const runId: ObjectID = await InvestigationTryAgain.tryAgain({
         projectId: subject.tenantId,

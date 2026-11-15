@@ -330,7 +330,7 @@ Naast de tools voor elk soort record heeft de server tools speciaal voor het rea
 
 - **`acknowledge_incident`** / **`resolve_incident`**: een incident naar de toestand Acknowledged of Resolved van het project zetten, zoals de knop in het dashboard doet
 - **`acknowledge_alert`** / **`resolve_alert`**: hetzelfde voor waarschuwingen
-- **`add_incident_note`**: een notitie aan een incident toevoegen met `visibility: "internal"` (alleen het team, de standaard) of `visibility: "public"` (geplaatst op de statuspagina). Markdown wordt ondersteund
+- **`add_incident_note`**: een notitie aan een incident toevoegen met `visibility: "internal"` (alleen wie het incident kan zien, de standaard) of `visibility: "public"` (geplaatst op de statuspagina). Markdown wordt ondersteund
 - **`add_alert_note`**: een interne notitie aan een waarschuwing toevoegen
 
 Een typische lus: `list_incidents` → `acknowledge_incident` → onderzoeken met `list_logs` → `add_incident_note` (openbaar) → `resolve_incident`.

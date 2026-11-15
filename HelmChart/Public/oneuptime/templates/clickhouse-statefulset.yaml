@@ -76,8 +76,10 @@ spec:
               -e "s/\${CLICKHOUSE_PASSWORD}/$CLICKHOUSE_PASSWORD/g" \
               /etc/clickhouse-server/config-template/config.xml > /etc/clickhouse-server/config-output/config.xml
         env:
+        # The user the app connects as (its CLICKHOUSE_USER), written the same
+        # way: through oneuptime.envValue, without the whitespace around it.
         - name: CLICKHOUSE_USER
-          value: {{ .Values.clickhouse.auth.username | quote }}
+          value: {{ include "oneuptime.envValue" .Values.clickhouse.auth.username }}
         - name: CLICKHOUSE_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -126,7 +128,7 @@ spec:
           protocol: TCP
         env:
         - name: CLICKHOUSE_USER
-          value: {{ .Values.clickhouse.auth.username | quote }}
+          value: {{ include "oneuptime.envValue" .Values.clickhouse.auth.username }}
         - name: CLICKHOUSE_PASSWORD
           valueFrom:
             secretKeyRef:

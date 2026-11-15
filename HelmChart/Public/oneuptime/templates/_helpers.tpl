@@ -631,11 +631,15 @@ the next boot removes the row, so no project lists a global Runner nobody runs.
 Where the bundled global Runner's key comes from, as an env var's value: the
 literal globalRunner.key, a Secret the user manages
 (globalRunner.existingSecret), or the release Secret's global-runner-key,
-which templates/secrets.yaml generates once and keeps.
+which templates/secrets.yaml generates once and keeps. The literal key goes
+through oneuptime.envValue, without the whitespace around it: the server trims
+GLOBAL_RUNNER_KEY before it keeps the Runner's row, so a key read from a file
+with its final newline left the Runner presenting a key the server refused
+(#7337).
 */}}
 {{- define "oneuptime.globalRunnerKeyValue" }}
 {{- if $.Values.globalRunner.key }}
-value: {{ $.Values.globalRunner.key | quote }}
+value: {{ include "oneuptime.envValue" $.Values.globalRunner.key }}
 {{- else if (($.Values.globalRunner.existingSecret).name) }}
 valueFrom:
   secretKeyRef:
@@ -2445,8 +2449,14 @@ metadata:
     meta.helm.sh/release-name: {{ .Release.Name }}
     meta.helm.sh/release-namespace: {{ .Release.Namespace }}
 spec:
+  {{- /*
+    The cluster key the app compares (its ONEUPTIME_SECRET), from where the app
+    gets it: an inline oneuptimeSecret wins over a Secret of the user's, as in
+    oneuptime.env.oneuptimeSecret, and templates/secrets.yaml stores it in the
+    release Secret exactly as the pods get it (#7337).
+  */}}
   secretTargetRef:
-    {{- if (((.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
+    {{- if and (not .Values.oneuptimeSecret) (((.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
     - parameter: clusterkey
       name: {{ (((.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
       key: {{ (((.Values.externalSecrets).oneuptimeSecret).existingSecret).passwordKey }}

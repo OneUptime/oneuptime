@@ -45,6 +45,7 @@ const summary: SummaryFunction = (
     singularLabel: overrides.singularLabel ?? "Monitor",
     pluralLabel: overrides.pluralLabel ?? "Monitors",
     hasMore: overrides.hasMore,
+    isCountCapped: overrides.isCountCapped,
     translate: overrides.translate,
   });
 };
@@ -295,6 +296,76 @@ describe("getPaginationSummary", () => {
         "No items",
         "Showing {{range}}",
       ]);
+    });
+  });
+
+  /*
+   * A list that stopped counting at its cap (ListCount.ts): the total is a
+   * floor, printed with a "+", always with the plural - and the list pages
+   * by previous and next beside it (hasMore, set with it).
+   */
+  describe("a count capped at 10,000", () => {
+    it("prints the cap with a plus, in the list's own words", () => {
+      expect(
+        summary({
+          totalItemsCount: 10000,
+          isCountCapped: true,
+          hasMore: true,
+          pluralLabel: "Alerts",
+          singularLabel: "Alert",
+        }),
+      ).toBe(`Showing 1-10 of ${(10000).toLocaleString()}+ alerts`);
+    });
+
+    it("offsets the range by the pages already passed, past the cap too", () => {
+      expect(
+        summary({
+          totalItemsCount: 20010,
+          isCountCapped: true,
+          hasMore: true,
+          currentPageNumber: 2001,
+        }),
+      ).toBe(
+        `Showing ${(20001).toLocaleString()}-${(20010).toLocaleString()} of ${(20010).toLocaleString()}+ monitors`,
+      );
+    });
+
+    it("prints the plural even for a cap of one", () => {
+      expect(
+        summary({
+          totalItemsCount: 1,
+          isCountCapped: true,
+          hasMore: true,
+          itemsOnPage: 1,
+        }),
+      ).toBe("Showing 1 of 1+ monitors");
+    });
+
+    it("wins over has-more's range-only sentence", () => {
+      expect(
+        summary({ totalItemsCount: 10000, isCountCapped: true, hasMore: true }),
+      ).not.toBe("Showing 1-10+ monitors");
+    });
+
+    it("uses the locale's noun-free sentence with the capped total", () => {
+      expect(
+        summary({
+          totalItemsCount: 10000,
+          isCountCapped: true,
+          hasMore: true,
+          translate: german,
+        }),
+      ).toBe(`Einträge 1-10 von ${(10000).toLocaleString()}+`);
+    });
+
+    it("says nothing is there when the page is empty, capped or not", () => {
+      expect(
+        summary({
+          totalItemsCount: 0,
+          isCountCapped: true,
+          hasMore: true,
+        }),
+      ).toBe("No monitors");
     });
   });
 });

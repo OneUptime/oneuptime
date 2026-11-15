@@ -41,6 +41,19 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
   };
 });
 
+// A device's poll is stored as its newest before its job is queued.
+jest.mock(
+  "../../FeatureSet/Telemetry/Utils/NetworkDevicePollLatestStore",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        store: jest.fn(),
+      },
+    };
+  },
+);
+
 jest.mock("../../FeatureSet/Telemetry/Utils/TelemetryBodyStore", () => {
   return {
     __esModule: true,

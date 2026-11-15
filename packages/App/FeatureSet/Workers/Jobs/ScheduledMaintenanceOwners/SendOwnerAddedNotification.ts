@@ -238,14 +238,14 @@ RunCron(
 
         const sms: SMSMessage = {
           message: buildNotificationSms(
-            `You have been added as the owner of the scheduled maintenance event - ${scheduledMaintenanceIdentifier}.`,
+            `You have been added as the owner of the maintenance event - ${scheduledMaintenanceIdentifier}.`,
           ),
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. You have been added as the owner of the scheduled maintenance event ${scheduledMaintenanceIdentifier}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. You have been added as the owner of the maintenance event ${scheduledMaintenanceIdentifier}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
@@ -253,7 +253,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: `Added as Scheduled Maintenance ${scheduledMaintenanceNumber} Owner`,
-            body: `You have been added as the owner of the scheduled maintenance: ${scheduledMaintenanceIdentifier}. Click to view details.`,
+            body: `You have been added as the owner of the maintenance event: ${scheduledMaintenanceIdentifier}. Click to view details.`,
             clickAction: (
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                 scheduledMaintenance.projectId!,

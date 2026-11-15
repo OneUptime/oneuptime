@@ -59,6 +59,10 @@ import NotificationRuleWorkspaceChannel, {
   NotificationRuleWorkspaceChannelUtil,
 } from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import NotificationRuleUpdates, {
+  NotificationRuleUpdateKind,
+  RuleOfChannel,
+} from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Monitor from "../../Models/DatabaseModels/Monitor";
@@ -393,6 +397,41 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     })?.eventType;
   }
 
+  /*
+   * The updates a rule is saved to post (NotificationRuleUpdates): a list of
+   * those its kind of rule can choose, or none at all, which is every
+   * update. The Dashboard's Updates step only ever saves such a list; an API
+   * call or a workflow that saves another is told what the rule takes, as a
+   * list stored with a kind it cannot post would leave that update out of
+   * the rule's channels for good.
+   */
+  private static assertUpdatesToPostAreValid(data: {
+    notificationRule: unknown;
+    eventType: NotificationRuleEventType | undefined;
+  }): void {
+    const error: string | null = NotificationRuleUpdates.getValidationError({
+      eventType: data.eventType,
+      updatesToPost: Service.getWrittenUpdatesToPost(data.notificationRule),
+    });
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+  }
+
+  // The updatesToPost a write of the rule's notificationRule holds, if any.
+  private static getWrittenUpdatesToPost(notificationRule: unknown): unknown {
+    if (
+      !notificationRule ||
+      typeof notificationRule !== "object" ||
+      Array.isArray(notificationRule)
+    ) {
+      return undefined;
+    }
+
+    return (notificationRule as Record<string, unknown>)["updatesToPost"];
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<WorkspaceNotificationRule>,
@@ -403,6 +442,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     ) {
       this.assertMaySetUpSecurityRules(createBy.props, createBy.data.eventType);
     }
+
+    Service.assertUpdatesToPostAreValid({
+      notificationRule: createBy.data.notificationRule,
+      eventType: createBy.data.eventType,
+    });
 
     /*
      * The people, teams and policies its conditions name are the project's
@@ -479,6 +523,45 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             ),
           });
         }
+      }
+    }
+
+    /*
+     * The updates the rule is saved to post are checked against the kind of
+     * rule it is: the kind the update sends, or else the kind of each rule
+     * it writes - read only when it writes a list.
+     */
+    const writtenUpdatesToPost: unknown = Service.getWrittenUpdatesToPost(
+      (updateBy.data as unknown as Record<string, unknown>)["notificationRule"],
+    );
+
+    if (writtenUpdatesToPost !== undefined && writtenUpdatesToPost !== null) {
+      const sentEventType: unknown = (
+        updateBy.data as unknown as Record<string, unknown>
+      )["eventType"];
+
+      const eventTypes: Array<NotificationRuleEventType | undefined> =
+        sentEventType
+          ? [sentEventType as NotificationRuleEventType]
+          : (
+              await this.findRowsAndHoldUpdateToThem(updateBy, {
+                eventType: true,
+              })
+            ).map(
+              (
+                rule: WorkspaceNotificationRule,
+              ): NotificationRuleEventType | undefined => {
+                return rule.eventType;
+              },
+            );
+
+      for (const eventType of eventTypes) {
+        Service.assertUpdatesToPostAreValid({
+          notificationRule: (
+            updateBy.data as unknown as Record<string, unknown>
+          )["notificationRule"],
+          eventType: eventType,
+        });
       }
     }
 
@@ -1730,6 +1813,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
      * nothing to show and Microsoft Teams says only that a card was sent.
      */
     notificationText?: string | undefined;
+    /*
+     * What a workspace is sent, where it is not feedInfoInMarkdown: an
+     * on-call handoff names the person on call as each workspace knows
+     * them - "@ana" where they connected their account there (issue
+     * #7549).
+     */
+    markdownByWorkspaceType?:
+      | Partial<Record<WorkspaceType, string>>
+      | undefined;
     workspaceNotification: {
       /*
        * Who did what the message says, as a OneUptime user id: their name
@@ -1744,6 +1836,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
       // Not posted in this channel (WorkspaceChannelToSkip).
       exceptChannel?: WorkspaceChannelToSkip | undefined;
+      /*
+       * Which updates the message is (NotificationRuleUpdates): it is
+       * posted only in the channels and chats whose rules want one of them.
+       * Left out, wherever the record's messages go.
+       */
+      updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+      /*
+       * One of several messages about one change, each for the channels
+       * that want it said that way (getMessageDestinationsWanting): posted
+       * only where a rule also wants one of these updates...
+       */
+      alsoWantedUpdateKinds?:
+        | ReadonlyArray<NotificationRuleUpdateKind>
+        | undefined;
+      // ...and where no rule wants any of these.
+      notWantedUpdateKinds?:
+        | ReadonlyArray<NotificationRuleUpdateKind>
+        | undefined;
     };
   }): Promise<void> {
     /*
@@ -1789,6 +1899,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         userId: data.workspaceNotification.authorUserId,
         apiKeyName: data.workspaceNotification.authorApiKeyName,
         markdown: data.feedInfoInMarkdown,
+        markdownByWorkspaceType: data.markdownByWorkspaceType,
         projectId: data.projectId,
       });
 
@@ -1814,10 +1925,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
       const destinations: Array<WorkspaceMessagePayload> =
-        await this.getMessageDestinations({
+        await this.getMessageDestinationsWanting({
           projectId: data.projectId,
           notificationFor: data.notificationFor,
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
+          updateKinds: data.workspaceNotification.updateKinds,
+          alsoWantedUpdateKinds:
+            data.workspaceNotification.alsoWantedUpdateKinds,
+          notWantedUpdateKinds: data.workspaceNotification.notWantedUpdateKinds,
         });
 
       for (const destination of destinations) {
@@ -1889,12 +2004,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    * a channel's name can change), the existing channels its matching rules
    * name (by name), and - Microsoft Teams only - the chats those rules name.
    * The payloads carry no blocks; the caller adds what to say.
+   *
+   * A message that says which updates it is (updateKinds) goes only where
+   * a rule wants one of them (NotificationRuleUpdates): a record's channel
+   * when a rule it was created for does, an existing channel or chat when a
+   * matching rule that names it does.
    */
   @CaptureSpan()
   public async getMessageDestinations(data: {
     projectId: ObjectID;
     notificationFor: NotificationFor;
     workspaceType: WorkspaceType;
+    updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
   }): Promise<Array<WorkspaceMessagePayload>> {
     const destinations: Array<WorkspaceMessagePayload> = [];
 
@@ -1906,13 +2027,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         ),
         workspaceType: data.workspaceType,
         notificationFor: data.notificationFor,
+        updateKinds: data.updateKinds,
       });
 
     const recordChannels: Array<WorkspaceChannel> =
-      await this.getWorkspaceChannelsByNotificationFor({
+      await this.getRecordChannelsWantingUpdate({
         projectId: data.projectId,
         notificationFor: data.notificationFor,
         workspaceType: data.workspaceType,
+        updateKinds: data.updateKinds,
       });
 
     for (const recordChannel of recordChannels) {
@@ -1946,6 +2069,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         ),
         workspaceType: data.workspaceType,
         notificationFor: data.notificationFor,
+        updateKinds: data.updateKinds,
       });
 
     for (const chatId of existingChatIds) {
@@ -1960,6 +2084,100 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     return destinations;
+  }
+
+  /*
+   * The destinations of one of several messages about one change, each
+   * said for the channels that want it said that way (issue #7549): where
+   * a rule wants one of updateKinds (getMessageDestinations) and, when
+   * given, a rule also wants one of alsoWantedUpdateKinds, and no rule
+   * wants any of notWantedUpdateKinds. An on-call handoff is one message
+   * in every channel: "now on call, then Bob" where a rule wants who is on
+   * call now and who is next, "now on call" where one wants only the first,
+   * "next on call" where one wants only the second - never two of them in
+   * one channel. A channel two rules name wants what either wants.
+   */
+  @CaptureSpan()
+  public async getMessageDestinationsWanting(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    workspaceType: WorkspaceType;
+    updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+    alsoWantedUpdateKinds?:
+      | ReadonlyArray<NotificationRuleUpdateKind>
+      | undefined;
+    notWantedUpdateKinds?:
+      | ReadonlyArray<NotificationRuleUpdateKind>
+      | undefined;
+  }): Promise<Array<WorkspaceMessagePayload>> {
+    const destinations: Array<WorkspaceMessagePayload> =
+      await this.getMessageDestinations({
+        projectId: data.projectId,
+        notificationFor: data.notificationFor,
+        workspaceType: data.workspaceType,
+        updateKinds: data.updateKinds,
+      });
+
+    if (destinations.length === 0) {
+      return destinations;
+    }
+
+    // The destinations of a message of these kinds, by where each goes.
+    const getKeysWanting: (
+      kinds: ReadonlyArray<NotificationRuleUpdateKind>,
+    ) => Promise<Set<string>> = async (
+      kinds: ReadonlyArray<NotificationRuleUpdateKind>,
+    ): Promise<Set<string>> => {
+      return new Set<string>(
+        (
+          await this.getMessageDestinations({
+            projectId: data.projectId,
+            notificationFor: data.notificationFor,
+            workspaceType: data.workspaceType,
+            updateKinds: kinds,
+          })
+        ).map((destination: WorkspaceMessagePayload): string => {
+          return Service.getDestinationKey(destination);
+        }),
+      );
+    };
+
+    const alsoWanted: Set<string> | null =
+      data.alsoWantedUpdateKinds && data.alsoWantedUpdateKinds.length > 0
+        ? await getKeysWanting(data.alsoWantedUpdateKinds)
+        : null;
+
+    const notWanted: Set<string> | null =
+      data.notWantedUpdateKinds && data.notWantedUpdateKinds.length > 0
+        ? await getKeysWanting(data.notWantedUpdateKinds)
+        : null;
+
+    return destinations.filter(
+      (destination: WorkspaceMessagePayload): boolean => {
+        const key: string = Service.getDestinationKey(destination);
+
+        return (
+          (!alsoWanted || alsoWanted.has(key)) &&
+          (!notWanted || !notWanted.has(key))
+        );
+      },
+    );
+  }
+
+  /*
+   * Where a message goes, as one string: two destinations with the same
+   * key are the same channel or chat (getMessageDestinations).
+   */
+  public static getDestinationKey(
+    destination: WorkspaceMessagePayload,
+  ): string {
+    return JSON.stringify([
+      destination.workspaceType,
+      destination.teamId || "",
+      destination.channelIds || [],
+      destination.channelNames || [],
+      destination.chatIds || [],
+    ]);
   }
 
   /*
@@ -2196,6 +2414,100 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return monitorChannels;
   }
 
+  /*
+   * The channels OneUptime created for the record in one workspace that a
+   * message of these updates is posted in: each one a rule it was created
+   * for wants it in (NotificationRuleUpdates.isWantedInChannel). A channel
+   * stored before its rules were recorded, or whose rules were all deleted
+   * since, gets every message. The project's rules are read only when the
+   * message is not one every rule posts and a channel names its rules.
+   */
+  private async getRecordChannelsWantingUpdate(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    workspaceType: WorkspaceType;
+    updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+  }): Promise<Array<WorkspaceChannel>> {
+    const recordChannels: Array<
+      WorkspaceChannel &
+        Partial<
+          Pick<
+            NotificationRuleWorkspaceChannel,
+            "notificationRuleId" | "notificationRuleIds"
+          >
+        >
+    > = await this.getWorkspaceChannelsByNotificationFor({
+      projectId: data.projectId,
+      notificationFor: data.notificationFor,
+      workspaceType: data.workspaceType,
+    });
+
+    if (
+      recordChannels.length === 0 ||
+      NotificationRuleUpdates.isPostedEverywhere(data.updateKinds)
+    ) {
+      return recordChannels;
+    }
+
+    const namesItsRules: boolean = recordChannels.some(
+      (
+        channel: Partial<
+          Pick<
+            NotificationRuleWorkspaceChannel,
+            "notificationRuleId" | "notificationRuleIds"
+          >
+        >,
+      ): boolean => {
+        return (
+          Boolean(channel.notificationRuleId) ||
+          (Array.isArray(channel.notificationRuleIds) &&
+            channel.notificationRuleIds.length > 0)
+        );
+      },
+    );
+
+    if (!namesItsRules) {
+      return recordChannels;
+    }
+
+    const rules: Array<RuleOfChannel> = (
+      await this.getNotificationRules({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        notificationRuleEventType: this.getNotificationRuleEventType(
+          data.notificationFor,
+        ),
+      })
+    )
+      .filter((rule: WorkspaceNotificationRule): boolean => {
+        return Boolean(rule.id);
+      })
+      .map((rule: WorkspaceNotificationRule): RuleOfChannel => {
+        return {
+          id: rule.id!.toString(),
+          rule: rule.notificationRule as BaseNotificationRule | undefined,
+        };
+      });
+
+    return recordChannels.filter(
+      (
+        channel: WorkspaceChannel &
+          Partial<
+            Pick<
+              NotificationRuleWorkspaceChannel,
+              "notificationRuleId" | "notificationRuleIds"
+            >
+          >,
+      ): boolean => {
+        return NotificationRuleUpdates.isWantedInChannel({
+          channel: channel,
+          rules: rules,
+          updateKinds: data.updateKinds,
+        });
+      },
+    );
+  }
+
   private getNotificationRuleEventType(
     notificationFor: NotificationFor,
   ): NotificationRuleEventType {
@@ -2280,12 +2592,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     throw new BadDataException("Workspace type not supported");
   }
 
+  /*
+   * The existing channels the record's matching rules name. With
+   * updateKinds, only those of the rules that want one of those updates
+   * (NotificationRuleUpdates.wantsUpdate): a channel two rules name gets the
+   * message when either wants it.
+   */
   @CaptureSpan()
   public async getExistingChannelNamesBasedOnEventType(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
+    updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
   }): Promise<Array<WorkspaceChannel>> {
     logger.debug("getExistingChannelNamesBasedOnEventType called with data:", {
       projectId: data.projectId?.toString(),
@@ -2294,13 +2613,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
 
-    const notificationRules: Array<WorkspaceNotificationRule> =
+    const notificationRules: Array<WorkspaceNotificationRule> = (
       await this.getMatchingNotificationRules({
         projectId: data.projectId,
         workspaceType: data.workspaceType,
         notificationRuleEventType: data.notificationRuleEventType,
         notificationFor: data.notificationFor,
+      })
+    ).filter((rule: WorkspaceNotificationRule): boolean => {
+      return NotificationRuleUpdates.wantsUpdate({
+        rule: rule.notificationRule as BaseNotificationRule | undefined,
+        updateKinds: data.updateKinds,
       });
+    });
 
     logger.debug("Notification rules retrieved:", {
       projectId: data.projectId?.toString(),
@@ -4953,24 +5278,36 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return chatIds;
   }
 
+  /*
+   * The Microsoft Teams chats the record's matching rules name - with
+   * updateKinds, only those of the rules that want one of those updates
+   * (NotificationRuleUpdates.wantsUpdate).
+   */
   @CaptureSpan()
   public async getExistingChatIdsBasedOnEventType(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
+    updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
   }): Promise<Array<string>> {
     if (data.workspaceType !== WorkspaceType.MicrosoftTeams) {
       return []; // chats are only supported for Microsoft Teams.
     }
 
-    const notificationRules: Array<WorkspaceNotificationRule> =
+    const notificationRules: Array<WorkspaceNotificationRule> = (
       await this.getMatchingNotificationRules({
         projectId: data.projectId,
         workspaceType: data.workspaceType,
         notificationRuleEventType: data.notificationRuleEventType,
         notificationFor: data.notificationFor,
+      })
+    ).filter((rule: WorkspaceNotificationRule): boolean => {
+      return NotificationRuleUpdates.wantsUpdate({
+        rule: rule.notificationRule as BaseNotificationRule | undefined,
+        updateKinds: data.updateKinds,
       });
+    });
 
     return this.getExistingChatIdsFromNotificationRules({
       notificationRules: notificationRules.map(

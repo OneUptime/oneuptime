@@ -22,7 +22,10 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
  * given back while the write may still land. So:
  *
  *   - every repository write in create, update and delete runs through
- *     WriteProgress.write, a save() as one in a transaction of its own;
+ *     WriteProgress.write, a save() as one in a transaction of its own -
+ *     and so is a row's UPDATE held to a rule its project's other records
+ *     decide, which the rule's own transaction writes and commits
+ *     (updateWithinUpdateLimit, below);
  *   - none of them reaches the repository another way (a repository kept
  *     in a variable, a transaction of their own);
  *   - every error hook is handed what that progress recorded.
@@ -72,12 +75,27 @@ const WRITING_METHODS: Array<WritingMethod> = [
   },
 ];
 
+/*
+ * A row's UPDATE held to a rule (DatabaseService.getUpdateLimit): written by
+ * the helper, through the manager of the rule's transaction, and committed
+ * with that transaction's COMMIT - a write in a transaction of its own.
+ */
+const UPDATE_WITHIN_UPDATE_LIMIT: RegExp =
+  /\bthis\.updateWithinUpdateLimit\s*\(/g;
+
+const UPDATE_IN_ITS_OWN_TRANSACTION: string = "updateWithinUpdateLimit";
+
 function repositoryWritesIn(text: string): Array<string> {
-  return Array.from(text.matchAll(REPOSITORY_WRITE)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1]!;
-    },
-  );
+  return [
+    ...Array.from(text.matchAll(REPOSITORY_WRITE)).map(
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    ),
+    ...Array.from(text.matchAll(UPDATE_WITHIN_UPDATE_LIMIT)).map((): string => {
+      return UPDATE_IN_ITS_OWN_TRANSACTION;
+    }),
+  ];
 }
 
 describe.each(WRITING_METHODS)(
@@ -118,7 +136,9 @@ describe.each(WRITING_METHODS)(
         // One kind of write each.
         expect(kinds.size).toBe(1);
         expect(write).toMatch(
-          kinds.has("save") ? /^\s*true\s*,/ : /^\s*false\s*,/,
+          kinds.has("save") || kinds.has(UPDATE_IN_ITS_OWN_TRANSACTION)
+            ? /^\s*true\s*,/
+            : /^\s*false\s*,/,
         );
       }
     });
@@ -149,6 +169,37 @@ describe.each(WRITING_METHODS)(
     });
   },
 );
+
+describe("a row's UPDATE held to a rule is written in the rule's transaction", () => {
+  const text: string = methodText(DATABASE_SERVICE, "updateWithinUpdateLimit");
+
+  test("an update is held to one only through the helper, recorded as a write in a transaction of its own", () => {
+    const update: string = methodText(DATABASE_SERVICE, "_updateBy");
+
+    expect(text).not.toBe("");
+    expect(
+      Array.from(update.matchAll(UPDATE_WITHIN_UPDATE_LIMIT)),
+    ).toHaveLength(1);
+    expect(update).toMatch(
+      /progress\.write\(\s*true\s*,\s*async \(\): Promise<UpdateResult> => \{\s*return await this\.updateWithinUpdateLimit\(/,
+    );
+  });
+
+  test("the helper takes the rule's lock, asks the rule, then writes the row - all through the transaction's manager", () => {
+    const lock: number = text.indexOf("ProjectLimitLock.run(");
+    const check: number = text.indexOf("data.updateLimit.check(manager");
+    const write: number = text.search(
+      /manager\s*\.getRepository<TBaseModel>\(this\.modelType\.name\)\s*\.update\(/,
+    );
+
+    expect(lock).toBeGreaterThan(-1);
+    expect(check).toBeGreaterThan(lock);
+    expect(write).toBeGreaterThan(check);
+
+    // Never through a repository of the pool, outside the transaction and its lock.
+    expect(text).not.toMatch(/this\.getRepository\(\)/);
+  });
+});
 
 describe("every error hook DatabaseService declares takes which step failed", () => {
   test.each(["onCreateError", "onUpdateError", "onDeleteError"])(

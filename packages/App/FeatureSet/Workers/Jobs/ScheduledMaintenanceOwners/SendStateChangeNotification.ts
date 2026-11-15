@@ -242,7 +242,7 @@ RunCron(
 
         const sms: SMSMessage = {
           message: buildNotificationSms(
-            `Scheduled maintenance event - ${scheduledMaintenanceIdentifier}, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
+            `Maintenance event - ${scheduledMaintenanceIdentifier}, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
               .name!}.`,
           ),
         };
@@ -250,7 +250,7 @@ RunCron(
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. Scheduled maintenance event ${scheduledMaintenanceIdentifier} state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
+              sayMessage: `This is a message from OneUptime. Maintenance event ${scheduledMaintenanceIdentifier} state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
                 .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
@@ -259,7 +259,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: `Scheduled Maintenance ${scheduledMaintenanceNumberStr} State Changed`,
-            body: `Scheduled maintenance ${scheduledMaintenanceIdentifier} state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!.name!}. Click to view details.`,
+            body: `Maintenance event ${scheduledMaintenanceIdentifier} state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!.name!}. Click to view details.`,
             clickAction: (
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                 scheduledMaintenance.projectId!,
@@ -316,7 +316,7 @@ RunCron(
         displayColor: Blue500,
         feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
           isProjectOwners: !doesResourceHasOwners,
-          recordNoun: "scheduled maintenance event",
+          recordNoun: "maintenance event",
           stateName: scheduledMaintenanceState.name,
         }),
         moreInformationInMarkdown:

@@ -148,7 +148,11 @@ export const SubscriberFormCopy: {
   welcomeDescription: translationKey(
     "Tells them they are subscribed, with a link to unsubscribe.",
   ),
-  internalNoteDescription: translationKey("Only your team sees it."),
+  /*
+   * What is internal about it: the subscriber is never shown it. Not "only
+   * your team", which read as one of OneUptime's Teams (#7595).
+   */
+  internalNoteDescription: translationKey("The subscriber never sees it."),
   languageTitle: translationKey("Language"),
   languageDescription: translationKey(
     "The language their notifications are written in.",

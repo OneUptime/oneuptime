@@ -30,13 +30,26 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
 
 export interface LlmLogsTableProps {
   query?: Query<LlmLog>;
+  // The record the logs are about, as a sentence names it: "incident".
   singularName?: string;
+  /*
+   * The table's id, and the key the reader's columns and the project's
+   * default columns for it are saved under. Built from singularName when
+   * not given; a record whose name changed passes the key it had, so
+   * nobody's saved columns are lost with the old name.
+   */
+  tableKey?: string | undefined;
 }
 
 const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
   props: LlmLogsTableProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const tableKey: string =
+    props.tableKey ||
+    (props.singularName
+      ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-llm-logs-table`
+      : "llm-logs-table");
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -212,16 +225,8 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
     <>
       <ModelTable<LlmLog>
         modelType={LlmLog}
-        id={
-          props.singularName
-            ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-llm-logs-table`
-            : "llm-logs-table"
-        }
-        userPreferencesKey={
-          props.singularName
-            ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-llm-logs-table`
-            : "llm-logs-table"
-        }
+        id={tableKey}
+        userPreferencesKey={tableKey}
         name="AI Logs"
         isDeleteable={false}
         isEditable={false}

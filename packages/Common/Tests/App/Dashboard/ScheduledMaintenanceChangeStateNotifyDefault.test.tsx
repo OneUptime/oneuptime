@@ -809,7 +809,7 @@ describe.each(OPEN_CASES)(
         expect(field.defaultValue).toBe(false);
         expect(field.description).toBe(QUIET_DESCRIPTION);
         expect(field.description).toBe(
-          "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.",
+          "Unticked by default because status page subscribers were not notified when this maintenance event was created.",
         );
         expect(field.description).not.toBe(ORIGINAL_DESCRIPTION);
         // Not the incident copy: this event was created, not declared.

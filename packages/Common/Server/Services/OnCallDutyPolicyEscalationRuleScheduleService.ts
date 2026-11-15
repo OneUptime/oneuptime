@@ -26,10 +26,12 @@ import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -156,6 +158,15 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createdModel.projectId,
     );
 
+    /*
+     * Whoever is on call in the schedule is paged by the rule now - told once
+     * the roster the attachment changes is written, so nothing built before
+     * that is kept after it.
+     */
+    await OnDutyPoliciesCache.forgetProjects([
+      createdModel.projectId || createdItem.projectId,
+    ]);
+
     // send notification to the new current user.
 
     const userOnSchedule: ObjectID | null =
@@ -198,6 +209,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         ? FeedMarkdown.empty()
         : mdText` ⚠️ **No one is currently on call in this schedule**, so alerts escalating to this rule will not notify anyone until coverage resumes.`;
 
+      const policyLink: string = (
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+          createdModel.projectId!,
+          feedOnCallDutyPolicyId,
+        )
+      ).toString();
+
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: feedOnCallDutyPolicyId,
         projectId: createdModel.projectId!,
@@ -205,7 +223,20 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
         displayColor: userOnSchedule ? Gray500 : Red500,
         feedInfoInMarkdown:
-          mdText`📅 Added on-call schedule **${createdModel.onCallDutyPolicySchedule?.name || ""}**${pagesNextInRotation ? mdText` (next in rotation)` : FeedMarkdown.empty()} from the [On-Call Policy ${createdModel.onCallDutyPolicy?.name || ""}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(createdModel.projectId!, feedOnCallDutyPolicyId)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.${noCoverageSuffix}`.toString(),
+          mdText`📅 Added on-call schedule **${createdModel.onCallDutyPolicySchedule?.name || ""}**${pagesNextInRotation ? mdText` (next in rotation)` : FeedMarkdown.empty()} from the [On-Call Policy ${createdModel.onCallDutyPolicy?.name || ""}](${policyLink}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.${noCoverageSuffix}`.toString(),
+        // The channels hear which schedule and the policy (issue #7549).
+        chatInfoInMarkdown: OnCallChatText.policyChange({
+          emoji: "📅",
+          isAdded: true,
+          what: mdText`schedule **${createdModel.onCallDutyPolicySchedule?.name || ""}**${pagesNextInRotation ? mdText` (next in rotation)` : FeedMarkdown.empty()}`,
+          policy: OnCallChatText.policy({
+            name: createdModel.onCallDutyPolicy?.name || "",
+            link: policyLink,
+          }),
+          then: userOnSchedule
+            ? undefined
+            : mdText`⚠️ Nobody is on call in it right now.`,
+        }).toString(),
         userId: createdModel.createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -384,14 +415,34 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           continue;
         }
 
+        const policyLink: string = (
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+            projectId!,
+            onCallDutyPolicyId!,
+          )
+        ).toString();
+
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,
           projectId: projectId,
+          /*
+           * A schedule taken out of an escalation rule, which it was filed
+           * as an owner team removed: a change to the policy (issue #7549).
+           */
           onCallDutyPolicyFeedEventType:
-            OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
+            OnCallDutyPolicyFeedEventType.OnCallDutyScheduleRemoved,
           displayColor: Red500,
           feedInfoInMarkdown:
-            mdText`📅 Removed on-call schedule **${onCallSchedule.name}**${item.pageNextInRotation ? mdText` (next in rotation)` : FeedMarkdown.empty()} from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+            mdText`📅 Removed on-call schedule **${onCallSchedule.name}**${item.pageNextInRotation ? mdText` (next in rotation)` : FeedMarkdown.empty()} from the [On-Call Policy ${onCallDutyPolicyName}](${policyLink}) escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+          chatInfoInMarkdown: OnCallChatText.policyChange({
+            emoji: "📅",
+            isAdded: false,
+            what: mdText`schedule **${onCallSchedule.name || ""}**${item.pageNextInRotation ? mdText` (next in rotation)` : FeedMarkdown.empty()}`,
+            policy: OnCallChatText.policy({
+              name: onCallDutyPolicyName || "",
+              link: policyLink,
+            }),
+          }).toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
@@ -435,6 +486,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         deletedItem.projectId,
       );
     }
+
+    // Nobody on call in the schedule is on duty for the rule any more.
+    await OnDutyPoliciesCache.forgetProjects(
+      deletedItems.map((deletedItem: Model) => {
+        return deletedItem.projectId;
+      }),
+    );
 
     for (const deletedItem of deletedItems) {
       /*

@@ -73,7 +73,7 @@ import {
   pluralName: "Runbook Rules",
   icon: IconProp.BookOpen,
   tableDescription:
-    "Auto-attach runbooks to incidents, alerts, or scheduled maintenance events when they are created.",
+    "Auto-attach runbooks to incidents, alerts, or maintenance events when they are created.",
 })
 export default class RunbookRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -339,7 +339,7 @@ export default class RunbookRule extends RuleBaseModel {
     modelType: Monitor,
     title: "Monitors",
     description:
-      "Only match incidents and scheduled maintenance events that affect, and alerts raised by, at least one of these monitors. Leave empty to match any monitor.",
+      "Only match incidents and maintenance events that affect, and alerts raised by, at least one of these monitors. Leave empty to match any monitor.",
   })
   @ManyToMany(
     () => {
@@ -492,7 +492,7 @@ export default class RunbookRule extends RuleBaseModel {
     modelType: Label,
     title: "Labels",
     description:
-      "Only match incidents, alerts or scheduled maintenance events that carry at least one of these labels. Leave empty to match regardless of their labels.",
+      "Only match incidents, alerts or maintenance events that carry at least one of these labels. Leave empty to match regardless of their labels.",
   })
   @ManyToMany(
     () => {
@@ -543,7 +543,7 @@ export default class RunbookRule extends RuleBaseModel {
     modelType: Label,
     title: "Monitor Labels",
     description:
-      "Only match when a monitor of the incident, alert or scheduled maintenance event carries at least one of these labels. Leave empty to match regardless of monitor labels.",
+      "Only match when a monitor of the incident, alert or maintenance event carries at least one of these labels. Leave empty to match regardless of monitor labels.",
   })
   @ManyToMany(
     () => {
@@ -669,7 +669,7 @@ export default class RunbookRule extends RuleBaseModel {
     type: TableColumnType.LongText,
     title: "Monitor Name Pattern",
     description:
-      "Case-insensitive regex matched against the names of the monitors of the incident, alert or scheduled maintenance event. Leave empty to match any monitor name.",
+      "Case-insensitive regex matched against the names of the monitors of the incident, alert or maintenance event. Leave empty to match any monitor name.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -707,7 +707,7 @@ export default class RunbookRule extends RuleBaseModel {
     type: TableColumnType.LongText,
     title: "Monitor Description Pattern",
     description:
-      "Case-insensitive regex matched against the descriptions of the monitors of the incident, alert or scheduled maintenance event. Leave empty to match any monitor description.",
+      "Case-insensitive regex matched against the descriptions of the monitors of the incident, alert or maintenance event. Leave empty to match any monitor description.",
   })
   @Column({
     type: ColumnType.LongText,

@@ -288,6 +288,28 @@ async function answerItem(request: ModelRequest): Promise<unknown> {
   return answer === undefined ? null : answer;
 }
 
+/*
+ * Every lookup the page made but Declare Incident's read of its own
+ * project, for how its Notify Status Page Subscribers box starts (#7606):
+ * the lookups of the record it was opened from.
+ */
+function recordLookups(): Array<ModelRequest> {
+  return getItemMock.mock.calls
+    .map((call: Array<unknown>): ModelRequest => {
+      return call[0] as ModelRequest;
+    })
+    .filter((request: ModelRequest): boolean => {
+      return request.modelType !== Project;
+    });
+}
+
+// A project that starts Notify Status Page Subscribers as it says.
+function projectStartingNotify(isTicked: boolean): Project {
+  const project: Project = named(Project, PROJECT_ID, "Acme");
+  project.notifyStatusPageSubscribersOfNewIncidentsByDefault = isTicked;
+  return project;
+}
+
 // The record lookups the page made, by the model they asked about.
 function lookupsOf(modelType: { new (): BaseModel }): Array<ModelRequest> {
   return getItemMock.mock.calls
@@ -538,6 +560,41 @@ describe("Declare Incident, from a monitor's Incidents tab", () => {
     expect(idsOf(sentModel<Incident>().monitors)).toEqual([MONITOR_ID]);
   });
 
+  /*
+   * #7606: the box starts as the project says, opened from a monitor too -
+   * the monitor picks what the incident is on, never whether its status
+   * page subscribers are told.
+   */
+  test("in a project that starts Notify Status Page Subscribers unticked, the incident declared on the monitor tells no subscriber", async () => {
+    recordsOnServer[PROJECT_ID] = projectStartingNotify(false);
+
+    const user: UserEvent = await renderPage(IncidentCreate);
+
+    await fillDetails(user, /^Incident Severity/);
+    await submit("Declare Incident");
+
+    const incident: Incident = sentModel<Incident>();
+
+    expect(idsOf(incident.monitors)).toEqual([MONITOR_ID]);
+    expect(
+      incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+    ).toBe(false);
+  });
+
+  test("in a project that keeps it ticked, the incident declared on the monitor tells them, as always", async () => {
+    recordsOnServer[PROJECT_ID] = projectStartingNotify(true);
+
+    const user: UserEvent = await renderPage(IncidentCreate);
+
+    await fillDetails(user, /^Incident Severity/);
+    await submit("Declare Incident");
+
+    expect(
+      sentModel<Incident>()
+        .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+    ).toBe(true);
+  });
+
   test("a template opened from the tab keeps the monitor first, then the template's, each once", async () => {
     queryInUrl = { monitorId: MONITOR_ID, incidentTemplateId: TEMPLATE_ID };
 
@@ -596,7 +653,7 @@ describe("Declare Incident, from a monitor's Incidents tab", () => {
 
     const user: UserEvent = await renderPage(IncidentCreate);
 
-    expect(getItemMock).not.toHaveBeenCalled();
+    expect(recordLookups()).toEqual([]);
 
     await fillDetails(user, /^Incident Severity/);
     await submit("Declare Incident");
@@ -673,7 +730,9 @@ describe("Declare Incident, from the project's list", () => {
   test("looks nothing up, and opens as it always did", async () => {
     const user: UserEvent = await renderPage(IncidentCreate);
 
-    expect(getItemMock).not.toHaveBeenCalled();
+    expect(recordLookups()).toEqual([]);
+    // Only its project, once, for how the notify box starts.
+    expect(lookupsOf(Project)).toHaveLength(1);
 
     await fillDetails(user, /^Incident Severity/);
     await goToNextStep("Resources Affected");

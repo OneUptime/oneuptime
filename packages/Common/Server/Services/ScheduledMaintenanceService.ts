@@ -1980,7 +1980,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
 
     if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
       throw new BadDataException(
-        "Scheduled state not found for this project. Please add an scheduled event state from settings.",
+        "This project has no scheduled state, so a new maintenance event has no state to start in. See Scheduled Maintenance > Settings > Maintenance State.",
       );
     }
 
@@ -2786,7 +2786,7 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
         }) || [],
         item.changeMonitorStatusToId,
         true, // notify owners
-        "Changed because of scheduled maintenance event: " + item.id.toString(),
+        "Changed because of maintenance event: " + item.id.toString(),
         undefined,
         props,
       );

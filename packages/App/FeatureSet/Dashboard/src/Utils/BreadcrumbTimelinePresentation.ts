@@ -304,10 +304,19 @@ export function categorizeBreadcrumb(
 }
 
 /*
+ * What a row reads for an event that says nothing about itself - no name,
+ * message, request or statement - in the reader's language: "Ereignis",
+ * "رویداد" (#7818). Its summary is left empty, so neighbours fold the same
+ * way whatever the reader's language, and the card draws this in its place.
+ */
+export const UNNAMED_EVENT_TEXT: string = translationKey("Event");
+
+/*
  * The one line a row shows: the request, the statement, the exception
  * message or the log message — whatever says the most — falling back to the
- * event name. A request's status follows it after an arrow that points the
- * way a line read in `language` reads (joinWithArrowsOn).
+ * event name, and to nothing (UNNAMED_EVENT_TEXT) without one. A request's
+ * status follows it after an arrow that points the way a line read in
+ * `language` reads (joinWithArrowsOn).
  */
 export function getBreadcrumbSummary(
   event: BreadcrumbEventInput,
@@ -383,7 +392,7 @@ export function getBreadcrumbSummary(
     return truncate(message);
   }
 
-  return event.name || "Event";
+  return event.name || "";
 }
 
 // A short qualifier under the summary: the exception type or a failed status.
@@ -441,7 +450,9 @@ export function formatBreadcrumbOffset(
 /*
  * Wall-clock time with milliseconds, e.g. "14:03:07.412", in the timezone the
  * user picked in User Settings (the browser's zone when they have not), so it
- * agrees with the full timestamp in the row's tooltip.
+ * agrees with the full timestamp in the row's tooltip. Its digits are the
+ * reader's ("۱۴:۰۳:۰۷.۴۱۲" on a Persian page), its marks the same in every
+ * language.
  */
 export function formatBreadcrumbClockTime(eventTime: Date): string {
   return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
@@ -506,6 +517,7 @@ export function getBreadcrumbAttributes(
 export interface BreadcrumbGroup<TEvent extends BreadcrumbEventInput> {
   events: Array<TEvent>;
   category: BreadcrumbCategory;
+  // Empty for events that say nothing about themselves (UNNAMED_EVENT_TEXT).
   summary: string;
   detail: string | null;
   firstTime: Date;
@@ -526,7 +538,9 @@ export function sortBreadcrumbEvents<TEvent extends BreadcrumbEventInput>(
 
 /*
  * Consecutive events of the same category and summary fold into one row.
- * Each summary is written for a line read in `language`.
+ * Each summary is written for a line read in `language`. Events that say
+ * nothing about themselves fold on their empty summary, never on the word
+ * the card draws for it, so the rows fold alike in every language.
  */
 export function groupBreadcrumbEvents<TEvent extends BreadcrumbEventInput>(
   events: ReadonlyArray<TEvent>,

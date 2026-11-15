@@ -10,6 +10,12 @@ import useTranslateValue from "../../Utils/Translation";
 export interface ComponentProps {
   icon?: IconProp | undefined;
   text: string;
+  /*
+   * The text is a name - a state a project named itself - drawn as
+   * written, never looked up (Pill.isUserContent). Left out, it is the
+   * product's words, looked up in the reader's language.
+   */
+  isUserContent?: boolean | undefined;
   onClick: () => void;
   rightElement?: Array<ReactElement> | ReactElement | undefined;
   className?: string | undefined;
@@ -192,7 +198,9 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           second: the menu's width is fixed (MoreMenu's PORTALED_MENU_WIDTH).
         */}
         <div className="font-medium text-balance">
-          {translateString(props.text) ?? props.text}
+          {props.isUserContent
+            ? props.text
+            : translateString(props.text) ?? props.text}
         </div>
         <div>{props.rightElement}</div>
       </div>

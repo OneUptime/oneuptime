@@ -124,7 +124,7 @@ Alt i skjemaet kan endres på hendelsens egne sider, unntatt de tre abonnenttids
 ## Skriv notater mens arbeidet pågår
 
 - **Offentlige notater** er oppdateringer til kundene dine: de vises på statussidene til hendelsen, og hvert av dem kan gi abonnentene deres beskjed med **Varsle abonnentene på statussiden**.
-- **Private notater** er bare for teamet ditt.
+- **Private notater** kan bare leses av de som kan se hendelsen.
 
 Skriv et på hendelsens side **Offentlige notater** eller **Private notater**, eller fra menyen **Handlinger** i **Feed for planlagt vedlikehold** med **Legg til offentlig notat** eller **Legg til privat notat**. Den samme menyen kjører en runbook med **Kjør runbook**. En notatmal fyller ut tekst teamet ditt ofte skriver: se [Vedlikeholdsregler og innstillinger](/docs/scheduled-maintenance/settings#notatmaler).
 

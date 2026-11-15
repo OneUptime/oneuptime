@@ -40,7 +40,9 @@
  *                    monitors table, its long names beside "Operational"
  *                    (issues #6968 and #6969); each card's words as
  *                    query_monitors stores them, so they are drawn in
- *                    the reader's language (issue #7175);
+ *                    the reader's language (issue #7175), and the
+ *                    table's title, order line, types and Disabled too
+ *                    (issue #7394);
  *                    readcards, "What do we have for payments?" answered
  *                    with every card a read leaves - a monitor, an SLO, a
  *                    team, an on-call policy and schedule, a status page,
@@ -151,6 +153,7 @@ import {
   getStatusPageCardWords,
   getUnrunWorkflowCardWords,
 } from "Common/Server/Utils/AI/Toolbox/ReadCardWords";
+import { getMonitorsTable } from "Common/Server/Utils/AI/Toolbox/MonitorsTableWords";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
@@ -920,7 +923,7 @@ function incidentNoteCards() {
   };
   const noteWords = {
     kind: aiActionTerm(AI_ACTION_CARD_KINDS.incident),
-    line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAdded)],
+    line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAddedToIncident)],
     facts: [aiActionCardFact(AI_ACTION_CARD_FACTS.note, INTERNAL_NOTE)],
   };
 
@@ -1006,7 +1009,11 @@ function monitorCard({
  * "Which monitors are down right now?", answered: the two monitors it read
  * by id, and the monitors table query_monitors lists them in - a monitor
  * named by its URL, with no spaces to wrap at, beside statuses that are
- * one word each (issue #6969).
+ * one word each (issue #6969). The table is built as the tool builds it
+ * (MonitorsTableWords): its title, its order line, each type and Disabled
+ * for the monitor whose monitoring is off are words the chat says in the
+ * reader's language, as the cards above it do (issue #7394); the names
+ * and the statuses the project named are data.
  */
 function seedMonitorsAnswer() {
   monitorsConversation = conversationOf("Monitors down right now", 2);
@@ -1037,39 +1044,34 @@ function seedMonitorsAnswer() {
         statusColor: "#6b7280",
       }),
       {
-        id: "W3",
-        type: AIChatWidgetType.Table,
-        title: "Monitors (4)",
-        data: {
-          columns: [
-            { key: "name", title: "Monitor", type: "text" },
-            { key: "type", title: "Type", type: "text" },
-            { key: "currentStatus", title: "Status", type: "text" },
-          ],
+        ...getMonitorsTable({
+          problemsOnly: false,
           rows: [
             {
               name: "Checkout API",
-              type: "Website",
+              type: MonitorType.Website,
               currentStatus: "Offline",
             },
             {
               name: "https://payments.example.com/api/v2/health/checkout",
-              type: "Website",
+              type: MonitorType.Website,
               currentStatus: "Operational",
             },
             {
               name: "legacy-payments-api",
-              type: "API",
+              type: MonitorType.API,
               currentStatus: "Operational",
             },
+            // Its monitoring is off: the status its last check saw.
             {
               name: "Backup Job",
-              type: "Incoming Request",
-              currentStatus: "Disabled",
+              type: MonitorType.IncomingRequest,
+              currentStatus: "Operational",
+              monitoringOff: true,
             },
           ],
-          link: { type: AIChatCitationTargetType.Monitors },
-        },
+        }),
+        id: "W3",
       },
     ],
     createdAt: minutesAgo(2),

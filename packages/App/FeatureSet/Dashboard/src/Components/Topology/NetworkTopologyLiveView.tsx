@@ -1364,6 +1364,15 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           }}
           onHideNode={hideNode}
           canRunDiagnostics={canRunDiagnostics}
+          readMapAgain={(): Promise<void> => {
+            /*
+             * After "Turn monitoring on": the device is stamped with its
+             * monitor's status before the save answers, so this read draws
+             * it in that status. A failure keeps the last graph, as the
+             * minute-by-minute refresh does.
+             */
+            return fetchTopology(true);
+          }}
           onAddToMonitoring={
             canCreateDevice && isAdoptableNode(selectedNode)
               ? (node: NetworkTopologyNode) => {

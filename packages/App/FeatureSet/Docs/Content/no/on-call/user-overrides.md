@@ -5,6 +5,7 @@ Mens noen er borte, sender en brukeroverstyring tilkallingene som ville nådd de
 :::cards
 - [Slik endrer en overstyring en tilkalling](#slik-endrer-en-overstyring-en-tilkalling): Hvem som tilkalles i stedet, og når.
 - [Legg til en overstyring](#legg-til-en-overstyring): Hvem som er borte, hvem som dekker, fra når og til når.
+- [Rediger en overstyring](#rediger-en-overstyring): Endre hvem som dekker, eller når den starter og slutter.
 - [Alle retningslinjer, eller én](#alle-retningslinjer-eller-én): Hvor du legger til en overstyring, og hvilken som vinner.
 - [Andre måter å legge til en på](#andre-måter-å-legge-til-en-på): Fra en vaktplan og fra de kommende vaktene dine.
 :::
@@ -48,7 +49,17 @@ La **Hvem dekker?** stå på **Neste person i rotasjonen** for å hoppe over dem
 **Starter** er nå, med mindre du velger et annet tidspunkt. Sett **Slutter** til når de er tilbake: det må være etter starten. Klikk på **Legg til Brukeroverstyring**.
 :::
 
-Hver overstyring er en rad: **Borte**, **Dekket av**, **Starter** og **Slutter**, filtrert etter start og slutt. **Dekket av** viser **Neste person i rotasjonen** for en overhopping. En overstyring kan ikke redigeres: slett den og legg til en ny, eller slett den for å få noen tilbake tidligere.
+Hver overstyring er en rad: **Borte**, **Dekket av**, **Starter** og **Slutter**, filtrert etter start og slutt. **Dekket av** viser **Neste person i rotasjonen** for en overhopping.
+
+## Rediger en overstyring
+
+Klikk på **Rediger** i raden til en overstyring, på en av de to sidene **Brukeroverstyringer** eller i listen over brukeroverstyringer på siden **Lag** for en vaktplan. Skjemaet åpnes med overstyringen slik den ble lagret: endre den, og klikk på **Lagre endringer**.
+
+- **Hvem dekker?** kan endres til overstyringen slutter. Sett den tilbake til **Neste person i rotasjonen** for å hoppe over personen i stedet.
+- **Starter** kan flyttes til overstyringen starter, og blir deretter som den er. **Slutter** kan flyttes til overstyringen slutter: sett den til nå for å avslutte overstyringen tidligere. Ingen av dem kan flyttes til fortiden.
+- **Hvem er borte?** kan ikke endres. Legg til en ny overstyring for noen andre.
+
+En overstyring som er avsluttet, kan ikke lenger endres: **Rediger** for den er låst og sier hvorfor.
 
 ## Alle retningslinjer, eller én
 
@@ -57,7 +68,11 @@ Hver overstyring er en rad: **Borte**, **Dekket av**, **Starter** og **Slutter**
 | **Vakt → Avansert → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktretningslinjer i prosjektet |
 | **Brukeroverstyringer** for en retningslinje | **Brukeroverstyringer for vaktretningslinjen** | Bare den retningslinjen |
 
-Når to overstyringer for samme person overlapper, vinner retningslinjens egen over en global, og en som nevner hvem som dekker, vinner over en overhopping. En tilkalling uten retningslinje, fra en arbeidsflyt eller fra chat, følger bare de globale overstyringene.
+To overstyringer for samme person kan ikke overlappe på samme retningslinje, heller ikke når begge er globale. Skjemaet sier det så snart tidspunktene er valgt, med **Rediger den overstyringen** for å endre den andre i stedet. Den ene kan slutte når den neste starter.
+
+En retningslinjes egen overstyring kan overlappe en global for samme person: på den retningslinjen brukes dens egen mens begge gjelder, og skjemaet sier det. En tilkalling uten retningslinje, fra en arbeidsflyt eller fra chat, følger bare de globale overstyringene.
+
+Overstyringer som allerede overlappet før denne regelen, blir som de er. Begge er merket med **Overlapper**, som sier hvilken som brukes: en som nevner hvem som dekker, foran en overhopping, deretter den som starter først, deretter den som ble lagt til først.
 
 ## Andre måter å legge til en på
 
@@ -68,9 +83,9 @@ Når noen forlater prosjektet, slettes hver overstyring som nevner dem og ikke h
 
 ## Hvem som kan legge til overstyringer
 
-**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan legge til og slette overstyringer; **Leser** og **Vaktleser** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** og **Read On-Call Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
+**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan legge til, redigere og slette overstyringer; **Leser** og **Vaktleser** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** og **Read On-Call Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
 
-En overstyring på en retningslinje følger retningslinjens omfang. Gi et team **Vaktmedlem** begrenset til retningslinjene det eier, eller til etiketten sin, så legger medlemmene til og sletter overstyringer bare på de retningslinjene. En global overstyring gjelder for alle retningslinjer, også et annet teams, så å legge til eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring** og **Slett** under **Vakt → Avansert → Brukeroverstyringer** låst og sier hvorfor. **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som legger til globale overstyringer, tilbyr i stedet retningslinjene du kan legge til overstyringer på, med én overstyring per retningslinje, og det samme gjør avløsningen i mobilappen; der du ikke kan på noen av dem, er de låst og sier hvorfor. Teamet legger til overstyringene sine på hver retningslinjes egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide retningslinjer.
+En overstyring på en retningslinje følger retningslinjens omfang. Gi et team **Vaktmedlem** begrenset til retningslinjene det eier, eller til etiketten sin, så legger medlemmene til, redigerer og sletter overstyringer bare på de retningslinjene. En global overstyring gjelder for alle retningslinjer, også et annet teams, så å legge til, redigere eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring**, **Rediger** og **Slett** under **Vakt → Avansert → Brukeroverstyringer** låst og sier hvorfor. **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som legger til globale overstyringer, tilbyr i stedet retningslinjene du kan legge til overstyringer på, med én overstyring per retningslinje, og det samme gjør avløsningen i mobilappen; der du ikke kan på noen av dem, er de låst og sier hvorfor. Teamet legger til overstyringene sine på hver retningslinjes egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide retningslinjer.
 
 I OneUptime Cloud krever brukeroverstyringer abonnementet **Growth**.
 
@@ -100,7 +115,9 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
   }'
 ```
 
-En overstyring der personen som er borte og personen som dekker er den samme, avvises, og det samme gjør en som slutter før den starter.
+En overstyring der personen som er borte og personen som dekker er den samme, avvises, og det samme gjør en som slutter før den starter. Det samme gjør en som overlapper en annen overstyring for samme person på samme retningslinje, eller når begge er globale: avvisningen nevner den den overlapper.
+
+For å endre en overstyring sender du `PUT /api/on-call-duty-policy-user-override/<override-id>` med feltene som skal endres, i `data`: `routeAlertsToUserId` (`null` for å hoppe over personen i stedet), `startsAt` og `endsAt`. `overrideUserId` og `onCallDutyPolicyId` kan ikke endres. En overstyring som er avsluttet, kan ikke endres, heller ikke starten på en som har startet, og et tidspunkt som endres, kan ikke flyttes til fortiden.
 
 ## Feilsøking
 
@@ -114,6 +131,10 @@ De nås gjennom sine egne personlige vaktregler og verifiserte metoder. Slå dem
 
 :::details Jeg kan ikke legge til en overstyring
 Det krever en av rollene over, og i OneUptime Cloud abonnementet **Growth**. En global overstyring krever rollen over hele prosjektet: er teamets rolle begrenset til egne retningslinjer eller til noen etiketter, legger du til overstyringen på retningslinjens egen side **Brukeroverstyringer**. **Hopp over til…**, **Finn avløser** og mobilappen tilbyr da bare retningslinjene du kan legge til overstyringer på, og er låst der du ikke kan på noen av dem.
+:::
+
+:::details En overstyring kan ikke lagres fordi den overlapper en annen
+Personen har allerede en overstyring på noen av de tidspunktene: på samme retningslinje, eller en global når denne også er global. Klikk på **Rediger den overstyringen** under **Slutter** for å endre den i stedet, eller velg tidspunkter som ikke overlapper den.
 :::
 
 ## Neste steg

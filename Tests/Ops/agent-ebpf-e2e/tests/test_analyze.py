@@ -181,6 +181,13 @@ class Capture:
                               linked + [(40, None)]))
         self.profiles.append(({'process.pid': '77', 'process.executable.name': 'containerd'}, [(30, None)]))
         self.profile_cluster = CLUSTER
+        # kind: run.sh's same-PID process in the apps node (apps/same-pid.pl),
+        # which the chart's profiler resolves; its samples are in the first
+        # same_pid_exports exports (None: every one)
+        self.same_pid = '88001'
+        self.same_pid_file = 'samePid=%s\nended=signal 15\n' % self.same_pid
+        self.same_pid_samples = [(25, None)]
+        self.same_pid_exports = None
 
     @staticmethod
     def resource(ns, deployment, distro=OBI_DISTRO):
@@ -194,7 +201,7 @@ class Capture:
 
     def profiles_jsonl(self, profiles):
         plines = []
-        for res, samples in profiles:
+        for index, (res, samples) in enumerate(profiles):
             st = ['']
             links = [{}]
 
@@ -203,28 +210,34 @@ class Capture:
                     st.append(x)
                 return st.index(x)
 
-            rattrs = [{'keyStrindex': s_idx('k8s.node.name'), 'value': {'stringValue': APPS}}]
-            # a profile may name its own cluster (None: none at all)
-            cluster = res.get('k8s.cluster.name', self.profile_cluster)
-            if cluster:
-                rattrs.append({'keyStrindex': s_idx('k8s.cluster.name'), 'value': {'stringValue': cluster}})
-            for k, v in res.items():
-                if k == 'k8s.cluster.name':
-                    continue
-                if k == 'process.pid':
-                    rattrs.append({'keyStrindex': s_idx(k), 'value': {'intValue': v}})
-                else:
-                    rattrs.append({'keyStrindex': s_idx(k), 'value': {'stringValueStrindex': s_idx(v)}})
-            out_samples = []
-            for count, link in samples:
-                smp = {'stackIndex': 1, 'timestampsUnixNano': ['1'] * count}
-                if link:
-                    links.append({'traceId': link[0], 'spanId': link[1]})
-                    smp['linkIndex'] = len(links) - 1
-                out_samples.append(smp)
+            def resource_profile(res, samples):
+                rattrs = [{'keyStrindex': s_idx('k8s.node.name'), 'value': {'stringValue': APPS}}]
+                # a profile may name its own cluster (None: none at all)
+                cluster = res.get('k8s.cluster.name', self.profile_cluster)
+                if cluster:
+                    rattrs.append({'keyStrindex': s_idx('k8s.cluster.name'), 'value': {'stringValue': cluster}})
+                for k, v in res.items():
+                    if k == 'k8s.cluster.name':
+                        continue
+                    if k == 'process.pid':
+                        rattrs.append({'keyStrindex': s_idx(k), 'value': {'intValue': v}})
+                    else:
+                        rattrs.append({'keyStrindex': s_idx(k), 'value': {'stringValueStrindex': s_idx(v)}})
+                out_samples = []
+                for count, link in samples:
+                    smp = {'stackIndex': 1, 'timestampsUnixNano': ['1'] * count}
+                    if link:
+                        links.append({'traceId': link[0], 'spanId': link[1]})
+                        smp['linkIndex'] = len(links) - 1
+                    out_samples.append(smp)
+                return {'resource': {'attributes': rattrs}, 'scopeProfiles': [{'profiles': [{'samples': out_samples}]}]}
+
+            rps = [resource_profile(res, samples)]
+            if self.same_pid_samples and (self.same_pid_exports is None or index < self.same_pid_exports):
+                rps.append(resource_profile({'process.pid': self.same_pid, 'process.executable.name': 'dash'},
+                                            self.same_pid_samples))
             plines.append(json.dumps({'dictionary': {'stringTable': st, 'linkTable': links, 'attributeTable': [{}]},
-                                      'resourceProfiles': [{'resource': {'attributes': rattrs}, 'scopeProfiles': [
-                                          {'profiles': [{'samples': out_samples}]}]}]}))
+                                      'resourceProfiles': rps}))
         plines += plines[:1]  # >=3 exports
         return '\n'.join(plines) + '\n'
 
@@ -259,6 +272,8 @@ class Capture:
         w('metrics.json', '\n'.join(mlines) + '\n')
         # profiles: OTLP profiles JSON as the 0.152.0 file exporter writes it
         w('profiles.json', self.profiles_jsonl(self.profiles))
+        if self.same_pid_file is not None:
+            w('same-pid.txt', self.same_pid_file)
         if self.host_profiler:
             os.makedirs(os.path.join(out, 'host-profiler'), exist_ok=True)
             host = [(dict(res, **{'process.pid': self.host_pid}) if res.get('process.pid') == APP_PID else res, smp)
@@ -415,6 +430,14 @@ class Healthy(unittest.TestCase):
         line = next(x for x in outp.splitlines() if x.strip().startswith('measured:') and '"exports"' in x)
         measured = json.loads(line.split('measured:', 1)[1])
         self.assertEqual(measured['clusterName'], {CLUSTER: measured['samples']}, outp)
+
+    def test_kind_reports_the_same_pid_process(self):
+        # its PID, how it ended, and the exports and samples of it
+        rc, status, outp = run(Capture(host_profiler=True))
+        line = next(x for x in outp.splitlines() if x.strip().startswith('measured:') and '"samePid"' in x)
+        measured = json.loads(line.split('measured:', 1)[1])
+        self.assertEqual(measured['samePid'], {'samePid': '88001', 'ended': 'signal 15', 'exports': 3,
+                                               'samples': 75}, outp)
 
 
 class EachFaultFailsItsCheck(unittest.TestCase):
@@ -790,6 +813,45 @@ class EachFaultFailsItsCheck(unittest.TestCase):
         c = Capture()
         c.profiles[1] = (dict(c.profiles[1][0], **{'k8s.cluster.name': None}), c.profiles[1][1])
         self.assertOnlyFails(c, ['PR-3'])
+
+    def test_same_pid_process_never_started(self):
+        # kind: run.sh wrote no same-pid.txt
+        c = Capture()
+        c.same_pid_file = None
+        c.same_pid_samples = []
+        self.assertOnlyFails(c, ['PR-3'])
+
+    def test_same_pid_process_could_not_be_made(self):
+        # e.g. a rootless Docker, whose nodes are not in the host's user namespace
+        c = Capture()
+        c.same_pid_file = 'error=clone3: Operation not permitted\n'
+        c.same_pid_samples = []
+        rc, status, outp = run(c)
+        self.assertEqual({k for k, v in status.items() if v == 'FAIL'}, {'PR-3'}, outp)
+        self.assertIn('clone3: Operation not permitted', outp)
+
+    def test_same_pid_process_never_resolved(self):
+        # The chart's profiler sent enough exports, but not one sample of the
+        # process it can resolve: only host processes that happen to share a
+        # PID number with the node, as on kind before the same-PID process.
+        c = Capture()
+        c.same_pid_samples = []
+        self.assertOnlyFails(c, ['PR-3'])
+
+    def test_same_pid_process_in_too_few_exports(self):
+        c = Capture()
+        c.profiles.append(({'process.pid': '78', 'process.executable.name': 'systemd'}, [(2, None)]))
+        c.same_pid_exports = 1  # the first export and its copy: 2 of 4
+        self.assertOnlyFails(c, ['PR-3'])
+
+    def test_k3s_needs_no_same_pid_process(self):
+        # every process has one PID on k3s: the chart's profiler resolves them all
+        c = Capture()
+        c.same_pid_file = None
+        c.same_pid_samples = []
+        rc, status, outp = run(c, platform='k3s')
+        self.assertEqual(rc, 0, outp)
+        self.assertEqual(status['PR-3'], 'PASS', outp)
 
     def test_obi_not_populating_the_map(self):
         # OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT missing: the pin exists, stays empty

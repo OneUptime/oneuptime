@@ -108,7 +108,7 @@ Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.
 
 ## Ruotare, disattivare o eliminare una chiave
 
-La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietro **Click to reveal**, e il suo **Last Used At**: l'ultima volta che OneUptime ha accettato dati inviati con essa.
+La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietro **Fai clic per mostrare**, e il suo **Last Used At**: l'ultima volta che OneUptime ha accettato dati inviati con essa.
 
 | Per | Fate questo | Che cosa vedono i mittenti |
 | --- | --- | --- |

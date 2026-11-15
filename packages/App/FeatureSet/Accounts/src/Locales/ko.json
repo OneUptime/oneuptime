@@ -42,6 +42,13 @@
     "errorOnSignUp": "가입하기 전에 captcha 챌린지를 완료해 주세요."
   },
   "login": {
+    "title": "계정에 로그인",
+    "subtitle": "비밀번호, 조직의 SSO 또는 패스키로 로그인하세요.",
+    "sessionEnded": {
+      "lengthReached": "세션이 시간 제한에 도달하여 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다.",
+      "inactive": "한동안 활동이 없어 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다."
+    },
+    "submitButton": "로그인",
     "passkey": {
       "signIn": "패스키로 로그인",
       "inProgress": "비밀번호를 사용하기 전에 패스키 로그인을 완료하거나 취소하세요.",
@@ -57,13 +64,6 @@
       "insecure": "패스키를 사용하려면 보안 연결(HTTPS)이 필요합니다. 비밀번호 또는 SSO로 로그인할 수 있습니다.",
       "tryAgain": "패스키로 다시 시도"
     },
-    "title": "계정에 로그인",
-    "subtitle": "비밀번호, 조직의 SSO 또는 패스키로 로그인하세요.",
-    "sessionEnded": {
-      "lengthReached": "세션이 시간 제한에 도달하여 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다.",
-      "inactive": "한동안 활동이 없어 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다."
-    },
-    "submitButton": "로그인",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "signInWithSso": "SSO로 로그인",
     "signInWithMicrosoft": "Microsoft로 로그인",
@@ -397,6 +397,9 @@
   "Copy": "복사",
   "Copied!": "복사됨!",
   "Copy failed": "복사 실패",
+  "Hide": "숨기기",
+  "Click to reveal": "표시하려면 클릭",
+  "Click to copy": "복사하려면 클릭",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM 프로비저닝이 멈추고, 감사 로깅이 기록을 멈추며, 엔터프라이즈 구성은 읽기 전용이 되고, 엔터프라이즈 관리자 대시보드는 잠깁니다. 라이선스가 활성화되는 즉시 모두 다시 시작되며, 핵심 모니터링은 전혀 영향을 받지 않습니다.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "유효한 라이선스가 없으면({{days}}일 평가판 기간이 지난 뒤) SCIM 프로비저닝이 멈추고, 감사 로깅이 기록을 멈추며, 엔터프라이즈 구성은 읽기 전용이 되고, 엔터프라이즈 관리자 대시보드는 잠깁니다. 라이선스가 활성화되는 즉시 모두 다시 시작되며, 핵심 모니터링은 전혀 영향을 받지 않습니다.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "유효한 라이선스가 없으면({{days}}일 유예 기간이 지난 뒤) SCIM 프로비저닝이 멈추고, 감사 로깅이 기록을 멈추며, 엔터프라이즈 구성은 읽기 전용이 되고, 엔터프라이즈 관리자 대시보드는 잠깁니다. 라이선스가 활성화되는 즉시 모두 다시 시작되며, 핵심 모니터링은 전혀 영향을 받지 않습니다.",
@@ -607,7 +610,8 @@
   "Click to choose a file or drag & drop.": "클릭하여 파일 하나를 선택하거나 끌어다 놓으세요.",
   "Click to add more or drag & drop.": "클릭하여 더 추가하거나 끌어다 놓으세요.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF, Office, OpenDocument 파일, 이미지, 텍스트, CSV, JSON, ZIP 또는 PCAP(최대 {{size}}).",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "파일당 {{size}}, 최대 10개: PDF, Office, OpenDocument 파일, 이미지, 텍스트, CSV, JSON, ZIP 또는 PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "파일당 {{size}}, 최대 {{count}}개: PDF, Office, OpenDocument 파일, 이미지, 텍스트, CSV, JSON, ZIP 또는 PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "파일 1개, 최대 {{size}}: PDF, Office, OpenDocument 파일, 이미지, 텍스트, CSV, JSON, ZIP 또는 PCAP.",
   "Chosen files": "선택한 파일",
   "Remove": "제거",
   "Replace": "바꾸기",
@@ -618,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "다음 파일은 이 필드에서 받지 않는 형식입니다: {{fileNames}}.",
   "Add one file at a time.": "파일은 한 번에 하나씩 추가하세요.",
   "This field holds up to {{count}} files. Remove one to add another.": "이 필드에는 파일을 최대 {{count}}개까지 넣을 수 있습니다. 다른 파일을 추가하려면 하나를 제거하세요.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "이 필드에는 파일을 1개만 넣을 수 있습니다. 다른 파일을 추가하려면 이 파일을 제거하세요.",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

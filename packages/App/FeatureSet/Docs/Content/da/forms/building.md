@@ -39,7 +39,7 @@ Træk et kort i dets håndtag for at flytte det, eller brug **Flyt op** og **Fly
 
 ### Gem formularen
 
-**Gem ændringer** gemmer alle ændringer på én gang. Indtil du gemmer, siger byggeren **Ikke-gemte ændringer** og tilbyder **Kassér ændringer**, og browseren spørger, før du forlader siden.
+**Gem ændringer** gemmer alle ændringer på én gang. Indtil du gemmer, siger byggeren **Ikke-gemte ændringer** og tilbyder **Kassér ændringer**. At forlade byggeren, før du har gemt, spørger først. Et link i sidemenuen, brødkrummestien eller topbjælken, eller browserens Tilbage- og Frem-knapper, åbner **Forlad uden at gemme?** med to valg: **Fortsæt med at redigere** bliver i byggeren med dine ændringer, og **Kassér ændringer** fortsætter til den side, du var ved at åbne. Lukker eller genindlæser du fanen, spørger browseren med sin egen dialog.
 :::
 
 - **Formularens overskrift** viser dens navn og beskrivelse, som den offentlige side vil gøre. **Rediger navn og beskrivelse** ændrer dem.

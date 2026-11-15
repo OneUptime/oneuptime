@@ -74,6 +74,13 @@ Fluentd 的設定檔通常是 `/etc/fluent/fluentd.conf`，舊的 td-agent 套�
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 `json_array true` 讓緩衝區的每個區塊都以一個 JSON 陣列傳送，`flush_interval 10s` 則每 10 秒傳送一次緩衝區。`chunk_limit_size 900k` 讓每個要求都小於 1 MB，這是 OneUptime 在這個端點上接受的上限。
@@ -123,6 +130,13 @@ Fluentd 的設定檔通常是 `/etc/fluent/fluentd.conf`，舊的 td-agent 套�
     chunk_limit_size 900k
   </buffer>
 </match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
 ```
 
 若要把不同的來源當成不同的服務傳送，請為每個標籤使用一個 `<match>` 區段，並各自設定 `x-oneuptime-service-name`。

@@ -319,6 +319,14 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
         <h3 className="mb-2 text-sm font-semibold text-gray-900">
           {translator.translateText(TELEMETRY_SETUP_COPY.waitTitle)}
         </h3>
+        {/*
+         * A service, not the key's first data as the Setup Guide tabs also
+         * take (#7754): step 2 alerts on that service, and every way this
+         * guide offers names one. Its OpenTelemetry snippets set
+         * service.name (an SDK falls back to unknown_service otherwise),
+         * and the Sentry snippet's release, my-service@1.0.0, names
+         * my-service.
+         */}
         <ResourceConnectionWatch
           modelType={Service}
           viewPage={PageMap.SERVICE_VIEW}

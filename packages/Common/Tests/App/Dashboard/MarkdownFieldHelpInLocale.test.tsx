@@ -43,7 +43,7 @@ const MARKDOWN_FIELD_HELP: Array<string> = [
   "Describe the episode details here.",
   "Describe the incident details here.",
   "Describe the root cause of this incident here.",
-  "Describe the scheduled maintenance event here.",
+  "Describe the maintenance event here.",
   "Describe the status page group here.",
   "Describe this resource here.",
   "Describe your status page overview here.",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51818,
-    "untranslated": 9474
+    "keys": 52236,
+    "untranslated": 9315
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -195,6 +195,7 @@
     "PromQL",
     "Prompt",
     "Push",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",

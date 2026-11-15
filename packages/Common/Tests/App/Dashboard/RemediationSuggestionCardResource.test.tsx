@@ -145,6 +145,7 @@ afterEach(() => {
 
 describe("the command row helpers", () => {
   test("a resource command names its resource, its program and its tier", () => {
+    // The kind as a sentence says it, as a kubectl row's "cluster prod-east" (#7862).
     expect(
       getCommandTargetLabel({
         stepType: RunbookStepType.ResourceCommand,
@@ -152,7 +153,7 @@ describe("the command row helpers", () => {
         resourceNameSnapshot: "orders-db",
         runnerNameSnapshot: "Database AI agent",
       }),
-    ).toBe("Database server orders-db");
+    ).toBe("database server orders-db");
     expect(
       getCommandStepLabel({
         stepType: RunbookStepType.ResourceCommand,
@@ -302,7 +303,7 @@ describe("RemediationStep for a resource round", () => {
       "systemctl restart nginx",
     );
 
-    expect(within(row).getByText("Host web-2")).toBeInTheDocument();
+    expect(within(row).getByText("host web-2")).toBeInTheDocument();
     expect(
       within(row).getByText("systemctl restart nginx"),
     ).toBeInTheDocument();

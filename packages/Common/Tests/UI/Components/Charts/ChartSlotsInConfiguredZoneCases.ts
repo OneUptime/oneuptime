@@ -18,6 +18,7 @@ import YAxis, {
 import YAxisType from "../../../../UI/Components/Charts/Types/YAxis/YAxisType";
 import DataPointUtil from "../../../../UI/Components/Charts/Utils/DataPoint";
 import XAxisUtil from "../../../../UI/Components/Charts/Utils/XAxis";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
  * A CHART'S SLOTS ARE THE READER'S DAYS AND HOURS, WHATEVER ZONE THE
@@ -362,6 +363,104 @@ function expectEveryPointOnASlot(window: Window, pointEveryMs: number): void {
   expect(named).toEqual(slots.labels);
 }
 
+/*
+ * Points `pointEveryMs` apart from the window's start, and one at the last
+ * instant before its end, name exactly the window's slots, in order: every
+ * bucket the window reaches into has a slot, the bucket its end is in
+ * included however little of it the window holds, and no slot stands for a
+ * bucket the window does not reach (issue #7278). A walk that lands on the
+ * end itself has a slot there; when the end is where a bucket starts, that
+ * bucket holds none of the window, so its slot is left out of the count, as
+ * getRenderableIntervals leaves it off the chart when nothing is in it.
+ */
+function expectTheWholeWindowOnSlots(
+  window: Window,
+  pointEveryMs: number,
+): void {
+  const slots: Slots = slotsOf(window);
+  const formatter: (value: Date) => string = XAxisUtil.getFormatter({
+    xAxisMin: window.start,
+    xAxisMax: window.end,
+    precision: window.precision,
+  });
+  const start: number = window.start.getTime();
+  const end: number = window.end.getTime();
+  const points: Array<number> = [];
+
+  for (let instant: number = start; instant < end; instant += pointEveryMs) {
+    points.push(instant);
+  }
+  points.push(end - 1);
+
+  const named: Array<string> = [];
+
+  for (const point of points) {
+    const label: string = spaced(formatter(new Date(point)));
+
+    if (named[named.length - 1] !== label) {
+      named.push(label);
+    }
+  }
+
+  const endsWhereABucketStarts: boolean =
+    formatter(new Date(end)) !== formatter(new Date(end - 1));
+  const labels: Array<string> =
+    endsWhereABucketStarts &&
+    slots.instants[slots.instants.length - 1] === window.end.toISOString()
+      ? slots.labels.slice(0, -1)
+      : slots.labels;
+  // Named in the failure, so a seeded window that fails can be read back.
+  const asked: string = `${window.precision} from ${window.start.toISOString()} to ${window.end.toISOString()}`;
+
+  expect({ asked, labels: named }).toEqual({ asked, labels: labels });
+  expectEveryLabelOnce(slots.labels);
+
+  // The first slot is the start, each slot after the one before, none past the end.
+  expect(slots.instants[0]).toBe(window.start.toISOString());
+  slots.instants.forEach((instant: string, index: number): void => {
+    expect(Date.parse(instant)).toBeLessThanOrEqual(end);
+
+    if (index > 0) {
+      expect(Date.parse(instant)).toBeGreaterThan(
+        Date.parse(slots.instants[index - 1]!),
+      );
+    }
+  });
+}
+
+function pairsOf(slots: Slots): Array<[string, string]> {
+  return slots.instants.map(
+    (instant: string, index: number): [string, string] => {
+      return [instant, slots.labels[index]!];
+    },
+  );
+}
+
+// A row as a reader sees it: its label, its "Requests" value, and where its bucket starts.
+interface ReadRow {
+  label: string;
+  value: unknown;
+  start: string;
+}
+
+function readRow(row: ChartDataPoint): ReadRow {
+  return {
+    label: spaced(String(row[CHART_DATA_POINT_X_AXIS_KEY])),
+    value: row["Requests"],
+    start: new Date(Number(row[CHART_DATA_POINT_DATE_KEY])).toISOString(),
+  };
+}
+
+// "Requests", one total a bucket, each worth its place: 1, 2, 3 ...
+function totalsAt(starts: Array<Date>): SeriesPoints {
+  return {
+    seriesName: "Requests",
+    data: starts.map((start: Date, index: number): { x: Date; y: number } => {
+      return { x: start, y: index + 1 };
+    }),
+  };
+}
+
 // ---- The cases.
 
 export default function describeChartSlotsInConfiguredZone(
@@ -575,7 +674,7 @@ export default function describeChartSlotsInConfiguredZone(
     });
 
     describe("a week and a month a slot", () => {
-      test("read in New York, weeks from Sunday midnight across both of its changes: each a Sunday there", () => {
+      test("read in New York, weeks from Sunday midnight across both of its changes: each a Sunday there, named by its week's Monday", () => {
         OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
 
         const sundays: Array<string> = Array.from(
@@ -595,7 +694,16 @@ export default function describeChartSlotsInConfiguredZone(
             return wallTimeIn(Timezone.AmericaNew_York, day).toISOString();
           }),
         );
-        expect(slots.labels).toEqual(sundays.map(dayLabel));
+        /*
+         * A week is named by its Monday, the day the server starts a week
+         * bucket on (#7277): a Sunday is the last day of the week that
+         * began six days before.
+         */
+        expect(slots.labels).toEqual(
+          sundays.map((day: string): string => {
+            return dayLabel(addDays(day, -6));
+          }),
+        );
       });
 
       test("read in Auckland, a year of months from 31 January: every month once, each on its last day", () => {
@@ -988,6 +1096,11 @@ export default function describeChartSlotsInConfiguredZone(
            * From 21:37 the walk steps onto 01:37, which the clocks skip. Its
            * block from 00:00 still has the hour before the gap, and the slot
            * stands there at 00:37, the walk's minutes past the hour kept.
+           *
+           * The window ends at 06:37 BST, in the block from 06:00, which the
+           * walk would have reached at 07:37: an hour of the window went
+           * with the clocks, so it ends earlier in its block than it
+           * starts. That block has its slot at its start (#7278).
            */
           name: "London, two hours from 21:37, the clocks going forward: 01:37 never comes, so its slot is at 00:37, in the same block",
           zone: Timezone.EuropeLondon,
@@ -1000,6 +1113,7 @@ export default function describeChartSlotsInConfiguredZone(
             ["2026-03-29T00:37:00.000Z", "29 Mar, 00:00"],
             ["2026-03-29T02:37:00.000Z", "29 Mar, 02:00"],
             ["2026-03-29T04:37:00.000Z", "29 Mar, 04:00"],
+            ["2026-03-29T05:00:00.000Z", "29 Mar, 06:00"],
           ],
         },
         {
@@ -1547,6 +1661,843 @@ export default function describeChartSlotsInConfiguredZone(
           expect(slots.labels).toEqual(days.map(dayLabel));
         }
       });
+    });
+
+    /*
+     * A WINDOW THAT ENDS EARLIER IN ITS BUCKET THAN IT STARTS (issue #7278).
+     *
+     * The walk steps from the window's start, so each slot keeps the
+     * start's place in its bucket: from 14:42, a day axis has its slots at
+     * 14:42. A window that ends at 09:00 stopped the walk on the day before
+     * its last, since 14:42 on the last day is past the end, and the
+     * server's bucket for that day, from its midnight to 09:00, had no slot
+     * to land on: its total was never drawn. Every step walked the same
+     * way: weeks, months, years, blocks of hours, hours and minutes. That
+     * bucket now has a slot, at its start.
+     *
+     * The rows are the server's buckets, each from a midnight (a Monday's,
+     * a 1st's, New Year's) in the reader's zone, which the request now asks
+     * for (issue #7277). The first starts before the window does, and still
+     * lands on the first slot, which has its label.
+     */
+    describe("the bucket a window ends in has a slot, however early in it the window ends (#7278)", () => {
+      const readers: ReadonlyArray<Timezone> = [
+        ...ZONES_WITH_CLOCK_CHANGES.map(
+          (reader: ZoneWithClockChanges): Timezone => {
+            return reader.zone;
+          },
+        ),
+        Timezone.UTC,
+        Timezone.AsiaKolkata,
+        Timezone.AsiaTokyo,
+      ];
+
+      for (const reader of readers) {
+        for (const changeDay of CLOCK_CHANGE_DAYS) {
+          const firstDay: string = addDays(changeDay, -13);
+          const days: Array<string> = Array.from(
+            { length: 30 },
+            (_value: unknown, index: number): string => {
+              return addDays(firstDay, index);
+            },
+          );
+
+          test(`read in ${reader}, days from 14:42 on ${firstDay} to 09:00 on ${days[29]}: the last day's slot at its midnight, and each day's total on its own row`, () => {
+            OneUptimeDate.setUserTimezone(reader);
+
+            const window: Window = {
+              start: wallTimeIn(reader, firstDay, "14:42"),
+              end: wallTimeIn(reader, days[29]!, "09:00"),
+              precision: XAxisPrecision.EVERY_DAY,
+            };
+            const slots: Slots = slotsOf(window);
+
+            expect(slots.instants).toEqual([
+              ...days.slice(0, 29).map((day: string): string => {
+                return wallTimeIn(reader, day, "14:42").toISOString();
+              }),
+              wallTimeIn(reader, days[29]!).toISOString(),
+            ]);
+            expect(slots.labels).toEqual(days.map(dayLabel));
+
+            const midnights: Array<Date> = days.map((day: string): Date => {
+              return wallTimeIn(reader, day);
+            });
+
+            expect(rowsOf(window, totalsAt(midnights)).map(readRow)).toEqual(
+              days.map((day: string, index: number): ReadRow => {
+                return {
+                  label: dayLabel(day),
+                  value: index + 1,
+                  start: midnights[index]!.toISOString(),
+                };
+              }),
+            );
+          });
+
+          // Every day the clocks change on here is a Sunday (checked below).
+          const thursdays: Array<string> = Array.from(
+            { length: 13 },
+            (_value: unknown, index: number): string => {
+              return addDays(changeDay, -45 + 7 * index);
+            },
+          );
+          const mondays: Array<string> = Array.from(
+            { length: 14 },
+            (_value: unknown, index: number): string => {
+              return addDays(changeDay, -48 + 7 * index);
+            },
+          );
+          const tuesday: string = addDays(changeDay, 44);
+
+          test(`read in ${reader}, weeks from 14:42 on Thursday ${thursdays[0]} to 09:00 on Tuesday ${tuesday}: each named by its Monday, the last week's slot at its Monday's midnight, and each week's total on its own row`, () => {
+            OneUptimeDate.setUserTimezone(reader);
+
+            expect(new Date(`${changeDay}T12:00:00.000Z`).getUTCDay()).toBe(0);
+
+            const window: Window = {
+              start: wallTimeIn(reader, thursdays[0]!, "14:42"),
+              end: wallTimeIn(reader, tuesday, "09:00"),
+              precision: XAxisPrecision.EVERY_WEEK,
+            };
+            const slots: Slots = slotsOf(window);
+
+            expect(slots.instants).toEqual([
+              ...thursdays.map((day: string): string => {
+                return wallTimeIn(reader, day, "14:42").toISOString();
+              }),
+              wallTimeIn(reader, mondays[13]!).toISOString(),
+            ]);
+            expect(slots.labels).toEqual(mondays.map(dayLabel));
+
+            const midnights: Array<Date> = mondays.map((day: string): Date => {
+              return wallTimeIn(reader, day);
+            });
+
+            expect(rowsOf(window, totalsAt(midnights)).map(readRow)).toEqual(
+              mondays.map((day: string, index: number): ReadRow => {
+                return {
+                  label: dayLabel(day),
+                  value: index + 1,
+                  start: midnights[index]!.toISOString(),
+                };
+              }),
+            );
+          });
+        }
+
+        test(`read in ${reader}, months from 14:42 on 17 January to 09:00 on 9 December 2026: December's slot at the 1st's midnight, and each month's total on its own row`, () => {
+          OneUptimeDate.setUserTimezone(reader);
+
+          const months: Array<string> = Array.from(
+            { length: 12 },
+            (_value: unknown, index: number): string => {
+              return `2026-${pad(index + 1)}`;
+            },
+          );
+          const labels: Array<string> = months.map((month: string): string => {
+            return `${MONTHS[Number(month.slice(5, 7)) - 1]} 2026`;
+          });
+          const window: Window = {
+            start: wallTimeIn(reader, "2026-01-17", "14:42"),
+            end: wallTimeIn(reader, "2026-12-09", "09:00"),
+            precision: XAxisPrecision.EVERY_MONTH,
+          };
+          const slots: Slots = slotsOf(window);
+
+          expect(slots.instants).toEqual([
+            ...months.slice(0, 11).map((month: string): string => {
+              return wallTimeIn(reader, `${month}-17`, "14:42").toISOString();
+            }),
+            wallTimeIn(reader, "2026-12-01").toISOString(),
+          ]);
+          expect(slots.labels).toEqual(labels);
+
+          const rows: Array<ReadRow> = rowsOf(
+            window,
+            totalsAt(
+              months.map((month: string): Date => {
+                return wallTimeIn(reader, `${month}-01`);
+              }),
+            ),
+          ).map(readRow);
+
+          expect(
+            rows.map((row: ReadRow): [string, unknown] => {
+              return [row.label, row.value];
+            }),
+          ).toEqual(
+            labels.map((label: string, index: number): [string, number] => {
+              return [label, index + 1];
+            }),
+          );
+        });
+
+        test(`read in ${reader}, years from 14:42 on 17 March 2020 to 09:00 on 9 February 2026: 2026's slot at New Year's midnight, and each year's total on its own row`, () => {
+          OneUptimeDate.setUserTimezone(reader);
+
+          const years: Array<number> = [
+            2020, 2021, 2022, 2023, 2024, 2025, 2026,
+          ];
+          const window: Window = {
+            start: wallTimeIn(reader, "2020-03-17", "14:42"),
+            end: wallTimeIn(reader, "2026-02-09", "09:00"),
+            precision: XAxisPrecision.EVERY_YEAR,
+          };
+          const slots: Slots = slotsOf(window);
+
+          expect(slots.instants).toEqual([
+            ...years.slice(0, 6).map((year: number): string => {
+              return wallTimeIn(reader, `${year}-03-17`, "14:42").toISOString();
+            }),
+            wallTimeIn(reader, "2026-01-01").toISOString(),
+          ]);
+          expect(slots.labels).toEqual(years.map(String));
+
+          const rows: Array<ReadRow> = rowsOf(
+            window,
+            totalsAt(
+              years.map((year: number): Date => {
+                return wallTimeIn(reader, `${year}-01-01`);
+              }),
+            ),
+          ).map(readRow);
+
+          expect(
+            rows.map((row: ReadRow): [string, unknown] => {
+              return [row.label, row.value];
+            }),
+          ).toEqual(
+            years.map((year: number, index: number): [string, number] => {
+              return [String(year), index + 1];
+            }),
+          );
+        });
+
+        test(`read in ${reader}, an hour a slot from 10:42 to 15:20: the hour from 15:00 has its slot, at 15:00`, () => {
+          OneUptimeDate.setUserTimezone(reader);
+
+          const slots: Slots = slotsOf({
+            start: wallTimeIn(reader, "2026-06-15", "10:42"),
+            end: wallTimeIn(reader, "2026-06-15", "15:20"),
+            precision: XAxisPrecision.EVERY_HOUR,
+          });
+
+          expect(pairsOf(slots)).toEqual([
+            ...["10", "11", "12", "13", "14"].map(
+              (hour: string): [string, string] => {
+                return [
+                  wallTimeIn(reader, "2026-06-15", `${hour}:42`).toISOString(),
+                  `15 Jun, ${hour}:00`,
+                ];
+              },
+            ),
+            [
+              wallTimeIn(reader, "2026-06-15", "15:00").toISOString(),
+              "15 Jun, 15:00",
+            ],
+          ]);
+        });
+
+        test(`read in ${reader}, blocks of two, three, six and twelve hours from 10:42, each window ending 20 minutes into a block: that block has its slot, at its start`, () => {
+          OneUptimeDate.setUserTimezone(reader);
+
+          const cases: Array<{
+            precision: XAxisPrecision;
+            end: [string, string];
+            // The day, the reading and the label of each slot.
+            slots: Array<[string, string, string]>;
+          }> = [
+            {
+              precision: XAxisPrecision.EVERY_TWO_HOURS,
+              end: ["2026-06-15", "20:20"],
+              slots: [
+                ["2026-06-15", "10:42", "15 Jun, 10:00"],
+                ["2026-06-15", "12:42", "15 Jun, 12:00"],
+                ["2026-06-15", "14:42", "15 Jun, 14:00"],
+                ["2026-06-15", "16:42", "15 Jun, 16:00"],
+                ["2026-06-15", "18:42", "15 Jun, 18:00"],
+                ["2026-06-15", "20:00", "15 Jun, 20:00"],
+              ],
+            },
+            {
+              precision: XAxisPrecision.EVERY_THREE_HOURS,
+              end: ["2026-06-15", "18:20"],
+              slots: [
+                ["2026-06-15", "10:42", "15 Jun, 09:00"],
+                ["2026-06-15", "13:42", "15 Jun, 12:00"],
+                ["2026-06-15", "16:42", "15 Jun, 15:00"],
+                ["2026-06-15", "18:00", "15 Jun, 18:00"],
+              ],
+            },
+            {
+              precision: XAxisPrecision.EVERY_SIX_HOURS,
+              end: ["2026-06-16", "12:20"],
+              slots: [
+                ["2026-06-15", "10:42", "15 Jun, 06:00"],
+                ["2026-06-15", "16:42", "15 Jun, 12:00"],
+                ["2026-06-15", "22:42", "15 Jun, 18:00"],
+                ["2026-06-16", "04:42", "16 Jun, 00:00"],
+                ["2026-06-16", "10:42", "16 Jun, 06:00"],
+                ["2026-06-16", "12:00", "16 Jun, 12:00"],
+              ],
+            },
+            {
+              precision: XAxisPrecision.EVERY_TWELVE_HOURS,
+              end: ["2026-06-17", "01:20"],
+              slots: [
+                ["2026-06-15", "10:42", "15 Jun, 00:00"],
+                ["2026-06-15", "22:42", "15 Jun, 12:00"],
+                ["2026-06-16", "10:42", "16 Jun, 00:00"],
+                ["2026-06-16", "22:42", "16 Jun, 12:00"],
+                ["2026-06-17", "00:00", "17 Jun, 00:00"],
+              ],
+            },
+          ];
+
+          for (const blocks of cases) {
+            const slots: Slots = slotsOf({
+              start: wallTimeIn(reader, "2026-06-15", "10:42"),
+              end: wallTimeIn(reader, blocks.end[0], blocks.end[1]),
+              precision: blocks.precision,
+            });
+
+            expect({
+              precision: blocks.precision,
+              slots: pairsOf(slots),
+            }).toEqual({
+              precision: blocks.precision,
+              slots: blocks.slots.map(
+                (slot: [string, string, string]): [string, string] => {
+                  return [
+                    wallTimeIn(reader, slot[0], slot[1]).toISOString(),
+                    slot[2],
+                  ];
+                },
+              ),
+            });
+          }
+        });
+
+        test(`read in ${reader}, five minutes a slot from 10:42 to 11:31, and a minute a slot from 13:37:20 to 243 ms past 13:42: the step the window ends in has its slot, at its start`, () => {
+          OneUptimeDate.setUserTimezone(reader);
+
+          const fiveMinutes: Slots = slotsOf({
+            start: wallTimeIn(reader, "2026-06-15", "10:42"),
+            end: wallTimeIn(reader, "2026-06-15", "11:31"),
+            precision: XAxisPrecision.EVERY_FIVE_MINUTES,
+          });
+          const walked: Array<string> = Array.from(
+            { length: 10 },
+            (_value: unknown, index: number): string => {
+              return new Date(
+                wallTimeIn(reader, "2026-06-15", "10:42").getTime() +
+                  index * 5 * MINUTE,
+              ).toISOString();
+            },
+          );
+
+          expect(fiveMinutes.instants).toEqual([
+            ...walked,
+            wallTimeIn(reader, "2026-06-15", "11:30").toISOString(),
+          ]);
+          expect(fiveMinutes.labels).toEqual([
+            "10:40",
+            "10:45",
+            "10:50",
+            "10:55",
+            "11:00",
+            "11:05",
+            "11:10",
+            "11:15",
+            "11:20",
+            "11:25",
+            "11:30",
+          ]);
+
+          const minuteStart: Date = new Date(
+            wallTimeIn(reader, "2026-06-15", "13:37").getTime() + 20 * 1000,
+          );
+          const minutes: Slots = slotsOf({
+            start: minuteStart,
+            end: new Date(
+              wallTimeIn(reader, "2026-06-15", "13:42").getTime() + 243,
+            ),
+            precision: XAxisPrecision.EVERY_MINUTE,
+          });
+
+          expect(minutes.instants).toEqual([
+            ...[0, 1, 2, 3, 4].map((index: number): string => {
+              return new Date(
+                minuteStart.getTime() + index * MINUTE,
+              ).toISOString();
+            }),
+            wallTimeIn(reader, "2026-06-15", "13:42").toISOString(),
+          ]);
+          expect(minutes.labels).toEqual([
+            "13:37",
+            "13:38",
+            "13:39",
+            "13:40",
+            "13:41",
+            "13:42",
+          ]);
+        });
+
+        test(`read in ${reader}, a window that ends where a bucket starts holds none of it, and one that ends later in its bucket than it starts has a slot there already: no slot is added to either`, () => {
+          OneUptimeDate.setUserTimezone(reader);
+
+          const cases: Array<{
+            precision: XAxisPrecision;
+            start: [string, string];
+            end: [string, string];
+            slots: number;
+            last: [string, string];
+            lastLabel: string;
+          }> = [
+            // It ends where a bucket starts.
+            {
+              precision: XAxisPrecision.EVERY_DAY,
+              start: ["2026-03-01", "14:42"],
+              end: ["2026-03-30", "00:00"],
+              slots: 29,
+              last: ["2026-03-29", "14:42"],
+              lastLabel: "29 Mar",
+            },
+            {
+              precision: XAxisPrecision.EVERY_WEEK,
+              start: ["2026-01-15", "14:42"],
+              end: ["2026-04-13", "00:00"],
+              slots: 13,
+              last: ["2026-04-09", "14:42"],
+              lastLabel: "06 Apr",
+            },
+            {
+              precision: XAxisPrecision.EVERY_MONTH,
+              start: ["2026-01-17", "14:42"],
+              end: ["2026-12-01", "00:00"],
+              slots: 11,
+              last: ["2026-11-17", "14:42"],
+              lastLabel: "Nov 2026",
+            },
+            {
+              precision: XAxisPrecision.EVERY_YEAR,
+              start: ["2020-03-17", "14:42"],
+              end: ["2026-01-01", "00:00"],
+              slots: 6,
+              last: ["2025-03-17", "14:42"],
+              lastLabel: "2025",
+            },
+            {
+              precision: XAxisPrecision.EVERY_HOUR,
+              start: ["2026-06-15", "10:42"],
+              end: ["2026-06-15", "15:00"],
+              slots: 5,
+              last: ["2026-06-15", "14:42"],
+              lastLabel: "15 Jun, 14:00",
+            },
+            {
+              precision: XAxisPrecision.EVERY_TWO_HOURS,
+              start: ["2026-06-15", "10:42"],
+              end: ["2026-06-15", "20:00"],
+              slots: 5,
+              last: ["2026-06-15", "18:42"],
+              lastLabel: "15 Jun, 18:00",
+            },
+            {
+              precision: XAxisPrecision.EVERY_FIVE_MINUTES,
+              start: ["2026-06-15", "10:42"],
+              end: ["2026-06-15", "11:30"],
+              slots: 10,
+              last: ["2026-06-15", "11:27"],
+              lastLabel: "11:25",
+            },
+            // It ends later in its bucket than it starts.
+            {
+              precision: XAxisPrecision.EVERY_DAY,
+              start: ["2026-03-01", "09:00"],
+              end: ["2026-03-30", "14:42"],
+              slots: 30,
+              last: ["2026-03-30", "09:00"],
+              lastLabel: "30 Mar",
+            },
+            {
+              precision: XAxisPrecision.EVERY_WEEK,
+              start: ["2026-01-12", "09:00"],
+              end: ["2026-04-09", "14:42"],
+              slots: 13,
+              last: ["2026-04-06", "09:00"],
+              lastLabel: "06 Apr",
+            },
+            {
+              precision: XAxisPrecision.EVERY_MONTH,
+              start: ["2026-01-09", "09:00"],
+              end: ["2026-12-17", "14:42"],
+              slots: 12,
+              last: ["2026-12-09", "09:00"],
+              lastLabel: "Dec 2026",
+            },
+            {
+              precision: XAxisPrecision.EVERY_YEAR,
+              start: ["2020-01-09", "09:00"],
+              end: ["2026-03-17", "14:42"],
+              slots: 7,
+              last: ["2026-01-09", "09:00"],
+              lastLabel: "2026",
+            },
+            {
+              precision: XAxisPrecision.EVERY_HOUR,
+              start: ["2026-06-15", "10:20"],
+              end: ["2026-06-15", "15:42"],
+              slots: 6,
+              last: ["2026-06-15", "15:20"],
+              lastLabel: "15 Jun, 15:00",
+            },
+            {
+              precision: XAxisPrecision.EVERY_TWO_HOURS,
+              start: ["2026-06-15", "10:20"],
+              end: ["2026-06-15", "20:42"],
+              slots: 6,
+              last: ["2026-06-15", "20:20"],
+              lastLabel: "15 Jun, 20:00",
+            },
+            {
+              precision: XAxisPrecision.EVERY_FIVE_MINUTES,
+              start: ["2026-06-15", "10:41"],
+              end: ["2026-06-15", "11:34"],
+              slots: 11,
+              last: ["2026-06-15", "11:31"],
+              lastLabel: "11:30",
+            },
+          ];
+
+          for (const window of cases) {
+            const slots: Slots = slotsOf({
+              start: wallTimeIn(reader, window.start[0], window.start[1]),
+              end: wallTimeIn(reader, window.end[0], window.end[1]),
+              precision: window.precision,
+            });
+
+            expect({
+              window: window.start.concat(window.end).join(" "),
+              slots: slots.instants.length,
+              last: slots.instants[slots.instants.length - 1],
+              lastLabel: slots.labels[slots.labels.length - 1],
+            }).toEqual({
+              window: window.start.concat(window.end).join(" "),
+              slots: window.slots,
+              last: wallTimeIn(
+                reader,
+                window.last[0],
+                window.last[1],
+              ).toISOString(),
+              lastLabel: window.lastLabel,
+            });
+          }
+        });
+      }
+
+      test("read in New York, an hour a slot from 00:42 to 05:20 on the day the clocks go forward: the hour from 05:00 has its slot", () => {
+        OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+        expect(
+          pairsOf(
+            slotsOf({
+              start: new Date("2026-03-08T05:42:00.000Z"),
+              end: new Date("2026-03-08T09:20:00.000Z"),
+              precision: XAxisPrecision.EVERY_HOUR,
+            }),
+          ),
+        ).toEqual([
+          ["2026-03-08T05:42:00.000Z", "08 Mar, 00:00"],
+          ["2026-03-08T06:42:00.000Z", "08 Mar, 01:00"],
+          ["2026-03-08T07:42:00.000Z", "08 Mar, 03:00"],
+          ["2026-03-08T08:42:00.000Z", "08 Mar, 04:00"],
+          ["2026-03-08T09:00:00.000Z", "08 Mar, 05:00"],
+        ]);
+      });
+
+      test("read in London, an hour a slot from 00:42 BST to 04:20 GMT on the day the clocks go back: the hour from 04:00 has its slot", () => {
+        OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+
+        expect(
+          pairsOf(
+            slotsOf({
+              start: new Date("2026-10-24T23:42:00.000Z"),
+              end: new Date("2026-10-25T04:20:00.000Z"),
+              precision: XAxisPrecision.EVERY_HOUR,
+            }),
+          ),
+        ).toEqual([
+          ["2026-10-24T23:42:00.000Z", "25 Oct, 00:00 BST"],
+          ["2026-10-25T00:42:00.000Z", "25 Oct, 01:00 BST"],
+          ["2026-10-25T01:42:00.000Z", "25 Oct, 01:00 GMT"],
+          ["2026-10-25T02:42:00.000Z", "25 Oct, 02:00 GMT"],
+          ["2026-10-25T03:42:00.000Z", "25 Oct, 03:00 GMT"],
+          ["2026-10-25T04:00:00.000Z", "25 Oct, 04:00 GMT"],
+        ]);
+      });
+
+      test("read in London, two days a slot from 14:42 on 3 March to 09:00 on 31 March: the two days from the 30th have their slot, at its midnight", () => {
+        OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+
+        const slots: Slots = slotsOf({
+          start: new Date("2026-03-03T14:42:00.000Z"),
+          end: new Date("2026-03-31T08:00:00.000Z"),
+          precision: XAxisPrecision.EVERY_TWO_DAYS,
+        });
+
+        expect(slots.labels).toEqual(
+          [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30].map(
+            (day: number): string => {
+              return `${pad(day)} Mar`;
+            },
+          ),
+        );
+        // 30 March is in British Summer Time: its midnight is 23:00 UTC the day before.
+        expect(slots.instants[slots.instants.length - 1]).toBe(
+          "2026-03-29T23:00:00.000Z",
+        );
+      });
+    });
+
+    /*
+     * The server's day buckets start at the reader's midnight (#7277). They
+     * started at midnight UTC, which is the evening before west of UTC: a
+     * reader in New York saw each day's total on the day before, and the
+     * first day's total on no day at all, since the day before the window
+     * has no slot.
+     */
+    describe("a day's total is drawn on its own day when the server starts it at the reader's midnight (#7277)", () => {
+      test("read in New York, from 6 to 10 March: started at each midnight there, each total on its own day; started at midnight UTC, every total a day early and the first lost", () => {
+        OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+        const days: Array<string> = [
+          "2026-03-06",
+          "2026-03-07",
+          "2026-03-08",
+          "2026-03-09",
+          "2026-03-10",
+        ];
+        const window: Window = {
+          start: wallTimeIn(Timezone.AmericaNew_York, days[0]!),
+          end: wallTimeIn(Timezone.AmericaNew_York, days[4]!, "12:00"),
+          precision: XAxisPrecision.EVERY_DAY,
+        };
+
+        expect(
+          rowsOf(
+            window,
+            totalsAt(
+              days.map((day: string): Date => {
+                return wallTimeIn(Timezone.AmericaNew_York, day);
+              }),
+            ),
+          )
+            .map(readRow)
+            .map((row: ReadRow): [string, unknown] => {
+              return [row.label, row.value];
+            }),
+        ).toEqual([
+          ["06 Mar", 1],
+          ["07 Mar", 2],
+          ["08 Mar", 3],
+          ["09 Mar", 4],
+          ["10 Mar", 5],
+        ]);
+
+        expect(
+          rowsOf(
+            window,
+            totalsAt(
+              days.map((day: string): Date => {
+                return new Date(`${day}T00:00:00.000Z`);
+              }),
+            ),
+          )
+            .map(readRow)
+            .map((row: ReadRow): [string, unknown] => {
+              return [row.label, row.value];
+            }),
+        ).toEqual([
+          ["06 Mar", 2],
+          ["07 Mar", 3],
+          ["08 Mar", 4],
+          ["09 Mar", 5],
+          ["10 Mar", undefined],
+        ]);
+      });
+    });
+
+    /*
+     * Seeded windows at every step from a minute to a year, starting and
+     * ending anywhere: across each clock change of the zone, and anywhere
+     * in 2026. Every instant of each is on a slot, the bucket its end is in
+     * included (#7278). The steps of two days and two weeks are left out:
+     * they name a slot after the even day of the month it falls on, which
+     * their walk of 2 and 14 days does not keep to. A walk from 31 January
+     * steps to 2 February, and 1 February, named "31 Jan" (its day 0), has
+     * no slot; a fortnight's slot names one of its seven even days.
+     */
+    describe("every instant of a window on a slot, the bucket its end is in included: seeded windows (#7278)", () => {
+      const tiers: Array<{
+        precision: XAxisPrecision;
+        longestWindowMs: number;
+        pointEveryMs: number;
+      }> = [
+        {
+          precision: XAxisPrecision.EVERY_MINUTE,
+          longestWindowMs: 3 * HOUR,
+          pointEveryMs: 30 * 1000,
+        },
+        {
+          precision: XAxisPrecision.EVERY_FIVE_MINUTES,
+          longestWindowMs: 12 * HOUR,
+          pointEveryMs: 2 * MINUTE,
+        },
+        {
+          precision: XAxisPrecision.EVERY_FIFTEEN_MINUTES,
+          longestWindowMs: DAY,
+          pointEveryMs: 5 * MINUTE,
+        },
+        {
+          precision: XAxisPrecision.EVERY_THIRTY_MINUTES,
+          longestWindowMs: 3 * DAY,
+          pointEveryMs: 10 * MINUTE,
+        },
+        {
+          precision: XAxisPrecision.EVERY_HOUR,
+          longestWindowMs: 7 * DAY,
+          pointEveryMs: 15 * MINUTE,
+        },
+        {
+          precision: XAxisPrecision.EVERY_TWO_HOURS,
+          longestWindowMs: 7 * DAY,
+          pointEveryMs: 30 * MINUTE,
+        },
+        {
+          precision: XAxisPrecision.EVERY_THREE_HOURS,
+          longestWindowMs: 7 * DAY,
+          pointEveryMs: 30 * MINUTE,
+        },
+        {
+          precision: XAxisPrecision.EVERY_SIX_HOURS,
+          longestWindowMs: 10 * DAY,
+          pointEveryMs: HOUR,
+        },
+        {
+          precision: XAxisPrecision.EVERY_TWELVE_HOURS,
+          longestWindowMs: 14 * DAY,
+          pointEveryMs: HOUR,
+        },
+        {
+          precision: XAxisPrecision.EVERY_DAY,
+          longestWindowMs: 42 * DAY,
+          pointEveryMs: 6 * HOUR,
+        },
+        {
+          precision: XAxisPrecision.EVERY_WEEK,
+          longestWindowMs: 183 * DAY,
+          pointEveryMs: DAY,
+        },
+        {
+          precision: XAxisPrecision.EVERY_MONTH,
+          longestWindowMs: 6 * 365 * DAY,
+          pointEveryMs: 5 * DAY,
+        },
+        {
+          precision: XAxisPrecision.EVERY_THREE_MONTHS,
+          longestWindowMs: 6 * 365 * DAY,
+          pointEveryMs: 10 * DAY,
+        },
+        {
+          precision: XAxisPrecision.EVERY_YEAR,
+          longestWindowMs: 15 * 365 * DAY,
+          pointEveryMs: 60 * DAY,
+        },
+      ];
+
+      // Each zone's changes of 2026 (worked out with Python's zoneinfo).
+      const readers: Array<{ zone: Timezone; changes: Array<string> }> = [
+        { zone: Timezone.UTC, changes: [] },
+        {
+          zone: Timezone.EuropeLondon,
+          changes: ["2026-03-29T01:00:00.000Z", "2026-10-25T01:00:00.000Z"],
+        },
+        {
+          zone: Timezone.AmericaNew_York,
+          changes: ["2026-03-08T07:00:00.000Z", "2026-11-01T06:00:00.000Z"],
+        },
+        {
+          zone: Timezone.PacificAuckland,
+          changes: ["2026-04-04T14:00:00.000Z", "2026-09-26T14:00:00.000Z"],
+        },
+        {
+          zone: Timezone.AustraliaLord_Howe,
+          changes: ["2026-04-04T15:00:00.000Z", "2026-10-03T15:30:00.000Z"],
+        },
+        // Its clocks skip midnight in September: that day starts at 01:00.
+        {
+          zone: Timezone.AmericaSantiago,
+          changes: ["2026-04-05T03:00:00.000Z", "2026-09-06T04:00:00.000Z"],
+        },
+        { zone: Timezone.AsiaKolkata, changes: [] },
+        { zone: Timezone.AsiaTokyo, changes: [] },
+      ];
+
+      const YEAR_START: number = Date.parse("2026-01-01T00:00:00.000Z");
+
+      readers.forEach(
+        (
+          reader: { zone: Timezone; changes: Array<string> },
+          readerIndex: number,
+        ): void => {
+          test(`read in ${reader.zone}: windows at every step, starting and ending anywhere`, () => {
+            OneUptimeDate.setUserTimezone(reader.zone);
+
+            const random: SeededRandom = seededRandom(7278 + readerIndex);
+
+            for (const tier of tiers) {
+              const windows: Array<Window> = [];
+
+              // Two anywhere in the year, or one where the clocks change.
+              const anywhere: number = reader.changes.length > 0 ? 1 : 2;
+
+              for (let draw: number = 0; draw < anywhere; draw++) {
+                const start: number =
+                  YEAR_START + Math.floor(random() * 365 * DAY);
+
+                windows.push({
+                  start: new Date(start),
+                  end: new Date(
+                    start + 1 + Math.floor(random() * tier.longestWindowMs),
+                  ),
+                  precision: tier.precision,
+                });
+              }
+
+              // One across each change, its end anywhere after it.
+              for (const change of reader.changes) {
+                const changeAt: number = Date.parse(change);
+                const start: number =
+                  changeAt - Math.floor(random() * tier.longestWindowMs);
+
+                windows.push({
+                  start: new Date(start),
+                  end: new Date(
+                    changeAt + 1 + Math.floor(random() * tier.longestWindowMs),
+                  ),
+                  precision: tier.precision,
+                });
+              }
+
+              for (const window of windows) {
+                expectTheWholeWindowOnSlots(window, tier.pointEveryMs);
+              }
+            }
+          });
+        },
+      );
     });
 
     describe("a window that is not one", () => {

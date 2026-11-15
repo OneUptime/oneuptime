@@ -10,6 +10,8 @@ import {
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import logger from "../../../../Server/Utils/Logger";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventType,
@@ -17,6 +19,7 @@ import WorkspaceMemberActions, {
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
+import Project from "../../../../Models/DatabaseModels/Project";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import Permission from "../../../../Types/Permission";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
@@ -40,7 +43,10 @@ import {
  * own list, the state tools only act on an incident the caller can already
  * see and change its state the way the dashboard's state panel does - as
  * the person, through WorkspaceMemberActions - and every missing input
- * fails loudly instead of writing.
+ * fails loudly instead of writing. Nothing on create_incident's approval
+ * card asks about status page subscribers, so the incident is declared as
+ * the project starts Notify Status Page Subscribers on Declare New Incident
+ * (#7606).
  */
 
 const USER_ID: ObjectID = ObjectID.generate();
@@ -536,6 +542,100 @@ describe.each(stateCases)(
     });
   },
 );
+
+/*
+ * The approval card asks nothing about status page subscribers. Where the
+ * project starts Notify Status Page Subscribers unticked on Declare New
+ * Incident, an incident OneUptime AI declares tells them nothing either;
+ * anywhere else it is declared exactly as before, the column not written.
+ */
+describe("create_incident and status page subscribers, as the project starts Notify Status Page Subscribers", () => {
+  let projectReads: Array<Record<string, unknown>>;
+
+  function projectSays(notifiesByDefault: boolean): void {
+    projectReads = [];
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async (
+      findOneById: Record<string, unknown>,
+    ) => {
+      projectReads.push(findOneById);
+
+      const project: Project = new Project();
+      project.id = findOneById["id"] as ObjectID;
+      project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
+        notifiesByDefault;
+      return project;
+    }) as never);
+  }
+
+  async function declared(): Promise<Incident> {
+    jest
+      .spyOn(IncidentSeverityService, "findBy")
+      .mockResolvedValue(buildSeverities() as never);
+    const createSpy: jest.SpyInstance = jest
+      .spyOn(IncidentService, "create")
+      .mockResolvedValue(buildIncident() as never);
+
+    await CreateIncidentTool.execute({ title: "Checkout down" }, ctx);
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    return (createSpy.mock.calls[0]?.[0] as Record<string, unknown>)[
+      "data"
+    ] as Incident;
+  }
+
+  test("a project that starts the box unticked: declared without notifying them, the project read as OneUptime for that one column", async () => {
+    projectSays(false);
+
+    const data: Incident = await declared();
+
+    expect(data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated).toBe(
+      false,
+    );
+    // Still the person's own create, in ctx's project.
+    expect(data.projectId).toBe(ctx.projectId);
+    expect(data.createdByUserId).toBe(USER_ID);
+    expect(projectReads).toEqual([
+      {
+        id: ctx.projectId,
+        select: { notifyStatusPageSubscribersOfNewIncidentsByDefault: true },
+        props: { isRoot: true },
+      },
+    ]);
+  });
+
+  test("a project that keeps it on: declared as always - the column is not written, so the incident notifies them", async () => {
+    projectSays(true);
+
+    const data: Incident = await declared();
+
+    expect(
+      data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+    ).toBeUndefined();
+    expect(projectReads).toHaveLength(1);
+  });
+
+  test("a project that cannot be read: declared all the same, as always", async () => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
+      throw new Error("the database is not connected");
+    }) as never);
+
+    const data: Incident = await declared();
+
+    expect(
+      data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+    ).toBeUndefined();
+  });
+
+  test("a refused call reads nothing: no title, no project read", async () => {
+    projectSays(false);
+
+    await expect(CreateIncidentTool.execute({}, ctx)).rejects.toThrow(
+      "title is required",
+    );
+    expect(projectReads).toEqual([]);
+  });
+});
 
 describe("the incident write tools as a set", () => {
   test("each tool has its own name", () => {

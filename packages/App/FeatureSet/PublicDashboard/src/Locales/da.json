@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "Dette kræver den nyeste version. Gem dine ændringer, og genindlæs derefter siden.",
   "This couldn't be loaded.": "Dette kunne ikke indlæses.",
   "Something went wrong": "Noget gik galt",
-  "An unexpected error has occurred. Please reload the page to continue": "Der opstod en uventet fejl. Genindlæs siden for at fortsætte"
+  "An unexpected error has occurred. Please reload the page to continue": "Der opstod en uventet fejl. Genindlæs siden for at fortsætte",
+  "Click to reveal": "Klik for at vise",
+  "Click to copy": "Klik for at kopiere",
+  "Copy": "Kopiér",
+  "Copied!": "Kopieret!",
+  "Copy failed": "Kopiering mislykkedes",
+  "Hide": "Skjul"
 }

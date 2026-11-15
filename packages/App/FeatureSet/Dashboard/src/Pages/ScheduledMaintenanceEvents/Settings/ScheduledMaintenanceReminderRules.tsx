@@ -74,7 +74,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
         cardProps={{
           title: "Reminder Rules",
           description:
-            "Periodically remind scheduled maintenance event owners while an event has not yet finished. Rules are evaluated in order — the first matching rule wins.",
+            "Periodically remind maintenance event owners while an event has not yet finished. Rules are evaluated in order — the first matching rule wins.",
         }}
         helpContent={{
           title: "How Scheduled Maintenance Reminder Rules Work",
@@ -190,7 +190,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
             required: false,
             placeholder: "Select Labels",
             description:
-              "Only apply this rule to scheduled maintenance events with these labels. Leave empty to match events with any labels.",
+              "Only apply this rule to maintenance events with these labels. Leave empty to match events with any labels.",
           },
           ...getMaintenanceReminderRuleActionFields(),
         ]}

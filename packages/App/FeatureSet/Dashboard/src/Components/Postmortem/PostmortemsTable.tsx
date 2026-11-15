@@ -10,6 +10,8 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -367,6 +369,10 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
                   isMinimal={true}
                   color={item.incidentSeverity.color || Black}
                   text={item.incidentSeverity.name || "Unknown"}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.IncidentSeverity,
+                    item.incidentSeverity.name,
+                  )}
                 />
               );
             },

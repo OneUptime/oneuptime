@@ -51,7 +51,7 @@ const OpenStackCloudScheduledMaintenance: FunctionComponent<
         query={query}
         createFrom={{ kind: CreateFromRecordKind.OpenStackCloud, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-        noItemsMessage="No scheduled maintenance events for this cloud."
+        noItemsMessage="No maintenance events for this cloud."
       />
     </Fragment>
   );
