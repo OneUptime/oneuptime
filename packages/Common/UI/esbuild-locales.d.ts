@@ -54,9 +54,9 @@ export interface RuntimeLocalesPluginOptions {
   progressDirectory?: string | undefined;
   /*
    * Ship every locale whole, as its file holds it, adding only the marks
-   * (getMarkedLocale) - for a frontend that bundles its locales whole (the
-   * Admin Dashboard). Left out, each locale ships without what the fallback
-   * reads the same (getRuntimeLocale), as the Dashboard's do.
+   * (getMarkedLocale) - for a frontend that bundles its locales whole. Left
+   * out, each locale ships without what the fallback reads the same
+   * (getRuntimeLocale), as the Dashboard's and the Admin Dashboard's do.
    */
   shipsWholeLocales?: boolean | undefined;
 }

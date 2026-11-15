@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import GlobalConfig, {
   EmailServerType,
 } from "../../../../Models/DatabaseModels/GlobalConfig";
@@ -928,9 +928,14 @@ describe("the Admin Dashboard's instance mail server", () => {
     expect(port.startsOnDefaultWhenEmpty).toBe(true);
     expect(port.placeholder).toBe("587");
 
-    // Nothing else of the form starts on a default of its own.
+    // Nothing else of the form starts on a default of its own, bar the From Name (#8183).
+    const fromName: Field<GlobalConfig> = fieldFor(
+      GLOBAL_FIELDS,
+      "smtpFromName",
+    );
+
     for (const field of GLOBAL_FIELDS) {
-      if (field !== port) {
+      if (field !== port && field !== fromName) {
         expect({
           field: Object.keys(field.field || {}),
           startsOnDefaultWhenEmpty: field.startsOnDefaultWhenEmpty,
@@ -948,6 +953,189 @@ describe("the Admin Dashboard's instance mail server", () => {
     expect(getCreateFormColumnDefault(new GlobalConfig(), secure)).toBe(
       undefined,
     );
+  });
+});
+
+/*
+ * #8183: Edit SMTP Config on a fresh server started its From Name empty,
+ * and it is required, so a newcomer had to make a name up before Save
+ * worked. It starts on the product's name, as the port starts on 587, and
+ * so does each provider card's: the sender sends a blank name as the
+ * product's name anyway (Notification/Config.ts). A project's own form is
+ * left alone: a project sends as its own company, which OneUptime cannot
+ * work out.
+ */
+describe("the instance's From Name starts on the product's name (#8183)", () => {
+  const setBranding: (value: string | null) => void = (
+    value: string | null,
+  ): void => {
+    const browserWindow: { process?: { env?: Record<string, unknown> } } =
+      window as unknown as { process?: { env?: Record<string, unknown> } };
+
+    browserWindow.process = browserWindow.process || {};
+    browserWindow.process.env = browserWindow.process.env || {};
+
+    if (value === null) {
+      delete browserWindow.process.env["PRODUCT_BRANDING"];
+    } else {
+      browserWindow.process.env["PRODUCT_BRANDING"] = value;
+    }
+  };
+
+  afterEach(() => {
+    setBranding(null);
+  });
+
+  test("on the instance's mail server: OneUptime, kept when the instance holds a name", () => {
+    const fromName: Field<GlobalConfig> = fieldFor(
+      getGlobalSmtpConfigFormFields(),
+      "smtpFromName",
+    );
+
+    expect({
+      stepId: fromName.stepId,
+      required: fromName.required,
+      defaultValue: fromName.defaultValue,
+      startsOnDefaultWhenEmpty: fromName.startsOnDefaultWhenEmpty,
+      // The example in the box is still a company's, not the default.
+      placeholder: fromName.placeholder,
+    }).toEqual({
+      stepId: "sender",
+      required: true,
+      defaultValue: "OneUptime",
+      startsOnDefaultWhenEmpty: true,
+      placeholder: "Company, Inc.",
+    });
+
+    // The From Email has no default: OneUptime cannot work out an address.
+    const fromEmail: Field<GlobalConfig> = fieldFor(
+      getGlobalSmtpConfigFormFields(),
+      "smtpFromEmail",
+    );
+
+    expect(fromEmail.defaultValue).toBeUndefined();
+    expect(fromEmail.startsOnDefaultWhenEmpty).toBeUndefined();
+  });
+
+  test("the module-level fields carry it too, as the Email page builds them once", () => {
+    expect(fieldFor(GLOBAL_FIELDS, "smtpFromName").defaultValue).toBe(
+      "OneUptime",
+    );
+  });
+
+  test("an installation that goes by another name starts on that name", () => {
+    setBranding(JSON.stringify({ productName: "Acme Status" }));
+
+    expect(
+      fieldFor(getGlobalSmtpConfigFormFields(), "smtpFromName").defaultValue,
+    ).toBe("Acme Status");
+
+    for (const transport of GLOBAL_EMAIL_PROVIDER_TRANSPORTS) {
+      expect({
+        transport,
+        defaultValue: fieldFor(
+          getGlobalEmailProviderFormFields(transport),
+          GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport].fromName,
+        ).defaultValue,
+      }).toEqual({ transport, defaultValue: "Acme Status" });
+    }
+  });
+
+  test("a branding with a blank or broken name is OneUptime's", () => {
+    for (const value of [
+      JSON.stringify({ productName: "   " }),
+      JSON.stringify({ productName: "" }),
+      "not json",
+      JSON.stringify({ logoUrl: "/api/branding/logo?v=1" }),
+    ]) {
+      setBranding(value);
+
+      expect({
+        value,
+        defaultValue: fieldFor(getGlobalSmtpConfigFormFields(), "smtpFromName")
+          .defaultValue,
+      }).toEqual({ value, defaultValue: "OneUptime" });
+    }
+  });
+
+  test.each(GLOBAL_EMAIL_PROVIDER_TRANSPORTS)(
+    "%s: the provider card's From Name starts on it too, and its From Email does not",
+    (transport: GlobalEmailProviderTransport) => {
+      const fields: Array<Field<GlobalConfig>> =
+        getGlobalEmailProviderFormFields(transport);
+      const sender: {
+        fromEmail: string;
+        fromName: string;
+      } = GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport];
+      const fromName: Field<GlobalConfig> = fieldFor(fields, sender.fromName);
+      const fromEmail: Field<GlobalConfig> = fieldFor(fields, sender.fromEmail);
+
+      expect({
+        required: fromName.required,
+        defaultValue: fromName.defaultValue,
+        startsOnDefaultWhenEmpty: fromName.startsOnDefaultWhenEmpty,
+      }).toEqual({
+        required: true,
+        defaultValue: "OneUptime",
+        startsOnDefaultWhenEmpty: true,
+      });
+      expect(fromEmail.defaultValue).toBeUndefined();
+      expect(fromEmail.startsOnDefaultWhenEmpty).toBeUndefined();
+
+      // Only the From Name: the provider's own fields are as they were.
+      for (const field of fields) {
+        if (
+          field === fromName ||
+          keyOf(field) === "amazonSesAuthenticationType"
+        ) {
+          continue;
+        }
+
+        expect({
+          column: keyOf(field),
+          startsOnDefaultWhenEmpty: field.startsOnDefaultWhenEmpty,
+        }).toEqual({
+          column: keyOf(field),
+          startsOnDefaultWhenEmpty: undefined,
+        });
+      }
+    },
+  );
+
+  test("a project's form keeps its From Name empty: a project sends as its own company", () => {
+    for (const field of PROJECT_FIELDS) {
+      if (keyOf(field) !== PROJECT.fromName) {
+        continue;
+      }
+
+      expect(field.defaultValue).toBeUndefined();
+      expect(field.startsOnDefaultWhenEmpty).toBeUndefined();
+    }
+
+    expect(
+      (PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES as Record<string, unknown>)[
+        PROJECT.fromName
+      ],
+    ).toBeUndefined();
+  });
+
+  test("the builders do not change what they share: a project's sender fields hold no default", () => {
+    // Building the instance's fields first must not leak into the shared builder's.
+    getGlobalSmtpConfigFormFields();
+    getGlobalEmailProviderFormFields(MailTransportType.Resend);
+
+    const projectFromNames: Array<Field<ProjectSmtpConfig>> =
+      getProjectSmtpConfigFormFields().filter(
+        (field: Field<ProjectSmtpConfig>): boolean => {
+          return keyOf(field) === PROJECT.fromName;
+        },
+      );
+
+    expect(projectFromNames.length).toBeGreaterThan(0);
+
+    for (const field of projectFromNames) {
+      expect(field.defaultValue).toBeUndefined();
+    }
   });
 });
 
@@ -996,7 +1184,8 @@ describe("both forms", () => {
     /*
      * Both start on port 587: a new project config through its create
      * form's initial values, the instance's edit form through the port's
-     * default (#6875). Every other field starts the same way in both.
+     * default (#6875). Every other field starts the same way in both, bar
+     * the From Name (#8183).
      */
     const describeField: (
       field: Field<unknown>,
@@ -1006,6 +1195,13 @@ describe("both forms", () => {
       columns: SmtpConfigFormColumns<unknown>,
     ): Record<string, unknown> => {
       const isPort: boolean = field.fieldType === FormFieldSchemaType.Port;
+      /*
+       * The instance's From Name starts on the product's name (#8183); a
+       * project's starts empty, its company being one OneUptime cannot
+       * work out (pinned in "the instance's From Name starts on ...").
+       */
+      const isFromName: boolean =
+        Object.keys(field.field || {})[0] === columns.fromName;
 
       return {
         title: field.title,
@@ -1014,7 +1210,11 @@ describe("both forms", () => {
         fieldType: field.fieldType,
         // The username's hangs on the sign-in (#7833): where it holds.
         required: requiredWhen(field, columns),
-        defaultValue: isPort ? "587 to start" : field.defaultValue,
+        defaultValue: isPort
+          ? "587 to start"
+          : isFromName
+            ? "its own start"
+            : field.defaultValue,
       };
     };
 
