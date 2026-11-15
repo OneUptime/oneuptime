@@ -1,3 +1,4 @@
+import { escapeRegExp } from "../../Utils/RegExpEscape";
 import { afterAll, afterEach, expect } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -33,6 +34,11 @@ import path from "path";
  *     and taken off the list. A suite on neither list fails on its first
  *     request.
  *
+ * A suite that leaves some reads of its page unanswered on purpose - a card
+ * beside the one it is about, which takes a refused read as one it could
+ * not make - names their routes with refuseRequestsTo([...]) at its top
+ * level. They are refused at once all the same, and only they fail no test.
+ *
  * The census: ONEUPTIME_NETWORK_CENSUS=1 prints one line per request, refused
  * or let through, to the worker's stdout - "[network census] " and a JSON
  * object with the suite, the test, the request and the code that sent it -
@@ -63,75 +69,13 @@ export interface RealRequest {
 export const SUITES_THAT_TALK_TO_A_LOCAL_SERVER: ReadonlyArray<string> = [];
 
 /*
- * Suites that still sent real requests when the rule came in (#8403): the
- * census of 2026-11-15, run over every suite the Common Test job's logs
- * showed sending one and every component suite changed since. Their
- * requests are refused at once; their tests do not fail for it. Take a suite
- * off when it stands in for what it reads (#8607); add none.
+ * Suites whose requests are refused but fail none of their tests. The rule
+ * came in with the 87 suites the census of 2026-11-15 found (#8403); each
+ * now answers what it reads or names the routes it leaves unanswered
+ * (refuseRequestsTo), and the list is empty (#8607). Add none: a suite that
+ * sends a request answers it, or refuses it on purpose by its route.
  */
-export const SUITES_STILL_SENDING_REQUESTS: ReadonlyArray<string> = [
-  "Tests/App/Accounts/RegisterPassword.test.tsx",
-  "Tests/App/Accounts/SignedInRedirect.test.tsx",
-  "Tests/App/AdminDashboard/AdminSettingsFormsOnePage.test.tsx",
-  "Tests/App/AdminDashboard/AdminSharedComponentsInReadersLanguage.test.tsx",
-  "Tests/App/Dashboard/AlertEpisodeViewFields.test.tsx",
-  "Tests/App/Dashboard/AppPlatformsSideMenus.test.tsx",
-  "Tests/App/Dashboard/CephMetricTooltips.test.tsx",
-  "Tests/App/Dashboard/CephTimeRangeZoom.test.tsx",
-  "Tests/App/Dashboard/CloudSideMenus.test.tsx",
-  "Tests/App/Dashboard/CodeProduct.test.tsx",
-  "Tests/App/Dashboard/CodeProductionReview.test.tsx",
-  "Tests/App/Dashboard/ColorFieldsPrefilledPages.test.tsx",
-  "Tests/App/Dashboard/ContainerHostMetricTooltips.test.tsx",
-  "Tests/App/Dashboard/ContainerHostOverviewTimeRangeZoom.test.tsx",
-  "Tests/App/Dashboard/ContainerMetricsTimeRangeZoom.test.tsx",
-  "Tests/App/Dashboard/DiscoveredResourceCreateForms.test.tsx",
-  "Tests/App/Dashboard/DiscoveryScanEditForm.test.tsx",
-  "Tests/App/Dashboard/DiscoveryScanMethodEditDialog.test.tsx",
-  "Tests/App/Dashboard/DiscoveryScanWizardValidation.test.tsx",
-  "Tests/App/Dashboard/EpisodeRootCauseMatchesOverview.test.tsx",
-  "Tests/App/Dashboard/EventMetricInvestigationPanel.test.tsx",
-  "Tests/App/Dashboard/FeedNoteComposerDialog.test.tsx",
-  "Tests/App/Dashboard/GeneratedKeyForms.test.tsx",
-  "Tests/App/Dashboard/GettingStartedKeyboardAndFailedChecks.test.tsx",
-  "Tests/App/Dashboard/IncidentEpisodeFeedPublicNoteNotifyDefault.test.tsx",
-  "Tests/App/Dashboard/IncidentEpisodeViewFields.test.tsx",
-  "Tests/App/Dashboard/IncidentFeedPublicNoteNotifyDefault.test.tsx",
-  "Tests/App/Dashboard/IncidentRolesSettingsPage.test.tsx",
-  "Tests/App/Dashboard/IncidentStatesPageTable.test.tsx",
-  "Tests/App/Dashboard/InfrastructureExplorer.test.tsx",
-  "Tests/App/Dashboard/InventoryAssetDetailsCard.test.tsx",
-  "Tests/App/Dashboard/NetworkDeviceOverviewDiscoveredDetails.test.tsx",
-  "Tests/App/Dashboard/NetworkDeviceOverviewNameSource.test.tsx",
-  "Tests/App/Dashboard/NetworkDeviceViewSideMenu.test.tsx",
-  "Tests/App/Dashboard/NetworkQuickActionPages.test.tsx",
-  "Tests/App/Dashboard/NetworkStartScanDialog.test.tsx",
-  "Tests/App/Dashboard/OpenStackComputePages.test.tsx",
-  "Tests/App/Dashboard/OpenStackNetworkPages.test.tsx",
-  "Tests/App/Dashboard/OpenStackStoragePages.test.tsx",
-  "Tests/App/Dashboard/PlanLeftoverGrowthPages.test.tsx",
-  "Tests/App/Dashboard/ProductsMenuSearchNamed.test.tsx",
-  "Tests/App/Dashboard/RecordMenusReadTheSame.test.tsx",
-  "Tests/App/Dashboard/RemediationCardTranslation.test.tsx",
-  "Tests/App/Dashboard/RemediationFixLines.test.tsx",
-  "Tests/App/Dashboard/RemediationFixStepsOnTheCard.test.tsx",
-  "Tests/App/Dashboard/RemediationSuggestionCardAiFold.test.tsx",
-  "Tests/App/Dashboard/RemediationSuggestionCardDecision.test.tsx",
-  "Tests/App/Dashboard/ScheduleOverviewFirstStep.test.tsx",
-  "Tests/App/Dashboard/ScheduledMaintenanceCreateForm.test.tsx",
-  "Tests/App/Dashboard/ScheduledMaintenanceFeedPublicNoteNotifyDefault.test.tsx",
-  "Tests/App/Dashboard/SecurityEventConnectionsTable.test.tsx",
-  "Tests/App/Dashboard/SecurityEventsDetectionStatusTables.test.tsx",
-  "Tests/App/Dashboard/ServiceSlosPage.test.tsx",
-  "Tests/App/Dashboard/SloSettings.test.tsx",
-  "Tests/App/Dashboard/StatusPageBrandingPage.test.tsx",
-  "Tests/App/Dashboard/TeamOwnersPages.test.tsx",
-  "Tests/App/Dashboard/TelemetryIngestionKeyEdit.test.tsx",
-  "Tests/App/Dashboard/VMwareOverviewTooltips.test.tsx",
-  "Tests/Server/Services/StatusPagePrivateUserNewPassword.test.ts",
-  "Tests/UI/Components/Forms/IncidentEpisodePublicNoteNotifyPayload.test.tsx",
-  "Tests/UI/Components/Workflow/ArgumentsFormAdvancedSettings.test.tsx",
-];
+export const SUITES_STILL_SENDING_REQUESTS: ReadonlyArray<string> = [];
 
 export const CENSUS_ENVIRONMENT_VARIABLE: string = "ONEUPTIME_NETWORK_CENSUS";
 export const CENSUS_LINE_PREFIX: string = "[network census] ";
@@ -342,17 +286,83 @@ export function takeRequestsSent(): Array<RealRequest> {
 }
 
 /*
- * Throws, failing the test, when `suite` sent requests that were refused
- * and is not on SUITES_STILL_SENDING_REQUESTS.
+ * The app API routes the running suite refuses on purpose: reads its page
+ * makes that the test does not answer, and that the page takes as reads it
+ * could not make - as it always did, since they were refused - such as an AI
+ * agent card's status beside the charts a test is about. Each module
+ * registry is one test file's, so they are the running suite's only.
+ */
+const refusedOnPurpose: Set<string> = new Set<string>();
+
+/*
+ * Declares app API routes the suite leaves unanswered, at its top level:
+ * their requests are refused at once like any other, and fail no test. Name
+ * each route from its start ("/resource-ai-access/status",
+ * "/vmware-resource/inventory-summary/"); any other request still fails the
+ * test that sent it. A "*" segment stands for any one segment of the path,
+ * a record's id (a project's get-item: "/project/", "*", "/get-item").
+ */
+export function refuseRequestsTo(routes: ReadonlyArray<string>): void {
+  for (const route of routes) {
+    if (!route.startsWith("/")) {
+      throw new Error(
+        `refuseRequestsTo: name a route from its start, as "/${route}"`,
+      );
+    }
+
+    refusedOnPurpose.add(route);
+  }
+}
+
+// Whether a request is to a route the suite refuses on purpose.
+export function isRefusedOnPurpose(
+  request: RealRequest,
+  routes: ReadonlySet<string> = refusedOnPurpose,
+): boolean {
+  let pathname: string = "";
+
+  try {
+    pathname = new URL(request.url).pathname;
+  } catch {
+    return false;
+  }
+
+  /*
+   * Wherever the service's prefix puts it: /api/<route> in CI
+   * (http://localhost/api/...), /<route> without config.env
+   * (http://api/...). A "*" stands for one segment, a record's id.
+   */
+  return Array.from(routes).some((route: string): boolean => {
+    return routePattern(route).test(pathname);
+  });
+}
+
+// A route as a pattern: from a segment's start, "*" any one segment.
+function routePattern(route: string): RegExp {
+  const pattern: string = route
+    .split("*")
+    .map((part: string): string => {
+      return escapeRegExp(part);
+    })
+    .join("[^/]+");
+
+  return new RegExp(`(^|/)${pattern.replace(/^\//, "")}`);
+}
+
+/*
+ * Throws, failing the test, when `suite` sent requests that were refused,
+ * to routes it does not refuse on purpose, and is not on
+ * SUITES_STILL_SENDING_REQUESTS.
  */
 export function failIfSent(
   suite: string,
   requests: ReadonlyArray<RealRequest>,
   stillSending: ReadonlyArray<string> = SUITES_STILL_SENDING_REQUESTS,
+  routes: ReadonlySet<string> = refusedOnPurpose,
 ): void {
   const refused: Array<RealRequest> = requests.filter(
     (request: RealRequest): boolean => {
-      return !request.letThrough;
+      return !request.letThrough && !isRefusedOnPurpose(request, routes);
     },
   );
 

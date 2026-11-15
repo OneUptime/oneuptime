@@ -108,6 +108,14 @@ import {
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/on-call-calendar/my-shifts"]);
 
 type UserEventController = ReturnType<typeof userEvent.setup>;
 
