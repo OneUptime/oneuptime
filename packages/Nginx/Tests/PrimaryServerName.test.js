@@ -309,7 +309,7 @@ function namesListedTwice(names) {
  * listens are rendered from the model here. IngressListensOnIpv6.test.js and
  * the script test below hold the model to the script.
  */
-function renderModelled(host, listens) {
+function renderModelled(host, listens, overrides = {}) {
   const environment = {
     ...containerEnvironment({ HOST: host }),
     BACKEND_APP_TARGET: "$backend_app",
@@ -318,7 +318,15 @@ function renderModelled(host, listens) {
     PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: "",
     ...ingressListenEnvironment(listens),
     ...primaryServerNameEnvironment(host),
+    ...overrides,
   };
+  // The script's own removals, for the settings left unset here.
+  const source = template
+    .replace(/^[ \t]*server_names_hash_(bucket|max)_size[ \t].*\n/gm, "")
+    .replace(
+      /# BEGIN upstream-keepalive[\s\S]*?# END upstream-keepalive\n/,
+      "",
+    );
   const result = spawnSync(
     "envsubst",
     [
@@ -329,7 +337,7 @@ function renderModelled(host, listens) {
         .join(" "),
     ],
     {
-      input: template,
+      input: source,
       encoding: "utf8",
       env: { PATH: process.env.PATH, ...environment },
     },
@@ -772,6 +780,79 @@ test(
         /conflicting server name/,
         `HOST="${host}": ${output}`,
       );
+    }
+  },
+);
+
+/*
+ * With PROVISION_SSL the primary listens on 7850 too, and nginx filed its
+ * names under four addresses and ports where there is IPv6: the four
+ * warnings of #8023. Rendered from the model, with a certificate made here,
+ * so this runs outside the image as well (the image test below runs the
+ * script itself).
+ */
+test(
+  "a real nginx reads the PROVISION_SSL config of every kind of HOST without a conflicting server name warning",
+  {
+    skip:
+      nginxSkipReason ||
+      (isOnPath("openssl", ["version"]) ? false : "openssl not on PATH"),
+    timeout: 60000,
+  },
+  () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-name-"));
+    const certificate = path.join(directory, "primary.crt");
+    const key = path.join(directory, "primary.key");
+
+    try {
+      // The workers may run as another user than the one that made it.
+      fs.chmodSync(directory, 0o755);
+
+      const made = spawnSync(
+        "openssl",
+        [
+          "req",
+          "-x509",
+          "-newkey",
+          "rsa:2048",
+          "-nodes",
+          "-subj",
+          "/CN=localhost",
+          "-keyout",
+          key,
+          "-out",
+          certificate,
+          "-days",
+          "1",
+        ],
+        { encoding: "utf8" },
+      );
+
+      assert.equal(made.status, 0, made.stderr);
+
+      for (const host of HOST_KINDS) {
+        const rendered = renderModelled(
+          host,
+          { ipv6: hasIpv6, provisionSsl: true },
+          {
+            PROVISION_SSL_CERTIFICATE_DIRECTIVE: `    ssl_certificate ${certificate};`,
+            PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: `    ssl_certificate_key ${key};`,
+          },
+        );
+
+        assert.ok(rendered.includes("    listen 7850 ssl;\n"), host);
+
+        const { status, output } = nginxTest(rendered);
+
+        assert.equal(status, 0, `HOST="${host}": ${output}`);
+        assert.doesNotMatch(
+          output,
+          /conflicting server name/,
+          `HOST="${host}": ${output}`,
+        );
+      }
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
     }
   },
 );
