@@ -205,6 +205,12 @@ export class Service extends ProjectReferencesService<Model> {
      * was given back: for a caller that tries again later (issue #8410).
      */
     throwOnError?: boolean | undefined;
+    /*
+     * The rule the run is on reached nobody, and was claimed past at once
+     * (issue #8515): giving the claim back also clears the rule's wait, so
+     * the run moves on now rather than after it.
+     */
+    clearWait?: boolean | undefined;
   }): Promise<boolean> {
     try {
       const current: Model | null = await this.findOneById({
@@ -220,19 +226,37 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-      const isAsClaimed: boolean = Boolean(
+      const isOnTheSameRuleAndPass: boolean = Boolean(
         current &&
           current.status === OnCallDutyPolicyStatus.Executing &&
-          current.lastEscalationRuleExecutedAt &&
-          new Date(current.lastEscalationRuleExecutedAt).getTime() ===
-            data.claimedLastEscalationRuleExecutedAt.getTime() &&
           (current.lastExecutedEscalationRuleId?.toString() || null) ===
             (data.lastExecutedEscalationRuleId?.toString() || null) &&
           (current.onCallPolicyExecutionRepeatCount ?? null) ===
             (data.onCallPolicyExecutionRepeatCount ?? null),
       );
 
-      if (!isAsClaimed) {
+      const isAsClaimed: boolean = Boolean(
+        isOnTheSameRuleAndPass &&
+          current!.lastEscalationRuleExecutedAt &&
+          new Date(current!.lastEscalationRuleExecutedAt).getTime() ===
+            data.claimedLastEscalationRuleExecutedAt.getTime(),
+      );
+
+      /*
+       * A claim past a level that reached nobody whose process stopped
+       * before the claim itself was written (issue #8515): the run is as
+       * it was before it, waiting out the level's wait - which is cleared.
+       */
+      const isAsBeforeTheClaim: boolean = Boolean(
+        data.clearWait &&
+          isOnTheSameRuleAndPass &&
+          data.previousLastEscalationRuleExecutedAt &&
+          current!.lastEscalationRuleExecutedAt &&
+          new Date(current!.lastEscalationRuleExecutedAt).getTime() ===
+            data.previousLastEscalationRuleExecutedAt.getTime(),
+      );
+
+      if (!isAsClaimed && !isAsBeforeTheClaim) {
         return false;
       }
 
@@ -241,13 +265,15 @@ export class Service extends ProjectReferencesService<Model> {
         {
           _id: data.executionLogId.toString(),
           status: OnCallDutyPolicyStatus.Executing,
-          lastEscalationRuleExecutedAt:
-            data.claimedLastEscalationRuleExecutedAt,
+          lastEscalationRuleExecutedAt: isAsClaimed
+            ? data.claimedLastEscalationRuleExecutedAt
+            : data.previousLastEscalationRuleExecutedAt,
         } as any,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {
           lastEscalationRuleExecutedAt:
             data.previousLastEscalationRuleExecutedAt,
+          ...(data.clearWait ? { executeNextEscalationRuleInMinutes: 0 } : {}),
         } as any,
       );
 

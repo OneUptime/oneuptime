@@ -1394,6 +1394,8 @@ describe("a move that fails after its claim", () => {
       onCallPolicyExecutionRepeatCount: 2,
       // A give-back the database fails is left in flight for the worker (issue #8410).
       throwOnError: true,
+      // A claim past no empty level leaves the wait of the rule as it is (issue #8515).
+      clearWait: false,
     });
   });
 

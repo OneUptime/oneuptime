@@ -693,6 +693,11 @@ const settleMoveOnInFlight: (data: {
   } else {
     delete data.run.lastEscalationRuleExecutedAt;
   }
+
+  // A level that reached nobody has no wait to wait out (issue #8515).
+  if (data.moveOn.passesEmptyLevel) {
+    data.run.executeNextEscalationRuleInMinutes = 0;
+  }
 };
 
 /*
