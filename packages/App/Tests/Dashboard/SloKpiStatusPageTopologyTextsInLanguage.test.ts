@@ -484,21 +484,21 @@ describe("the KPI strip's words in the reader's language", () => {
       DE,
     );
 
-    expect(left).toMatch(/^Noch 12 Min\., 30 Sek\. von 43 Min\., 12 Sek\.$/);
+    expect(left).toMatch(/^Noch 12\u00A0Min\., 30\u00A0Sek\. von 43\u00A0Min\., 12\u00A0Sek\.$/);
 
     const over: string | null = getErrorBudgetRemainingOfTotalInLanguage(
       { remainingSeconds: -300, totalSeconds: 2592 },
       DE,
     );
 
-    expect(over).toBe("5 Min. über dem Budget · 43 Min., 12 Sek. erlaubt");
+    expect(over).toBe("5\u00A0Min. über dem Budget · 43\u00A0Min., 12\u00A0Sek. erlaubt");
 
     const sliver: string | null = getErrorBudgetRemainingOfTotalInLanguage(
       { remainingSeconds: 0.3, totalSeconds: 2592 },
       DE,
     );
 
-    expect(sliver).toBe("Noch unter 1\u00A0Sek. von 43 Min., 12 Sek.");
+    expect(sliver).toBe("Noch unter 1\u00A0Sek. von 43\u00A0Min., 12\u00A0Sek.");
 
     const arabic: string = getErrorBudgetRemainingOfTotalInLanguage(
       { remainingSeconds: 750, totalSeconds: 2592 },
@@ -567,14 +567,14 @@ describe("the KPI strip's words in the reader's language", () => {
     }
 
     expect(runwayText(RUNWAY_INPUTS[12]!, DE).text.description).toBe(
-      "Bis zur Erschöpfung, bei der Verbrauchsrate der letzten 1 Std.",
+      "Bis zur Erschöpfung, bei der Verbrauchsrate der letzten 1\u00A0Std.",
     );
     expect(runwayText(RUNWAY_INPUTS[14]!, DE).text.value).toBe(
       "Unter 1\u00A0Min.",
     );
     expect(runwayText(RUNWAY_INPUTS[12]!, DE).text.value).toMatch(/^~\d/);
     expect(runwayText(RUNWAY_INPUTS[10]!, DE).text.description).toBe(
-      "Reicht über das 30-Tage-Fenster hinaus, bei der Verbrauchsrate der letzten 1 Std.",
+      "Reicht über das 30-Tage-Fenster hinaus, bei der Verbrauchsrate der letzten 1\u00A0Std.",
     );
   });
 
@@ -585,7 +585,7 @@ describe("the KPI strip's words in the reader's language", () => {
     ).text;
 
     expect(overspent.description).toMatch(
-      /^1 Std\., 23 Min\. über dem Budget · setzt sich in .+ zurück$/,
+      /^1\u00A0Std\., 23\u00A0Min\. über dem Budget · setzt sich in .+ zurück$/,
     );
 
     const persian: SloBudgetRunwayText = runwayText(

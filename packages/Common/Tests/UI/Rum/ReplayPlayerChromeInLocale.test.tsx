@@ -857,7 +857,9 @@ describe("ReplayTabSwitcher in the reader's language", () => {
       }) as HTMLElement;
     const thirtySeconds: string = formatReplayDurationInLanguage(30000, MARKED);
 
-    expect(watched.textContent).toContain(`⟦Tab 3⟧ · /page-3 · ${thirtySeconds}`);
+    expect(watched.textContent).toContain(
+      `⟦Tab 3⟧ · /page-3 · ${thirtySeconds}`,
+    );
     expect(watched).toHaveAttribute(
       "title",
       `⟦⟦⟦Tab 3⟧ (closed)⟧ · /page-3 · ⟦opened 0:40⟧ · ${thirtySeconds} — switch to this tab; the playhead stays where it is⟧`,

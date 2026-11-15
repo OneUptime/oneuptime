@@ -590,7 +590,11 @@ describe("the showcase draws its figures in the reader's language", () => {
   test("a row's figure is written the reader's way, and its word translated", async () => {
     render(<ResourceShowcaseCard showcase={TRACES_SHOWCASE} />);
 
-    expect(drawnRowStates().slice(0, 3)).toEqual(["120\u00A0ms", "840\u00A0ms", "Error"]);
+    expect(drawnRowStates().slice(0, 3)).toEqual([
+      "120\u00A0ms",
+      "840\u00A0ms",
+      "Error",
+    ]);
 
     cleanup();
     await i18next.changeLanguage("fa");

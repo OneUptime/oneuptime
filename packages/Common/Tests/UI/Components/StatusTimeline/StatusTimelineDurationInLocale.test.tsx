@@ -92,7 +92,12 @@ const NO_BREAK_SPACES: RegExp = /\u00A0/g;
  * words. Kept here only as the negative control.
  */
 const cutByWords: (text: string) => string = (text: string): string => {
-  return text.trim().replace(NO_BREAK_SPACES, " ").split(" ").slice(0, 4).join(" ");
+  return text
+    .trim()
+    .replace(NO_BREAK_SPACES, " ")
+    .split(" ")
+    .slice(0, 4)
+    .join(" ");
 };
 
 afterEach(() => {

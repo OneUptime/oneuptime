@@ -442,7 +442,9 @@ describe("how long ago, at any distance", () => {
 
   test("a moment ahead of this clock is still a minute ago, never 'in 2 minutes'", () => {
     expect(getFeedTimeAgoDistance(-90)).toEqual({ count: 1, unit: "minute" });
-    expect(formatFeedTimeAgo(ago(-90), clock({ now }))).toBe("1\u00A0minute ago");
+    expect(formatFeedTimeAgo(ago(-90), clock({ now }))).toBe(
+      "1\u00A0minute ago",
+    );
   });
 
   test.each<[number, string]>([

@@ -51,6 +51,9 @@ const BREAKING_SPACE: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]/;
 // A digit, in any script, whose next character is not part of its number.
 const FIGURE_END: RegExp = /\p{Nd}(?=[^\p{Nd}.,٫٬\u00A0\u202F]|$)/gu;
 
+// A figure with a decimal sign in it: "5.0", "4,2", "۴٫۲".
+const DECIMAL_FIGURE: RegExp = /\p{Nd}[.,٫]\p{Nd}/u;
+
 const NOW: Date = new Date("2026-11-15T12:00:00Z");
 
 const minutesAgo: (minutes: number) => Date = (minutes: number): Date => {
@@ -79,7 +82,9 @@ const brokenAfterFigures: (text: string) => Array<string> = (
 };
 
 // Every text in `texts` whose figures a line could part from their units.
-const brokenTexts: (texts: Array<string | null | undefined>) => Array<string> = (
+const brokenTexts: (
+  texts: Array<string | null | undefined>,
+) => Array<string> = (
   texts: Array<string | null | undefined>,
 ): Array<string> => {
   return texts
@@ -98,17 +103,20 @@ const clockIn: (language: string) => FeedClock = (
 };
 
 describe("every language: a figure a caller draws stays with its unit", () => {
-  test.each(LANGUAGES)("%s: a security case's response target", (language: string) => {
-    expect(
-      brokenTexts(
-        [5, 51, 60, 264, 1440, 4620, 30 * 24 * 60].map(
-          (minutes: number): string => {
-            return formatCompactDurationInMinutes(minutes, language);
-          },
+  test.each(LANGUAGES)(
+    "%s: a security case's response target",
+    (language: string) => {
+      expect(
+        brokenTexts(
+          [5, 51, 60, 264, 1440, 4620, 30 * 24 * 60].map(
+            (minutes: number): string => {
+              return formatCompactDurationInMinutes(minutes, language);
+            },
+          ),
         ),
-      ),
-    ).toEqual([]);
-  });
+      ).toEqual([]);
+    },
+  );
 
   test.each(LANGUAGES)(
     "%s: a data security scan's size and run time",
@@ -156,31 +164,38 @@ describe("every language: a figure a caller draws stays with its unit", () => {
       );
 
       // Drawn apart, the space between them is still a no-break one.
-      expect({ figure, separator: BREAKING_SPACE.test(parts.separator) }).toEqual(
-        { figure, separator: false },
-      );
+      expect({
+        figure,
+        separator: BREAKING_SPACE.test(parts.separator),
+      }).toEqual({ figure, separator: false });
     }
   });
 
-  test.each(LANGUAGES)("%s: a shift's length and its day", (language: string) => {
-    expect(
-      brokenTexts([
-        formatShiftLength({ days: 30, hours: 0, minutes: 0 }, language),
-        formatShiftLength({ days: 1, hours: 6, minutes: 0 }, language),
-        formatShiftLength({ days: 0, hours: 8, minutes: 45 }, language),
-        formatShiftLength({ days: 0, hours: 0, minutes: 21 }, language),
-        formatShiftLength({ days: 2, hours: 1, minutes: 0 }, language),
-      ]),
-    ).toEqual([]);
+  test.each(LANGUAGES)(
+    "%s: a shift's length and its day",
+    (language: string) => {
+      expect(
+        brokenTexts([
+          formatShiftLength({ days: 30, hours: 0, minutes: 0 }, language),
+          formatShiftLength({ days: 1, hours: 6, minutes: 0 }, language),
+          formatShiftLength({ days: 0, hours: 8, minutes: 45 }, language),
+          formatShiftLength({ days: 0, hours: 0, minutes: 21 }, language),
+          formatShiftLength({ days: 2, hours: 1, minutes: 0 }, language),
+        ]),
+      ).toEqual([]);
 
-    const today: string = getShiftDayLabel(NOW, clockIn(language));
-    const tomorrow: string = getShiftDayLabel(minutesAhead(24 * 60), clockIn(language));
+      const today: string = getShiftDayLabel(NOW, clockIn(language));
+      const tomorrow: string = getShiftDayLabel(
+        minutesAhead(24 * 60),
+        clockIn(language),
+      );
 
-    // A day's own word has no number, and is capitalized.
-    expect(today).not.toMatch(/\p{Nd}/u);
-    expect(tomorrow).not.toMatch(/\p{Nd}/u);
-    expect(today).not.toBe(tomorrow);
-  });
+      // A day's own word has no number, and is capitalized.
+      expect(today).not.toMatch(/\p{Nd}/u);
+      expect(tomorrow).not.toMatch(/\p{Nd}/u);
+      expect(today).not.toBe(tomorrow);
+    },
+  );
 
   test.each(LANGUAGES)(
     "%s: Home's, a status page's and a note's relative times",
@@ -221,14 +236,16 @@ describe("every language: a figure a caller draws stays with its unit", () => {
     (language: string) => {
       expect(
         brokenTexts([
-          ...[25, 5 * 60, 23 * 60, 4 * 24 * 60].map((minutes: number): string => {
-            return formatRunRelativeTime({
-              date: minutesAhead(minutes),
-              now: NOW,
-              language,
-              timezone: "UTC",
-            });
-          }),
+          ...[25, 5 * 60, 23 * 60, 4 * 24 * 60].map(
+            (minutes: number): string => {
+              return formatRunRelativeTime({
+                date: minutesAhead(minutes),
+                now: NOW,
+                language,
+                timezone: "UTC",
+              });
+            },
+          ),
           formatRunRelativeTime({
             date: minutesAgo(120),
             now: NOW,
@@ -239,17 +256,21 @@ describe("every language: a figure a caller draws stays with its unit", () => {
             language,
             now: NOW,
           }),
-          getMerakiReadTime(minutesAgo(3).toISOString(), { language, now: NOW }),
+          getMerakiReadTime(minutesAgo(3).toISOString(), {
+            language,
+            now: NOW,
+          }),
           // An exception's English is its own words, from code (#8457 holds them).
-          ...(language === "en" ? [] : [4, 3 * 60, 5 * 24 * 60, 400 * 24 * 60]).map(
-            (minutes: number): string | null => {
-              return formatExceptionRelativeTime(
-                minutesAgo(minutes),
-                NOW,
-                language,
-              );
-            },
-          ),
+          ...(language === "en"
+            ? []
+            : [4, 3 * 60, 5 * 24 * 60, 400 * 24 * 60]
+          ).map((minutes: number): string | null => {
+            return formatExceptionRelativeTime(
+              minutesAgo(minutes),
+              NOW,
+              language,
+            );
+          }),
           ...[30, 300, 5400].map((seconds: number): string | null => {
             return formatFormRetryAfter(seconds, language);
           }),
@@ -316,9 +337,11 @@ describe("as German and English read them", () => {
       for (const bytes of [0, 1, 5, 9, 42, 512, 999]) {
         const written: string = formatScanBytes(bytes, language);
 
-        expect({ language, bytes, decimal: /\p{Nd}[.,٫]\p{Nd}/u.test(written) }).toEqual(
-          { language, bytes, decimal: false },
-        );
+        expect({
+          language,
+          bytes,
+          decimal: DECIMAL_FIGURE.test(written),
+        }).toEqual({ language, bytes, decimal: false });
       }
     }
 
@@ -408,10 +431,18 @@ describe("as German and English read them", () => {
 
   test("relative times, with the word before the number still apart", () => {
     expect(
-      formatHomeRelativeTime({ date: minutesAgo(120), now: NOW, language: "de" }),
+      formatHomeRelativeTime({
+        date: minutesAgo(120),
+        now: NOW,
+        language: "de",
+      }),
     ).toBe(`vor 2${NO_BREAK_SPACE}Stunden`);
     expect(
-      formatHomeRelativeTime({ date: minutesAgo(120), now: NOW, language: "en" }),
+      formatHomeRelativeTime({
+        date: minutesAgo(120),
+        now: NOW,
+        language: "en",
+      }),
     ).toBe(`2${NO_BREAK_SPACE}hours ago`);
     expect(
       formatHomeRelativeTime({ date: NOW, now: NOW, language: "de" }),
@@ -443,8 +474,12 @@ describe("as German and English read them", () => {
     expect(formatExceptionRelativeTime(minutesAgo(4), NOW, "en")).toBe(
       "4 minutes ago",
     );
-    expect(formatFormRetryAfter(300, "en")).toBe(`in 5${NO_BREAK_SPACE}minutes`);
-    expect(formatFormRetryAfter(300, "de")).toBe(`in 5${NO_BREAK_SPACE}Minuten`);
+    expect(formatFormRetryAfter(300, "en")).toBe(
+      `in 5${NO_BREAK_SPACE}minutes`,
+    );
+    expect(formatFormRetryAfter(300, "de")).toBe(
+      `in 5${NO_BREAK_SPACE}Minuten`,
+    );
     expect(formatFormRetryAfter(0, "de")).toBeNull();
   });
 });

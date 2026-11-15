@@ -413,7 +413,9 @@ describe("a date a sentence is filled with", () => {
       "less than a minute"
     ];
 
-    expect(getEventDurationText(start, NOW)).toBe("2\u00A0Tage, 3\u00A0Stunden");
+    expect(getEventDurationText(start, NOW)).toBe(
+      "2\u00A0Tage, 3\u00A0Stunden",
+    );
     expect(typeof lessThanAMinute).toBe("string");
     expect(lessThanAMinute).not.toBe("less than a minute");
     expect(getEventDurationText(NOW, NOW)).toBe(lessThanAMinute);

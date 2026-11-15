@@ -269,7 +269,9 @@ describe("the windows a rule counts over", () => {
   });
 
   test("a length of time is said in its two largest units", () => {
-    expect(formatDuration(19500, ENGLISH)).toBe("5\u00A0hours, 25\u00A0minutes");
+    expect(formatDuration(19500, ENGLISH)).toBe(
+      "5\u00A0hours, 25\u00A0minutes",
+    );
     expect(formatDuration(3600, ENGLISH)).toBe("1\u00A0hour");
     expect(formatDuration(90061, ENGLISH)).toBe("1\u00A0day, 1\u00A0hour");
     expect(formatDuration(0, ENGLISH)).toBe("1\u00A0second");
@@ -571,7 +573,9 @@ describe("the rule said back in one sentence", () => {
         rule: countRule(FilterType.EqualTo, 0, 600),
         translator: GERMAN,
       }),
-    ).toBe("Alarmiert, wenn in 10\u00A0Minuten keine passenden Logs eintreffen.");
+    ).toBe(
+      "Alarmiert, wenn in 10\u00A0Minuten keine passenden Logs eintreffen.",
+    );
 
     const persian: string = getRuleSentence({
       monitorType: MonitorType.Logs,
@@ -694,7 +698,9 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 8640,
         translator: ENGLISH,
       }),
-    ).toBe("Matching spans per 1\u00A0minute, over the last 2\u00A0hours, 24\u00A0minutes.");
+    ).toBe(
+      "Matching spans per 1\u00A0minute, over the last 2\u00A0hours, 24\u00A0minutes.",
+    );
     expect(
       getPreviewCaption({
         monitorType: MonitorType.Exceptions,
@@ -719,7 +725,9 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 43200,
         translator: GERMAN,
       }),
-    ).toBe("Passende Logs je 5\u00A0Minuten, über die letzten 12\u00A0Stunden.");
+    ).toBe(
+      "Passende Logs je 5\u00A0Minuten, über die letzten 12\u00A0Stunden.",
+    );
   });
 
   test("how far back a preview reads: a day or two in hours, longer in days, the rest in its two largest units", () => {
@@ -793,7 +801,9 @@ describe("what the rule's preview found", () => {
         matchesNothing: false,
         translator: ENGLISH,
       }),
-    ).toBe("This rule would have alerted 1 time, for 5\u00A0hours, 25\u00A0minutes.");
+    ).toBe(
+      "This rule would have alerted 1 time, for 5\u00A0hours, 25\u00A0minutes.",
+    );
     expect(
       getPreviewVerdict({
         summary: summary({ timesItWouldHaveFired: 3, matchedWindowCount: 4 }),
@@ -1009,7 +1019,9 @@ describe("the metric a Metrics rule reads", () => {
       translator: ENGLISH,
     });
 
-    expect(sentence).toContain("the average of CPU over the last 5\u00A0minutes");
+    expect(sentence).toContain(
+      "the average of CPU over the last 5\u00A0minutes",
+    );
     expect(sentence).toContain("above 80");
   });
 });

@@ -356,7 +356,9 @@ describe("ReplayStageOverlays in the reader's language", () => {
       }),
     });
 
-    expect(screen.getByTestId("replay-overlay-idle-skip").textContent).toContain(
+    expect(
+      screen.getByTestId("replay-overlay-idle-skip").textContent,
+    ).toContain(
       `⟦Skipped ${SKIPPED}: recording paused while the page was idle⟧`,
     );
   });

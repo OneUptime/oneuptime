@@ -438,7 +438,9 @@ describe("a dashboard's auto-refresh menu", () => {
       const minute: string = formatDurationCompactInLanguage(60, language);
 
       // The countdown beside the button names the interval in use, held whole.
-      expect(screen.getByText(minute, { collapseWhitespace: false })).toBeInTheDocument();
+      expect(
+        screen.getByText(minute, { collapseWhitespace: false }),
+      ).toBeInTheDocument();
 
       const menu: HTMLElement = await openAutoRefreshMenu(language);
       const choices: Array<string> = choicesOf(menu);
@@ -512,7 +514,9 @@ describe("the editing row's Default auto-refresh", () => {
       DEFAULT_AUTO_REFRESH_PICKER_TEST_ID,
     );
 
-    expect(withoutIsolateMarks(button.textContent || "")).toContain("۱\u00A0دقیقه");
+    expect(withoutIsolateMarks(button.textContent || "")).toContain(
+      "۱\u00A0دقیقه",
+    );
     expect(withoutIsolateMarks(button.textContent || "")).not.toMatch(
       LATIN_DIGIT,
     );

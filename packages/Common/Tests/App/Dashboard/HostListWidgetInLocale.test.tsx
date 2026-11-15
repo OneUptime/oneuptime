@@ -298,7 +298,12 @@ describe("Last Seen, in the reader's language", () => {
       AMOUNTS.map((seconds: number) => {
         return lastSeen("de", seconds);
       }),
-    ).toEqual(["vor 12\u00A0Sek.", "vor 5\u00A0Min.", "vor 4\u00A0Std.", "vor 2\u00A0Tagen"]);
+    ).toEqual([
+      "vor 12\u00A0Sek.",
+      "vor 5\u00A0Min.",
+      "vor 4\u00A0Std.",
+      "vor 2\u00A0Tagen",
+    ]);
     // Just now is the past too, never "in 0 Sek.".
     expect(lastSeen("de", 0)).toBe("vor 0\u00A0Sek.");
   });

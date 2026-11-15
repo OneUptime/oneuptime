@@ -590,7 +590,9 @@ describe("in German and in Persian", () => {
       });
 
       expect(copy?.title).toBe("Protokolle werden abgelehnt");
-      expect(copy?.evidence).toBe("Die letzte Ablehnung war vor 30\u00A0Minuten.");
+      expect(copy?.evidence).toBe(
+        "Die letzte Ablehnung war vor 30\u00A0Minuten.",
+      );
       expect(copy?.action).toEqual({
         kind: "billing",
         label: "Zahlungsmethode hinzufügen",

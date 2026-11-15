@@ -182,8 +182,12 @@ describe("in the reader's language: its words, its plural forms and its digits",
   });
 
   test("counted as before: whole minutes and whole hours, against the feed's now", () => {
-    expect(labelIn("de", 20 * MINUTE + 59 * SECOND)).toBe("vor 20\u00A0Minuten");
-    expect(labelIn("de", 59 * MINUTE + 59 * SECOND)).toBe("vor 59\u00A0Minuten");
+    expect(labelIn("de", 20 * MINUTE + 59 * SECOND)).toBe(
+      "vor 20\u00A0Minuten",
+    );
+    expect(labelIn("de", 59 * MINUTE + 59 * SECOND)).toBe(
+      "vor 59\u00A0Minuten",
+    );
     expect(labelIn("de", 5 * HOUR + 59 * MINUTE)).toBe("vor 5\u00A0Stunden");
   });
 

@@ -583,7 +583,9 @@ describe("when a run is", () => {
       when: "Fr., 16. Okt., 09:00 BST",
       relative: "in 1\u00A0Tag",
     });
-    expect(at("2026-10-19T08:00:00.000Z", "fr").relative).toBe("dans 4\u00A0jours");
+    expect(at("2026-10-19T08:00:00.000Z", "fr").relative).toBe(
+      "dans 4\u00A0jours",
+    );
     expect(at("2026-10-16T08:00:00.000Z", "ja").when).toContain("10月16日");
     // Persian reads Gregorian dates in its own digits, as its counts.
     expect(at("2026-10-16T08:00:00.000Z", "fa").when).toContain("۱۶");

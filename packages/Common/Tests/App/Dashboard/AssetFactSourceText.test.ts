@@ -245,7 +245,9 @@ describe("and when", () => {
         english,
         NOW,
       ),
-    ).toBe("ARP table of core-rtr-01 says 00-1B-54-C2-7A-02 · 3\u00A0hours ago");
+    ).toBe(
+      "ARP table of core-rtr-01 says 00-1B-54-C2-7A-02 · 3\u00A0hours ago",
+    );
 
     expect(
       getAssetFactDifferenceLine(
@@ -778,7 +780,9 @@ describe("in the reader's language", () => {
         japanese,
         NOW,
       ),
-    ).toBe("検出スキャン Store subnets が SNMP で読み取りました (2\u00A0時間前)。");
+    ).toBe(
+      "検出スキャン Store subnets が SNMP で読み取りました (2\u00A0時間前)。",
+    );
   });
 
   /*

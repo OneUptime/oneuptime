@@ -278,7 +278,8 @@ const HELD: Readonly<Record<string, Held>> = {
   // A data security scan's size: Intl's byte, its symbols only for an engine without one (#8456).
   "App/FeatureSet/Dashboard/src/Components/DataSecurity/ScanDetail.tsx": {
     wholeBytesRule: "maximumFractionDigits: unit > 0 && value < 10 ? 1 : 0",
-    provenBy: "Common/Tests/App/Dashboard/IntlUnitsHeldWhereTheyAreDrawn.test.ts",
+    provenBy:
+      "Common/Tests/App/Dashboard/IntlUnitsHeldWhereTheyAreDrawn.test.ts",
   },
 };
 

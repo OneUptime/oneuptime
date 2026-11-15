@@ -768,8 +768,7 @@ export const formatDateText: (data: {
 // A run of the spaces a line may break at: not the figure space (U+2007).
 const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]+/g;
 
-const LEADING_BREAKING_SPACES: RegExp =
-  /^[ \u2000-\u2006\u2008-\u200A\u205F]+/;
+const LEADING_BREAKING_SPACES: RegExp = /^[ \u2000-\u2006\u2008-\u200A\u205F]+/;
 
 const TRAILING_BREAKING_SPACES: RegExp =
   /[ \u2000-\u2006\u2008-\u200A\u205F]+$/;
@@ -820,7 +819,11 @@ const nearestNonLiteral: (
   index: number,
   step: 1 | -1,
 ): IntlTextPart | undefined => {
-  for (let at: number = index + step; at >= 0 && at < parts.length; at += step) {
+  for (
+    let at: number = index + step;
+    at >= 0 && at < parts.length;
+    at += step
+  ) {
     if (parts[at]!.type !== "literal") {
       return parts[at];
     }
@@ -842,14 +845,21 @@ export const holdUnitToNumber: (
 ): Array<IntlTextPart> => {
   return parts.map((part: IntlTextPart, index: number): IntlTextPart => {
     if (part.type === "unit") {
-      return { type: part.type, value: withSpacesHeld(part.value, BREAKING_SPACES) };
+      return {
+        type: part.type,
+        value: withSpacesHeld(part.value, BREAKING_SPACES),
+      };
     }
 
     if (part.type !== "literal") {
       return { type: part.type, value: part.value };
     }
 
-    const before: IntlTextPart | undefined = nearestNonLiteral(parts, index, -1);
+    const before: IntlTextPart | undefined = nearestNonLiteral(
+      parts,
+      index,
+      -1,
+    );
     const after: IntlTextPart | undefined = nearestNonLiteral(parts, index, 1);
     const isBetweenNumberAndUnit: boolean =
       (isNumberPart(before) && after?.type === "unit") ||

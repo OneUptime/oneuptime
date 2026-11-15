@@ -203,7 +203,10 @@ const listUnits: (
 const listJoin: (
   language: string,
   style: "long" | "short" | "narrow",
-) => string = (language: string, style: "long" | "short" | "narrow"): string => {
+) => string = (
+  language: string,
+  style: "long" | "short" | "narrow",
+): string => {
   return listUnits(language, style, ["A", "B"]).slice(1, -1);
 };
 
@@ -361,7 +364,9 @@ describe("an amount of a unit Intl writes holds its number to its unit", () => {
       unitDisplay: "long",
     });
 
-    expect(short).toBe(intlUnit({ language: "fr", unit: "hour", display: "short", value: 5 }));
+    expect(short).toBe(
+      intlUnit({ language: "fr", unit: "hour", display: "short", value: 5 }),
+    );
     expect(short).toContain(NARROW_NO_BREAK_SPACE);
     // French writes a plain space before "minutes": that one is held.
     expect(long).toBe(`5${NO_BREAK_SPACE}minutes`);
@@ -726,13 +731,16 @@ describe("a relative time holds its number to its unit, and only that", () => {
           locale: getDateLocale(language),
         });
 
-        expect({ minutesAgo, broken: brokenAfterFigures(written || "") }).toEqual(
-          { minutesAgo, broken: [] },
-        );
+        expect({
+          minutesAgo,
+          broken: brokenAfterFigures(written || ""),
+        }).toEqual({ minutesAgo, broken: [] });
       }
 
       // "now" has no number to hold.
-      expect(formatRelativeDate({ date: now, now, locale: getDateLocale(language) })).toBe(
+      expect(
+        formatRelativeDate({ date: now, now, locale: getDateLocale(language) }),
+      ).toBe(
         intlRelative({
           language: getDateLocale(language),
           value: 0,
@@ -764,15 +772,23 @@ describe("the helpers built on DateLanguage hold their numbers in every language
   test.each(LANGUAGES)(
     "%s: a compact duration in a sentence (formatDurationCompactInLanguage)",
     (language: string) => {
-      for (const seconds of [0, 45, 3 * 3600 + 12 * 60, 2 * 86400 + 5 * 3600, 90061]) {
+      for (const seconds of [
+        0,
+        45,
+        3 * 3600 + 12 * 60,
+        2 * 86400 + 5 * 3600,
+        90061,
+      ]) {
         const written: string = formatDurationCompactInLanguage(
           seconds,
           language,
         );
 
-        expect({ seconds, written, broken: brokenAfterFigures(written) }).toEqual(
-          { seconds, written, broken: [] },
-        );
+        expect({
+          seconds,
+          written,
+          broken: brokenAfterFigures(written),
+        }).toEqual({ seconds, written, broken: [] });
       }
     },
   );
@@ -797,9 +813,8 @@ describe("the helpers built on DateLanguage hold their numbers in every language
         const now: Date = new Date("2026-11-15T12:00:00Z");
 
         for (const minutes of [0, 1, 5, 65, 125, 1500]) {
-          const written: string = OneUptimeDate.getHoursAndMinutesFromMinutes(
-            minutes,
-          );
+          const written: string =
+            OneUptimeDate.getHoursAndMinutesFromMinutes(minutes);
 
           // English writes its own words, from code: "2 hours 5 minutes".
           if (language !== "en") {
@@ -846,9 +861,12 @@ describe("the helpers built on DateLanguage hold their numbers in every language
             { decimals: 2 },
           );
 
-          expect({ unit, value, written, breaks: BREAKING_SPACE.test(written) }).toEqual(
-            { unit, value, written, breaks: false },
-          );
+          expect({
+            unit,
+            value,
+            written,
+            breaks: BREAKING_SPACE.test(written),
+          }).toEqual({ unit, value, written, breaks: false });
         }
       }
     },
@@ -864,9 +882,7 @@ describe("the helpers built on DateLanguage hold their numbers in every language
         use12HourClock: false,
         now,
       };
-      const minutesAgo: (minutes: number) => Date = (
-        minutes: number,
-      ): Date => {
+      const minutesAgo: (minutes: number) => Date = (minutes: number): Date => {
         return new Date(now.getTime() - minutes * 60 * 1000);
       };
 
@@ -894,9 +910,9 @@ describe("the helpers built on DateLanguage hold their numbers in every language
 describe("negative controls: what holds no unit is as Intl wrote it", () => {
   test("a number without a unit keeps its spaces", () => {
     // Russian groups its thousands with a no-break space, Intl's own.
-    expect(formatDecimal({ value: 1234.5, locale: "ru", maximumFractionDigits: 1 })).toBe(
-      "1234,5",
-    );
+    expect(
+      formatDecimal({ value: 1234.5, locale: "ru", maximumFractionDigits: 1 }),
+    ).toBe("1234,5");
     expect(
       holdUnitToNumber([
         { type: "integer", value: "1" },
@@ -966,7 +982,10 @@ describe("negative controls: what holds no unit is as Intl wrote it", () => {
       `vor${NO_BREAK_SPACE}5 Minuten`,
     );
     expect(
-      holdRelativeUnitToNumber([{ type: "literal", value: "vor 2 Tagen" }], false),
+      holdRelativeUnitToNumber(
+        [{ type: "literal", value: "vor 2 Tagen" }],
+        false,
+      ),
     ).toBe("vor 2 Tagen");
     expect(
       holdRelativeUnitToNumber([{ type: "literal", value: "gestern" }], false),
