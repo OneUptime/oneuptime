@@ -53523,5 +53523,9 @@
   "Telegram message not sent because the Telegram account is not verified.": "Telegram 账户未经验证，因此未发送 Telegram 消息。",
   "This policy has no escalation rules, so nobody was paged. Add escalation rules to it.": "此策略没有升级规则，因此未呼叫任何人。请为其添加升级规则。",
   "WhatsApp message not sent because this phone number is not verified.": "此电话号码未经验证，因此未发送 WhatsApp 消息。",
-  "{{name}} was away until {{time}}, with nobody covering.": "{{name}} 在 {{time}} 之前不在岗，且无人代班。"
+  "{{name}} was away until {{time}}, with nobody covering.": "{{name}} 在 {{time}} 之前不在岗，且无人代班。",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "如果是 OneUptime 前面的代理拒绝了它，请将该代理的请求大小上限提高到 50 MB，与 OneUptime 本身接受的大小相同（在 nginx 中为 client_max_body_size 50M）。",
+  "Try again with less at once, such as a smaller file.": "请一次发送更少的内容（例如更小的文件）后重试。",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容太大，服务器无法接受，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
+  "What was sent was too large for the server to accept.": "发送的内容太大，服务器无法接受。"
 }

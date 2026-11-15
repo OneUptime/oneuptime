@@ -53523,5 +53523,9 @@
   "Telegram message not sent because the Telegram account is not verified.": "Telegram-bericht niet verstuurd, omdat het Telegram-account niet is geverifieerd.",
   "This policy has no escalation rules, so nobody was paged. Add escalation rules to it.": "Dit beleid heeft geen escalatieregels, dus er is niemand opgeroepen. Voeg er escalatieregels aan toe.",
   "WhatsApp message not sent because this phone number is not verified.": "WhatsApp-bericht niet verstuurd, omdat dit telefoonnummer niet is geverifieerd.",
-  "{{name}} was away until {{time}}, with nobody covering.": "{{name}} was afwezig tot {{time}}, zonder vervanging."
+  "{{name}} was away until {{time}}, with nobody covering.": "{{name}} was afwezig tot {{time}}, zonder vervanging.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Heeft een proxy vóór OneUptime het geweigerd, verhoog dan de limiet voor de grootte van een verzoek van die proxy naar 50 MB, zoveel als OneUptime zelf accepteert (in nginx, client_max_body_size 50M).",
+  "Try again with less at once, such as a smaller file.": "Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Wat is verzonden, was te groot voor de server om te accepteren, dus dit is niet voltooid. Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
+  "What was sent was too large for the server to accept.": "Wat is verzonden, was te groot voor de server om te accepteren."
 }

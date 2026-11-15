@@ -53523,5 +53523,9 @@
   "Telegram message not sent because the Telegram account is not verified.": "Telegram アカウントが確認されていないため、Telegram メッセージは送信されませんでした。",
   "This policy has no escalation rules, so nobody was paged. Add escalation rules to it.": "このポリシーにはエスカレーションルールがないため、誰も呼び出されませんでした。エスカレーションルールを追加してください。",
   "WhatsApp message not sent because this phone number is not verified.": "この電話番号は確認されていないため、WhatsApp メッセージは送信されませんでした。",
-  "{{name}} was away until {{time}}, with nobody covering.": "{{name}} は {{time}} まで不在で、代理の人がいませんでした。"
+  "{{name}} was away until {{time}}, with nobody covering.": "{{name}} は {{time}} まで不在で、代理の人がいませんでした。",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "OneUptime の前にあるプロキシが拒否した場合は、そのプロキシのリクエストサイズの上限を、OneUptime 自体が受け付ける 50 MB に引き上げてください（nginx では client_max_body_size 50M）。",
+  "Try again with less at once, such as a smaller file.": "小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "送信した内容が大きすぎてサーバーが受け付けなかったため、処理は完了しませんでした。小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "What was sent was too large for the server to accept.": "送信した内容が大きすぎて、サーバーが受け付けませんでした。"
 }
