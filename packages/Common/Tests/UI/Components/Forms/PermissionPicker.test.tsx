@@ -376,7 +376,9 @@ describe("the Scheduled Maintenance group's feed permissions", () => {
     renderOnTheFeed();
     search("feed");
 
-    expect(rowOf(Permission.CreateScheduledMaintenanceFeed)).toBeInTheDocument();
+    expect(
+      rowOf(Permission.CreateScheduledMaintenanceFeed),
+    ).toBeInTheDocument();
     expect(rowOf(Permission.ReadScheduledMaintenanceFeed)).toBeInTheDocument();
 
     const counts: Record<string, string> = groupCounts();
@@ -389,7 +391,9 @@ describe("the Scheduled Maintenance group's feed permissions", () => {
     renderOnTheFeed();
     search("Scheduled Maintenance Log");
 
-    expect(rowOf(Permission.CreateScheduledMaintenanceFeed)).toBeInTheDocument();
+    expect(
+      rowOf(Permission.CreateScheduledMaintenanceFeed),
+    ).toBeInTheDocument();
     expect(rowOf(Permission.ReadScheduledMaintenanceFeed)).toBeInTheDocument();
     expect(groupCounts()["Scheduled Maintenance"]).toBe("2");
   });
