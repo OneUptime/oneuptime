@@ -13032,7 +13032,6 @@
   "No correlation data is available for this error.": "No correlation data is available for this error.",
   "No cost data reported for the selected time range.": "No cost data reported for the selected time range.",
   "No coverage was reported for this responder.": "Der blev ikke rapporteret nogen dækning for denne modtager.",
-  "No credit card required.": "Intet kreditkort nødvendigt.",
   "No criteria configured.": "Ingen kriterier opsat.",
   "No criteria met": "Ingen kriterier opfyldt",
   "No cron jobs found": "No cron jobs found",
@@ -29300,7 +29299,6 @@
   "Status changed to {{status}}.": "Status skiftet til {{status}}.",
   "Tip": "Tip",
   "A project holds your monitors, incidents, status pages and team.": "Et projekt samler dine monitorer, hændelser, statussider og dit team.",
-  "Active monitors and telemetry are pay as you go, and need a payment method.": "Aktive monitorer og telemetri betales efter forbrug og kræver en betalingsmetode.",
   "Active monitors and telemetry are pay as you go.": "Aktive monitorer og telemetri betales efter forbrug.",
   "All Ceph clusters": "Alle Ceph-klynger",
   "All Docker Swarm clusters": "Alle Docker Swarm-klynger",
@@ -53491,5 +53489,9 @@
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
   "The whole {{name}}": "{{name}} i sin helhed",
-  "Backfill Cursor ID": "Backfill Cursor ID"
+  "Backfill Cursor ID": "Backfill Cursor ID",
+  "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "Tjek af et website, et API eller en server og afsendelse af telemetri betales efter forbrug og kræver en betalingsmetode.",
+  "A project needs no card. On the Free plan, checking a website needs a payment method.": "Et projekt kræver intet kort. På Free-planen kræver tjek af et website en betalingsmetode.",
+  "Not Signed Up Yet": "Ikke tilmeldt endnu",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "Denne server kan ikke sende e-mails, så {{email}} har ikke fået en e-mail. De har allerede en konto og er nu medlem: send dem dette link til at logge ind."
 }

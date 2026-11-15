@@ -13032,7 +13032,6 @@
   "No correlation data is available for this error.": "このエラーの相関データはありません。",
   "No cost data reported for the selected time range.": "選択した期間にコストデータは報告されていません。",
   "No coverage was reported for this responder.": "この対応者のカバー状況は報告されていません。",
-  "No credit card required.": "クレジットカードは不要です。",
   "No criteria configured.": "条件が設定されていません。",
   "No criteria met": "満たした条件はありません",
   "No cron jobs found": "CronJob が見つかりません",
@@ -29300,7 +29299,6 @@
   "Status changed to {{status}}.": "ステータスを{{status}}に変更しました。",
   "Tip": "ヒント",
   "A project holds your monitors, incidents, status pages and team.": "プロジェクトには、モニター、インシデント、ステータスページ、チームがまとまります。",
-  "Active monitors and telemetry are pay as you go, and need a payment method.": "アクティブなモニターとテレメトリは従量課金で、支払い方法の登録が必要です。",
   "Active monitors and telemetry are pay as you go.": "アクティブなモニターとテレメトリは従量課金です。",
   "All Ceph clusters": "すべての Ceph クラスター",
   "All Docker Swarm clusters": "すべての Docker Swarm クラスター",
@@ -53491,5 +53489,9 @@
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
   "The whole {{name}}": "{{name}} の全体",
-  "Backfill Cursor ID": "バックフィルカーソルのID"
+  "Backfill Cursor ID": "バックフィルカーソルのID",
+  "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "Web サイト、API、サーバーのチェックとテレメトリの送信は従量課金で、支払い方法の登録が必要です。",
+  "A project needs no card. On the Free plan, checking a website needs a payment method.": "プロジェクトにクレジットカードは不要です。Free プランでは、Web サイトのチェックに支払い方法の登録が必要です。",
+  "Not Signed Up Yet": "未登録",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "このサーバーはメールを送信できないため、{{email}} にメールは送られていません。すでにアカウントをお持ちで、メンバーになっています。このリンクを送ってサインインしてもらってください。"
 }

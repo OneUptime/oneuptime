@@ -13032,7 +13032,6 @@
   "No correlation data is available for this error.": "داده همبستگی برای این خطا در دسترس نیست.",
   "No cost data reported for the selected time range.": "هیچ داده هزینه‌ای برای بازه زمانی انتخاب‌شده گزارش نشده است.",
   "No coverage was reported for this responder.": "برای این پاسخ‌دهنده پوششی گزارش نشده است.",
-  "No credit card required.": "کارت اعتباری لازم نیست.",
   "No criteria configured.": "معیاری تنظیم نشده است.",
   "No criteria met": "هیچ معیاری برآورده نشد",
   "No cron jobs found": "هیچ CronJob پیدا نشد",
@@ -29300,7 +29299,6 @@
   "Status changed to {{status}}.": "وضعیت به {{status}} تغییر کرد.",
   "Tip": "نکته کاربردی",
   "A project holds your monitors, incidents, status pages and team.": "یک پروژه مانیتورها، حوادث، صفحات وضعیت و تیم شما را در خود دارد.",
-  "Active monitors and telemetry are pay as you go, and need a payment method.": "مانیتورهای فعال و تله‌متری بر اساس مصرف پرداخت می‌شوند و به یک روش پرداخت نیاز دارند.",
   "Active monitors and telemetry are pay as you go.": "مانیتورهای فعال و تله‌متری بر اساس مصرف پرداخت می‌شوند.",
   "All Ceph clusters": "همه خوشه‌های Ceph",
   "All Docker Swarm clusters": "همه خوشه‌های Docker Swarm",
@@ -53491,5 +53489,9 @@
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "یک سری برای هر نمونه، که مقدارش کدی عددی برای وضعیت آن است: ACTIVE برابر 0، BUILD برابر 1، ERROR برابر 4. واژه را از برچسب `status` بخوانید و روی آن فیلتر کنید: کد نه شمارش است و نه شدت. اکسپورتر عامل در یک ابر واقعی `address_ipv4` و `address_ipv6` را خالی می‌گذارد، و یک پراب آن‌ها را از نشانی‌هایی که Nova فهرست می‌کند پر می‌کند. `hypervisor_hostname`، `host_id` و `availability_zone` (زُن دسترس‌پذیری) تا زمان‌بندی نمونه خالی‌اند. `image_id` ایمیجی را که نمونه از آن بوت شده نام می‌برد: فقط یک پراب آن را می‌فرستد، و نه برای نمونه‌ای که از یک ولوم بوت شده است.",
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "یک سری برای هر ولوم، که مقدارش اندازهٔ آن است، با واژهٔ وضعیتش در برچسب status. در ابری که یک پراب جمع‌آوری می‌کند، برچسب `pool` می‌گوید کدام استخر آن را نگه می‌دارد، برای اعتبارنامه‌ای که Cinder آن را admin می‌داند.",
   "The whole {{name}}": "کل {{name}}",
-  "Backfill Cursor ID": "شناسهٔ مکان‌نمای پرکردن داده‌های گذشته"
+  "Backfill Cursor ID": "شناسهٔ مکان‌نمای پرکردن داده‌های گذشته",
+  "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "بررسی یک وب‌سایت، یک API یا یک سرور و فرستادن تله‌متری بر اساس مصرف پرداخت می‌شوند و به یک روش پرداخت نیاز دارند.",
+  "A project needs no card. On the Free plan, checking a website needs a payment method.": "یک پروژه به کارت نیاز ندارد. در طرح Free، بررسی یک وب‌سایت به یک روش پرداخت نیاز دارد.",
+  "Not Signed Up Yet": "هنوز ثبت‌نام نکرده",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. آن‌ها از قبل حساب دارند و اکنون عضو هستند: این پیوند را برای ورود برایشان بفرستید."
 }

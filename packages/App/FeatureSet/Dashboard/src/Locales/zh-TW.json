@@ -13032,7 +13032,6 @@
   "No correlation data is available for this error.": "No correlation data is available for this error.",
   "No cost data reported for the selected time range.": "No cost data reported for the selected time range.",
   "No coverage was reported for this responder.": "未回報此回應者的涵蓋情況。",
-  "No credit card required.": "不需要信用卡。",
   "No criteria configured.": "未設定條件。",
   "No criteria met": "未符合任何條件",
   "No cron jobs found": "No cron jobs found",
@@ -29300,7 +29299,6 @@
   "Status changed to {{status}}.": "狀態已變更為 {{status}}。",
   "Tip": "提示",
   "A project holds your monitors, incidents, status pages and team.": "專案包含您的監測器、事件、狀態頁面和團隊。",
-  "Active monitors and telemetry are pay as you go, and need a payment method.": "使用中的監測器與遙測依用量計費，需要新增付款方式。",
   "Active monitors and telemetry are pay as you go.": "使用中的監測器與遙測依用量計費。",
   "All Ceph clusters": "所有 Ceph 叢集",
   "All Docker Swarm clusters": "所有 Docker Swarm 叢集",
@@ -53491,5 +53489,9 @@
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
   "The whole {{name}}": "整個 {{name}}",
-  "Backfill Cursor ID": "Backfill Cursor ID"
+  "Backfill Cursor ID": "Backfill Cursor ID",
+  "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "檢查網站、API 或伺服器以及傳送遙測資料依用量計費，需要新增付款方式。",
+  "A project needs no card. On the Free plan, checking a website needs a payment method.": "建立專案不需要信用卡。在 Free 方案中，檢查網站需要新增付款方式。",
+  "Not Signed Up Yet": "尚未註冊",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "此伺服器無法傳送電子郵件，因此未寄送郵件給 {{email}}。對方已有帳號，現在已是成員：請傳送此連結讓其登入。"
 }
