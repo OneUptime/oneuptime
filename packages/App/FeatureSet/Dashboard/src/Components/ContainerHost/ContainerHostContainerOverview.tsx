@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
@@ -68,7 +69,7 @@ export interface ComponentProps {
 
 function formatPercent(value: number | null): string {
   return value === null || !Number.isFinite(value)
-    ? "—"
+    ? EMPTY_VALUE_MARK
     : `${value.toFixed(1)}%`;
 }
 

@@ -201,7 +201,7 @@ const LoadBalancerOverview: FunctionComponent<{
           ),
           description: "The project that owns this load balancer.",
         }
-      : { key: "project", label: "Project", value: "—" },
+      : { key: "project", label: "Project", value: undefined },
   );
   if (row.regionName) {
     detailRows.push({
@@ -215,9 +215,7 @@ const LoadBalancerOverview: FunctionComponent<{
       key: "pools",
       label: "Pools",
       value:
-        pools.length === 0 ? (
-          "—"
-        ) : (
+        pools.length === 0 ? undefined : (
           <span className="flex flex-col gap-1">
             {pools.map((pool: OpenStackResource): ReactElement => {
               return (
@@ -242,9 +240,7 @@ const LoadBalancerOverview: FunctionComponent<{
       key: "listeners",
       label: "Listeners",
       value:
-        listeners.length === 0 ? (
-          "—"
-        ) : (
+        listeners.length === 0 ? undefined : (
           <span className="flex flex-col gap-1">
             {listeners.map((listener: OpenStackResource): ReactElement => {
               return (
@@ -266,9 +262,7 @@ const LoadBalancerOverview: FunctionComponent<{
         key: "amphorae",
         label: "Amphorae",
         value:
-          amphorae.length === 0 ? (
-            "—"
-          ) : (
+          amphorae.length === 0 ? undefined : (
             <span className="flex flex-col gap-1">
               {amphorae.map((amphora: OpenStackResource): ReactElement => {
                 return (

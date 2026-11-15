@@ -216,7 +216,7 @@ const HypervisorOverview: FunctionComponent<{
     return {
       value:
         line.percent === null
-          ? "—"
+          ? undefined
           : formatOpenStackPercent(line.percent, {
               language: translator.language,
             }),

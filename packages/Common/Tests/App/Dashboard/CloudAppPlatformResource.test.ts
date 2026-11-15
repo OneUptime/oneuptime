@@ -529,11 +529,12 @@ describe("the site's numbers over the range", () => {
 
 describe("the site's CPU time, as a reader says a duration", () => {
   test("under a minute it reads as the response time does", () => {
-    expect(formatAppServiceCpuTime(0.45)).toBe("450 ms");
-    expect(formatAppServiceCpuTime(0.004)).toBe("4.0 ms");
-    expect(formatAppServiceCpuTime(12.5)).toBe("12.50 s");
-    expect(formatAppServiceCpuTime(59.9)).toBe("59.90 s");
-    expect(formatAppServiceCpuTime(0)).toBe("0 µs");
+    // Each figure held to its unit by a no-break space, as #8541 writes it.
+    expect(formatAppServiceCpuTime(0.45)).toBe("450\u00A0ms");
+    expect(formatAppServiceCpuTime(0.004)).toBe("4.0\u00A0ms");
+    expect(formatAppServiceCpuTime(12.5)).toBe("12.50\u00A0s");
+    expect(formatAppServiceCpuTime(59.9)).toBe("59.90\u00A0s");
+    expect(formatAppServiceCpuTime(0)).toBe("0\u00A0µs");
   });
 
   test("from a minute, its two largest whole units - never thousands of seconds", () => {
@@ -558,7 +559,7 @@ describe("the site's CPU time, as a reader says a duration", () => {
     expect(german).toContain("Min.");
     // English, and a duration under a minute, read as before.
     expect(formatAppServiceCpuTime(5400, "en")).toBe("1h 30m");
-    expect(formatAppServiceCpuTime(12.5, "de")).toBe("12.50 s");
+    expect(formatAppServiceCpuTime(12.5, "de")).toBe("12.50\u00A0s");
   });
 
   test("a seeded sweep: every reading from a minute up names at most two whole units", () => {

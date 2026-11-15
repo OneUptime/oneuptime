@@ -1,3 +1,4 @@
+import { translationKey } from "Common/Types/Translator";
 /*
  * What Settings > Single Sign-On says, kept free of React so App/Tests can
  * read these exact strings (see Index.tsx for the page).
@@ -34,7 +35,7 @@ export const SSO_PAGE_COPY: {
     "Sign in through a SAML app, such as Okta, Microsoft Entra ID or OneLogin.",
   samlProvider: "SAML Provider",
   samlProviders: "SAML Providers",
-  oidcCardTitle: "OpenID Connect (OIDC)",
+  oidcCardTitle: translationKey("OpenID Connect (OIDC)"),
   oidcCardDescription:
     "Sign in through an OpenID Connect app, such as Google Workspace, Auth0 or Keycloak.",
   oidcProvider: "OIDC Provider",

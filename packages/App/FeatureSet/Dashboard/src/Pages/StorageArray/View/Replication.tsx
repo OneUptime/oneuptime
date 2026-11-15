@@ -11,7 +11,9 @@ import StorageArrayResourceStatusBadge from "../../../Components/StorageArray/St
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 import { STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS } from "../Utils/StorageArrayHealth";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * FlashArray pods (kind=Pod) — the unit of ActiveCluster and ActiveDR
@@ -74,7 +76,9 @@ const StorageArrayReplication: FunctionComponent<
                   data-tone="warning"
                   className="text-sm font-medium text-amber-700"
                 >
-                  {StorageArrayResourceUtils.formatDurationMs(lag)}
+                  {getValueOrQuietDash(
+                    StorageArrayResourceUtils.formatDurationMs(lag),
+                  )}
                 </span>
               );
             }

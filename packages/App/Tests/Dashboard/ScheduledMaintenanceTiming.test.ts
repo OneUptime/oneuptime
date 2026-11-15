@@ -985,11 +985,11 @@ describe("formatScheduledMaintenanceRelativeTime", () => {
     test.each([
       ["ar", 90 * MINUTE, "خلال ساعتين"],
       ["ar", -36 * HOUR, "قبل يومين"],
-      ["ar", 3 * DAY, "خلال 3 أيام"],
+      ["ar", 3 * DAY, "خلال 3\u00A0أيام"],
       ["ar", MINUTE + 59 * SECOND, "خلال دقيقة واحدة"],
       ["ar", 30 * SECOND, "الآن"],
-      ["de", -5 * HOUR, "vor 5 Stunden"],
-      ["de", 23 * HOUR + 30 * MINUTE, "in 1 Tag"],
+      ["de", -5 * HOUR, "vor 5\u00A0Stunden"],
+      ["de", 23 * HOUR + 30 * MINUTE, "in 1\u00A0Tag"],
     ])(
       "%s: %i ms reads %s",
       (language: string, offset: number, text: string) => {

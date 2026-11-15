@@ -1,4 +1,5 @@
 import MonitorOverview from "../../Components/Monitor/MonitorOverview";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Page from "../../Components/Page/Page";
 import Section from "../../Components/Section/Section";
 import IncidentGroup from "../../Types/IncidentGroup";
@@ -970,7 +971,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           label: t("overview.uptimePercent", {
             percent:
               uptimePercent === null
-                ? "—"
+                ? EMPTY_VALUE_MARK
                 : formatUptimePercentFigure(uptimePercent, pageLanguage),
           }),
           color: color,

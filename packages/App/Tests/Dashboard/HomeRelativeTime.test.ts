@@ -84,11 +84,11 @@ describe("the unit a time is said in", () => {
 describe("the words", () => {
   test("English, past and future", () => {
     expect(english(0)).toBe("now");
-    expect(english(-12 * MINUTE)).toBe("12 minutes ago");
-    expect(english(-MINUTE)).toBe("1 minute ago");
-    expect(english(-3 * HOUR)).toBe("3 hours ago");
-    expect(english(40 * MINUTE)).toBe("in 40 minutes");
-    expect(english(2 * DAY)).toBe("in 2 days");
+    expect(english(-12 * MINUTE)).toBe("12\u00A0minutes ago");
+    expect(english(-MINUTE)).toBe("1\u00A0minute ago");
+    expect(english(-3 * HOUR)).toBe("3\u00A0hours ago");
+    expect(english(40 * MINUTE)).toBe("in 40\u00A0minutes");
+    expect(english(2 * DAY)).toBe("in 2\u00A0days");
     // numeric: "auto" says the day by its name.
     expect(english(-DAY)).toBe("yesterday");
     expect(english(DAY)).toBe("tomorrow");
@@ -97,13 +97,13 @@ describe("the words", () => {
   test("the reader's language, with its own words and plurals", () => {
     expect(
       formatRelativeTime({ date: at(-2 * HOUR), now: NOW, language: "de" }),
-    ).toBe("vor 2 Stunden");
+    ).toBe("vor 2\u00A0Stunden");
     expect(
       formatRelativeTime({ date: at(3 * DAY), now: NOW, language: "fr" }),
-    ).toBe("dans 3 jours");
+    ).toBe("dans 3\u00A0jours");
     expect(
       formatRelativeTime({ date: at(-5 * MINUTE), now: NOW, language: "es" }),
-    ).toBe("hace 5 minutos");
+    ).toBe("hace 5\u00A0minutos");
   });
 
   test("a language tag Intl rejects falls back to English instead of failing the card", () => {
@@ -118,7 +118,7 @@ describe("the words", () => {
 
   test("no language is English", () => {
     expect(formatRelativeTime({ date: at(-2 * HOUR), now: NOW })).toBe(
-      "2 hours ago",
+      "2\u00A0hours ago",
     );
   });
 
@@ -137,18 +137,18 @@ describe("the words", () => {
 
     expect(
       formatRelativeTimeParts({ parts: twentyMinutesAgo, language: "de" }),
-    ).toBe("vor 20 Minuten");
+    ).toBe("vor 20\u00A0Minuten");
     expect(
       formatRelativeTimeParts({ parts: twentyMinutesAgo, language: "fa" }),
-    ).toBe("۲۰ دقیقه پیش");
+    ).toBe("۲۰\u00A0دقیقه پیش");
     expect(
       formatRelativeTimeParts({ parts: twentyMinutesAgo, language: "ar" }),
-    ).toBe("قبل 20 دقيقة");
+    ).toBe("قبل 20\u00A0دقيقة");
     expect(
       formatRelativeTimeParts({ parts: threeHoursAgo, language: "en" }),
-    ).toBe("3 hours ago");
+    ).toBe("3\u00A0hours ago");
     expect(formatRelativeTimeParts({ parts: threeHoursAgo })).toBe(
-      "3 hours ago",
+      "3\u00A0hours ago",
     );
     expect(
       formatRelativeTimeParts({

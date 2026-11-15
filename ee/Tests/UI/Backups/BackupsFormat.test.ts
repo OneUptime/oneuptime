@@ -99,13 +99,13 @@ function run(fields: Partial<Record<string, unknown>>): BackupRun {
 
 describe("sizes", () => {
   test.each([
-    [0, "0 byte"],
-    [512, "512 byte"],
-    [980 * 1024, "980 kB"],
-    [4.1 * 1024 ** 2, "4.1 MB"],
-    [2.2 * 1024 ** 3, "2.2 GB"],
-    [12.4 * 1024 ** 3, "12 GB"],
-    [1.5 * 1024 ** 4, "1.5 TB"],
+    [0, "0\u00A0byte"],
+    [512, "512\u00A0byte"],
+    [980 * 1024, "980\u00A0kB"],
+    [4.1 * 1024 ** 2, "4.1\u00A0MB"],
+    [2.2 * 1024 ** 3, "2.2\u00A0GB"],
+    [12.4 * 1024 ** 3, "12\u00A0GB"],
+    [1.5 * 1024 ** 4, "1.5\u00A0TB"],
   ])(
     "%d bytes read as %s: one decimal under 10 of a unit",
     (bytes: number, text: string) => {
@@ -114,20 +114,20 @@ describe("sizes", () => {
   );
 
   test("in the reader's language, and never a negative or broken number", () => {
-    expect(formatBackupSize(4.1 * 1024 ** 2, "de")).toBe("4,1 MB");
-    expect(formatBackupSize(-5, "en")).toBe("0 byte");
-    expect(formatBackupSize(Number.NaN, "en")).toBe("0 byte");
+    expect(formatBackupSize(4.1 * 1024 ** 2, "de")).toBe("4,1\u00A0MB");
+    expect(formatBackupSize(-5, "en")).toBe("0\u00A0byte");
+    expect(formatBackupSize(Number.NaN, "en")).toBe("0\u00A0byte");
   });
 });
 
 describe("durations", () => {
   test.each([
-    [6 * 1000, "6 seconds"],
-    [200, "1 second"],
-    [0, "1 second"],
-    [12 * 60 * 1000, "12 minutes"],
-    [125 * 60 * 1000, "2 hours"],
-    [3 * 86400 * 1000, "3 days"],
+    [6 * 1000, "6\u00A0seconds"],
+    [200, "1\u00A0second"],
+    [0, "1\u00A0second"],
+    [12 * 60 * 1000, "12\u00A0minutes"],
+    [125 * 60 * 1000, "2\u00A0hours"],
+    [3 * 86400 * 1000, "3\u00A0days"],
   ])(
     "%d ms took %s: the unit that reads best, never 0",
     (ms: number, text: string) => {
@@ -136,7 +136,7 @@ describe("durations", () => {
   );
 
   test("in the reader's language", () => {
-    expect(formatBackupDuration(12 * 60 * 1000, "de")).toBe("12 Minuten");
+    expect(formatBackupDuration(12 * 60 * 1000, "de")).toBe("12\u00A0Minuten");
   });
 });
 
@@ -158,20 +158,20 @@ describe("times", () => {
   });
 
   test("how long ago, and how long until", () => {
-    expect(formatBackupTimeAgo(backupAt, clock())).toBe("10 hours ago");
+    expect(formatBackupTimeAgo(backupAt, clock())).toBe("10\u00A0hours ago");
     expect(
       formatBackupTimeUntil(new Date("2026-10-25T02:00:00Z"), clock()),
-    ).toBe("in 14 hours");
+    ).toBe("in 14\u00A0hours");
     expect(
       formatBackupTimeUntil(new Date("2026-10-24T12:03:00Z"), clock()),
-    ).toBe("in 3 minutes");
+    ).toBe("in 3\u00A0minutes");
     expect(
       formatBackupTimeUntil(new Date("2026-10-31T12:00:00Z"), clock()),
-    ).toBe("in 7 days");
+    ).toBe("in 7\u00A0days");
     // Due already: soon, never "in -2 minutes".
     expect(
       formatBackupTimeUntil(new Date("2026-10-24T11:58:00Z"), clock()),
-    ).toBe("in 1 minute");
+    ).toBe("in 1\u00A0minute");
   });
 
   test("the weekday names are the reader's", () => {
@@ -349,8 +349,8 @@ describe("a run's status, duration and size", () => {
         translator: ENGLISH,
       }),
     ).toEqual([
-      { title: "PostgreSQL", size: "4.1 MB" },
-      { title: "ClickHouse", size: "2.2 MB" },
+      { title: "PostgreSQL", size: "4.1\u00A0MB" },
+      { title: "ClickHouse", size: "2.2\u00A0MB" },
     ]);
     expect(
       describeBackupContents({
@@ -494,7 +494,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["6 seconds", "4.1 MB"]);
+    ).toEqual(["6\u00A0seconds", "4.1\u00A0MB"]);
     expect(
       describeStepFacts({
         step: {
@@ -506,7 +506,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["2 minutes", "2 MB of 8 MB"]);
+    ).toEqual(["2\u00A0minutes", "2\u00A0MB of 8\u00A0MB"]);
     // A dump in progress: what is written, not "of" the database's size.
     expect(
       describeStepFacts({
@@ -519,7 +519,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["1 minute", "2 MB"]);
+    ).toEqual(["1\u00A0minute", "2\u00A0MB"]);
     /*
      * ClickHouse says its backup's total only at the end: a step in
      * progress says what it wrote, as the status card does, never "of"
@@ -540,7 +540,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["2 minutes", "1.3 GB", "233 files"]);
+    ).toEqual(["2\u00A0minutes", "1.3\u00A0GB", "233 files"]);
     expect(
       describeStepFacts({
         step: {
@@ -553,7 +553,7 @@ describe("how far a running run has got", () => {
         translator: ENGLISH,
         now,
       }),
-    ).toEqual(["2 minutes", "1 file"]);
+    ).toEqual(["2\u00A0minutes", "1 file"]);
     // A skipped step took no time.
     expect(
       describeStepFacts({

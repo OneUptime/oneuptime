@@ -1,4 +1,5 @@
 import { DataObservabilityQuality } from "Common/Types/DataObservability/DataAlertFeedback";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
@@ -69,7 +70,7 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
  */
 // A share, or a dash until there is anything to measure.
 function formatPercent(value: number | null): string {
-  return value === null ? "-" : `${value}%`;
+  return value === null ? EMPTY_VALUE_MARK : `${value}%`;
 }
 
 const DataObservabilityOverviewPage: FunctionComponent<

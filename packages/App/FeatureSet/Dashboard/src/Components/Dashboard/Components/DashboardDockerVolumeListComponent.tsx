@@ -151,8 +151,8 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
     (v: DockerResource): HoneycombTile => {
       const id: string = (v._id as string) || "";
       const name: string = (v.name as string) || getUnnamedText();
-      const driverScope: string = (v.state as string) || "—";
-      const hostName: string = (v.dockerHost?.name as string) || "—";
+      const driverScope: string | undefined = v.state as string;
+      const hostName: string | undefined = v.dockerHost?.name as string;
 
       return {
         id: id || name,
@@ -172,8 +172,8 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
   const rows: Array<ReactElement> = volumes.map((v: DockerResource) => {
     const id: string = (v._id as string) || "";
     const name: string = (v.name as string) || getUnnamedText();
-    const driverScope: string = (v.state as string) || "—";
-    const hostName: string = (v.dockerHost?.name as string) || "—";
+    const driverScope: string | undefined = v.state as string;
+    const hostName: string | undefined = v.dockerHost?.name as string;
 
     return (
       <tr

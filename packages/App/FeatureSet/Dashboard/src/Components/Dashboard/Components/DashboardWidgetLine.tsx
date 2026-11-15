@@ -1,4 +1,6 @@
 import { getIsolatedLine } from "Common/UI/Components/IsolatedText/IsolatedLine";
+import { isNoValue } from "Common/UI/Components/Detail/EmptyValue";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { DEFAULT_PAGE_LANGUAGE } from "Common/UI/Utils/PageLanguage";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
@@ -56,8 +58,13 @@ export const getWidgetPageLanguage: (
 export type DashboardWidgetLineTag = "div" | "span" | "p" | "h3" | "td";
 
 export interface ComponentProps {
-  // The words that decide which way the line reads.
-  text: string;
+  /*
+   * The words that decide which way the line reads. None - or only a dash,
+   * a formatter's mark for nothing - and the line draws the quiet dash, read
+   * out as "Not set" (#8262): a list's host or cluster it does not have, a
+   * tile's detail.
+   */
+  text?: string | undefined;
   /*
    * What the line draws, when it is not just the words: a link around
    * them.
@@ -80,9 +87,11 @@ const DashboardWidgetLine: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const language: string = getWidgetPageLanguage(useTranslator().language);
+  const isEmpty: boolean =
+    props.children === undefined && isNoValue(props.text);
   const line: { dir: ReadingDirection | undefined; className: string } =
     getIsolatedLine({
-      text: props.text,
+      text: isEmpty ? "" : props.text,
       pageLanguage: language,
       className: props.className,
     });
@@ -96,7 +105,13 @@ const DashboardWidgetLine: FunctionComponent<ComponentProps> = (
       data-testid={props.dataTestId}
       style={props.style}
     >
-      {props.children === undefined ? props.text : props.children}
+      {isEmpty ? (
+        <TableEmptyValue isSmall={true} />
+      ) : props.children === undefined ? (
+        props.text
+      ) : (
+        props.children
+      )}
     </Tag>
   );
 };

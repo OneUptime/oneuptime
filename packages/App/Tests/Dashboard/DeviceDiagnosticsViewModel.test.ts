@@ -200,9 +200,11 @@ describe("describePingResult", () => {
 
     expect(summary.headline).toBe("Unreachable");
     expect(summary.tone).toBe("down");
+    // The probe's message, which the drawer words (ProbeMessageLine, #8675).
     expect(summary.rows[0]).toEqual({
       label: "Reason",
       value: "No reply from 10.0.0.9 after 5 packets.",
+      isProbeMessage: true,
     });
     expect(rowValue(summary, "Average RTT")).toBe("—");
     expect(rowValue(summary, "Packet loss")).toBe("100% (0/5 received)");
@@ -231,7 +233,11 @@ describe("describePingResult", () => {
     expect(summary.headline).toBe("Unreachable");
     expect(summary.tone).toBe("down");
     expect(summary.rows).toEqual([
-      { label: "Reason", value: "ICMP is not usable on this probe." },
+      {
+        label: "Reason",
+        value: "ICMP is not usable on this probe.",
+        isProbeMessage: true,
+      },
     ]);
   });
 

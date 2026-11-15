@@ -23,8 +23,12 @@ import React, {
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import { formatHealthDateTime as formatDateTime } from "./HealthTime";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 // Maximum number of pending migration names to list before collapsing the rest.
 const MAX_PENDING_TO_SHOW: number = 10;
@@ -41,7 +45,9 @@ const asArray: (value: unknown) => JSONArray = (value: unknown): JSONArray => {
 
 const countLabel: (value: unknown) => string = (value: unknown): string => {
   const parsed: number = Number(value);
-  return isNaN(parsed) ? "—" : parsed.toLocaleString(getReaderNumberLocale());
+  return isNaN(parsed)
+    ? EMPTY_VALUE_MARK
+    : parsed.toLocaleString(getReaderNumberLocale());
 };
 
 /*
@@ -218,7 +224,7 @@ const MigrationStatus: FunctionComponent = (): ReactElement => {
     const appliedName: string =
       String(latestApplied["name"] || "") ||
       String(lastExecuted["name"] || "") ||
-      "—";
+      EMPTY_VALUE_MARK;
 
     // The status in the reader's language, so the bubble draws it as given.
     let statusText: string = translator.translateText("Up to date") as string;
@@ -267,7 +273,7 @@ const MigrationStatus: FunctionComponent = (): ReactElement => {
               {translator.translateText("Applied")}
             </div>
             <div className="text-base font-semibold text-gray-900 mt-0.5 tabular-nums">
-              {countLabel(info["totalApplied"])}
+              {getValueOrQuietDash(countLabel(info["totalApplied"]))}
             </div>
           </div>
           <div>
@@ -275,7 +281,7 @@ const MigrationStatus: FunctionComponent = (): ReactElement => {
               {translator.translateText("Shipped in build")}
             </div>
             <div className="text-base font-semibold text-gray-900 mt-0.5 tabular-nums">
-              {countLabel(info["totalDefined"])}
+              {getValueOrQuietDash(countLabel(info["totalDefined"]))}
             </div>
           </div>
           <div>
@@ -287,7 +293,7 @@ const MigrationStatus: FunctionComponent = (): ReactElement => {
                 totalPending > 0 ? "text-yellow-600" : "text-gray-900"
               }`}
             >
-              {countLabel(info["totalPending"])}
+              {getValueOrQuietDash(countLabel(info["totalPending"]))}
             </div>
           </div>
         </div>
@@ -307,7 +313,9 @@ const MigrationStatus: FunctionComponent = (): ReactElement => {
             <span className="text-gray-500">
               {translator.translateText("Latest applied")}
             </span>
-            <span className="font-mono truncate">{appliedName}</span>
+            <span className="font-mono truncate">
+              {getValueOrQuietDash(appliedName, { isSmall: true })}
+            </span>
           </div>
           {lastFailedAt ? (
             <div className="flex justify-between gap-4">
@@ -315,7 +323,9 @@ const MigrationStatus: FunctionComponent = (): ReactElement => {
                 {translator.translateText("Last failed attempt")}
               </span>
               <span className="font-mono truncate text-red-600">
-                {formatDateTime(lastFailedAt)}
+                {getValueOrQuietDash(formatDateTime(lastFailedAt), {
+                  isSmall: true,
+                })}
               </span>
             </div>
           ) : (

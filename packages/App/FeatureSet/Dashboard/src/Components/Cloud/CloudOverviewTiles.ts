@@ -160,7 +160,7 @@ export function getCloudOverviewTiles(data: {
         key: "spend",
         title: SPEND_THIS_MONTH,
         description: SPEND_TILE_DESCRIPTION,
-        value: "—",
+        value: undefined,
         sublabel: COSTS_NOT_READ_YET,
         icon: IconProp.Billing,
         color: "indigo",
@@ -199,7 +199,7 @@ export function getCloudOverviewTiles(data: {
       description: NEEDS_ATTENTION_TILE_DESCRIPTION,
       value: attention
         ? `${translator.formatNumber(needingAttention)}${attention.isMore ? "+" : ""}`
-        : "—",
+        : undefined,
       loading: attention === null && !data.attentionFailed,
       sublabel: !attention
         ? undefined
@@ -298,7 +298,7 @@ export function getCloudCostTiles(data: {
             currency: data.savings.currency,
             translator,
           })
-        : "—",
+        : undefined,
       sublabel: !isSavingsRead
         ? translator.translateText(RECOMMENDATIONS_NOT_READ_YET) ||
           RECOMMENDATIONS_NOT_READ_YET

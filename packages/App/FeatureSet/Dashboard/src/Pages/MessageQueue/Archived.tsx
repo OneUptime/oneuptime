@@ -23,7 +23,9 @@ import {
 } from "./Utils/MessageQueuePresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Archived queues. A discovered queue that is not seen for a while is
@@ -163,7 +165,9 @@ const MessageQueueArchivedPage: FunctionComponent<
             getElement: (item: MessageQueue): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {getMessageQueueSystemLabel(item.messagingSystem)}
+                  {getValueOrQuietDash(
+                    getMessageQueueSystemLabel(item.messagingSystem),
+                  )}
                 </span>
               );
             },
