@@ -52,7 +52,7 @@ In the checklist, click **Create your first monitor**. It opens the guided setup
 
 Under **What should we check?**, type the full address of your site in **Website or API address**, such as `https://example.com`, and click **Start checking**. The probes check it at once, then every 5 minutes: when the site does not answer, or answers with an error, the monitor goes **Offline** and declares an incident. Click **Continue**.
 
-On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step asks you to [add a payment method](/docs/configuration/billing#payment-methods).
+On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step says so before **Start checking**, with **Add Payment Method** to [add one](/docs/configuration/billing#payment-methods).
 
 ### Choose who is told
 

@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Sondes in meerdere regio's controleren het adres, dus het moet bereikbaar zijn vanaf het internet. Het Free-abonnement omvat 10 actieve monitoren.
+Sondes in meerdere regio's controleren het adres, dus het moet bereikbaar zijn vanaf het internet, en er wordt pas een incident geopend wanneer ze allemaal een storing zien. Het Free-abonnement omvat 10 actieve monitoren. Die worden naar gebruik gefactureerd, dus heeft het project eerst een betaalmethode nodig: zonder betaalmethode zegt de eerste stap dat, met **Betaalmethode toevoegen**.
 @tab Zelf gehost
-Het adres wordt gecontroleerd door de eigen sonde van uw server, dus het moet van daaruit bereikbaar zijn. Om per e-mail bericht te krijgen, moet de server e-mail kunnen versturen: de hoofdbeheerder ervan stelt dat in op `/admin/setup`, zoals de [Handleiding zelf hosten](/docs/installation/self-hosting-guide) laat zien. De hoofdbeheerder wordt geen eigenaar van wat hij aanmaakt, en voegt zichzelf daarom toe op de pagina **Eigenaren** van de monitor om per e-mail bericht te krijgen.
+Het adres wordt gecontroleerd door de eigen sonde van uw server, dus het moet van daaruit bereikbaar zijn. Om per e-mail bericht te krijgen, moet de server e-mail kunnen versturen: de hoofdbeheerder ervan stelt dat in op `/admin/setup`, zoals de [Handleiding zelf hosten](/docs/installation/self-hosting-guide) laat zien.
 :::
 
 ## Stappen

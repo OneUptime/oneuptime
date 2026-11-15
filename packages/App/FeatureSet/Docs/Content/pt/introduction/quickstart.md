@@ -52,7 +52,7 @@ Na lista, clique em **Crie seu primeiro monitor**. Isso abre a configuração gu
 
 Em **O que devemos verificar?**, digite o endereço completo do seu site em **Endereço do site ou da API**, por exemplo `https://example.com`, e clique em **Começar a verificar**. As sondas verificam o site na hora e depois a cada 5 minutos: quando o site não responde, ou responde com um erro, o monitor fica **Offline** e declara um incidente. Clique em **Continuar**.
 
-No plano Free do OneUptime Cloud, os monitores são cobrados conforme o uso, então o projeto precisa de uma forma de pagamento antes de poder verificar o seu site: sem ela, a etapa pede que você [adicione uma forma de pagamento](/docs/configuration/billing#métodos-de-pagamento).
+No plano Free do OneUptime Cloud, os monitores são cobrados conforme o uso, então o projeto precisa de uma forma de pagamento antes de poder verificar o seu site: sem ela, a etapa avisa antes de **Começar a verificar**, com **Adicionar método de pagamento** para [adicionar uma](/docs/configuration/billing#métodos-de-pagamento).
 
 ### Escolher quem é avisado
 

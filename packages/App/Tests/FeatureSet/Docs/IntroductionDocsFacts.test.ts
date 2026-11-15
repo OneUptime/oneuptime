@@ -1108,8 +1108,17 @@ describe("Quickstart", () => {
     ).not.toBe(MonitorType.Manual);
 
     expect(address.body).toContain(
-      "On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step asks you to [add a payment method](/docs/configuration/billing#payment-methods).",
+      "On OneUptime Cloud's Free plan, monitors are billed as they are used, so the project needs a payment method before it can check your site: without one, the step says so before **Start checking**, with **Add Payment Method** to [add one](/docs/configuration/billing#payment-methods).",
     );
+    // Said before the button, with the billing page's own button (#7367).
+    expect(setupWord(QUICKSTART_SETUP_COPIES.website, "addPaymentMethod")).toBe(
+      "Add Payment Method",
+    );
+    expect(
+      dashboard(
+        "Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup.tsx",
+      ),
+    ).toContain("{paymentNotice}");
     // The link lands on the billing page's section that adds one.
     expect(billing.split("\n")).toContain("## Payment methods");
     expect(billing).toContain("adding one turns on pay-as-you-go usage");
