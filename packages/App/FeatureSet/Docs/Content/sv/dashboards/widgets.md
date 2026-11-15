@@ -55,13 +55,13 @@ Använd den när linjens form berättar historien: svarstid, fel, genomströmnin
 
 ### Värde
 
-Ett stort tal med en sparkline: frågans värde över hela tidsintervallet, summerat för en summa eller ett antal, det högsta för ett maximum, det lägsta för ett minimum och annars medelvärdet. En pil jämför intervallets andra halva med den första, varje halva beräknad på samma sätt, färgad efter **Trend Direction**: om ett högre värde är bättre eller sämre, eller avläst från mätvärdets namn. Peka på pilen för att se båda halvornas värden, och på sparklinen för att läsa av en punkts värde och tid. **Warning Threshold** gör bakgrunden gul och **Critical Threshold** röd när värdet når dem.
+Ett stort tal med en sparkline: frågans värde över hela tidsintervallet, summerat för en summa eller ett antal, det högsta för ett maximum, det lägsta för ett minimum och annars medelvärdet. En pil jämför intervallets andra halva med den första, varje halva beräknad på samma sätt, färgad efter **Trend Direction**: om ett högre värde är bättre eller sämre, eller avläst från mätvärdets namn. Peka på pilen för att se båda halvornas värden, och på sparklinen för att läsa av en punkts värde och tid. **Varningströskel** gör bakgrunden gul och **Kritiskt tröskelvärde** röd när värdet når dem.
 
 Använd den när ett tal besvarar frågan: felfrekvensen, P95-svarstiden eller antalet förfrågningar som hanterats i dag.
 
 ### Mätare
 
-En visare mellan ett minimum och ett maximum, 0 och 100 om du inte anger dem, med en gul zon från **Warning Threshold** och en röd zon från **Critical Threshold**.
+En visare mellan ett minimum och ett maximum, 0 och 100 om du inte anger dem, med en gul zon från **Varningströskel** och en röd zon från **Kritiskt tröskelvärde**.
 
 Använd den när värdet lever i ett känt intervall: CPU- eller diskanvändning i procent, eller en kös kapacitet.
 

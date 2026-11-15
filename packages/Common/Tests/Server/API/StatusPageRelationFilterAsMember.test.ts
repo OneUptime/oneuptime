@@ -254,7 +254,7 @@ describe.each(STATUS_PAGE_READERS)(
   },
 );
 
-test("not even a project owner selects the auth token through a status page: it is read from the settings' own routes", async () => {
+test("not even a Project Owner selects the auth token through a status page: it is read from the settings' own routes", async () => {
   props = caller([Permission.ProjectOwner]);
 
   const { error } = await post("/status-page/get-list", {

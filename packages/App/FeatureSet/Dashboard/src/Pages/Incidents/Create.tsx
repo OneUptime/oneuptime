@@ -1420,7 +1420,7 @@ const IncidentCreate: FunctionComponent<
                       data-testid="incident-create-private-from-alerts"
                     >
                       {translator.translateText(
-                        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, project owners and project admins can see it, and the owners of these alerts are added as its owners once it is declared.",
+                        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, Project Owners and Project Admins can see it, and the owners of these alerts are added as its owners once it is declared.",
                       )}
                     </p>
                   )}
@@ -1745,7 +1745,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Private Incident",
                   stepId: "incident-details",
                   description:
-                    "Only the incident's owners, project admins and project owners can see it. It never shows on status pages and takes no public notes.",
+                    "Only the incident's owners, Project Admins and Project Owners can see it. It never shows on status pages and takes no public notes.",
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: false,
                   required: false,

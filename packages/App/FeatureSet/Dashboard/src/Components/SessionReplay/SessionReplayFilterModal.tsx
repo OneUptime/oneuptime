@@ -177,7 +177,7 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
      */
     if (field.field === "identifiedUserRef" && props.isIdentityFilterIgnored) {
       return translator.translateTemplate(
-        'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the "{{permission}}" permission.',
+        'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a Project Admin for the "{{permission}}" permission.',
         {
           permission: getSessionReplayIdentityPermissionTitle(),
         },

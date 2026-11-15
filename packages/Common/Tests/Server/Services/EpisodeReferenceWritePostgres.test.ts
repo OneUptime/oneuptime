@@ -131,7 +131,7 @@ function apiKeyProps(
 // Everyone who writes in a project.
 const CALLERS: Array<Caller> = [
   {
-    caller: "a project admin",
+    caller: "a Project Admin",
     props: (_kind: Kind, projectId: ObjectID) => {
       return {
         tenantId: projectId,

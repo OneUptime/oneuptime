@@ -83,11 +83,11 @@ export default class TeamOwnedRulePermission {
    * permission to <type> this <noun>." - the API's words.
    */
   public static readonly TEAM_OWNED_WRITE_REASON: string =
-    "Teams own it, so it is changed only with the permissions of the teams that own it, and none of them lets you do this. Ask a member of a team that owns it, or a project admin.";
+    "Teams own it, so it is changed only with the permissions of the teams that own it, and none of them lets you do this. Ask a member of a team that owns it, or a Project Admin.";
 
   // The same, for an owning team of such a rule.
   public static getOwnedParentWriteReason(ruleNoun: string): string {
-    return `Teams own the ${ruleNoun} it belongs to, so its owning teams are changed only with the permissions of the teams that own that ${ruleNoun}, and none of them lets you do this. Ask a member of a team that owns it, or a project admin.`;
+    return `Teams own the ${ruleNoun} it belongs to, so its owning teams are changed only with the permissions of the teams that own that ${ruleNoun}, and none of them lets you do this. Ask a member of a team that owns it, or a Project Admin.`;
   }
 
   /*

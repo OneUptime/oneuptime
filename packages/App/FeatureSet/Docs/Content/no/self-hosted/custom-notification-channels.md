@@ -27,7 +27,7 @@ flowchart TB
     Service -->|"POST til handlingslenken"| OneUptime
 ```
 
-Når en vaktretningslinje tilkaller noen og vaktregelen deres bruker kanalen, sender OneUptime en forespørsel til kanalens URL. Den forteller hvem tilkallingen er til (navn og e-post) og hva den gjelder, og har med lenker som tjenesten din kaller når personen bekrefter, eskalerer eller løser den i appen din.
+Når en vaktpolicy tilkaller noen og vaktregelen deres bruker kanalen, sender OneUptime en forespørsel til kanalens URL. Den forteller hvem tilkallingen er til (navn og e-post) og hva den gjelder, og har med lenker som tjenesten din kaller når personen bekrefter, eskalerer eller løser den i appen din.
 
 ## Legg til en kanal
 
@@ -97,7 +97,7 @@ Hver tilkalling er en `POST`-forespørsel med en JSON-body:
 | `user` | Hvem tilkallingen er til. Finn kontoen i appen din ut fra `email` eller `id`. |
 | `team` | Teamet personen ble tilkalt gjennom, eller `null` når personen ble tilkalt direkte |
 | `recordType`, `record` | Hva tilkallingen gjelder: en `incident`, `alert`, `incidentEpisode` eller `alertEpisode` |
-| `onCallPolicy`, `escalationRule` | Retningslinjen og nivået som tilkalte personen |
+| `onCallPolicy`, `escalationRule` | Policyen og nivået som tilkalte personen |
 | `isPageAgain` | `true` når posten ble bekreftet for en stund siden og fortsatt ikke er løst |
 | `isObserverPage` | `true` når personen tilkalles som observatør: holdes orientert mens andre håndterer den. Å bekrefte tilkallingen betyr bare at de har sett den |
 | `actions` | Lenkene tjenesten din kaller for å [handle på tilkallingen](#handle-på-en-tilkalling) |
@@ -130,7 +130,7 @@ Når personen trykker på en knapp i appen din, sender tjenesten din en `POST`-f
 | Handling | Hva den gjør |
 | --- | --- |
 | `acknowledge` | Bekrefter personens tilkalling, og med den hendelsen, varselet eller episoden |
-| `escalate` | Personen kan ikke ta den: tilkaller nå neste nivå i vaktretningslinjen og slutter å tilkalle personen |
+| `escalate` | Personen kan ikke ta den: tilkaller nå neste nivå i vaktpolicyen og slutter å tilkalle personen |
 | `resolve` | Løser hendelsen, varselet eller episoden, hvis personens egne tillatelser tillater det |
 
 ```bash title="Acknowledge a page"
@@ -185,7 +185,7 @@ Et varsel går til hver kanal som er slått på, som én forespørsel per kanal,
 
 En forespørsel regnes som levert når tjenesten din svarer med en 2xx-status innen 10 sekunder. En forespørsel den ikke svarte på, eller svarte på med 408, 429 eller en 5xx-status, sendes på nytt etter 1 sekund og etter ytterligere 4 sekunder: tre forsøk i alt. Ved alle andre 4xx-statuser sendes den ikke på nytt. Hvordan hver melding gikk, telles i [Målinger for varslingslevering](/docs/self-hosted/notification-delivery-metrics) etter kanalens ID og navn.
 
-Utfallet av hvert forsøk står i personens vaktlogg, med kanalens navn og statusen tjenesten din svarte med, aldri URL-en. En tilkalling som ikke blir levert, stopper ikke vaktretningslinjen: Hvis ingen bekrefter, eskalerer den som vanlig. Ha en e-post- eller SMS-regel lenger ned i reglene dine hvis tjenesten din er den eneste måten å nå folk på.
+Utfallet av hvert forsøk står i personens vaktlogg, med kanalens navn og statusen tjenesten din svarte med, aldri URL-en. En tilkalling som ikke blir levert, stopper ikke vaktpolicyen: Hvis ingen bekrefter, eskalerer den som vanlig. Ha en e-post- eller SMS-regel lenger ned i reglene dine hvis tjenesten din er den eneste måten å nå folk på.
 
 ## Testforespørsler
 

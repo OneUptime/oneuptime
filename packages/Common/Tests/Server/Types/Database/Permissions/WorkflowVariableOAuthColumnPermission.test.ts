@@ -135,7 +135,7 @@ describe("ColumnPermissions on WorkflowVariable's OAuth columns", () => {
     },
   );
 
-  it("a project owner cannot write the access token", () => {
+  it("a Project Owner cannot write the access token", () => {
     expect(
       check(DatabaseRequestType.Update, { oauthAccessToken: "forged" }, [
         Permission.ProjectOwner,
@@ -151,7 +151,7 @@ describe("ColumnPermissions on WorkflowVariable's OAuth columns", () => {
     ).toThrow(BadDataException);
   });
 
-  it("a project owner cannot fake a token's expiry or a refresh", () => {
+  it("a Project Owner cannot fake a token's expiry or a refresh", () => {
     for (const column of [
       "oauthAccessTokenExpiresAt",
       "oauthLastRefreshedAt",

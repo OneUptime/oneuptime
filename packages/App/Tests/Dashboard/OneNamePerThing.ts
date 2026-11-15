@@ -1,3 +1,5 @@
+import { HtmlMarkupReplacer, replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
+
 /*
  * EACH LANGUAGE'S ONE NAME FOR A THING IT ONCE NAMED TWO OR THREE WAYS
  * (#8029, #8030, #8031).
@@ -55,6 +57,17 @@ export interface OneName {
  * the verb (Monitorn övervakar tjänsten), which stays.
  */
 const SWEDISH_NOUN_FOR_A_WATCHER: RegExp = /övervakar(?=\p{L})/iu;
+
+/*
+ * The words Norwegian dropped for an on-call or incoming call policy: a
+ * vakt(tjeneste)retningslinje in any form, a retningslinje for vakttjeneste
+ * or for innkommende anrop, and an (innkommende) anropsretningslinje. A
+ * retningslinje on its own is read by the on-call keys' own check
+ * (OneNamePerThingGuard), since Norwegian keeps the word for a guideline and
+ * a Kubernetes or network policy.
+ */
+export const NORWEGIAN_ON_CALL_POLICY_DROPPED: RegExp =
+  /vakt(?:tjeneste-?|ordning-)?retningslinj|retningslinj\p{L}* for (?:vakttjeneste|innkommende anrop)|anropsretningslinj/iu;
 
 // Several keys kept for one reason.
 function keptForOneReason(
@@ -143,6 +156,30 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
           why: WORKFLOW_STEPS_MESSAGE,
         },
       ],
+    },
+    /*
+     * An on-call policy is a "policy di reperibilità", as the On-Call
+     * menu (Reperibilità) and its Policy di reperibilità list say it; 48
+     * Dashboard strings said "criterio di reperibilità" (#8435).
+     */
+    {
+      title: "On-Call",
+      word: /reperibilità/i,
+      others: /criteri[oi] di reperibilità/i,
+    },
+  ],
+  /*
+   * "Plantão" is the On-Call menu's name, so a menu's path keeps its
+   * capital ("Plantão > Prontidão"), and so does a label in Title Case
+   * ("Minhas Políticas de Plantão"); in the middle of a name in sentence
+   * case it is a common noun: "ID da política de plantão", as "Políticas
+   * de plantão" says it (#8435).
+   */
+  pt: [
+    {
+      title: "On-Call",
+      word: /plantão/i,
+      others: /(?:^|\s)\p{Ll}\S* d[eoa] Plantão/u,
     },
   ],
   da: [
@@ -257,6 +294,23 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       word: /måling/i,
       others: /metrikk/i,
     },
+    /*
+     * An on-call policy is a vaktpolicy, and an incoming call policy a
+     * policy for innkommende anrop: "policy" is the Norwegian Dashboard's
+     * word for every policy it has (varslingspolicy, feilbudsjettpolicy,
+     * avspillingspolicy), and a new project's first policy is named
+     * "Standard vaktpolicy". The list, the menu and about a hundred
+     * sentences said vaktretningslinje, vakttjenesteretningslinje or
+     * retningslinje for vakttjeneste beside it (#8527; #8435 had settled on
+     * the list's word, and #8527 moved the list and #8435's names to the
+     * one policy's). Both nouns are common gender (en retningslinje, en
+     * policy), so en, den, denne and dens stayed as they were.
+     */
+    {
+      title: "On-Call",
+      word: /vakt/i,
+      others: NORWEGIAN_ON_CALL_POLICY_DROPPED,
+    },
   ],
 };
 
@@ -265,12 +319,24 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
  * <code> in the API reference), a tag and an address are not words a reader
  * reads as a name ({{workflowName}}, {queueName}, `workflow.yml`,
  * <code>Workflow</code>, https://.../workflows).
+ *
+ * The tags go last, each a space, through the shared walk
+ * (replaceHtmlMarkup), which reads a "<" as a browser does: "(< slower,
+ * > faster)" is words. An address goes whole first, a <placeholder> in it
+ * too, and ends at a quote, as one in a tag's attribute does, so it never
+ * runs on into the words of its link.
  */
 const NOT_WORDS: RegExp =
-  /\{\{[^{}]*\}\}|\{[A-Za-z_][\w.]*\}|`[^`]*`|<code>[\s\S]*?<\/code>|<[^<>]*>|\]\([^)]*\)|https?:\/\/\S+/g;
+  /\{\{[^{}]*\}\}|\{[A-Za-z_][\w.]*\}|`[^`]*`|<code>[\s\S]*?<\/code>|\]\([^)]*\)|https?:\/\/[^\s"]+/g;
+
+const AS_A_SPACE: HtmlMarkupReplacer = (): string => {
+  return " ";
+};
 
 export function wordsOf(text: string): string {
-  return text.replace(NOT_WORDS, " ");
+  return replaceHtmlMarkup(text.replace(NOT_WORDS, " "), AS_A_SPACE, {
+    lessThanAsText: true,
+  });
 }
 
 /*

@@ -638,7 +638,7 @@ describe("where the rule narrows (narrows)", () => {
     ).toBe(false);
   });
 
-  test("not OneUptime itself, a server admin, nor a project owner or admin", () => {
+  test("not OneUptime itself, a server admin, nor a Project Owner or Project Admin", () => {
     expect(
       PrivateRecordPermission.narrows(
         Incident,
@@ -667,7 +667,7 @@ describe("where the rule narrows (narrows)", () => {
     }
   });
 
-  test("a project admin limited to labels is no project admin of every private record", () => {
+  test("a Project Admin limited to labels is no Project Admin of every private record", () => {
     expect(
       PrivateRecordPermission.narrows(
         Incident,

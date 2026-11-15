@@ -897,7 +897,7 @@ describe.each(TEAMS_KINDS)(
               turnContext: createTurn().turnContext,
             }),
           ).rejects.toThrow(
-            `your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+            `your access in this project does not include this ${kind.noun}. Ask a Project Admin for access to it.`,
           );
 
           expect(createSpy).not.toHaveBeenCalled();
@@ -1419,7 +1419,7 @@ describe.each(TEAMS_KINDS)(
             turnContext: createTurn().turnContext,
           }),
         ).rejects.toThrow(
-          "your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+          "your access in this project does not include this on-call policy. Ask a Project Admin for access to it.",
         );
 
         expect(createSpy).not.toHaveBeenCalled();
@@ -1475,7 +1475,7 @@ describe.each(TEAMS_KINDS)(
           turnContext: turn.turnContext,
         }),
       ).rejects.toThrow(
-        `You do not have permission to see this ${kind.noun}: your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+        `You do not have permission to see this ${kind.noun}: your access in this project does not include this ${kind.noun}. Ask a Project Admin for access to it.`,
       );
 
       expect(readSpy.mock.calls[0]![0].props).toBe(props);
@@ -1742,7 +1742,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     expect(createSpy).not.toHaveBeenCalled();
     // The action and the record in the same words: a maintenance event (#6817).
     expect(repliesText(turn)).toEqual([
-      "You do not have permission to mark this maintenance event as complete: your access in this project does not include this maintenance event. Ask a project admin for access to it.",
+      "You do not have permission to mark this maintenance event as complete: your access in this project does not include this maintenance event. Ask a Project Admin for access to it.",
     ]);
   });
 
@@ -1792,7 +1792,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
       });
 
       expect(repliesText(turn)).toEqual([
-        `You do not have permission to ${does}: your access in this project does not include this maintenance event. Ask a project admin for access to it.`,
+        `You do not have permission to ${does}: your access in this project does not include this maintenance event. Ask a Project Admin for access to it.`,
       ]);
     },
   );

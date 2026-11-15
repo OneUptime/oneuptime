@@ -400,7 +400,7 @@ export function getPlanNoticeHtml(data: {
     SafeHtml.escape(
       `There is nothing to change in Huntress: your Huntress connection became the workflow "${data.workflowName}", which receives Huntress's reports at the same address, signed with the same secret, and does what the connection did.`,
     ),
-    SafeHtml.escape("Project owners get this email once."),
+    SafeHtml.escape("Project Owners get this email once."),
   ].join(" <br/> <br/> ");
 }
 

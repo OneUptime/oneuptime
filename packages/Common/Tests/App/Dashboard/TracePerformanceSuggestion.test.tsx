@@ -589,7 +589,7 @@ describe("what each offer draws", () => {
     expect(
       within(notice).getByTestId("code-blocker-who-can"),
     ).toHaveTextContent(
-      "A project owner or someone with Manage Billing can add AI credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits.",
     );
   });
 

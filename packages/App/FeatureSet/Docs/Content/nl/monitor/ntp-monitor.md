@@ -112,7 +112,7 @@ Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of ze **Alle** moete
 
 Een nieuwe NTP-monitor begint met twee criteria:
 
-- **Offline** — de server antwoordt niet, is niet gesynchroniseerd, of zijn klok ligt `1000` ms of meer van die van de sonde af. De monitor wordt als **Offline** gemarkeerd en er wordt een incident gemaakt met de naam "_monitornaam_ is not serving good time". Het lost zichzelf op zodra de server weer betrouwbare tijd levert.
+- **Offline** — de server antwoordt niet, is niet gesynchroniseerd, of zijn klok ligt `1000` ms of meer van die van de sonde af. De monitor wordt als **Offline** gemarkeerd en er wordt een incident gemaakt met de naam "_monitornaam_ levert niet de juiste tijd". Het lost zichzelf op zodra de server weer betrouwbare tijd levert.
 - **Online** — de server antwoordt, is gesynchroniseerd en zijn klok ligt binnen `1000` ms van die van de sonde. De monitor wordt als **Operationeel** gemarkeerd.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt, bepaalt wat er gebeurt. Een server die met de verkeerde tijd antwoordt, wordt bewust als uitgevallen behandeld: elke client die hem volgt, zou die tijd ook overnemen.

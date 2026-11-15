@@ -347,7 +347,7 @@ describe("Microsoft Teams monitor enable / disable", (): void => {
         turnContext: turnContext,
       }),
     ).rejects.toThrow(
-      "You do not have permission to enable this monitor: your access in this project does not include this monitor. Ask a project admin for access to it.",
+      "You do not have permission to enable this monitor: your access in this project does not include this monitor. Ask a Project Admin for access to it.",
     );
 
     expect(turnContext.sendActivity).not.toHaveBeenCalled();
@@ -535,7 +535,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
         turnContext: turnContext,
       }),
     ).rejects.toThrow(
-      "You do not have permission to see this monitor: your access in this project does not include this monitor. Ask a project admin for access to it.",
+      "You do not have permission to see this monitor: your access in this project does not include this monitor. Ask a Project Admin for access to it.",
     );
 
     expect(findSpy.mock.calls[0]![0].props).toBe(props);
@@ -569,7 +569,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
         databaseProps: props,
       }),
     ).rejects.toThrow(
-      "You do not have permission to see this on-call policy: your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+      "You do not have permission to see this on-call policy: your access in this project does not include this on-call policy. Ask a Project Admin for access to it.",
     );
 
     expect(findSpy.mock.calls[0]![0].props).toBe(props);
@@ -639,7 +639,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
         databaseProps: props,
       }),
     ).rejects.toThrow(
-      "You do not have permission to execute this on-call policy for this incident: your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+      "You do not have permission to execute this on-call policy for this incident: your access in this project does not include this on-call policy. Ask a Project Admin for access to it.",
     );
 
     expect(findSpy.mock.calls[0]![0].props).toBe(props);
@@ -677,7 +677,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
         databaseProps: props,
       }),
     ).rejects.toThrow(
-      "You do not have permission to execute this on-call policy for this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+      "You do not have permission to execute this on-call policy for this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.",
     );
 
     expect(incidentLookup.mock.calls[0]![0].props).toBe(props);

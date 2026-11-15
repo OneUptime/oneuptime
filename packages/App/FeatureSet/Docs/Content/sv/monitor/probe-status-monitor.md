@@ -60,7 +60,7 @@ Båda är heltal som jämförs med **Större än**, **Mindre än**, **Lika med**
 
 | Kriterium | Filter | Vad det gör |
 | --- | --- | --- |
-| Kontrollera om en sond är frånkopplad | **Frånkopplade sonder** större än `0` | Sätter monitorn offline och deklarerar en incident med titeln `Probe disconnected: {{disconnectedProbeNames}}`, som löser sig själv. |
+| Kontrollera om en sond är frånkopplad | **Frånkopplade sonder** större än `0` | Sätter monitorn offline och deklarerar en incident med titeln "Sond frånkopplad: {{disconnectedProbeNames}}", som löser sig själv. |
 | Kontrollera om alla sonder är anslutna | **Frånkopplade sonder** lika med `0` | Sätter monitorn till i drift. |
 
 Filtret **Anslutna sonder** passar en monitor som bevakar flera sonder och klarar att förlora en: **Anslutna sonder** mindre än `2` deklarerar en incident först när färre än två finns kvar.

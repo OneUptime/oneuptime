@@ -65,7 +65,7 @@ const OVERSIGHT: string = "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
 const PLATFORM: string = "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e";
 
 const REASON: string =
-  "This rule belongs to Oversight: only its members, with its permissions, and project admins can change it.";
+  "This rule belongs to Oversight: only its members, with its permissions, and Project Admins can change it.";
 
 const ACTIONS: Array<ModelAction.Update | ModelAction.Delete> = [
   ModelAction.Update,

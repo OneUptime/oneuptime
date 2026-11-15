@@ -306,7 +306,7 @@ describe("what the card offers", () => {
       }),
     ).toEqual({
       label:
-        "A project owner or someone with Manage Billing can add AI credits.",
+        "A Project Owner or someone with Manage Billing can add AI credits.",
       linksToAiCredits: false,
     });
     expect(

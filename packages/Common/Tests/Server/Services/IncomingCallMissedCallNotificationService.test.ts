@@ -253,7 +253,7 @@ describe("IncomingCallMissedCallNotificationService", () => {
       expect(recipients()).toEqual([ALICE.toString(), BOB.toString()]);
     });
 
-    test("the project owners, when the policy has no owners", async () => {
+    test("the Project Owners, when the policy has no owners", async () => {
       findOwners.mockResolvedValue([]);
 
       await notify();
@@ -262,7 +262,7 @@ describe("IncomingCallMissedCallNotificationService", () => {
       expect(recipients()).toEqual([PROJECT_OWNER.toString()]);
     });
 
-    test("an owner is told they own the policy; a project owner is told why they got it instead", async () => {
+    test("an owner is told they own the policy; a Project Owner is told why they got it instead", async () => {
       await notify();
       expect(sentTo(ALICE).emailEnvelope.vars["isOwner"]).toBe("true");
 

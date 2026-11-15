@@ -435,7 +435,7 @@ afterEach(() => {
 describe.each([
   ["a root caller", rootProps],
   ["a member who may only create Twilio configs", configCreatorProps],
-  ["a project admin", projectAdminProps],
+  ["a Project Admin", projectAdminProps],
 ] as Array<[string, PropsBuilder]>)(
   "ProjectCallSMSConfigService onBeforeCreate for %s",
   (_label: string, buildProps: PropsBuilder) => {

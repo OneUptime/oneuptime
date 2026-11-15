@@ -253,12 +253,12 @@ describe("a written path, as a reader follows it", () => {
     ],
     [
       "the refusal's old Project Settings path",
-      "Please ask a project admin to connect Slack in Project Settings > Slack Integration.",
+      "Please ask a Project Admin to connect Slack in Project Settings > Slack Integration.",
       'names no section or page of Project Settings: "Slack Integration',
     ],
     [
       "the same for Microsoft Teams",
-      "Please ask a project admin to connect Microsoft Teams in Project Settings > Microsoft Teams Integration.",
+      "Please ask a Project Admin to connect Microsoft Teams in Project Settings > Microsoft Teams Integration.",
       'names no section or page of Project Settings: "Microsoft Teams Integration',
     ],
     [
@@ -321,7 +321,7 @@ describe("a written path, as a reader follows it", () => {
       [["User Settings", "Alerts & Notifications", "Notification Settings"]],
     ],
     [
-      "A project admin connects it under Project Settings → Workspace → Microsoft Teams. Then connect your own account here.",
+      "A Project Admin connects it under Project Settings → Workspace → Microsoft Teams. Then connect your own account here.",
       [["Project Settings", "Workspace", "Microsoft Teams"]],
     ],
   ])("follows %s", (text: string, steps: Array<Array<string>>): void => {
@@ -521,8 +521,8 @@ describe("every translation names the path as its language's Dashboard draws it"
         "No Microsoft Teams account added. Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
         "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.",
         "You'll now receive OneUptime notifications in Telegram. You can manage event-level toggles under User Settings → Notification Settings.",
-        "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",
-        "A project admin connects it under Project Settings → Workspace → Microsoft Teams. Then you can connect your own Microsoft Teams account here.",
+        "A Project Admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",
+        "A Project Admin connects it under Project Settings → Workspace → Microsoft Teams. Then you can connect your own Microsoft Teams account here.",
       ]),
     );
 

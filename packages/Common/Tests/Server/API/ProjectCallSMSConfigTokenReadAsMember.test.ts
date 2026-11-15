@@ -110,8 +110,8 @@ const TOKEN: string = "0123456789abcdef0123456789abcdef";
 
 // Who may read the token: owners, admins, and the explicit Read Call and SMS.
 const TOKEN_READERS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   ["someone granted Read Call and SMS", [Permission.ReadProjectCallSMSConfig]],
   [
     "a viewer also granted Read Call and SMS",

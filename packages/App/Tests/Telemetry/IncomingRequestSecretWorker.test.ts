@@ -13,11 +13,14 @@
  *     X-OneUptime-Secret taken off, a Bearer token that is one of the
  *     project's secrets masked;
  *   - a request to a project that requires no secret is evaluated exactly as
- *     before.
+ *     before;
+ *   - while the project has a secret, required yet or not, the request's
+ *     monitor is told whether it sent one, and why not (issue #8498), so the
+ *     senders to fix are known before the requirement is turned on.
  *
  * The real gate (IncomingRequestSecretGate) and request parsing run; the
- * project's policy, the monitor lookup, the arrival store and the evaluation
- * are stubbed.
+ * project's policy, the monitor lookup, the arrival store, the evaluation and
+ * the monitor's record are stubbed.
  */
 
 jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
@@ -64,6 +67,7 @@ import { IncomingRequestIngestJobData } from "../../FeatureSet/Telemetry/Service
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
+import IncomingRequestSecretActivity from "Common/Server/Utils/Monitor/IncomingRequestSecretActivity";
 import IncomingRequestSecretPolicy, {
   IncomingRequestSecretPolicyValue,
 } from "Common/Server/Utils/Monitor/IncomingRequestSecretPolicy";
@@ -73,6 +77,7 @@ import { REDACTED } from "Common/Server/Utils/LogRedaction";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Dictionary from "Common/Types/Dictionary";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import { IncomingRequestSecretProblem } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import ObjectID from "Common/Types/ObjectID";
 import {
   afterEach,
@@ -106,6 +111,7 @@ const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 let policy: IncomingRequestSecretPolicyValue;
 let track: jest.Mock;
 let recordUse: jest.Mock;
+let recordActivity: jest.Mock;
 
 const job: (
   overrides?: Partial<IncomingRequestIngestJobData>,
@@ -164,7 +170,40 @@ beforeEach(() => {
   recordUse = jest
     .spyOn(IncomingRequestSecretPolicy, "recordUse")
     .mockResolvedValue(undefined) as unknown as jest.Mock;
+
+  recordActivity = jest
+    .spyOn(IncomingRequestSecretActivity, "record")
+    .mockResolvedValue(undefined) as unknown as jest.Mock;
 });
+
+// What the request's monitor was told, call by call.
+const recorded: () => Array<{
+  monitorId: string | undefined;
+  sentValidSecret: boolean;
+  problem: IncomingRequestSecretProblem | undefined;
+}> = (): Array<{
+  monitorId: string | undefined;
+  sentValidSecret: boolean;
+  problem: IncomingRequestSecretProblem | undefined;
+}> => {
+  return recordActivity.mock.calls.map((call: Array<unknown>) => {
+    const data: {
+      monitorId?: { toString: () => string };
+      sentValidSecret: boolean;
+      problem?: IncomingRequestSecretProblem;
+    } = call[0] as {
+      monitorId?: { toString: () => string };
+      sentValidSecret: boolean;
+      problem?: IncomingRequestSecretProblem;
+    };
+
+    return {
+      monitorId: data.monitorId?.toString(),
+      sentValidSecret: data.sentValidSecret,
+      problem: data.problem,
+    };
+  });
+};
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -177,6 +216,18 @@ describe("a project that requires an incoming request secret", () => {
     expect(track).not.toHaveBeenCalled();
     expect(monitorResource).not.toHaveBeenCalled();
     expect(recordUse).not.toHaveBeenCalled();
+  });
+
+  test("its monitor is told it had no secret", async () => {
+    await processIncomingRequestFromQueue(job({ presentedSecretHashes: [] }));
+
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID,
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.NoSecret,
+      },
+    ]);
   });
 
   test("a request whose secret was deleted while it waited is refused too", async () => {
@@ -219,6 +270,9 @@ describe("a project that requires an incoming request secret", () => {
       "user-agent": "acme-cron/1.4",
     });
     expect(recordUse).toHaveBeenCalledWith(SECRET_ID);
+    expect(recorded()).toEqual([
+      { monitorId: MONITOR_ID, sentValidSecret: true, problem: undefined },
+    ]);
   });
 
   test("a Bearer token that is the project's secret is masked before it is kept", async () => {
@@ -272,6 +326,8 @@ describe("a project that requires no secret", () => {
       "user-agent": "acme-cron/1.4",
     });
     expect(recordUse).not.toHaveBeenCalled();
+    // No secret to send: nothing to tell the monitor.
+    expect(recordActivity).not.toHaveBeenCalled();
   });
 
   test("the sender's own Authorization header is kept for its criteria", async () => {
@@ -284,5 +340,49 @@ describe("a project that requires no secret", () => {
     expect(evaluated().requestHeaders).toEqual({
       authorization: "Bearer the-senders-own-token",
     });
+  });
+});
+
+describe("a project with a secret that does not require one yet", () => {
+  beforeEach(() => {
+    policy = { isRequired: false, secrets: REQUIRED.secrets };
+  });
+
+  test("a request without it is tracked and evaluated as before, and its monitor told", async () => {
+    await processIncomingRequestFromQueue(job({ presentedSecretHashes: [] }));
+
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(evaluated().requestHeaders).toEqual({
+      "content-type": "application/json",
+      "user-agent": "acme-cron/1.4",
+    });
+    expect(recordUse).not.toHaveBeenCalled();
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID,
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.NoSecret,
+      },
+    ]);
+  });
+
+  test("a request with it as a Bearer token is masked and stamped as used, as it would be once required", async () => {
+    await processIncomingRequestFromQueue(
+      job({
+        requestHeaders: { authorization: `Bearer ${PROJECT_SECRET}` },
+        presentedSecretHashes: [
+          IncomingRequestSecretRequest.hashSecret(PROJECT_SECRET),
+        ],
+      }),
+    );
+
+    expect(evaluated().requestHeaders).toEqual({
+      authorization: `Bearer ${REDACTED}`,
+    });
+    expect(JSON.stringify(evaluated())).not.toContain(PROJECT_SECRET);
+    expect(recordUse).toHaveBeenCalledWith(SECRET_ID);
+    expect(recorded()).toEqual([
+      { monitorId: MONITOR_ID, sentValidSecret: true, problem: undefined },
+    ]);
   });
 });

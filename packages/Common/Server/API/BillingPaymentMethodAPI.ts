@@ -66,7 +66,7 @@ export default class UserAPI extends BaseAPI<
             )
           ) {
             throw new BadDataException(
-              "Only project owners or members with Manage Billing access can add payment methods.",
+              "Only Project Owners or members with Manage Billing access can add payment methods.",
             );
           }
 
@@ -140,7 +140,7 @@ export default class UserAPI extends BaseAPI<
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {
             throw new BadDataException(
-              "Only project owners or members with Manage Billing access can change the default payment method.",
+              "Only Project Owners or members with Manage Billing access can change the default payment method.",
             );
           }
 
