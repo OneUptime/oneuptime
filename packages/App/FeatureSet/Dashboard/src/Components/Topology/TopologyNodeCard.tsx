@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { Handle, Position } from "reactflow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -20,7 +21,8 @@ export const TOPOLOGY_NODE_HEIGHT: number = 128;
 
 export interface TopologyNodeStat {
   label: string;
-  value: string;
+  // None, and it draws the quiet dash (#8262).
+  value?: string | undefined;
   color?: string | undefined;
 }
 
@@ -179,7 +181,7 @@ const TopologyNodeCard: FunctionComponent<ComponentProps> = (
                     color: stat.color || "var(--ou-text-primary, #111827)",
                   }}
                 >
-                  {stat.value}
+                  {getValueOrQuietDash(stat.value, { isSmall: true })}
                 </span>{" "}
                 <span style={{ fontSize: 10, color: "#94a3b8" }}>
                   {stat.label}

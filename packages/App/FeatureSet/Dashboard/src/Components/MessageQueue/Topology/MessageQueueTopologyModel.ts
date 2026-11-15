@@ -6,6 +6,7 @@ import {
   MessageQueueTopologyService,
 } from "Common/Types/MessageQueue/MessageQueueTopology";
 import { getMessagingSystemDisplayName } from "Common/Types/MessageQueue/MessagingSystem";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   DEFAULT_LANGUAGE,
   Translator,
@@ -260,7 +261,7 @@ function brokerGroupLabel(
   queue: Pick<MessageQueueTopologyQueue, "messagingSystem" | "brokerScope">,
 ): string {
   const system: string =
-    getMessagingSystemDisplayName(queue.messagingSystem) || "—";
+    getMessagingSystemDisplayName(queue.messagingSystem) || EMPTY_VALUE_MARK;
   const scope: string = (queue.brokerScope || "").trim();
   return scope ? `${system} · ${scope}` : system;
 }
@@ -276,7 +277,7 @@ export function getMessageQueueTopologyQueueLabel(
     (queue.name || "").trim() ||
     (queue.destinationName || "").trim() ||
     getMessagingSystemDisplayName(queue.messagingSystem) ||
-    "—"
+    EMPTY_VALUE_MARK
   );
 }
 
@@ -416,7 +417,8 @@ export function buildMessageQueueTopologyModel(
       groupLabels.set(key, {
         label: brokerGroupLabel(queue),
         systemLabel:
-          getMessagingSystemDisplayName(queue.messagingSystem) || "—",
+          getMessagingSystemDisplayName(queue.messagingSystem) ||
+          EMPTY_VALUE_MARK,
       });
     }
     groupCounts.set(key, (groupCounts.get(key) || 0) + 1);
@@ -558,7 +560,7 @@ export function buildMessageQueueTopologyModel(
       getMessageQueueTopologyQueueStatus(queue);
     const health: TrafficHealth = healthOf(queue.spans, queue.errors);
     const systemLabel: string =
-      getMessagingSystemDisplayName(queue.messagingSystem) || "—";
+      getMessagingSystemDisplayName(queue.messagingSystem) || EMPTY_VALUE_MARK;
     const brokerLabel: string =
       (queue.brokerScope || "").trim() || (queue.brokerAddress || "").trim();
     const groupKey: string = getMessageQueueTopologyGroupKey(queue);
@@ -1108,7 +1110,7 @@ export function formatMessageQueueTopologyRate(
   translator?: Translator | undefined,
 ): string {
   if (!(messages > 0) || !(windowSeconds > 0)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const perSecond: number = messages / windowSeconds;
   const write: (figure: string, template: string) => string = (
@@ -1164,7 +1166,7 @@ export function formatMessageQueueTopologyPercent(
   translator?: Translator | undefined,
 ): string {
   if (percent === null || !Number.isFinite(percent) || percent < 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const language: string = translator ? translator.language : DEFAULT_LANGUAGE;
   const held: number = Math.min(percent, 100);
@@ -1188,7 +1190,7 @@ export function formatMessageQueueTopologyErrorRate(
   translator?: Translator | undefined,
 ): string {
   if (!(total > 0)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatMessageQueueTopologyPercent(
     (Math.min(errors, total) / total) * 100,

@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import ChartCard from "../TelemetryResource/ChartCard";
@@ -517,11 +518,13 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
                   />
                 </div>
                 <div className="mt-2 text-xl font-semibold text-gray-900">
-                  {formatDatabaseMetricValue(
-                    result.value,
-                    result.definition.unit,
-                    result.definition.kind,
-                    translator,
+                  {getFigure(
+                    formatDatabaseMetricValue(
+                      result.value,
+                      result.definition.unit,
+                      result.definition.kind,
+                      translator,
+                    ),
                   )}
                 </div>
                 <div className="mt-1 truncate font-mono text-xs text-gray-400">

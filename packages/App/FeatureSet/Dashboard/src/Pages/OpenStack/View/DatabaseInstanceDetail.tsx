@@ -128,7 +128,7 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
                   </Link>
                 ),
               }
-            : { key: "project", label: "Project", value: "—" },
+            : { key: "project", label: "Project", value: undefined },
         );
         if (row.regionName) {
           detailRows.push({

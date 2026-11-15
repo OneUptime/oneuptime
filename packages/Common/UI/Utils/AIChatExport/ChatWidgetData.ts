@@ -1,4 +1,5 @@
 import OneUptimeDate from "../../../Types/Date";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import {
   AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME,
   AIChatWidget,
@@ -103,7 +104,7 @@ export function getChatTableCellText(
   column: AIChatWidgetColumn,
 ): ChatTableCellText {
   if (value === null || value === undefined || value === "") {
-    return { text: "—", fullText: "—" };
+    return { text: EMPTY_VALUE_MARK, fullText: EMPTY_VALUE_MARK };
   }
 
   if (column.type === "date") {
@@ -345,7 +346,7 @@ export function formatTableCell(
   column: AIChatWidgetColumn,
 ): string {
   if (value === null || value === undefined || value === "") {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (column.type === "date") {
     const date: Date | null = readDate(value);

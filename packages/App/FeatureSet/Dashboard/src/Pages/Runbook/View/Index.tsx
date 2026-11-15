@@ -86,7 +86,9 @@ import RunbookTriggersSummaryElement, {
 } from "../../../Components/Runbook/Triggers/RunbookTriggersSummary";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Link from "Common/UI/Components/Link/Link";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
@@ -189,7 +191,7 @@ function triggerSourceElement(
     return (
       <span className="text-sm text-gray-700">
         {translateTemplate("Maintenance: {{title}}", {
-          title: sm.title || "—",
+          title: sm.title || EMPTY_VALUE_MARK,
         })}
       </span>
     );

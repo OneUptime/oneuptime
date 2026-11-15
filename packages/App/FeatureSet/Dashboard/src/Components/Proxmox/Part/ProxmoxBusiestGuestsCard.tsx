@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import Route from "Common/Types/API/Route";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
@@ -155,7 +156,10 @@ const ProxmoxBusiestGuestsCard: FunctionComponent<ComponentProps> = (
                           <div className="mb-1 flex items-center justify-between gap-2 text-xs">
                             <span className="text-gray-500">{tx("CPU")}</span>
                             <span className="font-medium tabular-nums text-gray-700">
-                              {formatPercent(guest.cpuPercent)}
+                              {getValueOrQuietDash(
+                                formatPercent(guest.cpuPercent),
+                                { isSmall: true },
+                              )}
                             </span>
                           </div>
                           <div

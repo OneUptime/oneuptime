@@ -84,7 +84,9 @@ import {
   getResourceHealthLabel,
 } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 import {
   figureInSentence,
   withSentenceDigits,
@@ -186,7 +188,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
@@ -195,7 +197,7 @@ const formatNumber: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(value, { decimals: 2 });
 };
@@ -204,7 +206,7 @@ const formatInt: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(Math.round(value), { decimals: 0 });
 };

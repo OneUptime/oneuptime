@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -16,7 +17,7 @@ import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
 // "۱٫۲ MiB/s": a rate in the reader's digits, read as a value of its own.
 export function formatOpenStackRate(value: number | null): string {
-  return value === null ? "—" : `${formatOpenStackBytes(value)}/s`;
+  return value === null ? EMPTY_VALUE_MARK : `${formatOpenStackBytes(value)}/s`;
 }
 
 export function addOpenStackRates(

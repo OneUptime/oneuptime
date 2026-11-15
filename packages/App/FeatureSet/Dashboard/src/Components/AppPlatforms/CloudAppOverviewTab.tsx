@@ -367,7 +367,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Requests",
-      value: m ? formatCompact(m.total, translator) : "—",
+      value: m ? formatCompact(m.total, translator) : undefined,
       valueNote: traceNote,
       icon: IconProp.Workflow,
       iconColor: "sky",
@@ -381,7 +381,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : undefined,
       valueNote: traceNote,
       icon: IconProp.Alert,
       iconColor: "rose",
@@ -400,7 +400,9 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
     {
       title: "p95 latency",
-      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
+      value: m
+        ? formatDurationMsInLanguage(m.p95DurationMs, translator)
+        : undefined,
       valueNote: traceNote,
       icon: IconProp.Clock,
       iconColor: "emerald",
@@ -441,7 +443,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Memory",
-      value: hasMemory ? formatBytes(totalMemory, translator) : "—",
+      value: hasMemory ? formatBytes(totalMemory, translator) : undefined,
       valueNote: memoryNote,
       icon: IconProp.SquareStack,
       iconColor: "violet",

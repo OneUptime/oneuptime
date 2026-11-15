@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ServiceCallsTable, {
   ServiceCallsTableRow,
@@ -66,7 +67,7 @@ export function getCallingServicesFooter(
 // A service's p95: "850 µs", "12 ms" in the reader's words (#7418), "1.25 s".
 function formatMs(value: number | null, translator: Translator): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value < 1) {
     return formatDurationInUnit(translator, value * 1000, "microsecond", {

@@ -1,4 +1,5 @@
 import EventName from "../../Utils/EventName";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import FeedbackWhereItGoes from "./FeedbackWhereItGoes";
 import { getFeedbackGitHubIssueUrl } from "./FeedbackPage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -219,7 +220,7 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
             "Sent with it: the page you are on ({{page}}) and the OneUptime version ({{version}}).",
             {
               page: page,
-              version: version || "-",
+              version: version || EMPTY_VALUE_MARK,
             },
           )}
         </p>

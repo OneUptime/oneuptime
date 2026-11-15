@@ -1,4 +1,5 @@
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import {
@@ -516,7 +517,7 @@ export function getDatabaseRunsOnLabel(
     getDatabaseRuntimePlatform(source);
 
   if (!platform) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const platformLabel: string =
@@ -640,7 +641,7 @@ export function formatDatabaseCount(
   translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return inLanguage(writeDatabaseCount(value), translator);
 }
@@ -667,7 +668,7 @@ export function formatDatabaseBytes(
   translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return inLanguage(writeDatabaseBytes(value), translator);
 }
@@ -694,7 +695,7 @@ export function formatDatabaseSeconds(
   translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   // `words.english` is what an English reader reads, its figure held to its unit.
   const write: (
@@ -744,7 +745,7 @@ export function formatDatabaseFraction(
   translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const percent: number = value * 100;
   const abs: number = Math.abs(percent);
@@ -1015,7 +1016,7 @@ export function formatDatabaseMetricValue(
   translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const cleanUnit: string = (unit || "").trim();
@@ -1087,7 +1088,7 @@ export function formatDatabaseErrorRate(
   translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return inLanguage(`${value.toFixed(1)}%`, translator);
 }
@@ -1103,7 +1104,7 @@ export function formatDatabaseLatencyMs(
   translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const reader: Translator = translator || ENGLISH_FIGURES;
   if (value < 1000) {
@@ -1265,7 +1266,7 @@ export function formatDatabaseMetricUnitValue(
   },
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const cleanUnit: string = (unit || "").trim();
   const annotation: RegExpExecArray | null =

@@ -3,6 +3,7 @@ import {
   rankInterfacesForAttention,
 } from "./InterfaceAttentionUtil";
 import PageMap from "../../Utils/PageMap";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
@@ -206,7 +207,7 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
                         "{{inRate}} / {{outRate}} Mbps",
                         {
                           inRate: row.inRateMbps,
-                          outRate: row.outRateMbps ?? "—",
+                          outRate: row.outRateMbps ?? EMPTY_VALUE_MARK,
                         },
                       )
                     ) : (
