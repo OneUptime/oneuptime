@@ -34,6 +34,8 @@ import {
 } from "../../../Types/Permission";
 import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
+  LONGEST_INACTIVITY_FIELD,
+  ReportedInactivity,
   SessionEndReason,
 } from "../../../Types/UserSession/SessionLength";
 import API, { AuthRetryContext } from "../../../Utils/API";
@@ -368,24 +370,56 @@ class BaseAPI extends API {
   }
 
   /*
-   * What a renewal of this client's session tells the server: on the
-   * Dashboard and the Admin Dashboard, how long their person has not used
-   * OneUptime (UserActivity), which the server's idle timeout is counted
-   * from. Nothing on a page that does not notice activity.
+   * What a renewal of this client's session at `nowMs` tells the server: on
+   * the Dashboard and the Admin Dashboard, how long their person has not
+   * used OneUptime (UserActivity), which the server's idle timeout is
+   * counted from, and the longest time they went without since the last
+   * renewal, when one was kept - a browser closed, a computer asleep - which
+   * ends the session when it reached the idle timeout (issue #6789).
+   * Nothing on a page that does not notice activity.
    */
-  protected static getRefreshSessionData(): JSONObject | undefined {
+  protected static getRefreshSessionData(
+    nowMs: number = Date.now(),
+  ): JSONObject | undefined {
     if (!this.isUserSession()) {
       return undefined;
     }
 
     const inactiveForInSeconds: number | null =
-      UserActivity.getInactiveForInSeconds();
+      UserActivity.getInactiveForInSeconds(nowMs);
 
     if (inactiveForInSeconds === null) {
       return undefined;
     }
 
-    return { [INACTIVE_FOR_IN_SECONDS_FIELD]: inactiveForInSeconds };
+    const data: JSONObject = {
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: inactiveForInSeconds,
+    };
+
+    const longestInactivity: ReportedInactivity | null =
+      UserActivity.getLongestInactivity(nowMs);
+
+    if (longestInactivity) {
+      data[LONGEST_INACTIVITY_FIELD] = {
+        forSeconds: longestInactivity.forSeconds,
+        endedSecondsAgo: longestInactivity.endedSecondsAgo,
+      };
+    }
+
+    return data;
+  }
+
+  /*
+   * A renewal that said what getRefreshSessionData said at `reportedAtMs`
+   * went through: the time without use it reported is the server's now,
+   * and the next renewal says only what came after.
+   */
+  protected static onRefreshSessionDataSent(reportedAtMs: number): void {
+    if (!this.isUserSession()) {
+      return;
+    }
+
+    UserActivity.forgetInactivityReportedBy(reportedAtMs);
   }
 
   // Forgets why a session ended. For tests.
@@ -442,8 +476,10 @@ class BaseAPI extends API {
           return true;
         }
 
+        const reportedAtMs: number = Date.now();
+
         const refreshData: JSONObject | undefined =
-          this.getRefreshSessionData();
+          this.getRefreshSessionData(reportedAtMs);
 
         const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await super.fetch<JSONObject>({
@@ -469,6 +505,10 @@ class BaseAPI extends API {
 
         if (refreshed) {
           this.markSessionRefreshed(sessionName);
+
+          if (refreshData) {
+            this.onRefreshSessionDataSent(reportedAtMs);
+          }
         }
 
         return refreshed;
