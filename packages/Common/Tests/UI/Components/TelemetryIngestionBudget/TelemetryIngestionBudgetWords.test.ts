@@ -79,17 +79,17 @@ describe("the words", () => {
 
 describe("sizes and rates", () => {
   test.each([
-    [10 * GB, "10 GB"],
-    [1.5 * GB, "1.5 GB"],
-    [350 * 1024 * 1024, "350 MB"],
-    [0, "0 GB"],
+    [10 * GB, "10\u00A0GB"],
+    [1.5 * GB, "1.5\u00A0GB"],
+    [350 * 1024 * 1024, "350\u00A0MB"],
+    [0, "0\u00A0GB"],
   ])("%p bytes is %p", (bytes: number, text: string) => {
     expect(formatTelemetryIngestionBudgetBytes(bytes, english)).toBe(text);
   });
 
   test.each([
-    [5 * 1024 * 1024, "5 MB per second"],
-    [2 * GB, "2 GB per second"],
+    [5 * 1024 * 1024, "5\u00A0MB per second"],
+    [2 * GB, "2\u00A0GB per second"],
   ])("%p bytes a second is %p", (bytesPerSecond: number, text: string) => {
     expect(formatTelemetryIngestionBudgetRate(bytesPerSecond, english)).toBe(
       text,

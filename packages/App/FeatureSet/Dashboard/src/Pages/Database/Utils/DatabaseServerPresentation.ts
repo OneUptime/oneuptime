@@ -680,7 +680,7 @@ function writeDatabaseBytes(value: number): string {
     index++;
   }
   // Plain bytes are whole: "0 B", "512 B" - never "0.0 B" (issue #7417).
-  return `${scaled.toFixed(index > 0 && Math.abs(scaled) < 10 ? 1 : 0)} ${units[index]}`;
+  return `${scaled.toFixed(index > 0 && Math.abs(scaled) < 10 ? 1 : 0)}\u00A0${units[index]}`;
 }
 
 /*
@@ -695,50 +695,43 @@ export function formatDatabaseSeconds(
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
   }
+  // `words.english` is what an English reader reads, its figure held to its unit.
   const write: (
     figure: number,
     unit: "second" | "minute" | "hour" | "day",
-    english: string,
+    words: { english: string },
   ) => string = (
     figure: number,
     unit: "second" | "minute" | "hour" | "day",
-    english: string,
+    words: { english: string },
   ): string => {
     if (!translator) {
-      return english;
+      return words.english;
     }
     return formatDurationInUnit(translator, figure, unit, {
       decimals: unit === "second" && figure >= 10 ? 0 : 1,
       dropTrailingZeros: unit !== "second",
-      english: english,
+      english: words.english,
     });
   };
   if (value < 60) {
-    return write(
-      value,
-      "second",
-      `${value < 10 ? value.toFixed(1) : Math.round(value)} s`,
-    );
+    return write(value, "second", {
+      english: `${value < 10 ? value.toFixed(1) : Math.round(value)}\u00A0s`,
+    });
   }
   if (value < 3600) {
-    return write(
-      value / 60,
-      "minute",
-      `${(value / 60).toFixed(1).replace(/\.0$/, "")} min`,
-    );
+    return write(value / 60, "minute", {
+      english: `${(value / 60).toFixed(1).replace(/\.0$/, "")}\u00A0min`,
+    });
   }
   if (value < 86400) {
-    return write(
-      value / 3600,
-      "hour",
-      `${(value / 3600).toFixed(1).replace(/\.0$/, "")} h`,
-    );
+    return write(value / 3600, "hour", {
+      english: `${(value / 3600).toFixed(1).replace(/\.0$/, "")}\u00A0h`,
+    });
   }
-  return write(
-    value / 86400,
-    "day",
-    `${(value / 86400).toFixed(1).replace(/\.0$/, "")} d`,
-  );
+  return write(value / 86400, "day", {
+    english: `${(value / 86400).toFixed(1).replace(/\.0$/, "")}\u00A0d`,
+  });
 }
 
 /**
@@ -976,7 +969,7 @@ export function formatDatabaseMetricAxisValue(
   if (cleanUnit === "bytes") {
     // A whole tick reads "0 B" or "5 GiB", not "0.0 B" or "5.0 GiB".
     return inLanguage(
-      formatDatabaseBytes(value).replace(/\.0 /, " "),
+      formatDatabaseBytes(value).replace(/\.0(?=[ \u00A0])/, ""),
       translator,
     );
   }

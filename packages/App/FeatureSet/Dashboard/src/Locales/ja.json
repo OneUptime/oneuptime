@@ -38163,7 +38163,7 @@
   "Guest Down or Replication Failing misses some guests": "Guest Down または Replication Failing が一部のゲストを見逃す",
   "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "{{enabled}} をオンにし、{{endpoints}} にコントロールプレーンノード上の etcd を指定してください。平文のメトリクスポートには http:// を使い、HTTPS のクライアントポートを使う場合は、etcd が求めるクライアント証明書を格納した Secret を {{secret}} に指定します。EKS、GKE、AKS などのマネージドクラスターは etcd を公開していません。",
   "{{matches}} of {{sampled}}": "{{sampled}} 件中 {{matches}} 件",
-  "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
+  "{{minutes}} min {{seconds}} s": "{{minutes}} 分 {{seconds}} 秒",
   "{{on}} of {{total}} on": "{{total}} 件中 {{on}} 件がオン",
   "{{percent}}% of values": "値の {{percent}}%",
   "{{region}} is not a region. Write regions as your cloud names them, such as eu-west-1, europe-west4 or westeurope; * matches any characters.": "{{region}} はリージョンではありません。リージョンは eu-west-1、europe-west4、westeurope など、クラウドでの名称で記述してください。* は任意の文字に一致します。",

@@ -7,6 +7,7 @@ import {
   GROUPING_SUMMARY_COPY,
   GroupingRuleKind,
   GroupingRuleTranslateFunction,
+  createGroupingRuleTranslate,
   formatGroupingDuration,
 } from "../../../FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
 import { Translator } from "Common/Types/Translator";
@@ -93,16 +94,12 @@ const LANGUAGES_WITH_GROUPING_RULES: Array<string> = ["en", "fa"];
  * as its Dashboard draws them, worked out here from the same helpers.
  */
 
-// The grouping rule pages' translate in this language (translateGroupingRuleText).
+/*
+ * The grouping rule pages' translate in this language, as
+ * translateGroupingRuleText builds it: its counts in the reader's digits.
+ */
 function groupingTranslate(language: string): GroupingRuleTranslateFunction {
-  const translator: Translator = dashboardTranslator(language);
-
-  return (
-    text: string,
-    values?: Record<string, string | number> | undefined,
-  ): string => {
-    return translator.translateTemplate(text, values || {});
-  };
+  return createGroupingRuleTranslate(dashboardTranslator(language));
 }
 
 // A folded section's item, as FoldedSection draws one: its title looked up, then its value.

@@ -417,7 +417,9 @@ describe("the latest response times in the reader's language", () => {
   test("English: as it read, its thousands grouped", () => {
     expect(
       getLatestResponseTimeText(SOME_RESPONDED, dashboardTranslator("en")),
-    ).toBe("Latest: 1,234 ms median across 12 of 13 probes (950–1,800 ms)");
+    ).toBe(
+      "Latest: 1,234\u00A0ms median across 12 of 13 probes (950–1,800\u00A0ms)",
+    );
   });
 
   test("German: German words, German grouping, one probe in the singular", () => {
@@ -450,7 +452,7 @@ describe("the latest response times in the reader's language", () => {
     );
 
     expect(line).toBe(
-      "الأحدث: الوسيط 1,234\u00A0ملي ث عبر 12 من 13 من المسابير (950–1,800\u00A0ملي ث)",
+      "الأحدث: الوسيط 1,234\u00A0ملي\u00A0ث عبر 12 من 13 من المسابير (950–1,800\u00A0ملي\u00A0ث)",
     );
     expect(line).not.toMatch(/[A-Za-z]/);
   });

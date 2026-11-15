@@ -136,7 +136,7 @@ export function formatHostListBytes(
   return `${formatReaderFigure(value, {
     decimals: value >= 100 || i === 0 ? 0 : 1,
     language: translator.language,
-  })} ${units[i]}`;
+  })}\u00A0${units[i]}`;
 }
 
 /*

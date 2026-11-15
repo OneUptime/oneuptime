@@ -880,7 +880,7 @@ describe("the SLO widget in English reads as it always did", () => {
       expect.arrayContaining([
         `${SLO_NAME} · Error Budget Remaining`,
         "-12.5%",
-        "−42 min over budget",
+        "−42\u00A0min over budget",
       ]),
     );
 
@@ -1256,7 +1256,7 @@ describe("the SLO list widget in German and Arabic", () => {
         "99.95%",
         "target 99.9%",
         "42.5%",
-        "60 min remaining",
+        "60\u00A0min remaining",
         "1.25×",
       ]),
     );
@@ -1264,7 +1264,7 @@ describe("the SLO list widget in German and Arabic", () => {
       expect.arrayContaining(["Not Evaluated", "target 99.9%"]),
     );
     expect(rowTexts("Payments API")).toEqual(
-      expect.arrayContaining(["−10 min over budget"]),
+      expect.arrayContaining(["−10\u00A0min over budget"]),
     );
   });
 });

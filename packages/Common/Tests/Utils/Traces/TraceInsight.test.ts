@@ -1043,11 +1043,11 @@ describe("how findings say numbers", () => {
   });
 
   test("durations", () => {
-    expect(formatTraceDuration(840)).toBe("840 ms");
-    expect(formatTraceDuration(2400)).toBe("2.4 s");
-    expect(formatTraceDuration(12_400)).toBe("12 s");
-    expect(formatTraceDuration(-1)).toBe("0 ms");
-    expect(formatTraceDuration(Number.POSITIVE_INFINITY)).toBe("0 ms");
+    expect(formatTraceDuration(840)).toBe("840\u00A0ms");
+    expect(formatTraceDuration(2400)).toBe("2.4\u00A0s");
+    expect(formatTraceDuration(12_400)).toBe("12\u00A0s");
+    expect(formatTraceDuration(-1)).toBe("0\u00A0ms");
+    expect(formatTraceDuration(Number.POSITIVE_INFINITY)).toBe("0\u00A0ms");
   });
 });
 
@@ -1250,7 +1250,7 @@ describe("what OneUptime asks the AI", () => {
       "OneUptime found this in the service's traces on its own.",
     );
     expect(message).toContain(
-      "Over the last hour its slowest requests took 2.4 s (p99 of 1,234 requests).",
+      "Over the last hour its slowest requests took 2.4\u00A0s (p99 of 1,234 requests).",
     );
     expect(message).toContain(
       "the same database query ran 40 times under GET /orders",
@@ -1378,7 +1378,7 @@ describe("what OneUptime asks the AI", () => {
         sampleDurationMs: 2600,
       }),
     ).toBe(
-      "In its slowest request over the last hour (2.6 s), 2.1 s was spent in GET /report itself, with no span under it to say where.",
+      "In its slowest request over the last hour (2.6\u00A0s), 2.1\u00A0s was spent in GET /report itself, with no span under it to say where.",
     );
   });
 
@@ -1407,7 +1407,7 @@ describe("what OneUptime asks the AI", () => {
       readSlowRequest(nPlusOneRequest()).fixable[0]!;
 
     expect(describeSlowFindingCost(finding)).toBe(
-      "the same database query ran 40 times under GET /orders: 1.6 s together, 80% of the request",
+      "the same database query ran 40 times under GET /orders: 1.6\u00A0s together, 80% of the request",
     );
   });
 });
@@ -1428,7 +1428,7 @@ describe("what the task is given beside the trace", () => {
 
     expect(note).toContain("Operation: GET /orders");
     expect(note).toContain("Spans in the window: 1,234");
-    expect(note).toContain("p99: 2.4 s");
+    expect(note).toContain("p99: 2.4\u00A0s");
     expect(note).toContain("Sample trace: 4bf92f3577b34da6a3ce929d0e0e4736");
     expect(note).toContain("Statement: SELECT * FROM orders WHERE id = ?");
     expect(note).toContain("Code: src/orders/list.ts:42 (listOrders)");
@@ -1508,15 +1508,15 @@ describe("the evidence a person reads on the finding", () => {
     expect(detail[0]).toBe("**Slow operation in checkout**");
     expect(detail).toContain("- Operation: `GET /orders`");
     expect(detail).toContain(
-      "- In the last hour: 1,234 spans, p50 180 ms, p99 2.4 s",
+      "- In the last hour: 1,234 spans, p50 180\u00A0ms, p99 2.4\u00A0s",
     );
     expect(detail).toContain(
-      "- Slowest request: trace `4bf92f3577b34da6a3ce929d0e0e4736`, 2 s",
+      "- Slowest request: trace `4bf92f3577b34da6a3ce929d0e0e4736`, 2\u00A0s",
     );
     expect(detail).toContain("- Code: `src/orders/list.ts:42`");
     expect(detail).toContain("**What the slowest request repeats**");
     expect(detail).toContain(
-      "- The same database query ran 40 times under GET /orders: 1.6 s together, 80% of the request",
+      "- The same database query ran 40 times under GET /orders: 1.6\u00A0s together, 80% of the request",
     );
     expect(detail).toContain("  - Query: `SELECT * FROM orders WHERE id = ?`");
 
@@ -1585,7 +1585,7 @@ describe("the evidence a person reads on the finding", () => {
     );
 
     expect(detail[0]).toBe("**Missing tracing in edge**");
-    expect(detail).toContain("- In the last hour: 9,200 spans, p99 1.3 s");
+    expect(detail).toContain("- In the last hour: 9,200 spans, p99 1.3\u00A0s");
     expect(detail.join("\n")).not.toContain("p50");
     expect(detail).toContain(
       "- Every span was its trace's only span: nothing is recorded inside a request",
@@ -1622,10 +1622,10 @@ describe("the evidence a person reads on the finding", () => {
 
     expect(untraced[0]).toBe("**Missing tracing in checkout**");
     expect(untraced).toContain(
-      "- Untraced: 2.2 s in `ReportBuilder.build` itself, with no span under it",
+      "- Untraced: 2.2\u00A0s in `ReportBuilder.build` itself, with no span under it",
     );
     expect(untraced).toContain(
-      "- Slowest request: trace `4bf92f3577b34da6a3ce929d0e0e4736`, 3 s",
+      "- Slowest request: trace `4bf92f3577b34da6a3ce929d0e0e4736`, 3\u00A0s",
     );
 
     const silent: Array<string> = lines(
@@ -1666,7 +1666,7 @@ describe("the evidence a person reads on the finding", () => {
       readSlowRequest(nPlusOneRequest()).fixable[0]!;
 
     expect(describeSlowFindingCostAsItem(base)).toBe(
-      "The same database query ran 40 times under GET /orders: 1.6 s together, 80% of the request",
+      "The same database query ran 40 times under GET /orders: 1.6\u00A0s together, 80% of the request",
     );
     // An operation's own name is kept as the service wrote it.
     expect(

@@ -38163,7 +38163,7 @@
   "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
   "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "開啟 {{enabled}}，並將 {{endpoints}} 指向控制平面節點上的 etcd：明文指標連接埠使用 http://；使用 HTTPS 用戶端連接埠時，在 {{secret}} 填入存放 etcd 所需用戶端憑證的 Secret。EKS、GKE 與 AKS 等代管叢集不會公開 etcd。",
   "{{matches}} of {{sampled}}": "{{sampled}} 個中的 {{matches}} 個",
-  "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
+  "{{minutes}} min {{seconds}} s": "{{minutes}} 分鐘 {{seconds}} 秒",
   "{{on}} of {{total}} on": "{{total}} 個中已開啟 {{on}} 個",
   "{{percent}}% of values": "{{percent}}% 的值",
   "{{region}} is not a region. Write regions as your cloud names them, such as eu-west-1, europe-west4 or westeurope; * matches any characters.": "{{region}} 不是有效的地區。請使用您雲端的地區命名方式，例如 eu-west-1、europe-west4 或 westeurope；* 可比對任何字元。",

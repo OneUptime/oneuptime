@@ -315,6 +315,35 @@ const marked: (words: Array<CriteriaWords>) => Array<CriteriaWords> = (
   });
 };
 
+/*
+ * The English words as the Translator draws them: each number held to the
+ * unit it is written beside (#8302) - the NTP criteria's "1000 ms" holds
+ * together in English as in every other language. Nothing else changes.
+ */
+const setAsEnglish: (
+  words: Array<CriteriaWords> | undefined,
+) => Array<CriteriaWords> | undefined = (
+  words: Array<CriteriaWords> | undefined,
+): Array<CriteriaWords> | undefined => {
+  const set: (text: string) => string = (text: string): string => {
+    return withNumbersKeptWithUnits(text, text);
+  };
+  const setOpened: (opened: OpenedWords) => OpenedWords = (
+    opened: OpenedWords,
+  ): OpenedWords => {
+    return { title: set(opened.title), description: set(opened.description) };
+  };
+
+  return words?.map((criteria: CriteriaWords): CriteriaWords => {
+    return {
+      name: set(criteria.name),
+      description: set(criteria.description),
+      incidents: criteria.incidents.map(setOpened),
+      alerts: criteria.alerts.map(setOpened),
+    };
+  });
+};
+
 interface LookedUp {
   template: string;
   values: TemplateValues;
@@ -500,7 +529,7 @@ describe("a new monitor's default criteria, written for a reader", () => {
         createTranslator(undefined, "en"),
       ]) {
         expect(wordsOfSteps(defaultSteps({ monitorType, translator }))).toEqual(
-          ENGLISH[monitorType],
+          setAsEnglish(ENGLISH[monitorType]),
         );
       }
     },
