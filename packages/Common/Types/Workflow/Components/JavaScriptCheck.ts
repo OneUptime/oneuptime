@@ -5,6 +5,7 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 /*
  * CHECK WITH JAVASCRIPT.
@@ -98,26 +99,29 @@ export const decideJavaScriptCheck: DecideJavaScriptCheckFunction = (
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.JavaScriptCheck,
-    title: "Check With JavaScript",
-    category: "Conditions",
-    description:
+    title: translationKey("Check With JavaScript"),
+    category: translationKey("Conditions"),
+    description: translationKey(
       "Runs your JavaScript, then continues on Yes when it returns true, or on No.",
+    ),
     iconProp: IconProp.Code,
     componentType: ComponentType.Component,
     arguments: [
       {
         type: ComponentInputType.JavaScript,
-        name: "JavaScript Code",
-        description:
+        name: translationKey("JavaScript Code"),
+        description: translationKey(
           "Return true, or an object whose proceed is true, to continue on Yes. Anything else continues on No.",
+        ),
         required: true,
         id: "code",
       },
       {
         type: ComponentInputType.JSON,
-        name: "Arguments",
-        description:
+        name: translationKey("Arguments"),
+        description: translationKey(
           "Values the code reads as args, usually from earlier steps.",
+        ),
         required: false,
         id: "arguments",
       },
@@ -125,48 +129,61 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         type: ComponentInputType.AnyValue,
-        name: "Value",
-        description: "What the code returned, for the steps after it.",
+        name: translationKey("Value"),
+        description: translationKey(
+          "What the code returned, for the steps after it.",
+        ),
         required: false,
         id: "returnValue",
       },
       {
         type: ComponentInputType.Text,
-        name: "Reason",
-        description:
+        name: translationKey("Reason"),
+        description: translationKey(
           "The reason the code gave, or what it returned, in a sentence.",
+        ),
         required: false,
         id: "reason",
       },
       {
         type: ComponentInputType.Text,
-        name: "Error",
-        description: "Why the code failed, when it continues on Error.",
+        name: translationKey("Error"),
+        description: translationKey(
+          "Why the code failed, when it continues on Error.",
+        ),
         required: false,
         id: "error",
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description: "Connect the step that runs before this check.",
+        title: translationKey("In"),
+        description: translationKey(
+          "Connect the step that runs before this check.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Yes",
-        description: "Runs next when the code returns true, or proceed: true.",
+        title: translationKey("Yes"),
+        description: translationKey(
+          "Runs next when the code returns true, or proceed: true.",
+        ),
         id: JAVASCRIPT_CHECK_PORT_IDS.yes,
       },
       {
-        title: "No",
-        description: "Runs next when the code returns anything else.",
+        title: translationKey("No"),
+        description: translationKey(
+          "Runs next when the code returns anything else.",
+        ),
         id: JAVASCRIPT_CHECK_PORT_IDS.no,
       },
       {
-        title: "Error",
-        description: "Runs next when the code throws or runs too long.",
+        title: translationKey("Error"),
+        description: translationKey(
+          "Runs next when the code throws or runs too long.",
+        ),
         id: JAVASCRIPT_CHECK_PORT_IDS.error,
       },
     ],

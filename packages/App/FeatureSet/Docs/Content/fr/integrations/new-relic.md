@@ -43,7 +43,7 @@ Ensuite, [configurez New Relic](#configurer-new-relic) pour qu'il envoie ses pro
 
 ### Ce que fait le flux de travail
 
-Après le déclencheur **Webhook**, l'étape **Check With JavaScript** `read-event-1` lit le `state` qu'envoie New Relic, et **Incident From Another Tool**, ou **Alert From Another Tool** dans le modèle des alertes, fait ce qu'il signifie, d'après l'ID du problème. L'incident garde l'ID dans son champ personnalisé `newRelicIssueId`.
+Après le déclencheur **Webhook**, l'étape **Vérifier avec JavaScript** `read-event-1` lit le `state` qu'envoie New Relic, et **Incident depuis un autre outil**, ou **Alerte depuis un autre outil** dans le modèle des alertes, fait ce qu'il signifie, d'après l'ID du problème. L'incident garde l'ID dans son champ personnalisé `newRelicIssueId`.
 
 | Ce qu'envoie New Relic | Ce que fait le flux de travail |
 | --- | --- |

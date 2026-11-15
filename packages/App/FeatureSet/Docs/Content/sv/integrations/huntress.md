@@ -13,7 +13,7 @@ Den här integrationen är **inkommande**: Huntress skickar varje händelse om e
 
 ## Så fungerar det
 
-Huntress skickar en händelse om en incidentrapport när rapporten skickas, när någon kommenterar den och när den stängs. Utlösaren **Huntress Incident Report** startar arbetsflödet en gång för varje händelse, och dess **Händelse** säger vilken det var: `created`, `comment-added` eller `closed`.
+Huntress skickar en händelse om en incidentrapport när rapporten skickas, när någon kommenterar den och när den stängs. Utlösaren **Huntress-incidentrapport** startar arbetsflödet en gång för varje händelse, och dess **Händelse** säger vilken det var: `created`, `comment-added` eller `closed`.
 
 ```mermaid title="En Huntress-incidentrapport i ett arbetsflöde"
 sequenceDiagram
@@ -55,11 +55,11 @@ Incidenten sparar rapportens nummer i sina anpassade fält, som `huntressReportI
 
 ### Välj vem som larmas
 
-Dialogen frågar sedan vem som ska larmas: under **Who to page for high and critical reports** väljer du de jourpolicyer som ska larmas, eller ingen för att inte larma någon, och klickar på **Skapa arbetsflöde**. Arbetsflödet öppnas i **Byggare**, avstängt. För att senare ändra vem det larmar klickar du på dess steg **Page an On-Call Policy** och ändrar dess **Jourpolicyer**.
+Dialogen frågar sedan vem som ska larmas: under **Who to page for high and critical reports** väljer du de jourpolicyer som ska larmas, eller ingen för att inte larma någon, och klickar på **Skapa arbetsflöde**. Arbetsflödet öppnas i **Byggare**, avstängt. För att senare ändra vem det larmar klickar du på dess steg **Starta en jourpolicy** och ändrar dess **Jourpolicyer**.
 
 ### Lägg till en webhook-slutpunkt i Huntress
 
-Klicka på utlösaren **Huntress Incident Report** och klicka på **Kopiera URL** under **Lägg till en webhook-slutpunkt i Huntress**. URL:en ser ut som `https://oneuptime.com/workflow/huntress/<key>`; på en egen installation börjar den med din egen värd.
+Klicka på utlösaren **Huntress-incidentrapport** och klicka på **Kopiera URL** under **Lägg till en webhook-slutpunkt i Huntress**. URL:en ser ut som `https://oneuptime.com/workflow/huntress/<key>`; på en egen installation börjar den med din egen värd.
 
 Öppna menyn uppe till höger i Huntress och välj **Integrations**. Klicka på **Add an Integration**, välj **Webhooks** och klicka på **Add Endpoint**. Klistra in URL:en, slå på **Incident Reports** och spara. Låt **Escalations**, **Platform Actions** och **Account Notices** vara avstängda: utlösaren tar emot de händelserna och startar ingenting för dem.
 
@@ -79,15 +79,15 @@ Slå på **Aktiverad** högst upp i **Byggare**. Öppna slutpunktens meny (⋯) 
 
 ## Vad arbetsflödet gör
 
-Efter utlösaren gör **Incident From Another Tool** det som varje **Händelse** ber om, utifrån rapportens nummer:
+Efter utlösaren gör **Incident från ett annat verktyg** det som varje **Händelse** ber om, utifrån rapportens nummer:
 
 | Event | Vad arbetsflödet gör |
 | --- | --- |
-| `created` | Öppnar en incident med utlösarens **Id för incidentallvarlighet**, med etiketten från dess **Organization Label ID**. För en hög eller kritisk rapport larmar **Page an On-Call Policy** din policy; en låg rapport larmar ingen. En rapport som redan har en incident öppnar ingen till. |
+| `created` | Öppnar en incident med utlösarens **Id för incidentallvarlighet**, med etiketten från dess **ID för organisationsetikett**. För en hög eller kritisk rapport larmar **Starta en jourpolicy** din policy; en låg rapport larmar ingen. En rapport som redan har en incident öppnar ingen till. |
 | `comment-added` | Hittar rapportens incident och lägger till kommentaren på den som en privat anteckning. |
 | `closed` | Hittar rapportens incident och löser den, om den inte redan är löst. Orsaken står på dess tidslinje: Huntress stängde rapporten. |
 
-Det är ett arbetsflöde som alla andra, så du kan ändra vad det gör: larma bara för kritiska rapporter genom att ändra vad **If / Else** efter **Incident From Another Tool** jämför, posta varje rapport i en chattkanal med ett Slack- eller Microsoft Teams-steg, eller skicka varje organisation till sin egen jourpolicy med en **Switch / Case** på **Organisation**. Varje körning listas bland arbetsflödets körningar, med vad varje steg gjorde.
+Det är ett arbetsflöde som alla andra, så du kan ändra vad det gör: larma bara för kritiska rapporter genom att ändra vad **Om / Annars** efter **Incident från ett annat verktyg** jämför, posta varje rapport i en chattkanal med ett Slack- eller Microsoft Teams-steg, eller skicka varje organisation till sin egen jourpolicy med en **Val / Fall** på **Organisation**. Varje körning listas bland arbetsflödets körningar, med vad varje steg gjorde.
 
 ### Allvarlighetsgrader
 
@@ -103,7 +103,7 @@ Ett projekt med färre allvarlighetsgrader använder sin lägsta för resten. En
 
 ### Organisationer
 
-Utlösarens **Organization Label ID** är en etikett med namnet på rapportens Huntress-organisation, till exempel _Acme Corp_, som den skapar första gången en rapport från den organisationen kommer fram. Ett arbetsflöde tar emot rapporterna från alla organisationer i ditt Huntress-konto, och utlösarens **Endast dessa organisationer** begränsar det: ett organisationsnamn eller ID per rad, där namn inte skiljer på versaler och gemener.
+Utlösarens **ID för organisationsetikett** är en etikett med namnet på rapportens Huntress-organisation, till exempel _Acme Corp_, som den skapar första gången en rapport från den organisationen kommer fram. Ett arbetsflöde tar emot rapporterna från alla organisationer i ditt Huntress-konto, och utlösarens **Endast dessa organisationer** begränsar det: ett organisationsnamn eller ID per rad, där namn inte skiljer på versaler och gemener.
 
 > [!TIP]
 > För att larma varje kunds eget team lägger du till en jourregel för incidenter per organisation, till exempel ”Om **Incidentetiketter** har någon av _Acme Corp_”, som kör kundens policy. Se [Jourregler för incidenter](/docs/incidents/settings#jourregler-för-incidenter).
@@ -115,7 +115,7 @@ Utlösaren öppnas på Huntress: dess URL, en bock vid varje konfigurationssteg 
 | Värde | Vad det innehåller |
 | --- | --- |
 | **Händelse** | `created`, `comment-added` eller `closed`. En rapport som redan är stängd eller avfärdad är `closed`, oavsett vilken händelse som kom med den. |
-| **Report ID** | Rapportens nummer i Huntress. |
+| **Rapport-ID** | Rapportens nummer i Huntress. |
 | **Allvarlighetsgrad** | `critical`, `high` eller `low`. |
 | **Status** | Rapportens status i Huntress, till exempel `sent`, `closed` eller `dismissed`. |
 | **Ämne** | Rapportens ämne, så som Huntress skriver det. |
@@ -124,15 +124,15 @@ Utlösaren öppnas på Huntress: dess URL, en bock vid varje konfigurationssteg 
 | **Berörd** | Den värd eller identitet som rapporten gäller. |
 | **Plattform**, **Indikatorer** | Var Huntress hittade det, och vad den hittade. |
 | **Kommentar** | Kommentaren som någon lade till, vid `comment-added`. |
-| **Report URL** | Var rapporten öppnas i Huntress. |
+| **Rapport-URL** | Var rapporten öppnas i Huntress. |
 | **Incidenttitel**, **Incidentbeskrivning** | En titel och en Markdown-beskrivning för en incident om rapporten. |
 | **Anteckning** | Markdown för en anteckning om händelsen: kommentaren, eller att Huntress stängde rapporten. |
-| **Id för incidentallvarlighet**, **Organization Label ID** | Incidentallvarlighetsgraden och etiketten, som ovan. |
-| **Received At** | När OneUptime tog emot händelsen. |
+| **Id för incidentallvarlighet**, **ID för organisationsetikett** | Incidentallvarlighetsgraden och etiketten, som ovan. |
+| **Mottaget** | När OneUptime tog emot händelsen. |
 
 **Sammanfattning** och **Kommentar** är text som Huntress analytiker har skrivit. Använd **Incidentbeskrivning** och **Anteckning** för att lägga dem i en incident eller en anteckning: de behåller formateringen, och inget i dem hämtar en bild eller nämner någon.
 
-För att prova arbetsflödet utan Huntress klickar du på **Kör arbetsflöde** i **Byggare** och skriver en **Händelse**, ett **Report ID** och de fält du behöver. Använd samma **Report ID** för att följa en rapport från `created` till `closed`.
+För att prova arbetsflödet utan Huntress klickar du på **Kör arbetsflöde** i **Byggare** och skriver en **Händelse**, ett **Rapport-ID** och de fält du behöver. Använd samma **Rapport-ID** för att följa en rapport från `created` till `closed`.
 
 ## Huntress-anslutningar som skapats tidigare
 
@@ -170,15 +170,15 @@ Slå på **Aktiverad** högst upp i **Byggare**. Huntress skickar den avvisade f
 :::
 
 :::details "No Huntress workflow has this address."
-Arbetsflödet har tagits bort eller arkiverats, dess utlösare är inte längre **Huntress Incident Report**, eller så är slutpunktens URL i Huntress inte arbetsflödets. Kopiera URL:en från utlösaren och klistra in den i slutpunkten i Huntress igen.
+Arbetsflödet har tagits bort eller arkiverats, dess utlösare är inte längre **Huntress-incidentrapport**, eller så är slutpunktens URL i Huntress inte arbetsflödets. Kopiera URL:en från utlösaren och klistra in den i slutpunkten i Huntress igen.
 :::
 
 :::details Ingen incident öppnades
-Öppna arbetsflödets körningar och rapportens körning. Om **Incident From Another Tool** misslyckades med `This project has no incident severities to put the incident at.` lägger du till en under **Incidenter → Inställningar → Incidentallvar**.
+Öppna arbetsflödets körningar och rapportens körning. Om **Incident från ett annat verktyg** misslyckades med `This project has no incident severities to put the incident at.` lägger du till en under **Incidenter → Inställningar → Incidentallvar**.
 :::
 
 :::details Ingen larmades
-En låg rapport öppnar en incident utan att larma någon. Annars säger rapportens körning vad **Page an On-Call Policy** gjorde, och incidentens sida **Jourexekveringar** visar vad varje policy gjorde.
+En låg rapport öppnar en incident utan att larma någon. Annars säger rapportens körning vad **Starta en jourpolicy** gjorde, och incidentens sida **Jourexekveringar** visar vad varje policy gjorde.
 :::
 
 ## Nästa steg

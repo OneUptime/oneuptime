@@ -49,11 +49,11 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Incident**. Klikk på triggeren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse**.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Incident**. Klikk på triggeren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse**.
 
 ### Opprett varselet
 
-Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **URL** til `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Sett **Forespørselshoder** under **Flere felt** til:
+Klikk på **Legg til komponent**, legg til en **API-kall POST (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **URL** til `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Sett **Forespørselshoder** under **Flere felt** til:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ Og **Forespørselstekst** til:
 
 ### Test den, og slå den deretter på
 
-Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API Post (JSON)** viser et `202`-svar, og varselet dukker opp i Opsgenie et øyeblikk senere. Slå deretter på **Aktivert** øverst i **Bygger**.
+Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API-kall POST (JSON)** viser et `202`-svar, og varselet dukker opp i Opsgenie et øyeblikk senere. Slå deretter på **Aktivert** øverst i **Bygger**.
 :::
 
 Opsgenies skjema er ordet `GenieKey`, et mellomrom og deretter nøkkelen. Opsgenie begrenser `message` til 130 tegn, og prioritetene går fra `P1` til `P5`: se [Knytt prioriteter til Opsgenie](#knytt-prioriteter-til-opsgenie) for å sende hver hendelses egen.
@@ -85,7 +85,7 @@ En arbeidsflyt har én trigger, så det trengs en annen arbeidsflyt for å lukke
 :::steps
 ### Legg til triggeren On Update Incident
 
-Opprett en arbeidsflyt som heter `Close Opsgenie alerts`, og velg **On Update Incident** som trigger. Klikk på **Legg til felt** i **Fields to watch**, og velg **Current Incident State**, slik at den bare kjører når tilstanden endres. Spør i **Fields to pass on** om den nye tilstanden er en løst tilstand: klikk på **Legg til felt**, åpne **Current Incident State**, og velg **Is Resolved State**. Eller klikk på **Rediger som JSON**, og erstatt JSON-en med:
+Opprett en arbeidsflyt som heter `Close Opsgenie alerts`, og velg **On Update Incident** som trigger. Klikk på **Legg til felt** i **Felt som overvåkes**, og velg **Current Incident State**, slik at den bare kjører når tilstanden endres. Spør i **Felt som sendes videre** om den nye tilstanden er en løst tilstand: klikk på **Legg til felt**, åpne **Current Incident State**, og velg **Is Resolved State**. Eller klikk på **Rediger som JSON**, og erstatt JSON-en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Opprett en arbeidsflyt som heter `Close Opsgenie alerts`, og velg **On Update In
 
 ### Sjekk at hendelsen er løst
 
-Legg til en **If / Else**-blokk etter triggeren. Sett **Verdi som skal sjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sann**.
+Legg til en **Hvis / Ellers**-blokk etter triggeren. Sett **Verdi som skal sjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sann**.
 
 ### Lukk varselet
 
-Legg til en **API Post (JSON)**-blokk etter **Ja**-siden, med de samme **Forespørselshoder** og denne **URL**:
+Legg til en **API-kall POST (JSON)**-blokk etter **Ja**-siden, med de samme **Forespørselshoder** og denne **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,10 +114,10 @@ Slå på **Aktivert**, og løs deretter en testhendelse i OneUptime. Opsgenie lu
 
 ## Knytt prioriteter til Opsgenie
 
-For å sende hver hendelses alvorlighetsgrad som en Opsgenie-prioritet legger du til en **Run Custom JavaScript**-blokk mellom triggeren og **API Post (JSON)**-blokken.
+For å sende hver hendelses alvorlighetsgrad som en Opsgenie-prioritet legger du til en **Kjør egen JavaScript**-blokk mellom triggeren og **API-kall POST (JSON)**-blokken.
 
-1. Klikk på **Legg til felt** i triggerens **Fields to pass on**, åpne **Hendelsesalvor**, og velg **Navn**.
-2. Sett blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og **JavaScript-kode** til:
+1. Klikk på **Legg til felt** i triggerens **Felt som sendes videre**, åpne **Hendelsesalvor**, og velg **Navn**.
+2. Sett blokkens **Argumenter** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og **JavaScript-kode** til:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie svarer `202` før den behandler forespørselen, så en forespørsel den
 :::
 
 :::details Arbeidsflyten kjører aldri
-Sjekk at den er slått på: **Aktivert**, øverst i dens **Bygger**. Åpne deretter **Logger → Kjøringer**: en kjøring som tok **Nei**-siden av **If / Else**-blokken, er en oppdatering som ikke var en løsning.
+Sjekk at den er slått på: **Aktivert**, øverst i dens **Bygger**. Åpne deretter **Logger → Kjøringer**: en kjøring som tok **Nei**-siden av **Hvis / Ellers**-blokken, er en oppdatering som ikke var en løsning.
 :::
 
 ## Neste trinn

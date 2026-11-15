@@ -125,19 +125,19 @@ Apri **Prodotti → Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. 
 
 ### Aggiungi il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Alert** nel pannello **Aggiungi trigger**. Fai clic sul trigger: **Fields to pass on** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Alert** nel pannello **Aggiungi trigger**. Fai clic sul trigger: **Campi da passare** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
 
 ### Controlla il titolo
 
-Fai clic su **Aggiungi componente**, scegli **If / Else** e collega a esso il punto **Successo** del trigger. Imposta **Valore da verificare** sul titolo dell'avviso (fai clic su **{ }** e sceglilo), **Confronto** su **contiene** e **Confronta con** sull'inizio comune ai titoli dei tuoi inneschi, come `LLM budget exceeded`.
+Fai clic su **Aggiungi componente**, scegli **Se / Altrimenti** e collega a esso il punto **Successo** del trigger. Imposta **Valore da verificare** sul titolo dell'avviso (fai clic su **{ }** e sceglilo), **Confronto** su **contiene** e **Confronta con** sull'inizio comune ai titoli dei tuoi inneschi, come `LLM budget exceeded`.
 
 ### Chiama il tuo endpoint
 
-Aggiungi **API Post (JSON)** e collega a esso il punto **Sì** dell'**If / Else**. Imposta il suo **URL** sul tuo endpoint, come `https://agents.example.com/circuit-breaker`, e compila le intestazioni e il corpo qui sotto.
+Aggiungi **Chiamata API POST (JSON)** e collega a esso il punto **Sì** dell'**Se / Altrimenti**. Imposta il suo **URL** sul tuo endpoint, come `https://agents.example.com/circuit-breaker`, e compila le intestazioni e il corpo qui sotto.
 
 ### Segnala un errore
 
-Aggiungi **Send Message to Slack**, o **Send Email**, e collega a esso il punto **Errore** del blocco API. Un circuit breaker che non riesce a scattare è proprio l'avviso che una persona deve vedere.
+Aggiungi **Invia messaggio a Slack**, o **Invia email**, e collega a esso il punto **Errore** del blocco API. Un circuit breaker che non riesce a scattare è proprio l'avviso che una persona deve vedere.
 
 ### Attivalo
 
@@ -164,7 +164,7 @@ Il suo **Corpo della Richiesta**:
 }
 ```
 
-Per reagire a più inneschi, fai iniziare tutti i loro titoli allo stesso modo, o concatena altri blocchi **If / Else** dal punto **No**. Vedi [Creare un flusso di lavoro](/docs/workflows/authoring) per la tela e [Variabili](/docs/workflows/variables) per i riferimenti `{{…}}`.
+Per reagire a più inneschi, fai iniziare tutti i loro titoli allo stesso modo, o concatena altri blocchi **Se / Altrimenti** dal punto **No**. Vedi [Creare un flusso di lavoro](/docs/workflows/authoring) per la tela e [Variabili](/docs/workflows/variables) per i riferimenti `{{…}}`.
 
 ## Prova il circuit breaker
 
@@ -180,7 +180,7 @@ Per reagire a più inneschi, fai iniziare tutti i loro titoli allo stesso modo, 
 - Un budget conta il giorno UTC, quindi la sua percentuale riparte da 0 a mezzanotte UTC. Un avviso di budget può quindi risolversi, e il giorno storto successivo apre un nuovo avviso che fa scattare di nuovo il circuit breaker.
 - Un monitor tiene aperto il suo avviso finché i suoi criteri sono soddisfatti. Con **Risoluzione automatica dell'avviso** attiva, l'avviso si risolve quando smettono di esserlo, e il superamento successivo apre un nuovo avviso.
 - Riarmare è una decisione di una persona, da entrambe le parti: risolvi l'avviso in OneUptime e riarma il circuit breaker nel tuo runner.
-- Ogni nuovo avviso del progetto avvia il flusso di lavoro. È l'**If / Else** a tenere gli altri avvisi lontani dal circuit breaker: non toglierlo.
+- Ogni nuovo avviso del progetto avvia il flusso di lavoro. È l'**Se / Altrimenti** a tenere gli altri avvisi lontani dal circuit breaker: non toglierlo.
 
 ## Risoluzione dei problemi
 
@@ -189,7 +189,7 @@ Controlla che **Abilitato** sia attivo in cima al **Costruttore**: i flussi di l
 :::
 
 :::details Il flusso di lavoro si esegue, ma prende sempre il ramo No
-Il titolo è vuoto o non corrisponde. Un campo che non è in **Fields to pass on** del trigger arriva vuoto, quindi aggiungi lì il titolo. Poi confronta il titolo dell'avviso con **Confronta con**: **contiene** deve trovarvi esattamente quel testo.
+Il titolo è vuoto o non corrisponde. Un campo che non è in **Campi da passare** del trigger arriva vuoto, quindi aggiungi lì il titolo. Poi confronta il titolo dell'avviso con **Confronta con**: **contiene** deve trovarvi esattamente quel testo.
 :::
 
 :::details Il tuo endpoint risponde 401
@@ -201,7 +201,7 @@ L'**Intervallo di tempo** del monitor è più breve dei 15 minuti tra due punti 
 :::
 
 :::details La richiesta non raggiunge mai il tuo endpoint
-Apri l'esecuzione in **Flussi di lavoro → Registri → Esecuzioni** e il passo **API Post (JSON)**: dice perché la richiesta è fallita. Su OneUptime Cloud, l'endpoint deve essere raggiungibile da internet; un'installazione self-hosted rifiuta gli indirizzi di rete privati a meno che un amministratore non li consenta.
+Apri l'esecuzione in **Flussi di lavoro → Registri → Esecuzioni** e il passo **Chiamata API POST (JSON)**: dice perché la richiesta è fallita. Su OneUptime Cloud, l'endpoint deve essere raggiungibile da internet; un'installazione self-hosted rifiuta gli indirizzi di rete privati a meno che un amministratore non li consenta.
 :::
 
 ## Passaggi successivi

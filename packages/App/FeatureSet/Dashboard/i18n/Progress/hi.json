@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 8535
+    "keys": 55438,
+    "untranslated": 8379
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -25,6 +25,7 @@
     "Azure AKS",
     "Azure Kubernetes Service.",
     "Brute force detected",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
@@ -160,6 +161,7 @@
     "VMware VM",
     "VMware vCenter",
     "Vital",
+    "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

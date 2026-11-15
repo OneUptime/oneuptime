@@ -62,11 +62,11 @@ Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse** og **Incident Number With Prefix**.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident**. Klik på triggeren: dens **Felter, der sendes videre** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse** og **Incident Number With Prefix**.
 
 ### Åbn issuet
 
-Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind triggerens punkt **Succes** til den. Sæt dens **URL** til `https://api.github.com/repos/your-org/your-repo/issues`, med dit repositories ejer og navn. Sæt under **Flere felter** dens **Anmodningsheadere** til:
+Klik på **Tilføj komponent**, tilføj en blok **API-kald POST (JSON)**, og forbind triggerens punkt **Succes** til den. Sæt dens **URL** til `https://api.github.com/repos/your-org/your-repo/issues`, med dit repositories ejer og navn. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
 ```json
 {
@@ -88,7 +88,7 @@ Og dens **Anmodningsbrødtekst** til:
 
 ### Test det, og slå det derefter til
 
-Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API Post (JSON)** viser et `201`-svar med det nye issue, med dets `number` og dets `html_url`. Slå derefter **Aktiveret** til øverst i **Bygger**.
+Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API-kald POST (JSON)** viser et `201`-svar med det nye issue, med dets `number` og dets `html_url`. Slå derefter **Aktiveret** til øverst i **Bygger**.
 :::
 
 Issuet forbliver åbent, når hændelsen er løst, da opfølgningsarbejdet som regel lever længere end hændelsen. For tickets, der holdes i takt med hændelsen i begge retninger, se [Jira](/docs/integrations/jira).
@@ -97,11 +97,11 @@ Issuet forbliver åbent, når hændelsen er løst, da opfølgningsarbejdet som r
 
 - **GitHub Enterprise Server.** Send i stedet anmodningen til din server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. En server på en privat netværksadresse kræver et selvhostet OneUptime, hvis administrator tillader det: se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 - **Tildel det.** Føj `"assignees": ["octocat"]` eller `"milestone": 3` til body'en. GitHub dropper labels, tildelte og milepæle uden et ord, når tokenet ikke må pushe til repositoriet.
-- **Kun nogle hændelser.** Sæt en blok **If / Else** mellem triggeren og API-blokken, og åbn kun issues på dens **Ja**-side, for eksempel for én alvorlighed.
+- **Kun nogle hændelser.** Sæt en blok **Hvis / Ellers** mellem triggeren og API-blokken, og åbn kun issues på dens **Ja**-side, for eksempel for én alvorlighed.
 
 ## Fejlfinding
 
-Trinnet **API Post (JSON)** tager **Fejl**, når GitHub afviser anmodningen. Dets **Response Status** og **Svarets brødtekst** i kørslen siger hvorfor.
+Trinnet **API-kald POST (JSON)** tager **Fejl**, når GitHub afviser anmodningen. Dets **Svarstatus** og **Svarets brødtekst** i kørslen siger hvorfor.
 
 :::details GitHub svarer 401
 Tokenet er forkert, udløbet eller tilbagekaldt. Opret et nyt, og erstat indholdet af `GITHUB_TOKEN`.

@@ -195,7 +195,7 @@ OAuth 2.0 変数のページにある **アクセストークン** カードに�
 | このようなブロックの後では…                               | 読むもの                                                                               |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID が `lookup-user` の **API** ブロック                   | ステータスコード: `{{local.components.lookup-user.returnValues.response-status}}`。本文: `{{local.components.lookup-user.returnValues.response-body}}`。 |
-| ID が `transform` の **Run Custom JavaScript** ブロック   | 返したもの: `{{local.components.transform.returnValues.returnValue}}`。                |
+| ID が `transform` の **カスタム JavaScript を実行** ブロック   | 返したもの: `{{local.components.transform.returnValues.returnValue}}`。                |
 | ID が `incident-on-create-1` の **On Create Incident** トリガー | インシデントのタイトル: `{{local.components.incident-on-create-1.returnValues.model.title}}`。レコードのトリガーはレコードを `model` として返し、その中をたどります。 |
 
 ブロックの値は、現在の実行のあいだだけ存在します。新しい実行はそれぞれ白紙から始まります。
@@ -208,16 +208,16 @@ OAuth 2.0 変数のページにある **アクセストークン** カードに�
 - Slack、Teams、Discord、Telegram、IRC、Mattermost、Email のメッセージ本文。
 - メールの件名と本文。
 - ヘッダーと本文のフィールド（文字列の値の中）。
-- **If / Else** ブロックの両辺。
+- **条件分岐** ブロックの両辺。
 
-JSON の欄 — レコードのコンポーネントの **Data (JSON Object)** と **クエリ**、API ブロックの **リクエストボディ**、**Run Custom JavaScript** の **Arguments** — では、参照は置かれた場所に応じて埋められます。
+JSON の欄 — レコードのコンポーネントの **データ (JSON オブジェクト)** と **クエリ**、API ブロックの **リクエストボディ**、**カスタム JavaScript を実行** の **引数** — では、参照は置かれた場所に応じて埋められます。
 
 - **引用符の中ではテキストです。** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` は値を文字列の中に入れます。値に含まれる引用符、バックスラッシュ、改行はエスケープされるので、JSON は有効なまま、値は 1 つの文字列のままです。
 - **単独では値そのものです。** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` はオブジェクト全体を挿入し、リストはリストのまま、数値は数値のままです。それ自体が JSON であるテキスト — `5`、`true`、またはブロックが JSON テキストとして返したオブジェクト — は、その値として挿入されます。それ以外のテキストは文字列として挿入されます。
 
-キーの引用符の中にある参照もテキストです。構造を動的に組み立てる必要がある場合は、**Run Custom JavaScript** ブロックで組み立て、その出力を次のブロックに渡してください。
+キーの引用符の中にある参照もテキストです。構造を動的に組み立てる必要がある場合は、**カスタム JavaScript を実行** ブロックで組み立て、その出力を次のブロックに渡してください。
 
-**Run Custom JavaScript** ブロックは変数を自動では受け取りません。サンドボックスには何も注入されません。ブロックの JSON 欄 **Arguments** に `{{global.variables.NAME}}`（または任意のコンポーネント参照）を入れてください。その値はスクリプトの実行前に埋められ、`args` として届きます。
+**カスタム JavaScript を実行** ブロックは変数を自動では受け取りません。サンドボックスには何も注入されません。ブロックの JSON 欄 **引数** に `{{global.variables.NAME}}`（または任意のコンポーネント参照）を入れてください。その値はスクリプトの実行前に埋められ、`args` として届きます。
 
 ## 配列を繰り返す
 
@@ -238,7 +238,7 @@ JSON の欄 — レコードのコンポーネントの **Data (JSON Object)** �
 Webhook が `{ "service": "checkout", "status": "failed" }` のような本文とともに届きます。これを OneUptime のインシデントにするには:
 
 1. ID が `ci-webhook` の **Webhook** トリガー。
-2. **If / Else** ブロック: **確認する値** は Webhook の Request Body の `status` フィールド（`{{local.components.ci-webhook.returnValues.request-body.status}}`）、**比較** は **と等しい**、**比較対象** は `failed`。
+2. **条件分岐** ブロック: **確認する値** は Webhook の Request Body の `status` フィールド（`{{local.components.ci-webhook.returnValues.request-body.status}}`）、**比較** は **と等しい**、**比較対象** は `failed`。
 3. **はい** のブランチから、次の内容の **Create One Incident** ブロック:
    - タイトル: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 説明: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
@@ -291,7 +291,7 @@ API キーには **Edit Workflow Variables** が必要です。読み取り権�
 - **{ } を使う（または `{{` と入力する）。** ランナーが期待する正確なコンポーネント、戻り値、変数の ID が挿入され、ブロックの実行時に存在する値だけが表示されます。
 - **変数名は大文字と小文字を区別します。** `{{global.variables.MyKey}}` と `{{global.variables.mykey}}` は別物です。
 - **解決できない参照はそのまま残り、空にはなりません。** 存在しないものを参照してもエラーにはならず、空文字列にもなりません。波かっこはそのまま渡されるため、ステップ ID の綴りを間違えた `{{local.components.api-get-1.returnValues.body}}` は、Slack のメッセージ、URL、リクエスト本文にそのまま入り、実行はそれでも **実行済み** と報告します。実行の **ステップ** タブでは、すり抜けた参照をすべて挙げた警告がそのステップに表示され、それがあった設定に **解決しませんでした** と印が付きます。実行のログにも同じ警告の行があります。例外はデータコンポーネントが読み書きする ID で、たとえば **クエリ** の `_id` です。その場合、ステップは何かを読み書きする前に止まって **エラー** 出力を選び、どの参照が解決しなかったか、何を確認すればよいかを示します。
-- **中身のないフィールドは空で届きます。** すべてのレコードにすべてのフィールドがあるわけではありません。モニターが発生させていないアラート（SLO からのものや手動で作成したものなど）にはモニターがないため、`{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` には返すものがありません。メッセージではその部分に何も入らず、JSON で単独の値としては `null` になります。誰も書いていない説明、レコードが持たないカスタムフィールド、レコードを見つけられなかった **Find One**、その項目がないリスト、ブロックが渡さないフィールドも同じです。ブロックが渡さないフィールドの場合は、**Fields to pass on** に何を追加するかを示す警告もステップに表示されます。例外は URL と、レコードを読み書きするブロックです。空になるとブロックが作用する対象が変わってしまうため、そこでは参照がそのまま残り、ID はブロックを停止させます。別の経路に進むには、**If / Else** の **が空** で値を確認します。アラートの元になった SLO を示すには、その名前を渡して `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}` を使います。
+- **中身のないフィールドは空で届きます。** すべてのレコードにすべてのフィールドがあるわけではありません。モニターが発生させていないアラート（SLO からのものや手動で作成したものなど）にはモニターがないため、`{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` には返すものがありません。メッセージではその部分に何も入らず、JSON で単独の値としては `null` になります。誰も書いていない説明、レコードが持たないカスタムフィールド、レコードを見つけられなかった **Find One**、その項目がないリスト、ブロックが渡さないフィールドも同じです。ブロックが渡さないフィールドの場合は、**引き渡すフィールド** に何を追加するかを示す警告もステップに表示されます。例外は URL と、レコードを読み書きするブロックです。空になるとブロックが作用する対象が変わってしまうため、そこでは参照がそのまま残り、ID はブロックを停止させます。別の経路に進むには、**条件分岐** の **が空** で値を確認します。アラートの元になった SLO を示すには、その名前を渡して `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}` を使います。
 - **問題パネルは変数名をチェックできません。** 照合できないコンポーネント参照 — 未知のステップ ID、未知の戻り値、無効なルート — は保存前に指摘しますが、変数が存在するかは分かりません。ブロックの設定なら分かります。存在しない変数への参照は、そこでオレンジのチップとして表示されます。それ以外では、名前を変えた変数は実行のログでしか見つかりません。
 - **波かっこの内側の空白はトリムされません。** `{{ local.variables.NAME }}` は `{{local.variables.NAME}}` とは別の参照で、決して解決されません。唯一の例外は `{{#each}}` ブロックの中で、そこでは名前がトリムされます。
 

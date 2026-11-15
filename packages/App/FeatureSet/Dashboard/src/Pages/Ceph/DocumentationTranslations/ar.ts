@@ -66,7 +66,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Any resource attribute prefixed with `oneuptime.label.` becomes a project label on the cluster: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml`, next to `ceph.cluster.name`:":
     "أي سمة مورد تبدأ بالبادئة `oneuptime.label.` تصبح تسمية مشروع على العنقود: `oneuptime.label.<dimension>=<value>` هي التسمية `<dimension>:<value>`. أضفها إلى المعالج `resource` في `otel-collector-config.yaml`، بجوار `ceph.cluster.name`:",
   "Then restart the collector so it reads the new config:":
-    "ثم أعد تشغيل أداة التجميع لتقرأ الإعدادات الجديدة:",
+    "ثم أعد تشغيل المجمّع ليقرأ الإعدادات الجديدة:",
   "The cluster shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "يظهر العنقود موسومًا بـ `team:storage` و`env:production`. تُطابق التسميات دون تمييز بين الأحرف الكبيرة والصغيرة، لذا يُعاد استخدام التسمية الموجودة `Production`؛ ولا يزيل الوكيل أبدًا التسميات المضافة في واجهة OneUptime.",
   "The agent ships everything the mgr prometheus module exports. OneUptime's Ceph pages, metric catalog and alert templates are built on:":
@@ -77,7 +77,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| **OSD** | Up / in state for every OSD (per `ceph_daemon` label, e.g. `osd.3`) |":
     "| **OSD** | حالة up / in لكل OSD (حسب التسمية `ceph_daemon`، مثل `osd.3`) |",
   "| **Pool** | Stored bytes, max available, object counts, read/write operations and throughput per pool |":
-    "| **المجمّع** | البايتات المخزنة، والحد الأقصى المتاح، وعدد الكائنات، وعمليات القراءة والكتابة والإنتاجية لكل مجمّع |",
+    "| **التجمّع** | البايتات المخزنة، والحد الأقصى المتاح، وعدد الكائنات، وعمليات القراءة والكتابة والإنتاجية لكل تجمّع |",
   "| **Placement Groups** | Active, degraded, and undersized PG counts |":
     "| **مجموعات التوزيع** | أعداد مجموعات PG النشطة والمتدهورة وناقصة الحجم |",
   "`docker-compose.yml` also runs **`oneuptime-ceph-ai-agent`**. While OneUptime AI investigates an incident or alert on this cluster, it runs `ceph` commands through it — `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. It registers as the cluster named `CEPH_CLUSTER_NAME` and appears on the cluster's **AI → AI agent** page.":
@@ -95,22 +95,22 @@ const TRANSLATION: SetupGuideTranslation = {
   "What it may run and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters).":
     "ما الذي يمكنه تشغيله وكيف تعمل الإصلاحات: [وكلاء الذكاء الاصطناعي للبنية التحتية](/docs/ai/infrastructure-ai-agents#ceph-clusters).",
   "**Upgrade** — the collector image is pinned in `docker-compose.yml` and its config is a file beside it, so pulling alone does not move the agent forward. Run the install script again. It reuses every value in your existing `.env` (nothing is asked again), downloads the latest `docker-compose.yml` and `otel-collector-config.yaml` — a file you edited is kept next to the new one as `<file>.bak.<timestamp>` — pulls the images and recreates the agent with them. The AI agent's `ceph/` folder stays as it is:":
-    "**ترقية**: صورة أداة التجميع مثبّتة في `docker-compose.yml` وإعداداتها ملف بجوارها، لذا فإن سحب الصورة وحده لا يحدّث الوكيل. شغّل برنامج التثبيت النصي مرة أخرى. فهو يعيد استخدام كل قيمة في ملف `.env` الحالي (لا يُسأل عن شيء مجددًا)، ويُنزّل أحدث `docker-compose.yml` و`otel-collector-config.yaml` (يُحتفظ بالملف الذي عدّلته بجوار الجديد باسم `<file>.bak.<timestamp>`)، ويسحب الصور ويعيد إنشاء الوكيل بها. ويبقى مجلد `ceph/` الخاص بوكيل الذكاء الاصطناعي كما هو:",
+    "**ترقية**: صورة المجمّع مثبّتة في `docker-compose.yml` وإعداداته ملف بجوارها، لذا فإن سحب الصورة وحده لا يحدّث الوكيل. شغّل برنامج التثبيت النصي مرة أخرى. فهو يعيد استخدام كل قيمة في ملف `.env` الحالي (لا يُسأل عن شيء مجددًا)، ويُنزّل أحدث `docker-compose.yml` و`otel-collector-config.yaml` (يُحتفظ بالملف الذي عدّلته بجوار الجديد باسم `<file>.bak.<timestamp>`)، ويسحب الصور ويعيد إنشاء الوكيل بها. ويبقى مجلد `ceph/` الخاص بوكيل الذكاء الاصطناعي كما هو:",
   "The config reports the collector version it pins as the cluster's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.":
-    "تُبلغ الإعدادات عن إصدار أداة التجميع الذي تثبّته بوصفه **إصدار الوكيل** للعنقود. عندما يثبّت OneUptime هذا إصدارًا أحدث، تفتح علامة تحذير بجواره هذه الأوامر.",
+    "تُبلغ الإعدادات عن إصدار المجمّع الذي تثبّته بوصفه **إصدار الوكيل** للعنقود. عندما يثبّت OneUptime هذا إصدارًا أحدث، تفتح علامة تحذير بجواره هذه الأوامر.",
   "**Uninstall** the agent:": "**إلغاء التثبيت** للوكيل:",
   "If you created the AI agent's Ceph client, remove it on an admin node: `ceph auth del client.oneuptime-ai`.":
     "إذا أنشأت عميل Ceph لوكيل الذكاء الاصطناعي، فأزله على عقدة إدارة: `ceph auth del client.oneuptime-ai`.",
   "`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "يفحص `troubleshoot.sh` السلسلة بأكملها (بيئة تشغيل الحاويات، وكل نقطة نهاية mgr بما في ذلك فخ النشط مقابل الاحتياطي، ووسم اسم العنقود، وشكل الرمز المميز، ومقاييس أداة التجميع نفسها) ويسأل OneUptime مباشرة عمّا إذا كان يقبل مفتاح الاستيعاب لديك. هذا الفحص الأخير هو الأهم: ترفض نقاط نهاية OTLP في OneUptime المفتاح الخاطئ بـ `401` أو `422`، وهو ما تسجّله أداة التجميع سطرًا واحدًا `Exporting failed` لكل دفعة يسهل أن يفوتك، لذا يطلب البرنامج النصي من `GET /otlp/v1/validate` حكمًا مباشرًا 200/401.",
+    "يفحص `troubleshoot.sh` السلسلة بأكملها (بيئة تشغيل الحاويات، وكل نقطة نهاية mgr بما في ذلك فخ النشط مقابل الاحتياطي، ووسم اسم العنقود، وشكل الرمز المميز، ومقاييس المجمّع نفسه) ويسأل OneUptime مباشرة عمّا إذا كان يقبل مفتاح الاستيعاب لديك. هذا الفحص الأخير هو الأهم: ترفض نقاط نهاية OTLP في OneUptime المفتاح الخاطئ بـ `401` أو `422`، وهو ما يسجّله المجمّع سطرًا واحدًا `Exporting failed` لكل دفعة يسهل أن يفوتك، لذا يطلب البرنامج النصي من `GET /otlp/v1/validate` حكمًا مباشرًا 200/401.",
   "It ends with a verdict naming the most likely cause.":
     "وينتهي بحكم يسمّي السبب الأرجح.",
   "1. Check the collector logs: `docker logs oneuptime-ceph-agent` — look for export errors (`401` means a bad ingestion key, connection refused means a wrong `ONEUPTIME_URL`).":
-    "1. تحقّق من سجلات أداة التجميع: `docker logs oneuptime-ceph-agent`؛ ابحث عن أخطاء التصدير (`401` يعني مفتاح استيعاب خاطئًا، ورفض الاتصال يعني `ONEUPTIME_URL` خاطئًا).",
+    "1. تحقّق من سجلات المجمّع: `docker logs oneuptime-ceph-agent`؛ ابحث عن أخطاء التصدير (`401` يعني مفتاح استيعاب خاطئًا، ورفض الاتصال يعني `ONEUPTIME_URL` خاطئًا).",
   "2. Verify a mgr endpoint serves metrics: `curl http://<active-mgr>:9283/metrics | head` — you should see `ceph_*` metric lines. If not, enable the module: `ceph mgr module enable prometheus`.":
     "2. تحقّق من أن نقطة نهاية mgr تقدّم المقاييس: `curl http://<active-mgr>:9283/metrics | head`؛ يُفترض أن ترى أسطر مقاييس `ceph_*`. إن لم ترها، ففعّل الوحدة: `ceph mgr module enable prometheus`.",
   "3. Make sure `CEPH_MGR_ENDPOINTS` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.":
-    "3. تأكد من أن `CEPH_MGR_ENDPOINTS` محاط بأقواس مربعة: من دونها تعامل أداة التجميع السلسلة المفصولة بفواصل كلها هدفًا واحدًا (غير صالح).",
+    "3. تأكد من أن `CEPH_MGR_ENDPOINTS` محاط بأقواس مربعة: من دونها يعامل المجمّع السلسلة المفصولة بفواصل كلها هدفًا واحدًا (غير صالح).",
   "1. Check that the agent is running: `docker ps --filter name=oneuptime-ceph-agent`":
     "1. تحقّق من أن الوكيل يعمل: `docker ps --filter name=oneuptime-ceph-agent`",
   "2. Check the agent logs for errors: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`":
@@ -137,7 +137,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "- Replace `my-ceph-cluster` with a name for this cluster, such as `ceph-prod`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.":
     "- استبدل `my-ceph-cluster` باسم لهذا العنقود، مثل `ceph-prod`. بهذا الاسم يظهر العنقود في OneUptime، لذا أبقه ثابتًا: الاسم الجديد يسجّل عنقودًا جديدًا.",
   "- List **every** mgr daemon in `CEPH_MGR_ENDPOINTS`, comma-separated and wrapped in square brackets — without the brackets the collector reads the whole list as one invalid target.":
-    "- أدرج **كل** خدمات mgr في `CEPH_MGR_ENDPOINTS`، مفصولة بفواصل وبين أقواس مربعة: من دون الأقواس تقرأ أداة التجميع القائمة كلها هدفًا واحدًا غير صالح.",
+    "- أدرج **كل** خدمات mgr في `CEPH_MGR_ENDPOINTS`، مفصولة بفواصل وبين أقواس مربعة: من دون الأقواس يقرأ المجمّع القائمة كلها هدفًا واحدًا غير صالح.",
   "Start the agent:": "شغّل الوكيل:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
     "اختر مفتاح استيعاب في الخطوة 1 لملء `<YOUR_API_KEY>`.",
@@ -152,9 +152,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "Run these in the agent's folder, the one with `docker-compose.yml`.":
     "شغّل هذه الأوامر في مجلد الوكيل، وهو المجلد الذي فيه `docker-compose.yml`.",
   "**Upgrade** — the collector image is pinned in `docker-compose.yml` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your `.env` stays, and a change you made to either file has to be made again:":
-    "**ترقية**: صورة أداة التجميع مثبّتة في `docker-compose.yml` وإعداداتها ملف بجوارها، لذا فإن سحب الصورة وحده لا يحدّث الوكيل. نزّل الملفين مجددًا؛ يبقى ملف `.env` لديك، وأي تغيير أجريته على أيٍّ من الملفين يجب إجراؤه مجددًا:",
+    "**ترقية**: صورة المجمّع مثبّتة في `docker-compose.yml` وإعداداته ملف بجوارها، لذا فإن سحب الصورة وحده لا يحدّث الوكيل. نزّل الملفين مجددًا؛ يبقى ملف `.env` لديك، وأي تغيير أجريته على أيٍّ من الملفين يجب إجراؤه مجددًا:",
   "Then pull the images and recreate the agent, so the collector reads its new config:":
-    "ثم اسحب الصور وأعد إنشاء الوكيل، لتقرأ أداة التجميع إعداداتها الجديدة:",
+    "ثم اسحب الصور وأعد إنشاء الوكيل، ليقرأ المجمّع إعداداته الجديدة:",
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. Fix it in `.env` and apply it with `docker compose up -d` in the folder with `docker-compose.yml` — note that a new name registers a new cluster.":
     "تأتي هوية العنقود من `CEPH_CLUSTER_NAME`، الذي يُوسم به كل مقياس بوصفه `ceph.cluster.name`. صحّحه في `.env` وطبّقه باستخدام `docker compose up -d` في المجلد الذي فيه `docker-compose.yml`؛ ولاحظ أن الاسم الجديد يسجّل عنقودًا جديدًا.",
   "- This installs the agent for **`ceph-1`** — keep `CEPH_CLUSTER_NAME` exactly as it is, or the data registers as a new cluster.":

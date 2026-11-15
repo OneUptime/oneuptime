@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Nej"| saved["Körningen sparas med steg och logg"]
 ```
 
-Du bygger allt detta visuellt på en arbetsyta. De flesta arbetsflöden behöver ingen kod alls; när ett gör det kör ett **Run Custom JavaScript**-block några rader JavaScript.
+Du bygger allt detta visuellt på en arbetsyta. De flesta arbetsflöden behöver ingen kod alls; när ett gör det kör ett **Kör egen JavaScript**-block några rader JavaScript.
 
 ## Vad du kan göra med arbetsflöden
 
@@ -44,7 +44,7 @@ Du bygger allt detta visuellt på en arbetsyta. De flesta arbetsflöden behöver
 - **Reagera på det som händer i OneUptime** — när en incident skapas, meddela rätt kanal och öppna ett ärende automatiskt.
 - **Kör jobb enligt ett schema** — var femte minut, varje natt, varje måndagsmorgon.
 - **Ta emot data utifrån** — låt andra system starta ett arbetsflöde genom att anropa dess URL eller skicka e-post till dess adress.
-- **Återanvänd gemensam automatisering** — bygg den en gång och starta den från vilket annat arbetsflöde som helst med ett **Execute Workflow**-block.
+- **Återanvänd gemensam automatisering** — bygg den en gång och starta den från vilket annat arbetsflöde som helst med ett **Kör ett annat arbetsflöde**-block.
 
 ## Viktiga begrepp
 
@@ -107,7 +107,7 @@ Det här arbetsflödet skickar en JSON-sammanfattning av varje ny incident till 
 
 ```mermaid title="Det färdiga exemplet"
 flowchart TB
-    trigger["On Create Incident"] -->|"Framgång"| post["API Post (JSON)"]
+    trigger["On Create Incident"] -->|"Framgång"| post["API-anrop POST (JSON)"]
     post -->|"Fel"| log["Logg"]
     post -->|"Framgång"| done["Körningen slutar"]
 ```
@@ -130,13 +130,13 @@ Utlösaren tar det streckade blockets plats. ID:t på det, `incident-on-create-1
 
 ### Välj incidentens fält
 
-Klicka på utlösaren. **Fields to pass on** börjar med titeln: klicka på **Lägg till fält**, markera beskrivningen och de andra fält som förfrågan ska ha med, och klicka på **Spara**.
+Klicka på utlösaren. **Fält att skicka vidare** börjar med titeln: klicka på **Lägg till fält**, markera beskrivningen och de andra fält som förfrågan ska ha med, och klicka på **Spara**.
 
 Utlösaren skickar den nya incidenten vidare med de här fälten. Ett fält du inte väljer kommer fram tomt.
 
 ### Lägg till API-blocket
 
-Klicka på **Lägg till komponent** och klicka sedan på **API Post (JSON)** under **Populära**. Dra från utlösarens punkt **Framgång** ned till den översta punkten på det nya blocket.
+Klicka på **Lägg till komponent** och klicka sedan på **API-anrop POST (JSON)** under **Populära**. Dra från utlösarens punkt **Framgång** ned till den översta punkten på det nya blocket.
 
 ### Fyll i förfrågan
 
@@ -162,7 +162,7 @@ En förfrågan som misslyckas — en URL som inte går att nå, eller ett svar s
 
 Klicka på **Kör arbetsflöde** och välj en incident i det här projektet under **Incident**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du en annan. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Arbetsflödet är fortfarande avstängt, så det här är en **Testkörning**, och förfrågan skickas på riktigt.
 
-En panel **Arbetsflödeskörning** öppnas och följer körningen. Öppna steget **API Post (JSON)** för att se bodyn det skickade och svaret det fick.
+En panel **Arbetsflödeskörning** öppnas och följer körningen. Öppna steget **API-anrop POST (JSON)** för att se bodyn det skickade och svaret det fick.
 
 ### Slå på det
 

@@ -30,7 +30,7 @@ flowchart TB
 - **Monitorer med overvågning slået fra tæller ikke.** Intet tjekker en monitor, hvis overvågning er slået fra, så dens status er kun det, dens sidste kontrol så. Gruppen udelader den af sin status: en monitor, der stod på **Offline**, da dens overvågning blev slået fra, gør ikke gruppen **Offline**. Gruppens oppetid og **Oppetidgraf** beholder monitorens historik, indtil dens overvågning blev slået fra, og udelader tiden derefter, både på dashboardet og på statussider. Slås den til igen, tæller monitoren med fra det øjeblik.
 - **En tom gruppe er driftsklar.** En gruppe uden monitorer, eller kun med arkiverede, viser din driftsklare status. Indtil du tilføjer en monitor, viser dashboardet **Ingen monitorer endnu** i stedet for gruppens status.
 - **Overvågning slået fra viser Deaktiveret.** Når overvågning er slået fra for alle monitorer i en gruppe, tjekker intet dem, så dashboardet viser **Deaktiveret** i stedet for gruppens status, og dens **Oppetidgraf** og oppetid slutter, hvor overvågningen blev slået fra for den sidste af dem. En statusside viser gruppen som **Ikke overvåget**.
-- **Rækkefølgen er din.** Hvilken status der er den værste, følger rækkefølgen under **Overvågninger → Indstillinger → Monitorstatus**. Se [Monitorstatusser](/docs/monitor/criteria-and-statuses#monitorstatusser).
+- **Rækkefølgen er din.** Hvilken status der er den værste, følger rækkefølgen under **Monitorer → Indstillinger → Monitorstatus**. Se [Monitorstatusser](/docs/monitor/criteria-and-statuses#monitorstatusser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside, der rummer rækker. En monitorgruppe er én række, der står for flere monitorer, og enhver statusside kan vise den.
 
@@ -59,7 +59,7 @@ Slår du kontakten fra igen, skjules **Monitorgrupper** i menuen. Ingen gruppe s
 :::steps
 ### Åbn Monitorgrupper
 
-Gå til **Overvågninger → Monitorgrupper**. Kortet **Monitorgrupper** viser hver gruppe med dens **Aktuel status**, etiketter og ejere.
+Gå til **Monitorer → Monitorgrupper**. Kortet **Monitorgrupper** viser hver gruppe med dens **Aktuel status**, etiketter og ejere.
 
 ### Opret gruppen
 
