@@ -37,6 +37,7 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { APP_API_URL } from "Common/UI/Config";
 import User from "Common/Models/DatabaseModels/User";
+import { translationKey } from "Common/Types/Translator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -82,7 +83,9 @@ const Users: FunctionComponent = (): ReactElement => {
   ) => BulkActionButtonSchema<User> = (
     isBlocked: boolean,
   ): BulkActionButtonSchema<User> => {
-    const actionLabel: string = isBlocked ? "Block" : "Unblock";
+    const actionLabel: string = isBlocked
+      ? translationKey("Block")
+      : translationKey("Unblock");
 
     return {
       title: actionLabel,

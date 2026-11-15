@@ -228,6 +228,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "MinIO",
     "OneUptime",
     "OneUptimeAlertsBot",
+    "OpenID Connect (OIDC)",
     "OpenStack",
     "Option",
     "PID",

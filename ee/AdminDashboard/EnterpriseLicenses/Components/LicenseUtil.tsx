@@ -10,6 +10,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   EnterpriseLicenseInstanceActivityState,
@@ -357,10 +358,13 @@ export const SeatUsageMeter: FunctionComponent<SeatUsageMeterProps> = (
  * The license's white-labelling switch (EnterpriseLicense.canBeWhiteLabelled),
  * in the words the create form, the edit form and the details share.
  */
-export const CAN_BE_WHITE_LABELLED_TITLE: string = "Can be white-labelled";
+export const CAN_BE_WHITE_LABELLED_TITLE: string = translationKey(
+  "Can be white-labelled",
+);
 
-export const CAN_BE_WHITE_LABELLED_DESCRIPTION: string =
-  "Lets the customer replace the OneUptime name and logo in Admin Dashboard > Settings > White Label once their next signed license token arrives.";
+export const CAN_BE_WHITE_LABELLED_DESCRIPTION: string = translationKey(
+  "Lets the customer replace the OneUptime name and logo in Admin Dashboard > Settings > White Label once their next signed license token arrives.",
+);
 
 // Beside the license type in the list, for a license with the switch on.
 export const WhiteLabelBadge: FunctionComponent = (): ReactElement => {
