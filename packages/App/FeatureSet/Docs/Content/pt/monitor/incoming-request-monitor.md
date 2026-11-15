@@ -78,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Substitua `https://oneuptime.com` pela URL da sua instância do OneUptime se ela for auto-hospedada.
 
-Envie requisições **GET** ou **POST** para essa URL. HEAD é aceito e tratado como GET; PUT, PATCH e DELETE retornam 404. A chave secreta no caminho é a única credencial: não é preciso cabeçalho nem token. Query strings são ignoradas: envie o que os critérios devem ler no corpo ou nos cabeçalhos.
+Envie requisições **GET** ou **POST** para essa URL. HEAD é aceito e tratado como GET; PUT, PATCH e DELETE retornam 404. A chave secreta no caminho é a credencial: não é preciso cabeçalho nem token, a menos que o projeto [exija um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Query strings são ignoradas: envie o que os critérios devem ler no corpo ou nos cabeçalhos.
 
 > [!WARNING]
 > Qualquer pessoa que conheça essa URL pode marcar o monitor como saudável, então trate-a como um segredo. Se ela vazar, abra a página **Configurações** do monitor e clique em **Redefinir chave secreta de requisição recebida**, depois atualize cada remetente. A visão geral do monitor mostra a última requisição como os registros dele a guardam: com segredos e dados pessoais mascarados, e sem cabeçalhos nem corpo quando **Manter o conteúdo da solicitação** está desligado. O mascaramento reconhece os nomes e padrões que conhece, então não envie chaves de API nem tokens para esse endpoint.
 
 > [!IMPORTANT]
-> O OneUptime responde `200` com um objeto JSON vazio (`{}`) na hora e processa a requisição em uma fila. Essa resposta é escrita antes de qualquer validação, então um `200` **não** confirma que a requisição foi aceita: uma chave secreta errada, um monitor excluído e um monitor desativado também retornam `200`. Confira a linha do tempo do monitor para confirmar que as requisições estão chegando.
+> O OneUptime responde `200` com um objeto JSON vazio (`{}`) na hora e processa a requisição em uma fila. Essa resposta é escrita antes de qualquer validação, então um `200` **não** confirma que a requisição foi aceita: uma chave secreta errada, um monitor excluído e um monitor desativado também retornam `200`. Confira a linha do tempo do monitor para confirmar que as requisições estão chegando. A única exceção é um projeto que exige um segredo em toda requisição: uma requisição sem nenhum recebe `401`.
 
 ### Enviar um corpo de requisição
 
@@ -188,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Exigir um segredo em toda requisição
+
+Qualquer pessoa que tenha a URL de um monitor pode enviar requisições a ele. Um proprietário ou administrador do projeto pode fazer cada monitor de requisições recebidas do projeto exigir também um dos segredos do próprio projeto, não importa quem configurou o monitor: ative **Exigir um segredo em toda requisição**. Uma requisição sem nenhum é recusada com `401` e o motivo, antes de contar como heartbeat, de ser guardada como a última requisição do monitor ou de chegar a qualquer critério. Uma requisição com um segue para os critérios do próprio monitor, como antes.
+
+:::steps
+### Crie um segredo
+
+Vá em **Monitores → Configurações → Segredos de requisição recebida** e crie um segredo. Dê um nome a ele e o OneUptime gera o valor; copie-o da lista.
+
+### Envie-o de cada remetente
+
+Envie o segredo no cabeçalho `X-OneUptime-Secret`, ou como token Bearer no cabeçalho `Authorization`, conforme o que seu remetente conseguir definir.
+
+### Ative a exigência
+
+Ative **Exigir um segredo em toda requisição**. A exigência não pode ser ativada enquanto o projeto não tiver nenhum segredo, para que nenhum remetente seja recusado por engano.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+O OneUptime nunca guarda o segredo: ele tira o cabeçalho da requisição e mascara um token Bearer que seja um dos segredos do projeto antes de guardar qualquer coisa.
+
+> [!TIP]
+> Para substituir um segredo sem recusar ninguém, crie um segundo, passe seus remetentes para ele e depois exclua o antigo quando o **Último uso** dele parar de mudar. Qualquer segredo do projeto é aceito, e o último não pode ser excluído enquanto a exigência estiver ativa.
 
 ## Critérios de monitoramento
 
@@ -393,6 +425,10 @@ O Event Grid valida um endpoint que lhe devolve um código, ou cujo dono abre o 
 
 :::details Meu remetente recebe 200, mas nada aparece no monitor
 O `200` é enviado antes de a requisição ser validada, então não prova que ela foi aceita. Confira se a chave secreta da URL corresponde à **Heartbeat URL** do monitor, e se o monitor não está desativado. Depois, olhe a linha do tempo do monitor para ver se as requisições estão chegando.
+:::
+
+:::details Meu remetente recebe um 401
+O projeto exige um segredo em toda requisição, e a requisição não enviou nenhum, ou enviou um que não é do projeto: a resposta diz qual dos dois. Envie um dos segredos do projeto no cabeçalho `X-OneUptime-Secret` ou como token Bearer, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Uma requisição recusada nunca chega ao monitor.
 :::
 
 :::details O monitor nunca fica offline quando os heartbeats param

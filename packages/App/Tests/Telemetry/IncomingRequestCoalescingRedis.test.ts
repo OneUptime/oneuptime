@@ -104,6 +104,36 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+/*
+ * A project's incoming request secret requirement (IncomingRequestSecretGate)
+ * is not what this suite is about: every request counts, as it did before
+ * projects could require a secret. IncomingRequestSecretEndpoint.test.ts and
+ * IncomingRequestSecretWorker.test.ts cover the requirement.
+ */
+jest.mock("Common/Server/Utils/Monitor/IncomingRequestSecretGate", () => {
+  return {
+    __esModule: true,
+    default: {
+      decideAtEdge: async (): Promise<{ mayRecordArrival: boolean }> => {
+        return { mayRecordArrival: true };
+      },
+      decideInWorker: async (data: {
+        requestHeaders?: Record<string, string> | undefined;
+      }): Promise<{
+        verdict: string;
+        isRefused: boolean;
+        requestHeaders: Record<string, string>;
+      }> => {
+        return {
+          verdict: "NotRequired",
+          isRefused: false,
+          requestHeaders: data.requestHeaders || {},
+        };
+      },
+    },
+  };
+});
+
 import TelemetryQueueService, {
   TelemetryIngestJobData,
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
