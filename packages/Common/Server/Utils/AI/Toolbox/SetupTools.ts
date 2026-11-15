@@ -29,11 +29,19 @@ import {
   AIActionList,
   AIActionSentence,
   aiActionCardFact,
+  aiActionFigure,
   aiActionList,
   aiActionPluralSentence,
   aiActionSentence,
   aiActionTerm,
+  AIActionSentenceValue,
 } from "../../../../Types/AI/AIActionWords";
+import {
+  getProbeAgreementSentence,
+  getProbeAgreementWords,
+  ProbeAgreementWords,
+} from "../../../../Utils/Monitor/ProbeAgreementRule";
+import { createTranslator, Translator } from "../../../../Types/Translator";
 import {
   ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
   PUBLISH_STATUS_PAGE_TOOL_NAME,
@@ -855,8 +863,46 @@ function readAddress(args: JSONObject): WebsiteAddress | null {
 }
 
 /*
+ * How many of the locations checking a monitor must agree before its status
+ * changes, as the monitor's probes card says it (#8245): a status changes
+ * only when its probes agree (MonitorResourceUtil.checkProbeAgreement), and
+ * on a new monitor, whose minimum is not set, all of them must. One rule
+ * (Utils/Monitor/ProbeAgreementRule), so the card never promises an
+ * incident one failing location would not open. Null with fewer than two
+ * locations, or a minimum of one: nothing to agree on.
+ */
+export function describeProbeAgreementForPerson(data: {
+  minimumProbeAgreement: number | null | undefined;
+  locationCount: number;
+}): AIActionSentence | null {
+  const words: ProbeAgreementWords | null = getProbeAgreementWords({
+    minimumProbeAgreement: data.minimumProbeAgreement,
+    activeProbeCount: data.locationCount,
+  });
+
+  if (!words) {
+    return null;
+  }
+
+  // Each count a figure, written in the reader's digits.
+  const values: Record<string, AIActionSentenceValue> = {};
+
+  for (const [name, count] of Object.entries(words.values)) {
+    values[name] = aiActionFigure(count);
+  }
+
+  return aiActionSentence(
+    words.template,
+    Object.keys(values).length > 0 ? values : undefined,
+  );
+}
+
+const ENGLISH: Translator = createTranslator(undefined, "en");
+
+/*
  * What the approval card says the monitor will do: what is checked and how
- * often, from where, what happens when it goes down, and who is emailed.
+ * often, from where, what happens when it goes down - when its locations
+ * agree it is (#8245) - and who is emailed.
  */
 export function describeWebsiteMonitoringForPerson(data: {
   address: WebsiteAddress;
@@ -864,6 +910,8 @@ export function describeWebsiteMonitoringForPerson(data: {
   minutes: number;
   locationCount: number | null;
   incidentSeverityName: string | null;
+  // The new monitor's own minimum: not set, so all its locations must agree.
+  minimumProbeAgreement?: number | null | undefined;
 }): Array<AIActionSentence> {
   const sentences: Array<AIActionSentence> = [
     aiActionPluralSentence(
@@ -897,6 +945,18 @@ export function describeWebsiteMonitoringForPerson(data: {
         })
       : aiActionSentence(AI_ACTION_LINES.monitorGoesOffline),
   );
+
+  const agreement: AIActionSentence | null =
+    data.locationCount !== null
+      ? describeProbeAgreementForPerson({
+          minimumProbeAgreement: data.minimumProbeAgreement,
+          locationCount: data.locationCount,
+        })
+      : null;
+
+  if (agreement) {
+    sentences.push(agreement);
+  }
 
   sentences.push(aiActionSentence(AI_ACTION_LINES.monitorOwnerEmailed));
 
@@ -1103,6 +1163,19 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
       locationCount = null;
     }
 
+    /*
+     * One failing location opens nothing while the others answer (#8245):
+     * the model is told how many must agree, as the card told the person.
+     */
+    const agreementSentence: string | null =
+      locationCount !== null
+        ? getProbeAgreementSentence({
+            minimumProbeAgreement: created.minimumProbeAgreement,
+            activeProbeCount: locationCount,
+            translator: ENGLISH,
+          })
+        : null;
+
     const serialized: SerializedResult = ToolResultSerializer.serializeRows([
       {
         id: monitorId,
@@ -1130,7 +1203,7 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
         incidentSeverityName
           ? `If it does not answer, or answers with an error, OneUptime opens an incident (${incidentSeverityName}).`
           : "If it does not answer, or answers with an error, its status changes to Offline."
-      } The person owns it, so they are emailed when its status changes. Who else is told depends on the project's on-call policies and rules: who_is_told answers it. Under your answer the person can send themselves a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
+      }${agreementSentence ? ` ${agreementSentence}` : ""} The person owns it, so they are emailed when its status changes. Who else is told depends on the project's on-call policies and rules: who_is_told answers it. Under your answer the person can send themselves a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
       rowCount: 1,
       citationLabel: `Set up monitor "${address.monitorName}"`,
       citationTarget: {
