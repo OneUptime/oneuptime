@@ -342,6 +342,12 @@ jest.mock("Common/Server/Services/AIAgentOwnerTeamService", () => {
 jest.mock("Common/Server/Services/AIAgentOwnerUserService", () => {
   return mockAnyService();
 });
+jest.mock("Common/Server/Services/IncidentMemberService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/IncidentRoleService", () => {
+  return mockAnyService();
+});
 
 // The network device job links to the dashboard it reads from the database.
 jest.mock("Common/Server/DatabaseConfig", () => {
@@ -589,6 +595,8 @@ import ProbeOwnerUserService from "Common/Server/Services/ProbeOwnerUserService"
 import AIAgentService from "Common/Server/Services/AIAgentService";
 import AIAgentOwnerTeamService from "Common/Server/Services/AIAgentOwnerTeamService";
 import AIAgentOwnerUserService from "Common/Server/Services/AIAgentOwnerUserService";
+import IncidentMemberService from "Common/Server/Services/IncidentMemberService";
+import IncidentRoleService from "Common/Server/Services/IncidentRoleService";
 
 // Imported for their side effect: RunCron (mocked above) records each handler.
 import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotification";
@@ -626,6 +634,7 @@ import "../../../FeatureSet/Workers/Jobs/SloOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/Probe/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/AIAgent/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/IncidentMembers/SendMemberAddedNotification";
 
 type AnyMock = jest.Mock;
 
@@ -2758,5 +2767,300 @@ describe("the owners of an owner row", () => {
     expect(IncidentOwnerUserService.updateOneById).toHaveBeenCalledTimes(1);
 
     jest.restoreAllMocks();
+  });
+});
+
+/*
+ * PEOPLE ASSIGNED TO AN INCIDENT WITH A ROLE (#8573). Each member row is a
+ * notification of its own, to the one person it assigned, so its stops are
+ * run here rather than through the cases above, which tell three owners of
+ * one notification.
+ */
+describe("people assigned to an incident with a role", () => {
+  const COMMANDER: ObjectID = new ObjectID(
+    "aaaaaaaa-0000-4000-8000-0000000000f1",
+  );
+  const SCRIBE: ObjectID = new ObjectID("aaaaaaaa-0000-4000-8000-0000000000f2");
+  const ROLE_NAMES: Record<string, string> = {
+    [COMMANDER.toString()]: "Incident Commander",
+    [SCRIBE.toString()]: "Scribe",
+  };
+
+  let table: InMemoryOwnerNotificationDeliveries;
+  let now: Date;
+  let rows: Array<PlainRecord>;
+  let marked: Set<string>;
+  let sent: Array<{ userId: string; subject: string }>;
+  let stoppedAt: Array<string>;
+  let incidentExists: boolean;
+  let sendStopsFor: string | null;
+  let markStops: boolean;
+
+  function memberRow(n: number, user: User, roleId: ObjectID): PlainRecord {
+    return plain({
+      id: new ObjectID(`aaaaaaaa-0000-4000-8000-00000000010${n}`),
+      incidentId: INCIDENT_ID,
+      userId: user.id,
+      incidentRoleId: roleId,
+      user: user,
+    });
+  }
+
+  function rowIdOf(row: PlainRecord): string {
+    return String(row["_id"]);
+  }
+
+  function run(): Promise<void> {
+    return mockCapturedJobs["IncidentMember:SendMemberAddedEmail"]!();
+  }
+
+  async function untilStopped(): Promise<void> {
+    for (let turn: number = 0; turn < 2000; turn++) {
+      if (table.stops() + stoppedAt.length >= 1) {
+        return;
+      }
+
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    }
+
+    throw new Error("The run never reached the point it was to stop at.");
+  }
+
+  async function restartedMinutesLater(minutes: number): Promise<void> {
+    now = new Date(now.getTime() + minutes * 60 * 1000);
+    await run();
+  }
+
+  function sendsByPerson(): Record<string, number> {
+    const sends: Record<string, number> = {};
+
+    for (const send of sent) {
+      sends[send.userId] = (sends[send.userId] || 0) + 1;
+    }
+
+    return sends;
+  }
+
+  function everyoneOnce(): Record<string, number> {
+    return {
+      [idOf(OWNER_1)]: 1,
+      [idOf(OWNER_2)]: 1,
+      [idOf(OWNER_3)]: 1,
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    table = useInMemoryOwnerNotificationDeliveries();
+    now = START;
+    marked = new Set<string>();
+    sent = [];
+    stoppedAt = [];
+    incidentExists = true;
+    sendStopsFor = null;
+    markStops = false;
+    rows = [
+      memberRow(1, OWNER_1, COMMANDER),
+      memberRow(2, OWNER_2, SCRIBE),
+      memberRow(3, OWNER_3, SCRIBE),
+    ];
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return new Date(now.getTime());
+    });
+
+    asMock(IncidentMemberService.findAllBy).mockImplementation(async () => {
+      return rows.filter((row: PlainRecord): boolean => {
+        return !marked.has(rowIdOf(row));
+      });
+    });
+    asMock(IncidentMemberService.findOneById).mockImplementation(
+      async (data: { id: ObjectID }) => {
+        return (
+          rows.find((row: PlainRecord): boolean => {
+            return rowIdOf(row) === data.id.toString();
+          }) || null
+        );
+      },
+    );
+    asMock(IncidentMemberService.updateOneById).mockImplementation(
+      async (data: { id: ObjectID }) => {
+        if (markStops) {
+          markStops = false;
+          stoppedAt.push("mark");
+          await NEVER;
+        }
+
+        marked.add(data.id.toString());
+      },
+    );
+    asMock(IncidentRoleService.findOneById).mockImplementation(
+      async (data: { id: ObjectID }) => {
+        return { name: ROLE_NAMES[data.id.toString()] };
+      },
+    );
+    asMock(IncidentService.findOneById).mockImplementation(async () => {
+      return incidentExists ? incident() : null;
+    });
+    asMock(IncidentService.getIncidentLinkInDashboard).mockResolvedValue(
+      "https://oneuptime.test/incident",
+    );
+    asMock(UserService.findBy).mockImplementation(
+      async (data: { query: JSONObject }) => {
+        return usersNamedBy(OWNERS, data.query);
+      },
+    );
+    asMock(
+      UserNotificationSettingService.sendUserNotification,
+    ).mockImplementation(
+      async (data: {
+        userId: ObjectID;
+        emailEnvelope: { subject: string };
+      }) => {
+        const userId: string = data.userId.toString();
+
+        sent.push({ userId: userId, subject: data.emailEnvelope.subject });
+
+        if (sendStopsFor === userId) {
+          sendStopsFor = null;
+          stoppedAt.push(`send ${userId}`);
+          await NEVER;
+        }
+      },
+    );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("tells each person assigned once, of the role their row gives, and the next run nobody", async () => {
+    await run();
+
+    expect(sendsByPerson()).toEqual(everyoneOnce());
+    expect(
+      sent.find((send: { userId: string }): boolean => {
+        return send.userId === idOf(OWNER_1);
+      })!.subject,
+    ).toContain("You have been assigned as Incident Commander");
+    expect(
+      sent.find((send: { userId: string }): boolean => {
+        return send.userId === idOf(OWNER_2);
+      })!.subject,
+    ).toContain("You have been assigned as Scribe");
+
+    for (const row of rows) {
+      expect(Object.values(table.statusesOf(rowIdOf(row)))).toEqual([
+        OwnerNotificationDeliveryStatus.Sent,
+      ]);
+    }
+
+    await restartedMinutesLater(
+      OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+    );
+    await restartedMinutesLater(60);
+
+    expect(sendsByPerson()).toEqual(everyoneOnce());
+  });
+
+  test("whom each row is to tell is written down before the rows are marked", async () => {
+    markStops = true;
+    void run();
+    await untilStopped();
+
+    expect(stoppedAt).toEqual(["mark"]);
+    expect(sent).toEqual([]);
+
+    for (const row of rows) {
+      expect(Object.values(table.statusesOf(rowIdOf(row)))).toEqual([
+        OwnerNotificationDeliveryStatus.Pending,
+      ]);
+    }
+
+    // Started again: each person told once, whether the rows or the later run tells them.
+    await restartedMinutesLater(
+      OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+    );
+    expect(sendsByPerson()).toEqual(everyoneOnce());
+  });
+
+  test("stopped before the second person's send: they and the third are told by a later run, each once", async () => {
+    table.stopAt({ statement: "startTelling", userId: idOf(OWNER_2) });
+    void run();
+    await untilStopped();
+
+    expect(sendsByPerson()).toEqual({ [idOf(OWNER_1)]: 1 });
+
+    await restartedMinutesLater(
+      OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+    );
+    await restartedMinutesLater(30);
+
+    expect(sendsByPerson()).toEqual(everyoneOnce());
+    // Told of the role their row gives, by the later run too.
+    expect(
+      sent.find((send: { userId: string }): boolean => {
+        return send.userId === idOf(OWNER_2);
+      })!.subject,
+    ).toContain("You have been assigned as Scribe");
+  });
+
+  test("stopped during the second person's send: they are never told again - nobody knows whether it went out - and the third is", async () => {
+    sendStopsFor = idOf(OWNER_2);
+    void run();
+    await untilStopped();
+
+    await restartedMinutesLater(
+      OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+    );
+    await restartedMinutesLater(30);
+
+    // The second person's one send is the one the stopped run started.
+    expect(sendsByPerson()).toEqual(everyoneOnce());
+    expect(Object.values(table.statusesOf(rowIdOf(rows[1]!)))).toEqual([
+      OwnerNotificationDeliveryStatus.Sending,
+    ]);
+  });
+
+  test("two workers at once tell each person once between them", async () => {
+    table.interleave(true);
+    await Promise.all([run(), run()]);
+    table.interleave(false);
+
+    expect(sendsByPerson()).toEqual(everyoneOnce());
+  });
+
+  test("someone assigned twice, in two roles, is told of each, once", async () => {
+    rows = [memberRow(1, OWNER_1, COMMANDER), memberRow(4, OWNER_1, SCRIBE)];
+
+    await run();
+    await restartedMinutesLater(30);
+
+    expect(
+      sent
+        .map((send: { subject: string }): string => {
+          return send.subject.includes("Commander") ? "Commander" : "Scribe";
+        })
+        .sort(),
+    ).toEqual(["Commander", "Scribe"]);
+    expect(sendsByPerson()).toEqual({ [idOf(OWNER_1)]: 2 });
+  });
+
+  test("an incident gone before a later run takes them up: nobody else is told", async () => {
+    table.stopAt({ statement: "startTelling", userId: idOf(OWNER_2) });
+    void run();
+    await untilStopped();
+
+    incidentExists = false;
+    await restartedMinutesLater(
+      OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+    );
+
+    expect(sendsByPerson()).toEqual({ [idOf(OWNER_1)]: 1 });
+    expect(Object.values(table.statusesOf(rowIdOf(rows[2]!)))).toEqual([
+      OwnerNotificationDeliveryStatus.Failed,
+    ]);
   });
 });

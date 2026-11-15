@@ -55,6 +55,8 @@ export enum OwnerNotificationKind {
   NetworkDeviceOwnerAdded = "NetworkDeviceOwnerAdded",
   ProbeOwnerAdded = "ProbeOwnerAdded",
   AIAgentOwnerAdded = "AIAgentOwnerAdded",
+  // Someone assigned to an incident with a role: told as its owners are (#8573).
+  IncidentMemberAdded = "IncidentMemberAdded",
 }
 
 export enum OwnerNotificationDeliveryStatus {
