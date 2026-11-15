@@ -53493,5 +53493,9 @@
   "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "Проверка сайта, API или сервера и отправка телеметрии оплачиваются по мере использования и требуют способа оплаты.",
   "A project needs no card. On the Free plan, checking a website needs a payment method.": "Для проекта карта не нужна. На плане Free для проверки сайта нужен способ оплаты.",
   "Not Signed Up Yet": "Ещё не зарегистрирован",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "Этот сервер не может отправлять почту, поэтому на {{email}} письмо не отправлено. У этого человека уже есть учётная запись, и теперь он участник: отправьте ему эту ссылку для входа."
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "Этот сервер не может отправлять почту, поэтому на {{email}} письмо не отправлено. У этого человека уже есть учётная запись, и теперь он участник: отправьте ему эту ссылку для входа.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Если их отклонил прокси перед OneUptime, увеличьте ограничение этого прокси на размер запроса до 50 МБ — столько, сколько принимает сам OneUptime (в nginx это client_max_body_size 50M).",
+  "Try again with less at once, such as a smaller file.": "Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные оказались слишком большими, и сервер их не принял, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
+  "What was sent was too large for the server to accept.": "Отправленные данные оказались слишком большими, и сервер их не принял."
 }

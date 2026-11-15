@@ -53493,5 +53493,9 @@
   "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.",
   "A project needs no card. On the Free plan, checking a website needs a payment method.": "A project needs no card. On the Free plan, checking a website needs a payment method.",
   "Not Signed Up Yet": "Not Signed Up Yet",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in."
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).",
+  "Try again with less at once, such as a smaller file.": "Try again with less at once, such as a smaller file.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.",
+  "What was sent was too large for the server to accept.": "What was sent was too large for the server to accept."
 }

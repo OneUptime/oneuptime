@@ -3147,5 +3147,9 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "NTP सर्वर का नाम किसी पते में रिज़ॉल्व नहीं हुआ, इसलिए कोई अनुरोध नहीं भेजा गया।",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "होस्ट तक पहुँचा जा सकता है, लेकिन उसने जवाब दिया कि इस UDP पोर्ट पर कोई सेवा नहीं सुन रही है: NTP डेमन बंद है या किसी दूसरे पोर्ट पर सुन रहा है।",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "प्रोब अपनी ओर से अनुरोध नहीं भेज सका, इसलिए NTP सर्वर से कभी संपर्क नहीं हुआ। विफलता प्रोब में है, सर्वर में नहीं।",
-  "The NTP check failed because of a network error.": "नेटवर्क त्रुटि के कारण NTP जाँच विफल रही।"
+  "The NTP check failed because of a network error.": "नेटवर्क त्रुटि के कारण NTP जाँच विफल रही।",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "जो भेजा गया, वह सर्वर के स्वीकार करने के लिए बहुत बड़ा था, इसलिए यह पूरा नहीं हुआ। एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
+  "What was sent was too large for the server to accept.": "जो भेजा गया, वह सर्वर के स्वीकार करने के लिए बहुत बड़ा था।",
+  "Try again with less at once, such as a smaller file.": "एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "अगर OneUptime के आगे लगे किसी प्रॉक्सी ने इसे अस्वीकार किया, तो उस प्रॉक्सी की अनुरोध आकार सीमा बढ़ाकर 50 MB कर दें, जितना OneUptime ख़ुद स्वीकार करता है (nginx में, client_max_body_size 50M)।"
 }

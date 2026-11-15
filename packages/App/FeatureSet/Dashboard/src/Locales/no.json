@@ -53493,5 +53493,9 @@
   "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "Sjekk av et nettsted, et API eller en server og sending av telemetri betales etter forbruk og krever en betalingsmetode.",
   "A project needs no card. On the Free plan, checking a website needs a payment method.": "Et prosjekt krever ikke kort. På Free-abonnementet krever sjekk av et nettsted en betalingsmetode.",
   "Not Signed Up Yet": "Ikke registrert ennå",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "Denne serveren kan ikke sende e-post, så {{email}} har ikke fått noen e-post. De har allerede en konto og er nå medlem: send dem denne lenken for å logge på."
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "Denne serveren kan ikke sende e-post, så {{email}} har ikke fått noen e-post. De har allerede en konto og er nå medlem: send dem denne lenken for å logge på.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime avviste det, øk proxyens grense for størrelsen på en forespørsel til 50 MB, like mye som OneUptime selv tar imot (i nginx, client_max_body_size 50M).",
+  "Try again with less at once, such as a smaller file.": "Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, var for stort til at serveren kunne ta imot det, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det som ble sendt, var for stort til at serveren kunne ta imot det."
 }

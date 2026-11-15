@@ -3147,5 +3147,9 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "Der Name des NTP-Servers wurde in keine Adresse aufgelöst, daher wurde keine Anfrage gesendet.",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "Der Host ist erreichbar, hat aber geantwortet, dass auf diesem UDP-Port kein Dienst lauscht: Der NTP-Dienst ist gestoppt oder lauscht auf einem anderen Port.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "Die Sonde konnte die Anfrage auf ihrer eigenen Seite nicht senden, daher wurde der NTP-Server nie kontaktiert. Der Fehler liegt bei der Sonde, nicht beim Server.",
-  "The NTP check failed because of a network error.": "Die NTP-Prüfung ist wegen eines Netzwerkfehlers fehlgeschlagen."
+  "The NTP check failed because of a network error.": "Die NTP-Prüfung ist wegen eines Netzwerkfehlers fehlgeschlagen.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden, daher wurde der Vorgang nicht abgeschlossen. Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
+  "What was sent was too large for the server to accept.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden.",
+  "Try again with less at once, such as a smaller file.": "Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Wenn ein Proxy vor OneUptime es abgelehnt hat, erhöhen Sie dessen Größenlimit für Anfragen auf 50 MB, so viel, wie OneUptime selbst annimmt (in nginx client_max_body_size 50M)."
 }

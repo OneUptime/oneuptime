@@ -53493,5 +53493,9 @@
   "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "فحص موقع أو واجهة API أو خادم وإرسال القياس عن بُعد بالدفع حسب الاستخدام، ويحتاجان إلى طريقة دفع.",
   "A project needs no card. On the Free plan, checking a website needs a payment method.": "لا يحتاج المشروع إلى بطاقة. على خطة Free، يحتاج فحص موقع إلى طريقة دفع.",
   "Not Signed Up Yet": "لم يسجّل بعد",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني، لذا لم تُرسَل رسالة إلى {{email}}. لديهم حساب بالفعل وهم أعضاء الآن: أرسل إليهم هذا الرابط لتسجيل الدخول."
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني، لذا لم تُرسَل رسالة إلى {{email}}. لديهم حساب بالفعل وهم أعضاء الآن: أرسل إليهم هذا الرابط لتسجيل الدخول.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "إذا رفضه وكيل (proxy) أمام OneUptime، فارفع حد حجم الطلب في ذلك الوكيل إلى 50 MB، أي ما يقبله OneUptime نفسه (في nginx، client_max_body_size 50M).",
+  "Try again with less at once, such as a smaller file.": "حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "ما أُرسل كان أكبر من أن يقبله الخادم، لذا لم تكتمل العملية. حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
+  "What was sent was too large for the server to accept.": "ما أُرسل كان أكبر من أن يقبله الخادم."
 }

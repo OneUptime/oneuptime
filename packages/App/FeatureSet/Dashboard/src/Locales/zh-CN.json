@@ -53493,5 +53493,9 @@
   "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "检查网站、API 或服务器以及发送遥测数据按用量付费，需要添加支付方式。",
   "A project needs no card. On the Free plan, checking a website needs a payment method.": "创建项目无需信用卡。在 Free 套餐中，检查网站需要添加支付方式。",
   "Not Signed Up Yet": "尚未注册",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "此服务器不能发送电子邮件，因此未向 {{email}} 发送邮件。对方已有账号，现在已是成员：请发送此链接让其登录。"
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "此服务器不能发送电子邮件，因此未向 {{email}} 发送邮件。对方已有账号，现在已是成员：请发送此链接让其登录。",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "如果是 OneUptime 前面的代理拒绝了它，请将该代理的请求大小上限提高到 50 MB，与 OneUptime 本身接受的大小相同（在 nginx 中为 client_max_body_size 50M）。",
+  "Try again with less at once, such as a smaller file.": "请一次发送更少的内容（例如更小的文件）后重试。",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容太大，服务器无法接受，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
+  "What was sent was too large for the server to accept.": "发送的内容太大，服务器无法接受。"
 }

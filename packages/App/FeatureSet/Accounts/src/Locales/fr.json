@@ -631,5 +631,9 @@
     "note": "Remarque",
     "tip": "Astuce",
     "warning": "Avertissement"
-  }
+  },
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Ce qui a été envoyé était trop volumineux pour que le serveur l'accepte, l'opération n'a donc pas abouti. Réessayez avec moins de données à la fois, par exemple un fichier plus petit.",
+  "What was sent was too large for the server to accept.": "Ce qui a été envoyé était trop volumineux pour que le serveur l'accepte.",
+  "Try again with less at once, such as a smaller file.": "Réessayez avec moins de données à la fois, par exemple un fichier plus petit.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Si un proxy placé devant OneUptime l'a refusé, relevez la limite de taille des requêtes de ce proxy à 50 Mo, autant que ce qu'accepte OneUptime lui-même (dans nginx, client_max_body_size 50M)."
 }

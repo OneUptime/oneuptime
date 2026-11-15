@@ -53493,5 +53493,9 @@
   "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "웹사이트, API 또는 서버 확인과 텔레메트리 전송은 사용한 만큼 결제되며 결제 방법이 필요합니다.",
   "A project needs no card. On the Free plan, checking a website needs a payment method.": "프로젝트에는 신용카드가 필요 없습니다. Free 요금제에서는 웹사이트를 확인하려면 결제 수단이 필요합니다.",
   "Not Signed Up Yet": "아직 가입 안 함",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "이 서버는 이메일을 보낼 수 없어 {{email}}에게 이메일이 전송되지 않았습니다. 이미 계정이 있고 이제 구성원입니다. 로그인할 수 있도록 이 링크를 보내세요."
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "이 서버는 이메일을 보낼 수 없어 {{email}}에게 이메일이 전송되지 않았습니다. 이미 계정이 있고 이제 구성원입니다. 로그인할 수 있도록 이 링크를 보내세요.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "OneUptime 앞에 있는 프록시가 거부했다면 그 프록시의 요청 크기 제한을 OneUptime 자체가 받는 만큼인 50 MB로 늘리세요(nginx에서는 client_max_body_size 50M).",
+  "Try again with less at once, such as a smaller file.": "더 작은 파일처럼 한 번에 보내는 양을 줄여 다시 시도하세요.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "보낸 내용이 너무 커서 서버가 받아들이지 못해 작업을 마치지 못했습니다. 더 작은 파일처럼 한 번에 보내는 양을 줄여 다시 시도하세요.",
+  "What was sent was too large for the server to accept.": "보낸 내용이 너무 커서 서버가 받아들이지 못했습니다."
 }

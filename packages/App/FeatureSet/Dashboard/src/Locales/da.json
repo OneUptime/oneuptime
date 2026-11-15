@@ -53493,5 +53493,9 @@
   "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "Tjek af et website, et API eller en server og afsendelse af telemetri betales efter forbrug og kræver en betalingsmetode.",
   "A project needs no card. On the Free plan, checking a website needs a payment method.": "Et projekt kræver intet kort. På Free-planen kræver tjek af et website en betalingsmetode.",
   "Not Signed Up Yet": "Ikke tilmeldt endnu",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "Denne server kan ikke sende e-mails, så {{email}} har ikke fået en e-mail. De har allerede en konto og er nu medlem: send dem dette link til at logge ind."
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "Denne server kan ikke sende e-mails, så {{email}} har ikke fået en e-mail. De har allerede en konto og er nu medlem: send dem dette link til at logge ind.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime afviste det, så hæv proxyens grænse for en forespørgsels størrelse til 50 MB, lige så meget som OneUptime selv tager imod (i nginx, client_max_body_size 50M).",
+  "Try again with less at once, such as a smaller file.": "Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det."
 }

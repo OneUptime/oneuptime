@@ -3147,5 +3147,9 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "NTP サーバーの名前がアドレスに解決されなかったため、リクエストは送信されませんでした。",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "ホストには到達できますが、この UDP ポートで待ち受けているサービスはないと応答しました。NTP デーモンが停止しているか、別のポートで待ち受けています。",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "プローブが自身の側でリクエストを送信できなかったため、NTP サーバーには一度も接続していません。障害はサーバーではなくプローブ側にあります。",
-  "The NTP check failed because of a network error.": "ネットワークエラーのため、NTP チェックに失敗しました。"
+  "The NTP check failed because of a network error.": "ネットワークエラーのため、NTP チェックに失敗しました。",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "送信した内容が大きすぎてサーバーが受け付けなかったため、処理は完了しませんでした。小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "What was sent was too large for the server to accept.": "送信した内容が大きすぎて、サーバーが受け付けませんでした。",
+  "Try again with less at once, such as a smaller file.": "小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "OneUptime の前にあるプロキシが拒否した場合は、そのプロキシのリクエストサイズの上限を、OneUptime 自体が受け付ける 50 MB に引き上げてください（nginx では client_max_body_size 50M）。"
 }
