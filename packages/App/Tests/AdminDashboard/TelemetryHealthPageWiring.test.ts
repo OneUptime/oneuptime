@@ -277,7 +277,10 @@ describe("Health > Telemetry page shell", () => {
       "getAdminDashboardPlugins().HealthTelemetry",
     );
     expect(telemetryPageSource).toContain("<EnterpriseHealthUpgrade");
-    expect(telemetryPageSource).toContain('featureName="Telemetry ingestion"');
+    // A key the upsell looks up in the reader's language (#8555).
+    expect(telemetryPageSource).toContain(
+      'featureName={translationKey("Telemetry ingestion")}',
+    );
   });
 
   test("the page uses the shared health layout, so it keeps the side menu", () => {
