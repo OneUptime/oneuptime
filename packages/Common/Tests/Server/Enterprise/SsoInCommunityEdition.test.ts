@@ -334,7 +334,7 @@ describe("single sign-on is part of the Community Edition", () => {
       });
 
       test.each(PROJECT_SSO_MODELS)(
-        "a project owner can create, read, update and delete %s",
+        "a Project Owner can create, read, update and delete %s",
         async (_name: string, modelType: ModelType) => {
           const owner: DatabaseCommonInteractionProps = withPermissions([
             Permission.ProjectOwner,
@@ -388,7 +388,7 @@ describe("single sign-on is part of the Community Edition", () => {
       );
 
       test.each(GLOBAL_SSO_MODELS)(
-        "a project owner who is not a master admin still cannot create %s",
+        "a Project Owner who is not a master admin still cannot create %s",
         (_name: string, modelType: ModelType) => {
           expect(() => {
             TablePermission.checkTableLevelPermissions(

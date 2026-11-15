@@ -1621,7 +1621,7 @@ describePostgres("reminder rule lookup against a migrated Postgres", () => {
         ["scoped to the project as the tenant", true],
         ["with no tenant, scoped to each project the user belongs to", false],
       ] as Array<[string, boolean]>)(
-        "a project owner's findBy and countBy, %s, return exactly the logically enabled or disabled rules",
+        "a Project Owner's findBy and countBy, %s, return exactly the logically enabled or disabled rules",
         async (_label: string, withTenantId: boolean) => {
           const rules: SeededRuleSet = await seedEveryEncoding(kind);
           const props: DatabaseCommonInteractionProps =

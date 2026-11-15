@@ -911,7 +911,7 @@ describe("KubernetesClusterAiAccessAPI", () => {
       ranBothCommands(await callRoute(TEST_ROUTE));
     });
 
-    test("a project admin blocked from editing this cluster's label is refused too", async () => {
+    test("a Project Admin blocked from editing this cluster's label is refused too", async () => {
       clusterFind.mockResolvedValue(
         clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
       );

@@ -629,7 +629,7 @@ describe("a Service Telemetry Link permission, which nothing checks", () => {
   });
 
   test.each(RETIRED)(
-    "%s is not put into a role, by a project owner either",
+    "%s is not put into a role, by a Project Owner either",
     async (permission: Permission, title: string) => {
       const findRole: jest.SpyInstance = getJestSpyOn(
         CustomRoleService,

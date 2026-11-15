@@ -96,7 +96,7 @@ export const EXCLUDED_FINGERPRINT_LIMIT: number = 5000;
  * for a fix: refused in these words (createCodeFixRunForException).
  */
 export const EXCEPTION_FIX_NOT_ALLOWED_MESSAGE: string =
-  "You can read this exception. Fixing it with AI works in its repository, and takes permission to edit that repository - ask a project admin for it.";
+  "You can read this exception. Fixing it with AI works in its repository, and takes permission to edit that repository - ask a Project Admin for it.";
 
 export interface CreateCodeFixRunForExceptionParams {
   telemetryExceptionId: ObjectID;

@@ -62,7 +62,7 @@ const WATCH: string = PermissionHelper.getTitle(
 const ROW_SENTENCE: string =
   'Hidden - your role needs the "{{permission}}" permission';
 const TOOLTIP_SENTENCE: string =
-  'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.';
+  'Your role cannot read end-user identity. Ask a Project Admin for the "{{permission}}" permission.';
 const HINT_SENTENCE: string =
   'The exact reference your page passed to identify(). Needs the "{{permission}}" permission; never written to the URL.';
 
@@ -240,7 +240,7 @@ describe("the lines that say the identity is hidden name Watch Session Replays",
       'Hidden - your role needs the "Watch Session Replays" permission',
     );
     expect(lines.tooltip).toBe(
-      'Your role cannot read end-user identity. Ask a project admin for the "Watch Session Replays" permission.',
+      'Your role cannot read end-user identity. Ask a Project Admin for the "Watch Session Replays" permission.',
     );
     expect(lines.hint).toBe(
       'The exact reference your page passed to identify(). Needs the "Watch Session Replays" permission; never written to the URL.',

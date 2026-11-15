@@ -420,13 +420,13 @@ describe("a direct page's run", () => {
   describe("a run that names no policy is OneUptime's to create", () => {
     const CALLERS: Array<[string, () => DatabaseCommonInteractionProps]> = [
       [
-        "a project owner",
+        "a Project Owner",
         (): DatabaseCommonInteractionProps => {
           return member([Permission.ProjectOwner]);
         },
       ],
       [
-        "a project admin",
+        "a Project Admin",
         (): DatabaseCommonInteractionProps => {
           return member([Permission.ProjectAdmin]);
         },
@@ -605,7 +605,7 @@ describe("a direct page's run", () => {
 
     test.each([
       [
-        "a project owner",
+        "a Project Owner",
         (): DatabaseCommonInteractionProps => {
           return member([Permission.ProjectOwner]);
         },
@@ -755,7 +755,7 @@ describe("a direct page's run", () => {
       },
     );
 
-    test("a project owner is told the same", async () => {
+    test("a Project Owner is told the same", async () => {
       const error: Error = await refusalOf(
         create(policyRun(), member([Permission.ProjectOwner])),
       );

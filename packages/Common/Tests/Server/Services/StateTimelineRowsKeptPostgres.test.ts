@@ -1103,7 +1103,7 @@ describePostgres(
       });
     });
 
-    describe("a workflow's Delete Many, as the project admin a step acts as", () => {
+    describe("a workflow's Delete Many, as the Project Admin a step acts as", () => {
       test("takes the history that is over, leaves the rest, and says in the run's log how many stayed and why", async () => {
         const project: Project = await addProjectWithStatuses();
 

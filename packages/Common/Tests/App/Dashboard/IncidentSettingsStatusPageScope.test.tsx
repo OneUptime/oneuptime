@@ -1001,7 +1001,7 @@ describe("the Status Page Scope form for someone who cannot read status pages", 
     ).toBeInTheDocument();
     expect(screen.queryByTestId(REMOVED_BANNER_TEST_ID)).toBeNull();
     expect(screen.queryByText(REMOVED_BANNER_TEXT)).toBeNull();
-    expect(screen.queryByText(/Ask a project admin/)).toBeNull();
+    expect(screen.queryByText(/Ask a Project Admin/)).toBeNull();
     expect(screen.queryByText(REFUSED_MESSAGE)).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(statusPageCountRequests()).toEqual([]);

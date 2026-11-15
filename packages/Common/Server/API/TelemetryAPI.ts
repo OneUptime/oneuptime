@@ -5584,7 +5584,7 @@ const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [
  * ("Watch Session Replays"), never a "session replay identity permission"
  * a project admin cannot find there.
  */
-const ASK_FOR_SESSION_REPLAY_IDENTITY: string = `Ask a project admin for the "${PermissionHelper.getTitle(
+const ASK_FOR_SESSION_REPLAY_IDENTITY: string = `Ask a Project Admin for the "${PermissionHelper.getTitle(
   Permission.ReadRumSessionReplayPayload,
 )}" permission.`;
 

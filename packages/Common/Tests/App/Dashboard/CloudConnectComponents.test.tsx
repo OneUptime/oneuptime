@@ -180,7 +180,7 @@ describe("the tiles", () => {
       <CloudConnectionTiles
         connectionCounts={{}}
         canConnect={false}
-        connectDisabledReason="Ask a project admin to connect a cloud account."
+        connectDisabledReason="Ask a Project Admin to connect a cloud account."
         onConnect={getJestMockFunction()}
       />,
     );
@@ -803,7 +803,7 @@ describe("the way in from an empty All Resources", () => {
   test("whoever may not connect sees the tiles greyed", () => {
     getJestSpyOn(PermissionGate, "check").mockReturnValue({
       isAllowed: false,
-      disabledReason: "Ask a project admin to connect a cloud account.",
+      disabledReason: "Ask a Project Admin to connect a cloud account.",
     } as PermissionGateResult);
 
     render(<CloudConnectCallout />);

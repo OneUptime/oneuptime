@@ -94,6 +94,22 @@ export const KEPT_IN_ENGLISH: ReadonlyArray<KeptEnglish> = [
     text: "Workflow steps can do only what a Project Admin of this project can do",
     why: "A refused step's reason, which the run log shows as the server writes it (LogComponentError), in English.",
   },
+  {
+    text: "A Project Owner or someone with Manage Billing can raise or remove the limit",
+    why: "The refusal when a project's own AI limit is reached, quoted as the server writes it, in English.",
+  },
+  {
+    text: "A Project Owner or someone with Manage Billing can add AI credits",
+    why: "The refusal when a project's AI credits are used up, quoted as the server writes it, in English.",
+  },
+  {
+    text: "Ask a Project Admin for access to it.",
+    why: "The Slack and Microsoft Teams reply when a private incident is out of reach, quoted as the bot writes it, in English.",
+  },
+  {
+    text: "Ask a Project Admin for access to them.",
+    why: "The Slack and Microsoft Teams reply when no incident state is in reach, quoted as the bot writes it, in English.",
+  },
 ];
 
 /*

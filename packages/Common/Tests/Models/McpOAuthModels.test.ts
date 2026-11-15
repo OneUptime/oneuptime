@@ -286,11 +286,11 @@ describe("McpOAuthGrant: the one table a person can reach", () => {
       expect(grant.getUpdatePermissions()).toEqual([]);
     });
 
-    test("it is read by the member it belongs to, project owners and admins, and holders of the read permission", () => {
+    test("it is read by the member it belongs to, Project Owners and Project Admins, and holders of the read permission", () => {
       expect(grant.readRecordPermissions).toEqual(GRANT_READERS);
     });
 
-    test("it is revoked by the member it belongs to, project owners and admins, and holders of the delete permission", () => {
+    test("it is revoked by the member it belongs to, Project Owners and Project Admins, and holders of the delete permission", () => {
       expect(grant.deleteRecordPermissions).toEqual(GRANT_REVOKERS);
     });
 

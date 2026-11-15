@@ -155,8 +155,8 @@ describe("KubernetesClusterAiAccessService.assertCallerMayChangeCluster", () => 
 
   describe("who may edit the cluster passes", () => {
     it.each([
-      ["a project owner", [{ permission: Permission.ProjectOwner }]],
-      ["a project admin", [{ permission: Permission.ProjectAdmin }]],
+      ["a Project Owner", [{ permission: Permission.ProjectOwner }]],
+      ["a Project Admin", [{ permission: Permission.ProjectAdmin }]],
       ["a project member", [{ permission: Permission.ProjectMember }]],
       ["a settings admin", [{ permission: Permission.SettingsAdmin }]],
       ["a settings member", [{ permission: Permission.SettingsMember }]],
@@ -293,7 +293,7 @@ describe("KubernetesClusterAiAccessService.assertCallerMayChangeCluster", () => 
       ).resolves.toBeUndefined();
     });
 
-    it("refuses a project admin blocked from editing a label the cluster carries", async () => {
+    it("refuses a Project Admin blocked from editing a label the cluster carries", async () => {
       serveCluster(cluster([label(PROD_LABEL_ID, "prod")]));
 
       await expect(

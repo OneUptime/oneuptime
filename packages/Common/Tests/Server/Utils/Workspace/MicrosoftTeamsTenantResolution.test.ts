@@ -911,7 +911,7 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - tenant resolution", () =
       "is an observability and incident management platform",
     );
     expect(sent).toContain(
-      "**To get started,** a project admin connects your organization",
+      "**To get started,** a Project Admin connects your organization",
     );
     expect(sent).not.toContain(NOT_FOUND_FRAGMENT);
     expect(sent).not.toContain(AMBIGUOUS_FRAGMENT);

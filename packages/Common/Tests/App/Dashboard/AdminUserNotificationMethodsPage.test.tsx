@@ -1439,7 +1439,7 @@ describe("permissions", () => {
     expect(screen.queryAllByTestId("row-actions")).toHaveLength(0);
   });
 
-  test("a project owner keeps the controls without the granular permission", async () => {
+  test("a Project Owner keeps the controls without the granular permission", async () => {
     jest
       .spyOn(PermissionUtil, "getAllPermissions")
       .mockReturnValue([Permission.ProjectOwner]);
@@ -2617,7 +2617,7 @@ describe("a project with channels switched off", () => {
    * a channel on.
    */
   const WHY_MISSING: string =
-    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
+    "Channels that are off in this project are not offered. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
 
   // Said to someone who may turn them on, with the page as a link.
   const WHY_MISSING_WITH_LINK: string =
@@ -2688,7 +2688,7 @@ describe("a project with channels switched off", () => {
     expect(within(modal()).queryByText(WHY_MISSING)).not.toBeInTheDocument();
   });
 
-  test("a project admin, who may add methods here but not turn a channel on, is told exactly who can - with no link", async () => {
+  test("a Project Admin, who may add methods here but not turn a channel on, is told exactly who can - with no link", async () => {
     respondWithChannels({ ...ALL_ON, sms: false });
 
     await renderPage();
@@ -2699,13 +2699,13 @@ describe("a project with channels switched off", () => {
 
     expect(note.textContent).toBe(WHY_MISSING);
     expect(within(note).queryByRole("link")).not.toBeInTheDocument();
-    expect(note.textContent?.toLowerCase()).not.toContain("project admin");
+    expect(note.textContent?.toLowerCase()).not.toContain("Project Admin");
   });
 
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
+    ["a Project Owner", [Permission.ProjectOwner]],
     [
-      "a project admin who also has Manage Billing",
+      "a Project Admin who also has Manage Billing",
       [Permission.ProjectAdmin, Permission.ManageProjectBilling],
     ],
   ] as Array<[string, Array<Permission>]>)(

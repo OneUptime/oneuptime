@@ -853,7 +853,7 @@ export const EnableAiCopy: {
   ),
   turnOffConfirmButton: translationKey("Turn off AI"),
   whoCanTurnOn: translationKey(
-    "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+    "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
   ),
 };
 

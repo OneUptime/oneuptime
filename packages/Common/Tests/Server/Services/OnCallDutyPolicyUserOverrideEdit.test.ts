@@ -666,8 +666,8 @@ describe("the line the policy's chat channels get", () => {
 
 describe("who may edit", () => {
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
     ["a project member", [Permission.ProjectMember]],
     ["an on-call admin", [Permission.OnCallAdmin]],
     ["an on-call member", [Permission.OnCallMember]],

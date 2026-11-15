@@ -75,8 +75,8 @@ function member(
 }
 
 const ADMINS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   ["a security admin", [Permission.SecurityAdmin]],
 ];
 

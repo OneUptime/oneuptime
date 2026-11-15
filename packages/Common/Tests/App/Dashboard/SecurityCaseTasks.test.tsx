@@ -332,7 +332,7 @@ describe("a case's tasks", () => {
     expect(
       within(empty).getByTestId(`${SECURITY_CASE_TASKS_TEST_IDS.empty}-note`),
     ).toHaveTextContent(
-      "You don't have permission to create these. Ask a project admin for access.",
+      "You don't have permission to create these. Ask a Project Admin for access.",
     );
     expect(
       screen.queryByTestId(SECURITY_CASE_TASKS_TEST_IDS.addInput),

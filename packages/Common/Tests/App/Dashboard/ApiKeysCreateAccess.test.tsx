@@ -798,7 +798,7 @@ describe("a role the server refuses", () => {
 });
 
 describe("who is asked what", () => {
-  test("a project admin is offered the role they hold, and Choose permissions later", async () => {
+  test("a Project Admin is offered the role they hold, and Choose permissions later", async () => {
     holding([Permission.ProjectAdmin]);
 
     const modal: HTMLElement = await openCreateForm();

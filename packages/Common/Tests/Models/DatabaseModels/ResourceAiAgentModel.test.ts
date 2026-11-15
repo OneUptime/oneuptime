@@ -358,7 +358,7 @@ describe("ResourceAiAgent model", () => {
   });
 
   it.each([DatabaseRequestType.Create, DatabaseRequestType.Update])(
-    "a project owner and admin cannot %s the key hash",
+    "a Project Owner and admin cannot %s the key hash",
     (requestType: DatabaseRequestType) => {
       expect(() => {
         ColumnPermissions.checkDataColumnPermissions(
@@ -378,7 +378,7 @@ describe("ResourceAiAgent model", () => {
     ["connectionStatus", "connected"],
     ["posture", { allowWrites: true }],
   ])(
-    "a project owner and admin cannot update %s either",
+    "a Project Owner and admin cannot update %s either",
     (column: string, value: unknown) => {
       expect(() => {
         ColumnPermissions.checkDataColumnPermissions(
@@ -391,7 +391,7 @@ describe("ResourceAiAgent model", () => {
     },
   );
 
-  it("a project owner may read the table but not create, update or delete in it", () => {
+  it("a Project Owner may read the table but not create, update or delete in it", () => {
     expect(() => {
       TablePermission.checkTableLevelPermissions(
         ResourceAiAgent,
@@ -846,7 +846,7 @@ describe("AutoRemediationSuggestion.resourceType and resourceId", () => {
     ).toBe(false);
   });
 
-  it("a project owner cannot write either column through the API", () => {
+  it("a Project Owner cannot write either column through the API", () => {
     expect(() => {
       ColumnPermissions.checkDataColumnPermissions(
         AutoRemediationSuggestion,

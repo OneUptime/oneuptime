@@ -89,7 +89,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Workspace Notification Rule Owning Teams",
   icon: IconProp.Logs,
   tableDescription:
-    "Teams that own a workspace notification rule: only their members, and project admins, can change or delete it.",
+    "Teams that own a workspace notification rule: only their members, and Project Admins, can change or delete it.",
 })
 @Entity({
   name: "WorkspaceNotificationRuleOwningTeam",

@@ -1323,7 +1323,7 @@ describe("a payment method, said before Start checking (#7367)", () => {
     expect(
       getPaymentNeededText({ translator: english, mayAddPaymentMethod: false }),
     ).toBe(
-      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Ask a project owner to add a payment method before you start checking.",
+      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Ask a Project Owner to add a payment method before you start checking.",
     );
   });
 

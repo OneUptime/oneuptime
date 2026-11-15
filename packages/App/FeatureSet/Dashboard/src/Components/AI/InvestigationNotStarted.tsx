@@ -237,7 +237,7 @@ export function getSettingsAction(
       page: PageMap.SETTINGS_AI_FEATURES,
       permissions: getEnableAiUpdatePermissions(),
       whoCanAct: translationKey(
-        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+        "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
       ),
     };
   }
@@ -267,7 +267,7 @@ export function getSettingsAction(
       page: PageMap.SETTINGS_AI_FEATURES,
       permissions: getDailyAiLimitUpdatePermissions(),
       whoCanAct: translationKey(
-        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
+        "A Project Owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
       ),
     };
   }

@@ -1469,7 +1469,7 @@ describe("notification methods", () => {
         Permission.ProjectAdmin,
       );
       expect(WHO_MAY_TURN_THEM_ON).toBe(
-        "a project owner, a Billing Admin or someone with Manage Billing",
+        "a Project Owner, a Billing Admin or someone with Manage Billing",
       );
       expect(PermissionHelper.getTitle(Permission.BillingAdmin)).toBe(
         "Billing Admin",

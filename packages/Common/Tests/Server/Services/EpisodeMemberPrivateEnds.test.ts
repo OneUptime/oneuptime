@@ -783,8 +783,8 @@ describe.each(KINDS)(
 
     test.each([
       ["an owner of both, as a project member", Permission.ProjectMember],
-      ["a project admin", Permission.ProjectAdmin],
-      ["a project owner", Permission.ProjectOwner],
+      ["a Project Admin", Permission.ProjectAdmin],
+      ["a Project Owner", Permission.ProjectOwner],
       [`an ${kind.noun} member`, kind.memberPermission],
     ])(
       "%s, who can see both, adds it",

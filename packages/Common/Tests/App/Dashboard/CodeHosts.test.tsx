@@ -1616,7 +1616,7 @@ describe("what stops AI, said for the repository's host", () => {
 
     expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
     expect(screen.getByTestId("code-blocker-who-can")).toHaveTextContent(
-      "A project admin can replace the access token in this repository's settings.",
+      "A Project Admin can replace the access token in this repository's settings.",
     );
   });
 

@@ -145,7 +145,7 @@ const OWNER_SENTENCE_HTML: string =
   "Add balance in Project Settings &gt; Notifications &gt; Notification Channels, or turn on Auto Recharge there so it does not run out.";
 
 const WHO_CAN: string =
-  "A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.";
+  "A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.";
 
 const TWILIO_CONFIG: TwilioConfig = {
   accountSid: "AC-account",

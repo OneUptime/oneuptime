@@ -63,7 +63,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * as both: the project it named was the request's (its plan, the tenant a
  * route reads by, as root), while the reads made with its props were
  * answered across the caller's own projects. That let someone outside
- * project A read A's code-fix runs, and a project owner elsewhere read A's
+ * project A read A's code-fix runs, and a Project Owner elsewhere read A's
  * private incidents. Such a request is now refused with a 400, wherever it
  * names the project - the header, the query string, the path or the body -
  * before anything is read for the project, whoever sends it.

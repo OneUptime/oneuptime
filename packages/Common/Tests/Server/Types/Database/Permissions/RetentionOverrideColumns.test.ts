@@ -556,7 +556,7 @@ describe("through the real permission entry points", () => {
     }) as never);
   });
 
-  test("Community Edition: a project owner's update that sets a service's retention is refused", async () => {
+  test("Community Edition: a Project Owner's update that sets a service's retention is refused", async () => {
     await expect(
       UpdatePermission.checkUpdatePermissions(
         Service,

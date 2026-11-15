@@ -63,12 +63,12 @@ const LANGUAGES: Array<string> = fs
 
 // The sentences that ask a reader for a permission, by the title they fill in.
 const ASKING_SENTENCES: ReadonlyArray<string> = [
-  'A recording of this error may exist, but your role cannot list session replays. Ask a project admin for the "{{permission}}" permission.',
-  'Arming a recording of a named person is a capture-policy change, so it needs the "{{permission}}" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.',
-  'Reading recording health needs the "{{permission}}" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.',
-  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a project admin for the "{{permission}}" permission, or filter by URL, tag or device instead.',
-  'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the "{{permission}}" permission.',
-  'Your role lacks the "{{permission}}" permission. Ask a project admin for it.',
+  'A recording of this error may exist, but your role cannot list session replays. Ask a Project Admin for the "{{permission}}" permission.',
+  'Arming a recording of a named person is a capture-policy change, so it needs the "{{permission}}" permission (Project Owners, Project Admins and Telemetry Admins have it). Ask a Project Admin to arm the target for you.',
+  'Reading recording health needs the "{{permission}}" permission (Project Owners, Project Admins and Telemetry Admins have it). Ask a Project Admin to grant it, or to run this check for you.',
+  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a Project Admin for the "{{permission}}" permission, or filter by URL, tag or device instead.',
+  'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a Project Admin for the "{{permission}}" permission.',
+  'Your role lacks the "{{permission}}" permission. Ask a Project Admin for it.',
 ];
 
 // What the copy used to call permissions no roles screen lists.
@@ -108,10 +108,10 @@ describe("the permission a sentence names", () => {
     expect(
       describeHealthError({ kind: "permission", message: "" }).detail,
     ).toBe(
-      'Reading recording health needs the "List Session Replays" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.',
+      'Reading recording health needs the "List Session Replays" permission (Project Owners, Project Admins and Telemetry Admins have it). Ask a Project Admin to grant it, or to run this check for you.',
     );
     expect(describeSessionReplayListError("", 403).detail).toBe(
-      'Your role lacks the "List Session Replays" permission. Ask a project admin for it.',
+      'Your role lacks the "List Session Replays" permission. Ask a Project Admin for it.',
     );
   });
 
@@ -157,7 +157,7 @@ describe("the locales", () => {
     // The check finds the old wording.
     expect(
       NAMES_NO_SCREEN_SHOWS.test(
-        "Ask a project admin for the Read Session Replay permission.",
+        "Ask a Project Admin for the Read Session Replay permission.",
       ),
     ).toBe(true);
   });
@@ -212,7 +212,7 @@ const TELEMETRY_API: string = path.join(
 // The three lines, as en.json keys them.
 const IDENTITY_HIDDEN_SENTENCES: ReadonlyArray<string> = [
   'Hidden - your role needs the "{{permission}}" permission',
-  'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.',
+  'Your role cannot read end-user identity. Ask a Project Admin for the "{{permission}}" permission.',
   'The exact reference your page passed to identify(). Needs the "{{permission}}" permission; never written to the URL.',
 ];
 
@@ -539,12 +539,12 @@ describe("no Session Replay line names the identity permission", () => {
    * dialog's request to a project admin, word for word, in every language,
    * so the two never ask for the grant two different ways.
    */
-  test("the header's tooltip asks a project admin for the grant exactly as the filter dialog does", () => {
+  test("the header's tooltip asks a Project Admin for the grant exactly as the filter dialog does", () => {
     const tooltip: string = IDENTITY_HIDDEN_SENTENCES[1] as string;
     const filterLine: string =
-      'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the "{{permission}}" permission.';
+      'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a Project Admin for the "{{permission}}" permission.';
     const ask: string =
-      'Ask a project admin for the "{{permission}}" permission.';
+      'Ask a Project Admin for the "{{permission}}" permission.';
 
     expect(tooltip.endsWith(` ${ask}`)).toBe(true);
     expect(filterLine.endsWith(` ${ask}`)).toBe(true);
@@ -593,7 +593,7 @@ describe("no Session Replay line names the identity permission", () => {
       "en",
       [
         'Hidden - your role needs the "Watch Session Replays" permission',
-        'Your role cannot read end-user identity. Ask a project admin for the "Watch Session Replays" permission.',
+        'Your role cannot read end-user identity. Ask a Project Admin for the "Watch Session Replays" permission.',
       ],
     ],
   ])(

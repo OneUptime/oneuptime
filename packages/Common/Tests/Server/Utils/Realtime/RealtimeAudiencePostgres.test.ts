@@ -614,7 +614,7 @@ describePostgres("live updates against a migrated Postgres", () => {
 
   describe("incidents: labels, owners, blocks with labels and private records", () => {
     const EXPECTED: Array<[string, string, Array<string>]> = [
-      ["a project owner (project-wide)", OWNER, INCIDENTS],
+      ["a Project Owner (project-wide)", OWNER, INCIDENTS],
       [
         "a project member (project-wide, not the private one)",
         MEMBER,
@@ -664,7 +664,7 @@ describePostgres("live updates against a migrated Postgres", () => {
       },
     );
 
-    test("only those who read every incident skip the read: project owners", async () => {
+    test("only those who read every incident skip the read: Project Owners", async () => {
       const readsEvery: Map<string, boolean> = new Map<string, boolean>();
 
       for (const userId of PERMISSIONS.keys()) {
@@ -883,7 +883,7 @@ describePostgres("live updates against a migrated Postgres", () => {
     const INSIGHTS: Array<string> = [INSIGHT_ON_BLUE_SERVICE, INSIGHT_PLAIN];
 
     test.each([
-      ["a project owner", OWNER, INSIGHTS],
+      ["a Project Owner", OWNER, INSIGHTS],
       ["a project member", MEMBER, INSIGHTS],
       [
         "a member granted for the Red label only: not the insight about the Blue service",
@@ -1092,7 +1092,7 @@ describePostgres("live updates against a migrated Postgres", () => {
     test.each([
       ["the person who wrote it", AI_AUTHOR, [MESSAGE_OF_AUTHOR]],
       [
-        "even a project owner, for messages not theirs",
+        "even a Project Owner, for messages not theirs",
         OWNER,
         [MESSAGE_OF_OWNER],
       ],
