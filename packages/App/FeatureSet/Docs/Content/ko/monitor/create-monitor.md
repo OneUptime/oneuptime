@@ -76,7 +76,7 @@ flowchart TB
 
 ## 프로브 및 간격
 
-프로브가 확인하는 모니터는 이 단계로 끝납니다. 웹사이트, API, Ping, IP, 포트, SSL 인증서, DNS, DNSSEC, NTP, 도메인, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code, External Status Page입니다. **프로브**는 확인을 실행하는 머신이며, 프로젝트의 기본 프로브가 처음부터 선택되어 있습니다. **모니터링 간격**은 **5분마다**로 시작합니다.
+프로브가 확인하는 모니터는 이 단계로 끝납니다. 웹사이트, API, Ping, IP, 포트, SSL 인증서, DNS, DNSSEC, NTP, 도메인, SQL 쿼리, 데이터베이스 상태, 합성 모니터, 사용자 지정 JavaScript 코드, 외부 상태 페이지입니다. **프로브**는 확인을 실행하는 머신이며, 프로젝트의 기본 프로브가 처음부터 선택되어 있습니다. **모니터링 간격**은 **5분마다**로 시작합니다.
 
 :::steps
 ### 프로브 선택
@@ -85,7 +85,7 @@ flowchart TB
 
 ### 확인 주기 선택
 
-**매분**부터 **매주**까지 중에서 **모니터링 간격**을 고릅니다. Synthetic Monitor, Custom JavaScript Code, SSL 인증서 모니터에는 5분 이상의 간격만 제공됩니다.
+**매분**부터 **매주**까지 중에서 **모니터링 간격**을 고릅니다. 합성 모니터, 사용자 지정 JavaScript 코드, SSL 인증서 모니터에는 5분 이상의 간격만 제공됩니다.
 
 ### 모니터 생성
 

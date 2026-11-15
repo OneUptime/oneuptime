@@ -41,7 +41,7 @@ import RealtimeAccessChanges from "./Realtime/RealtimeAccessChanges";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { SessionLengths } from "../../Types/UserSession/SessionLength";
 
-// What became of one ListenToModelEvent request.
+// What became of one ListenToModelEvent (or ListenToProjectUsage) request.
 export enum ListenToModelEventOutcome {
   Joined = "Joined",
   /*
@@ -85,6 +85,32 @@ interface ListeningSocket {
   rooms: Set<string>;
   data: unknown;
 }
+
+// What a refused join sends back: the refused request, its project named.
+type RefusedJoin = ListenToModelEventJSON | { tenantId: string };
+
+/*
+ * Who hears that what a project uses changed (#8626): everyone who reads
+ * in the project - a member, a server admin - as their reader is built
+ * when it happens (RealtimeReaders: a former member, or a blocked person,
+ * reads nothing there). The event carries no record and no value, only
+ * "ask again": what each page then shows comes from its own request for
+ * the project's products, which the API checks as always.
+ */
+const PROJECT_USAGE_LISTENERS: RealtimeReadAccess = {
+  answersWithoutReading: true,
+  readsEveryRecord: async (): Promise<boolean> => {
+    return true;
+  },
+  getReadableIds: async (
+    _reader: RealtimeReader,
+    modelIds: Array<ObjectID>,
+  ): Promise<Array<string>> => {
+    return modelIds.map((modelId: ObjectID): string => {
+      return modelId.toString();
+    });
+  },
+};
 
 export default abstract class Realtime {
   private static socketServer: SocketServer | null = null;
@@ -191,6 +217,17 @@ export default abstract class Realtime {
         });
       });
 
+      /*
+       * What a project uses changed, here or on another server
+       * (ProjectUsageCache): the pages this one holds in the project hear
+       * it, and ask for its products again.
+       */
+      RealtimeAccessChanges.onProjectUsageChanged((projectId: string): void => {
+        Realtime.deliverProjectUsageChanged(projectId).catch((err: unknown) => {
+          logger.error(err);
+        });
+      });
+
       this.socketServer!.on("connection", (socket: Socket) => {
         logger.debug("New socket connection established");
 
@@ -203,6 +240,14 @@ export default abstract class Realtime {
          */
         socket.on(EventName.ListenToModalEvent, (data: JSONObject): void => {
           Realtime.handleListenToModelEventRequest(socket, data).catch(
+            (err: unknown) => {
+              logger.error(err);
+            },
+          );
+        });
+
+        socket.on(EventName.ListenToProjectUsage, (data: JSONObject): void => {
+          Realtime.handleListenToProjectUsageRequest(socket, data).catch(
             (err: unknown) => {
               logger.error(err);
             },
@@ -246,6 +291,33 @@ export default abstract class Realtime {
       };
 
       logger.error(err, failureLogAttributes);
+      return ListenToModelEventOutcome.Failed;
+    }
+  }
+
+  /*
+   * One ListenToProjectUsage from a client (#8626), start to finish: the
+   * project's usage room, joined as a model's room is. Never throws, as
+   * handleListenToModelEventRequest does not.
+   */
+  @CaptureSpan()
+  public static async handleListenToProjectUsageRequest(
+    socket: Socket,
+    data: JSONObject,
+  ): Promise<ListenToModelEventOutcome> {
+    const tenantId: unknown =
+      data && typeof data === "object" ? data["tenantId"] : undefined;
+
+    if (typeof tenantId !== "string" || !ObjectID.isValidUUID(tenantId)) {
+      logger.error("ListenToProjectUsage tenantId is not an id");
+      return ListenToModelEventOutcome.InvalidRequest;
+    }
+
+    try {
+      return await Realtime.listenToProjectUsage(socket, tenantId);
+    } catch (err) {
+      // A permission-cache (Redis) failure, say. The room is not joined.
+      logger.error(err, { projectId: tenantId } as LogAttributes);
       return ListenToModelEventOutcome.Failed;
     }
   }
@@ -318,7 +390,7 @@ export default abstract class Realtime {
    */
   private static rejectForMissingAuthentication(
     socket: Socket,
-    data: ListenToModelEventJSON,
+    data: RefusedJoin,
     reason: string,
     listenLogAttributes: LogAttributes,
   ): ListenToModelEventOutcome {
@@ -339,7 +411,7 @@ export default abstract class Realtime {
    */
   private static rejectForMissingSsoSignIn(
     socket: Socket,
-    data: ListenToModelEventJSON,
+    data: RefusedJoin,
     listenLogAttributes: LogAttributes,
   ): ListenToModelEventOutcome {
     logger.debug(
@@ -395,6 +467,109 @@ export default abstract class Realtime {
       data.tenantId,
     );
 
+    return await this.admitToRoom(socket, {
+      decision: decision,
+      refused: data,
+      /*
+       * A record's own room when the page asked for one record, else the
+       * model's room for that kind of change.
+       */
+      roomId: data.modelId
+        ? RealtimeUtil.getRecordRoomId(
+            data.tenantId,
+            data.modelName,
+            data.modelId,
+          )
+        : RealtimeUtil.getRoomId(data.tenantId, data.modelName, data.eventType),
+      /*
+       * The model's own read: a server admin's reads pass it; anyone else
+       * needs read access to that kind of record in the project.
+       */
+      mayHear: (
+        session: RealtimeSocketSession,
+        tenantPermission: UserTenantAccessPermission | null,
+      ): boolean => {
+        return (
+          session.isMasterAdmin ||
+          Boolean(
+            tenantPermission &&
+              this.hasPermissionsByModelName(tenantPermission, data.modelName),
+          )
+        );
+      },
+      logAttributes: listenLogAttributes,
+    });
+  }
+
+  /*
+   * A project's usage room (#8626), asked as a model's room is
+   * (RealtimeJoinAccess): an API request of the same session would be let
+   * into the project - a member, or a server admin - with its Require SSO
+   * rule, and the session lasts. No model's read is asked: what is heard
+   * there is only that what the project uses changed, and every member's
+   * products menu asks for the project's products.
+   */
+  @CaptureSpan()
+  public static async listenToProjectUsage(
+    socket: Socket,
+    tenantId: string,
+  ): Promise<ListenToModelEventOutcome> {
+    const listenLogAttributes: LogAttributes = { projectId: tenantId };
+
+    if (!this.socketServer) {
+      await this.init();
+    }
+
+    // Its session has ended: the handshake is spent, so the client must reconnect.
+    if (RealtimeSessions.hasEnded(socket)) {
+      return this.rejectForMissingAuthentication(
+        socket,
+        { tenantId: tenantId },
+        "The session this socket joined with has ended",
+        listenLogAttributes,
+      );
+    }
+
+    const decision: RealtimeJoinDecision = await RealtimeJoinAccess.decide(
+      socket,
+      tenantId,
+    );
+
+    return await this.admitToRoom(socket, {
+      decision: decision,
+      refused: { tenantId: tenantId },
+      roomId: RealtimeUtil.getProjectUsageRoomId(tenantId),
+      mayHear: (): boolean => {
+        return true;
+      },
+      logAttributes: listenLogAttributes,
+    });
+  }
+
+  /*
+   * A join, once RealtimeJoinAccess has decided it: refused as it says
+   * (AuthenticationRequired and SsoAuthorizationRequired tell the client,
+   * with the refused request), then what the room itself asks (`mayHear`),
+   * then the room joined with the session kept on the socket
+   * (RealtimeSessions) - unless the session ended meanwhile. The socket
+   * hears there while that session lasts.
+   */
+  private static async admitToRoom(
+    socket: Socket,
+    data: {
+      decision: RealtimeJoinDecision;
+      refused: RefusedJoin;
+      roomId: string;
+      mayHear: (
+        session: RealtimeSocketSession,
+        tenantPermission: UserTenantAccessPermission | null,
+      ) => boolean;
+      logAttributes: LogAttributes;
+    },
+  ): Promise<ListenToModelEventOutcome> {
+    const decision: RealtimeJoinDecision = data.decision;
+    const listenLogAttributes: LogAttributes = data.logAttributes;
+
     if (!decision.allowed) {
       if (decision.refusal === RealtimeJoinRefusal.AuthenticationRequired) {
         /*
@@ -405,7 +580,7 @@ export default abstract class Realtime {
          */
         return this.rejectForMissingAuthentication(
           socket,
-          data,
+          data.refused,
           "The socket has no usable session",
           listenLogAttributes,
         );
@@ -414,7 +589,7 @@ export default abstract class Realtime {
       if (decision.refusal === RealtimeJoinRefusal.SsoRequired) {
         return this.rejectForMissingSsoSignIn(
           socket,
-          data,
+          data.refused,
           listenLogAttributes,
         );
       }
@@ -433,20 +608,7 @@ export default abstract class Realtime {
 
     const session: RealtimeSocketSession = decision.session;
 
-    /*
-     * The model's own read: a server admin's reads pass it; anyone else
-     * needs read access to that kind of record in the project.
-     */
-    if (
-      !session.isMasterAdmin &&
-      !(
-        decision.tenantPermission &&
-        this.hasPermissionsByModelName(
-          decision.tenantPermission,
-          data.modelName,
-        )
-      )
-    ) {
+    if (!data.mayHear(session, decision.tenantPermission)) {
       logger.debug(
         "User does not have access to this model, aborting joining room",
         listenLogAttributes,
@@ -470,7 +632,7 @@ export default abstract class Realtime {
     ) {
       return this.rejectForMissingAuthentication(
         socket,
-        data,
+        data.refused,
         "The session this socket joined with has ended",
         listenLogAttributes,
       );
@@ -483,25 +645,13 @@ export default abstract class Realtime {
      */
     RealtimeSessions.begin(socket, session);
 
-    /*
-     * A record's own room when the page asked for one record, else the
-     * model's room for that kind of change.
-     */
-    const roomId: string = data.modelId
-      ? RealtimeUtil.getRecordRoomId(
-          data.tenantId,
-          data.modelName,
-          data.modelId,
-        )
-      : RealtimeUtil.getRoomId(data.tenantId, data.modelName, data.eventType);
+    logger.debug(`Joining room with ID: ${data.roomId}`, listenLogAttributes);
 
-    logger.debug(`Joining room with ID: ${roomId}`, listenLogAttributes);
-
-    await socket.join(roomId);
+    await socket.join(data.roomId);
 
     // Ended while it joined: it leaves again, as every room of an ended session does.
     if (RealtimeSessions.hasEnded(socket)) {
-      await socket.leave(roomId);
+      await socket.leave(data.roomId);
       return ListenToModelEventOutcome.AuthenticationRequired;
     }
 
@@ -1156,6 +1306,92 @@ export default abstract class Realtime {
       this.sendToSockets(inRoom, roomId, payload);
       this.sendToSockets(inRecordRoom, recordRoomId, payload);
     }
+  }
+
+  /*
+   * What a project uses changed (#8626): the sockets this server holds in
+   * the project's usage room hear it - those whose person still reads in
+   * the project, worked out as a model event's listeners are
+   * (RealtimeAudience, PROJECT_USAGE_LISTENERS), and only while their
+   * session lasts. The event is the room's name, with nothing in it but
+   * "ask again". Nothing is sent to a room that is empty here.
+   */
+  @CaptureSpan()
+  public static async deliverProjectUsageChanged(
+    projectId: string,
+  ): Promise<void> {
+    if (!this.socketServer || !ObjectID.isValidUUID(projectId)) {
+      return;
+    }
+
+    const tenantId: string = normalizeRealtimeId(projectId);
+    const roomId: string = RealtimeUtil.getProjectUsageRoomId(tenantId);
+    const listening: Array<ListeningSocket> = await this.fetchListeningSockets([
+      roomId,
+    ]);
+
+    const listeners: Map<
+      string,
+      { identity: RealtimeReaderIdentity; sockets: Array<ListeningSocket> }
+    > = new Map<
+      string,
+      { identity: RealtimeReaderIdentity; sockets: Array<ListeningSocket> }
+    >();
+
+    for (const socket of listening) {
+      const identity: RealtimeReaderIdentity | null =
+        this.getReaderOfSocket(socket);
+
+      // A socket that never said who it is, or whose session ended, hears nothing.
+      if (!identity) {
+        continue;
+      }
+
+      const key: string = RealtimeReaders.getKey(identity, tenantId);
+      const listener: {
+        identity: RealtimeReaderIdentity;
+        sockets: Array<ListeningSocket>;
+      } = listeners.get(key) || { identity: identity, sockets: [] };
+
+      listener.sockets.push(socket);
+      listeners.set(key, listener);
+    }
+
+    if (listeners.size === 0) {
+      return;
+    }
+
+    const readable: Map<
+      string,
+      Set<string>
+    > = await RealtimeAudience.getReadableIds({
+      tenantId: tenantId,
+      access: PROJECT_USAGE_LISTENERS,
+      readers: Array.from(listeners.values()).map(
+        (listener: {
+          identity: RealtimeReaderIdentity;
+          sockets: Array<ListeningSocket>;
+        }): RealtimeReaderIdentity => {
+          return listener.identity;
+        },
+      ),
+      modelIds: [tenantId],
+      deadlineMs: Date.now() + this.DELIVERY_DECISION_TIMEOUT_IN_MS,
+    });
+
+    const socketIds: Array<string> = [];
+
+    for (const [key, listener] of listeners) {
+      if (!readable.get(key)?.has(tenantId)) {
+        continue;
+      }
+
+      for (const socket of listener.sockets) {
+        socketIds.push(socket.id);
+      }
+    }
+
+    this.sendToSockets(socketIds, roomId, {});
   }
 
   /*

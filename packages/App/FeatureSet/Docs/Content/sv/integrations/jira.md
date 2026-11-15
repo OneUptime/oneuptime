@@ -86,9 +86,9 @@ Varje mall för larm är byggd som sin tvilling för incidenter, steg för steg.
 
 **Monitorer utlöser larm av sig själva, och det kan bli många.** **Create a Jira issue when an alert is created** skapar ett ärende för vart och ett. Om inte varje larm förtjänar ett ärende sätter du ett villkor framför Jira-steget. För att bara skapa ärenden för larm med High:
 
-1. Öppna arbetsflödets **Byggare** och lägg till ett **If / Else**-block.
+1. Öppna arbetsflödets **Byggare** och lägg till ett **Om / Annars**-block.
 2. Ställ in **Värde att kontrollera** på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Jämförelse** på **är lika med** och **Jämför med** på `High`.
-3. Ta bort linjen från `alert-on-create-1` till `prepare-issue-1` genom att dra dess ände bort från punkten (se [Städa upp](/docs/workflows/authoring#städa-upp)). Koppla utlösarens **Framgång** till **If / Else**-blocket och dess **Ja** till `prepare-issue-1`.
+3. Ta bort linjen från `alert-on-create-1` till `prepare-issue-1` genom att dra dess ände bort från punkten (se [Städa upp](/docs/workflows/authoring#städa-upp)). Koppla utlösarens **Framgång** till **Om / Annars**-blocket och dess **Ja** till `prepare-issue-1`.
 
 Ett larm som tar **Nej**-sidan avslutar körningen där, och inget ärende skapas för det.
 
@@ -183,7 +183,7 @@ Innan du förlitar dig på det:
 Varje körnings **Steg** säger vad mallen gjorde, så öppna körningen i **Loggar → Körningar** och se hur den slutade:
 
 - **Utförd**: den gjorde sitt jobb, och dess sista steg nämner ärendet, incidenten eller larmet.
-- **Utförd**, med steget **Check With JavaScript** på **Nej**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från Jira, posten är privat, eller den nya statusen har ingen Jira-status kopplad till sig.
+- **Utförd**, med steget **Kontrollera med JavaScript** på **Nej**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från Jira, posten är privat, eller den nya statusen har ingen Jira-status kopplad till sig.
 - **Fel**: ett steg misslyckades, och dess post under **Steg** säger varför. Vid ett Jira-anrop ingår Jiras svar.
 - **Fel** vid `link-issue-1`: en mall som skapar en post utifrån ett Jira-ärende skapade den, men Jira tog inte emot länketiketterna, så de andra mallarna kan inte hitta den än. Lägg till etiketterna för hand.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Ändra vad en mall gör
 
-Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript-kod** i ett **Check With JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm av en mall har samma konstanter i samma block:
+Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript-kod** i ett **Kontrollera med JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm av en mall har samma konstanter i samma block:
 
 | Konstant | Mall och block | Vad den styr |
 | --- | --- | --- |
@@ -271,7 +271,7 @@ Privata anteckningar och redigeringskommentarer markeras som interna av `propert
 ### Begränsningar
 
 - **Bara Jira Cloud.** Mallarna anropar Jira Clouds REST API v3 med Basic-autentisering. Data Center har ingen v3 och tar en personlig åtkomsttoken som `Bearer`, så varje API-block behöver ändringarna i [Jira Data Center](#jira-data-center): sökvägar som `/rest/api/2/...`, vanliga strängar i stället för innehåll i Atlassian Document Format, och rubriken. Blocken `find-issue-1` ändras mest: Data Center har ingen `/search/jql`, så de måste göra en `POST` till `/rest/api/2/search` i stället.
-- **Incidenter som deklareras från Jira är tysta.** De skapas dolda från dina statussidor, utan att statussidornas prenumeranter aviseras, eftersom texten i ett ärende inte skrevs för kunder. För att visa en slår du på **Synlig på statussidan** på incidentens sida **Inställningar** (se [Hålla en incident borta från statussidan](/docs/incidents/states-and-severities#håll-en-incident-borta-från-statussidan)), eller slår på **Show On Status Pages** under **Fler fält** i mallens `incident-from-another-tool-1`-block.
+- **Incidenter som deklareras från Jira är tysta.** De skapas dolda från dina statussidor, utan att statussidornas prenumeranter aviseras, eftersom texten i ett ärende inte skrevs för kunder. För att visa en slår du på **Synlig på statussidan** på incidentens sida **Inställningar** (se [Hålla en incident borta från statussidan](/docs/incidents/states-and-severities#håll-en-incident-borta-från-statussidan)), eller slår på **Visa på statussidor** under **Fler fält** i mallens `incident-from-another-tool-1`-block.
 - **Privata incidenter och larm stannar i OneUptime.** Mallarna OneUptime → Jira hoppar över dem, och varje överhopp står i **Loggar → Körningar**. För att skicka dem ändå ställer du in `SYNC_PRIVATE_INCIDENTS` eller `SYNC_PRIVATE_ALERTS` på `true`. Att göra en post privat senare stoppar synkroniseringen från och med då, men tar inte tillbaka det som Jira redan har. Mallarna Jira → OneUptime kontrollerar inte detta, så kommentarer, redigeringar och statusändringar på ett kopplat ärende når fortfarande en privat post.
 - **Inget går bakåt.** Att öppna ett Jira-ärende igen ändrar ingenting i OneUptime, och en status i kategorin To Do motsvarar ingen status. Se [Ordningen är en verklig begränsning](/docs/incidents/states-and-severities#ordningen-är-en-verklig-begränsning-inte-en-visningspreferens). Övergångsmallarna flyttar heller aldrig ett ärende till en tidigare statuskategori.
 - **Varje larm får ett ärende.** Utom privata larm skapar mallen för larm som skapar ärenden ett ärende för varje larm, även vart och ett som en monitor utlöser. [Vad som skiljer sig för larm](#vad-som-skiljer-sig-för-larm) visar hur du lägger till ett villkor.
@@ -306,8 +306,8 @@ Tokens löper som standard ut efter ett år och förnyas inte. För att slippa b
 ### Skapa ett Jira-ärende för varje incident
 
 :::steps
-1. Skapa ett arbetsflöde från grunden som heter `Incidents to Jira`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Dess **Fields to pass on** börjar med **Titel**: klicka på **Lägg till fält** och välj **Beskrivning** och **Incidentnummer**. ID:t skickas alltid vidare. Låt dess **Identifier** vara `incident-on-create-1`.
-2. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in dess **Identifier** på `create-issue`, dess **URL** på `{{global.variables.JIRA_URL}}/rest/api/3/issue` och, under **Fler fält**, dess **Begärandehuvuden** på `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+1. Skapa ett arbetsflöde från grunden som heter `Incidents to Jira`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Dess **Fält att skicka vidare** börjar med **Titel**: klicka på **Lägg till fält** och välj **Beskrivning** och **Incidentnummer**. ID:t skickas alltid vidare. Låt dess **Identifier** vara `incident-on-create-1`.
+2. Klicka på **Lägg till komponent**, lägg till ett **API-anrop POST (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in dess **Identifier** på `create-issue`, dess **URL** på `{{global.variables.JIRA_URL}}/rest/api/3/issue` och, under **Fler fält**, dess **Begärandehuvuden** på `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Ställ in dess **Begärandekropp** på ärendet, och ersätt `OPS` och `Bug` med din projektnyckel och en ärendetyp i det projektet:
 
    ```json
@@ -371,7 +371,7 @@ Varje halva av en dubbelriktad synkronisering behöver att ett system sparar det
 
 En Jira-administratör kan i stället lägga till ett kort anpassat textfält, till exempel med namnet OneUptime Incident ID, som du ställer in som `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. Det är enklare att läsa tillbaka än en etikett.
 
-För att ge alla i Jira en väg tillbaka lägger du efter `create-issue` till ett **API Post (JSON)**-block som publicerar en fjärrlänk på `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
+För att ge alla i Jira en väg tillbaka lägger du efter `create-issue` till ett **API-anrop POST (JSON)**-block som publicerar en fjärrlänk på `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
 
 ```json
 {
@@ -383,16 +383,16 @@ För att ge alla i Jira en väg tillbaka lägger du efter `create-issue` till et
 }
 ```
 
-Klicka för detta på **Lägg till fält** i utlösarens **Fields to pass on**, välj **Projekt-ID**, och behåll `.value`: en kolumn som innehåller en annan posts ID kommer fram som `{"_type": "ObjectID", "value": "..."}`. `globalId` gör anropet säkert att upprepa: Jira uppdaterar länken som har det i stället för att lägga till en andra.
+Klicka för detta på **Lägg till fält** i utlösarens **Fält att skicka vidare**, välj **Projekt-ID**, och behåll `.value`: en kolumn som innehåller en annan posts ID kommer fram som `{"_type": "ObjectID", "value": "..."}`. `globalId` gör anropet säkert att upprepa: Jira uppdaterar länken som har det i stället för att lägga till en andra.
 
 ### Kommentera och gör övergångar medan incidenten fortskrider
 
 Bygg detta som ett andra arbetsflöde, så att ett fel här aldrig hindrar att ärenden skapas.
 
 :::steps
-1. Skapa ett arbetsflöde som heter `Incident updates to Jira`, med utlösaren **On Update Incident**. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**. Klicka på **Lägg till fält** i **Fields to pass on**, öppna **Current Incident State** och välj **Namn**.
-2. Lägg till ett **If / Else**-block: **Värde att kontrollera** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Jämförelse** **är lika med**, **Jämför med** `Resolved`, eller namnet på din lösta status.
-3. Hitta ärendet efter dess **Ja**-sida med ett **API Post (JSON)**-block vars **Identifier** är `find-issue`, som publicerar till `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+1. Skapa ett arbetsflöde som heter `Incident updates to Jira`, med utlösaren **On Update Incident**. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**. Klicka på **Lägg till fält** i **Fält att skicka vidare**, öppna **Current Incident State** och välj **Namn**.
+2. Lägg till ett **Om / Annars**-block: **Värde att kontrollera** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Jämförelse** **är lika med**, **Jämför med** `Resolved`, eller namnet på din lösta status.
+3. Hitta ärendet efter dess **Ja**-sida med ett **API-anrop POST (JSON)**-block vars **Identifier** är `find-issue`, som publicerar till `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -407,8 +407,8 @@ Bygg detta som ett andra arbetsflöde, så att ett fel här aldrig hindrar att �
 
 Skicka JQL:en i innehållet i stället för att lägga den i URL:en: en URL skickas exakt som den är skriven, utan att kodas åt dig, och JQL är full av blanksteg, citattecken och `=`-tecken. En fråga måste vara avgränsad, och det är därför `project =`-delen finns med. På Cloud är slutpunkten `/rest/api/3/search/jql`; den äldre `/rest/api/3/search` finns inte längre.
 
-- **Kommentar**: ett **API Post (JSON)**-block till `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, med ett dokument som sin `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
-- **Övergång**: ett **API Get (JSON)**-block på `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` listar de övergångar som är öppna från ärendets status, var och en med ett `id`, ett `name` och den status den leder till, `to`. Ett **API Post (JSON)**-block till samma URL med `{"transition": {"id": "31"}}` utför en och svarar `204`.
+- **Kommentar**: ett **API-anrop POST (JSON)**-block till `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, med ett dokument som sin `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
+- **Övergång**: ett **API-anrop GET (JSON)**-block på `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` listar de övergångar som är öppna från ärendets status, var och en med ett `id`, ett `name` och den status den leder till, `to`. Ett **API-anrop POST (JSON)**-block till samma URL med `{"transition": {"id": "31"}}` utför en och svarar `204`.
 
 Ett övergångs-ID hör till ärendets Jira-arbetsflöde, så en Jira-administratör som redigerar det arbetsflödet kan förstöra ett hårdkodat ID. Att läsa listan när arbetsflödet körs, som mallarna gör, undviker det.
 
@@ -425,7 +425,7 @@ Bygg först det mottagande arbetsflödet:
 
    En egenhostad installation använder sin egen värd. Behandla URL:en som ett lösenord: alla som har den kan starta arbetsflödet. Om den läcker klickar du på **Återställ URL** på samma ställe, och den gamla URL:en slutar fungera direkt.
 
-3. Lägg till ett **Update One Incident**-block från utlösaren. Ställ in dess **Fråga** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON Object)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Lägg till ett **Update One Incident**-block från utlösaren. Ställ in dess **Fråga** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON-objekt)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå på det och låt sedan Jira anropa det, från en automatiseringsregel eller från en webhook:
 
@@ -443,17 +443,17 @@ Slå på det och låt sedan Jira anropa det, från en automatiseringsregel eller
    }
    ```
 
-   Med en etikett i stället för ett anpassat fält skickar du `"labels": "{{issue.labels}}"` och plockar ut ID:t med ett **Run Custom JavaScript**-block.
+   Med en etikett i stället för ett anpassat fält skickar du `"labels": "{{issue.labels}}"` och plockar ut ID:t med ett **Kör egen JavaScript**-block.
 
 4. Slå på regeln och flytta ett testärende till Done. Kontrollera regelns granskningslogg i Jira och **Loggar → Körningar** i OneUptime.
 
-För att vara säker på att en begäran kommer från din regel lägger du till en andra rubrik, `X-OneUptime-Secret`, med ett värde du hittar på, och använder åtgärdens alternativ **Hide** på den. Placera ett **If / Else**-block före uppdateringen i arbetsflödet: **Värde att kontrollera** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Jämförelse** **är lika med** och **Jämför med** samma värde, sparat i en hemlig global variabel.
+För att vara säker på att en begäran kommer från din regel lägger du till en andra rubrik, `X-OneUptime-Secret`, med ett värde du hittar på, och använder åtgärdens alternativ **Hide** på den. Placera ett **Om / Annars**-block före uppdateringen i arbetsflödet: **Värde att kontrollera** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Jämförelse** **är lika med** och **Jämför med** samma värde, sparat i en hemlig global variabel.
 
 Send web request anropar bara portarna 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 och 9900. Jira Cloud räknar regelkörningar mot en månatlig kvot som beror på ditt abonnemang, så en regel på varje övergång i ett livligt projekt blir snabbt många.
 @tab Jira webhook
 1. Gå som Jira-administratör till **Settings → System → WebHooks** (under **Advanced**) och klicka på **Create a WebHook**.
 2. Klistra in arbetsflödets URL, kryssa i **Issue updated** och ange ett JQL-filter, t.ex. `project = OPS AND labels = oneuptime`.
-3. Läs Jiras egen payload i arbetsflödet: `issue` innehåller ärendet, och `changelog.items` innehåller varje ändrat fält, före och efter. För en statusändring tar du elementet vars `field` är `status`. Ett **Run Custom JavaScript**-block är det enklaste sättet att läsa det.
+3. Läs Jiras egen payload i arbetsflödet: `issue` innehåller ärendet, och `changelog.items` innehåller varje ändrat fält, före och efter. För en statusändring tar du elementet vars `field` är `status`. Ett **Kör egen JavaScript**-block är det enklaste sättet att läsa det.
 
 En webhook kan ha en hemlighet, och då signerar Jira innehållet i en `X-Hub-Signature`-rubrik. Ett arbetsflöde kan inte kontrollera den, eftersom Webhook-utlösaren lämnar över ett innehåll som redan har lästs som JSON. Jira försöker igen med en misslyckad leverans upp till fem gånger, så arbetsflödet måste klara samma händelse två gånger.
 :::
@@ -476,7 +476,7 @@ Börja med mallarna för larm i [Börja från en mall](#börja-från-en-mall). F
 | Etikett `oneuptime-incident-<incident id>` | Etikett `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. För att göra samma Jira-arbete för båda bygger du det en gång i ett arbetsflöde med en **Manuell**-utlösare och startar det från båda med ett **Execute Workflow**-block.
+Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. För att göra samma Jira-arbete för båda bygger du det en gång i ett arbetsflöde med en **Manuell**-utlösare och startar det från båda med ett **Kör ett annat arbetsflöde**-block.
 
 ## Jira Data Center
 
@@ -532,7 +532,7 @@ Kontrollera bas-URL:en och API-versionen: `/rest/api/3/...` på Cloud, `/rest/ap
 :::
 
 :::details 429 Too Many Requests
-Jira begränsar hur snabbt du anropar den. Svaret innehåller `Retry-After`, i sekunder. Skrivningar till ett och samma ärende är hårt begränsade, så ett arbetsflöde som kommenterar och gör en övergång tätt efter varandra kan slå i gränsen. Placera ett **Sleep**-block mellan anropen, eller flytta massarbete till ett schemalagt arbetsflöde.
+Jira begränsar hur snabbt du anropar den. Svaret innehåller `Retry-After`, i sekunder. Skrivningar till ett och samma ärende är hårt begränsade, så ett arbetsflöde som kommenterar och gör en övergång tätt efter varandra kan slå i gränsen. Placera ett **Paus**-block mellan anropen, eller flytta massarbete till ett schemalagt arbetsflöde.
 :::
 
 :::details Övergångsanropet svarar 400

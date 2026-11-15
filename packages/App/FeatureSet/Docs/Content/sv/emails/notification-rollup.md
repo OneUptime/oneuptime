@@ -13,7 +13,7 @@ OneUptime samlar automatiskt sådana skurar i ett enda mejl. Det är påslaget f
 
 ## Så fungerar det
 
-Varje ägaravisering via mejl som du får räknas mot en liten budget som hålls per projekt, per mottagare, per e-postadress och per **kategori** av resurs — incidenter, larm, monitorer, planerat underhåll, statussidor, sonder, SLO:er och så vidare.
+Varje ägaravisering via mejl som du får räknas mot en liten budget som hålls per projekt, per mottagare, per e-postadress och per **kategori** av resurs — incidenter, larm, monitorer, schemalagt underhåll, statussidor, sonder, SLO:er och så vidare.
 
 ```mermaid title="Så levereras en ägaravisering via mejl"
 flowchart TB
@@ -123,7 +123,7 @@ Välj **Reduce routine emails** i kortet **Fewer routine emails**. När ändring
 
 Det stänger av de här informativa mejlen för dig i det aktuella projektet:
 
-- Anteckningar på incidenter, larm, episoder och planerat underhåll.
+- Anteckningar på incidenter, larm, episoder och schemalagt underhåll.
 - Meddelanden om att du har lagts till som ägare av en resurs.
 - Nya monitorer och statussidor.
 - Incidenter eller larm som lagts till i befintliga episoder.

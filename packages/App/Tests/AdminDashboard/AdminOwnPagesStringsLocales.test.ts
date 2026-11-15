@@ -9,6 +9,7 @@ import {
   REPOSITORY_ROOT,
   findMissingEntries,
   isSourceFile,
+  readAdminCatalogStrings,
   readAdminLocale,
   readAdminOwnStrings,
   readNested,
@@ -99,6 +100,7 @@ const READ_AS_WRITTEN: Readonly<Record<string, string>> = {
   "email@yourcompany.com": "an example address, typed over",
   "internal-probe": "an example probe name, typed over",
   "0 USD": "an amount in a currency's code, typed over",
+  "OpenID Connect (OIDC)": "a protocol's name",
 };
 
 /*
@@ -287,6 +289,9 @@ const ENTERPRISE_READ_AS_WRITTEN: Readonly<Record<string, string>> = {
     "an example query, typed over",
   "# One command per line, redis-cli style.\nDBSIZE\nINFO server\nKEYS *":
     "an example redis-cli script, typed over",
+  PID: "a process id's abbreviation, as PostgreSQL writes it",
+  "pg {{version}}":
+    "PostgreSQL's short name and its version, as psql writes it",
 };
 
 /*
@@ -311,6 +316,10 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Website",
     "Logo",
     "White Label",
+    "Worker",
+    "Cluster {{cluster}}",
+    "Heap",
+    "Signal",
   ],
   fr: [
     "Destination",
@@ -323,8 +332,22 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Activation",
     "{{count}} minutes",
     "Logo",
+    "Production",
+    "Worker",
+    "Cluster {{cluster}}",
+    "signal {{signal}}",
+    "⌘ / Ctrl + ↵",
+    "Signal",
+    "Parent",
   ],
-  es: ["{{count}} monitors_one", "Host", "Shards"],
+  es: [
+    "{{count}} monitors_one",
+    "Host",
+    "Shards",
+    "Worker",
+    "Heap",
+    "⌘ / Ctrl + ↵",
+  ],
   it: [
     "{{size}} in {{duration}}",
     "Backup",
@@ -333,6 +356,13 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Host",
     "Online",
     "Logo",
+    "Worker",
+    "Shard {{shard}} · Replica {{replica}}",
+    "Cluster {{cluster}}",
+    "Heap",
+    "Query",
+    "⌘ / Ctrl + ↵",
+    "Database {{size}}",
   ],
   pt: [
     "Backups",
@@ -343,6 +373,10 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Online",
     "Commits",
     "Deadlocks",
+    "Worker",
+    "Cluster {{cluster}}",
+    "Heap",
+    "⌘ / Ctrl + ↵",
   ],
   nl: [
     "{{size}} in {{duration}}",
@@ -358,6 +392,17 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Deadlocks",
     "Website",
     "Logo",
+    "White-label",
+    "Worker",
+    "Shard {{shard}} · Replica {{replica}}",
+    "Cluster {{cluster}}",
+    "{{count}} nodes",
+    "{{count}} nodes_one",
+    "Crashes (system.crash_log)",
+    "Heap",
+    "Query",
+    "⌘ / Ctrl + ↵",
+    "Database {{size}}",
   ],
   da: [
     "Destination",
@@ -372,6 +417,12 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Download CSV",
     "Upload",
     "Logo",
+    "{{count}} nodes_one",
+    "signal {{signal}}",
+    "Heap",
+    "⌘ / Ctrl + ↵",
+    "Signal",
+    "Database {{size}}",
   ],
   no: [
     "{{count}} monitors_one",
@@ -380,16 +431,32 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Shards",
     "Commits",
     "Logo",
+    "{{count}} over",
+    "{{count}} nodes_one",
+    "signal {{signal}}",
+    "Heap",
+    "⌘ / Ctrl + ↵",
+    "Signal",
+    "Database {{size}}",
   ],
-  sv: ["{{count}} monitors_one", "Shards", "Online", "Commits"],
-  ru: [],
-  ja: ["Webhook URL"],
-  ko: [],
-  "zh-CN": ["Webhook URL"],
-  "zh-TW": ["Webhook URL"],
-  hi: [],
-  fa: [],
-  ar: [],
+  sv: [
+    "{{count}} monitors_one",
+    "Shards",
+    "Online",
+    "Commits",
+    "signal {{signal}}",
+    "Heap",
+    "⌘ / Ctrl + ↵",
+    "Signal",
+  ],
+  ru: ["⌘ / Ctrl + ↵"],
+  ja: ["Webhook URL", "⌘ / Ctrl + ↵"],
+  ko: ["⌘ / Ctrl + ↵"],
+  "zh-CN": ["Webhook URL", "⌘ / Ctrl + ↵"],
+  "zh-TW": ["Webhook URL", "⌘ / Ctrl + ↵"],
+  hi: ["⌘ / Ctrl + ↵"],
+  fa: ["⌘ / Ctrl + ↵"],
+  ar: ["⌘ / Ctrl + ↵"],
 };
 
 const LETTER: RegExp = /\p{L}/u;
@@ -420,11 +487,16 @@ const ENTERPRISE: OwnStrings = ENTERPRISE_PRESENT
   ? readAdminOwnStrings(ENTERPRISE_SOURCE)
   : { texts: [], nestedKeys: [], files: 0 };
 
-const LOOKED_UP: Array<OwnText> = [...OWN.texts, ...ENTERPRISE.texts].filter(
-  (text: OwnText): boolean => {
-    return !(text.key in NOT_LOOKED_UP);
-  },
-);
+// The shared catalogs the pages draw words from (ADMIN_DASHBOARD_CATALOGS).
+const CATALOGS: OwnStrings = readAdminCatalogStrings();
+
+const LOOKED_UP: Array<OwnText> = [
+  ...OWN.texts,
+  ...ENTERPRISE.texts,
+  ...CATALOGS.texts,
+].filter((text: OwnText): boolean => {
+  return !(text.key in NOT_LOOKED_UP);
+});
 
 const NESTED_KEYS: Array<OwnNestedKey> = [
   ...OWN.nestedKeys,
@@ -515,6 +587,25 @@ describe("the Admin Dashboard's own pages", () => {
         handedOver: true,
       });
     }
+  });
+
+  test("hand over the milestone catalog's words, which the milestones card drew as written (#8599)", () => {
+    expect(CATALOGS.texts.length).toBeGreaterThan(20);
+
+    for (const text of [
+      "First monitor created",
+      "No monitor yet",
+      "Nobody reachable yet",
+      "Set up",
+    ]) {
+      expect({ text, handedOver: TEXTS.has(text) }).toEqual({
+        text,
+        handedOver: true,
+      });
+    }
+
+    // The milestones' own names are values, not words.
+    expect(TEXTS.has("FirstMonitorCreated")).toBe(false);
   });
 
   test("hand over the texts #8555 routed through translation, which they drew as written", () => {

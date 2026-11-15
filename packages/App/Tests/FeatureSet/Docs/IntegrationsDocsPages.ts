@@ -377,7 +377,11 @@ export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Create an alert for each Zabbix problem",
     // What the create wizard asks who to page by.
     "Who to page for High and Disaster problems",
-    "Zabbix URL",
+    /*
+     * Zabbix URL is not among them: the wizard's field label looks it up,
+     * and it is the Update Zabbix Problem step's setting too, worded in
+     * every language since #8359.
+     */
     "Zabbix API Token",
     "Acknowledge or close the Zabbix problem with the incident",
     "Copy incident private notes to the Zabbix problem",

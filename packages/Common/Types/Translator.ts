@@ -275,6 +275,17 @@ const LANGUAGES_WITHOUT_LETTER_CASE: ReadonlyArray<string> = [
 ];
 
 /*
+ * Whether `language`'s script has no letter case (LANGUAGES_WITHOUT_LETTER_CASE):
+ * no word of its own takes a capital, so a capital at the start of one of
+ * its sentences is never the translator's.
+ */
+const hasNoLetterCase: (language: string | undefined) => boolean = (
+  language: string | undefined,
+): boolean => {
+  return LANGUAGES_WITHOUT_LETTER_CASE.includes(getBaseLanguage(language));
+};
+
+/*
  * Whether a term keeps the case its translation writes in the middle of a
  * sentence in `language`: in a language that capitalizes every noun, and in
  * one whose script has no letter case.
@@ -282,11 +293,9 @@ const LANGUAGES_WITHOUT_LETTER_CASE: ReadonlyArray<string> = [
 const keepsTermsAsWritten: (language: string | undefined) => boolean = (
   language: string | undefined,
 ): boolean => {
-  const base: string = getBaseLanguage(language);
-
   return (
-    LANGUAGES_THAT_CAPITALIZE_NOUNS.includes(base) ||
-    LANGUAGES_WITHOUT_LETTER_CASE.includes(base)
+    LANGUAGES_THAT_CAPITALIZE_NOUNS.includes(getBaseLanguage(language)) ||
+    hasNoLetterCase(language)
   );
 };
 
@@ -360,17 +369,41 @@ const PROPER_NOUN_PAIRS: Array<[string, string]> = [
   ["Tencent", "Cloud"],
 ];
 
+/*
+ * Names their makers write all in lower case, which keep it at the start of
+ * a label or a sentence too: "kubectl command", never "Kubectl command"
+ * (#8252). keepsItsCase keeps an acronym ("eBPF") and a capital inside a
+ * word ("vCenter"), but a name with no capital at all read as a word to
+ * raise. "gpt" is the start of a model id ("gpt-4o").
+ */
+const LOWER_CASE_NAMES: ReadonlyArray<string> = [
+  "containerd",
+  "curl",
+  "etcd",
+  "gpt",
+  "journald",
+  "kubectl",
+  "kubelet",
+  "npm",
+  "pnpm",
+  "systemd",
+];
+
 // "API", "SLOs": two capitals in a row.
 const ACRONYM_PATTERN: RegExp = /\p{Lu}{2,}/u;
 
 // "OneUptime", "GitHub", "iOS": a capital after the first letter.
 const INNER_CAPITAL_PATTERN: RegExp = /^.+\p{Lu}/u;
 
+// A word's letters and digits before anything else: "kubectl" of "kubectl's".
+const LEADING_WORD_PATTERN: RegExp = /^[\p{L}\p{N}]+/u;
+
 const keepsItsCase: (part: string) => boolean = (part: string): boolean => {
   return (
     ACRONYM_PATTERN.test(part) ||
     INNER_CAPITAL_PATTERN.test(part) ||
-    PROPER_NOUNS.includes(part)
+    PROPER_NOUNS.includes(part) ||
+    LOWER_CASE_NAMES.includes(LEADING_WORD_PATTERN.exec(part)?.[0] || "")
   );
 };
 
@@ -447,8 +480,9 @@ const LOWER_CASE_START: RegExp = /^\p{Ll}/u;
  * Unchanged when the text starts with anything but a lower-case letter - a
  * capital, a digit, a sign, a letter of a script without case (Chinese,
  * Japanese, Korean, Persian, Arabic, Hindi) - and when its first word keeps
- * its own case ("vCenter", "iOS", "eBPF"). For a label of words, never a
- * code or a name someone typed.
+ * its own case ("vCenter", "iOS", "eBPF", and the names written all in lower
+ * case: "kubectl", "systemd", LOWER_CASE_NAMES). For a label of words, never
+ * a code or a name someone typed.
  */
 export const toLabelTerm: (text: string, language?: string) => string = (
   text: string,
@@ -744,7 +778,11 @@ interface SentenceValue {
  * `text`, the value as the middle of a sentence in `language` takes it, with
  * its form where it starts one: an inSentence term takes a capital there
  * (toLabelTerm); anything else - a name, a number, a term as written, a
- * composed value - is the same wherever it goes.
+ * composed value - is the same wherever it goes. In a language whose script
+ * has no letter case the term starts a sentence as its translation writes
+ * it, as it reads in the middle of one (toSentenceTerm): Persian words a
+ * plural "persistent volume claimها" and Arabic "cron مخصص", and a capital
+ * there is one the translator did not write (#8252).
  */
 const toSentenceValue: (
   value: TemplateValue,
@@ -763,7 +801,9 @@ const toSentenceValue: (
   return {
     text,
     atSentenceStart:
-      isTranslatableTerm(value) && value.inSentence
+      isTranslatableTerm(value) &&
+      value.inSentence &&
+      !hasNoLetterCase(language)
         ? toLabelTerm(text, language)
         : text,
     closesAtStart: isTerm || Boolean(edges?.atStart),

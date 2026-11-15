@@ -434,7 +434,7 @@ describe("the whole agent reports them on registration and every heartbeat", () 
       return logs.records.some((record: Record<string, unknown>): boolean => {
         return (
           String(record["message"]).startsWith("What OneUptime AI may do on") &&
-          String(record["setBy"]).includes("AI agent page keeps them")
+          String(record["setBy"]).includes("AI agent page are kept")
         );
       });
     });

@@ -56,6 +56,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DataObservability: { way: "a text per language" },
   Docker: { way: "a setup guide's words" },
   Podman: { way: "a setup guide's words" },
+  Kubernetes: { way: "a setup guide's words" },
   IoT: { way: "a setup guide's words" },
   Ceph: { way: "a setup guide's words" },
   DockerSwarm: { way: "a setup guide's words" },
@@ -97,7 +98,6 @@ const PAGES: Readonly<Record<string, PageReading>> = {
 const STILL_IN_ENGLISH: ReadonlyArray<string> = [
   "Database",
   "Host",
-  "Kubernetes",
   "MessageQueue",
   "OpenStack",
   "Proxmox",

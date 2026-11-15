@@ -11,6 +11,7 @@ import {
   getKubernetesSetupGuide,
   resolveKubernetesPlatform,
 } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Kubernetes/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -43,6 +44,7 @@ const KubernetesDocumentationCard: FunctionComponent<ComponentProps> = (
           clusterName: props.clusterName,
         });
       }}
+      translations={KUBERNETES_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}
