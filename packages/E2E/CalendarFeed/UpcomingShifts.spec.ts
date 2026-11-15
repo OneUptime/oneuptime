@@ -1020,10 +1020,10 @@ test.describe("in other languages", () => {
       await expect(card(page)).toContainText("今後のシフト");
       await expect(
         rows(page).first().getByTestId("upcoming-shift-when"),
-      ).toHaveText("現在のオンコール · 6:00 まで");
+      ).toHaveText("現在のオンコール · 06:00 まで");
       await expect(
         rows(page).nth(1).getByTestId("upcoming-shift-when"),
-      ).toHaveText("今日 · 18:00 – 10月16日(金) 2:00");
+      ).toHaveText("今日 · 18:00 – 10月16日(金) 02:00");
 
       await screenshot(page, "mixed-ja");
     });

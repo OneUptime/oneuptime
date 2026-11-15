@@ -181,7 +181,7 @@ Een nieuwe API-monitor begint met twee criteria, zodat hij werkt zonder dat u ie
 - **Offline** — de API antwoordt niet, of antwoordt met een statuscode van `400` of hoger (of lager dan `200`). De monitor wordt als **Offline** gemarkeerd en er wordt een incident gemaakt. Het incident lost zichzelf op wanneer de API terug is.
 - **Bereikbaar** — de API antwoordt met een willekeurige statuscode `2xx` of `3xx`, zoals `200`, `201`, `202` of `204`. De monitor wordt als **Operationeel** gemarkeerd.
 
-In de lijst met criteria zijn ze naar de monitor genoemd: _Check if (name) is offline_ en _Check if (name) is online_.
+In de lijst met criteria zijn ze naar de monitor genoemd: "Controleer of _monitornaam_ offline is" en "Controleer of _monitornaam_ online is".
 
 Een endpoint dat `201 Created` of `204 No Content` antwoordt, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Gelijk aan** / `200` in het online-criterium en **Niet gelijk aan** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft. Om ook te controleren wat de API teruggeeft, voegt u een filter **Antwoordlichaam** of **JavaScript-expressie** toe aan het offline-criterium.
 

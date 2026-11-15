@@ -55,7 +55,7 @@ Hændelsen gemmer rapportens nummer i sine brugerdefinerede felter som `huntress
 
 ### Vælg, hvem der tilkaldes
 
-Dialogen spørger derefter, hvem der skal tilkaldes: under **Who to page for high and critical reports** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Arbejdsgangen åbner i **Bygger**, slået fra. For senere at ændre, hvem det tilkalder, klikker du på dets trin **Page an On-Call Policy** og ændrer dets **Vagtpolitikker**.
+Dialogen spørger derefter, hvem der skal tilkaldes: under **Who to page for high and critical reports** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Arbejdsgangen åbner i **Bygger**, slået fra. For senere at ændre, hvem den tilkalder, klikker du på dens trin **Page an On-Call Policy** og ændrer dets **Vagtpolitikker**.
 
 ### Tilføj et webhook-endpoint i Huntress
 
@@ -136,7 +136,7 @@ For at prøve arbejdsgangen uden Huntress skal du klikke på **Kør arbejdsgang*
 
 ## Huntress-forbindelser oprettet tidligere
 
-Huntress blev tidligere sat op under **Hændelser → Integrationer → Huntress**. Hver Huntress-forbindelse blev til en arbejdsgang med samme navn, slået til, som gør det, forbindelsen gjorde: Den tilkalder de samme vagtpolitikker ved de samme rapporter, tilføjer de samme etiketter og løser (eller noterer kun) på samme måde. Dens URL er stadig forbindelsens, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, og dets signeringshemmelighed er den samme, så der er intet at ændre i Huntress. De hændelser, forbindelsen åbnede, beholder deres rapports nummer, så arbejdsgangen finder dem, når Huntress kommenterer eller lukker de rapporter.
+Huntress blev tidligere sat op under **Hændelser → Integrationer → Huntress**. Hver Huntress-forbindelse blev til en arbejdsgang med samme navn, slået til, som gør det, forbindelsen gjorde: Den tilkalder de samme vagtpolitikker ved de samme rapporter, tilføjer de samme etiketter og løser (eller noterer kun) på samme måde. Dens URL er stadig forbindelsens, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, og dens signeringshemmelighed er den samme, så der er intet at ændre i Huntress. De hændelser, forbindelsen åbnede, beholder deres rapports nummer, så arbejdsgangen finder dem, når Huntress kommenterer eller lukker de rapporter.
 
 ## Sikkerhed
 

@@ -5600,6 +5600,12 @@ test.describe("one AI card: the investigation and the conversation", () => {
         permissionMode: "AutoRun",
         // The language the Dashboard is read in (#7247).
         language: "en",
+        /*
+         * The asker's zone, so a chart over days cuts them at the asker's
+         * midnight (#7922, ffec1f96e59): the browser runs in UTC here (the
+         * config's timezoneId), the listed zone the Dashboard names it by.
+         */
+        timezone: "Africa/Abidjan",
       });
 
       // While it is written: a status line, Stop instead of Send.

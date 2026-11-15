@@ -53824,7 +53824,7 @@
   "Created alert {{alert}}": "هشدار {{alert}} ایجاد شد",
   "Created in the last {{hours}}h": "ایجادشده در {{hours}} ساعت گذشته",
   "Created incident {{incident}}": "حادثهٔ {{incident}} ایجاد شد",
-  "Created on-call policy \"{{name}}\"": "سیاست کشیک «{{name}}» ایجاد شد",
+  "Created on-call policy \"{{name}}\"": "سیاست آنکال «{{name}}» ایجاد شد",
   "Created workflow \"{{name}}\"": "گردش کار «{{name}}» ایجاد شد",
   "Currently unresolved alerts": "هشدارهایی که اکنون حل نشده‌اند",
   "Dashboard page: {{query}}": "صفحهٔ داشبورد: {{query}}",

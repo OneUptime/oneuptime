@@ -244,8 +244,8 @@ Een monitor die je niet vanuit een sjabloon bouwt, begint met twee criteria:
 
 | Volgorde | Criterium | Komt overeen als | Dan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornaam_ is offline | De eerste query heeft in het hele venster geen gegevens | Zet de monitor op **Offline** en meldt het incident "_monitornaam_ is offline", dat zichzelf oplost wanneer de monitor herstelt. |
-| 2 | Check if _monitornaam_ is online | De eerste query heeft gegevens | Zet de monitor op **Operationeel**. |
+| 1 | Controleer of _monitornaam_ offline is | De eerste query heeft in het hele venster geen gegevens | Zet de monitor op **Offline** en meldt het incident "_monitornaam_ is offline", dat zichzelf oplost wanneer de monitor herstelt. |
+| 2 | Controleer of _monitornaam_ online is | De eerste query heeft gegevens | Zet de monitor op **Operationeel**. |
 
 > [!IMPORTANT]
 > Een waarde van `0` is ook data: een metric die vaak nul is, zoals herstarts of fouten, zet de monitor niet offline. Wilt u een melding bij een waarde, begin dan met een sjabloon of voeg een criterium met een drempel toe. Komt er helemaal geen data binnen en past geen enkel criterium, dan houdt de monitor zijn status en blijven open incidenten open: stilte is geen herstel. Tijd waarin OneUptime zelf geen data ontving, telt nooit als geen data: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
@@ -275,7 +275,7 @@ Een health check die nooit is afgegaan heeft geen serie, ook in `ceph_daemon_hea
 :::
 
 :::details Tellers zoals ceph_pool_wr_bytes stijgen alleen maar
-I/O-reeksen van pools zijn tellers over de hele levensduur, en criteria vergelijken ruwe waarden: er is geen rate-operator, en **Convert to per-second rate** in de querybouwer verandert alleen de grafiek. Toon ze als rate, of waarschuw op hun groei met een formule, zoals een **Maximum**-query min een **Minimum**-query van dezelfde teller.
+I/O-reeksen van pools zijn tellers over de hele levensduur, en criteria vergelijken ruwe waarden: er is geen rate-operator, en **Omzetten naar snelheid per seconde** in de querybouwer verandert alleen de grafiek. Toon ze als rate, of waarschuw op hun groei met een formule, zoals een **Maximum**-query min een **Minimum**-query van dezelfde teller.
 :::
 
 ## Volgende stappen
