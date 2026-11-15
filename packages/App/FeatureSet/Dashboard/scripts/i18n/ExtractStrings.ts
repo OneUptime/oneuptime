@@ -164,6 +164,30 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Utils/Milliseconds.ts", kind: "ui" },
   /*
+   * The Incident List and Alert List widgets' settings, and the View Mode
+   * every list widget offers: each setting's name (a key), what it does,
+   * its placeholder and its options, which the widget settings form looks
+   * up as it draws them. They were never extracted, so the Lifecycle State
+   * filter read "Unresolved (open)" in English in every language (#8164).
+   * The other widgets' settings are still to come (#8479,
+   * WidgetSettingsWordsInEveryLanguage).
+   */
+  {
+    directory:
+      "packages/Common/Utils/Dashboard/Components/DashboardIncidentListComponent.ts",
+    kind: "ui",
+  },
+  {
+    directory:
+      "packages/Common/Utils/Dashboard/Components/DashboardAlertListComponent.ts",
+    kind: "ui",
+  },
+  {
+    directory:
+      "packages/Common/Utils/Dashboard/Components/DashboardListSharedArgs.ts",
+    kind: "ui",
+  },
+  /*
    * The monitor types' cards in Create Monitor's picker: each type's title
    * and what it alerts on, and the categories More lists them under.
    */

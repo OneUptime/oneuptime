@@ -8,17 +8,23 @@ import {
   ComponentInputType,
   EntityFilterModelType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
+import { translationKey } from "../../../Types/Translator";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import { getViewModeArgument } from "./DashboardListSharedArgs";
 
+/*
+ * Every word of these settings is a key the widget settings form looks up
+ * as it draws it (#8164): a setting's or a section's name is marked as one,
+ * and the extraction reads its description, placeholder and options.
+ */
 const DisplaySection: ComponentArgumentSection = {
-  name: "Display Options",
+  name: translationKey("Display Options"),
   description: "Configure the widget title and row limit",
   order: 1,
 };
 
 const FiltersSection: ComponentArgumentSection = {
-  name: "Filters",
+  name: translationKey("Filters"),
   description: "Narrow down which alerts are shown",
   order: 2,
   defaultCollapsed: true,
@@ -50,7 +56,7 @@ export default class DashboardAlertListComponentUtil extends DashboardBaseCompon
     > = [];
 
     componentArguments.push({
-      name: "Title",
+      name: translationKey("Title"),
       description: "Header shown above the alert list",
       required: false,
       type: ComponentInputType.Text,
@@ -59,7 +65,7 @@ export default class DashboardAlertListComponentUtil extends DashboardBaseCompon
     });
 
     componentArguments.push({
-      name: "Max Rows",
+      name: translationKey("Max Rows"),
       description: "Maximum number of alerts to show",
       required: false,
       type: ComponentInputType.Number,
@@ -73,7 +79,7 @@ export default class DashboardAlertListComponentUtil extends DashboardBaseCompon
     );
 
     componentArguments.push({
-      name: "Lifecycle State",
+      name: translationKey("Lifecycle State"),
       description: "Quick filter by lifecycle state",
       required: false,
       type: ComponentInputType.Dropdown,
@@ -88,7 +94,7 @@ export default class DashboardAlertListComponentUtil extends DashboardBaseCompon
     });
 
     componentArguments.push({
-      name: "Severity",
+      name: translationKey("Severity"),
       description: "Show only alerts matching the selected severities",
       required: false,
       type: ComponentInputType.EntityMultiSelectDropdown,
@@ -99,7 +105,7 @@ export default class DashboardAlertListComponentUtil extends DashboardBaseCompon
     });
 
     componentArguments.push({
-      name: "State",
+      name: translationKey("State"),
       description: "Show only alerts in the selected states",
       required: false,
       type: ComponentInputType.EntityMultiSelectDropdown,
@@ -110,7 +116,7 @@ export default class DashboardAlertListComponentUtil extends DashboardBaseCompon
     });
 
     componentArguments.push({
-      name: "Monitors",
+      name: translationKey("Monitors"),
       description: "Show only alerts linked to the selected monitors",
       required: false,
       type: ComponentInputType.EntityMultiSelectDropdown,
@@ -121,7 +127,7 @@ export default class DashboardAlertListComponentUtil extends DashboardBaseCompon
     });
 
     componentArguments.push({
-      name: "Labels",
+      name: translationKey("Labels"),
       description: "Show only alerts tagged with the selected labels",
       required: false,
       type: ComponentInputType.EntityMultiSelectDropdown,
