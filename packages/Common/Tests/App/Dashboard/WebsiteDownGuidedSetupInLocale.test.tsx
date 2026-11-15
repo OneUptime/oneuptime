@@ -175,7 +175,10 @@ import {
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
-import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import {
+  DASHBOARD_LANGUAGES,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000007060";
@@ -535,5 +538,88 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
 
     // The reader's translator: the policy and its rules are worded in their language.
     expect(call.translator.language).toBe(language);
+  });
+
+  /*
+   * #8235: the policy the run made was deleted in another tab; the test
+   * step's Continue reads it again, and step 2 says why in their words,
+   * first in its polite live region.
+   */
+  test("the run's policy deleted meanwhile: step 2 says why in their words (#8235)", async () => {
+    window.localStorage.setItem(
+      RUN_KEY,
+      JSON.stringify({
+        monitorId: MONITOR_ID,
+        policyId: POLICY_ID,
+        testExecutionLogId: "log-1",
+      }),
+    );
+    await renderSetup();
+
+    // The summary is shown; reopening the test step, its Continue reads again.
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("guided-setup-step-test").querySelector("button")!,
+      );
+    });
+    api["loadPolicy"]!.mockResolvedValue(null);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("guided-setup-test-continue"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-policy-deleted"),
+      ).toBeInTheDocument();
+    });
+
+    const sentence: string = withoutIsolateMarks(
+      screen.getByTestId("guided-setup-policy-deleted").textContent || "",
+    );
+
+    expect(sentence).toBe(fill(language, WEBSITE_DOWN_COPY.policyDeleted, {}));
+    expect(sentence).not.toContain("was deleted");
+    expect(
+      screen
+        .getByTestId("guided-setup-who-region")
+        .firstElementChild?.getAttribute("data-testid"),
+    ).toBe("guided-setup-policy-deleted");
+    expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+  });
+});
+
+/*
+ * The sentence for a deleted policy is worded in every Dashboard language
+ * (#8235): a value of its own in each, ended as its language ends a
+ * sentence - never the English left as a placeholder.
+ */
+describe("the website-down sentence for a deleted policy, in every Dashboard language (#8235)", () => {
+  test("English has it, as itself", () => {
+    expect(readDashboardLocale("en")[WEBSITE_DOWN_COPY.policyDeleted]).toBe(
+      WEBSITE_DOWN_COPY.policyDeleted,
+    );
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])("%s words it", (code: string) => {
+    const text: string | undefined =
+      readDashboardLocale(code)[WEBSITE_DOWN_COPY.policyDeleted];
+
+    expect({
+      code,
+      worded: Boolean(
+        text && text.trim() && text !== WEBSITE_DOWN_COPY.policyDeleted,
+      ),
+    }).toEqual({ code, worded: true });
+    expect(text).toMatch(/[.。।]$/u);
+  });
+
+  test("the languages read are all seventeen, Arabic and Persian among them", () => {
+    expect(DASHBOARD_LANGUAGES).toHaveLength(17);
+    expect(DASHBOARD_LANGUAGES).toEqual(
+      expect.arrayContaining(["de", "ar", "fa"]),
+    );
   });
 });

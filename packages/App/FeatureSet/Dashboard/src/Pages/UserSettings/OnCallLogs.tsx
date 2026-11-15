@@ -32,12 +32,22 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import ResultLine from "../../Components/OnCallTestPage/ResultLine";
+import {
+  getOnCallLogStepWords,
+  ON_CALL_LOG_DIALOG_LINE_CLASS_NAME,
+} from "../../Components/OnCallPolicy/ExecutionLogs/OnCallLogLineWords";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string>("");
+  /*
+   * The page whose message the dialog shows: its line is worded from the
+   * code read from it, in the reader's language - the person it names is
+   * you - or drawn as written (OnCallLogLineWords, #8330).
+   */
+  const [statusPage, setStatusPage] = useState<UserOnCallLog | null>(null);
 
   return (
     <Fragment>
@@ -90,7 +100,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               onError: ErrorFunction,
             ) => {
               try {
-                setStatusMessage(item["statusMessage"] as string);
+                setStatusPage(item);
                 setShowViewStatusMessageModal(true);
 
                 onCompleteAction();
@@ -321,7 +331,25 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {showViewStatusMessageModal ? (
         <ConfirmModal
           title={"Status Message"}
-          description={statusMessage}
+          description={
+            <ResultLine
+              statusMessage={statusPage?.statusMessage || ""}
+              words={
+                statusPage
+                  ? getOnCallLogStepWords(translator, {
+                      statusMessage: statusPage.statusMessage,
+                      userNotificationEventType:
+                        statusPage.userNotificationEventType,
+                      userName:
+                        User.getName()?.toString() ||
+                        User.getEmail()?.toString(),
+                    })
+                  : null
+              }
+              className={ON_CALL_LOG_DIALOG_LINE_CLASS_NAME}
+              dataTestId="user-on-call-log-status-message"
+            />
+          }
           submitButtonText={"Close"}
           onSubmit={async () => {
             setShowViewStatusMessageModal(false);
