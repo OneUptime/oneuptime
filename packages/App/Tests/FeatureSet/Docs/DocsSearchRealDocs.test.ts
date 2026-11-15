@@ -58,28 +58,14 @@ const BUILD_TIMEOUT_MS: number = 600000;
 /*
  * Questions of AskAiHowDoIQuestions that the docs search box does not
  * show a page for in its first ten, each with why. Ask AI's search finds
- * each in the six it shows the model, but for the two its own list
- * (AskAiHowDoIRetrieval's NOT_IN_THE_FIRST_SIX) names. This list only
- * shrinks: a question the box finds fails its test until it is deleted
- * here.
+ * each in the six it shows the model. This list only shrinks: a question
+ * the box finds fails its test until it is deleted here. #8698 found the
+ * two-factor questions (a section of Your Account) in five languages, and
+ * #8700 the Spanish and Portuguese subscribers.
  */
 const NOT_IN_THE_BOX_FIRST_TEN: Record<string, string> = {
   "de Wie eskaliere ich, wenn niemand antwortet?":
-    'Escalation Rules ("Eskalationsregeln") is named for none of its words: "eskaliere" is "eskalier", the name one word of its own. The box lifts only a page named for half a question\'s words; Ask AI finds it first.',
-  "es ¿Cómo se suscriben mis clientes a la página de estado?":
-    '"suscriben" (they subscribe) keeps its "-en", and the page says "Suscriptores" (AskAiHowDoIRetrieval\'s NOT_IN_THE_FIRST_SIX says why).',
-  "pt Como meus clientes assinam a página de status?":
-    '"assinam" (they subscribe) keeps its "-am", and the page says "Assinantes".',
-  "nl Hoe zet ik tweestapsverificatie aan?":
-    'The answer is a section of Your Account ("Tweestapsverificatie inschakelen"), and the box lifts a page named for a question, never a section; the section says "inschakelen", not "aanzetten".',
-  "da Hvordan slår jeg totrinsgodkendelse til?":
-    'A section of Your Account ("Slå totrinsgodkendelse til"): "slår" (present) is not its "slå", and the box lifts pages, not sections.',
-  "no Hvordan slår jeg på tofaktorautentisering?":
-    'A section of Your Account ("Slå på tofaktorautentisering"): "slår" is not its "slå", and the box lifts pages, not sections.',
-  "sv Hur aktiverar jag tvåfaktorsautentisering?":
-    'A section of Your Account ("Slå på tvåfaktorsautentisering"), which says "slå på" (turn on), not "aktivera"; the box lifts pages, not sections.',
-  "ja 二要素認証を有効にするにはどうすればいいですか？":
-    "A section of Your Account (2 要素認証をオンにする), which writes 2 for 二 and オン for 有効; the box lifts pages, not sections.",
+    'Escalation Rules ("Eskalationsregeln") is named for none of its words, nor is a heading: "eskaliere" is "eskalier", the name one word of its own. The box lifts only a page or a heading named for half a question\'s words; Ask AI finds it first.',
   "zh-TW 如何安排維護？":
     "The maintenance pages say 排定 (schedule), never 安排 (arrange): the box reads 安排維護 as 安排, 排維 and 維護, and they hold one of the three, while Home, OpenStack and Declaring an Incident say 安排維護 in passing.",
 };
@@ -462,6 +448,38 @@ describe("docs search, on the real docs", () => {
         question,
         first,
         opens: opensPage(first, language, page),
+      }).toEqual({ question, first, opens: true });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
+   * A question answered by a section of a page named for something else
+   * (#8698): two-factor authentication is a step of Your Account, whose
+   * heading names it ("Slå på tofaktorautentisering", "2 要素認証をオンにする")
+   * where the question's verb is another ("slår", "aktiverar", 有効).
+   * None of these was in the box's first 30.
+   */
+  test.each([
+    ["nl", "Hoe zet ik tweestapsverificatie aan?"],
+    ["da", "Hvordan slår jeg totrinsgodkendelse til?"],
+    ["no", "Hvordan slår jeg på tofaktorautentisering?"],
+    ["sv", "Hur aktiverar jag tvåfaktorsautentisering?"],
+    ["ja", "二要素認証を有効にするにはどうすればいいですか？"],
+  ] as Array<[string, string]>)(
+    '%s: "%s" opens Your Account\'s two-factor step in the first 3 (#8698)',
+    async (language: string, question: string) => {
+      const first: Array<string> = urls(await search(language, question)).slice(
+        0,
+        3,
+      );
+
+      expect({
+        question,
+        first,
+        opens: first.some((url: string): boolean => {
+          return url.startsWith(`/docs/${language}/introduction/your-account#`);
+        }),
       }).toEqual({ question, first, opens: true });
     },
     BUILD_TIMEOUT_MS,
