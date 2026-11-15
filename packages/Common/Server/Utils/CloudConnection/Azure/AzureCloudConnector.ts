@@ -92,7 +92,7 @@ import AzureArm, {
   AzureSubscription,
 } from "./AzureArm";
 import {
-  buildAzureInventoryItem,
+  buildAzureInventoryItems,
   buildAzureInventoryQuery,
 } from "./AzureInventory";
 import { readAzureActivityEvent } from "./AzureChanges";
@@ -1270,15 +1270,10 @@ export default class AzureCloudConnector implements CloudConnector {
           })
         : { rows: [], complete: true };
 
-    const items: Array<CloudInventoryItem> = [];
-
-    for (const row of listing.rows) {
-      const item: CloudInventoryItem | null = buildAzureInventoryItem(row);
-
-      if (item) {
-        items.push(item);
-      }
-    }
+    // Read together: a VM runs where its interfaces do, a pool's balancer sends to them.
+    const items: Array<CloudInventoryItem> = buildAzureInventoryItems(
+      listing.rows,
+    );
 
     const knownTypes: Array<string> = AZURE_RESOURCE_TYPES.map(
       (descriptor: CloudResourceTypeDescriptor): string => {
