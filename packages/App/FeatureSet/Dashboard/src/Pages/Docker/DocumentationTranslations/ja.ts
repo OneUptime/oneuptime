@@ -107,7 +107,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then look for export errors in the agent's logs — `docker logs oneuptime-docker-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
     "次に、エージェントのログでエクスポートのエラーを探し (`docker logs oneuptime-docker-agent 2>&1 | grep -i error`)、取り込みキーが有効で期限切れでないことを確認します。",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using the `json-file` log driver.":
-    "メトリクスは届くのに **ログ** タブが空、またはエージェント自身のログしか表示されませんか? コンテナが `json-file` ログドライバーを使っていない可能性が高いです。",
+    "メトリクスは届くのに **ログ** タブが空、またはエージェント自身のログしか表示されませんか？ コンテナが `json-file` ログドライバーを使っていない可能性が高いです。",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `json-file`. Switch them (see **Collect logs from every container (json-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
     "ステップ 1 で `no files match the configured criteria` と表示される、またはステップ 3 でコンテナのファイルが 1 つも表示されない場合、そのコンテナは `json-file` を使っていません。切り替えてから (詳細 の **すべてのコンテナからログを収集 (json-file ログドライバー)** を参照)、1 つずつ作り直してください。コンテナは作成時のログドライバーを使い続けます:",
   "A host's page shows the data whose host name is that host's identifier, which the agent takes from `DOCKER_HOST_NAME`. Change `DOCKER_HOST_NAME` after the host registered, and OneUptime registers a second host under the new name — the logs are on that one. Check the name the agent reports:":

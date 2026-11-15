@@ -54,6 +54,12 @@ const CODE_SPAN: RegExp = /`[^`\n]+`/g;
 
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 
+// A letter of the Arabic script: Arabic's and Persian's words.
+const ARABIC_SCRIPT: RegExp = /\p{Script=Arabic}/u;
+
+// A half-width ? or ! right after a Chinese or Japanese character.
+const HALF_WIDTH_AFTER_CJK: RegExp = /[\u3040-\u30ff\u3400-\u9fff][?!]/u;
+
 // Each language's words for each product, as its module exports them.
 const MODULES: Record<string, Record<string, SetupGuideTranslation>> = {};
 
@@ -471,6 +477,56 @@ describe.each(
             });
           }
         }
+      });
+
+      /*
+       * A browser never turns an arrow round. Between two steps of a path
+       * an arrow points the way the line is read: in Arabic and Persian
+       * "←" beside a step in the language, "→" between two left in Latin
+       * letters (the locale files' rule, PathArrowsInRightToLeftSentences);
+       * in every other language "→".
+       */
+      test("an arrow between two steps points the way the language reads", () => {
+        const readsFromTheRight: boolean = ["ar", "fa"].includes(language);
+
+        for (const [english, translated] of Object.entries(
+          MODULES[product.name]![language]!,
+        )) {
+          const prose: string = translated.replace(CODE_SPAN, "`");
+
+          for (const match of prose.matchAll(
+            /([^\s*]+)\s*([→←])\s*([^\s*]+)/gu,
+          )) {
+            const latinOnly: boolean = [match[1]!, match[3]!].every(
+              (step: string): boolean => {
+                return !ARABIC_SCRIPT.test(step);
+              },
+            );
+            const expected: string =
+              readsFromTheRight && !latinOnly ? "←" : "→";
+
+            expect({ english, path: match[0], arrow: match[2] }).toEqual({
+              english,
+              path: match[0],
+              arrow: expected,
+            });
+          }
+        }
+      });
+
+      // As ja.json and the Chinese files do (DashboardJapaneseLocale).
+      test("Chinese and Japanese end a question or an exclamation with a full-width mark", () => {
+        if (!["ja", "zh-CN", "zh-TW"].includes(language)) {
+          return;
+        }
+
+        const halfWidthAfterTheirText: Array<string> = Object.values(
+          MODULES[product.name]![language]!,
+        ).filter((translated: string): boolean => {
+          return HALF_WIDTH_AFTER_CJK.test(translated.replace(CODE_SPAN, "`"));
+        });
+
+        expect(halfWidthAfterTheirText).toEqual([]);
       });
 
       test("Advanced and Troubleshooting are named as the guide's own sections are", () => {
