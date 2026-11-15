@@ -594,6 +594,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{online}}/{{count}} node online",
+    "{{rate}}/min",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

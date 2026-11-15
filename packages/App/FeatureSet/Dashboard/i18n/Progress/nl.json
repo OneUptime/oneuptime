@@ -806,6 +806,7 @@
     "{{minutes}} min",
     "{{monitorName}} is offline",
     "{{name}} (monitor: {{monitor}})",
+    "{{rate}}/min",
     "{{size}} in {{duration}}",
     "{{subject}} is {{values}}.",
     "{{subject}} is {{value}}.",
