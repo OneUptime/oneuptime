@@ -406,7 +406,12 @@ describe("formatReplayUserSessionAge, bucket by bucket", () => {
   const AGES: ReadonlyArray<[number, string, string, string]> = [
     [10 * 1000, "just now", "", ""],
     [60 * 1000, "a minute ago", "vor 1\u00A0Minute", "۱\u00A0دقیقه پیش"],
-    [5 * MINUTE_MS, "5\u00A0minutes ago", "vor 5\u00A0Minuten", "۵\u00A0دقیقه پیش"],
+    [
+      5 * MINUTE_MS,
+      "5\u00A0minutes ago",
+      "vor 5\u00A0Minuten",
+      "۵\u00A0دقیقه پیش",
+    ],
     [HOUR_MS, "an hour ago", "vor 1\u00A0Stunde", "۱\u00A0ساعت پیش"],
     [3 * HOUR_MS, "3\u00A0hours ago", "vor 3\u00A0Stunden", "۳\u00A0ساعت پیش"],
     [DAY_MS, "a day ago", "vor 1\u00A0Tag", "۱\u00A0روز پیش"],

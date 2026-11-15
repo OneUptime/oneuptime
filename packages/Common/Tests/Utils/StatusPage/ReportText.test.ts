@@ -514,9 +514,13 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
 
       expect(europe.groupName).toBe("Europe");
       expect(withoutSpaces(europe.uptimePercentAsString)).toBe("92,85%");
-      expect(europe.downtimeInHoursAndMinutes).toBe("4\u00A0Stunden, 39\u00A0Minuten");
+      expect(europe.downtimeInHoursAndMinutes).toBe(
+        "4\u00A0Stunden, 39\u00A0Minuten",
+      );
       expect(payments.groupPath).toBe("Europe / Payments");
-      expect(payments.downtimeInHoursAndMinutes).toBe("4\u00A0Stunden, 39\u00A0Minuten");
+      expect(payments.downtimeInHoursAndMinutes).toBe(
+        "4\u00A0Stunden, 39\u00A0Minuten",
+      );
       expect(
         payments.resources.map((item: StatusPageReportItem): string => {
           return item.downtimeInHoursAndMinutes;

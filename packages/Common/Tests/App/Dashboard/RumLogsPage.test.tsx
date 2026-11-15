@@ -329,7 +329,9 @@ describe("a RUM application's empty Logs page", () => {
     expect(screen.getByTestId("rum-logs-empty-title")).toHaveTextContent(
       "No logs in this time range",
     );
-    expect(screen.getByTestId("rum-logs-empty-description").textContent).toContain(
+    expect(
+      screen.getByTestId("rum-logs-empty-description").textContent,
+    ).toContain(
       `The last log arrived ${OneUptimeDate.fromNow(lastLog, new Date())}.`,
     );
     expect(screen.getByTestId("rum-logs-empty-action")).toHaveTextContent(

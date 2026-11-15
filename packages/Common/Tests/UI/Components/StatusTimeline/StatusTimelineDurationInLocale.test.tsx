@@ -124,7 +124,9 @@ describe("formatStatusTimelineCompactDuration in English, exactly as it read", (
   });
 
   test("whole seconds: a fraction of one is dropped, as the legend floored it", () => {
-    expect(formatStatusTimelineCompactDuration(107.9)).toBe("1\u00A0min 47\u00A0secs");
+    expect(formatStatusTimelineCompactDuration(107.9)).toBe(
+      "1\u00A0min 47\u00A0secs",
+    );
   });
 
   test.each([0, 0.4, -5, Number.NaN, Number.POSITIVE_INFINITY])(

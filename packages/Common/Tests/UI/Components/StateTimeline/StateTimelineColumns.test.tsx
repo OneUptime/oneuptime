@@ -237,7 +237,9 @@ describe("getStateTimelineDurationColumn", () => {
   });
 
   test("exports the duration, not the end date its field holds", () => {
-    expect(column.getExportValue!(FINISHED_ROW)).toBe("3\u00A0mins 46\u00A0secs");
+    expect(column.getExportValue!(FINISHED_ROW)).toBe(
+      "3\u00A0mins 46\u00A0secs",
+    );
     expect(column.getExportValue!(OLDEST_ROW)).toBe("1\u00A0hour");
   });
 
@@ -280,7 +282,9 @@ describe("getStateTimelineDurationText", () => {
   });
 
   test("the row in effect: start to the current time when no now is given", () => {
-    expect(getStateTimelineDurationText(LIVE_ROW)).toBe("2\u00A0mins 54\u00A0secs");
+    expect(getStateTimelineDurationText(LIVE_ROW)).toBe(
+      "2\u00A0mins 54\u00A0secs",
+    );
   });
 
   test("a row with no start exports nothing", () => {

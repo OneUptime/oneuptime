@@ -279,7 +279,10 @@ describe("time with monitoring off", () => {
         .map((item: HTMLElement): string | null => {
           return item.textContent;
         }),
-    ).toEqual(["Operational96.15% · 25\u00A0days", "Offline3.85% · 1\u00A0day"]);
+    ).toEqual([
+      "Operational96.15% · 25\u00A0days",
+      "Offline3.85% · 1\u00A0day",
+    ]);
 
     const off: HTMLElement = screen.getByTestId(
       "status-timeline-legend-monitoring-off",

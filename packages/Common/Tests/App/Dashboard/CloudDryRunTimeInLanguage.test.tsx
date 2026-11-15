@@ -234,6 +234,8 @@ describe("OneUptimeDate.fromNow from a given moment", () => {
   test("without one, from now, as it always was", () => {
     jest.useFakeTimers({ now: NOW, doNotFake: ["nextTick", "setImmediate"] });
 
-    expect(OneUptimeDate.fromNow(new Date(before(5)))).toBe("5\u00A0minutes ago");
+    expect(OneUptimeDate.fromNow(new Date(before(5)))).toBe(
+      "5\u00A0minutes ago",
+    );
   });
 });

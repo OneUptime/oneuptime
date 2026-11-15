@@ -115,7 +115,10 @@ describe("a Duration in the reader's language", () => {
     const duration: HTMLElement = screen.getByTestId("live-duration");
 
     expect(duration).toHaveTextContent("10 days, 23 hours");
-    expect(duration).toHaveAttribute("title", "10\u00A0days, 23\u00A0hours, 31\u00A0minutes");
+    expect(duration).toHaveAttribute(
+      "title",
+      "10\u00A0days, 23\u00A0hours, 31\u00A0minutes",
+    );
   });
 });
 

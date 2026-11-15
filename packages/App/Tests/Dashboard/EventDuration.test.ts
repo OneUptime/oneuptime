@@ -62,7 +62,10 @@ describe("getEventDurationText", () => {
     [DAY + HOUR, "1\u00A0day, 1\u00A0hour"],
     [DAY + HOUR + 2 * MINUTE, "1\u00A0day, 1\u00A0hour, 2\u00A0minutes"],
     [2 * DAY + 3 * HOUR, "2\u00A0days, 3\u00A0hours"],
-    [2 * DAY + 3 * HOUR + 4 * MINUTE, "2\u00A0days, 3\u00A0hours, 4\u00A0minutes"],
+    [
+      2 * DAY + 3 * HOUR + 4 * MINUTE,
+      "2\u00A0days, 3\u00A0hours, 4\u00A0minutes",
+    ],
     [3 * DAY + 2 * HOUR, "3\u00A0days, 2\u00A0hours"],
     [45 * DAY, "45\u00A0days"],
   ])("formats a %i-second duration as %s", (seconds: number, text: string) => {

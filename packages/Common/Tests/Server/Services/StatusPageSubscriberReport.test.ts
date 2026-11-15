@@ -880,9 +880,15 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const unit: StatusPageReportGroup =
         corporate.subGroups[0]!.subGroups[0]!.subGroups[0]!;
 
-      expect(unit.downtimeInHoursAndMinutes).toBe("3\u00A0days, 0\u00A0minutes");
-      expect(corporate.downtimeInHoursAndMinutes).toBe("3\u00A0days, 0\u00A0minutes");
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("3\u00A0days, 0\u00A0minutes");
+      expect(unit.downtimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
+      expect(corporate.downtimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
     });
 
     test("never prints a group below one of its own resources", async () => {
@@ -908,8 +914,12 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const unit: StatusPageReportGroup =
         report.groups[0]!.subGroups[0]!.subGroups[0]!.subGroups[0]!;
 
-      expect(unit.downtimeInHoursAndMinutes).toBe("2\u00A0days, 0\u00A0minutes");
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("2\u00A0days, 0\u00A0minutes");
+      expect(unit.downtimeInHoursAndMinutes).toBe(
+        "2\u00A0days, 0\u00A0minutes",
+      );
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(
+        "2\u00A0days, 0\u00A0minutes",
+      );
     });
   });
 
@@ -1017,7 +1027,9 @@ describe("StatusPageService.getReportByStatusPage", () => {
       }
 
       expect(downtimeByName["Router"]).toBe("2\u00A0days, 0\u00A0minutes");
-      expect(downtimeByName["Switch 01"]).toBe("2\u00A0days, 12\u00A0hours, 0\u00A0minutes");
+      expect(downtimeByName["Switch 01"]).toBe(
+        "2\u00A0days, 12\u00A0hours, 0\u00A0minutes",
+      );
 
       /*
        * Not the old merge's two days, not the largest resource's two and a
@@ -1028,9 +1040,15 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const unit: StatusPageReportGroup =
         corporate.subGroups[0]!.subGroups[0]!.subGroups[0]!;
 
-      expect(unit.downtimeInHoursAndMinutes).toBe("3\u00A0days, 0\u00A0minutes");
-      expect(corporate.downtimeInHoursAndMinutes).toBe("3\u00A0days, 0\u00A0minutes");
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("3\u00A0days, 0\u00A0minutes");
+      expect(unit.downtimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
+      expect(corporate.downtimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
     });
   });
 
@@ -1344,7 +1362,9 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       // one day down in sixty, although none of its rows survive the cap.
       expect(quiet.uptimePercentAsString).toBe("98.33%");
-      expect(quiet.downtimeInHoursAndMinutes).toBe("1\u00A0days, 0\u00A0minutes");
+      expect(quiet.downtimeInHoursAndMinutes).toBe(
+        "1\u00A0days, 0\u00A0minutes",
+      );
     });
 
     test("averages the page over the corrected figures", async () => {
@@ -1611,7 +1631,9 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const edge: StatusPageReportItem = itemsByName(report)["Edge"]!;
 
       expect(edge.uptimePercentAsString).toBe("99.58%");
-      expect(edge.downtimeInHoursAndMinutes).toBe("6\u00A0hours, 0\u00A0minutes");
+      expect(edge.downtimeInHoursAndMinutes).toBe(
+        "6\u00A0hours, 0\u00A0minutes",
+      );
     });
 
     test("prints 100% and no downtime for a monitor with nothing recorded, rather than null", async () => {
@@ -1732,7 +1754,9 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       // two hours down in three covered days.
       expect(router.uptimePercentAsString).toBe("97.22%");
-      expect(router.downtimeInHoursAndMinutes).toBe("2\u00A0hours, 0\u00A0minutes");
+      expect(router.downtimeInHoursAndMinutes).toBe(
+        "2\u00A0hours, 0\u00A0minutes",
+      );
     });
   });
 

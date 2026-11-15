@@ -83,7 +83,9 @@ describe("a table's Duration says its two largest units", () => {
   });
 
   test("a smaller unit is dropped, never rounded into the larger: a duration is never said to be longer than it was", () => {
-    expect(compact(DAY + 23 * HOUR + 59 * MINUTE)).toBe("1\u00A0day, 23\u00A0hours");
+    expect(compact(DAY + 23 * HOUR + 59 * MINUTE)).toBe(
+      "1\u00A0day, 23\u00A0hours",
+    );
     expect(compact(2 * DAY - 1000)).toBe("1\u00A0day, 23\u00A0hours");
   });
 

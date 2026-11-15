@@ -204,9 +204,11 @@ const ENGLISH: Record<string, string> = {
   "several zones": "Oct 06 2026, 09:05 UTC | Oct 06 2026, 14:35 IST",
   "a status page report's month": "October 2026",
   "hours and minutes": "2\u00A0hours 5\u00A0minutes",
-  "days, hours, minutes and seconds": "2\u00A0days, 3\u00A0hours, 4\u00A0minutes, 5\u00A0seconds",
+  "days, hours, minutes and seconds":
+    "2\u00A0days, 3\u00A0hours, 4\u00A0minutes, 5\u00A0seconds",
   "days, hours and minutes": "2\u00A0days, 3\u00A0hours, 0\u00A0minutes",
-  "a friendly time": "1\u00A0year 1\u00A0month 4\u00A0days 3\u00A0hours 5\u00A0mins 6\u00A0secs",
+  "a friendly time":
+    "1\u00A0year 1\u00A0month 4\u00A0days 3\u00A0hours 5\u00A0mins 6\u00A0secs",
   "a span's duration": "1.72 s",
 };
 

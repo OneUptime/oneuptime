@@ -1319,7 +1319,9 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
             firstSeenAt: "2026-09-27T12:00:00.000Z",
           }),
         ),
-      ).toBe("It happened 4 times in the last 30 days. It started 3\u00A0days ago.");
+      ).toBe(
+        "It happened 4 times in the last 30 days. It started 3\u00A0days ago.",
+      );
     });
 
     test("a problem that is calming down says so", () => {

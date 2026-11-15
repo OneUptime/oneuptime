@@ -258,7 +258,9 @@ describe("StatusPageService.sendEmailReport, in each subscriber's language", () 
     expect(mail.isSubjectLiteral).toBe(true);
     expect(reportOf(mail).reportPeriodName).toBe("Juli 2026");
     expect(reportOf(mail).reportStartDate).toBe("1. Juli 2026");
-    expect(reportOf(mail).totalDowntimeInHoursAndMinutes).toBe("21\u00A0Minuten");
+    expect(reportOf(mail).totalDowntimeInHoursAndMinutes).toBe(
+      "21\u00A0Minuten",
+    );
     expect(reportOf(mail).averageUptimePercent).not.toBe("99.95%");
   });
 
@@ -275,7 +277,9 @@ describe("StatusPageService.sendEmailReport, in each subscriber's language", () 
     expect(mail.language).toBe("fr");
     expect(mail.subject).toBe("[Rapport] Acme Status");
     expect(reportOf(mail).reportPeriodName).toBe("juillet 2026");
-    expect(reportOf(mail).totalDowntimeInHoursAndMinutes).toBe("21\u00A0minutes");
+    expect(reportOf(mail).totalDowntimeInHoursAndMinutes).toBe(
+      "21\u00A0minutes",
+    );
   });
 
   test("an English subscriber's email reads exactly as it always has", async () => {
