@@ -51,6 +51,7 @@ import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpda
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
+import { StateListType } from "Common/Utils/StateOrder";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
@@ -405,7 +406,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
       translator: Translator,
     ): MarkdownText => {
       return stateChange
-        ? mdText`\n${StateChangeNoteMessage.getChatStatusLine(stateChangeName, translator)}\n`
+        ? mdText`\n${StateChangeNoteMessage.getChatStatusLine(StateListType.ScheduledMaintenanceState, stateChangeName, translator)}\n`
         : FeedMarkdown.empty();
     };
 
@@ -525,6 +526,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           scheduledMaintenanceTitle: event.title || "",
           // A default state name, and the date, in the page's language.
           scheduledMaintenanceState: SubscriberTemplateValues.stateName(
+            StateListType.ScheduledMaintenanceState,
             stateChangeName || event.currentScheduledMaintenanceState?.name,
           ),
           postedAt: SubscriberTemplateValues.date(notePostedAtDate),
@@ -887,6 +889,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
                           (translator: Translator): string => {
                             return SubscriberMessageText.nameInLanguage(
                               translator,
+                              StateListType.ScheduledMaintenanceState,
                               stateChangeName,
                             );
                           },

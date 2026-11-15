@@ -179,6 +179,29 @@ describe("collectCloudResourceReadings", () => {
   });
 
   test("leaves out a metric no rule reads and no page leads with", () => {
+    /*
+     * A stream's incoming records: read for its charts, while its rules
+     * judge how far behind its consumers are and its page leads with none.
+     */
+    const collected: Map<string, CollectedCloudReadings> =
+      collectCloudResourceReadings(
+        buildMetricsPayloads([
+          awsGroup([
+            {
+              namespace: "AWS/Kinesis",
+              metricName: "IncomingRecords",
+              dimensions: [{ name: "StreamName", value: "orders" }],
+              points: [{ timeMs: T2, value: 9000 }],
+            },
+          ]),
+        ]),
+      );
+
+    expect(collected.size).toBe(0);
+  });
+
+  test("keeps what a page leads with as well as what its rules read", () => {
+    // An instance's network traffic: no rule reads it, its page leads with it.
     const collected: Map<string, CollectedCloudReadings> =
       collectCloudResourceReadings(
         buildMetricsPayloads([
@@ -193,7 +216,10 @@ describe("collectCloudResourceReadings", () => {
         ]),
       );
 
-    expect(collected.size).toBe(0);
+    expect(collected.size).toBe(1);
+    expect(
+      Array.from(collected.values())[0]!.readings["aws/ec2/networkin"]?.value,
+    ).toBe(9000);
   });
 
   test("keeps two resources apart, and the metrics of each", () => {

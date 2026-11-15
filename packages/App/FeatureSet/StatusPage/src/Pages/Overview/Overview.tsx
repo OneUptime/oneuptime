@@ -71,6 +71,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { translateStatusName } from "../../Utils/StatusTranslation";
+import { StateListType } from "Common/Utils/StateOrder";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
@@ -624,14 +625,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
             declaredAt: incident.declaredAt || new Date(),
             incidentSeverity: incident.incidentSeverity
               ? {
-                  name: translateStatusName(incident.incidentSeverity.name),
+                  name: translateStatusName(
+                    StateListType.IncidentSeverity,
+                    incident.incidentSeverity.name,
+                  ),
                   color:
                     incident.incidentSeverity.color || new Color("#000000"),
                 }
               : undefined,
             currentIncidentState: incident.currentIncidentState
               ? {
-                  name: translateStatusName(incident.currentIncidentState.name),
+                  name: translateStatusName(
+                    StateListType.IncidentState,
+                    incident.currentIncidentState.name,
+                  ),
                   color:
                     incident.currentIncidentState.color || new Color("#000000"),
                 }
@@ -653,7 +660,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
             ScheduledMaintenance,
           ),
           states: scheduledMaintenanceStates,
-          translateStateName: translateStatusName,
+          translateStateName: (name: string): string => {
+            return translateStatusName(
+              StateListType.ScheduledMaintenanceState,
+              name,
+            );
+          },
         });
 
       setTimelineIncidents(parsedTimelineIncidents);
@@ -959,8 +971,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
       if (kind === StatusPageGroupRollupKind.CurrentStatus) {
         return {
           label:
-            translateStatusName(currentStatus?.name) ||
-            t("overview.operational"),
+            translateStatusName(
+              StateListType.MonitorStatus,
+              currentStatus?.name,
+            ) || t("overview.operational"),
           color: color,
         };
       }
@@ -1638,7 +1652,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       );
 
       const statusName: string =
-        translateStatusName(worstStatus?.name) || t("overview.operational");
+        translateStatusName(StateListType.MonitorStatus, worstStatus?.name) ||
+        t("overview.operational");
 
       return {
         isEmpty: false,
@@ -2181,7 +2196,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 title={(() => {
                   const rawStatusName: string = currentStatus.name || "";
                   const statusName: string =
-                    translateStatusName(rawStatusName) || rawStatusName;
+                    translateStatusName(
+                      StateListType.MonitorStatus,
+                      rawStatusName,
+                    ) || rawStatusName;
                   const isMaintenance: boolean =
                     rawStatusName.toLowerCase() === "maintenance";
                   if (currentStatus.isOperationalState) {
