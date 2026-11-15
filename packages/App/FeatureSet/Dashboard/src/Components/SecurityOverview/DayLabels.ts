@@ -6,10 +6,11 @@ import {
 /*
  * "Oct 14" for a YYYY-MM-DD day: the date it names, in the reader's language
  * ("14. Okt." in German, "۱۴ اکتبر" in Persian) - never the browser's own,
- * which put English months under a German page. The server cut the day on
- * the reader's calendar (their zone, issue #7925) and wrote down its date,
- * so the date is read as it is written - as a UTC midnight formatted in
- * UTC - and no zone moves it to the day before or after.
+ * which put English months under a German page. Whoever counted the bar
+ * wrote down the date of the day it counted - the Security and Data
+ * Security overviews the reader's own day (issue #7925) - so the date is
+ * read as it is written, as a UTC midnight formatted in UTC, and no zone
+ * moves it to the day before or after.
  */
 export function formatDayLabel(day: string): string {
   const date: Date = new Date(`${day}T00:00:00Z`);
