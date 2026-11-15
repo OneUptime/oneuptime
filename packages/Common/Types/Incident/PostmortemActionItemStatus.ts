@@ -32,11 +32,15 @@ export const ALL_POSTMORTEM_ACTION_ITEM_STATUSES: ReadonlyArray<PostmortemAction
     PostmortemActionItemStatus.WontDo,
   ];
 
-// Each status as people read it, in English: the Dashboard looks each up in the reader's language.
+/*
+ * Each status as people read it, in English: the Dashboard looks each up in
+ * the reader's language. Open reads "To Do": in many languages "Open" is
+ * the verb, a button's word, and a status that says "Open!" is a command.
+ */
 export const POSTMORTEM_ACTION_ITEM_STATUS_NAMES: Readonly<
   Record<PostmortemActionItemStatus, string>
 > = {
-  [PostmortemActionItemStatus.Open]: "Open",
+  [PostmortemActionItemStatus.Open]: "To Do",
   [PostmortemActionItemStatus.Done]: "Done",
   [PostmortemActionItemStatus.WontDo]: "Won't Do",
 };

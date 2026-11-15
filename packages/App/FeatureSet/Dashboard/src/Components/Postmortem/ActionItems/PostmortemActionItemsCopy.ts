@@ -142,7 +142,7 @@ export const POSTMORTEM_ACTION_ITEMS_COPY: {
     "OneUptime AI makes the change {{title}} asks for, and opens a pull request for review. The incident and its postmortem go with the request.",
   ),
   testDescription: translationKey(
-    "For {{title}}, OneUptime AI writes a test that would have caught this incident, and opens a pull request with it. The incident and its postmortem go with the request.",
+    "For {{title}}, OneUptime AI writes a test that would have caught this incident and opens a pull request. The postmortem goes with the request.",
   ),
   repositoryField: translationKey("Repository"),
   repositoryHelp: translationKey("Where OneUptime AI makes the change."),
@@ -195,7 +195,7 @@ export const MORE_UNTRACKED_ACTION_ITEMS: PluralTemplate = {
  * column and filter look each up in the reader's language.
  */
 export const POSTMORTEM_ACTION_ITEM_STATUS_WORDS: Array<string> = [
-  translationKey("Open"),
+  translationKey("To Do"),
   translationKey("Done"),
   translationKey("Won't Do"),
 ];

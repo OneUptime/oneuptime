@@ -165,7 +165,7 @@ describe("what the page reads of each item", () => {
 describe("the list's statuses", () => {
   test("are offered in their order, by the names people read", () => {
     expect(POSTMORTEM_ACTION_ITEM_STATUS_OPTIONS).toEqual([
-      { label: "Open", value: PostmortemActionItemStatus.Open },
+      { label: "To Do", value: PostmortemActionItemStatus.Open },
       { label: "Done", value: PostmortemActionItemStatus.Done },
       { label: "Won't Do", value: PostmortemActionItemStatus.WontDo },
     ]);

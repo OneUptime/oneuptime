@@ -18,7 +18,7 @@ describe("the statuses", () => {
       PostmortemActionItemStatus.WontDo,
     ]);
     expect(POSTMORTEM_ACTION_ITEM_STATUS_NAMES).toEqual({
-      Open: "Open",
+      Open: "To Do",
       Done: "Done",
       WontDo: "Won't Do",
     });
