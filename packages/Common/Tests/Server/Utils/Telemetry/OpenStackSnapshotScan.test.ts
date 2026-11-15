@@ -21,6 +21,7 @@ import {
   OpenStackServiceType,
 } from "../../../../Types/OpenStack/OpenStackResourceKind";
 import { readOpenStackRatedByPeriod } from "../../../../Types/OpenStack/OpenStackSpendSnapshot";
+import { readOpenStackInventories } from "../../../../Types/OpenStack/OpenStackCapacity";
 import { readOwnValue } from "../../../../Utils/LookupTable";
 import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 
@@ -2407,6 +2408,23 @@ describe("a resource class or a subnet named like what every object inherits", (
         usage: 3,
       });
       expect(Object.getPrototypeOf(entry!.placement)).toBe(Object.prototype);
+
+      // The finished row's facts, read back as the capacity pages read them.
+      const row: OpenStackResourceBufferEntry = rowOf(
+        buffer,
+        OpenStackResourceKind.Hypervisor,
+        "RegionOne/compute-01",
+      );
+
+      expect(
+        readOwnValue(
+          readOpenStackInventories(row.facts) as unknown as Record<
+            string,
+            unknown
+          >,
+          name,
+        ),
+      ).toEqual({ total: 8, reserved: 1, allocationRatio: 2, used: 3 });
     },
   );
 
