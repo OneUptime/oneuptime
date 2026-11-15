@@ -178,7 +178,7 @@ Varje skanning sparar en förteckning över vad den läste, efter namn: objekten
 
 ## Skanna en databas som du driver
 
-Datasäkerhet provtar PostgreSQL- och MySQL-databaser, på ett av två sätt. En databas som produkten Database övervakar, eller en som dina tjänster pratar med på tjänstekartan, är redan ett datalager. En databas som ingen skanning hittar lägger du själv till som ett datalager.
+Datasäkerhet provtar PostgreSQL-, MySQL- och SQL Server-databaser, på ett av två sätt. En databas som produkten Database övervakar, eller en som dina tjänster pratar med på tjänstekartan, är redan ett datalager. En databas som ingen skanning hittar lägger du själv till som ett datalager.
 
 - **Från OneUptimes workers.** I datalagrets **Inställningar** sätter du **Anslutningssträng** till en som bara kan läsa, som `postgresql://reader:password@db.internal:5432/app`. Den krypteras i vila och returneras aldrig av API:t. Ge den en databasanvändare som kan läsa och inget annat.
 - **Från en sond i ditt nätverk.** Välj sonden under **Skanna från sond**, och ange i **Anslutningsvariabel för sond** namnet på den miljövariabel på sonden som innehåller anslutningssträngen. Sonden läser databasen inifrån ditt nätverk och skickar bara tillbaka det den hittade: anslutningssträngen når aldrig OneUptime. Se [Anpassade sonder](/docs/probe/custom-probe) för att köra en sond.

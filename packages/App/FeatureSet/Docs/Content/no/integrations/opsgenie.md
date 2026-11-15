@@ -53,13 +53,13 @@ Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og 
 
 ### Opprett varselet
 
-Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Success**-punkt til den. Sett **URL** til `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Sett **Request Headers** under **Flere felt** til:
+Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **URL** til `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Sett **Forespørselshoder** under **Flere felt** til:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-Og **Request Body** til:
+Og **Forespørselstekst** til:
 
 ```json
 {
@@ -93,17 +93,17 @@ Opprett en arbeidsflyt som heter `Close Opsgenie alerts`, og velg **On Update In
 
 ### Sjekk at hendelsen er løst
 
-Legg til en **If / Else**-blokk etter triggeren. Sett **Value to check** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Comparison** til **is true**.
+Legg til en **If / Else**-blokk etter triggeren. Sett **Verdi som skal sjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sann**.
 
 ### Lukk varselet
 
-Legg til en **API Post (JSON)**-blokk etter **Yes**-siden, med de samme **Request Headers** og denne **URL**:
+Legg til en **API Post (JSON)**-blokk etter **Ja**-siden, med de samme **Forespørselshoder** og denne **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Sett **Request Body** til `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Sett **Forespørselstekst** til `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Slå den på
 
@@ -117,7 +117,7 @@ Slå på **Aktivert**, og løs deretter en testhendelse i OneUptime. Opsgenie lu
 For å sende hver hendelses alvorlighetsgrad som en Opsgenie-prioritet legger du til en **Run Custom JavaScript**-blokk mellom triggeren og **API Post (JSON)**-blokken.
 
 1. Klikk på **Legg til felt** i triggerens **Fields to pass on**, åpne **Hendelsesalvor**, og velg **Navn**.
-2. Sett blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og **JavaScript Code** til:
+2. Sett blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og **JavaScript-kode** til:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie svarer `202` før den behandler forespørselen, så en forespørsel den
 :::
 
 :::details Arbeidsflyten kjører aldri
-Sjekk at den er slått på: **Aktivert**, øverst i dens **Bygger**. Åpne deretter **Logger → Kjøringer**: en kjøring som tok **No**-siden av **If / Else**-blokken, er en oppdatering som ikke var en løsning.
+Sjekk at den er slått på: **Aktivert**, øverst i dens **Bygger**. Åpne deretter **Logger → Kjøringer**: en kjøring som tok **Nei**-siden av **If / Else**-blokken, er en oppdatering som ikke var en løsning.
 :::
 
 ## Neste trinn

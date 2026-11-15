@@ -2,7 +2,7 @@
 
 A telemetria guarda tudo o que o seu código grava: um endereço de e-mail em uma linha de log, um número de cartão em um atributo de span, um token em um stack trace, a pergunta de um cliente em um prompt. A Segurança de dados trata os logs, traces, exceções e conversas de IA de cada serviço, e as sessões de cada aplicação RUM, como repositórios de dados próprios. Ela coleta amostras deles a cada hora, encontra dados sensíveis neles como faz em um bucket, e **Limpar** transforma uma descoberta em uma regra de limpeza que passa a mascarar esses dados na ingestão daí em diante.
 
-Não há nada a configurar: a telemetria de cada serviço é varrida a cada hora, a menos que **Varrer telemetria** esteja desativado nas configurações do projeto.
+Não há nada a configurar: a telemetria de cada serviço é varrida a cada hora, a menos que **Varrer telemetria** esteja desativado nas configurações do projeto. Para deixar de fora os logs, os traces ou outro sinal de um serviço, desative **Varrer conteúdo** nas **Configurações** desse repositório: a partir da próxima varredura, nada dele é lido.
 
 :::cards
 - [O que é lido](#o-que-é-lido): Os atributos, corpos, mensagens e prompts de cada sinal.

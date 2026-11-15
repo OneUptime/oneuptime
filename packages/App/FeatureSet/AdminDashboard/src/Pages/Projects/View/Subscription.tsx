@@ -64,6 +64,18 @@ const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
  */
 const MAX_BALANCE_ADJUSTMENT_IN_USD: number = 10000;
 
+/*
+ * A project's user limit, read the way the server holds people to it
+ * (TeamMemberService.readPeopleLimits: seatLimit || null) - nothing, or 0,
+ * is no limit - so the card never says a project is limited when the
+ * server lets everyone in, or the other way round.
+ */
+const getUserLimit: (seatLimit: number | null | undefined) => number | null = (
+  seatLimit: number | null | undefined,
+): number | null => {
+  return seatLimit || null;
+};
+
 const ProjectSubscription: FunctionComponent = (): ReactElement => {
   const { t, i18n } = useTranslation();
 
@@ -817,6 +829,128 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                     />
                   ) : (
                     <span data-testid="project-active-monitor-limit">
+                      {formatCount(limit)}
+                    </span>
+                  );
+                },
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
+        {/*
+         * The most people the project may have (Project.seatLimit, issue
+         * #6767), beside how many it has. Everyone with a membership counts,
+         * an invitation not yet accepted too: at the limit nobody new joins,
+         * however they would - an invitation, a first sign-in through the
+         * project's SSO, SCIM, an import - and everyone already in stays
+         * (TeamMemberService.readPeopleLimits). Held on a billed install
+         * only, which is the only one this card is drawn on. A plan bought
+         * from a reseller writes the limit too. The count is the one the bill
+         * reports, as the customer's Billing page shows it
+         * (Project.paymentProviderSubscriptionSeats).
+         */}
+        <CardModelDetail<Project>
+          name="Project Users"
+          modelAPI={AdminModelAPI}
+          refresher={refresher}
+          cardProps={{
+            title: t("pages.projectSubscription.userLimitCardTitle"),
+            description: t(
+              "pages.projectSubscription.userLimitCardDescription",
+            ),
+          }}
+          isEditable={true}
+          editButtonText={t("pages.projectSubscription.userLimitEditButton")}
+          editModalTitle={t("pages.projectSubscription.userLimitEditButton")}
+          formFields={[
+            {
+              field: {
+                seatLimit: true,
+              },
+              title: t("pages.projectSubscription.fieldUserLimit"),
+              description: t(
+                "pages.projectSubscription.fieldUserLimitDescription",
+              ),
+              fieldType: FormFieldSchemaType.Number,
+              required: false,
+              placeholder: t("pages.projectSubscription.noUserLimit"),
+              isPlaceholderTranslated: true,
+              validation: {
+                minValue: 1,
+              },
+            },
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-users",
+            fields: [
+              {
+                field: {
+                  paymentProviderSubscriptionSeats: true,
+                },
+                title: t("pages.projectSubscription.fieldUsers"),
+                fieldType: FieldType.Element,
+                /*
+                 * The count, and how it stands against the project's own
+                 * limit: a project past it says by how many at a glance.
+                 */
+                getElement: (item: Project): ReactElement => {
+                  const count: number = Number(
+                    item.paymentProviderSubscriptionSeats || 0,
+                  );
+                  const limit: number | null = getUserLimit(item.seatLimit);
+
+                  return (
+                    <div
+                      className="flex flex-wrap items-center gap-2"
+                      data-testid="project-users-count"
+                    >
+                      <span>{formatCount(count)}</span>
+                      {limit !== null && count > limit ? (
+                        <Pill
+                          text={t("pages.projectSubscription.overUserLimit", {
+                            over: formatCount(count - limit),
+                          })}
+                          isUserContent={true}
+                          color={Amber600}
+                          size={PillSize.Normal}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                      {limit !== null && count === limit ? (
+                        <Pill
+                          text={t("pages.projectSubscription.atUserLimit")}
+                          isUserContent={true}
+                          color={Amber600}
+                          size={PillSize.Normal}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                  );
+                },
+              },
+              {
+                field: {
+                  seatLimit: true,
+                },
+                title: t("pages.projectSubscription.fieldUserLimit"),
+                fieldType: FieldType.Element,
+                // Nothing, or 0, is no limit (getUserLimit).
+                getElement: (item: Project): ReactElement => {
+                  const limit: number | null = getUserLimit(item.seatLimit);
+
+                  return limit === null ? (
+                    <PlaceholderText
+                      text={t("pages.projectSubscription.noUserLimit")}
+                      isTextTranslated={true}
+                    />
+                  ) : (
+                    <span data-testid="project-user-limit">
                       {formatCount(limit)}
                     </span>
                   );

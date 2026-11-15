@@ -216,7 +216,7 @@ Para agir só sobre chamadas perdidas, por exemplo para publicá-las no Slack ou
 :::steps
 1. Adicione o gatilho **On Update Incoming Call Log**. Defina **Fields to watch** como **Ended At** e selecione os campos que quer usar, como **Status**, **Caller Phone Number** e **Routing Phone Number**.
 2. Adicione um passo **If / Else**. Confira o **Status** do gatilho, com a comparação **não é igual a** e `Completed`.
-3. Ligue os seus passos à porta **Yes**.
+3. Ligue os seus passos à porta **Sim**.
 :::
 
 Um fluxo de trabalho pode ler registros de chamadas com **Find One** e **Find Many**, mas não pode criá-los nem alterá-los.

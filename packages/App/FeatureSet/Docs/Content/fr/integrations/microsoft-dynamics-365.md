@@ -104,7 +104,7 @@ Les modèles pour les alertes font les mêmes travaux pour les alertes. Il y en 
 
 Aucun des modèles de OneUptime vers Dynamics 365 n'envoie à Dynamics 365 un incident marqué **Incident privé**, ni une alerte marquée **Alerte privée** : ni l'enregistrement, ni son état, ni ses notes, sauf si vous l'activez. Voir [Changer ce que fait un modèle](#changer-ce-que-fait-un-modèle).
 
-**Les moniteurs lèvent des alertes d'eux-mêmes, et parfois beaucoup.** **Create a Dynamics 365 case when an alert is created** ouvre un dossier pour chacune. Sauf si chaque alerte mérite un dossier, placez un bloc **If / Else** entre le déclencheur et le reste du workflow, par exemple sur `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, et ne reliez que son côté **Yes** à la suite.
+**Les moniteurs lèvent des alertes d'eux-mêmes, et parfois beaucoup.** **Create a Dynamics 365 case when an alert is created** ouvre un dossier pour chacune. Sauf si chaque alerte mérite un dossier, placez un bloc **If / Else** entre le déclencheur et le reste du workflow, par exemple sur `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, et ne reliez que son côté **Oui** à la suite.
 
 ### Ce que demandent les modèles
 
@@ -133,7 +133,7 @@ Chaque workflow garde sa propre copie. Quand vous remplacez le secret client, ou
 4. Cliquez sur **Créer un flux de travail**. Chaque workflow est créé désactivé : activez **Activé** en haut de son **Constructeur**.
 :::
 
-Commencez par **Create a Dynamics 365 case when an incident is declared**, ou par **Create a Dynamics 365 case when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Dynamics 365 du même genre retrouve le dossier grâce au lien que celui-ci écrit. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. L'exécution devrait se terminer avec **Exécuté**, et le **Response Body** de sa dernière étape, `create-case-1`, contient le `ticketnumber` du nouveau dossier, comme `CAS-01001-X1Y2Z3`.
+Commencez par **Create a Dynamics 365 case when an incident is declared**, ou par **Create a Dynamics 365 case when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Dynamics 365 du même genre retrouve le dossier grâce au lien que celui-ci écrit. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. L'exécution devrait se terminer avec **Exécuté**, et le **Corps de la réponse** de sa dernière étape, `create-case-1`, contient le `ticketnumber` du nouveau dossier, comme `CAS-01001-X1Y2Z3`.
 
 ### Connecter les modèles de Dynamics 365 vers OneUptime
 
@@ -184,7 +184,7 @@ Avant de vous fier à l'un ou à l'autre :
 Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Journaux → Exécutions** et regardez comment elle s'est terminée :
 
 - **Exécuté** : il a fait son travail, et sa dernière étape nomme le dossier, l'incident ou l'alerte.
-- **Exécuté**, avec son étape **Check With JavaScript** sur **No** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou le nouvel état ne ferme pas le dossier.
+- **Exécuté**, avec son étape **Check With JavaScript** sur **Non** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou le nouvel état ne ferme pas le dossier.
 - **Erreur** : une étape a échoué, et son entrée dans **Étapes** dit pourquoi. Pour un appel à Dynamics 365, elle inclut la réponse de Dynamics 365.
 - **Erreur** à `link-case-1` : un modèle qui crée un enregistrement à partir d'un dossier l'a créé, mais Dynamics 365 n'a pas accepté le lien, donc les autres modèles ne peuvent pas encore le trouver. Saisissez le lien à la main dans la colonne du dossier.
 
@@ -221,7 +221,7 @@ Gardez les marqueurs quand vous modifiez les modèles. Ce sont les constantes `F
 
 ### Changer ce que fait un modèle
 
-Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **JavaScript Code** d'un bloc **Check With JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes gardent les mêmes constantes dans les mêmes blocs.
+Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **Code JavaScript** d'un bloc **Check With JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes gardent les mêmes constantes dans les mêmes blocs.
 
 | Constante | Modèle, et bloc | Ce qu'elle règle |
 | --- | --- | --- |
@@ -270,8 +270,8 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
 
 :::steps
 1. Créez à partir de zéro un workflow nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Ses **Fields to pass on** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis.
-2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **Identifiant** sur `create-case`, et son **URL** sur `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
-3. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **Identifiant** sur `create-case`, et son **URL** sur `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
    ```json
    {
@@ -284,7 +284,7 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
    }
    ```
 
-4. Réglez son **Request Body** sur le dossier, avec le GUID du compte auquel vos dossiers appartiennent :
+4. Réglez son **Corps de la requête** sur le dossier, avec le GUID du compte auquel vos dossiers appartiennent :
 
    ```json
    {
@@ -324,8 +324,8 @@ Construisez cela dans un second workflow, pour qu'un échec ici n'empêche jamai
 
 :::steps
 1. Créez un workflow nommé `Close Dynamics 365 cases`, avec le déclencheur **On Update Incident**. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Fields to pass on**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**.
-2. Ajoutez un bloc **If / Else** : **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
-3. Après son côté **Yes**, ajoutez un bloc **API Get (JSON)** avec l'**Identifiant** `find-case`, les mêmes en-têtes sans `Prefer`, et cette **URL** :
+2. Ajoutez un bloc **If / Else** : **Valeur à vérifier** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparaison** **est vrai**.
+3. Après son côté **Oui**, ajoutez un bloc **API Get (JSON)** avec l'**Identifiant** `find-case`, les mêmes en-têtes sans `Prefer`, et cette **URL** :
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
@@ -362,8 +362,8 @@ Construisez d'abord le workflow qui reçoit :
 
    Sur une installation autogérée, l'URL porte votre propre hôte. Traitez l'URL comme un mot de passe : quiconque l'a peut démarrer le workflow. Si elle fuite, cliquez sur **Réinitialiser l'URL** au même endroit, et l'ancienne URL cesse aussitôt de fonctionner.
 
-3. Ajoutez un bloc **If / Else** qui vérifie un secret partagé avant toute autre chose : **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** une valeur que vous inventez, gardée dans une variable globale secrète.
-4. Après son côté **Yes**, ajoutez un bloc **Update One Incident**. Réglez sa **Query** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Data (JSON Object)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Find One Incident State** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Ajoutez un bloc **If / Else** qui vérifie un secret partagé avant toute autre chose : **Valeur à vérifier** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparaison** **est égal à**, **Comparer avec** une valeur que vous inventez, gardée dans une variable globale secrète.
+4. Après son côté **Oui**, ajoutez un bloc **Update One Incident**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Data (JSON Object)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Find One Incident State** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Activez-le, puis faites-le appeler par Dynamics 365 :
 
@@ -395,7 +395,7 @@ Les alertes fonctionnent de la même façon. Changez le type d'enregistrement, e
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-Un workflow a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur workflow. Pour faire le même travail Dynamics 365 pour les deux, construisez-le une fois dans un workflow avec un déclencheur **Manual**, et démarrez-le depuis les deux avec un bloc **Execute Workflow**.
+Un workflow a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur workflow. Pour faire le même travail Dynamics 365 pour les deux, construisez-le une fois dans un workflow avec un déclencheur **Manuel**, et démarrez-le depuis les deux avec un bloc **Execute Workflow**.
 
 ## Dépannage
 

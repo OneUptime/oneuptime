@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "Det högsta antalet aktiva monitorer projektet får ha. Lämna tomt för ingen gräns.",
       "noMonitorLimit": "Ingen gräns",
       "overMonitorLimit": "{{over}} över gränsen",
-      "atMonitorLimit": "Vid gränsen"
+      "atMonitorLimit": "Vid gränsen",
+      "userLimitCardTitle": "Användare",
+      "userLimitCardDescription": "Alla i projektet räknas, även väntande inbjudningar. Vid gränsen kan ingen ny ansluta; de som redan är med stannar. En återförsäljares nästa nivåändring skriver över den. Projekt på abonnemanget Free är också begränsade till en person.",
+      "userLimitEditButton": "Redigera användargräns",
+      "fieldUsers": "Användare",
+      "fieldUserLimit": "Användargräns",
+      "fieldUserLimitDescription": "Det högsta antalet användare projektet får ha, väntande inbjudningar inräknade. Lämna tomt för ingen gräns.",
+      "noUserLimit": "Ingen gräns",
+      "overUserLimit": "{{over}} över gränsen",
+      "atUserLimit": "Vid gränsen"
     },
     "projectSupport": {
       "title": "Åtkomst för kundsupport",

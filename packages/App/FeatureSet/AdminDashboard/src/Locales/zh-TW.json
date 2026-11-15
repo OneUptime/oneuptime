@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "此專案可擁有的作用中監測器的最大數量。留空表示不設上限。",
       "noMonitorLimit": "不設上限",
       "overMonitorLimit": "超出上限 {{over}} 個",
-      "atMonitorLimit": "已達上限"
+      "atMonitorLimit": "已達上限",
+      "userLimitCardTitle": "使用者",
+      "userLimitCardDescription": "專案中的所有人都計數，包括待接受的邀請。達到上限後，新的人無法加入；已在專案中的人保留。經銷商下次變更等級時會覆寫此值。Free 方案的專案同樣僅限一人。",
+      "userLimitEditButton": "編輯使用者上限",
+      "fieldUsers": "使用者",
+      "fieldUserLimit": "使用者上限",
+      "fieldUserLimitDescription": "此專案可擁有的使用者的最大數量，包括待接受的邀請。留空表示不設上限。",
+      "noUserLimit": "不設上限",
+      "overUserLimit": "超出上限 {{over}} 人",
+      "atUserLimit": "已達上限"
     },
     "projectSupport": {
       "title": "客戶支援存取權",
@@ -2681,7 +2690,7 @@
   "Color picker: {{color}}": "Color picker: {{color}}",
   "Copy {{name}}": "複製{{name}}",
   "+{{count}} more": "另外 {{count}} 個",
-  "+{{count}} more_one": "+{{count}} more",
+  "+{{count}} more_one": "另外 {{count}} 個",
   "Download {{name}}": "下載 {{name}}",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF、Office 和 OpenDocument 檔案、圖片、文字、CSV、JSON、ZIP 或 PCAP，最大 {{size}}。",
   "Upload a file": "上傳檔案",

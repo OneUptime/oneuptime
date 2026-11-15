@@ -87,8 +87,8 @@ Cada plantilla para alertas está construida como su gemela para incidentes, pas
 **Los monitores generan alertas por sí solos, y pueden generar muchas.** **Create a Jira issue when an alert is created** abre una incidencia por cada una. Salvo que cada alerta merezca un ticket, pon una condición delante del paso de Jira. Para abrir incidencias solo para las alertas High:
 
 1. Abre el **Constructor** del flujo de trabajo y añade un bloque **If / Else**.
-2. Pon **Value to check** en `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparison** en **is equal to** y **Compare with** en `High`.
-3. Quita la línea de `alert-on-create-1` a `prepare-issue-1` arrastrando su extremo fuera del punto (consulta [Ordenar](/docs/workflows/authoring#ordenar-el-lienzo)). Conecta el **Success** del disparador al bloque **If / Else**, y su **Yes** a `prepare-issue-1`.
+2. Pon **Valor que comprobar** en `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparación** en **es igual a** y **Comparar con** en `High`.
+3. Quita la línea de `alert-on-create-1` a `prepare-issue-1` arrastrando su extremo fuera del punto (consulta [Ordenar](/docs/workflows/authoring#ordenar-el-lienzo)). Conecta el **Éxito** del disparador al bloque **If / Else**, y su **Sí** a `prepare-issue-1`.
 
 Una alerta que toma el lado **No** termina ahí la ejecución, y no se abre ninguna incidencia para ella.
 
@@ -129,7 +129,7 @@ Una **cuenta de servicio** de Atlassian también funciona. Un administrador de l
 4. Haz clic en **Crear flujo de trabajo**. Todo flujo de trabajo se crea desactivado: activa **Habilitado** en la parte superior de su **Constructor**.
 :::
 
-Empieza con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** para las alertas: cada otra plantilla de OneUptime → Jira del mismo tipo encuentra la incidencia por la etiqueta que añade esta. Actívala, declara un incidente de prueba o crea una alerta de prueba, y abre **Registros → Ejecuciones** del flujo de trabajo. La ejecución debería terminar como **Ejecutado**, y el **Response Body** de su último paso, `create-issue-1`, nombra la nueva incidencia.
+Empieza con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** para las alertas: cada otra plantilla de OneUptime → Jira del mismo tipo encuentra la incidencia por la etiqueta que añade esta. Actívala, declara un incidente de prueba o crea una alerta de prueba, y abre **Registros → Ejecuciones** del flujo de trabajo. La ejecución debería terminar como **Ejecutado**, y el **Cuerpo de la respuesta** de su último paso, `create-issue-1`, nombra la nueva incidencia.
 
 Cada flujo de trabajo guarda su propia copia de estos valores. Cuando sustituyas el token, actualiza `jiraBasicAuthToken` en **Variables del flujo de trabajo** en cada flujo de trabajo de Jira que lo pidió. Si Jira cambia de dirección, actualiza `jiraSiteUrl` y `jiraBaseUrl` de la misma manera.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Cambiar lo que hace una plantilla
 
-Abre el **Constructor** del flujo de trabajo y haz clic en el bloque que quieras cambiar. Los ajustes que más probablemente querrás tocar son constantes cerca del principio de un script, el **JavaScript Code** de un bloque **Check With JavaScript**, justo debajo del bloque auxiliar común. Las versiones para incidentes y para alertas de una plantilla guardan las mismas constantes en los mismos bloques:
+Abre el **Constructor** del flujo de trabajo y haz clic en el bloque que quieras cambiar. Los ajustes que más probablemente querrás tocar son constantes cerca del principio de un script, el **Código JavaScript** de un bloque **Check With JavaScript**, justo debajo del bloque auxiliar común. Las versiones para incidentes y para alertas de una plantilla guardan las mismas constantes en los mismos bloques:
 
 | Constante | Plantilla y bloque | Qué controla |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ Abre el **Constructor** del flujo de trabajo y haz clic en el bloque que quieras
 
 Los nombres de estado usados como claves deben escribirse exactamente como se llaman, mayúsculas incluidas. Evita `{{` en el código: un script se rellena como cualquier otro ajuste antes de ejecutarse, así que dos llaves de apertura seguidas se leerían como una referencia.
 
-Para enviar más campos en las incidencias nuevas, edita el **Request Body** del bloque `create-issue-1` de las plantillas que crean una incidencia. Contiene el proyecto, el tipo, el resumen, las etiquetas y la descripción de la incidencia, y puedes añadir una prioridad, componentes, una persona asignada o campos personalizados dentro de `fields`, con las formas que describe [Rellenar más campos](#rellenar-más-campos). Conserva ambas etiquetas. El texto del resumen y de la descripción está en el script `prepare-issue-1`. La descripción da la gravedad, el estado y la descripción del registro, y luego su causa raíz y sus notas de corrección cuando las tiene: un monitor las rellena cuando genera un incidente o una alerta, y a menudo lo explican.
+Para enviar más campos en las incidencias nuevas, edita el **Cuerpo de la solicitud** del bloque `create-issue-1` de las plantillas que crean una incidencia. Contiene el proyecto, el tipo, el resumen, las etiquetas y la descripción de la incidencia, y puedes añadir una prioridad, componentes, una persona asignada o campos personalizados dentro de `fields`, con las formas que describe [Rellenar más campos](#rellenar-más-campos). Conserva ambas etiquetas. El texto del resumen y de la descripción está en el script `prepare-issue-1`. La descripción da la gravedad, el estado y la descripción del registro, y luego su causa raíz y sus notas de corrección cuando las tiene: un monitor las rellena cuando genera un incidente o una alerta, y a menudo lo explican.
 
-Las notas privadas y los comentarios de edición se marcan como internos con la entrada `properties`, `sd.public.comment`, del **Request Body** de su bloque `post-comment-1`. Solo Jira Service Management la lee. Bórrala solo si los clientes deben ver esos comentarios.
+Las notas privadas y los comentarios de edición se marcan como internos con la entrada `properties`, `sd.public.comment`, del **Cuerpo de la solicitud** de su bloque `post-comment-1`. Solo Jira Service Management la lee. Bórrala solo si los clientes deben ver esos comentarios.
 
 ### Limitaciones
 
@@ -307,8 +307,8 @@ Los tokens caducan al cabo de un año por defecto y no se renuevan. Para no tene
 
 :::steps
 1. Crea desde cero un flujo de trabajo llamado `Incidents to Jira`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. Sus **Fields to pass on** empiezan con **Título**: haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente**. El ID siempre se transmite. Deja su **Identificador** como `incident-on-create-1`.
-2. Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **Identificador** en `create-issue`, su **URL** en `{{global.variables.JIRA_URL}}/rest/api/3/issue` y, en **Más campos**, sus **Request Headers** en `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
-3. Pon su **Request Body** en la incidencia, y sustituye `OPS` y `Bug` por la clave de tu proyecto y un tipo de incidencia de ese proyecto:
+2. Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **Identificador** en `create-issue`, su **URL** en `{{global.variables.JIRA_URL}}/rest/api/3/issue` y, en **Más campos**, sus **Encabezados de la solicitud** en `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+3. Pon su **Cuerpo de la solicitud** en la incidencia, y sustituye `OPS` y `Bug` por la clave de tu proyecto y un tipo de incidencia de ese proyecto:
 
    ```json
    {
@@ -391,8 +391,8 @@ Constrúyelo como un segundo flujo de trabajo, para que un fallo aquí nunca imp
 
 :::steps
 1. Crea un flujo de trabajo llamado `Incident updates to Jira`, con el disparador **On Update Incident**. En **Fields to watch**, haz clic en **Añadir campo** y elige **Estado actual del incidente**. En **Fields to pass on**, haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Nombre**.
-2. Añade un bloque **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, o el nombre de tu estado resuelto.
-3. Después de su lado **Yes**, encuentra la incidencia con un bloque **API Post (JSON)** cuyo **Identificador** sea `find-issue`, que publique en `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+2. Añade un bloque **If / Else**: **Valor que comprobar** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparación** **es igual a**, **Comparar con** `Resolved`, o el nombre de tu estado resuelto.
+3. Después de su lado **Sí**, encuentra la incidencia con un bloque **API Post (JSON)** cuyo **Identificador** sea `find-issue`, que publique en `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -425,7 +425,7 @@ Primero construye el flujo de trabajo que recibe:
 
    Una instalación autoalojada usa su propio host. Trata la URL como una contraseña: quien la tenga puede iniciar el flujo de trabajo. Si se filtra, haz clic en **Restablecer URL** en el mismo lugar, y la URL antigua deja de funcionar al instante.
 
-3. Desde el disparador, añade un bloque **Update One Incident**. Pon su **Query** en `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, y su **Data (JSON Object)** en el cambio, como un nuevo `currentIncidentStateId`. Un bloque **Find One Incident State** con la consulta `{"name": "Resolved"}` te da ese ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Desde el disparador, añade un bloque **Update One Incident**. Pon su **Consulta** en `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, y su **Data (JSON Object)** en el cambio, como un nuevo `currentIncidentStateId`. Un bloque **Find One Incident State** con la consulta `{"name": "Resolved"}` te da ese ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Actívalo y luego haz que Jira lo llame, desde una regla de automatización o desde un webhook:
 
@@ -447,7 +447,7 @@ Actívalo y luego haz que Jira lo llame, desde una regla de automatización o de
 
 4. Activa la regla y mueve una incidencia de prueba a Done. Revisa el registro de auditoría de la regla en Jira, y **Registros → Ejecuciones** en OneUptime.
 
-Para asegurarte de que una solicitud viene de tu regla, añade una segunda cabecera, `X-OneUptime-Secret`, con un valor que te inventes, y usa en ella la opción **Hide** de la acción. En el flujo de trabajo, pon un bloque **If / Else** antes de la actualización: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to** y **Compare with** el mismo valor, guardado en una variable global secreta.
+Para asegurarte de que una solicitud viene de tu regla, añade una segunda cabecera, `X-OneUptime-Secret`, con un valor que te inventes, y usa en ella la opción **Hide** de la acción. En el flujo de trabajo, pon un bloque **If / Else** antes de la actualización: **Valor que comprobar** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparación** **es igual a** y **Comparar con** el mismo valor, guardado en una variable global secreta.
 
 Send web request solo llama a los puertos 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 y 9900. Jira Cloud cuenta las ejecuciones de reglas contra una cuota mensual que depende de tu plan, así que una regla en cada transición de un proyecto con mucho movimiento acaba sumando.
 @tab Jira webhook

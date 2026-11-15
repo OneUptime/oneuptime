@@ -56,8 +56,8 @@ A etapa segue pela saída **Sucesso** assim que o servidor aceita todas as linha
 
 Decida para onde as mensagens vão: o nome de host do servidor, por exemplo `irc.libera.chat`, e o canal, por exemplo `#your-channel`.
 
-- **IRC Server** aceita o nome de host e nada mais: sem `ircs://` e sem porta. A etapa se conecta via TLS na porta `6697`. Se o seu servidor aceita TLS em outra porta, coloque-a em **Port**, em **Mais campos**.
-- **Channel** precisa ser um canal. Um apelido digitado ali é recusado, então a etapa nunca manda uma mensagem privada a alguém por engano.
+- **IRC Server** aceita o nome de host e nada mais: sem `ircs://` e sem porta. A etapa se conecta via TLS na porta `6697`. Se o seu servidor aceita TLS em outra porta, coloque-a em **Porta**, em **Mais campos**.
+- **Canal** precisa ser um canal. Um apelido digitado ali é recusado, então a etapa nunca manda uma mensagem privada a alguém por engano.
 
 O servidor precisa ser um ao qual o OneUptime possa se conectar. Endereços de loopback (`localhost`, `127.0.0.1`), link-local e de metadados de nuvem são sempre recusados. No OneUptime Cloud, um servidor em um endereço de rede privada também é recusado. Uma instalação auto-hospedada pode alcançar um servidor IRC da própria rede, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esteja definido como `true`.
 
@@ -89,7 +89,7 @@ O workflow abre no **Construtor** com duas etapas: **On Create Incident** e **Se
 1. Abra **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
 2. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident** em **Populares**. Clique no gatilho e, em **Fields to pass on**, escolha os campos do incidente que a sua mensagem mostra, por exemplo o título.
 3. Clique em **Adicionar componente**, pesquise `irc` e clique em **Send Message to IRC**. Ligue a saída **Sucesso** do gatilho a esta etapa.
-4. Clique na nova etapa e preencha **IRC Server**, **Channel** e **Message Text**. O botão **{ }** de **Message Text** insere campos do incidente, por exemplo o título.
+4. Clique na nova etapa e preencha **IRC Server**, **Canal** e **Message Text**. O botão **{ }** de **Message Text** insere campos do incidente, por exemplo o título.
 5. Se você guardou senhas na etapa anterior, abra **Mais campos**. Em **Server Password**, **SASL Password** ou **Channel Key**, clique em **{ }** e escolha a variável em **Global variables**. Coloque o nome da sua conta em **SASL Username**.
 :::
 

@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "بیشترین تعداد مانیتور فعالی که این پروژه می‌تواند داشته باشد. برای نداشتن سقف، خالی بگذارید.",
       "noMonitorLimit": "بدون سقف",
       "overMonitorLimit": "{{over}} بیش از سقف",
-      "atMonitorLimit": "در سقف"
+      "atMonitorLimit": "در سقف",
+      "userLimitCardTitle": "کاربران",
+      "userLimitCardDescription": "همه افراد پروژه شمرده می‌شوند، از جمله دعوت‌های در انتظار. در سقف، هیچ فرد تازه‌ای نمی‌تواند به پروژه بپیوندد؛ کسانی که از قبل عضو هستند، می‌مانند. تغییر سطح بعدی فروشنده این مقدار را بازنویسی می‌کند. پروژه‌های طرح Free به یک نفر هم محدودند.",
+      "userLimitEditButton": "ویرایش سقف کاربران",
+      "fieldUsers": "کاربران",
+      "fieldUserLimit": "سقف کاربران",
+      "fieldUserLimitDescription": "بیشترین تعداد کاربری که این پروژه می‌تواند داشته باشد، با احتساب دعوت‌های در انتظار. برای نداشتن سقف، خالی بگذارید.",
+      "noUserLimit": "بدون سقف",
+      "overUserLimit": "{{over}} بیش از سقف",
+      "atUserLimit": "در سقف"
     },
     "projectSupport": {
       "title": "دسترسی پشتیبانی مشتری",

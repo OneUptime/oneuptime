@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Valeur                   | Ce qu'elle contient                                                                                                     |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Chaque en-tête de la requête, par son nom en minuscules, comme `content-type`.                                          |
+| **En-têtes de la requête**      | Chaque en-tête de la requête, par son nom en minuscules, comme `content-type`.                                          |
 | **Request Query Params** | Les paramètres de la chaîne de requête de l'URL, par leur nom.                                                          |
-| **Request Body**         | Le corps envoyé par l'appelant. Un corps JSON, envoyé avec `Content-Type: application/json`, se lit champ par champ.   |
+| **Corps de la requête**         | Le corps envoyé par l'appelant. Un corps JSON, envoyé avec `Content-Type: application/json`, se lit champ par champ.   |
 
 Lisez un champ en ajoutant son nom à la référence, comme dans `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -125,14 +125,14 @@ Chaque e-mail lance sa propre exécution. L'e-mail atteint le workflow que l'adr
 
 | Valeur          | Ce qu'elle contient                                                                                      |
 | --------------- | -------------------------------------------------------------------------------------------------------- |
-| **From**        | L'adresse de l'expéditeur.                                                                               |
-| **To**          | Tous les destinataires de l'e-mail, sur une seule ligne, comme `ops@example.com, oncall@example.com`.    |
+| **De**        | L'adresse de l'expéditeur.                                                                               |
+| **À**          | Tous les destinataires de l'e-mail, sur une seule ligne, comme `ops@example.com, oncall@example.com`.    |
 | **CC**          | Tous les destinataires en copie, sur une seule ligne.                                                    |
-| **Subject**     | La ligne d'objet.                                                                                        |
-| **Body**        | Le texte brut de l'e-mail.                                                                               |
+| **Objet**     | La ligne d'objet.                                                                                        |
+| **Corps**        | Le texte brut de l'e-mail.                                                                               |
 | **HTML Body**   | Le HTML de l'e-mail, s'il en a. Body et HTML Body sont chacun coupés à 1 MB.                             |
 | **Headers**     | Chaque en-tête de l'e-mail, par son nom en minuscules, comme `message-id`.                               |
-| **Attachments** | Le nom, le type et la taille de chaque fichier joint. Les fichiers eux-mêmes ne sont pas conservés.      |
+| **Pièces jointes** | Le nom, le type et la taille de chaque fichier joint. Les fichiers eux-mêmes ne sont pas conservés.      |
 | **Received At** | Le moment où OneUptime a reçu l'e-mail.                                                                  |
 
 Une fois qu'un e-mail est arrivé, le sélecteur de valeurs de chaque bloc qui suit le déclencheur sait ce qu'il contenait : il liste chaque en-tête et chaque pièce jointe de l'e-mail, avec son contenu, pour que vous puissiez choisir `headers.message-id` au lieu de taper un chemin. D'ici là, il indique qu'aucun e-mail n'a encore atteint l'adresse. Voir [Utiliser des valeurs des blocs précédents](/docs/workflows/authoring#utiliser-des-valeurs-des-blocs-précédents).
@@ -148,7 +148,7 @@ La partie de l'adresse avant le `@` contient la clé secrète du workflow, et qu
 Si l'adresse fuite, cliquez sur **Réinitialiser l'adresse** au même endroit : le workflow reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment ; donnez donc la nouvelle à tout ce qui écrit au workflow. Seules les personnes qui peuvent modifier le workflow peuvent voir ou réinitialiser son adresse — voir [Sécurité des e-mails entrants](/docs/workflows/configuration#sécurité-des-e-mails-entrants).
 
 > [!WARNING]
-> N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **From** ne prouve donc pas qui l'a envoyé. Vérifiez une information que seul le véritable expéditeur connaît avant qu'une étape fasse quoi que ce soit d'important.
+> N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **De** ne prouve donc pas qui l'a envoyé. Vérifiez une information que seul le véritable expéditeur connaît avant qu'une étape fasse quoi que ce soit d'important.
 
 > [!NOTE]
 > Sur une installation auto-hébergée, OneUptime reçoit les e-mails via un fournisseur d'e-mails entrants que votre administrateur configure — voir [E-mails entrants SendGrid](/docs/self-hosted/sendgrid-inbound-email). D'ici là, le déclencheur n'a pas d'adresse, et ses paramètres l'indiquent.
@@ -187,7 +187,7 @@ flowchart TB
 
 **On Create**, **On Update** et **On Create or Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Fields to pass on** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide. Il en va de même d'un champ où l'enregistrement n'a rien, comme le moniteur d'une alerte qu'aucun moniteur n'a déclenchée.
 
-**On Create or Update** transmet aussi **What Happened** : `created` quand un nouvel enregistrement a lancé l'exécution, et `updated` quand c'est une modification, comme dans `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Pour traiter les deux différemment, comparez-le dans un bloc **If / Else**, ou prenez un chemin pour chacun avec **Switch / Case**.
+**On Create or Update** transmet aussi **Ce qui s'est passé** : `created` quand un nouvel enregistrement a lancé l'exécution, et `updated` quand c'est une modification, comme dans `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Pour traiter les deux différemment, comparez-le dans un bloc **If / Else**, ou prenez un chemin pour chacun avec **Switch / Case**.
 
 Une sauvegarde le déclenche une fois. Ce que OneUptime remplit pendant qu'il crée un enregistrement fait partie de la création : un nouvel enregistrement le déclenche donc une fois, comme `created`. Les modifications que OneUptime fait ensuite, comme lier le canal Slack d'un incident, sont des mises à jour comme les autres : pour les écarter, ajoutez à **Fields to watch** seulement les champs qui vous importent.
 

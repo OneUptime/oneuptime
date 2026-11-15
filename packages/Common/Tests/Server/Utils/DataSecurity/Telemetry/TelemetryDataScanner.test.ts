@@ -952,3 +952,194 @@ describe("reading keys and values", () => {
     expect(isExcludedLocation("attributes.user.email", [])).toBe(false);
   });
 });
+
+/*
+ * A STORE WHOSE SCAN CONTENT SWITCH IS OFF IS NEVER READ (OneUptime issue
+ * #8323). The switch did nothing for a service's telemetry: its logs were
+ * sampled every hour and their findings kept masked samples all the same.
+ * Now the scan is told which owners' stores of each kind are off
+ * (DataSecurityTelemetryScanRule), and leaves them out of every read of
+ * that kind: by a bound NOT IN in the owners' read, so they take no place
+ * among the owners read, and never in a sample read.
+ */
+describe("a store whose Scan Content switch is off", () => {
+  async function scanWithout(
+    ownersNotScanned: Map<DataStoreKind, Set<string>>,
+  ): Promise<Array<TelemetryStoreScan>> {
+    return await scanProjectTelemetry({
+      projectId: PROJECT_ID,
+      sampleSize: 100,
+      since: new Date(Date.now() - 60 * 60 * 1000),
+      options: options(),
+      ownersNotScanned,
+    });
+  }
+
+  function storesOf(
+    scans: Array<TelemetryStoreScan>,
+    ownerId: string,
+  ): Array<DataStoreKind> {
+    return scans
+      .filter((item: TelemetryStoreScan): boolean => {
+        return item.serviceId === ownerId;
+      })
+      .map((item: TelemetryStoreScan): DataStoreKind => {
+        return item.kind;
+      })
+      .sort();
+  }
+
+  function sampledOwners(source: TelemetrySampleSource): Array<string> {
+    return statementsOf(source, false).flatMap(
+      (statement: Statement): Array<string> => {
+        return parameterAfter(statement, OWNERS_IN) as Array<string>;
+      },
+    );
+  }
+
+  test("nothing switched off: every store is read, and no owner is left out of the logs' read", async () => {
+    const scans: Array<TelemetryStoreScan> = await scanWithout(new Map());
+
+    expect(storesOf(scans, CHECKOUT)).toEqual(
+      [
+        DataStoreKind.TelemetryLogs,
+        DataStoreKind.TelemetryTraces,
+        DataStoreKind.TelemetryExceptions,
+        DataStoreKind.TelemetryAiConversations,
+      ].sort(),
+    );
+
+    const [logsOwners] = statementsOf(TelemetrySampleSource.Logs, true);
+
+    expect(logsOwners!.query).not.toMatch(OWNERS_NOT_IN);
+  });
+
+  test("a service's logs store off: its logs are left out of the owners' read, never sampled, and have no result", async () => {
+    const scans: Array<TelemetryStoreScan> = await scanWithout(
+      new Map([[DataStoreKind.TelemetryLogs, new Set([CHECKOUT])]]),
+    );
+
+    const [logsOwners] = statementsOf(TelemetrySampleSource.Logs, true);
+
+    expect(parameterAfter(logsOwners!, OWNERS_NOT_IN)).toEqual([CHECKOUT]);
+    // The mock answers the owner anyway: it is still never sampled.
+    expect(statementsOf(TelemetrySampleSource.Logs, false)).toHaveLength(0);
+    expect(storesOf(scans, CHECKOUT)).not.toContain(
+      DataStoreKind.TelemetryLogs,
+    );
+    expect(JSON.stringify(scans)).not.toContain("jane.doe");
+  });
+
+  test("only that kind is left out: the service's other stores are read as before", async () => {
+    const scans: Array<TelemetryStoreScan> = await scanWithout(
+      new Map([[DataStoreKind.TelemetryLogs, new Set([CHECKOUT])]]),
+    );
+
+    expect(storesOf(scans, CHECKOUT)).toEqual(
+      [
+        DataStoreKind.TelemetryTraces,
+        DataStoreKind.TelemetryExceptions,
+        DataStoreKind.TelemetryAiConversations,
+      ].sort(),
+    );
+    expect(sampledOwners(TelemetrySampleSource.Traces)).toEqual([CHECKOUT]);
+    expect(sampledOwners(TelemetrySampleSource.Exceptions)).toEqual([CHECKOUT]);
+  });
+
+  test("an id in another case is left out all the same", async () => {
+    const scans: Array<TelemetryStoreScan> = await scanWithout(
+      new Map([
+        [DataStoreKind.TelemetryExceptions, new Set([CHECKOUT.toUpperCase()])],
+      ]),
+    );
+
+    const [owners] = statementsOf(TelemetrySampleSource.Exceptions, true);
+
+    expect(parameterAfter(owners!, OWNERS_NOT_IN)).toEqual([CHECKOUT]);
+    expect(statementsOf(TelemetrySampleSource.Exceptions, false)).toHaveLength(
+      0,
+    );
+    expect(storesOf(scans, CHECKOUT)).not.toContain(
+      DataStoreKind.TelemetryExceptions,
+    );
+  });
+
+  test("traces: the switched-off services and the restricted ones are left out together", async () => {
+    await scanWithout(
+      new Map([[DataStoreKind.TelemetryTraces, new Set([CHECKOUT])]]),
+    );
+
+    const [tracesOwners] = statementsOf(TelemetrySampleSource.Traces, true);
+
+    expect(
+      (parameterAfter(tracesOwners!, OWNERS_NOT_IN) as Array<string>).sort(),
+    ).toEqual([AI_TOOL, CHECKOUT].sort());
+    expect(statementsOf(TelemetrySampleSource.Traces, false)).toHaveLength(0);
+  });
+
+  test("a company AI tool whose conversations store is off is not even listed as not read", async () => {
+    const scans: Array<TelemetryStoreScan> = await scanWithout(
+      new Map([[DataStoreKind.TelemetryAiConversations, new Set([AI_TOOL])]]),
+    );
+
+    const [conversationOwners] = statementsOf(
+      TelemetrySampleSource.AiConversations,
+      true,
+    );
+
+    expect(parameterAfter(conversationOwners!, OWNERS_NOT_IN)).toEqual([
+      AI_TOOL,
+    ]);
+    expect(storesOf(scans, AI_TOOL)).toEqual([]);
+    // The other service's conversations are still read.
+    expect(sampledOwners(TelemetrySampleSource.AiConversations)).toEqual([
+      CHECKOUT,
+    ]);
+  });
+
+  test("a RUM application's session replays store off: none of its logs, spans or sessions are read", async () => {
+    const scans: Array<TelemetryStoreScan> = await scanWithout(
+      new Map([[DataStoreKind.TelemetrySessionReplays, new Set([WEB_APP])]]),
+    );
+
+    for (const source of [
+      TelemetrySampleSource.RumLogs,
+      TelemetrySampleSource.RumSpans,
+      TelemetrySampleSource.RumSessions,
+    ]) {
+      for (const owners of statementsOf(source, true)) {
+        expect(parameterAfter(owners, OWNERS_NOT_IN)).toEqual([WEB_APP]);
+      }
+
+      expect(statementsOf(source, false)).toHaveLength(0);
+    }
+
+    expect(storesOf(scans, WEB_APP)).toEqual([]);
+    expect(JSON.stringify(scans)).not.toContain("kai.wu");
+  });
+
+  test("every store of a service off: nothing of it is read at all", async () => {
+    const off: Map<DataStoreKind, Set<string>> = new Map();
+
+    for (const kind of [
+      DataStoreKind.TelemetryLogs,
+      DataStoreKind.TelemetryTraces,
+      DataStoreKind.TelemetryExceptions,
+      DataStoreKind.TelemetryAiConversations,
+    ]) {
+      off.set(kind, new Set([CHECKOUT]));
+    }
+
+    const scans: Array<TelemetryStoreScan> = await scanWithout(off);
+
+    expect(storesOf(scans, CHECKOUT)).toEqual([]);
+
+    for (const statement of statements) {
+      if (!isOwnersRead(statement)) {
+        expect(
+          JSON.stringify(parameterAfter(statement, OWNERS_IN)),
+        ).not.toContain(CHECKOUT);
+      }
+    }
+  });
+});

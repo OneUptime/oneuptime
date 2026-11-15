@@ -104,7 +104,7 @@ Dataverse には Jira のラベルのようなものがないため、サポー�
 
 OneUptime → Dynamics 365 のテンプレートは、**プライベートインシデント** が付いたインシデントや **プライベートアラート** が付いたアラートを Dynamics 365 に送りません。レコードも、その状態も、メモも、オンにしない限り送られません。[テンプレートの動作を変更する](#テンプレートの動作を変更する) を参照してください。
 
-**モニターは自動でアラートを発生させ、その数は多くなることがあります。** **Create a Dynamics 365 case when an alert is created** は、そのすべてにサポート案件を作成します。すべてのアラートにサポート案件が必要なわけではないなら、トリガーとワークフローの残りの部分の間に **If / Else** ブロックを置き (たとえば `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}` で判定)、その **Yes** 側だけを先に接続します。
+**モニターは自動でアラートを発生させ、その数は多くなることがあります。** **Create a Dynamics 365 case when an alert is created** は、そのすべてにサポート案件を作成します。すべてのアラートにサポート案件が必要なわけではないなら、トリガーとワークフローの残りの部分の間に **If / Else** ブロックを置き (たとえば `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}` で判定)、その **はい** 側だけを先に接続します。
 
 ### テンプレートが尋ねる内容
 
@@ -133,7 +133,7 @@ OneUptime → Dynamics 365 のテンプレートは、**プライベートイン
 4. **ワークフローを作成** をクリックします。ワークフローはすべてオフの状態で作成されます。**ビルダー** の上部で **有効** をオンにしてください。
 :::
 
-まず **Create a Dynamics 365 case when an incident is declared** (アラートの場合は **Create a Dynamics 365 case when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Dynamics 365 テンプレートは、このテンプレートが書き込むリンクでサポート案件を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行は **実行済み** で終わり、最後のステップ `create-case-1` の **Response Body** に、 `CAS-01001-X1Y2Z3` のような新しいサポート案件の `ticketnumber` が含まれるはずです。
+まず **Create a Dynamics 365 case when an incident is declared** (アラートの場合は **Create a Dynamics 365 case when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Dynamics 365 テンプレートは、このテンプレートが書き込むリンクでサポート案件を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行は **実行済み** で終わり、最後のステップ `create-case-1` の **レスポンスボディ** に、 `CAS-01001-X1Y2Z3` のような新しいサポート案件の `ticketnumber` が含まれるはずです。
 
 ### Dynamics 365 → OneUptime のテンプレートを接続する
 
@@ -184,7 +184,7 @@ Dynamics 365 → OneUptime のテンプレート (インシデント用 3 つ、
 各実行の **ステップ** にはテンプレートが何をしたかが示されるので、 **ログ → 実行履歴** で実行を開き、どう終わったかを見てください:
 
 - **実行済み**: 処理を完了しました。最後のステップにサポート案件、インシデント、またはアラートが示されます。
-- **実行済み** で、 **Check With JavaScript** ステップが **No** に進んだ: 意図的にイベントをスキップしました。そのステップに理由が示されます。サポート案件がこの種類のレコードにリンクされていない、メモが相手側から来た、レコードがプライベートである、新しい状態ではサポート案件がクローズされない、のいずれかです。
+- **実行済み** で、 **Check With JavaScript** ステップが **いいえ** に進んだ: 意図的にイベントをスキップしました。そのステップに理由が示されます。サポート案件がこの種類のレコードにリンクされていない、メモが相手側から来た、レコードがプライベートである、新しい状態ではサポート案件がクローズされない、のいずれかです。
 - **エラー**: ステップが失敗しました。 **ステップ** にあるその項目に理由が示されます。Dynamics 365 への呼び出しの場合は、Dynamics 365 の応答も含まれます。
 - `link-case-1` で **エラー**: サポート案件からレコードを作成するテンプレートがレコードを作成したものの、Dynamics 365 がリンクを受け付けなかったため、ほかのテンプレートがまだ見つけられません。サポート案件の列にリンクを手動で入力してください。
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### テンプレートの動作を変更する
 
-ワークフローの **ビルダー** を開き、変更したいブロックをクリックします。変更することが多い設定は、スクリプト冒頭の定数です。**Check With JavaScript** ブロックの **JavaScript Code** の、共有ヘルパーブロックのすぐ下にあります。インシデント版とアラート版は、同じブロックに同じ定数を持っています。
+ワークフローの **ビルダー** を開き、変更したいブロックをクリックします。変更することが多い設定は、スクリプト冒頭の定数です。**Check With JavaScript** ブロックの **JavaScript コード** の、共有ヘルパーブロックのすぐ下にあります。インシデント版とアラート版は、同じブロックに同じ定数を持っています。
 
 | 定数 | テンプレートとブロック | 制御する内容 |
 | --- | --- | --- |
@@ -270,8 +270,8 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 :::steps
 1. `Incidents to Dynamics 365` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**On Create Incident** トリガーを追加します。その **Fields to pass on** は **タイトル** から始まります。**フィールドを追加** をクリックし、**説明** と **インシデント番号** を選びます。ID は常に引き渡されます。
-2. **コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **Success** の点をそのブロックに接続します。**識別子** を `create-case`、**URL** を `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` に設定します。
-3. **その他の項目** で、**Request Headers** を次のように設定します:
+2. **コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**識別子** を `create-case`、**URL** を `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` に設定します。
+3. **その他の項目** で、**リクエストヘッダー** を次のように設定します:
 
    ```json
    {
@@ -284,7 +284,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
    }
    ```
 
-4. **Request Body** に、サポート案件が属する取引先企業の GUID を使ってサポート案件を設定します:
+4. **リクエストボディ** に、サポート案件が属する取引先企業の GUID を使ってサポート案件を設定します:
 
    ```json
    {
@@ -324,8 +324,8 @@ Dynamics 365 の `severitycode` には選択肢が 1 つしかないため、代
 
 :::steps
 1. **On Update Incident** トリガーを持つ `Close Dynamics 365 cases` という名前のワークフローを作成します。**Fields to watch** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選びます。**Fields to pass on** で **フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。
-2. **If / Else** ブロックを追加します: **Value to check** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**Comparison** を **is true** にします。
-3. その **Yes** 側の後に、**識別子** が `find-case` で、`Prefer` を除いた同じヘッダーと次の **URL** を持つ **API Get (JSON)** ブロックを追加します:
+2. **If / Else** ブロックを追加します: **確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** にします。
+3. その **はい** 側の後に、**識別子** が `find-case` で、`Prefer` を除いた同じヘッダーと次の **URL** を持つ **API Get (JSON)** ブロックを追加します:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
@@ -362,8 +362,8 @@ URL は書かれたとおりに送信されるため、`$filter` のスペース
 
    セルフホストのインストールでは、URL に独自のホストが入ります。URL はパスワードと同じように扱ってください。URL を持つ人は誰でもワークフローを開始できます。漏れた場合は、同じ場所で **URL をリセット** をクリックすると、古い URL はすぐに使えなくなります。
 
-3. ほかの何よりも先に共有シークレットを確認する **If / Else** ブロックを追加します: **Value to check** に `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`、**Comparison** に **is equal to**、**Compare with** にシークレットのグローバル変数に保存した自分で決めた値を設定します。
-4. その **Yes** 側の後に、**Update One Incident** ブロックを追加します。**Query** を `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` に、**Data (JSON Object)** を新しい `currentIncidentStateId` などの変更内容に設定します。クエリ `{"name": "Resolved"}` を持つ **Find One Incident State** ブロックで、その ID を `{{local.components.incident-state-find-one-1.returnValues.model._id}}` として得られます。
+3. ほかの何よりも先に共有シークレットを確認する **If / Else** ブロックを追加します: **確認する値** に `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`、**比較** に **と等しい**、**比較対象** にシークレットのグローバル変数に保存した自分で決めた値を設定します。
+4. その **はい** 側の後に、**Update One Incident** ブロックを追加します。**クエリ** を `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` に、**Data (JSON Object)** を新しい `currentIncidentStateId` などの変更内容に設定します。クエリ `{"name": "Resolved"}` を持つ **Find One Incident State** ブロックで、その ID を `{{local.components.incident-state-find-one-1.returnValues.model._id}}` として得られます。
 
 オンにしてから、Dynamics 365 から呼び出されるようにします:
 
@@ -395,7 +395,7 @@ Dataverse が呼び出すのはポート 80 と 443 だけで、応答を 60 秒
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-ワークフローのトリガーはちょうど 1 つなので、インシデントとアラートにはそれぞれ別のワークフローが必要です。両方に同じ Dynamics 365 の処理を行うには、**Manual** トリガーを持つワークフローで一度だけ構築し、両方から **Execute Workflow** ブロックで開始します。
+ワークフローのトリガーはちょうど 1 つなので、インシデントとアラートにはそれぞれ別のワークフローが必要です。両方に同じ Dynamics 365 の処理を行うには、**手動** トリガーを持つワークフローで一度だけ構築し、両方から **Execute Workflow** ブロックで開始します。
 
 ## トラブルシューティング
 

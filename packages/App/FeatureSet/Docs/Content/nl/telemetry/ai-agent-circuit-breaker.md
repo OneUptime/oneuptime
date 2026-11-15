@@ -129,22 +129,22 @@ Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Creat
 
 ### Controleer de titel
 
-Klik op **Component toevoegen**, kies **If / Else** en verbind het punt **Success** van de trigger ermee. Zet **Te controleren waarde** op de titel van de waarschuwing (klik op **{ }** en kies hem), **Vergelijking** op **bevat** en **Vergelijken met** op het begin dat de titels van je struikeldraden delen, zoals `LLM budget exceeded`.
+Klik op **Component toevoegen**, kies **If / Else** en verbind het punt **Succes** van de trigger ermee. Zet **Te controleren waarde** op de titel van de waarschuwing (klik op **{ }** en kies hem), **Vergelijking** op **bevat** en **Vergelijken met** op het begin dat de titels van je struikeldraden delen, zoals `LLM budget exceeded`.
 
 ### Roep je endpoint aan
 
-Voeg **API Post (JSON)** toe en verbind het punt **Yes** van de **If / Else** ermee. Zet de **URL** op je endpoint, zoals `https://agents.example.com/circuit-breaker`, en vul de headers en de body hieronder in.
+Voeg **API Post (JSON)** toe en verbind het punt **Ja** van de **If / Else** ermee. Zet de **URL** op je endpoint, zoals `https://agents.example.com/circuit-breaker`, en vul de headers en de body hieronder in.
 
 ### Meld een mislukking
 
-Voeg **Send Message to Slack** of **Send Email** toe en verbind het punt **Error** van het API-blok ermee. Een circuit breaker die niet afgaat, is precies de waarschuwing die een mens moet zien.
+Voeg **Send Message to Slack** of **Send Email** toe en verbind het punt **Fout** van het API-blok ermee. Een circuit breaker die niet afgaat, is precies de waarschuwing die een mens moet zien.
 
 ### Zet hem aan
 
 Zet **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
-De **Request Headers** van het API-blok:
+De **Aanvraagheaders** van het API-blok:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ De **Request Headers** van het API-blok:
 }
 ```
 
-Zijn **Request Body**:
+Zijn **Verzoeklichaam**:
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ Zijn **Request Body**:
 }
 ```
 
-Om op meerdere struikeldraden te reageren, laat je al hun titels hetzelfde beginnen, of koppel je meer **If / Else**-blokken aan het punt **No**. Zie [Een workflow bouwen](/docs/workflows/authoring) voor het canvas en [Variabelen](/docs/workflows/variables) voor de `{{…}}`-verwijzingen.
+Om op meerdere struikeldraden te reageren, laat je al hun titels hetzelfde beginnen, of koppel je meer **If / Else**-blokken aan het punt **Nee**. Zie [Een workflow bouwen](/docs/workflows/authoring) voor het canvas en [Variabelen](/docs/workflows/variables) voor de `{{…}}`-verwijzingen.
 
 ## Test de circuit breaker
 

@@ -107,8 +107,8 @@ De Incoming Email-trigger geeft de workflow een eigen adres, en iedereen die het
 
 - Publiceer het niet en zet het niet in een openbare repository. De trigger verbergt de sleutel totdat je op **Tonen** klikt, en **Adres kopiëren** kopieert het adres zonder het te tonen.
 - Lekt het adres uit, klik dan op de Incoming Email-trigger in de **Bouwer** en daarna op **Adres opnieuw instellen**. De workflow krijgt een nieuw adres, en e-mail naar het oude wordt vanaf dan genegeerd.
-- Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **From** bewijst niet wie hem stuurde. Controleer met een **If / Else**-blok iets wat alleen de echte afzender weet — een token in het onderwerp of in een header — voordat een workflow iets belangrijks doet. Sla het verwachte token op als geheime variabele.
-- De sleutel wordt afgeschermd in alles wat de uitvoering ontvangt — **To**, **CC**, de headers en de bodies —, omdat het logboek van de uitvoering zichtbaar is voor iedereen die de uitvoeringen van de workflow kan lezen.
+- Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **Van** bewijst niet wie hem stuurde. Controleer met een **If / Else**-blok iets wat alleen de echte afzender weet — een token in het onderwerp of in een header — voordat een workflow iets belangrijks doet. Sla het verwachte token op als geheime variabele.
+- De sleutel wordt afgeschermd in alles wat de uitvoering ontvangt — **Aan**, **CC**, de headers en de bodies —, omdat het logboek van de uitvoering zichtbaar is voor iedereen die de uitvoeringen van de workflow kan lezen.
 
 Alleen mensen die de workflow mogen bewerken — **Projecteigenaar**, **Projectbeheerder**, **Workflowbeheerder** of **Edit Workflow** — kunnen het adres zien of opnieuw instellen. Alle anderen zien een notitie die zegt wie ze kunnen vragen.
 
@@ -139,7 +139,7 @@ Wat de provider ontvangt, en wat het model ermee kan:
 
 Wat er wordt gelogd:
 
-- Het logboek van de uitvoering schermt de **System Instructions**, de **Prompt**, de **Context** en de **Response** van het blok af. Latere blokken kunnen ze tijdens de uitvoering wel gebruiken, en een blok waarin je er een invoegt, logt het volgens zijn eigen regels, dus wie er een invoegt, kiest ervoor het daar te tonen.
+- Het logboek van de uitvoering schermt de **System Instructions**, de **Prompt**, de **Context** en de **Antwoord** van het blok af. Latere blokken kunnen ze tijdens de uitvoering wel gebruiken, en een blok waarin je er een invoegt, logt het volgens zijn eigen regels, dus wie er een invoegt, kiest ervoor het daar te tonen.
 - De provider, het model, het aantal tokens, de **LLM Log ID** en een veilige foutmelding blijven zichtbaar, voor beheer en facturering. De ruwe fout van een provider blijft uit elk logboek, omdat een provider daarin het verzoek kan herhalen.
 - Elke aanroep staat onder **Projectinstellingen → AI → AI-logboeken** met provider, model, status, tokens, kosten en facturering, zonder de prompt, het antwoord of de ruwe fout.
 
@@ -147,17 +147,17 @@ Wat het blok nodig heeft, en wat het kost:
 
 - **AI inschakelen** moet aan staan, onder **Projectinstellingen → AI → AI-functies**. In OneUptime Cloud heeft het project bovendien het abonnement Growth of hoger en een betaald abonnement nodig. Zelf gehoste installaties zonder facturering hebben geen abonnementsdrempel.
 - Aanroepen via een betaalde globale provider gebruiken de AI-tegoeden van het project.
-- Elke aanroep telt mee voor de [eigen dagelijkse AI-limieten van het project](/docs/ai/ai-sre#de-eigen-daglimieten-van-het-project), als een projecteigenaar die instelt. Is een limiet bereikt, dan neemt het blok **Error** zonder het model te benaderen, tot middernacht UTC.
+- Elke aanroep telt mee voor de [eigen dagelijkse AI-limieten van het project](/docs/ai/ai-sre#de-eigen-daglimieten-van-het-project), als een projecteigenaar die instelt. Is een limiet bereikt, dan neemt het blok **Fout** zonder het model te benaderen, tot middernacht UTC.
 
 | Limiet                                                       | Waarde                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | **System Instructions**, **Prompt** en **Context** samen     | 50.000 tekens                                                             |
-| **Temperature**                                              | Van `0` tot `1`                                                           |
+| **Temperatuur**                                              | Van `0` tot `1`                                                           |
 | **Maximum Output Tokens**                                    | Van `1` tot `4096`, standaard `1024`                                      |
 | Eén verzoek                                                  | Eén poging, hooguit 60 seconden                                           |
-| Gelijktijdige aanroepen                                      | 3 per project. Meer nemen **Error**, en een latere uitvoering kan het opnieuw proberen. |
+| Gelijktijdige aanroepen                                      | 3 per project. Meer nemen **Fout**, en een latere uitvoering kan het opnieuw proberen. |
 
-Fouten in validatie, configuratie, toegang, limieten, tegoed, gelijktijdigheid, provider en time-out nemen allemaal het pad **Error**, met de reden in **Error**. Sluit dat pad aan voordat de workflow live gaat.
+Fouten in validatie, configuratie, toegang, limieten, tegoed, gelijktijdigheid, provider en time-out nemen allemaal het pad **Fout**, met de reden in **Fout**. Sluit dat pad aan voordat de workflow live gaat.
 
 > [!WARNING]
 > Elke waarde waarnaar je verwijst, zijn gegevens die je naar de provider stuurt. Zet geen geheime variabele in de prompt of de context, tenzij de provider is goedgekeurd om haar te ontvangen. Een zelf gehoste lokale provider zoals Ollama houdt verzoeken binnen je eigen infrastructuur; een gehoste provider ontvangt ze onder zijn eigen voorwaarden voor gegevensverwerking.
@@ -196,11 +196,11 @@ De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Crea
   - een feedvermelding bewerken of verwijderen (de feeds van incidenten, waarschuwingen, episodes, monitoren, bereikbaarheidsbeleid en gepland onderhoud);
   - een meldingslogboek schrijven (de logboeken van sms, oproepen, e-mail, WhatsApp, Telegram, pushmeldingen, webhooks en werkruimteberichten);
   - waarden die OneUptime zelf instelt als er dingen gebeuren: of de CNAME van een eigen domein is geverifieerd, de beschermingsschakelaars van een team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), welke incidentrol de primaire is en of die kan worden verwijderd, of een eigenaar of lid is gewaarschuwd, tijden en aantallen van herinneringen, wie nu en hierna dienst heeft in een rooster, de voortgang van een bereikbaarheidsuitvoering, de huidige burn rate en het error budget van een SLO, een monitor die is gepauzeerd door een incident of een onderhoudsgebeurtenis, het wachtwoordresettoken en de laatste aanmelding van een privégebruiker van een statuspagina, de gegevens die een dienst over zichzelf meldt (versie, runtime, cloud), en de laatste uitvoering van een detectieregel of een dreigingsfeed;
-  - een incident melden vanuit een sjabloon door `createdIncidentTemplateId` naar **Create One Incident** te sturen — kies in plaats daarvan het sjabloon onder de instelling **Incident Template** van de stap: de stap meldt het incident dan vanuit dat sjabloon, als Project Admin, en legt het sjabloon vast;
+  - een incident melden vanuit een sjabloon door `createdIncidentTemplateId` naar **Create One Incident** te sturen — kies in plaats daarvan het sjabloon onder de instelling **Incidentsjabloon** van de stap: de stap meldt het incident dan vanuit dat sjabloon, als Project Admin, en legt het sjabloon vast;
   - wijzigen bij welk record een record hoort nadat het is aangemaakt, zoals de monitor waarvoor een eigenaarsrij geldt of het incident waarbij een notitie staat.
 - **Als niemand.** Een record dat een workflow aanmaakt, noemt geen maker, en het auditlogboek noemt de workflow, met zijn naam van dat moment, als degene die de wijziging deed.
 
-Weigert een controle een stap, dan neemt de stap zijn uitgang **Error** zonder de geweigerde wijziging te doen, en het logboek van de uitvoering noemt de stap en de reden in gewone woorden, bijvoorbeeld *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lees het onder de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het eerste dat wordt geweigerd: de records die daarvoor zijn aangemaakt, blijven bestaan.
+Weigert een controle een stap, dan neemt de stap zijn uitgang **Fout** zonder de geweigerde wijziging te doen, en het logboek van de uitvoering noemt de stap en de reden in gewone woorden, bijvoorbeeld *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lees het onder de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het eerste dat wordt geweigerd: de records die daarvoor zijn aangemaakt, blijven bestaan.
 
 Stappen die met andere systemen praten — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code en Generate Text with AI — lezen of wijzigen geen OneUptime-records, dus hier verandert voor hen niets.
 
@@ -228,7 +228,7 @@ De uitvoerder controleert de deadline vóór en na elk blok en markeert een uitv
 
 ## Limiet op het aanroepen van andere workflows
 
-Met het component **Execute Workflow** kan de ene workflow een andere starten. Om lussen te voorkomen waarin workflow A B start, die A weer start, wordt een keten van workflows die elkaar starten geweigerd als die zou terugkeren naar een workflow die er al in zit, of dieper zou gaan dan 10 workflows. Het **Execute Workflow**-blok neemt dan zijn uitgang **Error**, en de fout toont de keten.
+Met het component **Execute Workflow** kan de ene workflow een andere starten. Om lussen te voorkomen waarin workflow A B start, die A weer start, wordt een keten van workflows die elkaar starten geweigerd als die zou terugkeren naar een workflow die er al in zit, of dieper zou gaan dan 10 workflows. Het **Execute Workflow**-blok neemt dan zijn uitgang **Fout**, en de fout toont de keten.
 
 Heb je echt een lange keten nodig (zoals een taak die per uitvoering één item verwerkt), dan is het meestal eenvoudiger om binnen één workflow een lus te maken met **Run Custom JavaScript**.
 
