@@ -334,8 +334,13 @@ describe("the pure view-model", () => {
     expect(
       importsOf(readRaw(DASHBOARD_SRC, "Utils", "Milliseconds.ts")),
     ).toEqual(["Common/Utils/Milliseconds", "Common/Utils/Milliseconds"]);
+    // NoBreakSpaces keeps a figure and its unit on one line (formatDurationInUnit).
     expect(importsOf(readRaw(COMMON_ROOT, "Utils", "Milliseconds.ts"))).toEqual(
-      ["../Types/DateLanguage", "../Types/Translator"],
+      [
+        "../Types/DateLanguage",
+        "../Types/NoBreakSpaces",
+        "../Types/Translator",
+      ],
     );
   });
 
