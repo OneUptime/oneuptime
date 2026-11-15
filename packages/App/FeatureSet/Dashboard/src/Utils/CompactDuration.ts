@@ -1,4 +1,4 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import { formatDurationUnit } from "Common/Types/DateLanguage";
 import { EventDurationPart } from "./EventDuration";
 import { formatDurationInMinutes } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 
@@ -7,8 +7,10 @@ import { formatDurationInMinutes } from "Common/Utils/SecurityCase/SecurityOverv
  * its two largest units, as formatDurationInMinutes says it. English keeps
  * that text word for word ("51 min", "4 h 24 min", "3 d 5 h"); every other
  * language uses its own short unit names ("4 ч 24 мин", "4 Std. 24 Min.",
- * "4 時間 24 分"), which Intl knows and the locale files need not. An engine
- * without Intl's unit style, or no value at all, gets the English text.
+ * "4 時間 24 分"), which Intl knows and the locale files need not, each
+ * number held to its unit by a no-break space (formatDurationUnit, #8456)
+ * as the English holds its own. An engine without Intl's unit style, or no
+ * value at all, gets the English text.
  */
 
 // The two largest units of a duration in minutes, the way the English says.
@@ -60,26 +62,22 @@ export function formatCompactDurationInMinutes(
     return english;
   }
 
-  try {
-    const words: Array<string> = [];
+  const words: Array<string> = [];
 
-    for (const part of getCompactDurationParts(minutes)) {
-      const word: string = new Intl.NumberFormat(getNumberLocale(language), {
-        style: "unit",
-        unit: part.unit,
-        unitDisplay: "short",
-      } as Intl.NumberFormatOptions).format(part.count);
+  for (const part of getCompactDurationParts(minutes)) {
+    const word: string | null = formatDurationUnit({
+      part: part,
+      locale: language,
+      unitDisplay: "short",
+    });
 
-      // An engine without the unit style writes the bare number.
-      if (word === part.count.toLocaleString(getNumberLocale(language))) {
-        return english;
-      }
-
-      words.push(word);
+    // An engine without the unit style: the English, never a bare number.
+    if (word === null) {
+      return english;
     }
 
-    return words.join(" ");
-  } catch {
-    return english;
+    words.push(word);
   }
+
+  return words.join(" ");
 }

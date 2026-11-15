@@ -9,6 +9,9 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
+const {
+  dashboardLocalesPlugin,
+} = require("../../SuiteHelpers/FixtureLocalesBuild.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../../../..");
 /*
@@ -35,6 +38,8 @@ const config = createConfig({
     // The canvas the workflow builder, the service map and the topology draw on.
     reactflow: path.join(repository, "packages/Common/node_modules/reactflow"),
   },
+  // The locales as the Dashboard's own build ships them (#8366).
+  additionalPlugins: [dashboardLocalesPlugin()],
 });
 config.target = "es2022";
 config.loader[".js"] = "jsx";

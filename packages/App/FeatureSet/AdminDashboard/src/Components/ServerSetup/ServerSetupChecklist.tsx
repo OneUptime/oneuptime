@@ -32,7 +32,7 @@ import Link from "Common/UI/Components/Link/Link";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ServerSetupChecklistLoader from "Common/UI/Utils/ServerSetupChecklist";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translateText } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -306,7 +306,7 @@ export const getServerSetupRow: (data: {
       checked.push({
         template: SERVER_SETUP_CHECKED_WORDS.providerSaid,
         values: {
-          sentThrough: sentThrough || "The provider",
+          sentThrough: sentThrough || (translateText("The provider") as string),
           reason: reason,
         },
       });
@@ -319,7 +319,8 @@ export const getServerSetupRow: (data: {
         checked.push({
           template: SERVER_SETUP_CHECKED_WORDS.emailAccepted,
           values: {
-            sentThrough: check.sentThrough || "The mail server",
+            sentThrough:
+              check.sentThrough || (translateText("The mail server") as string),
             time: time,
           },
         });

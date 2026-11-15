@@ -54,9 +54,9 @@ Un contrôle se dispute la base de données avec votre application, et sur un en
 
 ## Lignes en échec
 
-Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. **Conserver les Failing Rows** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Lignes en échec, Pourcentage de valeurs invalides, Pourcentage d'erreurs de format ou Nombre de lignes orphelines, et **Lignes en échec** sur le contrôle les affiche. Ce réglage reste désactivé tant que vous ne l'activez pas. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. Une colonne sensible qu'aucune analyse n'a trouvée et dont le nom ne la trahit pas est conservée telle quelle.
+Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. **Conserver les lignes en échec** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Lignes en échec, Pourcentage de valeurs invalides, Pourcentage d'erreurs de format ou Nombre de lignes orphelines, et **Lignes en échec** sur le contrôle les affiche. Ce réglage reste désactivé tant que vous ne l'activez pas. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. Une colonne sensible qu'aucune analyse n'a trouvée et dont le nom ne la trahit pas est conservée telle quelle.
 
-Les lignes sont stockées dans OneUptime : sur les serveurs de OneUptime avec OneUptime Cloud, et sur les vôtres avec une installation auto-hébergée. Toute personne autorisée à lire les contrôles du projet peut les voir. Un contrôle ne conserve que les lignes de sa dernière exécution, et désactiver **Conserver les Failing Rows** supprime ce que chaque contrôle avait conservé.
+Les lignes sont stockées dans OneUptime : sur les serveurs de OneUptime avec OneUptime Cloud, et sur les vôtres avec une installation auto-hébergée. Toute personne autorisée à lire les contrôles du projet peut les voir. Un contrôle ne conserve que les lignes de sa dernière exécution, et désactiver **Conserver les lignes en échec** supprime ce que chaque contrôle avait conservé.
 
 ## Des contrôles dans un fichier
 
