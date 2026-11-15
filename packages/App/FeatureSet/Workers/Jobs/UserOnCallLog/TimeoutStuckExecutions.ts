@@ -7,6 +7,10 @@ import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
+import {
+  getUserOnCallLogHandedOverMessage,
+  USER_LOG_TIMED_OUT_STATUS_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallRunStart";
 
 /*
  * How long a person's log may take to start, and how long after it was
@@ -15,12 +19,16 @@ import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 export const USER_LOG_START_TIMEOUT_IN_MINUTES: number = 5;
 export const USER_LOG_HAND_OVER_WITHIN_MINUTES: number = 60;
 
-// What a log handed over says while the person's-log worker sends it.
-export const USER_LOG_HANDED_OVER_STATUS_MESSAGE: string = `This page did not finish starting within ${USER_LOG_START_TIMEOUT_IN_MINUTES} minutes, so its notifications are sent from here.`;
+/*
+ * What a log handed over says while the person's-log worker sends it,
+ * and what one that started too long ago to be handed over ends with:
+ * written from OnCallRunStart, where the on-call logs read them back to
+ * word them in the reader's language (#8434).
+ */
+export const USER_LOG_HANDED_OVER_STATUS_MESSAGE: string =
+  getUserOnCallLogHandedOverMessage(USER_LOG_START_TIMEOUT_IN_MINUTES);
 
-// What a log that started too long ago to be handed over ends with.
-export const USER_LOG_TIMED_OUT_STATUS_MESSAGE: string =
-  "Rule execution timed out.";
+export { USER_LOG_TIMED_OUT_STATUS_MESSAGE };
 
 /*
  * A person's log moves from Scheduled to Started to Executing in seconds,
