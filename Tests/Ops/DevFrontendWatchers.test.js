@@ -21,7 +21,8 @@
  * bundles `npm run build-frontends` has just built, and the API starts as
  * before. The boot then peaked at 8.3 GiB, building the Dashboard before the
  * API started. The dev compose file passes the variable to the App, unset
- * meaning true, so `npm run dev` on a developer's machine is unchanged.
+ * meaning true, so `npm run dev` on a developer's machine is unchanged; every
+ * workflow step that brings the dev stack up sets it to false.
  */
 
 const fs = require("fs");
@@ -30,10 +31,20 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 
+const { stepCommandFromRoot } = require("./Utils/WorkflowStep");
+
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
+const WORKFLOWS = path.join(REPO_ROOT, ".github", "workflows");
 const DEV_SCRIPT = "packages/App/scripts/dev.sh";
 const DEV_COMPOSE = "Scripts/Dev/docker-compose.dev.yml";
 const VARIABLE = "ONEUPTIME_DEV_WATCH_FRONTENDS";
+
+// The workflow jobs that brought the dev stack up on 2026-11-15, so a
+// reading that finds none fails.
+const KNOWN_BRING_UPS = [
+  "crossplane-provider.yml crossplane-e2e",
+  "terraform-provider-e2e.yml terraform-e2e-tests",
+];
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
@@ -207,5 +218,117 @@ describe("the dev compose file", () => {
     expect(read("config.example.env")).not.toMatch(
       new RegExp(`^\\s*(export\\s+)?${VARIABLE}\\s*=`, "m"),
     );
+  });
+});
+
+/*
+ * A step brings the dev stack up when it runs `npm run dev` (not dev:api or
+ * the like), or Compose `up` on the dev compose file.
+ */
+function bringsUpTheDevStack(command) {
+  return (
+    /(^|[\s;&|(])npm run dev(?=$|[\s;&|)])/m.test(command) ||
+    /docker-compose\.dev\.yml[^\n]*\sup(?=$|\s)/m.test(command)
+  );
+}
+
+function devStackBringUps() {
+  return fs
+    .readdirSync(WORKFLOWS)
+    .filter((file) => {
+      return /\.ya?ml$/.test(file);
+    })
+    .sort()
+    .flatMap((file) => {
+      const workflow =
+        yaml.load(fs.readFileSync(path.join(WORKFLOWS, file), "utf8")) || {};
+      return Object.entries(workflow.jobs || {}).flatMap(([id, job]) => {
+        return (job.steps || [])
+          .filter((step) => {
+            return bringsUpTheDevStack(stepCommandFromRoot(step));
+          })
+          .map((step) => {
+            return { name: `${file} ${id}`, workflow, job, step };
+          });
+      });
+    });
+}
+
+// A variable's value in a step's environment: the step's own env wins over
+// its job's, and the job's over the workflow's.
+function stepEnvironmentValue(workflow, job, step, name) {
+  for (const env of [step.env, job.env, workflow.env]) {
+    if (env && name in env) {
+      return env[name];
+    }
+  }
+  return undefined;
+}
+
+describe("every workflow step that brings the dev stack up", () => {
+  const bringUps = devStackBringUps();
+
+  test("is found", () => {
+    expect(
+      bringUps.map(({ name }) => {
+        return name;
+      }),
+    ).toEqual(expect.arrayContaining(KNOWN_BRING_UPS));
+  });
+
+  test("the reading tells a bring-up from the dev compose file's other uses", () => {
+    expect(
+      bringsUpTheDevStack(
+        'npm run dev --services="app ingress" && npm run status-check',
+      ),
+    ).toBe(true);
+    expect(
+      bringsUpTheDevStack(
+        "docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml up -d app",
+      ),
+    ).toBe(true);
+    expect(bringsUpTheDevStack("npm run config-to-dev\nnpm run prerun")).toBe(
+      false,
+    );
+    expect(bringsUpTheDevStack("npm run dev:api")).toBe(false);
+    expect(
+      bringsUpTheDevStack(
+        'COMPOSE="docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml"\n$COMPOSE ps -a',
+      ),
+    ).toBe(false);
+  });
+
+  test.each(
+    bringUps.map(({ name, step }) => {
+      return [name, step.name || stepCommandFromRoot(step)];
+    }),
+  )(`%s, "%s", runs it with ${VARIABLE}=false`, (name, stepName) => {
+    const { workflow, job, step } = bringUps.find((entry) => {
+      return (
+        entry.name === name &&
+        (entry.step.name || stepCommandFromRoot(entry.step)) === stepName
+      );
+    });
+
+    expect(String(stepEnvironmentValue(workflow, job, step, VARIABLE))).toBe(
+      "false",
+    );
+  });
+
+  test("a step's own env wins over its job's, and the job's over the workflow's", () => {
+    const workflow = { env: { [VARIABLE]: "true" } };
+    const job = { env: { [VARIABLE]: "false" } };
+
+    expect(stepEnvironmentValue(workflow, job, {}, VARIABLE)).toBe("false");
+    expect(
+      stepEnvironmentValue(
+        workflow,
+        job,
+        { env: { [VARIABLE]: "true" } },
+        VARIABLE,
+      ),
+    ).toBe("true");
+    expect(stepEnvironmentValue(workflow, {}, {}, VARIABLE)).toBe("true");
+    expect(stepEnvironmentValue({}, {}, {}, VARIABLE)).toBeUndefined();
   });
 });
