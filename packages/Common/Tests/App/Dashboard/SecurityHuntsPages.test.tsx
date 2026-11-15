@@ -287,6 +287,7 @@ import PermissionGate, { ModelAction } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import { visibleText } from "../../Helpers/HtmlText";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const HUNT_ID: string = "3b000000-0000-4000-8000-000000000001";
@@ -674,7 +675,8 @@ describe("Security Events > Hunts", () => {
 
     expect(flat(drawCell("Schedule", notScheduled))).toBe("Not Scheduled");
     cleanup();
-    expect(flat(drawCell("Last Found", notScheduled))).toBe("-");
+    // The quiet dash, read out as "Not set" (d8279c590b1).
+    expect(flat(drawCell("Last Found", notScheduled))).toBe(QUIET_DASH_TEXT);
   });
 
   test("below lg, how often it runs and what it last found fold under the name", async () => {
