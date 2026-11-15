@@ -21,6 +21,7 @@ import LogRecordingRuleDefinition, {
 import LogRecordingRuleWindowUtil, {
   LogRecordingRuleWindow,
 } from "../../../Utils/Telemetry/LogRecordingRuleWindow";
+import { writeOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * The ClickHouse side of a log recording rule: one statement per rule per
@@ -249,9 +250,19 @@ export default class LogRecordingRuleQuery {
 
       const groupValues: Record<string, string> = {};
 
+      /*
+       * A group-by key is an attribute's name as the rule's author wrote
+       * it, so it is written as the series' own key: an assignment dropped
+       * one named "__proto__", and every series of a rule grouped by it
+       * alone came out as one.
+       */
       groupBy.forEach((key: string, index: number) => {
-        groupValues[key] = LogRecordingRuleQuery.readText(
-          row[LogRecordingRuleQuery.getGroupByAlias(index)],
+        writeOwnValue(
+          groupValues,
+          key,
+          LogRecordingRuleQuery.readText(
+            row[LogRecordingRuleQuery.getGroupByAlias(index)],
+          ),
         );
       });
 

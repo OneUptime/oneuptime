@@ -1,4 +1,6 @@
 import LinearRegExp, {
+  LinearRegExpMatch,
+  MAX_PATTERN_LENGTH,
   refusePatternTooLong,
 } from "../LinearRegExp/LinearRegExp";
 import {
@@ -10,21 +12,32 @@ import {
   PatternProblemReason,
 } from "../LinearRegExp/PatternProblem";
 import {
+  AstralAlphabet,
+  AstralPart,
+  AstralText,
+  astralPartOf,
   CodePointRanges,
   complementOf,
   caseFoldedLetter,
   foldCase,
   MAX_CODE_POINT,
   namedSet,
+  partUpToFFFF,
   needsWrittenCaseFold,
   perlClass,
   POSIX_CLASS_NAMES,
   posixClass,
   toCodePointRanges,
+  unionOf,
   writeCodePoint,
   writeSet,
-  WrittenSet,
 } from "./RE2CharacterClass";
+import {
+  unicodeClassAsMatchersWriteIt,
+  unicodeTableFolds,
+  unicodeTableMembers,
+  unicodeTableName,
+} from "./RE2UnicodeClass";
 
 /*
  * PromQL's regular expressions, read in JavaScript.
@@ -58,9 +71,17 @@ import {
  *  - A bracket is read into the set of code points RE2 reads it as
  *    (parseClass, parse.go) - a "]" first is a character, [:digit:] and
  *    [:^digit:] are POSIX classes, \d \s \w and their negations are RE2's
- *    (\s is [\t\n\f\r ], without JavaScript's \v and other spaces), a
- *    range's ends are single characters - and the set is written as a
- *    class (RE2CharacterClass.ts). So are \d \s \w outside one.
+ *    (\s is [\t\n\f\r ], without JavaScript's \v and other spaces), \pL and
+ *    \p{Greek} are Unicode classes (RE2UnicodeClass.ts), a range's ends are
+ *    single characters - and the set is written as a class
+ *    (RE2CharacterClass.ts). So are \d \s \w \pL outside one.
+ *  - A character beyond U+FFFF, such as an emoji, is one character, as in
+ *    RE2, which reads UTF-8: "." and [^a] read it whole, so ^.$ matches
+ *    "😀" and ^..$ does not. The text is read with each such character as
+ *    one code unit (AstralAlphabet, RE2CharacterClass.ts), and a lone
+ *    surrogate as U+FFFD, as Go reads a byte that is not UTF-8: so a
+ *    compiled pattern is asked through test and exec, which read the text
+ *    so (CompiledPromQLRegex), never through its regex alone.
  *  - (?i) joins the cases Go's case folding joins: JavaScript's i flag
  *    joins most of them, and the rest - the Kelvin sign with k, the long s
  *    with s, letters beyond U+FFFF - are written out.
@@ -80,19 +101,14 @@ import {
  *
  * Refused, as Prometheus refuses them, each said in a sentence that names
  * what is not read (PromQLPatternError): a POSIX class RE2 does not have
- * ([[:nosuch:]]; names are lowercase), \C, look-aheads and look-behinds, a
- * repeat over 1000, an escape RE2 does not have (\e, A), a group name
- * that is not letters, digits and _. A back-reference (\1, \k<name>) is
- * refused as the linear-time matcher refuses one.
+ * ([[:nosuch:]]; names are lowercase), a Unicode class Go has no table for
+ * (\p{Nosuch}; in a label matcher, one of the names only label_replace()
+ * reads, such as \p{Letter}), \C, look-aheads and look-behinds, a repeat
+ * over 1000, an escape RE2 does not have (\e, A), a group name that is not
+ * letters, digits and _. A back-reference (\1, \k<name>) is refused as the
+ * linear-time matcher refuses one.
  *
  * Where the reading still differs from Prometheus, decided:
- *  - \pL, \p{Greek} and other Unicode classes are refused: the linear-time
- *    matcher reads code units, not Unicode properties. Before, \pL was
- *    read as the letters "pL".
- *  - A character beyond U+FFFF, such as an emoji, is two characters to "."
- *    and to a negated class, where RE2 reads one: ^.$ does not match "😀"
- *    here. A bracket or escape that names such characters, [\x{1F600}-
- *    \x{1F64F}], matches each as one.
  *  - What label_replace()'s groups capture inside a repeat whose iteration
  *    can match nothing: (?:|x)+(\w*) on "xx" captures "xx" in Prometheus,
  *    whose automaton leaves the repeat for the empty alternative, and ""
@@ -106,12 +122,22 @@ import {
  *    refused. Its label matchers read the pattern on its own: they refuse
  *    a)|(b and read \Qa.b as "a.b". Read here as those matchers read it,
  *    in label_replace() too.
+ *  - A surrogate named by its code, \x{D83D}. No text holds one, so it
+ *    matches nothing here. Go matches it with U+FFFD in some places and
+ *    with nothing in others - with U+FFFD where the pattern's literal text
+ *    decides the match, which Go writes out as UTF-8 and so as U+FFFD, and
+ *    with nothing where its automaton compares code points: in Prometheus,
+ *    \x{D83D} matches the value U+FFFD, and .\x{D83D} does not match "a"
+ *    followed by U+FFFD.
  *
  * A matcher's pattern is written by a project's people, so it runs on the
  * linear-time matcher (Utils/LinearRegExp), as every such pattern does: in
  * time in line with the value it reads, as RE2 runs it. It is compiled once
  * and kept (PatternCache), by the pattern, so a query that asks it about
- * every series compiles it once.
+ * every series compiles it once. The pattern a person wrote is held to the
+ * matcher's MAX_PATTERN_LENGTH; the JavaScript written from it may be
+ * longer (MAX_WRITTEN_PATTERN_LENGTH), and may compile to more steps than
+ * the matcher's default (MAX_PATTERN_STEPS), so a long alternation runs.
  */
 
 /*
@@ -145,6 +171,32 @@ export const describePromQLPatternProblem: (error: unknown) => string | null = (
 
 // The most times RE2 repeats a part (repeat and repeatIsValid, parse.go).
 const MAX_REPEAT: number = 1000;
+
+/*
+ * How long the JavaScript written from a pattern may be (issue #8218). The
+ * pattern a person wrote is held to MAX_PATTERN_LENGTH before it is read, as
+ * every pattern is; written out for JavaScript it is longer - (?i) writes
+ * each s as [sſ], \pL is hundreds of ranges, ^ under (?m) a look-behind -
+ * and a pattern Prometheus reads is not refused for what JavaScript needs
+ * to say it. Ten times longer at most: the length bounds the work of
+ * compiling it, and the steps limit (DEFAULT_MAX_STEPS, Program.ts) still
+ * bounds the program it compiles to.
+ */
+export const MAX_WRITTEN_PATTERN_LENGTH: number = 10 * MAX_PATTERN_LENGTH;
+
+/*
+ * How many steps a pattern may compile to (issue #8464): about one a
+ * character and two a "|", so a pattern of MAX_PATTERN_LENGTH with no
+ * repeat in it compiles in this many - such as the alternation of hundreds
+ * of values a Grafana variable writes for "All", which Prometheus reads and
+ * the matcher's DEFAULT_MAX_STEPS (10,000) refused past about 9,000
+ * characters. A repeat's copies still count, so a pattern that compiles to
+ * more - many large counts - is still refused as too large to run.
+ */
+export const MAX_PATTERN_STEPS: number = 2 * MAX_PATTERN_LENGTH;
+
+// The code point a lone surrogate is read as: Go's utf8.RuneError.
+const REPLACEMENT_CHARACTER: number = 0xfffd;
 
 // ^ and $ with m, matching next to a "\n" only, as RE2's do.
 const LINE_START: string = "^(?<![\\r\\u2028\\u2029])";
@@ -204,10 +256,7 @@ const PROMETHEUS_FLAGS: RE2Flags = {
 interface LastAtom {
   start: number;
   end: number;
-  /*
-   * Whether JavaScript repeats it only inside a group: an assertion, two
-   * code units, or a repeat.
-   */
+  // Whether JavaScript repeats it only inside a group: an assertion, or a repeat.
   needsGroup: boolean;
   /*
    * The most times its innermost part is repeated, the counts of the
@@ -389,13 +438,67 @@ interface RepeatOperator {
 }
 
 /*
+ * A set that holds some characters beyond U+FFFF and leaves out others,
+ * where the translation writes it: written once the whole pattern is read,
+ * with the alphabet its sets make (AstralAlphabet).
+ */
+interface UnwrittenSet {
+  set: CodePointRanges;
+  // Whether it is matched as written under (?i) (caseExactClass).
+  caseExact: boolean;
+}
+
+/*
+ * A class read from its name - [:alpha:], \d, \pL - as its code points, and
+ * whether it is matched as written under (?i): a Unicode class Go does not
+ * fold, such as \p{LC} (unicodeTableFolds).
+ */
+interface NamedClass {
+  set: Array<number>;
+  caseExact: boolean;
+}
+
+/*
+ * A class matched as written, under (?i) too. Every other set under (?i)
+ * holds its letters' other cases already, as Go folds them, so JavaScript's
+ * i flag adds none; one Go does not fold would gain them from the flag:
+ * (?i)\p{LC} would match U+0345, which folds to the capital iota.
+ */
+const caseExactClass: (source: string) => string = (source: string): string => {
+  return `(?-i:${source})`;
+};
+
+// What a pattern is written as, for JavaScript's RegExp and the matcher.
+interface RE2TranslationResult {
+  // The pattern in JavaScript, to be read inside `(?s:` ... `)`.
+  source: string;
+  // Each capturing group's name, group 1 first; null for a group with none.
+  groupNames: Array<string | null>;
+  // How the text is read: a character beyond U+FFFF as one code unit.
+  alphabet: AstralAlphabet;
+}
+
+/*
  * A pattern read as RE2 reads it, written as JavaScript's RegExp reads it,
  * with the names of its groups.
  */
 class RE2Translation {
   private readonly pattern: string;
+  /*
+   * Whether a Unicode class may be named as label_replace() names one: in
+   * any case, by a long name (RE2UnicodeClass.ts).
+   */
+  private readonly unicodeClassAliases: boolean;
   private position: number = 0;
-  private readonly output: Array<string> = [];
+  private readonly output: Array<string | UnwrittenSet> = [];
+  // The sets written once the pattern is read, for its alphabet.
+  private readonly unwrittenSets: Array<CodePointRanges> = [];
+  /*
+   * How long the written pattern is so far, an unwritten set counted by its
+   * characters up to U+FFFF: a short pattern can stand for one longer than
+   * any that can run, refused as soon as it is.
+   */
+  private writtenLength: number = 0;
   // The groups open where the reading is, the whole pattern first.
   private readonly groups: Array<OpenGroup> = [openGroup(PROMETHEUS_FLAGS, 0)];
   // Each capturing group's name, group 1 first; null for a group with none.
@@ -414,21 +517,19 @@ class RE2Translation {
    */
   private posixClassEnd: number = -2;
 
-  public constructor(pattern: string) {
+  public constructor(pattern: string, unicodeClassAliases: boolean) {
     this.pattern = pattern;
+    this.unicodeClassAliases = unicodeClassAliases;
   }
 
   /*
-   * The pattern in JavaScript, to be read inside `(?s:` ... `)`, and the
-   * names of its groups. Throws a PromQLPatternError, or PatternProblemError
-   * for a back-reference, for what RE2 refuses, and a SyntaxError for what
-   * is no pattern at all: a group or bracket left open, a ")" that closes
-   * nothing, a "\" at the end.
+   * The pattern in JavaScript, the names of its groups, and how it reads a
+   * text. Throws a PromQLPatternError, or PatternProblemError for a
+   * back-reference or a pattern too large, for what RE2 refuses, and a
+   * SyntaxError for what is no pattern at all: a group or bracket left
+   * open, a ")" that closes nothing, a "\" at the end.
    */
-  public translate(): {
-    source: string;
-    groupNames: Array<string | null>;
-  } {
+  public translate(): RE2TranslationResult {
     while (this.position < this.pattern.length) {
       this.readNext();
     }
@@ -439,7 +540,53 @@ class RE2Translation {
 
     this.closeModifierGroups(this.group());
 
-    return { source: this.output.join(""), groupNames: this.groupNames };
+    const alphabet: AstralAlphabet = new AstralAlphabet(this.unwrittenSets);
+    const pieces: Array<string> = this.output.map(
+      (piece: string | UnwrittenSet): string => {
+        if (typeof piece === "string") {
+          return piece;
+        }
+
+        const written: string = writeSet(piece.set, alphabet);
+
+        return piece.caseExact ? caseExactClass(written) : written;
+      },
+    );
+    let length: number = 0;
+
+    for (const piece of pieces) {
+      length += piece.length;
+    }
+
+    RE2Translation.refuseWrittenTooLong(length);
+
+    return {
+      source: pieces.join(""),
+      groupNames: this.groupNames,
+      alphabet: alphabet,
+    };
+  }
+
+  // A pattern written out longer than MAX_WRITTEN_PATTERN_LENGTH cannot run.
+  private static refuseWrittenTooLong(length: number): void {
+    if (length > MAX_WRITTEN_PATTERN_LENGTH) {
+      throw new PatternProblemError(
+        PatternProblemReason.TooLarge,
+        `The pattern, written out for the matcher, is longer than ${MAX_WRITTEN_PATTERN_LENGTH} characters.`,
+      );
+    }
+  }
+
+  // Counts what is written, refusing a pattern as soon as it is too long.
+  private count(length: number): void {
+    this.writtenLength += length;
+    RE2Translation.refuseWrittenTooLong(this.writtenLength);
+  }
+
+  // Puts text in the output where it is, as a repeat does around an atom.
+  private insert(index: number, text: string): void {
+    this.output.splice(index, 0, text);
+    this.count(text.length);
   }
 
   private group(): OpenGroup {
@@ -456,23 +603,35 @@ class RE2Translation {
     return new PromQLPatternError(this.pattern, problem);
   }
 
-  // Writes text the current alternative matches or asserts.
-  private write(text: string): void {
-    this.output.push(text);
+  // Writes what the current alternative matches or asserts.
+  private write(piece: string | UnwrittenSet): void {
+    this.push(piece);
     this.group().alternativeStarted = true;
     this.afterRepeat = false;
   }
 
+  // Puts a piece at the output's end, counted.
+  private push(piece: string | UnwrittenSet): void {
+    this.output.push(piece);
+
+    if (typeof piece === "string") {
+      this.count(piece.length);
+    } else {
+      // Counted by its characters up to U+FFFF: those beyond are a few more.
+      this.count(writeSet(partUpToFFFF(piece.set)).length);
+    }
+  }
+
   // Writes something a repeat after it repeats.
   private writeAtom(
-    text: string,
+    piece: string | UnwrittenSet,
     needsGroup: boolean,
     repeats: number = 1,
   ): void {
     const group: OpenGroup = this.group();
     const start: number = this.output.length;
 
-    this.write(text);
+    this.write(piece);
     this.endAtom(group);
     group.lastAtom = {
       start: start,
@@ -492,15 +651,31 @@ class RE2Translation {
     }
   }
 
-  private writeSet(set: CodePointRanges): void {
-    const written: WrittenSet = writeSet(set);
+  /*
+   * A set as one class of code units, matched as written under (?i) when
+   * it is caseExact (caseExactClass). One that holds some characters
+   * beyond U+FFFF and leaves out others is written once the whole pattern
+   * is read: its code units for them depend on every such set
+   * (AstralAlphabet).
+   */
+  private writeSet(set: CodePointRanges, caseExact: boolean = false): void {
+    const exact: boolean = caseExact && this.group().flags.ignoreCase;
 
-    this.writeAtom(written.source, written.needsGroup);
+    if (astralPartOf(set) !== AstralPart.Some) {
+      const written: string = writeSet(set);
+
+      this.writeAtom(exact ? caseExactClass(written) : written, false);
+      return;
+    }
+
+    this.unwrittenSets.push(set);
+    this.writeAtom({ set, caseExact: exact }, false);
   }
 
   /*
    * A code point matched as written, or under (?i) as Go folds it: the
-   * Kelvin sign and k alike.
+   * Kelvin sign and k alike. One beyond U+FFFF is a set of one, its other
+   * cases under (?i), read as one code unit (AstralAlphabet).
    */
   private writeLiteral(codePoint: number): void {
     if (this.group().flags.ignoreCase && needsWrittenCaseFold(codePoint)) {
@@ -508,14 +683,24 @@ class RE2Translation {
       return;
     }
 
-    const written: WrittenSet = writeCodePoint(codePoint);
+    if (codePoint > 0xffff) {
+      this.writeSet([codePoint, codePoint]);
+      return;
+    }
 
-    this.writeAtom(written.source, written.needsGroup);
+    this.writeAtom(writeCodePoint(codePoint), false);
   }
 
-  // The code point at `index`: a surrogate pair is one, as RE2 reads UTF-8.
+  /*
+   * The code point at `index`: a surrogate pair is one, as RE2 reads UTF-8,
+   * and a lone surrogate U+FFFD, as Go reads a byte that is not UTF-8.
+   */
   private codePointAt(index: number): number {
-    return this.pattern.codePointAt(index)!;
+    const codePoint: number = this.pattern.codePointAt(index)!;
+
+    return codePoint >= 0xd800 && codePoint <= 0xdfff
+      ? REPLACEMENT_CHARACTER
+      : codePoint;
   }
 
   private static lengthOf(codePoint: number): number {
@@ -622,8 +807,12 @@ class RE2Translation {
         this.readQuoted();
         return;
       case "p":
-      case "P":
-        throw this.unicodeClassRefusal();
+      case "P": {
+        const unicode: NamedClass = this.readUnicodeClass(flags.ignoreCase);
+
+        this.writeSet(unicode.set, unicode.caseExact);
+        return;
+      }
       default:
         break;
     }
@@ -666,19 +855,94 @@ class RE2Translation {
     this.afterRepeat = false;
   }
 
-  private unicodeClassRefusal(): PromQLPatternError {
-    const letter: string = this.pattern[this.position + 1]!;
-    const braced: boolean = this.pattern[this.position + 2] === "{";
-    const close: number = this.pattern.indexOf("}", this.position);
-    const written: string = braced
-      ? this.pattern.slice(
-          this.position,
-          close === -1 ? this.pattern.length : close + 1,
-        )
-      : this.pattern.slice(this.position, this.position + 3);
+  /*
+   * \pL, \p{Greek}, \p{^Greek} or \PL at the reading position, as its code
+   * points, moving past it (parseUnicodeClass, parse.go): a name of one
+   * character, or one in braces, "^" first to turn it inside out, as \P
+   * does. Under (?i), folded where Go folds the table (unicodeTableFolds),
+   * and matched as written where it does not; then turned inside out. A
+   * name Prometheus does not read is refused.
+   */
+  private readUnicodeClass(ignoreCase: boolean): NamedClass {
+    const start: number = this.position;
+    let negated: boolean = this.pattern[start + 1] === "P";
+    let name: string;
+    let end: number;
+
+    if (this.pattern[start + 2] === "{") {
+      const close: number = this.pattern.indexOf("}", start + 3);
+
+      if (close === -1) {
+        throw this.refuse(
+          `uses the Unicode class ${this.pattern.slice(start)} without the "}" that ends its name, ${PROMETHEUS_TOO}. Write a class as \\pL or \\p{Greek}.`,
+        );
+      }
+
+      name = this.pattern.slice(start + 3, close);
+      end = close + 1;
+    } else if (start + 2 < this.pattern.length) {
+      // A name of one character: \pLu is \pL and a "u".
+      const codePoint: number = this.codePointAt(start + 2);
+
+      name = String.fromCodePoint(codePoint);
+      end = start + 2 + RE2Translation.lengthOf(codePoint);
+    } else {
+      name = "";
+      end = start + 2;
+    }
+
+    const written: string = this.pattern.slice(start, end);
+
+    if (name.startsWith("^")) {
+      negated = !negated;
+      name = name.slice(1);
+    }
+
+    const table: string | undefined = unicodeTableName({
+      name,
+      readsAliases: this.unicodeClassAliases,
+    });
+
+    if (table === undefined) {
+      throw this.unicodeClassRefusal(written, name, negated);
+    }
+
+    this.position = end;
+
+    const folds: boolean = unicodeTableFolds(table);
+
+    return {
+      set: namedSet({
+        set: unicodeTableMembers(table),
+        negated,
+        ignoreCase: ignoreCase && folds,
+      }),
+      caseExact: ignoreCase && !folds,
+    };
+  }
+
+  /*
+   * A Unicode class whose name Go has no table for - or, in a label
+   * matcher, one only label_replace() reads, such as \p{Letter}, with the
+   * name a matcher reads it by.
+   */
+  private unicodeClassRefusal(
+    written: string,
+    name: string,
+    negated: boolean,
+  ): PromQLPatternError {
+    const asMatchersWriteIt: string | undefined = this.unicodeClassAliases
+      ? undefined
+      : unicodeClassAsMatchersWriteIt({ name, negated });
+
+    if (asMatchersWriteIt !== undefined) {
+      return this.refuse(
+        `uses the Unicode class ${written}, which Prometheus reads in label_replace() but not in a label matcher, where a class has the name Go's Unicode tables give it. Write ${asMatchersWriteIt} instead.`,
+      );
+    }
 
     return this.refuse(
-      `uses the Unicode class ${written.length > 2 ? written : `\\${letter}`}, which OneUptime cannot match yet, though Prometheus can. Write the characters it stands for in a bracket instead, such as [a-zA-Z].`,
+      `uses the Unicode class ${written}, ${PROMETHEUS_TOO}. A Unicode class names a general category, such as \\pL or \\p{Lu}, or a script, such as \\p{Greek} or \\p{Han}.`,
     );
   }
 
@@ -822,8 +1086,9 @@ class RE2Translation {
    * A bracket, read to its "]" as RE2 reads it (parseClass, parse.go): a
    * "]" first is a character; [:name:] and [:^name:] are POSIX classes,
    * a name RE2 does not have refused; \d \s \w and their negations are
-   * RE2's; a range's ends are single characters; and under (?i) each part
-   * holds its other cases. Then turned inside out after a "^".
+   * RE2's, and \pL and \p{Greek} its Unicode classes; a range's ends are
+   * single characters; and under (?i) each part holds its other cases.
+   * Then turned inside out after a "^".
    */
   private readBracket(): void {
     const ignoreCase: boolean = this.group().flags.ignoreCase;
@@ -836,6 +1101,14 @@ class RE2Translation {
       this.position++;
     }
 
+    // The named classes read so far, each added as it is read.
+    let classes: Array<number> = [];
+    /*
+     * Whether one of them is matched as written under (?i): then the whole
+     * bracket is, its other parts holding their other cases already.
+     */
+    let caseExact: boolean = false;
+    // The characters and ranges read so far.
     const pairs: Array<number> = [];
     let first: boolean = true;
 
@@ -853,10 +1126,11 @@ class RE2Translation {
 
       first = false;
 
-      const named: Array<number> | null = this.readNamedClass(ignoreCase);
+      const named: NamedClass | null = this.readNamedClass(ignoreCase);
 
       if (named !== null) {
-        pairs.push(...named);
+        classes = unionOf(classes, named.set);
+        caseExact = caseExact || named.caseExact;
         continue;
       }
 
@@ -883,9 +1157,9 @@ class RE2Translation {
       pairs.push(...(ignoreCase ? foldCase([low, high]) : [low, high]));
     }
 
-    const set: Array<number> = toCodePointRanges(pairs);
+    const set: Array<number> = unionOf(classes, toCodePointRanges(pairs));
 
-    this.writeSet(negated ? complementOf(set) : set);
+    this.writeSet(negated ? complementOf(set) : set, caseExact);
   }
 
   /*
@@ -917,7 +1191,7 @@ class RE2Translation {
    * in a bracket, as its code points, moving past it; null when there is
    * none.
    */
-  private readNamedClass(ignoreCase: boolean): Array<number> | null {
+  private readNamedClass(ignoreCase: boolean): NamedClass | null {
     const start: number = this.position;
 
     if (
@@ -947,7 +1221,10 @@ class RE2Translation {
         }
 
         this.position = end + 2;
-        return namedSet({ set, negated, ignoreCase });
+        return {
+          set: namedSet({ set, negated, ignoreCase }),
+          caseExact: false,
+        };
       }
     }
 
@@ -958,7 +1235,7 @@ class RE2Translation {
     const letter: string = this.pattern[start + 1] ?? "";
 
     if (letter === "p" || letter === "P") {
-      throw this.unicodeClassRefusal();
+      return this.readUnicodeClass(ignoreCase);
     }
 
     const perl: CodePointRanges | undefined = perlClass(letter.toLowerCase());
@@ -968,11 +1245,14 @@ class RE2Translation {
     }
 
     this.position = start + 2;
-    return namedSet({
-      set: perl,
-      negated: letter !== letter.toLowerCase(),
-      ignoreCase,
-    });
+    return {
+      set: namedSet({
+        set: perl,
+        negated: letter !== letter.toLowerCase(),
+        ignoreCase,
+      }),
+      caseExact: false,
+    };
   }
 
   // One character of a bracket (parseClassChar): itself, or an escape.
@@ -1120,10 +1400,10 @@ class RE2Translation {
       repeat.text + (lazy !== group.flags.ungreedy ? "?" : "");
 
     if (atom.needsGroup) {
-      this.output.splice(atom.end, 0, `)${operator}`);
-      this.output.splice(atom.start, 0, "(?:");
+      this.insert(atom.end, `)${operator}`);
+      this.insert(atom.start, "(?:");
     } else {
-      this.output.splice(atom.end, 0, operator);
+      this.insert(atom.end, operator);
     }
 
     group.lastAtom = {
@@ -1292,14 +1572,14 @@ class RE2Translation {
     }
 
     if (group.alternativeModifierGroupOpen) {
-      this.output.push(")");
+      this.push(")");
       group.alternativeModifierGroupOpen = false;
     }
 
     const opening: string = modifierGroup(group.restFlags, group.flags);
 
     if (opening.length > 0) {
-      this.output.push(opening);
+      this.push(opening);
       group.alternativeModifierGroupOpen = true;
     }
   }
@@ -1312,7 +1592,7 @@ class RE2Translation {
       return;
     }
 
-    this.output.push(opening);
+    this.push(opening);
     group.restModifierGroups++;
     group.restFlags = group.flags;
   }
@@ -1325,11 +1605,11 @@ class RE2Translation {
     const group: OpenGroup = this.group();
 
     if (group.alternativeModifierGroupOpen) {
-      this.output.push(")");
+      this.push(")");
       group.alternativeModifierGroupOpen = false;
     }
 
-    this.output.push("|");
+    this.push("|");
     this.position++;
     group.alternativeStarted = false;
     this.endAtom(group);
@@ -1352,7 +1632,7 @@ class RE2Translation {
 
     this.endAtom(closed);
     this.closeModifierGroups(closed);
-    this.output.push(")");
+    this.push(")");
     this.position++;
     this.afterRepeat = false;
     this.endAtom(parent);
@@ -1369,7 +1649,7 @@ class RE2Translation {
     const count: number =
       group.restModifierGroups + (group.alternativeModifierGroupOpen ? 1 : 0);
 
-    this.output.push(")".repeat(count));
+    this.push(")".repeat(count));
   }
 }
 
@@ -1379,17 +1659,116 @@ export interface PromQLRegexOptions {
    * them. Off, a match says only that the value matched.
    */
   captures?: boolean | undefined;
+  /*
+   * Whether a Unicode class may be named as Prometheus' label_replace()
+   * names one - in any case, by a category's long name (\p{greek},
+   * \p{Letter}), Assigned, ASCII - which Go's own regexp/syntax reads since
+   * Go 1.25. Off, as its label matchers read them: by the names Go's tables
+   * give them, as written (RE2UnicodeClass.ts).
+   */
+  unicodeClassAliases?: boolean | undefined;
 }
 
-export interface CompiledPromQLRegex {
-  regex: LinearRegExp;
+// A match of a pattern, read from the value itself.
+export interface PromQLRegexMatch {
+  // What the whole pattern matched: with Prometheus' anchors, the value.
+  value: string;
+  /*
+   * What each group captured, group 1 first; undefined for a group that
+   * took no part.
+   */
+  captures: Array<string | undefined>;
+}
+
+/*
+ * A pattern compiled as Prometheus anchors it, asked about a value with
+ * test and exec: they read the value as the regex does, each character
+ * beyond U+FFFF one code unit (AstralAlphabet).
+ */
+export class CompiledPromQLRegex {
+  /*
+   * The pattern in JavaScript, for the linear-time matcher. It reads a
+   * value as `textOf` writes it, so it is asked through test and exec; for
+   * a value with no character beyond U+FFFF, the two are the same.
+   */
+  public readonly regex: LinearRegExp;
   // The pattern as Prometheus anchors it, for engines that speak RE2.
-  anchoredPattern: string;
+  public readonly anchoredPattern: string;
   /*
    * Each group's name, group 1 first, null for a group with none: the
    * regex's groups have none, since RE2 takes names JavaScript does not.
    */
-  groupNames: ReadonlyArray<string | null>;
+  public readonly groupNames: ReadonlyArray<string | null>;
+  private readonly alphabet: AstralAlphabet;
+
+  public constructor(data: {
+    regex: LinearRegExp;
+    anchoredPattern: string;
+    groupNames: ReadonlyArray<string | null>;
+    alphabet: AstralAlphabet;
+  }) {
+    this.regex = data.regex;
+    this.anchoredPattern = data.anchoredPattern;
+    this.groupNames = data.groupNames;
+    this.alphabet = data.alphabet;
+  }
+
+  /*
+   * Whether the pattern matches the value, as Prometheus matches it: the
+   * whole value. Throws PatternWorkLimitError, as the matcher does, for a
+   * question that would take more work than the value's length allows.
+   */
+  public test(value: string): boolean {
+    return this.regex.test(this.textOf(value));
+  }
+
+  /*
+   * The match, and what each group captured, read from the value itself -
+   * a lone surrogate in it as U+FFFD, as Go holds it - or null when the
+   * pattern does not match. Groups are reported when the pattern was
+   * compiled with captures.
+   */
+  public exec(value: string): PromQLRegexMatch | null {
+    const read: AstralText = this.alphabet.read(value, true);
+    const match: LinearRegExpMatch | null = this.regex.exec(read.text);
+
+    if (match === null) {
+      return null;
+    }
+
+    const positions: ReadonlyArray<number> | null = read.positions;
+
+    if (positions === null) {
+      return { value: match.value, captures: match.captures };
+    }
+
+    // Where the text the regex read came from: the value's own characters.
+    const original: (start: number, end: number) => string = (
+      start: number,
+      end: number,
+    ): string => {
+      return read.wellFormed.slice(positions[start], positions[end]);
+    };
+
+    return {
+      value: original(match.index, match.end),
+      captures: match.captureIndices.map(
+        (indices: [number, number] | undefined): string | undefined => {
+          return indices === undefined
+            ? undefined
+            : original(indices[0], indices[1]);
+        },
+      ),
+    };
+  }
+
+  /*
+   * The value as the regex reads it: each character beyond U+FFFF as one
+   * code unit, a lone surrogate as U+FFFD; a value with neither as it is.
+   */
+  public textOf(value: string): string {
+    return this.alphabet.read(value, false).text;
+  }
 }
 
 /*
@@ -1410,16 +1789,21 @@ export const compilePromQLRegex: (
   // Refused before it is read: a query can carry megabytes.
   refusePatternTooLong(pattern);
 
-  const translation: { source: string; groupNames: Array<string | null> } =
-    new RE2Translation(pattern).translate();
+  const translation: RE2TranslationResult = new RE2Translation(
+    pattern,
+    options?.unicodeClassAliases === true,
+  ).translate();
 
-  return {
+  return new CompiledPromQLRegex({
     regex: getLinearRegExp(`^(?s:${translation.source})$`, "", {
       captures: options?.captures === true,
+      maxLength: MAX_WRITTEN_PATTERN_LENGTH,
+      maxSteps: MAX_PATTERN_STEPS,
     }),
     anchoredPattern: `^(?s:${pattern})$`,
     groupNames: translation.groupNames,
-  };
+    alphabet: translation.alphabet,
+  });
 };
 
 /*

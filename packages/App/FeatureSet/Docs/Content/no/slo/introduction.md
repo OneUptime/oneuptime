@@ -1,17 +1,18 @@
 # SLO-er – Oversikt
 
-Et service level objective (SLO) er et pålitelighetsmål for det du overvåker, som «tilgjengelig 99,9 % av tiden over rullerende 30 dager». OneUptime måler hvert SLO mot målet hvert 5. minutt, så i stedet for «virker det akkurat nå?» kan du svare på «har vi vært pålitelige nok, over et vindu som betyr noe for brukerne våre, og hvor mye rom for feil har vi igjen?». I [Ordliste](/docs/introduction/glossary#slo) står SLO-er side om side med de andre ordene OneUptime bruker.
+Et service level objective (SLO) er et pålitelighetsmål for det du drifter, som «tilgjengelig 99,9 % av tiden over rullerende 30 dager» eller «99,9 % av forespørslene til kassen lykkes». OneUptime måler hvert SLO mot målet hvert 5. minutt, så i stedet for «virker det akkurat nå?» kan du svare på «har vi vært pålitelige nok, over et vindu som betyr noe for brukerne våre, og hvor mye rom for feil har vi igjen?». I [Ordliste](/docs/introduction/glossary#slo) står SLO-er side om side med de andre ordene OneUptime bruker.
 
 :::cards
-- [Opprett et SLO](#opprett-et-slo): Et navn og et mål. Alt annet starter med en standardverdi.
+- [Opprett et SLO](#opprett-et-slo): Hva det måler, et navn og et mål. Alt annet starter med en standardverdi.
 - [Monitorer og monitorregler](/docs/slo/monitor-rules): Velg monitorene et SLO måler.
+- [SLO-er for forespørsler og latens](/docs/slo/request-slos): Mål forespørslene til tjenester ut fra sporene deres.
 - [Feilbudsjetter](/docs/slo/error-budget): Hvor mye nedetid et mål tillater, og hvordan budsjettet kommer tilbake.
 - [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts): Varsle teamet ditt når budsjettet brennes for fort.
 :::
 
 ## Slik fungerer det
 
-Et SLO leser statustidslinjene til monitorene som er knyttet til det: de samme dataene som statussidene dine viser. Ut fra dem beregner OneUptime hvor stor del av samsvarsvinduet som var god tid, hvor mye av feilbudsjettet som er igjen, og hvor fort det brukes opp. Tid der overvåkingen av en monitor er slått av, utelates: ingenting sjekker monitoren da, så den tiden verken bruker av feilbudsjettet eller teller som god tid.
+Et SLO måler én av to ting. Et SLO for monitoroppetid leser statustidslinjene til monitorene som er knyttet til det: de samme dataene som statussidene dine viser. Et forespørsels-SLO teller forespørslene som tjenestene i SLO-et besvarer, ut fra sporene deres: se [SLO-er for forespørsler og latens](/docs/slo/request-slos). Resten av denne siden beskriver SLO-er for monitoroppetid, og forespørsels-SLO-er fungerer på samme måte med mindre noe annet er sagt. Ut fra dem beregner OneUptime hvor stor del av samsvarsvinduet som var god tid, hvor mye av feilbudsjettet som er igjen, og hvor fort det brukes opp. Tid der overvåkingen av en monitor er slått av, utelates: ingenting sjekker monitoren da, så den tiden verken bruker av feilbudsjettet eller teller som god tid.
 
 ```mermaid title="Fra monitorsjekker til statusen til et SLO"
 flowchart TB
@@ -30,25 +31,29 @@ Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av On
 
 | Begrep | Betydning |
 | --- | --- |
-| **SLI** (service level indicator) | Målingen: prosentandelen av samsvarsvinduet der monitorene til SLO-et var tilgjengelige. |
+| **SLI** (service level indicator) | Målingen: prosentandelen av samsvarsvinduet der monitorene til SLO-et var tilgjengelige, eller av forespørslene til tjenestene som var gode. |
 | **SLO** (service level objective) | Et mål for SLI-en, for eksempel «minst 99,9 % de siste 30 dagene». |
-| **Feilbudsjett** | Nedetiden målet tillater: `(100% − target) × window`. Ved 99,9 % over 30 dager er det 43 minutter og 12 sekunder. |
+| **Feilbudsjett** | Nedetiden målet tillater: `(100% − target) × window`. Ved 99,9 % over 30 dager er det 43 minutter og 12 sekunder. For et forespørsels-SLO er det de dårlige forespørslene målet tillater: én av hver 1 000 ved 99,9 %. |
 | **Forbruksrate** | Hvor fort budsjettet brukes, sammenlignet med et jevnt tempo. Med en forbruksrate på 1 er budsjettet brukt opp akkurat når vinduet slutter. |
 
 Et feilbudsjett gjør pålitelighet til noe du kan bruke. Er det mye igjen, kan du lansere raskere og ta sjanser; er det lite igjen, bør du sette ned farten og investere i stabilitet. SLO-et gir den samtalen et tall alle kan se.
 
 ## Opprett et SLO
 
-Du trenger en rolle som kan opprette SLO-er: Project Owner, Project Admin eller en egendefinert rolle med tillatelsen Create Service Level Objective.
+Du trenger en rolle som kan opprette SLO-er: Prosjekteier, Prosjektadministrator eller en egendefinert rolle med tillatelsen Create Service Level Objective.
 
 :::steps
 ### Åpne SLO-er
 
 Åpne **SLOs** fra menyen **Produkter** i topplinjen. Den ligger i den første gruppen, ved siden av monitorer og hendelser. Klikk på **Opprett Service Level Objective**.
 
+### Velg hva SLO-et måler
+
+Under **Hva den måler** beholder du **Monitoroppetid** for å måle andelen av tiden monitorene er tilgjengelige. Velg **Vellykkede forespørsler** eller **Forespørselslatens** for heller å måle forespørslene til tjenester, og velg dem under **Tjenester**: se [SLO-er for forespørsler og latens](/docs/slo/request-slos). Klikk på **Neste**.
+
 ### Gi det et navn og et mål
 
-Skriv inn et **Navn**, for eksempel «API Availability», og et **Mål (%)**: andelen av tiden monitorene skal være tilgjengelige. Målet starter på `99.9`. Det må være større enn 0 og høyst 99,999, fordi et mål på 100 % ikke gir noe feilbudsjett å følge med på.
+Skriv inn et **Navn**, for eksempel «API Availability», og et **Mål (%)**: hvor stor andel av tiden, eller av forespørslene, som må være i orden. Målet starter på `99.9`. Det må være større enn 0 og høyst 99,999, fordi et mål på 100 % ikke gir noe feilbudsjett å følge med på.
 
 ### Sjekk standardverdiene under Flere felt
 
@@ -56,15 +61,15 @@ Skriv inn et **Navn**, for eksempel «API Availability», og et **Mål (%)**: an
 
 ### Lagre SLO-et
 
-Klikk på **Opprett Service Level Objective**. OneUptime åpner det nye SLO-et. **Oversikt** viser **Choose what this SLO measures**, fordi et nytt SLO ennå ikke har noen monitorer.
+Klikk på **Opprett Service Level Objective**. OneUptime åpner det nye SLO-et. **Oversikt** for et SLO for monitoroppetid viser **Choose what this SLO measures**, fordi det ennå ikke har noen monitorer.
 
 ### Knytt til monitorer
 
-Klikk på **Opprett en monitorregel** for å knytte til alle monitorer som samsvarer, nå og senere, eller på **Legg til monitorer** for å velge dem for hånd. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
+For et SLO for monitoroppetid klikker du på **Opprett en monitorregel** for å knytte til alle monitorer som samsvarer, nå og senere, eller på **Legg til monitorer** for å velge dem for hånd. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
 
 ### Se de første tallene komme inn
 
-OneUptime evaluerer aktiverte SLO-er hvert 5. minutt. SLI-en, feilbudsjettet og forbruksgrafen vises etter den første evalueringen som har monitorer å måle.
+OneUptime evaluerer aktiverte SLO-er hvert 5. minutt. SLI-en, feilbudsjettet og forbruksgrafen vises etter den første evalueringen som har monitorer å måle, eller forespørsler å telle.
 :::
 
 Feltene under **Flere felt**:
@@ -92,7 +97,8 @@ Alt som bestemmer hvordan SLO-et måler, starter med en standardverdi som du end
 
 | Del | Hva den bestemmer |
 | --- | --- |
-| Monitorer | Hvor SLI-en kommer fra. Knytt dem til for hånd eller med monitorregler: se [Monitorer og monitorregler](/docs/slo/monitor-rules). |
+| Hva det måler | **Monitoroppetid**, **Vellykkede forespørsler** eller **Forespørselslatens**. |
+| Monitorer eller tjenester | Hvor SLI-en kommer fra: monitorer, knyttet til for hånd eller med monitorregler (se [Monitorer og monitorregler](/docs/slo/monitor-rules)), eller tjenestene som et forespørsels-SLO teller forespørslene til. |
 | Mål | Andelen god tid SLO-et lover, større enn 0 og høyst 99,999. |
 | Samsvarsvindu | Perioden SLI-en og budsjettet måles over: et rullerende vindu på 1 til 366 dager, eller en kalendermåned. |
 | Risikoterskel | Andelen av gjenværende budsjett der SLO-et går over til **I faresonen**. |
@@ -133,7 +139,7 @@ OneUptime gir hvert evaluerte SLO en status:
 | **Feilfri** | Det er mer budsjett igjen enn risikoterskelen. |
 | **I faresonen** | Gjenværende budsjett har falt til risikoterskelen eller under: 20 % som standard. |
 | **Budsjett oppbrukt** | Budsjettet er brukt helt opp, eller overskredet. |
-| **Feilkonfigurert** | SLO-et kan ikke måles: det har ingen monitorer, monitorene finnes ikke lenger eller har ennå ikke registrert noen status i vinduet, eller målet er utenfor gyldig område. |
+| **Feilkonfigurert** | SLO-et kan ikke måles: det har ingen monitorer, monitorene finnes ikke lenger eller har ennå ikke registrert noen status i vinduet, eller målet er utenfor gyldig område. Et forespørsels-SLO er feilkonfigurert uten tjenester, uten latensgrense eller før tjenestene har besvart en forespørsel i vinduet. |
 | **Pauset** | Alle monitorene det måler, er arkivert eller har aktiv overvåking slått av, for hånd, av en manuell hendelse eller av planlagt vedlikehold. Det fortsetter av seg selv så snart en av dem overvåkes igjen. |
 
 Et deaktivert eller arkivert SLO evalueres ikke, så statusen blir stående som den var; SLO-listen viser i stedet et merke **Deaktivert** eller **Arkivert**. Eierne av et SLO får beskjed når statusen endres til **I faresonen** eller **Budsjett oppbrukt**: se [Feilbudsjetter](/docs/slo/error-budget).
@@ -158,12 +164,12 @@ Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværen
 | **Hendelser** | Hendelsene som forbruksratereglene og feilbudsjettpolicyen har erklært. Merket teller de åpne. |
 | **Varsler** | Varslene som forbruksratereglene og feilbudsjettpolicyen har utløst. Merket teller de åpne. |
 | **Feed** | Hva som har skjedd med SLO-et, som en tidslinje. Se [SLO-feed og revisjonslogger](/docs/slo/feed-and-audit-logs). |
-| **Monitorer** | Monitorene det måler, og om hver av dem ble knyttet til av en person eller en regel. |
-| **Monitorregler** | Reglene som knytter til monitorer som samsvarer. |
+| **Monitorer** | Monitorene det måler, og om hver av dem ble knyttet til av en person eller en regel. Bare SLO-er for monitoroppetid. |
+| **Monitorregler** | Reglene som knytter til monitorer som samsvarer. Bare SLO-er for monitoroppetid. |
 | **Forbruksrateregler** | Reglene som utløser varsler og erklærer hendelser når budsjettet brennes for fort. |
 | **Feilbudsjettpolicy** | Hva teamet har avtalt å gjøre mens feilbudsjettet tømmes, og varslene og hendelsene hvert nivå i policyen utløser. Se [Feilbudsjettpolicy](/docs/slo/error-budget-policy). |
 | **Eiere** | Brukerne og teamene som får høre om statusendringene. |
-| **Innstillinger** | Målet, samsvarsperioden, nedetidsberegningen, evalueringsbryteren og arkiveringskortet. |
+| **Innstillinger** | Hva det måler, målet, samsvarsperioden, nedetidsberegningen, evalueringsbryteren og arkiveringskortet. |
 | **Revisjonslogger** | Hvem som har endret SLO-et, reglene og eierne, og når. |
 | **Slett SLO** | Sletter SLO-et for godt og løser forbruksratevarslene og -hendelsene det hadde åpne. |
 
@@ -175,10 +181,10 @@ Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av side
 
 **Oversikt** svarer på «holder vi oss innenfor budsjettet?», ovenfra og ned:
 
-- **Sammendraget**: statusen, en setning om hva den betyr, og beskrivelsen. Ved siden av står **Oppdater** og når SLO-et sist ble evaluert. Under står målet, **Samsvarsvindu** (med en fyllingsindikator mens et ungt rullerende vindu fylles opp: se [Unge SLO-er og fyllingsindikatoren for vinduet](#unge-slo-er-og-fyllingsindikatoren-for-vinduet)), antallet monitorer og eierne, med **Legg til eiere** for å legge til en der og da.
+- **Sammendraget**: statusen, en setning om hva den betyr, og beskrivelsen. Ved siden av står **Oppdater** og når SLO-et sist ble evaluert. Under står målet, **Samsvarsvindu** (med en fyllingsindikator mens et ungt rullerende vindu fylles opp: se [Unge SLO-er og fyllingsindikatoren for vinduet](#unge-slo-er-og-fyllingsindikatoren-for-vinduet)), antallet monitorer (eller tjenestene til et forespørsels-SLO) og eierne, med **Legg til eiere** for å legge til en der og da.
 - **Nøkkeltallene**:
   - **SLI**: andelen god tid i vinduet, og hvor mye den ligger over eller under målet.
-  - **Feilbudsjett igjen**: en prosentandel, en varighet som "12 min, 30 sek igjen av 43 min, 12 sek" og en stolpe med et merke ved risikoterskelen. Når budsjettet er overskredet, viser den **Budsjettet er overskredet** og hvor mye.
+  - **Feilbudsjett igjen**: en prosentandel, en varighet som "12 min, 30 sek igjen av 43 min, 12 sek" (for et forespørsels-SLO et antall dårlige forespørsler) og en stolpe med et merke ved risikoterskelen. Når budsjettet er overskredet, viser den **Budsjettet er overskredet** og hvor mye.
   - **Forbruksrate**: hvor fort budsjettet brukes de siste 60 minuttene, perioden standardregelen for raskt forbruk bruker. Blir gul over 1× og rød, med **Regelterskel nådd**, ved den laveste terskelen blant de aktiverte forbruksratereglene til SLO-et som ser 6 timer eller mindre tilbake. En time sier lite om en regel som ser flere dager tilbake, som **Slow leak**, så den sammenlignes ikke med en slik regel.
   - **Budsjettets rekkevidde**: hvor lenge budsjettet varer i det tempoet. Se [Feilbudsjetter](/docs/slo/error-budget#rekkevidden-til-budsjettet).
 - **Nedbrenning av feilbudsjett**: gjenværende budsjett over det gjeldende vinduet. Se [Feilbudsjetter](/docs/slo/error-budget#forbruket-av-feilbudsjettet).
@@ -195,13 +201,14 @@ Siden **Innstillinger** samler hvordan et SLO måler, med ett kort for hver ting
 
 | Kort | Det du endrer | Greit å vite |
 | --- | --- | --- |
+| **Hva den måler** | **Hva den måler**, **Tjenester** og **Latensgrense (ms)**, med **Rediger hva den måler**. | Et forespørsels-SLO teller forespørslene sine på nytt fra starten etter en endring. |
 | **Mål** | **Mål (%)** og **Risikoterskel (%)**, med **Rediger mål**. | Viser nedetiden målet tillater, for eksempel «43 min, 12 sek nedetid per vindu på 30 dager». |
 | **Samsvarsperiode** | **Vindustype**, **Vindu (dager)** og **Tidssone**, med **Rediger periode**. | Forbruksrateregler beholder tersklene sine når vinduet endres, så gå gjennom dem etterpå. |
-| **Beregning av nedetid** | **Modus for flere monitorer** og **Overvåkerstatuser for nedetid**, med **Rediger beregning av nedetid**. | Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
+| **Beregning av nedetid** | **Modus for flere monitorer** og **Overvåkerstatuser for nedetid**, med **Rediger beregning av nedetid**. | Bare SLO-er for monitoroppetid. Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
 | **Evaluering** | Bryteren **Evaluer dette SLO-et**, som lagrer så snart du slår den om. | Å slå den av ber om bekreftelse, fordi det også løser de åpne forbruksratevarslene og -hendelsene til SLO-et. |
 | **Arkiver SLO** | **Arkiver** eller **Fjern fra arkivet**. | Se [Arkivere et SLO](#arkivere-et-slo). |
 
-Etter en endring av målet, perioden eller nedetidsberegningen evaluerer OneUptime SLO-et på nytt ved neste kjøring.
+Etter en endring av hva det måler, målet, perioden eller nedetidsberegningen evaluerer OneUptime SLO-et på nytt ved neste kjøring.
 
 ## Arkivere et SLO
 
@@ -240,7 +247,7 @@ Sidemenyen til en monitor har også en side **SLOs**: SLO-ene som måler den mon
 
 Et SLO med rullerende vindu som er yngre enn vinduet sitt, måles over dataene som finnes så langt: et SLO på 30 dager som ble opprettet i går, har én dag med data. Feilbudsjettet starter lite og vokser etter hvert som vinduet fylles, så de første tallene svinger mer enn de vil gjøre senere.
 
-Så lenge det er slik, sier **Oversikt** fra: sammendraget viser en indikator **Vinduet er 23 % fylt** (**Vinduet er under 1 % fylt** den første dagen), og flisen **Feilbudsjett igjen** gjentar det under tallet sitt. Begge forsvinner når vinduet er fullt. SLO-er med kalendermåned viser dem aldri, fordi budsjettet deres dekker hele måneden fra første dag, og det gjør heller ikke SLO-er i modusen **Gjennomsnitt av monitorsekunder**, der budsjettet telles på tvers av monitorene.
+Så lenge det er slik, sier **Oversikt** fra: sammendraget viser en indikator **Vinduet er 23 % fylt** (**Vinduet er under 1 % fylt** den første dagen), og flisen **Feilbudsjett igjen** gjentar det under tallet sitt. Begge forsvinner når vinduet er fullt. SLO-er med kalendermåned viser dem aldri, fordi budsjettet deres dekker hele måneden fra første dag, og det gjør heller ikke SLO-er i modusen **Gjennomsnitt av monitorsekunder**, der budsjettet telles på tvers av monitorene. Et forespørsels-SLO viser dem mens OneUptime fortsatt teller de eldre forespørslene til tjenestene: se [SLO-er for forespørsler og latens](/docs/slo/request-slos#slik-telles-forespørsler).
 
 ## Feilsøking
 
@@ -255,12 +262,15 @@ Et banner øverst på sidene til SLO-et forteller hva som hindrer det i å måle
 | **This SLO is disabled** | Evalueringen er slått av. | Klikk på **Slå på evaluering**. |
 | **This SLO is archived** | SLO-et er arkivert. | Fjern det fra arkivet under **Innstillinger**. |
 | **Ikke evaluert ennå** | SLO-et er nettopp opprettet. | Vent på den første evalueringen, høyst noen minutter. |
+| **Ingen tjenester valgt** | Et forespørsels-SLO har ingen tjenester, så det har ingen forespørsler å telle. | Velg tjenestene under **Innstillinger** → **Hva den måler**. |
+| **No latency threshold** | Et latens-SLO har ingen grense, så ingen forespørsel kan telle som rask nok. | Angi **Latensgrense (ms)** under **Innstillinger** → **Hva den måler**. |
+| **Waiting for requests** | Ingen av tjenestene til et forespørsels-SLO har besvart en forespørsel i vinduet ennå. | Sjekk at tjenestene sender spor til OneUptime. Tallene vises etter neste evaluering som teller en forespørsel. |
 
 ## Neste steg
 
 :::cards
 - [Monitorer og monitorregler](/docs/slo/monitor-rules): Knytt til monitorer for hånd eller med regler.
+- [SLO-er for forespørsler og latens](/docs/slo/request-slos): Mål forespørslene til en tjeneste ut fra sporene dens.
 - [Feilbudsjetter](/docs/slo/error-budget): Budsjettberegningen, rekkevidden og hvordan budsjettet kommer tilbake.
-- [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts): Varsle vaktteamet ditt når budsjettet brennes for fort.
-- [SLO-metrikker og -dashbord](/docs/slo/metrics): Vis SLO-er i diagrammer, og bygg et SLO-dashbord.
+- [Utgivelseskontroller](/docs/slo/release-checks): Rull tilbake en utgivelse som brenner opp feilbudsjettet.
 :::

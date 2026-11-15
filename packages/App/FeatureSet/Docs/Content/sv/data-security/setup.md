@@ -176,6 +176,8 @@ En skanning läser lite av ett datalager, inom projektets gränser, och slutar e
 
 Varje skanning sparar en förteckning över vad den läste, efter namn: objekten, tabellerna eller tjänsterna, aldrig deras innehåll. Det den inte kunde läsa - en begäran som molnet nekade, tidsgränsen, bytebudgeten - blir en varning på skanningen, och skanningen markeras som **Delvis lyckad**.
 
+Ett datalagers **Översikt** anger när dess innehåll skannas nästa gång. **Nästa innehållsskanning** är tiden då något skannar det, **På tur nu** medan det väntar på sin tur, och **Försenad** när det har varit på tur i en timme. Annars anges varför inget kommer att skanna det: **Av** så länge **Skanna innehåll** är avstängt för datalagret eller projektet, eller så länge datalagret inte längre hittas; **Skannas inte** när OneUptime inte kan ta prover från den sortens datalager, eller dess sond inte kan skanna det; och **Väntar** så länge dess sond är frånkopplad. En tjänsts telemetri skannas **Varje timme**, med projektets telemetriskanning. **Skanna nu** är avstängt, med orsaken, för ett datalager som inget skulle skanna. En skanning som pågår när innehållsskanning stängs av, eller när projektet stängs av, behåller inget av det den hittade.
+
 ## Skanna en databas som du driver
 
 Datasäkerhet provtar PostgreSQL-, MySQL- och SQL Server-databaser, på ett av två sätt. En databas som produkten Database övervakar, eller en som dina tjänster pratar med på tjänstekartan, är redan ett datalager. En databas som ingen skanning hittar lägger du själv till som ett datalager.

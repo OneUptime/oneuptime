@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 9003
+    "keys": 53571,
+    "untranslated": 8825
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -77,6 +77,7 @@
     "Content Security Policy",
     "Controller",
     "CrowdStrike",
+    "Cyan",
     "DE",
     "DES",
     "DHCP",
@@ -129,6 +130,7 @@
     "Fluent Bit",
     "Format",
     "Frustration",
+    "Fuchsia",
     "Gateway",
     "Gigahertz",
     "Global",
@@ -155,6 +157,7 @@
     "INP 190 ms",
     "INP 540 ms",
     "IP",
+    "Indigo",
     "Info",
     "Information",
     "Initiator",
@@ -388,6 +391,7 @@
     "Version",
     "Version {{number}}",
     "Version {{version}}",
+    "Violet",
     "Vital",
     "Web",
     "Web, iOS, Android, React Native",
@@ -524,6 +528,7 @@
     "vCenter",
     "vSphere Client",
     "vertical pod autoscaler",
+    "via {{name}}",
     "writesets",
     "x86",
     "z",
@@ -612,6 +617,7 @@
     "{{in}} in",
     "{{online}}/{{count}} node online",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

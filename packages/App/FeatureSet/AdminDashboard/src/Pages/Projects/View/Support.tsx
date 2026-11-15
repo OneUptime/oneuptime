@@ -90,6 +90,7 @@ const ProjectSupport: FunctionComponent = (): ReactElement => {
         modelType={Project}
         modelAPI={AdminModelAPI}
         title={t("pages.projectSupport.title")}
+        isTitleTranslated={true}
         breadcrumbLinks={breadcrumbLinks}
         sideMenu={<SideMenuComponent modelId={modelId} />}
       >
@@ -108,6 +109,7 @@ const ProjectSupport: FunctionComponent = (): ReactElement => {
       modelType={Project}
       modelAPI={AdminModelAPI}
       title={t("pages.projectSupport.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={<SideMenuComponent modelId={modelId} />}
     >

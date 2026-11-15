@@ -4,6 +4,7 @@ import {
   addOnCallPolicyRunFailure,
   getOnCallPolicyRunOutOfTriesMessage,
   getOnCallPolicyRunRetryWaitInMinutes,
+  getUserOnCallLogOutOfTriesMessage,
   hasOnCallPolicyRunRunOutOfTries,
   isOnCallPolicyRunRetryDue,
   ON_CALL_POLICY_RUN_MAX_TRIES,
@@ -290,6 +291,80 @@ describe("what a run that ran out of tries says", () => {
           ),
         ).toBe(true);
       }
+    }
+  });
+});
+
+/*
+ * A person's on-call log is tried the same way by the person's-log worker
+ * (issue #8408), and says so in its own words when its tries run out.
+ */
+describe("what a person's on-call log that ran out of tries says", () => {
+  const OUT: OnCallPolicyRunFailures = failedAt(
+    [0, 1, 3, 7, 12, 17, 22, 27, 32, 37],
+    "Query read timeout",
+  );
+
+  test("how long it was tried, the last error, and what to do", () => {
+    expect(
+      getUserOnCallLogOutOfTriesMessage({
+        failures: OUT,
+        recordKind: "incident",
+      }),
+    ).toBe(
+      "OneUptime tried 10 times in 37 minutes to send this page's notifications, and every try failed, so it stopped. The last try failed with: Query read timeout. If the incident still needs this person, page them again.",
+    );
+  });
+
+  test("a log about no record - a test page - has no one to page again", () => {
+    for (const recordKind of [null, undefined, "", "  "]) {
+      const message: string = getUserOnCallLogOutOfTriesMessage({
+        failures: OUT,
+        recordKind,
+      });
+
+      expect(message).not.toContain("still needs this person");
+      expect(message.endsWith("Query read timeout.")).toBe(true);
+    }
+  });
+
+  test("an error that ends its own sentence is not given a second full stop, and one with no words still makes a sentence", () => {
+    expect(
+      getUserOnCallLogOutOfTriesMessage({
+        failures: { ...OUT, lastError: "The database is down." },
+      }),
+    ).not.toContain("down..");
+    expect(
+      getUserOnCallLogOutOfTriesMessage({
+        failures: { ...OUT, lastError: "" },
+      }),
+    ).toContain("The last try failed with: an error with no message.");
+  });
+
+  test("a long error is cut, and the message still fits the log's status message and ends with what to do", () => {
+    const message: string = getUserOnCallLogOutOfTriesMessage({
+      failures: { ...OUT, lastError: "y".repeat(5000) },
+      recordKind: "alert episode",
+    });
+
+    expect(message.length).toBeLessThanOrEqual(ColumnLength.LongText);
+    expect(message).toContain("...");
+    expect(
+      message.endsWith(
+        " If the alert episode still needs this person, page them again.",
+      ),
+    ).toBe(true);
+  });
+
+  test("is sentences on one line: a capital first, a full stop last", () => {
+    for (const recordKind of ["incident", "alert", null]) {
+      const message: string = getUserOnCallLogOutOfTriesMessage({
+        failures: { ...OUT, lastError: "Connection\nreset by peer" },
+        recordKind,
+      });
+
+      expect(isErrorSentence(message)).toBe(true);
+      expect(message).not.toContain("\n");
     }
   });
 });

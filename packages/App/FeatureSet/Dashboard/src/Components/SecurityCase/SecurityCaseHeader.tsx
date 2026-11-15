@@ -168,7 +168,7 @@ export const HeaderActionButton: FunctionComponent<{
   }
 
   return (
-    <Tooltip text={tooltip}>
+    <Tooltip text={tooltip} isTextTranslated={true}>
       <span
         className={SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME}
         tabIndex={0}

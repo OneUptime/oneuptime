@@ -214,7 +214,7 @@ afterEach(() => {
 describe("the create form's help under Target (%) (#6925)", () => {
   test("English: word for word as before", () => {
     const help: string =
-      "The share of time its monitors must be up. Over 30 days, 99.9% allows 43 minutes of downtime and 99.99% about 4.";
+      "The share of time, or of requests, that must be good. Over 30 days, 99.9% allows 43 minutes of downtime, or 1 bad request in 1,000.";
 
     expect(getSloTargetHelpText()).toBe(help);
     expect(targetField(getSloFormFields()).description).toBe(help);
@@ -227,8 +227,8 @@ describe("the create form's help under Target (%) (#6925)", () => {
       days: "30",
       target: germanPercent("99,9"),
       minutes: "43",
-      stricterTarget: germanPercent("99,99"),
-      stricterMinutes: "4",
+      // The reader's grouping: "1.000" in German.
+      requests: "1.000",
     });
 
     expect(getSloTargetHelpText()).toBe(help);
@@ -238,7 +238,8 @@ describe("the create form's help under Target (%) (#6925)", () => {
     expect(
       targetField(pickSloFormFields(["targetPercentage"])).description,
     ).toBe(help);
-    expect(help).not.toMatch(DECIMAL_POINT);
+    // Never "99.9": the target's decimal is a comma. ("1.000" is German grouping.)
+    expect(help).not.toContain("99.9");
   });
 
   test("Persian: Persian digits and percent, not one Latin digit", async () => {
@@ -251,8 +252,7 @@ describe("the create form's help under Target (%) (#6925)", () => {
         days: isolated("۳۰"),
         target: isolated("۹۹٫۹٪"),
         minutes: isolated("۴۳"),
-        stricterTarget: isolated("۹۹٫۹۹٪"),
-        stricterMinutes: isolated("۴"),
+        requests: isolated("۱٬۰۰۰"),
       }),
     );
     expect(help).not.toMatch(LATIN_DIGIT);
@@ -264,7 +264,7 @@ describe("the create form's help under Target (%) (#6925)", () => {
 
       const help: string = getSloTargetHelpText();
 
-      for (const target of [99.9, 99.99]) {
+      for (const target of [99.9]) {
         const written: string = formatSloPercent(
           target,
           3,
@@ -284,8 +284,7 @@ describe("the create form's help under Target (%) (#6925)", () => {
       days: "۳۰",
       target: "۹۹٫۹٪",
       minutes: "۴۳",
-      stricterTarget: "۹۹٫۹۹٪",
-      stricterMinutes: "۴",
+      requests: "۱٬۰۰۰",
     });
 
     expect(isDrawnAsWrittenIn(before, "۹۹٫۹٪")).toBe(false);

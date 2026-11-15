@@ -230,7 +230,7 @@ export const getSloMultiMonitorModeText: GetSloMultiMonitorModeTextFunction = (
   };
 };
 
-/** "Monitor uptime" / "Metric". */
+/** "Monitor uptime" / "Request success" / "Request latency" / "Metric". */
 export type GetSliTypeTextFunction = (
   sliType: SliType | undefined | null,
 ) => string;
@@ -242,7 +242,15 @@ export const getSliTypeText: GetSliTypeTextFunction = (
     return "Metric";
   }
 
-  // MonitorUptime is the column default and the only type the worker evaluates.
+  if (sliType === SliType.RequestSuccess) {
+    return "Request success";
+  }
+
+  if (sliType === SliType.RequestLatency) {
+    return "Request latency";
+  }
+
+  // MonitorUptime is the column default.
   return "Monitor uptime";
 };
 

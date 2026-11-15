@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% وقت التشغيل",
-    "uptimePercent": "{{percent}}% وقت التشغيل",
+    "uptimePercent": "{{percent}} وقت التشغيل",
     "operational": "يعمل بشكل طبيعي",
     "notMonitored": "غير مراقَب",
     "noResourcesInGroup": "لم تُضف أي موارد إلى هذه المجموعة.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "الموارد المتأثرة",
-    "stateChangedTo": "تغيّرت الحالة إلى",
     "view": "عرض {{eventType}}",
     "updateTo": "تحديث بشأن {{eventType}}",
-    "postedOn": "نُشر في"
+    "postedOnDate": "نُشر في {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "قبل {{days}} يومًا",
@@ -473,5 +472,6 @@
     "warning": "تحذير"
   },
   "No options available": "لا توجد خيارات متاحة",
-  "No matches found": "لم يُعثر على نتائج مطابقة"
+  "No matches found": "لم يُعثر على نتائج مطابقة",
+  "{{eventType}} state changed to {{state}}": "تغيّرت حالة {{eventType}} إلى {{state}}"
 }

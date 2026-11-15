@@ -24,6 +24,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
+import { readStoredAddress } from "Common/Utils/Rum/UserFlow";
 import {
   readDtoBoolean,
   readDtoNumber,
@@ -889,18 +890,24 @@ const SEVERITY_TO_BADGE: Record<
   neutral: StatusBadgeType.Neutral,
 };
 
-/* "/checkout/payment" from a stored URL; the raw string when it is not one. */
+/*
+ * "/checkout/payment" from a stored URL; the raw string when it is not one,
+ * and a React Native screen stored as "null/<route>" before #8384 its route
+ * (readStoredAddress).
+ */
 export function pathOf(url: string): string {
   if (!url) {
     return "";
   }
 
+  const stored: string = readStoredAddress(url);
+
   try {
-    const parsed: globalThis.URL = new globalThis.URL(url);
+    const parsed: globalThis.URL = new globalThis.URL(stored);
 
     return `${parsed.pathname}${parsed.search}` || "/";
   } catch {
-    return url;
+    return stored;
   }
 }
 
@@ -1321,7 +1328,7 @@ function getSessionReplayCells(
       {userName}
     </button>
   ) : (
-    <Tooltip text={user.title}>
+    <Tooltip text={user.title} isTextTranslated={true}>
       <span
         className="block min-w-0 max-w-full truncate"
         tabIndex={0}

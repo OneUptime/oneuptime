@@ -88,7 +88,7 @@ Per disattivare quello incluso, imposta `GLOBAL_RUNNER_REPLICAS=0` nel `config.e
 ## Prima di iniziare
 
 - **Un host con Docker** nella tua infrastruttura, che raggiunga l'URL del tuo OneUptime in HTTPS e i sistemi su cui agiscono i tuoi passaggi.
-- **Un ruolo che crea Runner.** Project Owner, Project Admin, Project Member e Runbook Admin possono crearne uno. Solo un Project Owner, un Project Admin o un Runbook Admin possono vedere la chiave di un Runner, contenuta nel comando di installazione.
+- **Un ruolo che crea Runner.** Proprietario del progetto, Amministratore del progetto, Membro del progetto e Amministratore dei runbook possono crearne uno. Solo un Proprietario del progetto, un Amministratore del progetto o un Amministratore dei runbook possono vedere la chiave di un Runner, contenuta nel comando di installazione.
 
 ## Installare un Runner
 
@@ -109,7 +109,7 @@ Un Runner applica una modifica alle sue funzionalità al successivo heartbeat; n
 
 Nella riga del Runner, fai clic su **Mostra istruzioni di configurazione**. La finestra **Configurazione dell'agente Runbook** mostra un comando `docker run` già compilato con l'ID e la chiave di questo Runner. Lo stesso comando si trova nella pagina del Runner, in **Istruzioni di configurazione**.
 
-Solo un Project Owner, un Project Admin o un Runbook Admin possono leggere la chiave. Gli altri vedono «Non hai l'autorizzazione per visualizzare la chiave di questo agente Runbook» al posto del comando.
+Solo un Proprietario del progetto, un Amministratore del progetto o un Amministratore dei runbook possono leggere la chiave. Gli altri vedono «Non hai l'autorizzazione per visualizzare la chiave di questo agente Runbook» al posto del comando.
 
 ### 3. Eseguilo su un host della tua infrastruttura
 
@@ -293,7 +293,7 @@ La gestione degli agenti si trova nel gruppo di autorizzazioni Runbooks esistent
 
 Avviare un runbook (e quindi inviarne i passaggi ai Runner) richiede un ruolo che esegue i runbook — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` o `RunbookMember` — oppure `CreateRunbookExecution`; completare, saltare o annullare un'esecuzione accetta anche `EditRunbookExecution`. Un ruolo esegue solo i runbook raggiunti dal suo ambito.
 
-La chiave di un Runner è leggibile solo da Project Owner, Project Admin e Runbook Admin.
+La chiave di un Runner è leggibile solo da Proprietario del progetto, Amministratore del progetto e Amministratore dei runbook.
 
 ## API lato agente
 

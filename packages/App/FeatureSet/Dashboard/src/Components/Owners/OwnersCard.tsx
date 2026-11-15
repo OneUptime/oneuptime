@@ -700,7 +700,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                     </span>
                   </Tooltip>
                 ) : (
-                  <Tooltip text={addOwnerText}>
+                  <Tooltip text={addOwnerText} isTextTranslated={true}>
                     <button
                       type="button"
                       data-testid="owners-add-circle"

@@ -87,7 +87,7 @@ Under posterna söker Kopplade signaler i dina loggar och spår, i samma tidsfö
 
 ## Vem ser vad
 
-- Kopplade signaler och en posts **Säkerhet**-kort kräver en roll som kan läsa säkerhetshändelser: Security Admin, Security Member, Security Viewer, Project Owner eller Project Admin. Ingen annan ser säkerhetsdata på någon sida. Se [Roller](/docs/permissions/reference#roller).
+- Kopplade signaler och en posts **Säkerhet**-kort kräver en roll som kan läsa säkerhetshändelser: Säkerhetsadministratör, Säkerhetsmedlem, Säkerhetstittare, Projektägare eller Projektadministratör. Ingen annan ser säkerhetsdata på någon sida. Se [Roller](/docs/permissions/reference#roller).
 - En incidents **Säkerhet**-kort kräver en roll som kan läsa säkerhetsärenden.
 - Varje post läses med din egen roll, och det gör även det som finns på den: en roll som inte kan läsa jourscheman visas inte en medlems. En sorts post som din roll inte kan läsa utelämnas, och sidan säger det; en som inte kunde läsas just nu säger det också, med **Försök igen**.
 - En posts sida visar sitt **Säkerhet**-kort bara i ett projekt som använder Security Events: ett som har tagit emot en säkerhetshändelse under de senaste 7 dagarna.
@@ -123,7 +123,7 @@ Kortet visas för en monitor som kontrollerar en värd, en adress eller en URL: 
 :::
 
 :::details Sidan säger att din roll inte kan se en sorts post
-Varje post läses med din egen roll. Be en Project Owner eller Project Admin om en roll som kan läsa den sortens post.
+Varje post läses med din egen roll. Be en Projektägare eller Projektadministratör om en roll som kan läsa den sortens post.
 :::
 
 ## Nästa steg

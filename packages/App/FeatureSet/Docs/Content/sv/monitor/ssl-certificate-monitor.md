@@ -30,7 +30,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når värden och porten.** Projektets standardsonder väljs för varje ny monitor. En tjänst i ett privat nätverk behöver en [anpassad sond](/docs/probe/custom-probe) i det nätverket.
 
 ## Skapa en SSL-certifikatmonitor

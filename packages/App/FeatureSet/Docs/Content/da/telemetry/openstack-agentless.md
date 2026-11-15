@@ -93,6 +93,8 @@ Vælg de regioner, der skal læses, giv clouden et navn, og klik på **Tilslut c
 
 Cloudens **Oversigt** viser et kort **Dataindsamling**. Det viser **Kontrollerer** indtil den første indsamling, som starter inden for et minut, derefter **Indsamler**, og siderne fyldes ud. Når nogle tjenester blev læst, og en anden ikke blev, siger det hvilken. Hvis ingen sonde kommer efter clouden i 15 minutter, fordi den er offline eller for gammel, viser det **Indsamler ikke** og siger det, uanset hvad den sidste indsamling fandt.
 
+Når ingen sonde må indsamle clouden, viser kortet straks **Indsamler ikke** med årsagen og hvad der skal ændres: der er ikke gemt nogen legitimation, Keystones adresse mangler, ingen sonde er sat til at indsamle den, dens sonde må ikke indsamle den (en delt sonde på OneUptime Cloud eller et andet projekts), eller dens sonde er afbrudt. **Næste indsamling** er tidspunktet, hvor en sonde indsamler den næste gang, **Står for tur nu**, mens den venter på en, **Forsinket**, når ingen er kommet i 15 minutter, og **Ikke planlagt**, mens ingen sonde må indsamle den. En arkiveret cloud indsamles stadig.
+
 Kortet **Dataindsamling** på cloudens side **Indstillinger** rummer det, du tilsluttede den med:
 
 ![Kortet Dataindsamling på en clouds side Indstillinger: dens Keystone-adresse, dens sonde, den applikationslegitimation, den logger ind med, dens regioner, det certifikat, den stoler på, og hvor ofte den indsamler](/docs/static/images/OpenStackDataCollection.png)

@@ -3,7 +3,7 @@
 Ein Monitor prüft etwas, das Sie betreiben, etwa eine Website, eine API, einen Host oder einen Kubernetes-Cluster, und meldet sich, wenn es nicht mehr funktioniert. **Monitor erstellen** fragt zuerst, was überwacht werden soll, dann, was geprüft wird, und dann, wie oft. Bis auf den Typ, den Namen und das Prüfziel beginnt alles mit Standardwerten, die für die meisten Monitore passen.
 
 > [!NOTE]
-> Um einen Monitor zu erstellen, brauchen Sie die Rolle Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+> Um einen Monitor zu erstellen, brauchen Sie die Rolle Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 
 ## Überwachungsinformationen
 

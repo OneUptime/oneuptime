@@ -2,6 +2,7 @@ import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
+import { isRequestSliType } from "./SloRequestSli";
 
 /**
  * The "should I be worried, and about what?" layer of the SLO UI.
@@ -150,6 +151,10 @@ export interface SloNoticeData {
   sliType?: SliType | undefined | null;
   /** Number of monitors currently attached. */
   monitorCount?: number | undefined | null;
+  /** A request SLO's services: how many are chosen. */
+  serviceCount?: number | undefined | null;
+  /** A Request Latency SLO's threshold, in milliseconds. */
+  latencyThresholdInMilliseconds?: number | undefined | null;
   /** Of the attached monitors, how many have active monitoring disabled. */
   disabledMonitorCount?: number | undefined | null;
   targetPercentage?: number | undefined | null;
@@ -170,6 +175,57 @@ const getNoMonitorsNotice: GetNoMonitorsNoticeFunction = (): SloNotice => {
   };
 };
 
+type GetNoServicesNoticeFunction = () => SloNotice;
+
+const getNoServicesNotice: GetNoServicesNoticeFunction = (): SloNotice => {
+  return {
+    type: SloNoticeType.Warning,
+    title: "No services chosen",
+    body: "A request SLO measures the requests its services serve, so it cannot be evaluated without at least one. Choose its services in Settings.",
+    action: {
+      label: "Choose services",
+      target: SloNoticeActionTarget.Settings,
+    },
+  };
+};
+
+/*
+ * What stops a request SLO (Request Success, Request Latency) from being
+ * measured, in the order a person fixes it - the worker's own guards
+ * (EvaluateSlos.getRequestSloMisconfiguredReason) - or null when nothing in
+ * its setup does.
+ */
+type GetRequestSetupNoticeFunction = (data: SloNoticeData) => SloNotice | null;
+
+const getRequestSetupNotice: GetRequestSetupNoticeFunction = (
+  data: SloNoticeData,
+): SloNotice | null => {
+  if ((toFiniteNumber(data.serviceCount) ?? 0) === 0) {
+    return getNoServicesNotice();
+  }
+
+  const threshold: number | null = toFiniteNumber(
+    data.latencyThresholdInMilliseconds,
+  );
+
+  if (
+    data.sliType === SliType.RequestLatency &&
+    (threshold === null || threshold < 1)
+  ) {
+    return {
+      type: SloNoticeType.Warning,
+      title: "No latency threshold",
+      body: "A Request Latency SLO counts a request as good when it is served within its latency threshold. Set the threshold in Settings.",
+      action: {
+        label: "Set the threshold",
+        target: SloNoticeActionTarget.Settings,
+      },
+    };
+  }
+
+  return null;
+};
+
 /**
  * The single most important thing to tell the user about this SLO right
  * now, or null when the SLO is measuring normally.
@@ -186,7 +242,9 @@ const getNoMonitorsNotice: GetNoMonitorsNoticeFunction = (): SloNotice => {
  * (App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts):
  *   isArchived=true      -> the SLO is skipped entirely by getDueSlos()
  *   isEnabled=false      -> the SLO is skipped entirely by getDueSlos()
- *   sliType != Uptime    -> Misconfigured (Metric SLIs are not built yet)
+ *   sliType is Metric    -> Misconfigured (Metric SLIs are not built yet)
+ *   request SLI with no services, or a latency SLI with no threshold,
+ *   or no requests in its window -> Misconfigured
  *   monitorCount == 0    -> Misconfigured
  *   target outside (0,100) -> Misconfigured
  *   all monitors disabled -> Paused
@@ -222,20 +280,33 @@ export const getSloNotice: GetSloNoticeFunction = (
 
   const monitorCount: number = toFiniteNumber(data.monitorCount) ?? 0;
 
+  const isRequestSli: boolean = isRequestSliType(data.sliType);
+
   if (data.sloStatus === SloStatus.Misconfigured) {
-    /*
-     * No action: the SLI type is not editable anywhere in the product, so
-     * a link would lead to a page that cannot fix this.
-     */
-    if (data.sliType && data.sliType !== SliType.MonitorUptime) {
+    // The SLI type is chosen in Settings, What It Measures.
+    if (
+      data.sliType &&
+      data.sliType !== SliType.MonitorUptime &&
+      !isRequestSli
+    ) {
       return {
         type: SloNoticeType.Warning,
         title: "This SLO cannot be evaluated",
-        body: `Only "${SliType.MonitorUptime}" SLIs are supported today. Change the SLI type to Monitor Uptime and attach the monitors this objective measures.`,
+        body: "OneUptime does not measure this SLI type. Choose what this SLO measures in Settings: monitor uptime, request success or request latency.",
+        action: {
+          label: "Open Settings",
+          target: SloNoticeActionTarget.Settings,
+        },
       };
     }
 
-    if (monitorCount === 0) {
+    if (isRequestSli) {
+      const setupNotice: SloNotice | null = getRequestSetupNotice(data);
+
+      if (setupNotice) {
+        return setupNotice;
+      }
+    } else if (monitorCount === 0) {
       return getNoMonitorsNotice();
     }
 
@@ -248,6 +319,22 @@ export const getSloNotice: GetSloNoticeFunction = (
         body: "A target must be greater than 0 and less than 100 — a 100% target leaves no error budget to track. Set a target such as 99.9 in Settings.",
         action: {
           label: "Edit objective",
+          target: SloNoticeActionTarget.Settings,
+        },
+      };
+    }
+
+    /*
+     * A request SLO whose services have served no request in its window yet
+     * - a quiet service, or one whose traces do not reach OneUptime.
+     */
+    if (isRequestSli) {
+      return {
+        type: SloNoticeType.Info,
+        title: "Waiting for requests",
+        body: "None of this SLO's services has served a request in its window yet. It is measured automatically once their traces reach OneUptime.",
+        action: {
+          label: "View services",
           target: SloNoticeActionTarget.Settings,
         },
       };
@@ -291,7 +378,16 @@ export const getSloNotice: GetSloNoticeFunction = (
      * Only an explicit, loaded 0 counts: a caller that did not select the
      * monitors has not told us anything.
      */
-    if (toFiniteNumber(data.monitorCount) === 0) {
+    if (isRequestSli) {
+      const setupNotice: SloNotice | null =
+        data.serviceCount === undefined || data.serviceCount === null
+          ? null
+          : getRequestSetupNotice(data);
+
+      if (setupNotice) {
+        return setupNotice;
+      }
+    } else if (toFiniteNumber(data.monitorCount) === 0) {
       return getNoMonitorsNotice();
     }
 

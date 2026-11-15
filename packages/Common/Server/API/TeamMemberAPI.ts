@@ -1,7 +1,10 @@
 import CommonAPI from "./CommonAPI";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
-import InvitationLink, { InvitationLinkAnswer } from "../Utils/InvitationLink";
+import InvitationLink, {
+  InvitationLinkAnswer,
+  MAX_MEMBERSHIPS_PER_SIGN_UP_READ,
+} from "../Utils/InvitationLink";
 import AccessTokenService from "../Services/AccessTokenService";
 import ProjectSCIMService from "../Services/ProjectSCIMService";
 import TeamMemberService, {
@@ -136,7 +139,68 @@ export default class TeamMemberAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             link: answer.link,
             isRegistered: answer.isRegistered,
+            isAccepted: answer.isAccepted,
             email: answer.email,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/not-signed-up - which of these memberships belong to
+     * someone who has not signed up yet (#8191). A membership accepted for a
+     * person with no account reads "Member", and only this tells the lists
+     * to offer that person's sign-up link. Master admins only, like the link
+     * itself; the answer is the memberships alone, never anything about a
+     * password but that there is none (InvitationLink).
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/not-signed-up`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const requested: unknown = req.body?.["teamMemberIds"];
+
+          if (
+            !Array.isArray(requested) ||
+            requested.some((value: unknown): boolean => {
+              return typeof value !== "string" || !ObjectID.isValidUUID(value);
+            })
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Team member IDs are required."),
+            );
+          }
+
+          const teamMemberIds: Array<string> = Array.from(
+            new Set<string>(requested as Array<string>),
+          );
+
+          if (teamMemberIds.length > MAX_MEMBERSHIPS_PER_SIGN_UP_READ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                `Ask about at most ${MAX_MEMBERSHIPS_PER_SIGN_UP_READ} memberships at a time.`,
+              ),
+            );
+          }
+
+          const notSignedUp: Array<ObjectID> =
+            await InvitationLink.getMembershipsNotSignedUp(
+              teamMemberIds.map((id: string): ObjectID => {
+                return new ObjectID(id);
+              }),
+            );
+
+          return Response.sendJsonObjectResponse(req, res, {
+            teamMemberIds: notSignedUp.map((id: ObjectID): string => {
+              return id.toString();
+            }),
           });
         } catch (err) {
           return next(err);

@@ -23,7 +23,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 
 ## Voordat je begint
 
-- In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
+- In OneUptime de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder. Beveiligingslid en Beveiligingskijker zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
 - Een Okta-beheerder die de System Log mag bekijken, om het token te maken. Een token kan wat zijn beheerder kan, dus gebruik een Read-only Administrator: die leest de System Log en wijzigt niets. Een alleen-lezenbeheerder ziet ook gebruikers, groepen, apps en instellingen, dus bewaar het token zo veilig als een wachtwoord.
 - Bij voorkeur een serviceaccount voor die beheerder. Okta deactiveert een token wanneer zijn beheerder wordt gedeactiveerd, en wanneer het 30 dagen ongebruikt blijft. Het pollen gebruikt het om de paar minuten, dus het blijft in gebruik zolang de verbinding is ingeschakeld.
 - Als je organisatie API-aanroepen alleen vanuit een netwerkzone accepteert, een zone met de adressen waarvandaan OneUptime aanroept: op OneUptime Cloud de uitgaande adressen ervan, en op een zelf gehoste installatie het openbare adres van je app- en workerhosts.

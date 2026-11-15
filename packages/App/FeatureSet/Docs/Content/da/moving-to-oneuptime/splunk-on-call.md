@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynder
 
-- **Et OneUptime-projekt og retten til at oprette det, du overfører.** Projektejere og projektadministratorer kan overføre alt. Andre roller kan også køre en import og overføre de typer poster, de må oprette. Resten vises som ikke overført, med årsagen.
+- **Et OneUptime-projekt og retten til at oprette det, du overfører.** Projektejere og Projektadministratorer kan overføre alt. Andre roller kan også køre en import og overføre de typer poster, de må oprette. Resten vises som ikke overført, med årsagen.
 - **Dit Splunk On-Call-API-ID og en skrivebeskyttet API-nøgle.** Begge findes under **Integrations** > **API** i Splunk On-Call. Importen skriver aldrig til Splunk On-Call, så en skrivebeskyttet nøgle er nok.
 
 ## Importér din Splunk On-Call-konto
@@ -74,7 +74,7 @@ Vagter i én rotation, der har vagt samtidig, bliver hver deres egen OneUptime-v
 
 I OneUptime Cloud vises poster, som dit abonnement ikke omfatter, som ikke overført, med det abonnement, de kræver.
 
-En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan markere elementer og starte importen. Projektejere og projektadministratorer ser forløbet og rapporten for hver import.
+En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan markere elementer og starte importen. Projektejere og Projektadministratorer ser forløbet og rapporten for hver import.
 
 ## Gør skiftet færdigt
 

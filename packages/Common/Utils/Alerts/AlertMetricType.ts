@@ -1,6 +1,14 @@
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import AlertMetricType from "../../Types/Alerts/AlertMetricType";
+import { translationKey } from "../../Types/Translator";
 
+/*
+ * The words a monitor's or an SLO's Alert Metrics charts draw - each
+ * chart's title, legend and what it shows - are keys of the Dashboard's
+ * locales (translationKey; this file is a `keys` root of its extractor),
+ * and the charts look each up once where they hand it to the chart
+ * (#8282).
+ */
 class AlertMetricTypeUtil {
   public static getAggregationTypeByAlertMetricType(
     metricType: AlertMetricType,
@@ -31,13 +39,13 @@ class AlertMetricTypeUtil {
   public static getTitleByAlertMetricType(metricType: AlertMetricType): string {
     switch (metricType) {
       case AlertMetricType.AlertCount:
-        return "Alert Count";
+        return translationKey("Alert Count");
       case AlertMetricType.TimeToAcknowledge:
-        return "Time to Acknowledge";
+        return translationKey("Time to Acknowledge");
       case AlertMetricType.TimeToResolve:
-        return "Time to Resolve";
+        return translationKey("Time to Resolve");
       case AlertMetricType.AlertDuration:
-        return "Alert Duration";
+        return translationKey("Alert Duration");
       default:
         return "";
     }
@@ -48,13 +56,21 @@ class AlertMetricTypeUtil {
   ): string {
     switch (metricType) {
       case AlertMetricType.AlertCount:
-        return "The number of alerts created for this monitor over time.";
+        return translationKey(
+          "The number of alerts created for this monitor over time.",
+        );
       case AlertMetricType.TimeToAcknowledge:
-        return "The average time taken to acknowledge alerts for this monitor.";
+        return translationKey(
+          "The average time taken to acknowledge alerts for this monitor.",
+        );
       case AlertMetricType.TimeToResolve:
-        return "The average time taken to resolve alerts for this monitor.";
+        return translationKey(
+          "The average time taken to resolve alerts for this monitor.",
+        );
       case AlertMetricType.AlertDuration:
-        return "The average duration of alerts for this monitor.";
+        return translationKey(
+          "The average duration of alerts for this monitor.",
+        );
       default:
         return "";
     }
@@ -65,13 +81,13 @@ class AlertMetricTypeUtil {
   ): string {
     switch (metricType) {
       case AlertMetricType.AlertCount:
-        return "Alerts";
+        return translationKey("Alerts");
       case AlertMetricType.TimeToAcknowledge:
-        return "Time to Acknowledge";
+        return translationKey("Time to Acknowledge");
       case AlertMetricType.TimeToResolve:
-        return "Time to Resolve";
+        return translationKey("Time to Resolve");
       case AlertMetricType.AlertDuration:
-        return "Duration";
+        return translationKey("Duration");
       default:
         return "";
     }

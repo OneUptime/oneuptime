@@ -176,6 +176,8 @@ Un escaneo lee un poco de un almacén, dentro de los límites del proyecto, y se
 
 Cada escaneo guarda un registro de lo que leyó, por nombre: los objetos, tablas o servicios, nunca su contenido. Lo que no pudo leer (una solicitud que la nube rechazó, el plazo, el presupuesto de bytes) es una advertencia en el escaneo, y el escaneo se marca como **Completado parcialmente**.
 
+La **Vista general** de un almacén dice cuándo se escanea su contenido la próxima vez. **Próximo escaneo de contenido** es la hora a la que algo lo escanea, **Previsto ahora** mientras espera su turno, y **Atrasado** cuando lleva una hora pendiente. Si no, dice por qué nada lo escaneará: **Desactivado** mientras **Escanear contenido** está desactivado para el almacén o el proyecto, o mientras el almacén ya no se encuentra; **Sin escanear** cuando OneUptime no puede tomar muestras de ese tipo de almacén, o su sonda no puede escanearlo; y **Esperando** mientras su sonda está desconectada. La telemetría de un servicio se escanea **Cada hora**, con el escaneo de telemetría del proyecto. **Escanear ahora** está desactivado, con el motivo, para un almacén que nada escanearía. Un escaneo en curso cuando se desactiva el escaneo de contenido, o cuando se suspende el proyecto, no guarda nada de lo que encontró.
+
 ## Escanear una base de datos que gestionas
 
 Seguridad de datos muestrea bases de datos PostgreSQL, MySQL y SQL Server, de una de dos formas. Una base de datos que supervisa el producto de bases de datos, o una con la que hablan tus servicios en el mapa de servicios, ya es un almacén. Una base de datos que ningún escaneo encuentra, añádela tú mismo como almacén.

@@ -66,10 +66,10 @@ Le playlist hanno permessi propri, ottenuti tramite un team come quelli delle da
 
 | Per | Serve |
 | --- | --- |
-| Vedere e riprodurre le playlist | `ReadDashboardPlaylist`, oppure un ruolo del progetto: Project Owner, Project Admin, Project Member, Viewer o un ruolo Settings |
-| Creare playlist | `CreateDashboardPlaylist`, Project Owner o Project Admin |
-| Modificare una playlist: il nome, le dashboard e il tempo | `EditDashboardPlaylist`, Project Owner o Project Admin |
-| Eliminare una playlist | `DeleteDashboardPlaylist`, Project Owner o Project Admin |
+| Vedere e riprodurre le playlist | `ReadDashboardPlaylist`, oppure un ruolo del progetto: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore o un ruolo Settings |
+| Creare playlist | `CreateDashboardPlaylist`, Proprietario del progetto o Amministratore del progetto |
+| Modificare una playlist: il nome, le dashboard e il tempo | `EditDashboardPlaylist`, Proprietario del progetto o Amministratore del progetto |
+| Eliminare una playlist | `DeleteDashboardPlaylist`, Proprietario del progetto o Amministratore del progetto |
 
 Una playlist non mostra mai a nessuno una dashboard che non può leggere. Il player riproduce solo le dashboard che la persona connessa allo schermo può leggere e che non sono archiviate, e salta le altre: una dashboard eliminata, una archiviata o una che i suoi permessi le nascondono. La pagina della playlist dice perché salta ciascuna. Salvare una playlist mantiene le dashboard che contiene e che l'editor non può vedere, così non va perso niente di ciò che un'altra persona vi ha messo.
 
@@ -81,7 +81,7 @@ Una playlist non mostra mai a nessuno una dashboard che non può leggere. Il pla
 | Una lettura non riuscita | **Impossibile caricare questa playlist**, e riprova ogni minuto, oppure con **Riprova**. |
 
 > [!NOTE]
-> Il player è per chi ha effettuato l'accesso a OneUptime. Per far girare una playlist su uno schermo, accedi su quello schermo con un account che può leggere la playlist e le sue dashboard, per esempio un membro del team con il ruolo Viewer.
+> Il player è per chi ha effettuato l'accesso a OneUptime. Per far girare una playlist su uno schermo, accedi su quello schermo con un account che può leggere la playlist e le sue dashboard, per esempio un membro del team con il ruolo Visualizzatore.
 
 ## Passaggi successivi
 

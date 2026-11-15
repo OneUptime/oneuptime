@@ -33,7 +33,7 @@ Bash、JavaScript、SSH、kubectl 和 HTTP 请求步骤会使用变量。AI 步�
 
 ## 开始之前
 
-- **管理变量的角色。** Project Owner 和 Project Admin，或拥有 **Create Runbook Variable** 权限。Runbook Admin 可以读取变量，以便在自己编写的步骤中选择它们，但不能修改。
+- **管理变量的角色。** 项目所有者和项目管理员，或拥有 **Create Runbook Variable** 权限。运行手册管理员可以读取变量，以便在自己编写的步骤中选择它们，但不能修改。
 - **包含此功能的套餐。** 在 OneUptime Cloud 上，Runbook 变量需要 **Growth** 或更高的套餐。
 
 ## 创建变量

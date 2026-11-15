@@ -17,6 +17,7 @@ import {
   RISK_ENTITY_TYPES,
   SecurityEntityCriticality,
   SecurityEntityRiskContribution,
+  SecurityEntityRiskHistoryDay,
   SecurityEntityRiskHistoryPoint,
   SecurityEntityRiskLevel,
 } from "../../../Types/SecurityCase/SecurityEntityRisk";
@@ -828,25 +829,62 @@ describe("when risk opens a case", () => {
 });
 
 describe("an entity's history", () => {
-  test("a point a day: today's is the latest score, a month is kept", () => {
+  test("a change is kept when it happens, and the month with the change before it", () => {
     expect(ENTITY_RISK_HISTORY_IN_DAYS).toBe(30);
 
     let history: Array<SecurityEntityRiskHistoryPoint> = [];
 
+    history = updateRiskHistory(history, 10, ago(50 * DAY_IN_MS));
     history = updateRiskHistory(history, 40, ago(40 * DAY_IN_MS));
     history = updateRiskHistory(history, 60, ago(29 * DAY_IN_MS));
     history = updateRiskHistory(history, 75, ago(2 * DAY_IN_MS));
     history = updateRiskHistory(history, 90, ago(3 * HOUR_IN_MS));
     history = updateRiskHistory(history, 125.4, NOW);
 
+    /*
+     * The 50-day-old change is gone; the 40-day-old one stays, since the
+     * month's first day carries it (issue #8207).
+     */
     expect(history).toEqual([
-      { day: "2026-09-15", score: 60 },
-      { day: "2026-10-12", score: 75 },
-      { day: "2026-10-14", score: 125 },
+      { at: ago(40 * DAY_IN_MS).toISOString(), score: 40 },
+      { at: ago(29 * DAY_IN_MS).toISOString(), score: 60 },
+      { at: ago(2 * DAY_IN_MS).toISOString(), score: 75 },
+      { at: ago(3 * HOUR_IN_MS).toISOString(), score: 90 },
+      { at: NOW.toISOString(), score: 125 },
     ]);
   });
 
-  test("is read defensively, in day order", () => {
+  test("the same score again adds nothing; two changes in one quarter hour keep the last", () => {
+    let history: Array<SecurityEntityRiskHistoryPoint> = updateRiskHistory(
+      [],
+      50,
+      ago(HOUR_IN_MS),
+    );
+
+    history = updateRiskHistory(history, 50, ago(30 * 60 * 1000));
+    expect(history).toEqual([{ at: ago(HOUR_IN_MS).toISOString(), score: 50 }]);
+
+    // 11:45:00 and 11:59:59 share a quarter hour; 12:00 starts the next.
+    history = updateRiskHistory(
+      history,
+      80,
+      new Date("2026-10-14T11:45:00.000Z"),
+    );
+    history = updateRiskHistory(
+      history,
+      95,
+      new Date("2026-10-14T11:59:59.000Z"),
+    );
+    history = updateRiskHistory(history, 20, NOW);
+
+    expect(history).toEqual([
+      { at: ago(HOUR_IN_MS).toISOString(), score: 50 },
+      { at: "2026-10-14T11:59:59.000Z", score: 95 },
+      { at: NOW.toISOString(), score: 20 },
+    ]);
+  });
+
+  test("is read defensively, in time order: an instant, or the end of a day a row wrote before", () => {
     expect(
       readRiskHistory([
         { day: "2026-10-12", score: 5 },
@@ -855,19 +893,26 @@ describe("an entity's history", () => {
         { day: "2026-10-11", score: -1 },
         { day: "2026-10-11", score: "x" },
         { day: "2026-10-12", score: 9 },
+        { at: "2026-10-13T08:00:00.000Z", score: 20 },
+        { at: "2026-10-13", score: 3 },
+        { at: "not a date", score: 3 },
+        { at: 1760342400000, score: 3 },
         null,
         "2026-10-13",
       ]),
     ).toEqual([
-      { day: "2026-10-10", score: 7 },
-      { day: "2026-10-12", score: 9 },
+      // The latest score before UTC midnight, as a row wrote it.
+      { at: "2026-10-10T23:59:59.999Z", score: 7 },
+      { at: "2026-10-12T23:59:59.999Z", score: 9 },
+      { at: "2026-10-13T08:00:00.000Z", score: 20 },
     ]);
 
     expect(readRiskHistory(undefined)).toEqual([]);
+    expect(readRiskHistory("junk")).toEqual([]);
   });
 
   test("a series for each day: a quiet day carries the day before, days before it began are 0", () => {
-    const series: Array<SecurityEntityRiskHistoryPoint> = getRiskHistorySeries({
+    const series: Array<SecurityEntityRiskHistoryDay> = getRiskHistorySeries({
       history: [
         { day: "2026-10-09", score: 50 },
         { day: "2026-10-12", score: 125 },
@@ -877,6 +922,7 @@ describe("an entity's history", () => {
       days: 7,
     });
 
+    // With no zone, UTC's days: a row written before reads as it always did.
     expect(series).toEqual([
       { day: "2026-10-08", score: 0 },
       { day: "2026-10-09", score: 50 },

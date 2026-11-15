@@ -188,10 +188,10 @@ Un filtro que escribas tú es una línea de 500 caracteres como máximo, hecha d
 
 | Permiso | Permite | Quién lo tiene por defecto |
 | --- | --- | --- |
-| **Start Packet Capture** | Iniciar capturas y detenerlas | Project Owner, Project Admin |
-| **Download Packet Capture** | Descargar archivos de captura | Project Owner, Project Admin |
-| **Delete Packet Capture** | Eliminar capturas y sus archivos | Project Owner, Project Admin |
-| **Read Packet Capture** | Ver las capturas: cuándo se ejecutaron, en qué sonda y con qué filtro | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Iniciar capturas y detenerlas | Propietario del proyecto, Administrador del proyecto |
+| **Download Packet Capture** | Descargar archivos de captura | Propietario del proyecto, Administrador del proyecto |
+| **Delete Packet Capture** | Eliminar capturas y sus archivos | Propietario del proyecto, Administrador del proyecto |
+| **Read Packet Capture** | Ver las capturas: cuándo se ejecutaron, en qué sonda y con qué filtro | Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor |
 
 Para dar a un equipo **Start Packet Capture** o **Download Packet Capture**, ábrelo en **Ajustes → Equipos** y añade el permiso en su página **Permisos**. Consulta [Permisos](/docs/permissions/index).
 

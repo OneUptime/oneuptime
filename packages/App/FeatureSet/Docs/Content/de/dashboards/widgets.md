@@ -146,8 +146,8 @@ Die Trace-Widgets zählen nur Root-Spans, wie der Traces-Explorer, es sei denn, 
 
 | Widget | Was es zeigt | Filter |
 | --- | --- | --- |
-| **Vorfallsliste** | Vorfälle mit ihrem Status und Schweregrad. | Ungelöst, bestätigt oder gelöst; Schweregrad, Status, Monitore und Beschriftungen. |
-| **Warnungsliste** | Warnungen mit ihrem Status und Schweregrad. | Ungelöst, bestätigt oder gelöst; Schweregrad, Status, Monitore und Beschriftungen. |
+| **Vorfallsliste** | Vorfälle mit ihrem Status und Schweregrad. | Nicht behoben, bestätigt oder behoben; Schweregrad, Status, Monitore und Beschriftungen. |
+| **Warnungsliste** | Warnungen mit ihrem Status und Schweregrad. | Nicht behoben, bestätigt oder behoben; Schweregrad, Status, Monitore und Beschriftungen. |
 | **Überwachungsliste** | Monitore mit ihrem aktuellen Status. | Betriebsbereit oder nicht, Status, Monitortyp und Beschriftungen, oder eine **Beschriftungsvariable**, die Betrachter in der Werkzeugleiste wählen. |
 
 Wie die meisten Listen-Widgets können diese drei statt einer Tabelle eine Wabenansicht aus Zellen zeichnen, die nach Status gefärbt sind: Wählen Sie sie unter **Ansichtsmodus**. Sie zeigen den aktuellen Zustand, unabhängig vom Zeitbereich des Dashboards.

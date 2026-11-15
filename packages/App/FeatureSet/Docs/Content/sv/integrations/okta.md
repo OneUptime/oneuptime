@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - En Okta-administratör som kan se System Log, för att skapa token. En token kan det som dess administratör kan, så använd en Read-only Administrator: den läser System Log och ändrar ingenting. En skrivskyddad administratör ser också användare, grupper, appar och inställningar, så var lika rädd om token som om ett lösenord.
 - Helst ett tjänstekonto för den administratören. Okta inaktiverar en token när dess administratör inaktiveras, och när den har varit oanvänd i 30 dagar. Avsökningen använder den med några minuters mellanrum, så den förblir i bruk så länge anslutningen är aktiverad.
 - Om din organisation bara tar emot API-anrop från en nätverkszon, en zon som innehåller de adresser som OneUptime anropar från: på OneUptime Cloud dess utgående adresser, och på en egenvärdad installation den offentliga adressen till dina app- och workervärdar.

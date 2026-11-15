@@ -23,7 +23,7 @@ Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo
 
 ## Antes de empezar
 
-- En OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
+- En OneUptime, el rol Propietario del proyecto, Administrador del proyecto o Administrador de seguridad. Los roles Miembro de seguridad y Visor de seguridad pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
 - Elastic Security 8.x o posterior, en Elastic Cloud o en tu propio stack de Elastic, con reglas de detección que se ejecutan en un espacio de Kibana.
 - Un acceso a Kibana que pueda ver las alertas de detección de ese espacio: los privilegios de índice `read` y `view_index_metadata` sobre `.alerts-security.alerts-<space-id>`, y un privilegio de la función Security de Kibana que le permita leer allí las alertas.
 - Un Kibana al que OneUptime pueda llegar por HTTPS. OneUptime Cloud se conecta desde internet, así que Kibana necesita una dirección pública, como la que tienen los despliegues de Elastic Cloud: las direcciones privadas se rechazan. Un OneUptime autoalojado se conecta desde sus contenedores de aplicación y de workers, y puede llegar a un Kibana de tu red privada, salvo que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sea `true`.

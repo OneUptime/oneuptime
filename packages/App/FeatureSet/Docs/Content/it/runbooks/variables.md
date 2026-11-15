@@ -33,7 +33,7 @@ Un nome si usa una sola volta, senza distinzione tra maiuscole e minuscole, tra 
 
 ## Prima di iniziare
 
-- **Un ruolo che gestisce le variabili.** Project Owner e Project Admin, oppure il permesso **Create Runbook Variable**. Runbook Admin legge le variabili, per sceglierle nei passaggi che scrive, ma non le modifica.
+- **Un ruolo che gestisce le variabili.** Proprietario del progetto e Amministratore del progetto, oppure il permesso **Create Runbook Variable**. Amministratore dei runbook legge le variabili, per sceglierle nei passaggi che scrive, ma non le modifica.
 - **Un piano che le includa.** Su OneUptime Cloud, le variabili dei runbook richiedono il piano **Growth** o superiore.
 
 ## Creare una variabile

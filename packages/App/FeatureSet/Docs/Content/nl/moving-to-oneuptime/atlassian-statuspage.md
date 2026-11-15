@@ -25,7 +25,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
+- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en Projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
 - **Een Statuspage-API-sleutel.** Alleen een accounteigenaar kan er een maken. De import schrijft nooit naar Statuspage en leest elke pagina die de sleutel kan zien.
 - **Ruimte voor uw pagina's, in OneUptime Cloud.** Uw abonnement heeft ruimte voor een bepaald aantal statuspagina's en abonnees. Wat niet past, wordt getoond als niet overgenomen. De componenten worden handmatige monitoren, en die zijn gratis.
 
@@ -73,7 +73,7 @@ Eén import maakt hooguit 2.000 records aan: hooguit 1.000 monitoren en 50 statu
 
 In OneUptime Cloud worden statuspagina's en abonnees waarvoor uw abonnement geen ruimte meer heeft, getoond als niet overgenomen, met wat ze nodig hebben.
 
-Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en projectbeheerders zien de voortgang en het rapport van elke import.
+Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en Projectbeheerders zien de voortgang en het rapport van elke import.
 
 ## Rond de overstap af
 

@@ -35,7 +35,7 @@ De [prijzenpagina](https://oneuptime.com/pricing) vergelijkt de abonnementen.
 ## Voordat u begint
 
 - **OneUptime Cloud.** De sectie **Facturering en facturen** van **Projectinstellingen** bestaat alleen in OneUptime Cloud en is bij het begin ingeklapt: klik op de titel om die te openen.
-- **Een rol die de facturering mag lezen.** Project Owners, mensen met **Manage Billing** en de drie factureringsrollen lezen elke factureringspagina. Zie [Wie wat mag](#wie-wat-mag).
+- **Een rol die de facturering mag lezen.** Projecteigenaren, mensen met **Manage Billing** en de drie factureringsrollen lezen elke factureringspagina. Zie [Wie wat mag](#wie-wat-mag).
 
 ## Uw abonnement en plaatsen
 
@@ -144,13 +144,13 @@ Als een saldo niet kan betalen, wordt het bericht niet verstuurd of stopt OneUpt
 
 | Om | Het vraagt |
 | --- | --- |
-| De factureringspagina's te lezen: het abonnement, facturen, gebruik, saldi en betaalmethoden | Project Owner, **Manage Billing**, **Factureringsbeheerder**, **Factureringslid** of **Factureringskijker** |
-| Een factuur te downloaden | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Factureringsbeheerder** of **Factureringslid** |
-| Het factuuradres en de factuurmail te wijzigen | Project Owner, **Manage Billing**, **Factureringsbeheerder** of **Factureringslid** |
-| Sms, oproepen, WhatsApp of Telegram aan of uit te zetten | Project Owner, **Manage Billing** of **Factureringsbeheerder** |
-| Een betaalmethode toe te voegen | Project Owner, **Manage Billing** of **Create Payment Method** |
-| Een factuur te betalen | Project Owner, **Manage Billing** of **Edit Invoices** |
-| Het abonnement te wijzigen, een saldo bij te vullen of automatisch bijvullen te wijzigen | Project Owner of **Manage Billing** |
+| De factureringspagina's te lezen: het abonnement, facturen, gebruik, saldi en betaalmethoden | Projecteigenaar, **Manage Billing**, **Factureringsbeheerder**, **Factureringslid** of **Factureringskijker** |
+| Een factuur te downloaden | Projecteigenaar, Projectbeheerder, **Manage Billing**, **Read Invoices**, **Factureringsbeheerder** of **Factureringslid** |
+| Het factuuradres en de factuurmail te wijzigen | Projecteigenaar, **Manage Billing**, **Factureringsbeheerder** of **Factureringslid** |
+| Sms, oproepen, WhatsApp of Telegram aan of uit te zetten | Projecteigenaar, **Manage Billing** of **Factureringsbeheerder** |
+| Een betaalmethode toe te voegen | Projecteigenaar, **Manage Billing** of **Create Payment Method** |
+| Een factuur te betalen | Projecteigenaar, **Manage Billing** of **Edit Invoices** |
+| Het abonnement te wijzigen, een saldo bij te vullen of automatisch bijvullen te wijzigen | Projecteigenaar of **Manage Billing** |
 
 Een knop die u niet mag gebruiken, verschijnt vergrendeld en zegt wie het wel mag. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index#teams) voor de factureringsrollen.
 

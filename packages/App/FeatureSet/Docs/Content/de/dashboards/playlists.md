@@ -66,10 +66,10 @@ Playlists haben eigene Berechtigungen, die wie die der Dashboards über ein Team
 
 | Um | Braucht es |
 | --- | --- |
-| Playlists zu sehen und abzuspielen | `ReadDashboardPlaylist` oder eine Projektrolle: Project Owner, Project Admin, Project Member, Viewer oder eine Settings-Rolle |
-| Playlists zu erstellen | `CreateDashboardPlaylist`, Project Owner oder Project Admin |
-| Eine Playlist zu ändern: ihren Namen, ihre Dashboards und ihre Zeit | `EditDashboardPlaylist`, Project Owner oder Project Admin |
-| Eine Playlist zu löschen | `DeleteDashboardPlaylist`, Project Owner oder Project Admin |
+| Playlists zu sehen und abzuspielen | `ReadDashboardPlaylist` oder eine Projektrolle: Projektinhaber, Projektadministrator, Projektmitglied, Betrachter oder eine Settings-Rolle |
+| Playlists zu erstellen | `CreateDashboardPlaylist`, Projektinhaber oder Projektadministrator |
+| Eine Playlist zu ändern: ihren Namen, ihre Dashboards und ihre Zeit | `EditDashboardPlaylist`, Projektinhaber oder Projektadministrator |
+| Eine Playlist zu löschen | `DeleteDashboardPlaylist`, Projektinhaber oder Projektadministrator |
 
 Eine Playlist zeigt niemandem ein Dashboard, das er nicht lesen darf. Der Player spielt nur die Dashboards, die die am Bildschirm angemeldete Person lesen darf und die nicht archiviert sind, und überspringt den Rest: ein gelöschtes Dashboard, ein archiviertes oder eines, das ihre Berechtigungen ihr vorenthalten. Die Seite der Playlist sagt, warum sie jedes davon überspringt. Wer eine Playlist speichert, behält die Dashboards darin, die er selbst nicht sehen kann, sodass nichts verloren geht, was jemand anderes hineingelegt hat.
 
@@ -81,7 +81,7 @@ Eine Playlist zeigt niemandem ein Dashboard, das er nicht lesen darf. Der Player
 | Ein Lesen, das fehlschlug | **Diese Playlist konnte nicht geladen werden**, und er versucht es jede Minute erneut, oder bei **Erneut versuchen**. |
 
 > [!NOTE]
-> Der Player ist für jemanden, der bei OneUptime angemeldet ist. Um eine Playlist auf einem Bildschirm laufen zu lassen, melden Sie sich auf diesem Bildschirm mit einem Konto an, das die Playlist und ihre Dashboards lesen darf, etwa mit einem Teammitglied mit der Rolle Viewer.
+> Der Player ist für jemanden, der bei OneUptime angemeldet ist. Um eine Playlist auf einem Bildschirm laufen zu lassen, melden Sie sich auf diesem Bildschirm mit einem Konto an, das die Playlist und ihre Dashboards lesen darf, etwa mit einem Teammitglied mit der Rolle Betrachter.
 
 ## Nächste Schritte
 

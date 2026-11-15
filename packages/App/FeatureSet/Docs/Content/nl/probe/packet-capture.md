@@ -188,10 +188,10 @@ Een filter dat u zelf schrijft, is één regel van hoogstens 500 tekens, gemaakt
 
 | Machtiging | Laat iemand | Wie heeft het standaard |
 | --- | --- | --- |
-| **Start Packet Capture** | Captures starten en stoppen | Project Owner, Project Admin |
-| **Download Packet Capture** | Capturebestanden downloaden | Project Owner, Project Admin |
-| **Delete Packet Capture** | Captures en hun bestanden verwijderen | Project Owner, Project Admin |
-| **Read Packet Capture** | Captures zien: wanneer ze draaiden, op welke sonde en met welk filter | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Captures starten en stoppen | Projecteigenaar, Projectbeheerder |
+| **Download Packet Capture** | Capturebestanden downloaden | Projecteigenaar, Projectbeheerder |
+| **Delete Packet Capture** | Captures en hun bestanden verwijderen | Projecteigenaar, Projectbeheerder |
+| **Read Packet Capture** | Captures zien: wanneer ze draaiden, op welke sonde en met welk filter | Projecteigenaar, Projectbeheerder, Projectlid, Kijker |
 
 Om een team **Start Packet Capture** of **Download Packet Capture** te geven, opent u het onder **Instellingen → Teams** en voegt u de machtiging toe op de pagina **Machtigingen**. Zie [Machtigingen](/docs/permissions/index).
 

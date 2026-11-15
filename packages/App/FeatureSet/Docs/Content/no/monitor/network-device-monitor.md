@@ -1014,13 +1014,13 @@ Velg enheter, eller hver enhet som samsvarer med søket, og deretter:
 
 Knappene på en rad gjør det samme for én enhet. På kartet står IP-adressen til en node under navnet, og søket finner også en node på IP-adressen eller MAC-adressen, uansett hvordan en svitsj skrev den. Klikk på en oppdaget enhet på kartet, så tilbyr panelet **Legg til i overvåking**, som legger den til på samme måte, og **Skjul på kartet**.
 
-En enhet som ikke er sett på 30 dager, fjernes fra listen og kartet, med mindre den overvåkes, er klassifisert eller er lagt til eller endret av noen. Linjen under listen sier hvor lenge enheter blir værende; prosjekteiere og prosjektadministratorer endrer det under **Flere innstillinger → Usette enheter → Fjern etter**: 7, 14, 30, 60, 90, 180 eller 365 dager, eller **Aldri**. Listen kontrolleres hver time, og ingenting en svitsj eller kontroller har sett, fjernes mens den ikke rapporterer noe. En fjernet enhet som sees igjen, kommer tilbake som ny og vises på kartet, også om den var skjult før.
+En enhet som ikke er sett på 30 dager, fjernes fra listen og kartet, med mindre den overvåkes, er klassifisert eller er lagt til eller endret av noen. Linjen under listen sier hvor lenge enheter blir værende; Prosjekteiere og Prosjektadministratorer endrer det under **Flere innstillinger → Usette enheter → Fjern etter**: 7, 14, 30, 60, 90, 180 eller 365 dager, eller **Aldri**. Listen kontrolleres hver time, og ingenting en svitsj eller kontroller har sett, fjernes mens den ikke rapporterer noe. En fjernet enhet som sees igjen, kommer tilbake som ny og vises på kartet, også om den var skjult før.
 
 ### Velg oppsettet kartet åpner med
 
 **Map options → Arrange the map** legger ut kartet som **Automatisk**, **By network layer**, **Concentric**, **Hub and spoke** eller **Parent and child**. Kartet åpner med oppsettet som er merket **Standard**: **Automatisk** for alle enheter og **By network layer** for en lokasjon, med mindre prosjektet ditt har valgt et oppsett for alle. Alle kan bytte oppsett mens de ser på kartet; neste gang åpner det med standarden igjen.
 
-Prosjekteiere og prosjektadministratorer velger standarden: bytt til et oppsett og velg **Make default for everyone**. Deretter åpner hver visning av enhetskartet med det: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**. På standardoppsettet sender **Clear default** hvert kart tilbake til sin egen standard. Flyttede posisjoner lagres for hvert oppsett i nettleseren din, så kartet åpner med plasseringen du laget i det oppsettet.
+Prosjekteiere og Prosjektadministratorer velger standarden: bytt til et oppsett og velg **Make default for everyone**. Deretter åpner hver visning av enhetskartet med det: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**. På standardoppsettet sender **Clear default** hvert kart tilbake til sin egen standard. Flyttede posisjoner lagres for hvert oppsett i nettleseren din, så kartet åpner med plasseringen du laget i det oppsettet.
 
 ### Finn frem i et stort nettverk
 

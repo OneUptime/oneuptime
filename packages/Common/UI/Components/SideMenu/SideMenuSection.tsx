@@ -24,7 +24,16 @@ import React, {
 } from "react";
 
 export interface ComponentProps {
+  // In English, looked up here - unless isTitleTranslated says otherwise.
   title: string;
+  /*
+   * The title is in the reader's words already - the Admin Dashboard's
+   * "sideMenu.basic" key: drawn as given, in the menu and in the phone's
+   * summary, never looked up again. Looked up again, a translation that is
+   * itself an English key reads as another word, as the Spanish "Red"
+   * (Network) read "Rojo" (#8225). Left out, the title is English.
+   */
+  isTitleTranslated?: boolean | undefined;
   children: ReactElement | Array<ReactElement>;
   /*
    * Leave unset to follow the product rule: a section whose title names a
@@ -102,9 +111,13 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
    */
   const [isOpenedForPage, setIsOpenedForPage] = useState<boolean>(false);
   const bodyRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
-  const translatedTitle: string = translateString(props.title) || props.title;
+  // Looked up once: English here, a title in the reader's words as given.
+  const translatedTitle: string = props.isTitleTranslated
+    ? props.title
+    : translateString(props.title) || props.title;
   const titleLanguage: string | undefined = getDrawnLanguage({
-    english: props.title,
+    // Words in the reader's language were drawn from no English.
+    english: props.isTitleTranslated ? undefined : props.title,
     drawn: translatedTitle,
     language: language,
   });

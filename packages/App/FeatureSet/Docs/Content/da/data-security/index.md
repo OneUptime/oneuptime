@@ -43,7 +43,7 @@ flowchart TB
 
 ## Før du begynder
 
-- **En rolle, der kan sætte det op.** Project Owners, Project Admins og Security Admins ændrer Datasikkerheds indstillinger. Security Members behandler problemer og scanner datalagre, og Security Viewers læser, hvad den har fundet. Andre roller ser intet af det, medmindre deres team får dens tilladelser: hvilke buckets der indeholder kortnumre, er præcis det, en angriber vil vide. Se [Roller](/docs/permissions/reference#roller).
+- **En rolle, der kan sætte det op.** Projektejere, Projektadministratorer og Sikkerhedsadministratorer ændrer Datasikkerheds indstillinger. Sikkerhedsmedlemmer behandler problemer og scanner datalagre, og Sikkerhedsseere læser, hvad den har fundet. Andre roller ser intet af det, medmindre deres team får dens tilladelser: hvilke buckets der indeholder kortnumre, er præcis det, en angriber vil vide. Se [Roller](/docs/permissions/reference#roller).
 - **En cloud-konto at læse eller en database.** Datasikkerhed læser en cloud-konto via en [cloudforbindelse](/docs/telemetry/cloud-accounts) og en database, du selv driver, via en skrivebeskyttet forbindelsesstreng. Telemetri kræver intet: den scannes hver time.
 
 ## Kom hurtigt i gang

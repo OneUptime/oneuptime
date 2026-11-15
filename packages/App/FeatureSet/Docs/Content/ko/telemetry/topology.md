@@ -28,7 +28,7 @@ flowchart LR
 ## 시작하기 전에
 
 - **들어오는 텔레메트리.** 서비스 맵에는 트레이스가 필요합니다. [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요. 인프라 보기에는 데이터를 보내는 호스트나 클러스터가 필요합니다. [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)를 참고하세요. 네트워크 보기에는 네트워크 장치가 필요합니다. [네트워크 장치 모니터](/docs/monitor/network-device-monitor)를 참고하세요.
-- **텔레메트리를 읽는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer, 또는 Read Inventory Item 권한이 있는 사용자 지정 역할입니다.
+- **텔레메트리를 읽는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어, 텔레메트리 관리자, 텔레메트리 구성원, 텔레메트리 뷰어, 또는 Read Inventory Item 권한이 있는 사용자 지정 역할입니다.
 
 ## 토폴로지 열기
 

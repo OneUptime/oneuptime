@@ -295,7 +295,7 @@ Die Stufen selbst sind eine eigene Ressource, `/api/service-level-objective-erro
 | **Edit SLO Error Budget Policy Tier** | Stufen ändern und sie ein- oder ausschalten. |
 | **Delete SLO Error Budget Policy Tier** | Stufen entfernen. |
 
-Diese Berechtigungen stehen in der SLO-Gruppe einer Rolle. Die Rollen Project Owner und Project Admin haben sie alle, und die Rollen Project Member und Viewer können Stufen lesen.
+Diese Berechtigungen stehen in der SLO-Gruppe einer Rolle. Die Rollen Projektinhaber und Projektadministrator haben sie alle, und die Rollen Projektmitglied und Betrachter können Stufen lesen.
 
 ## Noch nicht verfügbar
 

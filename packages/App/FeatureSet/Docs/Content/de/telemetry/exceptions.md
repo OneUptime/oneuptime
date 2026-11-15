@@ -39,7 +39,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Eintreffende Spans oder Protokolle.** Instrumentieren Sie Ihre Dienste mit [OpenTelemetry](/docs/telemetry/open-telemetry). Der Tab **Einrichtungsanleitung** zeigt den Code für Ihre Sprache.
-- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Exceptions. Beheben und Archivieren erfordern Project Owner oder Project Admin oder die Berechtigung Edit Exceptions.
+- **Eine Rolle, die Telemetrie lesen darf.** Projektinhaber, Projektadministrator, Projektmitglied, Betrachter, Telemetrie-Administrator, Telemetrie-Mitglied oder Telemetrie-Betrachter, oder eine eigene Rolle mit der Berechtigung Read Exceptions. Beheben und Archivieren erfordern Projektinhaber oder Projektadministrator oder die Berechtigung Edit Exceptions.
 
 ## Die Liste sichten
 

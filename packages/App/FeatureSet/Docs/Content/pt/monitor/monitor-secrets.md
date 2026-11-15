@@ -25,7 +25,7 @@ A sonda que executa a verificação recebe o valor, então um monitor que usa um
 ## Antes de começar
 
 - **O plano Growth ou superior**, no OneUptime Cloud. Instalações auto-hospedadas não têm planos.
-- **Uma função que possa gerenciar segredos**: Project Owner, Project Admin, ou uma função personalizada com a permissão Create Monitor Secret.
+- **Uma função que possa gerenciar segredos**: Proprietário do projeto, Administrador do projeto, ou uma função personalizada com a permissão Create Monitor Secret.
 
 ## Trabalhar com segredos
 

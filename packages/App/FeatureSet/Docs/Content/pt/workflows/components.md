@@ -473,7 +473,7 @@ Um tipo só oferece os componentes que o modelo dele permite. Um tipo somente le
 
 É assim que um workflow lê e altera os dados do OneUptime. Por exemplo, um webhook da sua ferramenta de CI pode usar **Create One Incident** para abrir um incidente com os detalhes da falha.
 
-Esses componentes agem como Project Admin do projeto do workflow: o que um Project Admin não pode fazer, ou o que o seu plano não inclui, é recusado, e o log da execução diz por quê. Veja [O que os passos de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
+Esses componentes agem como Administrador do projeto no projeto do workflow: o que um Administrador do projeto não pode fazer, ou o que o seu plano não inclui, é recusado, e o log da execução diz por quê. Veja [O que os passos de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
 
 ### Declarar um incidente a partir de um modelo
 

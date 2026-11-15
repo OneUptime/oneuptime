@@ -25,7 +25,7 @@ La sonde qui exécute la vérification reçoit la valeur, donc un moniteur qui u
 ## Avant de commencer
 
 - **Le forfait Growth ou supérieur**, sur OneUptime Cloud. Les installations auto-hébergées n'ont pas de forfaits.
-- **Un rôle qui peut gérer les secrets** : Project Owner, Project Admin, ou un rôle personnalisé avec l'autorisation Create Monitor Secret.
+- **Un rôle qui peut gérer les secrets** : Propriétaire du projet, Administrateur du projet, ou un rôle personnalisé avec l'autorisation Create Monitor Secret.
 
 ## Travailler avec les secrets
 

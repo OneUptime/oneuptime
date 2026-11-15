@@ -164,6 +164,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Incoming Request Secrets",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Key,
+        },
+        {
+          link: {
             title: "Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route,

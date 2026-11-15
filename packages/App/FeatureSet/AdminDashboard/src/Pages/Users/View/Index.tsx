@@ -25,6 +25,7 @@ const Users: FunctionComponent = (): ReactElement => {
       modelType={User}
       modelAPI={AdminModelAPI}
       title={t("pages.userView.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

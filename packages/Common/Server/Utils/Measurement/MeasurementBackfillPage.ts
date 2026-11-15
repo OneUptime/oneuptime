@@ -1,6 +1,8 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import {
+import MeasurementBackfillProgress, {
+  getExactTimestampSql,
+  isExactTimestampOf,
   MeasurementBackfillCursor,
   MeasurementBackfillService,
   MeasurementBackfillStatement,
@@ -26,17 +28,22 @@ import {
  * after it were never worked out, and the measurement never finished.
  *
  * TO THE MICROSECOND. Postgres keeps createdAt in microseconds, and
- * node-postgres reads it to the millisecond, so the createdAt a page hands
- * back - and the cursor stores - can be up to 999 microseconds before the
- * record's own. Compared with that, a run of records created within one
- * millisecond would be read again, page after page, as the run of equal
- * timestamps was. So the page after a cursor compares with the cursor
- * record's own createdAt, read in the same statement by its _id (deleted
- * with a deletedAt or not). When that record is gone for good, deleted
- * since, the stored createdAt stands in: it is never after the record's
- * own, so the page reads again the records created in that millisecond
- * before it - for a run one statement inserted, the run up to it - once, and
- * never passes over one. The cursor it saves is a record that is there.
+ * node-postgres reads it to the millisecond, so a createdAt read as a Date
+ * can be up to 999 microseconds before the record's own. Compared with that,
+ * a run of records created within one millisecond would be read again, page
+ * after page, as the run of equal timestamps was. So a page hands back each
+ * record's createdAt to the microsecond too, as text (exactCreatedAt), the
+ * cursor is saved and compared as that text, and the page after a cursor
+ * compares with the cursor record's own createdAt, read in the same
+ * statement by its _id (deleted with a deletedAt or not). When that record
+ * is gone for good, deleted since, the cursor's createdAt stands in, and to
+ * the microsecond it stands in exactly: the page goes on right after the
+ * record that was there. It used to stand in cut to the millisecond
+ * (#8388), which never passed over a record, but read again every record
+ * created in that millisecond before it - for a run one statement inserted,
+ * the whole run up to it, a tick's work done twice. A cursor saved before
+ * #8388, or read without its microseconds, still stands in so, and reads
+ * that millisecond again at most once.
  *
  * Read in the order Incident's and Alert's (projectId, createdAt) index
  * keeps, so a page of them is a short read of the index from the cursor on
@@ -48,6 +55,8 @@ import {
 // Where a page starts: after this record. A cursor saved before #8171 has no id.
 export interface MeasurementBackfillPageAfter {
   createdAt: Date;
+  // The createdAt to the microsecond, when known (MeasurementBackfillCursor).
+  exactCreatedAt?: string | undefined;
   id?: ObjectID | undefined;
 }
 
@@ -78,7 +87,10 @@ export default class MeasurementBackfillPage {
     ];
 
     if (data.after) {
-      parameters.push(data.after.createdAt);
+      // To the microsecond when the cursor has it (#8388).
+      parameters.push(
+        MeasurementBackfillProgress.getCursorCreatedAtParameter(data.after),
+      );
       const createdAtParameter: number = parameters.length;
 
       /*
@@ -100,15 +112,16 @@ export default class MeasurementBackfillPage {
     parameters.push(data.limit);
 
     return {
-      sql: `SELECT "_id", "createdAt" FROM ${table} WHERE ${conditions.join(" AND ")} ORDER BY "createdAt" ASC, "_id" ASC LIMIT $${parameters.length}`,
+      sql: `SELECT "_id", "createdAt", ${getExactTimestampSql(`"createdAt"`)} AS "exactCreatedAt" FROM ${table} WHERE ${conditions.join(" AND ")} ORDER BY "createdAt" ASC, "_id" ASC LIMIT $${parameters.length}`,
       parameters: parameters,
     };
   }
 
   /*
    * Reads the page from the table its service names, on that service's
-   * connection: each record's id and createdAt, oldest first. The last of
-   * them is where the next page starts.
+   * connection: each record's id and createdAt - to the millisecond, and to
+   * the microsecond - oldest first. The last of them is where the next page
+   * starts.
    */
   public static async read(data: {
     service: MeasurementBackfillService;
@@ -143,9 +156,14 @@ export default class MeasurementBackfillPage {
     }
 
     return rows.map((row: unknown): MeasurementBackfillCursor => {
-      const record: { _id?: unknown; createdAt?: unknown } = (row || {}) as {
+      const record: {
         _id?: unknown;
         createdAt?: unknown;
+        exactCreatedAt?: unknown;
+      } = (row || {}) as {
+        _id?: unknown;
+        createdAt?: unknown;
+        exactCreatedAt?: unknown;
       };
 
       if (
@@ -158,7 +176,20 @@ export default class MeasurementBackfillPage {
         );
       }
 
-      return { id: new ObjectID(record._id), createdAt: record.createdAt };
+      return {
+        id: new ObjectID(record._id),
+        createdAt: record.createdAt,
+        /*
+         * Only text that is this createdAt to the microsecond: without it,
+         * the cursor stands in to the millisecond, as it did before #8388.
+         */
+        exactCreatedAt: isExactTimestampOf(
+          record.exactCreatedAt,
+          record.createdAt,
+        )
+          ? record.exactCreatedAt
+          : undefined,
+      };
     });
   }
 }

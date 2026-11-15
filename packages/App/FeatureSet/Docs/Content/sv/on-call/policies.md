@@ -111,7 +111,7 @@ flowchart TB
 | Status | Vad den betyder |
 | --- | --- |
 | **Väntar** | En jourregel inställd på **Endast under arbetstid** låter körningen vänta tills arbetstiden börjar: den säger när larmningen börjar och larmar ingen fram till dess. Den avslutas utan larm om incidenten eller larmet bekräftas eller löses först. Den börjar larma genast om incidenten eller larmet ändras och nu matchar en jourregel som larmar direkt. |
-| **Schemalagd**, **Startade** | Körningen förbereds. En som fortfarande står här efter 5 minuter stoppas som **Fel**. |
+| **Schemalagd**, **Startade** | Körningen förbereds. En som fortfarande står här efter 5 minuter blev inte klar med att starta: den går vidare till **Utförs** och larmar därifrån starten stannade. En direkt utlarmning eller en testutlarmning som fortfarande står här stoppas som **Fel**. |
 | **Utförs** | Körningen larmar. OneUptime för den ett steg vidare varje minut. |
 | **Exekvering slutförd** | Någon bekräftade, incidenten eller larmet löstes, varje regel och upprepning användes, eller policyn arkiverades. |
 | **Exekvering slutförd - ingen aviserad** | Körningen gick igenom varje regel och larmade ingen: oftast ett schema där ingen har jour, eller en nivå utan mottagare. |

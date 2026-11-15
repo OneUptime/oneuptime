@@ -67,13 +67,13 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 
 ## Voordat je begint
 
-Beveiligingsgegevens zijn alleen leesbaar voor de rollen Project Owner en Project Admin en voor de drie Security-rollen; andere rollen zien niets in Security Events. Zie [Rollen](/docs/permissions/reference#rollen).
+Beveiligingsgegevens zijn alleen leesbaar voor de rollen Projecteigenaar en Projectbeheerder en voor de drie Security-rollen; andere rollen zien niets in Security Events. Zie [Rollen](/docs/permissions/reference#rollen).
 
 | Rol | Wat hij kan doen |
 | --- | --- |
-| Security Admin | Alles: gebeurtenissen, zaken, playbooks, detectieregels, threat-intelfeeds en verbindingen |
-| Security Member | Gebeurtenissen en threat intel lezen, zaken afhandelen, playbooks uitvoeren en hun stappen goedkeuren, en detectieregels en feeds aanmaken, wijzigen en verwijderen. Hij kan geen playbooks of verbindingen instellen en geen beveiligingsgegevens verwijderen. |
-| Security Viewer | Gebeurtenissen, zaken, playbooks, regels, feeds, indicatoren en verbindingen lezen |
+| Beveiligingsbeheerder | Alles: gebeurtenissen, zaken, playbooks, detectieregels, threat-intelfeeds en verbindingen |
+| Beveiligingslid | Gebeurtenissen en threat intel lezen, zaken afhandelen, playbooks uitvoeren en hun stappen goedkeuren, en detectieregels en feeds aanmaken, wijzigen en verwijderen. Hij kan geen playbooks of verbindingen instellen en geen beveiligingsgegevens verwijderen. |
+| Beveiligingskijker | Gebeurtenissen, zaken, playbooks, regels, feeds, indicatoren en verbindingen lezen |
 
 ## Beveiligingsgebeurtenissen sturen
 
@@ -305,7 +305,7 @@ Een hunt is een zoekopdracht in je beveiligingsgebeurtenissen die onder een naam
 
 Zoek en filter op **Gebeurtenissen** tot de lijst laat zien wat je zoekt, open dan **Hunts** in de werkbalk en kies **Opslaan als hunt**. Geef hem een naam, kies of hij volgens een schema draait, en zijn pagina opent. **Gebeurtenissen → Hunts** toont de hunts van het project, elk met zijn zoekopdracht, hoe vaak hij draait, wie hij op de hoogte stelt en wat zijn laatste run vond; **Hunt aanmaken** neemt daar de zoekopdracht zoals je die op **Gebeurtenissen** zou typen. Een project bewaart tot 200 hunts. Een zoekopdracht kan een [volglijst](#volglijsten) lezen, zoals `user:%vip_users%` doet, en een hunt die een lijst leest die het project niet heeft, wordt bij het opslaan geweigerd.
 
-De pagina van een hunt is zijn zoekopdracht, geopend in de verkenner Gebeurtenissen. Wijzig daar de zoekopdracht of de filters, en de kop van de hunt biedt **Wijzigingen opslaan** en **Wijzigingen verwerpen**. **Bewerken** wijzigt zijn naam, zijn zoekopdracht, hoe ver hij terugkijkt, zijn schema en wie hij op de hoogte stelt, en **Hunt verwijderen** staat in zijn menu. Vanaf Security Member kun je hunts opslaan, wijzigen en verwijderen, en een Security Viewer kan ze openen.
+De pagina van een hunt is zijn zoekopdracht, geopend in de verkenner Gebeurtenissen. Wijzig daar de zoekopdracht of de filters, en de kop van de hunt biedt **Wijzigingen opslaan** en **Wijzigingen verwerpen**. **Bewerken** wijzigt zijn naam, zijn zoekopdracht, hoe ver hij terugkijkt, zijn schema en wie hij op de hoogte stelt, en **Hunt verwijderen** staat in zijn menu. Vanaf Beveiligingslid kun je hunts opslaan, wijzigen en verwijderen, en een Beveiligingskijker kan ze openen.
 
 Een hunt die is opgeslagen met filters uit de zijbalk van Gebeurtenissen, toont ze in **Bewerken** onder **Filters**, zoals Gebeurtenissen ze tekent, elk met een x om het weg te halen. Voeg filters toe op de pagina van de hunt, vanuit de zijbalk.
 
@@ -340,7 +340,7 @@ Elke geplande run wordt 90 dagen bewaard. **Runhistorie**, aan het eind van de r
 
 De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en welk venster die las, en linkt naar de pagina van de hunt op die gebeurtenissen; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
 
-Om wat hunts vinden in Slack, Microsoft Teams of Mattermost te plaatsen, voeg je een regel toe aan **Regels voor hunts** onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams** of **Mattermost**), onder de regels die [beveiligingszaken](/docs/telemetry/security-cases#plaatsen-in-kanalen-van-slack-microsoft-teams-en-mattermost) plaatsen. Een regel noemt de kanalen waarin geplaatst wordt (en in Microsoft Teams de chats) en, als je wilt, de hunts waarvoor hij geldt, op **Naam van hunt**: een naam die jouw tekst is, die bevat, ermee begint of ermee eindigt. Telkens wanneer een geplande run gebeurtenissen vindt, plaatst hij de hunt, zijn zoekopdracht, hoeveel gebeurtenissen en wanneer, met een link ernaar, en geen van de eigen woorden van een gebeurtenis. Een huntregel wordt ingesteld door een rol die beveiligingsplaybooks mag instellen, zoals Project Owner, Project Admin of Security Admin.
+Om wat hunts vinden in Slack, Microsoft Teams of Mattermost te plaatsen, voeg je een regel toe aan **Regels voor hunts** onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams** of **Mattermost**), onder de regels die [beveiligingszaken](/docs/telemetry/security-cases#plaatsen-in-kanalen-van-slack-microsoft-teams-en-mattermost) plaatsen. Een regel noemt de kanalen waarin geplaatst wordt (en in Microsoft Teams de chats) en, als je wilt, de hunts waarvoor hij geldt, op **Naam van hunt**: een naam die jouw tekst is, die bevat, ermee begint of ermee eindigt. Telkens wanneer een geplande run gebeurtenissen vindt, plaatst hij de hunt, zijn zoekopdracht, hoeveel gebeurtenissen en wanneer, met een link ernaar, en geen van de eigen woorden van een gebeurtenis. Een huntregel wordt ingesteld door een rol die beveiligingsplaybooks mag instellen, zoals Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder.
 
 ### Gebeurtenissen bij een zaak bewaren
 

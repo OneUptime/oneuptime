@@ -203,8 +203,8 @@ describe("tsconfig.json: Common's files are checked with Common's options", () =
     },
     {
       option: "target",
-      value: ts.ScriptTarget.ES2017,
-      why: "es2017, and with it Common's default lib",
+      value: ts.ScriptTarget.ES2018,
+      why: "es2018, and with it Common's default lib",
     },
     {
       option: "strictNullChecks",

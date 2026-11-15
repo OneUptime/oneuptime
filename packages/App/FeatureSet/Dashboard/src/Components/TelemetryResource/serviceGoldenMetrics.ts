@@ -12,10 +12,12 @@ import {
   fetchMetricSeries,
   formatBytes,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
   TimePoint,
 } from "./telemetryMetrics";
+import { writeFigureInLanguage } from "Common/Types/DateLanguage";
+import { Translator } from "Common/Types/Translator";
 
 /*
  * Technology-specific "golden" runtime metrics for the Service overview
@@ -41,19 +43,30 @@ export type { ServiceLanguage };
 
 export type RuntimeMetricUnit = "percent" | "bytes" | "count" | "milliseconds";
 
+/*
+ * A runtime reading on its tile and on its chart's value axis and tooltip,
+ * which read alike: in the reader's digits, decimal sign and percent sign
+ * ("12,5 %", "۱٫۵ MiB", "2,5k") and a duration in their words, as the
+ * tiles beside the chart write their figures (#8349). English as before.
+ */
 export const formatRuntimeValue: (
   value: number | null,
   unit: RuntimeMetricUnit,
-) => string = (value: number | null, unit: RuntimeMetricUnit): string => {
+  translator: Translator,
+) => string = (
+  value: number | null,
+  unit: RuntimeMetricUnit,
+  translator: Translator,
+): string => {
   switch (unit) {
     case "percent":
-      return formatPercent(value);
+      return writeFigureInLanguage(formatPercent(value), translator.language);
     case "bytes":
-      return formatBytes(value);
+      return writeFigureInLanguage(formatBytes(value), translator.language);
     case "milliseconds":
-      return formatDurationMs(value);
+      return formatDurationMsInLanguage(value, translator);
     default:
-      return formatCompact(value);
+      return writeFigureInLanguage(formatCompact(value), translator.language);
   }
 };
 

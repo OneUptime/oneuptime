@@ -66,10 +66,10 @@ Afspeellijsten hebben eigen machtigingen, die je net als die van dashboards via 
 
 | Om | Is nodig |
 | --- | --- |
-| Afspeellijsten te zien en af te spelen | `ReadDashboardPlaylist`, of een projectrol: Project Owner, Project Admin, Project Member, Viewer of een Settings-rol |
-| Afspeellijsten te maken | `CreateDashboardPlaylist`, Project Owner of Project Admin |
-| Een afspeellijst te wijzigen: de naam, de dashboards en de tijd ervan | `EditDashboardPlaylist`, Project Owner of Project Admin |
-| Een afspeellijst te verwijderen | `DeleteDashboardPlaylist`, Project Owner of Project Admin |
+| Afspeellijsten te zien en af te spelen | `ReadDashboardPlaylist`, of een projectrol: Projecteigenaar, Projectbeheerder, Projectlid, Kijker of een Settings-rol |
+| Afspeellijsten te maken | `CreateDashboardPlaylist`, Projecteigenaar of Projectbeheerder |
+| Een afspeellijst te wijzigen: de naam, de dashboards en de tijd ervan | `EditDashboardPlaylist`, Projecteigenaar of Projectbeheerder |
+| Een afspeellijst te verwijderen | `DeleteDashboardPlaylist`, Projecteigenaar of Projectbeheerder |
 
 Een afspeellijst toont nooit iemand een dashboard dat die persoon niet mag lezen. De speler speelt alleen de dashboards af die de persoon die op het scherm is aangemeld mag lezen en die niet zijn gearchiveerd, en slaat de rest over: een verwijderd dashboard, een gearchiveerd dashboard of een dashboard dat de machtigingen van die persoon niet toelaten. De pagina van de afspeellijst zegt waarom hij elk ervan overslaat. Wie een afspeellijst opslaat, houdt de dashboards erin die hij zelf niet kan zien, zodat niets verloren gaat wat iemand anders erin heeft gezet.
 
@@ -81,7 +81,7 @@ Een afspeellijst toont nooit iemand een dashboard dat die persoon niet mag lezen
 | Een lezen dat mislukte | **Deze afspeellijst kon niet worden geladen**, en hij probeert het elke minuut opnieuw, of bij **Opnieuw proberen**. |
 
 > [!NOTE]
-> De speler is voor iemand die bij OneUptime is aangemeld. Om een afspeellijst op een scherm te laten lopen, meld je je op dat scherm aan met een account dat de afspeellijst en de dashboards ervan mag lezen, zoals een teamlid met de rol Viewer.
+> De speler is voor iemand die bij OneUptime is aangemeld. Om een afspeellijst op een scherm te laten lopen, meld je je op dat scherm aan met een account dat de afspeellijst en de dashboards ervan mag lezen, zoals een teamlid met de rol Kijker.
 
 ## Volgende stappen
 
