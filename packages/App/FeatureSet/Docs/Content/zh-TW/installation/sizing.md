@@ -31,14 +31,14 @@ OneUptime 在正式環境中需要三個資料儲存。它們各自隨不同的�
 ```mermaid title="每個資料儲存隨什麼成長"
 flowchart TB
     Tel["記錄、指標、追蹤"] -->|"擷取速率<br/>× 保留期"| CH[("ClickHouse")]
-    State["監視器、<br/>事件、使用者"] -->|"實體數量和歷史"| PG[("PostgreSQL")]
+    State["監測器、<br/>事件、使用者"] -->|"實體數量和歷史"| PG[("PostgreSQL")]
     Work["佇列、快取、<br/>工作階段"] -->|"佇列深度"| VK[("Valkey")]
 ```
 
 | 資料儲存 | 儲存的內容 | 決定其大小的因素 |
 | --- | --- | --- |
 | **ClickHouse** | 所有遙測資料（記錄、指標、追蹤、例外、效能分析） | 遙測的 **擷取速率 × 保留期**。這約占您儲存空間的 95%，是最主要的成本。 |
-| **PostgreSQL** | 設定和狀態（監視器、事件、警示、使用者、團隊、專案、工作流程、狀態頁面、儀表板） | **實體數量和歷史**，而不是遙測資料量。成長緩慢。 |
+| **PostgreSQL** | 設定和狀態（監測器、事件、警示、使用者、團隊、專案、工作流程、狀態頁面、儀表板） | **實體數量和歷史**，而不是遙測資料量。成長緩慢。 |
 | **Valkey** | 快取、工作佇列和工作階段 | **佇列深度和使用中的工作階段**。受記憶體限制，規模不大。不是權威資料來源。 |
 
 OneUptime 執行時從不需要物件儲存（S3、MinIO），也不會把較舊的遙測資料移到物件儲存。只有當您選擇備份到物件儲存時才需要它：CloudNativePG 的 Barman Cloud 外掛，或 ClickHouse 的 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup)。Chart 自帶的 CloudNativePG 備份（`postgresOperator.cnpg.backup`）會建立磁碟區快照，不需要物件儲存。CloudNativePG 從不刪除舊快照：請自行清理，否則它們會不斷增加。
@@ -96,7 +96,7 @@ PostgreSQL 儲存的是您的設定和運作狀態，而不是遙測資料，因
 | --- | --- | --- |
 | App：儀表板、API 和擷取 | `app` | 使用者、API 呼叫和傳入的遙測資料 |
 | Worker（與應用程式拆分時） | `worker` | 遙測資料和背景工作處理 |
-| 探測器 | `probes` | 使用中監視器的數量 |
+| 探測器 | `probes` | 使用中監測器的數量 |
 | 輸入閘道 | `nginx` | 要求量 |
 | 遙測寫入器（開啟時） | `telemetryWriter` | 不隨負載成長：它把每次遙測插入批次寫入 ClickHouse，因此依 ClickHouse 能承受的量決定規模 |
 

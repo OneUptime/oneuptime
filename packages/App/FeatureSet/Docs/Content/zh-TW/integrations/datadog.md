@@ -1,12 +1,12 @@
 # Datadog
 
-把 [Datadog](https://www.datadoghq.com) 監控器的警示傳送到 OneUptime，讓每個警示都成為一個事件或一個 OneUptime 警示，在緊急時呼叫你的待命團隊，並在 Datadog 監控器恢復時解決。Datadog 透過它的 [Webhooks 整合](https://docs.datadoghq.com/integrations/webhooks/) 傳送警示，因此兩邊都無需安裝任何東西。
+把 [Datadog](https://www.datadoghq.com) 監測器的警示傳送到 OneUptime，讓每個警示都成為一個事件或一個 OneUptime 警示，在緊急時呼叫你的待命團隊，並在 Datadog 監測器恢復時解決。Datadog 透過它的 [Webhooks 整合](https://docs.datadoghq.com/integrations/webhooks/) 傳送警示，因此兩邊都無需安裝任何東西。
 
 :::cards
 - [選擇 OneUptime 接收警示的方式](#選擇-oneuptime-接收警示的方式): 工作流程範本，或傳入請求監測器。
 - [從範本開始](#從範本開始): 選擇要呼叫誰、複製 URL，並了解每個警示會做什麼。
 - [用監測器接收警示](#用監測器接收警示): 每個警示一個事件，恢復時自動解決。
-- [設定 Datadog](#設定-datadog): 一個 Webhook，以及通知它的監控器。
+- [設定 Datadog](#設定-datadog): 一個 Webhook，以及通知它的監測器。
 - [疑難排解](#疑難排解): 警示沒有到達，或事件一直未關閉時。
 :::
 
@@ -14,7 +14,7 @@
 
 ```mermaid title="從 Datadog 警示到事件"
 flowchart TB
-    monitor["Datadog 監控器<br/>狀態改變"] --> mention["它的訊息<br/>提到 Webhook"]
+    monitor["Datadog 監測器<br/>狀態改變"] --> mention["它的訊息<br/>提到 Webhook"]
     mention --> post["Webhook 發布<br/>你的酬載"]
     post --> transition{"transition"}
     transition -->|"Triggered"| open["事件已建立，<br/>P1 和 P2 已呼叫"]
@@ -22,11 +22,11 @@ flowchart TB
     transition -->|"Warn, No Data"| note["私人備註<br/>加到事件上"]
 ```
 
-Datadog 監控器在狀態改變時，也就是觸發、警告、恢復或沒有資料時，會通知其訊息中提到的 Webhook。Webhook 的 JSON 內文由你自己用 Datadog 的 [範本變數](https://docs.datadoghq.com/integrations/webhooks/#usage) 編寫，所以本指南給出一個能為每個警示命名、並說明它發生了什麼的內文。
+Datadog 監測器在狀態改變時，也就是觸發、警告、恢復或沒有資料時，會通知其訊息中提到的 Webhook。Webhook 的 JSON 內文由你自己用 Datadog 的 [範本變數](https://docs.datadoghq.com/integrations/webhooks/#usage) 編寫，所以本指南給出一個能為每個警示命名、並說明它發生了什麼的內文。
 
 ## 開始之前
 
-- 一個可以設定整合併編輯監控器的 Datadog 帳戶。
+- 一個可以設定整合併編輯監測器的 Datadog 帳戶。
 - 在 OneUptime 中建立工作流程的權限；如果選擇監測器方式，則需要建立監測器的權限。在 OneUptime Cloud 上，工作流程需要 **Growth** 或更高的方案。
 
 ## 選擇 OneUptime 接收警示的方式
@@ -35,7 +35,7 @@ Datadog 監控器在狀態改變時，也就是觸發、警告、恢復或沒有
 
 | 方式 | 適用情況 |
 | --- | --- |
-| 工作流程範本（推薦） | 你希望每個警示都按監控器優先順序所對應的嚴重程度成為一個事件或警示，P1 和 P2 時呼叫待命人員，警告記錄在其上，恢復時解決。無需建置任何東西。 |
+| 工作流程範本（推薦） | 你希望每個警示都按監測器優先順序所對應的嚴重程度成為一個事件或警示，P1 和 P2 時呼叫待命人員，警告記錄在其上，恢復時解決。無需建置任何東西。 |
 | 傳入請求監測器 | 你希望不用工作流程、在任何方案上都能建立事件，並有一個狀態跟隨 Datadog 的監測器。 |
 
 兩者從同一個 Webhook 收到相同的 JSON，所以你可以先用其中一種，之後只需修改 Datadog 中的一個 URL 就能切換。
@@ -59,16 +59,16 @@ Datadog 監控器在狀態改變時，也就是觸發、警告、恢復或沒有
 
 | 轉換 | 工作流程做什麼 |
 | --- | --- |
-| `Triggered`, `Re-Triggered` | 宣告一個標題為 `Datadog: <monitor>` 的事件，其嚴重程度為監控器優先順序所對應的嚴重程度，並且不顯示在你的狀態頁面上。它的描述連結到 Datadog 中的警示，並列出優先順序、主機、範圍和監控器的訊息。對於已有事件的警示，再收到通知不會建立第二個事件，也不會再次呼叫任何人。 |
+| `Triggered`, `Re-Triggered` | 宣告一個標題為 `Datadog: <monitor>` 的事件，其嚴重程度為監測器優先順序所對應的嚴重程度，並且不顯示在你的狀態頁面上。它的描述連結到 Datadog 中的警示，並列出優先順序、主機、範圍和監測器的訊息。對於已有事件的警示，再收到通知不會建立第二個事件，也不會再次呼叫任何人。 |
 | `Recovered` | 解決警示的事件，除非它已經解決。原因記錄在它的時間軸上。 |
-| `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | 把監控器現在的狀態作為私人備註新增到警示的事件。 |
+| `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | 把監測器現在的狀態作為私人備註新增到警示的事件。 |
 | `Renotify` | 無：警示仍然開啟。 |
 
 沒有事件的警示收到警告或恢復，不會改變任何東西。其他任何內容，例如來自其他工具的請求，都會原樣保留： `read-event-1` 走 **No**，執行的 **步驟** 會說明原因。不會有任何內容回到 Datadog：它會在訊號恢復時自行解決其警示，而這就是解決事件的原因。
 
 ### 優先順序與呼叫
 
-當監控器為 P1 或 P2，或沒有優先順序時，新事件會呼叫你選擇的待命策略。P3、P4 和 P5 會建立事件，但不呼叫任何人。在新專案中，優先順序對應到以下事件和警示嚴重程度：
+當監測器為 P1 或 P2，或沒有優先順序時，新事件會呼叫你選擇的待命策略。P3、P4 和 P5 會建立事件，但不呼叫任何人。在新專案中，優先順序對應到以下事件和警示嚴重程度：
 
 | Datadog 優先順序 | 事件 | 警示 | 待命 |
 | --- | --- | --- | --- |
@@ -128,7 +128,7 @@ https://oneuptime.com/heartbeat/<secret key>
 自行託管安裝使用自己的主機來代替 `oneuptime.com`。
 :::
 
-下面的酬載把 `alert_key` 設為 Datadog 監控器的 ID 加上發出警示的分組的標籤，因此多警示監控器的每個分組都有自己的事件，並由該分組的恢復來解決。在事件開啟期間再次觸發或重新通知的監控器不會再開啟第二個事件。每項設定的作用請參閱 [接收其他系統的警示](/docs/monitor/incoming-request-monitor#接收其他系統的警示)。
+下面的酬載把 `alert_key` 設為 Datadog 監測器的 ID 加上發出警示的分組的標籤，因此多警示監測器的每個分組都有自己的事件，並由該分組的恢復來解決。在事件開啟期間再次觸發或重新通知的監測器不會再開啟第二個事件。每項設定的作用請參閱 [接收其他系統的警示](/docs/monitor/incoming-request-monitor#接收其他系統的警示)。
 
 > [!NOTE]
 > 使用這些篩選器時，**Warn** 或 **No Data** 通知不會開啟事件。如果也想在警告時被呼叫，請點選 **新增條件準則**，為新條件設定篩選器 **請求內文**、**包含**、`"transition":"Warn"`，一個帶有自己 **嚴重程度** 的事件，以及相同的分組設定，然後把它拖到第一個條件上方。條件從上往下檢查，第一個符合的條件起決定作用。
@@ -140,7 +140,7 @@ https://oneuptime.com/heartbeat/<secret key>
 
 在 Datadog 中開啟 [Webhooks 整合磁貼](https://app.datadoghq.com/integrations/webhooks)，如果尚未安裝，請先安裝。用以下設定新增一個 Webhook，然後儲存：
 
-- **Name**：`oneuptime`。監控器用這個名稱提到該 Webhook，即 `@webhook-oneuptime`。
+- **Name**：`oneuptime`。監測器用這個名稱提到該 Webhook，即 `@webhook-oneuptime`。
 - **URL**：你從 OneUptime 複製的 URL。
 - **Payload**：
 
@@ -159,20 +159,20 @@ https://oneuptime.com/heartbeat/<secret key>
   }
   ```
 
-### 在監控器中提到該 Webhook
+### 在監測器中提到該 Webhook
 
-在每個應透過 OneUptime 呼叫的 Datadog 監控器中，把 `@webhook-oneuptime` 新增到監控器的通知訊息裡，然後儲存監控器。之後 Datadog 會把該監控器的警示和恢復傳送到 OneUptime。
+在每個應透過 OneUptime 呼叫的 Datadog 監測器中，把 `@webhook-oneuptime` 新增到監測器的通知訊息裡，然後儲存監測器。之後 Datadog 會把該監測器的警示和恢復傳送到 OneUptime。
 :::
 
 | 變數 | Datadog 填入的內容 |
 | --- | --- |
-| `$ALERT_ID` | 發出警示的 Datadog 監控器的 ID。 |
+| `$ALERT_ID` | 發出警示的 Datadog 監測器的 ID。 |
 | `$ALERT_SCOPE` | 發出警示的分組的標籤，例如 `host:web-1`。 |
 | `$ALERT_CYCLE_KEY` | 從警示觸發起到它恢復為止保持不變的 ID。 |
 | `$ALERT_TRANSITION` | 發生了什麼：`Triggered`、`Re-Triggered`、`Warn`、`Recovered`、`No Data` 或 `Renotify` 等。 |
-| `$ALERT_PRIORITY` | Datadog 監控器的優先順序，`P1` 到 `P5`，沒有優先順序的監控器則為空。 |
+| `$ALERT_PRIORITY` | Datadog 監測器的優先順序，`P1` 到 `P5`，沒有優先順序的監測器則為空。 |
 | `$EVENT_TITLE` | 事件的標題，例如 `[Triggered] High CPU`。 |
-| `$TEXT_ONLY_MSG` | 去掉 Markdown 的監控器訊息。 |
+| `$TEXT_ONLY_MSG` | 去掉 Markdown 的監測器訊息。 |
 | `$LINK` | 指向 Datadog 中該事件的連結。 |
 
 同一個酬載兩種方式都適用：範本使用 `alert_cycle_key` 和 `alert_priority`，監測器使用 `alert_key`。全部保留，之後只需修改 URL 就能切換。
@@ -200,12 +200,12 @@ curl -X POST "<url>" \
 
 使用範本時，會開啟一個標題為 `Datadog: High CPU` 的事件，並呼叫你選擇的待命策略。使用監測器時，會開啟一個標題為 `[Triggered] High CPU` 的事件。把 `transition` 設為 `Recovered` 後傳送同樣的請求，事件就會被解決。
 
-然後從 Datadog 測試：開啟一個提到該 Webhook 的監控器，點選 **Test Notifications**，並發送它的 **Alert** 通知。要確認它已到達，請開啟工作流程的 **日誌 → 執行記錄**，或 OneUptime 監測器的時間軸。
+然後從 Datadog 測試：開啟一個提到該 Webhook 的監測器，點選 **Test Notifications**，並發送它的 **Alert** 通知。要確認它已到達，請開啟工作流程的 **日誌 → 執行記錄**，或 OneUptime 監測器的時間軸。
 
 ## 疑難排解
 
 :::details OneUptime 沒有收到任何內容
-- 檢查 Datadog 監控器的訊息是否提到了 `@webhook-oneuptime`，拼寫與 Webhook 的名稱一致。
+- 檢查 Datadog 監測器的訊息是否提到了 `@webhook-oneuptime`，拼寫與 Webhook 的名稱一致。
 - 監測器會在檢查任何內容之前立即回應 `200`，即使金鑰錯誤也是如此。請檢視監測器的時間軸，確認警示是否到達。
 - 處於關閉狀態的工作流程會回應 `400`。在它的 **建構器** 頂部開啟 **已啟用**。
 :::
@@ -218,13 +218,13 @@ curl -X POST "<url>" \
 :::
 
 :::details 沒有呼叫待命人員
-- 只有 P1 和 P2 監控器以及沒有優先順序的監控器會呼叫。請參閱 [優先順序與呼叫](#優先順序與呼叫)。
+- 只有 P1 和 P2 監測器以及沒有優先順序的監測器會呼叫。請參閱 [優先順序與呼叫](#優先順序與呼叫)。
 - 對於已有事件的警示，再收到通知不會再次呼叫任何人。
 - 如果在 **建立工作流程** 對話框中沒有選擇任何人，工作流程就沒有呼叫的步驟。
 :::
 
 :::details 事件被建立但從未被解決
-- Datadog 監控器也必須把恢復通知給該 Webhook。如果訊息只在條件區塊中針對警示提到該 Webhook，就不會發送恢復。
+- Datadog 監測器也必須把恢復通知給該 Webhook。如果訊息只在條件區塊中針對警示提到該 Webhook，就不會發送恢復。
 - 使用範本時，在 **日誌 → 執行記錄** 中開啟恢復的那次執行：它的最後一個步驟會說明原因。恢復的 `alert_cycle_key` 必須與警示的相同，所以請保持酬載中的 `$ALERT_CYCLE_KEY` 不變。
 - 使用監測器時，條件中的事件需要開啟 **更多欄位** 下的 **自動解決事件**。
 - **Value that means recovered** 必須恰好是 `Recovered`。比較區分大小寫。
@@ -235,7 +235,7 @@ curl -X POST "<url>" \
 Datadog 只會填入適用於該事件的變數。傳送一個測試通知，然後檢視到達的內容：在監測器的時間軸中，或者對於工作流程，在 **日誌 → 執行記錄** 中檢視。
 :::
 
-:::details 監控器的所有警示合併成了一個事件
+:::details 監測器的所有警示合併成了一個事件
 使用監測器時，每個分組都需要自己的 `alert_key`。檢查酬載是否同時用 `$ALERT_ID` 和 `$ALERT_SCOPE` 來設定它，以及分組路徑是否為 `requestBody.alert_key`。
 :::
 

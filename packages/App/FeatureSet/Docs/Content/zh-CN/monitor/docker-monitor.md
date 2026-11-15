@@ -113,7 +113,7 @@ flowchart TB
 > `container.cpu.throttling_data.throttled_time` 只会增长，所以 **Container CPU Throttling** 根据它在窗口内增长了多少发出警报：每分钟一个 Maximum 查询和一个 Minimum 查询，由公式相减后求和。按代理每 30 秒一次的采集，这只能看到大约一半的真实节流，阈值已经考虑到了这一点。如果把代理的 `collection_interval` 调到 60 秒或更长，每分钟只有一个样本，该模板就会停止报警。
 
 > [!NOTE]
-> `container.restarts` 同样只会增长，直到手动重启或重新创建的容器让它从 0 重新开始，所以代理还会在每个样本里发送 `container.restarts.increase`：自它上一次对该容器采样以来的重启次数。**Container Restart Loop** 把它们相加，因此无论样本相隔多远，每次重启都会计入，而手动重启不算在内。Docker 会把正在重启的容器报告为正在运行，所以代理在重启循环中的容器两次运行之间也会继续采样。旧版代理不会发送 `container.restarts.increase`：请先[升级它](/docs/telemetry/docker-host#升级代理)。在那之前用该模板创建的监控器读取的是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
+> `container.restarts` 同样只会增长，直到手动重启或重新创建的容器让它从 0 重新开始，所以代理还会在每个样本里发送 `container.restarts.increase`：自它上一次对该容器采样以来的重启次数。**Container Restart Loop** 把它们相加，因此无论样本相隔多远，每次重启都会计入，而手动重启不算在内。Docker 会把正在重启的容器报告为正在运行，所以代理在重启循环中的容器两次运行之间也会继续采样。旧版代理不会发送 `container.restarts.increase`：请先[升级它](/docs/telemetry/docker-host#升级代理)。在那之前用该模板创建的监视器读取的是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
 
 > [!CAUTION]
 > `container.uptime` 只存在于正在运行的容器。停止后一直保持停止的容器不发送任何数据，所以 **Container Restarted (Low Uptime)** 模板捕捉的是重启和重新部署，而不是永久关闭。设计为运行不到两分钟的容器，在其整个生命周期内都会处于警报状态。对于必须保持运行的服务，还要监控它提供的功能，例如使用 [API 监控](/docs/monitor/api-monitor)。
@@ -191,7 +191,7 @@ flowchart TB
 | 2 | Check if _monitor name_ is online | 第一个查询有数据 | 将监视器标记为 **运行正常**。 |
 
 > [!IMPORTANT]
-> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监控器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监控器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监视器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监视器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 收集的日志
 
@@ -297,7 +297,7 @@ OneUptime 通过 `resource.host.name` 识别主机，代理从 `DOCKER_HOST_NAME
 :::
 
 :::details 重启循环模板从不触发，或漏掉重启
-它读取 `container.restarts.increase`，而旧版代理不会发送它：[升级代理](/docs/telemetry/docker-host#升级代理)。在那之前用该模板创建的监控器读取的是 `container.restarts` 在同一分钟内两个样本之间增长了多少，会漏掉不同分钟的样本之间发生的重启：请删除它，再用模板重新创建。
+它读取 `container.restarts.increase`，而旧版代理不会发送它：[升级代理](/docs/telemetry/docker-host#升级代理)。在那之前用该模板创建的监视器读取的是 `container.restarts` 在同一分钟内两个样本之间增长了多少，会漏掉不同分钟的样本之间发生的重启：请删除它，再用模板重新创建。
 :::
 
 ## 后续步骤

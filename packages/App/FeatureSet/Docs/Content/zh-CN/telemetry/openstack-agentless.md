@@ -18,10 +18,10 @@ flowchart TB
     OU["OneUptime"] -->|"立即收集，<br/>每 2 分钟一次"| P["您的探测器"]
     P -->|"HTTPS，只读：<br/>Keystone, Nova, Placement,<br/>Neutron, Cinder, Glance"| OS["您的云"]
     P -->|"指标，与<br/>OpenStack 代理<br/>发送的相同"| OU
-    OU --> V["OpenStack 页面、<br/>监控器、告警和 AI"]
+    OU --> V["OpenStack 页面、<br/>监视器、告警和 AI"]
 ```
 
-探测器每两分钟读取您所选每个区域的每项服务，并将结果发送到 OneUptime。数据的到达方式与 OpenStack 代理完全一致，因此每个 OpenStack 页面、[OpenStack 监控器](/docs/monitor/openstack-monitor)和告警模板对它的读取方式都相同。
+探测器每两分钟读取您所选每个区域的每项服务，并将结果发送到 OneUptime。数据的到达方式与 OpenStack 代理完全一致，因此每个 OpenStack 页面、[OpenStack 监视器](/docs/monitor/openstack-monitor)和告警模板对它的读取方式都相同。
 
 每项服务都独立读取，并与其他服务同时进行。Neutron 失败或挂起只会丢失 Neutron 的序列，Nova 的数据照常到达，但有一点是 Nova 自身造成的：它会就列出的每个实例向 Neutron 查询。因此，在 Neutron 宕机期间，探测器会保留上次读取的实例，只查询发生变化的部分。如果某个实例已变化，或探测器刚刚启动，Nova 也无法回答该列表：Nova 会显示为失败，其他序列仍会到达，每个实例在其页面上保持上次的状态，直到 Neutron 恢复。
 
@@ -48,7 +48,7 @@ Heat、Magnum、Manila、Trove、Gnocchi、Designate、Swift 和 Barbican 会在
 | 登录 Keystone | 每个令牌的有效期内一次，通常为一小时 | 每次抓取一次 |
 | 单个项目上的普通 `reader` | 该项目的实例、卷和网络 | 该项目的卷和网络，没有实例 |
 
-两者发送的序列相同，因此页面和监控器在两种方式下都能工作。探测器还会发送只有原生客户端才能读取的内容：实例的地址、任务状态和故障消息，其启动所用的镜像，运维人员是否强制将某个 Nova 服务设为停用，DHCP 代理服务哪些网络，哪个存储池保存某个卷，实例、卷或镜像最近一次更改的时间，以及每个卷快照和备份的状态。Cinder 只会向它视为管理员的凭据说明哪个存储池保存某个卷。在运行 [Heat 或 Magnum](/docs/telemetry/openstack#heat-和-magnum) 的云上，它还会发送堆栈或集群失败的原因，堆栈拥有哪些实例和卷，每个集群的项目、模板和 Kubernetes 版本，以及 Heat 的每个引擎和 Magnum 的每个 conductor 是否在运行。
+两者发送的序列相同，因此页面和监视器在两种方式下都能工作。探测器还会发送只有原生客户端才能读取的内容：实例的地址、任务状态和故障消息，其启动所用的镜像，运维人员是否强制将某个 Nova 服务设为停用，DHCP 代理服务哪些网络，哪个存储池保存某个卷，实例、卷或镜像最近一次更改的时间，以及每个卷快照和备份的状态。Cinder 只会向它视为管理员的凭据说明哪个存储池保存某个卷。在运行 [Heat 或 Magnum](/docs/telemetry/openstack#heat-和-magnum) 的云上，它还会发送堆栈或集群失败的原因，堆栈拥有哪些实例和卷，每个集群的项目、模板和 Kubernetes 版本，以及 Heat 的每个引擎和 Magnum 的每个 conductor 是否在运行。
 
 如需服务日志、AI 代理、云所依赖的组件和每个实例的真实用量，如果云的 API 只支持明文 HTTP（DevStack 和 Kolla-Ansible 默认如此），或云过大而必须[从其数据库读取](/docs/telemetry/openstack-very-large-clouds#数据库路径)，请选择代理。其他情况请选择探测器：无需安装任何东西，而且它能读取更多 Nova 和 Cinder 提供的信息。[超大规模 OpenStack 云](/docs/telemetry/openstack-very-large-clouds)说明了两种方式在各种规模下的开销。
 
@@ -280,7 +280,7 @@ Keystone 返回了服务器错误。探测器会在登录之间等待更久，�
 ## 后续步骤
 
 :::cards
-- [OpenStack 监控器](/docs/monitor/openstack-monitor): 对服务、Hypervisor、实例、网络和卷发出告警。
+- [OpenStack 监视器](/docs/monitor/openstack-monitor): 对服务、Hypervisor、实例、网络和卷发出告警。
 - [自定义探测器](/docs/probe/custom-probe): 在云的网络中运行探测器。
 - [OpenStack 代理](/docs/telemetry/openstack): 改用代理收集云。
 :::

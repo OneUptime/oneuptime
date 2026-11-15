@@ -58,7 +58,7 @@ Kubernetes 叢集有自己的代理程式，也就是 Kubernetes AI 代理程式
 | Docker Swarm 叢集 | `docker-swarm`（或 `swarm`） | Docker Swarm AI 代理程式 | `DOCKER_SWARM_CLUSTER_NAME` | `docker` | 管理節點的 Docker 通訊端 |
 | Proxmox 叢集 | `proxmox` | Proxmox AI 代理程式 | `PROXMOX_CLUSTER_NAME` | 傳送到 Proxmox VE API 的 `pvesh` 指令（代理程式中沒有 `pvesh` 二進位檔） | `https://PVE_HOST:8006/api2/json`，使用 Proxmox API 權杖 |
 | VMware vCenter | `vmware`（或 `vcenter`） | VMware AI 代理程式 | `VMWARE_VCENTER_NAME` | `govc` | vCenter 的 API，使用 vSphere 使用者 |
-| Ceph 叢集 | `ceph` | Ceph AI 代理程式 | `CEPH_CLUSTER_NAME` | `ceph` | 監視器，使用 `ceph.conf` 和代理程式專用用戶端的金鑰圈 |
+| Ceph 叢集 | `ceph` | Ceph AI 代理程式 | `CEPH_CLUSTER_NAME` | `ceph` | 監測器，使用 `ceph.conf` 和代理程式專用用戶端的金鑰圈 |
 | 資料庫伺服器 | `database`（或 `db`） | 資料庫 AI 代理程式 | `DATABASE_SERVER_ID`，或 `DATABASE_SYSTEM` + `DATABASE_SERVER_ADDRESS` + `DATABASE_SERVER_PORT` | `db`——固定診斷目錄中的一項作業，從不執行 SQL | 資料庫自己的驅動程式，使用資料庫登入 |
 | 主機 | `host` | 主機 AI 代理程式 | `HOST_NAME`（空白時使用主機自己的主機名稱） | `systemctl`、`journalctl`、`df`、`free`、`uptime`、`ps`、`ss`、`ip`、`dmesg`、`lsblk`、`cat`、`top`、`uname`、`hostnamectl`、`timedatectl`、`kill` | 從特權容器透過 `nsenter` 進入主機的命名空間 |
 | AWS 帳戶 | `aws` | 雲端 AI 代理程式 | `AWS_ACCOUNT_ID`（空白時使用它所執行的帳戶） | `cloud`——固定目錄中的一項操作，從不執行 `aws` 指令 | AWS API，使用它自己的 IAM 角色 |
@@ -206,7 +206,7 @@ ONEUPTIME_AI_ALLOW_WRITES=true
 
 ## 調查可以執行什麼
 
-調查只會執行 **Read** 指令：它們只查看資源，不做任何變更。OneUptime AI 會看到與事件或警示連結（透過其監視器和遙測，每個訊號最多 10 個）、AI 代理程式已連線（雲端帳戶不需要代理程式）且 **調查** 開關已開啟的資源，並執行調查所需的任意數量指令，每個指令都像其他證據一樣被引用。每個指令都是附帶引數的一個程式——從不透過 shell，因此管線、重新導向、`;`、`&&`、`$(…)` 和 `sudo` 都會被拒絕，並附上說明原因的訊息。一個指令預設有 30 秒，最多 2 分鐘，其輸出在代理程式上限制為 1024 KB。這些輸出在交給 OneUptime AI 之前不會被截斷：較長的輸出會逐頁顯示——先顯示前 40,000 個字元，其餘的依需求顯示。如果代理程式沒有領取某個指令，OneUptime AI 會在本次調查的剩餘時間內停止向該資源傳送指令。
+調查只會執行 **Read** 指令：它們只查看資源，不做任何變更。OneUptime AI 會看到與事件或警示連結（透過其監測器和遙測，每個訊號最多 10 個）、AI 代理程式已連線（雲端帳戶不需要代理程式）且 **調查** 開關已開啟的資源，並執行調查所需的任意數量指令，每個指令都像其他證據一樣被引用。每個指令都是附帶引數的一個程式——從不透過 shell，因此管線、重新導向、`;`、`&&`、`$(…)` 和 `sudo` 都會被拒絕，並附上說明原因的訊息。一個指令預設有 30 秒，最多 2 分鐘，其輸出在代理程式上限制為 1024 KB。這些輸出在交給 OneUptime AI 之前不會被截斷：較長的輸出會逐頁顯示——先顯示前 40,000 個字元，其餘的依需求顯示。如果代理程式沒有領取某個指令，OneUptime AI 會在本次調查的剩餘時間內停止向該資源傳送指令。
 
 每種資源可以讀取的內容如下。這與 AI 自己取得的清單相同；不在清單上的一切都會被拒絕。
 
@@ -234,7 +234,7 @@ Podman 主機透過 Podman 的 Docker 相容 API 執行相同的 `docker` CLI �
 - 節點：`pvesh get /nodes/pve1/status`、`pvesh get /nodes/pve1/services`、`pvesh get /nodes/pve1/storage`、`pvesh get /nodes/pve1/disks/list`、`pvesh get /nodes/pve1/rrddata --timeframe hour`，以及該節點的網路、複寫、APT 更新和 Ceph 狀態。
 - 工作與日誌：`pvesh get /nodes/pve1/tasks --errors 1 --limit 20`、工作的狀態與日誌、`pvesh get /nodes/pve1/syslog --limit 200`、`pvesh get /nodes/pve1/journal --lastentries 200`。
 - 客體（虛擬機器用 `qemu`，容器用 `lxc`）：`pvesh get /nodes/pve1/qemu`、`pvesh get /nodes/pve1/lxc`、`pvesh get /nodes/pve1/qemu/101/status/current`、`pvesh get /nodes/pve1/qemu/101/config`（cloud-init 密碼等機密會被遮蔽後傳回）、待處理的變更、快照、`pvesh get /nodes/pve1/qemu/101/rrddata --timeframe hour`，以及 QEMU 客體代理程式資訊，例如 `pvesh get /nodes/pve1/qemu/101/agent/get-fsinfo`。
-- 從不允許：`/access` 下的任何內容（使用者、API 權杖、ACL）、主控台（`vncproxy`、`termproxy`、`spiceproxy`）、QEMU 監視器、客體代理程式的 exec 與檔案呼叫。
+- 從不允許：`/access` 下的任何內容（使用者、API 權杖、ACL）、主控台（`vncproxy`、`termproxy`、`spiceproxy`）、QEMU 監測器、客體代理程式的 exec 與檔案呼叫。
 
 ### VMware vCenter
 
@@ -327,7 +327,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 - **自動** ——安全的變更（**SafeWrite**）會自行執行；風險較高的變更（**RiskyWrite**）會被提出以供核准，除非資源的指令允許清單寫明了它的確切形式。
 - **略過核准** ——原則允許的每項變更，包括風險較高的變更，都會自行執行。始終需要人的變更仍會等待人。
 
-修正執行後，OneUptime 會觀察事件或警示的監視器。如果它們沒有恢復，計畫的回復就會執行，OneUptime AI 會參考失敗的嘗試再擬定一個計畫——每個事件或警示最多兩輪。在 **自動** 模式下，第二輪會請求核准；在 **略過核准** 模式下，它同樣會自行執行。無人看管的修正設有每個資源每小時三次的斷路器：超過這個次數，或在 OneUptime AI 的另一輪無人看管修正仍在變更或驗證同一資源時，本輪會提出其計畫以供核准，而不是直接執行。
+修正執行後，OneUptime 會觀察事件或警示的監測器。如果它們沒有恢復，計畫的回復就會執行，OneUptime AI 會參考失敗的嘗試再擬定一個計畫——每個事件或警示最多兩輪。在 **自動** 模式下，第二輪會請求核准；在 **略過核准** 模式下，它同樣會自行執行。無人看管的修正設有每個資源每小時三次的斷路器：超過這個次數，或在 OneUptime AI 的另一輪無人看管修正仍在變更或驗證同一資源時，本輪會提出其計畫以供核准，而不是直接執行。
 
 一個事件或警示只會取得一條 AI 修正通道。當它連結到已開啟修正的 Kubernetes 叢集時，執行的是該叢集的修正輪次，而不是任何資源的輪次。否則，第一個已開啟修正且代理程式就緒的連結資源會取得該輪次，順序為：Docker 主機、Podman 主機、Docker Swarm 叢集、Proxmox 叢集、VMware vCenter、Ceph 叢集、資料庫伺服器、主機、AWS 帳戶、Azure 訂用帳戶、Google Cloud 專案、OpenStack 雲端。該輪次只會變更這一個資源。
 
