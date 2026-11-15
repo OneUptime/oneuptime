@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "維護事件狀態已變更",
   "Subscriber Subscribed": "訂閱成功",
   "Subscriber Subscription Confirmation": "訂閱確認",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "您的 GitHub 帳號尚未管理此應用程式的任何安裝。請透過「{{connectGitHub}}」安裝。"
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "您的 GitHub 帳號尚未管理此應用程式的任何安裝。請透過「{{connectGitHub}}」安裝。",
+  "Expired (rule exception)": "已過期",
+  "Expired (threat indicator)": "已過期",
+  "Not fetched yet (OAuth token)": "尚未擷取",
+  "Not fetched yet (calendar feed)": "尚未擷取",
+  "Upcoming (rule exception)": "即將開始",
+  "Valid (OAuth token)": "有效"
 }

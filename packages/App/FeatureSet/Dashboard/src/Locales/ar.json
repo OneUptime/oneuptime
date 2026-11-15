@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "تغيرت حالة حدث الصيانة",
   "Subscriber Subscribed": "اكتمال الاشتراك",
   "Subscriber Subscription Confirmation": "تأكيد الاشتراك",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "لا يدير حساب GitHub الخاص بك تثبيتًا للتطبيق بعد. يُرجى تثبيته عبر «{{connectGitHub}}»."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "لا يدير حساب GitHub الخاص بك تثبيتًا للتطبيق بعد. يُرجى تثبيته عبر «{{connectGitHub}}».",
+  "Expired (rule exception)": "منتهي الصلاحية",
+  "Expired (threat indicator)": "منتهي الصلاحية",
+  "Not fetched yet (OAuth token)": "لم يُجلب بعد",
+  "Not fetched yet (calendar feed)": "لم يُجلب بعد",
+  "Upcoming (rule exception)": "قادم",
+  "Valid (OAuth token)": "صالح"
 }

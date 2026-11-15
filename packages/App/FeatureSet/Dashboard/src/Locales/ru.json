@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "Состояние события обслуживания изменено",
   "Subscriber Subscribed": "Подписка оформлена",
   "Subscriber Subscription Confirmation": "Подтверждение подписки",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Ваша учётная запись GitHub пока не управляет ни одной установкой приложения. Установите его с помощью «{{connectGitHub}}»."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Ваша учётная запись GitHub пока не управляет ни одной установкой приложения. Установите его с помощью «{{connectGitHub}}».",
+  "Expired (rule exception)": "Истекло",
+  "Expired (threat indicator)": "Истекло",
+  "Not fetched yet (OAuth token)": "Ещё не запрашивался",
+  "Not fetched yet (calendar feed)": "Ещё не запрашивалось",
+  "Upcoming (rule exception)": "Запланировано",
+  "Valid (OAuth token)": "Действителен"
 }

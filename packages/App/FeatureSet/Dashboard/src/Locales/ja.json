@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "メンテナンスイベントの状態変更済み",
   "Subscriber Subscribed": "購読完了",
   "Subscriber Subscription Confirmation": "購読の確認",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "お使いの GitHub アカウントは、まだアプリのインストールを管理していません。「{{connectGitHub}}」からインストールしてください。"
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "お使いの GitHub アカウントは、まだアプリのインストールを管理していません。「{{connectGitHub}}」からインストールしてください。",
+  "Expired (rule exception)": "期限切れ",
+  "Expired (threat indicator)": "期限切れ",
+  "Not fetched yet (OAuth token)": "まだ取得されていません",
+  "Not fetched yet (calendar feed)": "まだ取得されていません",
+  "Upcoming (rule exception)": "今後",
+  "Valid (OAuth token)": "有効"
 }

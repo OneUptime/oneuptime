@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "Status van onderhoudsgebeurtenis gewijzigd",
   "Subscriber Subscribed": "Abonnement afgesloten",
   "Subscriber Subscription Confirmation": "Bevestiging van abonnement",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Je GitHub-account beheert nog geen installatie van de app. Installeer de app met ‘{{connectGitHub}}’."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Je GitHub-account beheert nog geen installatie van de app. Installeer de app met ‘{{connectGitHub}}’.",
+  "Expired (rule exception)": "Verlopen",
+  "Expired (threat indicator)": "Verlopen",
+  "Not fetched yet (OAuth token)": "Nog niet opgehaald",
+  "Not fetched yet (calendar feed)": "Nog niet opgehaald",
+  "Upcoming (rule exception)": "Aankomend",
+  "Valid (OAuth token)": "Geldig"
 }

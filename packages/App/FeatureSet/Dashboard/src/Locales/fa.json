@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "وضعیت رویداد تعمیر و نگهداری تغییر کرد",
   "Subscriber Subscribed": "اشتراک انجام شد",
   "Subscriber Subscription Confirmation": "تأیید اشتراک",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «{{connectGitHub}}» نصب کنید."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «{{connectGitHub}}» نصب کنید.",
+  "Expired (rule exception)": "منقضی‌شده",
+  "Expired (threat indicator)": "منقضی‌شده",
+  "Not fetched yet (OAuth token)": "هنوز دریافت نشده است",
+  "Not fetched yet (calendar feed)": "هنوز دریافت نشده است",
+  "Upcoming (rule exception)": "پیش‌رو",
+  "Valid (OAuth token)": "معتبر"
 }

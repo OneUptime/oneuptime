@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "Tilstand for vedlikeholdshendelse endret",
   "Subscriber Subscribed": "Abonnement opprettet",
   "Subscriber Subscription Confirmation": "Bekreftelse av abonnement",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "GitHub-kontoen din administrerer ennå ingen installasjon av appen. Installer den med «{{connectGitHub}}»."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "GitHub-kontoen din administrerer ennå ingen installasjon av appen. Installer den med «{{connectGitHub}}».",
+  "Expired (rule exception)": "Utløpt",
+  "Expired (threat indicator)": "Utløpt",
+  "Not fetched yet (OAuth token)": "Ikke hentet ennå",
+  "Not fetched yet (calendar feed)": "Ikke hentet ennå",
+  "Upcoming (rule exception)": "Kommende",
+  "Valid (OAuth token)": "Gyldig"
 }

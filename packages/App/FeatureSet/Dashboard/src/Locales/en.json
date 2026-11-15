@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "Subscriber Scheduled Maintenance State Changed",
   "Subscriber Subscribed": "Subscriber Subscribed",
   "Subscriber Subscription Confirmation": "Subscriber Subscription Confirmation",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.",
+  "Expired (rule exception)": "Expired (rule exception)",
+  "Expired (threat indicator)": "Expired (threat indicator)",
+  "Not fetched yet (OAuth token)": "Not fetched yet (OAuth token)",
+  "Not fetched yet (calendar feed)": "Not fetched yet (calendar feed)",
+  "Upcoming (rule exception)": "Upcoming (rule exception)",
+  "Valid (OAuth token)": "Valid (OAuth token)"
 }

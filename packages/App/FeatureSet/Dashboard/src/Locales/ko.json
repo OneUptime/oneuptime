@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "유지 관리 이벤트 상태 변경됨",
   "Subscriber Subscribed": "구독 완료",
   "Subscriber Subscription Confirmation": "구독 확인",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "회원님의 GitHub 계정은 아직 앱 설치를 관리하지 않습니다. '{{connectGitHub}}' 버튼으로 설치하세요."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "회원님의 GitHub 계정은 아직 앱 설치를 관리하지 않습니다. '{{connectGitHub}}' 버튼으로 설치하세요.",
+  "Expired (rule exception)": "만료됨",
+  "Expired (threat indicator)": "만료됨",
+  "Not fetched yet (OAuth token)": "아직 가져오지 않음",
+  "Not fetched yet (calendar feed)": "아직 가져오지 않음",
+  "Upcoming (rule exception)": "예정",
+  "Valid (OAuth token)": "유효"
 }

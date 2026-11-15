@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "रखरखाव इवेंट की स्थिति बदली गई",
   "Subscriber Subscribed": "सब्सक्रिप्शन पूरा हुआ",
   "Subscriber Subscription Confirmation": "सब्सक्रिप्शन की पुष्टि",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "आपका GitHub खाता अभी तक ऐप के किसी इंस्टॉलेशन को प्रबंधित नहीं करता है। कृपया इसे “{{connectGitHub}}” से इंस्टॉल करें।"
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "आपका GitHub खाता अभी तक ऐप के किसी इंस्टॉलेशन को प्रबंधित नहीं करता है। कृपया इसे “{{connectGitHub}}” से इंस्टॉल करें।",
+  "Expired (rule exception)": "समय-सीमा खत्म",
+  "Expired (threat indicator)": "समय-सीमा खत्म",
+  "Not fetched yet (OAuth token)": "अभी तक नहीं लाया गया",
+  "Not fetched yet (calendar feed)": "अभी तक नहीं लाया गया",
+  "Upcoming (rule exception)": "आगामी",
+  "Valid (OAuth token)": "मान्य"
 }

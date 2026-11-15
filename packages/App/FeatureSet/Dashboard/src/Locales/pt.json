@@ -55465,5 +55465,11 @@
   "Subscriber Scheduled Maintenance State Changed": "Estado do evento de manutenção alterado",
   "Subscriber Subscribed": "Assinatura concluída",
   "Subscriber Subscription Confirmation": "Confirmação da assinatura",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Sua conta do GitHub ainda não gerencia nenhuma instalação do app. Instale-o com “{{connectGitHub}}”."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Sua conta do GitHub ainda não gerencia nenhuma instalação do app. Instale-o com “{{connectGitHub}}”.",
+  "Expired (rule exception)": "Expirado",
+  "Expired (threat indicator)": "Expirado",
+  "Not fetched yet (OAuth token)": "Ainda não obtido",
+  "Not fetched yet (calendar feed)": "Ainda não obtido",
+  "Upcoming (rule exception)": "Programado",
+  "Valid (OAuth token)": "Válido"
 }
