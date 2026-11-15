@@ -35,7 +35,7 @@ O que o OneUptime AI faz por conta própria não é configurado aqui: ele tem um
 
 **Estado do incidente** e **Severidade do incidente** são tratados a fundo em [Estados e severidades de incidentes](/docs/incidents/states-and-severities) — o resto desta página começa em **Modelos de incidentes**. Os formulários que deixam pessoas de fora da sua equipe relatar incidentes são um produto próprio: veja [Formulários](/docs/forms/index). Ferramentas que abrem incidentes por conta própria, como o [Huntress](/docs/integrations/huntress), são configuradas como workflows.
 
-Expanda **Regras** e você ganha mais oito páginas: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA** e **Regras de lembrete**. Elas são tratadas mais abaixo.
+Expanda **Regras** e você ganha mais oito páginas: **Regras de agrupamento**, **Regras de plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA** e **Regras de lembrete**. Elas são tratadas mais abaixo.
 
 ## Modelos de incidentes
 
@@ -638,7 +638,7 @@ flowchart TB
 As regras de agrupamento, de SLA, de lembrete e de IA também agem sobre o novo incidente, cada uma por conta própria: veja cada regra abaixo.
 
 - **Regras de agrupamento** — agrupam incidentes relacionados em episódios. As regras são avaliadas de cima para baixo na lista; arraste uma regra para mudar a posição dela. Tratadas em detalhe abaixo.
-- **Regras de Plantão** — executam políticas de plantão para os incidentes que correspondem. Tratadas em detalhe abaixo.
+- **Regras de plantão** — executam políticas de plantão para os incidentes que correspondem. Tratadas em detalhe abaixo.
 - **Regras de proprietário** — atribuem proprietários automaticamente.
 - **Regras de runbook** — iniciam um [runbook](/docs/runbooks/index) quando um incidente corresponde.
 - **Regras de IA**, em **IA** → **Configurações** — quais incidentes novos o OneUptime AI investiga e, enquanto **Corrigir novos incidentes automaticamente** está ativado, quais corrige, e como: perguntando antes de corrigir ou não, e os runbooks que o OneUptime AI pode executar. Sem nenhuma regra, todo incidente novo é investigado, e corrigido enquanto a correção está ativada. Uma regra também pode fazer o OneUptime AI esperar e investigar só os incidentes ainda abertos após esses minutos. Se uma investigação de IA estiver na fila para o incidente, a correção começa quando ela termina, com a análise dela em mãos. Veja [AI SRE](/docs/ai/ai-sre).
@@ -650,7 +650,7 @@ As regras de agrupamento, de SLA, de lembrete e de IA também agem sobre o novo 
 > [!IMPORTANT]
 > **A semântica de ordem não é uniforme.** As regras de agrupamento, as regras de SLA e as Reminder Rules são avaliadas em ordem, e as listas delas são ordenadas arrastando: uma regra nova é adicionada no fim. As regras de plantão não — toda regra que corresponde dispara. Não suponha que um mesmo modelo vale para as nove.
 
-As páginas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Regras de incidentes** e uma aba **Regras de episódios**, cada uma com sua própria tabela. Configure a aba **Regras de incidentes** a menos que você esteja falando especificamente de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de IA**, **Regras de SLA** e **Regras de lembrete** são tabelas únicas.
+As páginas **Regras de plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Regras de incidentes** e uma aba **Regras de episódios**, cada uma com sua própria tabela. Configure a aba **Regras de incidentes** a menos que você esteja falando especificamente de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de IA**, **Regras de SLA** e **Regras de lembrete** são tabelas únicas.
 
 As regras de proprietário, de rótulos e de privacidade só agem sobre os incidentes e episódios criados depois que a regra existe. Para aplicar uma delas aos incidentes que já existem, use **Executar agora** na linha da regra, na página dela ou nas ações em massa da tabela — veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de plantão, de runbook, de IA, de agrupamento, de SLA e de lembrete não podem ser executadas em incidentes existentes.
 
@@ -708,7 +708,7 @@ As regras salvas antes de o formulário perguntar pelos proprietários ainda pod
 
 ## Regras de plantão de incidente
 
-**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para incidentes que corresponderem, para responder ou como observadores mantidos informados. A página tem duas abas: **Regras de incidentes** e **Regras de episódios**.
+**Incidentes → Regras → Regras de plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para incidentes que corresponderem, para responder ou como observadores mantidos informados. A página tem duas abas: **Regras de incidentes** e **Regras de episódios**.
 
 O formulário de criação tem duas etapas:
 
