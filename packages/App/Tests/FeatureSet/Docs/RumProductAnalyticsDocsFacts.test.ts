@@ -617,7 +617,7 @@ describe("Product Analytics: privacy, retention and who can see it", () => {
     expect(identity).not.toContain("Permission.ReadRumSessionReplay,");
 
     expect(who).toContain(
-      `\`ReadRumSessionReplay\` (_${titles.get("ReadRumSessionReplay")}_) or \`ReadRumSessionReplayPayload\` (_${titles.get("ReadRumSessionReplayPayload")}_), which project owners and admins hold.`,
+      `\`ReadRumSessionReplay\` (_${titles.get("ReadRumSessionReplay")}_) or \`ReadRumSessionReplayPayload\` (_${titles.get("ReadRumSessionReplayPayload")}_), which Project Owners and Project Admins hold.`,
     );
     expect(who).toContain(
       "(/docs/telemetry/session-replay#who-can-watch-a-recording)",

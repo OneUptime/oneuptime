@@ -87,7 +87,10 @@ import SnmpTrapPendingStore, {
 } from "../../FeatureSet/Telemetry/Utils/SnmpTrapPendingStore";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
+import logger from "Common/Server/Utils/Logger";
+import { REPORTING_PROBE_NOT_KNOWN_MESSAGE } from "Common/Server/Utils/Probe/ProbeReportIdentity";
 
+const warnMock: jest.Mock = logger.warn as unknown as jest.Mock;
 const processWalk: jest.Mock =
   processNetworkDeviceWalkFromQueue as unknown as jest.Mock;
 const processTrap: jest.Mock = processSnmpTrapFromQueue as unknown as jest.Mock;
@@ -367,6 +370,30 @@ describe("a sender's trap job", () => {
     expect(trapOidsProcessed()).toEqual(["broken", "linkUp"]);
     expect(waiting).toEqual([]);
     expect(countFailure).not.toHaveBeenCalled();
+    expect(warnMock).toHaveBeenCalledTimes(1);
+    expect(warnMock.mock.calls[0]![0]).toBe(
+      `SNMP trap from ${SOURCE} via probe ${PROBE_ID} dropped: SNMP trap is missing source or trap OID`,
+    );
+  });
+
+  /*
+   * A trap queued without the probe that received it is refused where it
+   * is read, and logged there once (processSnmpTrapFromQueue, issue #8424):
+   * dropped here like any trap that can never be processed, with no second
+   * line for it.
+   */
+  test("a trap refused as no probe's is dropped, logged once where it was refused and not again here", async () => {
+    waiting = [trap("orphan"), trap("linkUp")];
+    processTrap.mockRejectedValueOnce(
+      new BadDataException(REPORTING_PROBE_NOT_KNOWN_MESSAGE),
+    );
+
+    await processSnmpTrapBatchFromQueue(trapJob());
+
+    expect(trapOidsProcessed()).toEqual(["orphan", "linkUp"]);
+    expect(waiting).toEqual([]);
+    expect(countFailure).not.toHaveBeenCalled();
+    expect(warnMock).not.toHaveBeenCalled();
   });
 
   test("a job that does not say whose traps it is is refused", async () => {

@@ -273,5 +273,5 @@ Il manque à l'application Slack le scope `files:write`. Voir [Images dans les m
 :::cards
 - [Slack](/docs/workspace-connections/slack): Créer des règles de notification et des résumés pour le projet.
 - [Intégration Microsoft Teams](/docs/self-hosted/microsoft-teams-integration): Configurer aussi le bot Teams sur votre serveur.
-- [Accès au réseau privé](/docs/self-hosted/private-network-access): Permettre aux workflows et aux webhooks de joindre les outils internes.
+- [Accès au réseau privé](/docs/self-hosted/private-network-access): Permettre aux flux de travail et aux webhooks de joindre les outils internes.
 :::

@@ -1,6 +1,6 @@
 # SSO global
 
-O SSO global permite que um **administrador da instância** do OneUptime (administrador mestre) configure **uma única vez**, no nível da instância, um provedor de identidade SAML 2.0 ou OpenID Connect (OIDC) e o conecte a qualquer projeto do servidor. Em vez de cada proprietário de projeto configurar o próprio provedor de identidade, um administrador mestre configura um que atende a instância inteira.
+O SSO global permite que um **administrador da instância** do OneUptime (administrador mestre) configure **uma única vez**, no nível da instância, um provedor de identidade SAML 2.0 ou OpenID Connect (OIDC) e o conecte a qualquer projeto do servidor. Em vez de cada Proprietário do projeto configurar o próprio provedor de identidade, um administrador mestre configura um que atende a instância inteira.
 
 > [!NOTE]
 > O SSO global, incluindo o interruptor "Require SSO for Login" para a instância inteira, faz parte de todas as edições do OneUptime: toda instância auto-hospedada o tem, inclusive a Community Edition, e ele não precisa de licença. É administração da instância, portanto não se aplica ao OneUptime Cloud. Consulte [Edição Enterprise](/docs/self-hosted/enterprise) para ver o que cada edição inclui.
@@ -16,7 +16,7 @@ O SSO global permite que um **administrador da instância** do OneUptime (admini
 
 |                     | SSO de projeto                                        | SSO global                                            |
 | ------------------- | ----------------------------------------------------- | ----------------------------------------------------- |
-| Configurado por     | Proprietário/administrador do projeto (Configurações do projeto) | Administrador mestre da instância (Admin Dashboard) |
+| Configurado por     | Proprietário do projeto ou Administrador do projeto (Configurações do projeto) | Administrador mestre da instância (Admin Dashboard) |
 | Escopo              | Um único projeto                                      | A instância inteira, conectável a qualquer projeto    |
 | Resultado do login  | Acesso a esse único projeto                           | Acesso a todos os projetos que o usuário alcança      |
 

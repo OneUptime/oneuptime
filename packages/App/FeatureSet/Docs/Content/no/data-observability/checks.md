@@ -40,7 +40,7 @@ Sett **Varsle når** for å varsle på en sjekk:
 - **Uvanlig høy** eller **Uvanlig lav** sammenligner hver verdi med sin egen innlærte grunnlinje for den timen i uken.
 - **Over** eller **Under** sammenligner den med en terskel.
 
-Når du lagrer sjekken, opprettes en metrikkmonitor for den, som deg og med dine tillatelser. Fjerner du betingelsen, fjernes monitoren.
+Når du lagrer sjekken, opprettes en målingsmonitor for den, som deg og med dine tillatelser. Fjerner du betingelsen, fjernes monitoren.
 
 **Status** for en sjekk, under **Sjekker** og på fanen **Sjekker** for tabellen, sier hvordan den står: **Feiler** mens varselet er åpent, **Består** mens det ikke er det, og **Kunne ikke kjøre** når spørringen feilet. En sjekk uten varsel viser bare **Kjørte**: spørringen virket. En sjekk som feiler, og en som ikke kunne kjøre, står også på **Oversikt**.
 

@@ -30,7 +30,7 @@ sequenceDiagram
 ## Avant de commencer
 
 - **Le plan Growth, sur OneUptime Cloud.** La création d'une sonde l'exige. Une installation auto-hébergée n'a pas de limites de plan.
-- **L'autorisation de créer des sondes.** Les propriétaires, administrateurs et membres du projet l'ont, ainsi que toute personne dont le rôle permet de créer des sondes.
+- **L'autorisation de créer des sondes.** Les Propriétaires du projet, Administrateurs du projet et Membres du projet l'ont, ainsi que toute personne dont le rôle permet de créer des sondes.
 - **Une machine dans le réseau à surveiller.** Elle a besoin de Docker, de Docker Compose ou de Kubernetes, d'une route vers les services que la sonde vérifiera, et d'un accès HTTPS sortant vers `ONEUPTIME_URL`.
 
 ## Installer une sonde
@@ -42,9 +42,9 @@ Ouvrez **Moniteurs → Paramètres → Sondes** et cliquez sur **Créer : Sonde*
 
 ### Copier son ID et sa clé
 
-La sonde a besoin de son ID et de sa clé pour se connecter. Pour les copier, ouvrez le menu de la sonde dans le tableau **Sondes personnalisées** et choisissez **Afficher l'ID et la clé**. Toute personne qui voit le tableau peut copier l'ID d'une sonde ; sa clé n'est affichée qu'aux propriétaires et administrateurs du projet, qui voient **Afficher l'ID et la clé** là où les autres voient **Afficher l'ID**.
+La sonde a besoin de son ID et de sa clé pour se connecter. Pour les copier, ouvrez le menu de la sonde dans le tableau **Sondes personnalisées** et choisissez **Afficher l'ID et la clé**. Toute personne qui voit le tableau peut copier l'ID d'une sonde ; sa clé n'est affichée qu'aux Propriétaires du projet et Administrateurs du projet, qui voient **Afficher l'ID et la clé** là où les autres voient **Afficher l'ID**.
 
-Les propriétaires et administrateurs du projet peuvent aussi cliquer sur la sonde : la carte **Set up your Custom Probe** de sa page affiche la commande Docker avec son ID et sa clé déjà renseignés.
+Les Propriétaires du projet et Administrateurs du projet peuvent aussi cliquer sur la sonde : la carte **Set up your Custom Probe** de sa page affiche la commande Docker avec son ID et sa clé déjà renseignés.
 
 ### Lancer la sonde
 

@@ -353,12 +353,12 @@ describe("computeSecurityOverviewMetrics", () => {
 describe("formatDurationInMinutes", () => {
   test.each([
     [null, "—"],
-    [0, "0 min"],
-    [45, "45 min"],
-    [60, "1 h"],
-    [200, "3 h 20 min"],
-    [1440, "1 d"],
-    [3120, "2 d 4 h"],
+    [0, "0\u00A0min"],
+    [45, "45\u00A0min"],
+    [60, "1\u00A0h"],
+    [200, "3\u00A0h 20\u00A0min"],
+    [1440, "1\u00A0d"],
+    [3120, "2\u00A0d 4\u00A0h"],
   ])("%s minutes reads %s", (minutes: number | null, expected: string) => {
     expect(formatDurationInMinutes(minutes)).toBe(expected);
   });

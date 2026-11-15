@@ -192,7 +192,7 @@ export function formatBytes(
     return "—";
   }
   if (bytes < 1024) {
-    return writeInLanguage(`${Math.round(bytes)} B`, translator);
+    return writeInLanguage(`${Math.round(bytes)}\u00A0B`, translator);
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
   let value: number = bytes / 1024;
@@ -202,7 +202,7 @@ export function formatBytes(
     idx++;
   }
   return writeInLanguage(
-    `${value.toFixed(value >= 100 ? 0 : 1)} ${units[idx]}`,
+    `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[idx]}`,
     translator,
   );
 }
@@ -277,7 +277,7 @@ export function formatLatencyUsec(
   if (value < 1000) {
     return formatDurationInUnit(translator, value, "microsecond", {
       decimals: 0,
-      english: `${Math.round(value)} µs`,
+      english: `${Math.round(value)}\u00A0µs`,
     });
   }
 
@@ -343,7 +343,7 @@ export function formatTemperature(
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
   }
-  return writeInLanguage(`${Math.round(value)} °C`, translator);
+  return writeInLanguage(`${Math.round(value)}\u00A0°C`, translator);
 }
 
 export function formatLastSeen(date: Date | undefined | null): string {

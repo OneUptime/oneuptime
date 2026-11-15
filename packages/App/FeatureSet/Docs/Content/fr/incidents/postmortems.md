@@ -209,7 +209,7 @@ Les deux actions d'IA demandent que l'IA soit activée pour le projet et un dép
 
 **Incidents → Actions à mener** liste les actions à mener de tous les post-mortems du projet, l'échéance la plus proche en premier, avec pour chacune son incident, son propriétaire, sa date d'échéance et son statut. Filtrez la liste par **Statut**, **Propriétaire** et **Date d'échéance**, et **Voir** sur une ligne ouvre la page **Post-mortem** de l'incident.
 
-Lire les actions à mener demande ce que demande la lecture de l'incident. Les ajouter, les modifier et les supprimer demande le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des incidents ou Membre des incidents, ou un rôle personnalisé avec l'autorisation correspondante sur les actions à mener. Comme l'incident, les actions à mener d'un incident privé ne sont visibles que de ses utilisateurs propriétaires, des membres de ses équipes propriétaires, des administrateurs et des propriétaires du projet.
+Lire les actions à mener demande ce que demande la lecture de l'incident. Les ajouter, les modifier et les supprimer demande le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des incidents ou Membre des incidents, ou un rôle personnalisé avec l'autorisation correspondante sur les actions à mener. Comme l'incident, les actions à mener d'un incident privé ne sont visibles que de ses utilisateurs propriétaires, des membres de ses équipes propriétaires, des Administrateurs du projet et des Propriétaires du projet.
 
 ## Post-mortems des épisodes
 
@@ -233,7 +233,7 @@ Un post-mortem est un ensemble de champs de l'incident, lus et écrits via `/api
 
 Écrire `showPostmortemOnStatusPage` à `true` sur une `postmortemNote` rédigée publie le post-mortem, comme le fait la boîte de dialogue. Cela fait aussi passer le post-mortem en **Achevé**, sauf si la même écriture définit `postmortemStatusId`.
 
-Les actions à mener d'un post-mortem sont des enregistrements à part entière, sous `/api/incident-postmortem-action-item` : chacune avec ses `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` et `status` (`Open`, `Done` ou `WontDo`). Des workflows peuvent démarrer quand l'une d'elles est créée, modifiée ou supprimée.
+Les actions à mener d'un post-mortem sont des enregistrements à part entière, sous `/api/incident-postmortem-action-item` : chacune avec ses `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` et `status` (`Open`, `Done` ou `WontDo`). Des flux de travail peuvent démarrer quand l'une d'elles est créée, modifiée ou supprimée.
 
 ## Dépannage
 

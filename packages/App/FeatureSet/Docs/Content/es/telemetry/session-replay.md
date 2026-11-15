@@ -1064,7 +1064,7 @@ Ten en cuenta que la fila de la sesión caduca con su grabación: los recuentos 
 
 ### Borrar sesiones
 
-Para atender una solicitud de borrado, presenta una solicitud de borrado mediante la API de OneUptime — el recurso `/rum-session-erasure-request`; todavía no hay un formulario en el panel para ello. Una solicitud necesita `CreateRumSessionErasureRequest` (o un propietario / administrador del proyecto) y recibe:
+Para atender una solicitud de borrado, presenta una solicitud de borrado mediante la API de OneUptime — el recurso `/rum-session-erasure-request`; todavía no hay un formulario en el panel para ello. Una solicitud necesita `CreateRumSessionErasureRequest` (o un Propietario del proyecto o un Administrador del proyecto) y recibe:
 
 | Campo | Valores |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Como el marcado llega a cada servicio por el que pasó una solicitud del navegad
 
 ## Quién puede ver una grabación
 
-Ver una grabación es un permiso distinto del de listar sesiones, y ninguno de los dos lo concede el rol Visor de todo el proyecto. Los propietarios y administradores del proyecto los tienen todos.
+Ver una grabación es un permiso distinto del de listar sesiones, y ninguno de los dos lo concede el rol Visor de todo el proyecto. Los Propietarios del proyecto y Administradores del proyecto los tienen todos.
 
 | Permiso | Da acceso a |
 | --- | --- |

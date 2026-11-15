@@ -113,7 +113,7 @@ O que um cliente conectado pode fazer:
 
 ### Gerenciar os clientes conectados
 
-Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Clientes MCP conectados**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os proprietários e administradores do projeto veem os de todos.
+Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Clientes MCP conectados**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os Proprietários do projeto e Administradores do projeto veem os de todos.
 
 Clique em **Desconectar** para desconectar um cliente. Ele para de funcionar na hora.
 

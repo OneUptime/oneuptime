@@ -1,6 +1,6 @@
 # OneUptime AI og API-et
 
-OneUptime AI kjenner dataene dine: den undersøker et datavarsel ut fra tabellens skrivere, kjøringer og opphav, svarer på om en tabell er fersk og hva den er bygget fra uansett hvor du spør, og skriver en sjekk ut fra en regel formulert i én setning. Alt Dataobserverbarhet viser, er også tilgjengelig for dine egne verktøy, gjennom endepunktene, metrikkene og MCP-serveren.
+OneUptime AI kjenner dataene dine: den undersøker et datavarsel ut fra tabellens skrivere, kjøringer og opphav, svarer på om en tabell er fersk og hva den er bygget fra uansett hvor du spør, og skriver en sjekk ut fra en regel formulert i én setning. Alt Dataobserverbarhet viser, er også tilgjengelig for dine egne verktøy, gjennom endepunktene, målingene og MCP-serveren.
 
 ## OneUptime AI
 
@@ -44,9 +44,9 @@ Begge fungerer med en skrivebeskyttet innlogging, og svarer som personen eller A
 
 Tabeller, sjekker, avstemminger, pipelines, dataprodukter, BI-tilkoblinger og datavarehusjobber er også vanlige ressurser i [API-et](/docs/api-reference/api-reference), som leses og endres med en API-nøkkel som har de tilsvarende tillatelsene, og i MCP-serveren og arbeidsflytene.
 
-## Metrikker
+## Målinger
 
-Hvert tall Dataobserverbarhet tar vare på, er en metrikk du kan lage grafer av, legge på et dashbord eller varsle på: `oneuptime.data.table.*` for hver tabell, `oneuptime.data.check.value` for hver sjekk, `oneuptime.data.reconciliation.*` for hver avstemming, `oneuptime.data.pipeline.*` for hver pipeline og `oneuptime.data.product.*` for hvert dataprodukt. De er OneUptimes egne driftsdata og faktureres ikke som telemetri.
+Hvert tall Dataobserverbarhet tar vare på, er en måling du kan lage grafer av, legge på et dashbord eller varsle på: `oneuptime.data.table.*` for hver tabell, `oneuptime.data.check.value` for hver sjekk, `oneuptime.data.reconciliation.*` for hver avstemming, `oneuptime.data.pipeline.*` for hver pipeline og `oneuptime.data.product.*` for hvert dataprodukt. De er OneUptimes egne driftsdata og faktureres ikke som telemetri.
 
 ## Neste steg
 

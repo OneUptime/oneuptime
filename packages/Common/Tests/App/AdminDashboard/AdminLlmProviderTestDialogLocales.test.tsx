@@ -102,8 +102,11 @@ const DURATION: { one: string; other: string } = {
   other: "{{count}} ms",
 };
 
-// Intl's short unit for a millisecond in Arabic, as Locales/ARABIC.md writes it.
-const ARABIC_MILLISECONDS: string = "ملي ث";
+/*
+ * Intl's short unit for a millisecond in Arabic, as Locales/ARABIC.md writes it.
+ * Its two words held together after the figure (#8304).
+ */
+const ARABIC_MILLISECONDS: string = "ملي\u00A0ث";
 const LATIN_LETTER: RegExp = /[A-Za-z]/;
 
 // The dialog's verdict for a pass the server says nothing about (TestLLMProvider).
@@ -352,7 +355,7 @@ describe("Settings > Global LLM Providers: the Test dialog's request and respons
     expect(words).toEqual(ENGLISH);
     expect(words.show).toBe("Show request and response");
     expect(words.firstOfTwo).toBe("Request 1 of 2");
-    expect(words.duration).toBe("87 ms");
+    expect(words.duration).toBe("87\u00A0ms");
   });
 
   test("German shows the section as the Dashboard's German says it", async () => {

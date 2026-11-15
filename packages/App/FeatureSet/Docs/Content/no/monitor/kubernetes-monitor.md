@@ -1,21 +1,21 @@
 # Kubernetes-overvåking
 
-En Kubernetes-monitor varsler på metrikkene som OneUptimes Kubernetes-agent sender fra en klynge: noder, poder, containere, arbeidsbelastninger, autoskalerere og kontrollplanet. Start fra en ferdig varslingsmal, velg én metrikk, eller skriv din egen spørring, og angi deretter terskelen som åpner et varsel eller en hendelse.
+En Kubernetes-monitor varsler på målingene som OneUptimes Kubernetes-agent sender fra en klynge: noder, poder, containere, arbeidsbelastninger, autoskalerere og kontrollplanet. Start fra en ferdig varslingsmal, velg én måling, eller skriv din egen spørring, og angi deretter terskelen som åpner et varsel eller en hendelse.
 
 :::cards
 - [Installer agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando tar klyngen inn i OneUptime.
-- [Opprett monitoren](#opprett-en-kubernetes-monitor): Velg klyngen, og deretter en mal, en metrikk eller en spørring.
+- [Opprett monitoren](#opprett-en-kubernetes-monitor): Velg klyngen, og deretter en mal, en måling eller en spørring.
 - [Varslingsmaler](#ferdige-varslingsmaler): Tjueen ferdige varsler, fra en taus klynge til etcd.
 - [Kriterier](#overvåkingskriterier): Statiske terskler og avviksdeteksjon.
 :::
 
 ## Slik fungerer det
 
-Agenten sender klyngens metrikker til OneUptime over OTLP, hver merket med klyngens navn (`k8s.cluster.name`, chartets `clusterName`). De første dataene fra et nytt navn registrerer klyngen under **Kubernetes**, og fra da av kan klyngen velges i en Kubernetes-monitor. Hvert minutt spør monitoren etter disse metrikkene over sitt **Tidsintervall**, aggregerer dem og sammenligner resultatet med kriteriene sine.
+Agenten sender klyngens målinger til OneUptime over OTLP, hver merket med klyngens navn (`k8s.cluster.name`, chartets `clusterName`). De første dataene fra et nytt navn registrerer klyngen under **Kubernetes**, og fra da av kan klyngen velges i en Kubernetes-monitor. Hvert minutt spør monitoren etter disse målingene over sitt **Tidsintervall**, aggregerer dem og sammenligner resultatet med kriteriene sine.
 
-```mermaid title="Fra klyngemetrikker til en hendelse"
+```mermaid title="Fra klyngemålinger til en hendelse"
 flowchart TB
-    agent["Kubernetes-agent"] -->|"OTLP-metrikker"| metrics["Klyngemetrikker"]
+    agent["Kubernetes-agent"] -->|"OTLP-målinger"| metrics["Klyngemålinger"]
     metrics --> monitor["Kubernetes-monitor"]
     monitor -->|"Kriterier oppfylt"| incident["Varsel eller hendelse"]
 ```
@@ -42,9 +42,9 @@ En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal var
 
 | Hvor | Hva du velger |
 | --- | --- |
-| **Hva det skal varsles om** | En [ferdig varslingsmal](#ferdige-varslingsmaler). Den fyller inn metrikken, omfanget, tidsintervallet og kriteriene; du kan fortsatt endre **Tidsintervall**. |
-| **Custom Metric** | Én metrikk fra [metrikkatalogen](#metrikkatalog), deretter **Ressursomfang**, filtre, **Aggregering** (Gjennomsnitt, Maksimum, Minimum, Sum eller Antall) og **Tidsintervall**. |
-| **Avansert** | **Ressursomfang**, filtre og **Tidsintervall**, og dine egne metrikkspørringer og formler under **Velg målinger**, med et livediagram over resultatet. |
+| **Hva det skal varsles om** | En [ferdig varslingsmal](#ferdige-varslingsmaler). Den fyller inn målingen, omfanget, tidsintervallet og kriteriene; du kan fortsatt endre **Tidsintervall**. |
+| **Custom Metric** | Én måling fra [målingskatalogen](#målingskatalog), deretter **Ressursomfang**, filtre, **Aggregering** (Gjennomsnitt, Maksimum, Minimum, Sum eller Antall) og **Tidsintervall**. |
+| **Avansert** | **Ressursomfang**, filtre og **Tidsintervall**, og dine egne målingsspørringer og formler under **Velg målinger**, med et livediagram over resultatet. |
 
 ### Angi kriteriene
 
@@ -59,7 +59,7 @@ Fullfør skjemaet og lagre. Monitoren vises under **Monitorer**, og statusen fø
 
 ### Ressursomfang og filtre
 
-**Ressursomfang** angir nivået metrikken evalueres på, og avgjør hvilke filtre skjemaet viser. Hvert filter er valgfritt.
+**Ressursomfang** angir nivået målingen evalueres på, og avgjør hvilke filtre skjemaet viser. Hvert filter er valgfritt.
 
 | Omfang | Overvåker | Filtre |
 | --- | --- | --- |
@@ -69,21 +69,21 @@ Fullfør skjemaet og lagre. Monitoren vises under **Monitorer**, og statusen fø
 | Node | En node i klyngen | **Nodenavn** |
 | Pod | En pod | **Navnerom**, **Pod-navn** |
 
-Metrikkene til en container og en pod bærer navnene på arbeidsbelastningene poden hører til (poden til en Deployment bærer navnet på Deploymenten og på dens ReplicaSet), så omfanget Arbeidsbelastning overvåker containerne og podene til den arbeidsbelastningen. En arbeidsbelastnings egne metrikker, som de mislykkede podene til en Job, bærer bare navnet på sin egen arbeidsbelastning: avgrens dem til typen til den arbeidsbelastningen.
+Målingene til en container og en pod bærer navnene på arbeidsbelastningene poden hører til (poden til en Deployment bærer navnet på Deploymenten og på dens ReplicaSet), så omfanget Arbeidsbelastning overvåker containerne og podene til den arbeidsbelastningen. En arbeidsbelastnings egne målinger, som de mislykkede podene til en Job, bærer bare navnet på sin egen arbeidsbelastning: avgrens dem til typen til den arbeidsbelastningen.
 
 ### Tidsintervall
 
-**Tidsintervall** er vinduet metrikkspørringen dekker hver gang monitoren evalueres, fra **Past 1 Minute** opp til **Past 365 Days**. Korte vinduer (1 til 15 minutter) passer til varsling; lengre vinduer jevner ut metrikker med mye støy.
+**Tidsintervall** er vinduet målingsspørringen dekker hver gang monitoren evalueres, fra **Past 1 Minute** opp til **Past 365 Days**. Korte vinduer (1 til 15 minutter) passer til varsling; lengre vinduer jevner ut målinger med mye støy.
 
-### Metrikkspørringer og formler
+### Målingsspørringer og formler
 
-På fanen **Avansert** angir hver spørring en metrikk, hvordan verdiene aggregeres, og valgfrie attributtfiltre. En **formel** kombinerer spørringer med aritmetikk – malene for nodeutnyttelse deler for eksempel bruken på den allokerbare kapasiteten.
+På fanen **Avansert** angir hver spørring en måling, hvordan verdiene aggregeres, og valgfrie attributtfiltre. En **formel** kombinerer spørringer med aritmetikk – malene for nodeutnyttelse deler for eksempel bruken på den allokerbare kapasiteten.
 
-## Metrikkatalog
+## Målingskatalog
 
-Fanen **Custom Metric** tilbyr disse metrikkene, gruppert etter ressurstype:
+Fanen **Custom Metric** tilbyr disse målingene, gruppert etter ressurstype:
 
-| Kategori | Metrikker |
+| Kategori | Målinger |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
@@ -93,13 +93,13 @@ Fanen **Custom Metric** tilbyr disse metrikkene, gruppert etter ressurstype:
 | Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** og **Node CPU Usage** er i kjerner, ikke prosent: `0.18` er 0,18 av en kjerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggreger den med Maksimum eller Minimum, aldri Sum. Kontrollplanmetrikker kommer bare når agentens innsamling fra kontrollplanet er slått på. **Node Ready Condition** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det en node som har gått ned, rapporterer: varsle ved mindre enn 1. **Container Restarts** er containerens løpende omstartteller; **Container Restarts (Increase)** er det agenten sender med hver måling: omstartene siden dens forrige måling av containeren, så summen over et vindu er omstartene i det. Den bærer det **Container Restarts** bærer, også navnene på arbeidsbelastningene til containerens pod, men ikke containerens ID, som endres ved hver omstart. **Job Failed Pods** er en Jobs løpende teller for mislykkede poder; **Job Failed Pods (Increase)** er det agenten sender med hver måling: Jobbens poder som har mislyktes siden dens forrige måling av Jobben, så summen over et vindu er feilene i det. Den bærer det **Job Failed Pods** bærer: Jobbens navn og navnerom.
+> **Pod CPU Usage** og **Node CPU Usage** er i kjerner, ikke prosent: `0.18` er 0,18 av en kjerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggreger den med Maksimum eller Minimum, aldri Sum. Kontrollplanmålinger kommer bare når agentens innsamling fra kontrollplanet er slått på. **Node Ready Condition** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det en node som har gått ned, rapporterer: varsle ved mindre enn 1. **Container Restarts** er containerens løpende omstartteller; **Container Restarts (Increase)** er det agenten sender med hver måling: omstartene siden dens forrige måling av containeren, så summen over et vindu er omstartene i det. Den bærer det **Container Restarts** bærer, også navnene på arbeidsbelastningene til containerens pod, men ikke containerens ID, som endres ved hver omstart. **Job Failed Pods** er en Jobs løpende teller for mislykkede poder; **Job Failed Pods (Increase)** er det agenten sender med hver måling: Jobbens poder som har mislyktes siden dens forrige måling av Jobben, så summen over et vindu er feilene i det. Den bærer det **Job Failed Pods** bærer: Jobbens navn og navnerom.
 
 ## Overvåkingskriterier
 
 ### Hva som evalueres
 
-Disse monitorene evaluerer alltid **Målingsverdi** – verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Måling**, **Aggregering**, **Betingelse** og **Terskel**.
+Disse monitorene evaluerer alltid **Målingsverdi** – verdien av den konfigurerte målingsspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Måling**, **Aggregering**, **Betingelse** og **Terskel**.
 
 ### Aggregeringstyper
 
@@ -124,7 +124,7 @@ Avviksdeteksjon mot en grunnlinje trenger ingen terskel. Velg en av disse beting
 | **Unormalt lav** | Faller under det forventede området |
 | **Avvikende** | Forlater det forventede området i en av retningene |
 
-Hver måling sammenlignes med en grunnlinje for samme time i uken, bygget fra **Grunnlinjevindu** (14 dager som standard; 28, 60 eller 90 dager). **Følsomhet** angir hvor bredt det forventede området er: **Lav (4σ — kun grove avvik)**, **Middels (3σ — anbefalt)**, som er standard, eller **Høy (2σ — mer støy, svært stabile tjenester)**. Avviksbetingelser blir værende i en «Learning»-tilstand og gir ingen varsler før den timen i uken har to ukers historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
+Hver måling sammenlignes med en grunnlinje for samme time i uken, bygget fra **Grunnlinjevindu** (14 dager som standard; 28, 60 eller 90 dager). **Følsomhet** angir hvor bredt det forventede området er: **Lav (4σ — kun grove avvik)**, **Middels (3σ — anbefalt)**, som er standard, eller **Høy (2σ — mer støy, svært stabile tjenester)**. Avviksbetingelser blir værende i en «Learning»-tilstand og gir ingen varsler før den timen i uken har to ukers historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som målingene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til målingen. En persentil av et histogram blir alltid værende i den tilstanden.
 
 **Hvis ingen data**, under **Flere felt**, avgjør hva som skjer når spørringen ikke returnerer noe i vinduet: **Ignore** (standard) samsvarer ikke, **Utløser** behandler stillheten som problemet, og **Treat As Zero** sammenligner en null. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -156,7 +156,7 @@ Listen under **Hva det skal varsles om** viser disse malene, gruppert etter kate
 | Pod Memory Saturating Container Limit | Arbeidsbelastning | En pod bruker mer enn 90 % av minnegrensen til containerne sine | Kritisk |
 | Pod CPU Saturating Container Limit | Arbeidsbelastning | En pod bruker mer enn 90 % av CPU-grensen til containerne sine | Advarsel |
 
-Maler på metrikker per objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for seg, slik at en klynge med flere usunne poder får én hendelse per pod i stedet for én for hele klyngen.
+Maler på målinger per objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for seg, slik at en klynge med flere usunne poder får én hendelse per pod i stedet for én for hele klyngen.
 
 **High Node CPU Request Commitment** og **High Node Memory Request Commitment** teller bare requests fra pods som ikke er ferdige, slik scheduleren gjør. Klyngen fortsetter å rapportere requests fra en pod som er Succeeded eller Failed, for eksempel fra en ferdig Job, til poden slettes: de telles ikke med.
 
@@ -173,7 +173,7 @@ Maler på metrikker per objekt evaluerer hver node, pod, deployment, job, Daemon
 Malene på nodenivå (High Node CPU Utilization, High Node Memory Utilization, Node Not Ready, Pod Stuck in Pending) utløses på *slutten* av en kjede av ressursuttømming, når klyngen allerede er redusert. Tre maler utløses i *starten* av den, der løsningen vanligvis finnes:
 
 - **Pod Memory Saturating Container Limit** og **Pod CPU Saturating Container Limit** fanger en arbeidsbelastning som ligger tett opp mot sine egne grenser. Å krysse en minnegrense gir en umiddelbar OOMKill; å krysse en CPU-grense får kjernen til å strupe poden, så den blir tregere uten noen gang å feile. Begge er den vanlige årsaken bak CrashLoopBackOff og uforklarlig ventetid.
-- **HPA Saturated at Max Replicas** fanger en autoskalerer uten mer spillerom. En arbeidsbelastning med for lave grenser per pod blir strupet eller drept, noe som blåser opp nettopp den metrikken HPA-en skalerer på – så autoskalereren fortsetter å legge til replikaer som alle mangler like mye, til den når taket sitt. Å heve grensene er løsningen; å heve `maxReplicas` gjør det verre.
+- **HPA Saturated at Max Replicas** fanger en autoskalerer uten mer spillerom. En arbeidsbelastning med for lave grenser per pod blir strupet eller drept, noe som blåser opp nettopp den målingen HPA-en skalerer på – så autoskalereren fortsetter å legge til replikaer som alle mangler like mye, til den når taket sitt. Å heve grensene er løsningen; å heve `maxReplicas` gjør det verre.
 
 Slå dem på sammen i hvert navnerom som kjører en autoskalert arbeidsbelastning: kombinasjonen skiller «trenger virkelig mer kapasitet» fra «for lite ressurser per pod».
 
@@ -187,7 +187,7 @@ Klynger registrerer seg selv fra agentens data, under det `clusterName` agenten 
 :::
 
 :::details En kontrollplanmal utløses aldri
-**etcd No Leader**, **API Server Request Saturation** og **Scheduler Backlog** leser metrikker som bare agentens innsamling fra kontrollplanet henter. Slå på `controlPlane.enabled` i agentens Helm-verdier; den er av som standard. Det leser API-serveren. etcd og scheduleren kjører på kontrollplannodene, så **etcd No Leader** og **Scheduler Backlog** trenger også `controlPlane.etcd.endpoints` og `controlPlane.scheduler.endpoints` satt til adresser agentens pod kan nå (se [Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så på dem mottar disse monitorene aldri data.
+**etcd No Leader**, **API Server Request Saturation** og **Scheduler Backlog** leser målinger som bare agentens innsamling fra kontrollplanet henter. Slå på `controlPlane.enabled` i agentens Helm-verdier; den er av som standard. Det leser API-serveren. etcd og scheduleren kjører på kontrollplannodene, så **etcd No Leader** og **Scheduler Backlog** trenger også `controlPlane.etcd.endpoints` og `controlPlane.scheduler.endpoints` satt til adresser agentens pod kan nå (se [Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så på dem mottar disse monitorene aldri data.
 :::
 
 :::details En CPU-terskel utløses aldri
@@ -195,18 +195,18 @@ Klynger registrerer seg selv fra agentens data, under det `clusterName` agenten 
 :::
 
 :::details CrashLoopBackOff Detection ble ikke utløst ved en omstart
-Malen utløses når en container starter på nytt innen 15 minutter mens den var klar mindre enn halvparten av dem, så en container som startet på nytt én gang og kom straks tilbake, varsler ikke. Den leser `k8s.container.restarts.increase`, som en eldre agent ikke sender: [oppgrader agenten](/docs/monitor/kubernetes-agent#oppgradering). En monitor som ble opprettet fra malen før det, leser hvor mye `k8s.container.restarts` vokste mellom to målinger i samme minutt, og går glipp av omstartene mellom målingene i to minutter: slett den og opprett malen på nytt. Hvis `filters.metrics.include` lister opp metrikkene agenten sender, legg til `k8s.container.restarts.increase`. En monitor som er avgrenset til en arbeidsbelastning, trenger også arbeidsbelastningsnavnene på `k8s.container.restarts.increase`, som en eldre agent sender uten dem: [oppgrader agenten](/docs/monitor/kubernetes-agent#oppgradering).
+Malen utløses når en container starter på nytt innen 15 minutter mens den var klar mindre enn halvparten av dem, så en container som startet på nytt én gang og kom straks tilbake, varsler ikke. Den leser `k8s.container.restarts.increase`, som en eldre agent ikke sender: [oppgrader agenten](/docs/monitor/kubernetes-agent#oppgradering). En monitor som ble opprettet fra malen før det, leser hvor mye `k8s.container.restarts` vokste mellom to målinger i samme minutt, og går glipp av omstartene mellom målingene i to minutter: slett den og opprett malen på nytt. Hvis `filters.metrics.include` lister opp målingene agenten sender, legg til `k8s.container.restarts.increase`. En monitor som er avgrenset til en arbeidsbelastning, trenger også arbeidsbelastningsnavnene på `k8s.container.restarts.increase`, som en eldre agent sender uten dem: [oppgrader agenten](/docs/monitor/kubernetes-agent#oppgradering).
 :::
 
 :::details Job Failures ble ikke utløst ved en mislykket Job
-Malen utløses når en pod i en Job mislykkes innen 15 minutter, og løser seg selv femten minutter etter den siste feilen. Den leser `k8s.job.failed_pods.increase`, som en eldre agent ikke sender: [oppgrader agenten](/docs/monitor/kubernetes-agent#oppgradering). En monitor som ble opprettet fra malen før det, leser hvor mye `k8s.job.failed_pods` vokste mellom to målinger i samme minutt, og går glipp av feilene mellom målingene i to minutter: slett den og opprett malen på nytt. Feilene før agentens første måling av en Job er der tellingen dens starter, så en Job der den eneste poden mislykkes i det første halve minuttet, går ubemerket hen. Hvis `filters.metrics.include` lister opp metrikkene agenten sender, legg til `k8s.job.failed_pods.increase`. En monitor som er avgrenset til en arbeidsbelastning, må nevne selve Jobben: de mislykkede podene til en Job bærer navnet og navnerommet dens, ikke CronJob-en som opprettet den.
+Malen utløses når en pod i en Job mislykkes innen 15 minutter, og løser seg selv femten minutter etter den siste feilen. Den leser `k8s.job.failed_pods.increase`, som en eldre agent ikke sender: [oppgrader agenten](/docs/monitor/kubernetes-agent#oppgradering). En monitor som ble opprettet fra malen før det, leser hvor mye `k8s.job.failed_pods` vokste mellom to målinger i samme minutt, og går glipp av feilene mellom målingene i to minutter: slett den og opprett malen på nytt. Feilene før agentens første måling av en Job er der tellingen dens starter, så en Job der den eneste poden mislykkes i det første halve minuttet, går ubemerket hen. Hvis `filters.metrics.include` lister opp målingene agenten sender, legg til `k8s.job.failed_pods.increase`. En monitor som er avgrenset til en arbeidsbelastning, må nevne selve Jobben: de mislykkede podene til en Job bærer navnet og navnerommet dens, ikke CronJob-en som opprettet den.
 :::
 
 ## Neste trinn
 
 :::cards
 - [Kubernetes-agent (Helm-installasjon)](/docs/monitor/kubernetes-agent): Installer, oppgrader og finjuster agenten med Helm.
-- [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Navneromsfiltre, kontrollplanmetrikker, filtre for loggalvorlighet og AI-agenten.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på enhver metrikk, også agentens egendefinerte metrikker og eBPF-metrikker.
+- [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Navneromsfiltre, kontrollplanmålinger, filtre for loggalvorlighet og AI-agenten.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på enhver måling, også agentens egendefinerte målinger og eBPF-målinger.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett poden eller noden som overskrider grensen, i hendelsestitler.
 :::

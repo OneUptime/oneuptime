@@ -211,7 +211,7 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
     ).toContain(
       'export const GUIDED_SETUP_POLICY_NAME: string = translationKey(\n  "Default on-call policy",\n);',
     );
-    expect(PAGING).toContain("`Default on-call policy`");
+    expect(PAGING).toContain("**Default on-call policy**");
     expect(copyValue(ON_CALL_SETUP, "whoPeopleLabel")).toBe("Paged first");
     expect(copyValue(ON_CALL_SETUP, "whoAddToLevel")).toBe(
       "Add to the first escalation rule",
@@ -642,7 +642,7 @@ describe("Know When Your Website or API Is Down, against the product", () => {
     expect(WEBSITE_DOWN_SETUP).toContain(
       `'This makes the on-call policy "{{policy}}", which pages them for every new incident and alert in this project.'`,
     );
-    expect(WEBSITE_DOWN).toContain("`Default on-call policy`");
+    expect(WEBSITE_DOWN).toContain("**Default on-call policy**");
     expect(WEBSITE_DOWN).toContain(
       "With no on-call policy or on-call rule yet",
     );

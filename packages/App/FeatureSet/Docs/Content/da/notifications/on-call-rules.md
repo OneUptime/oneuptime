@@ -130,12 +130,12 @@ API'et kan gemme en fravalgsregel, med `isOptOut` sat og uden metode: du bliver 
 :::
 
 :::details Slå reserven fra for et helt projekt
-En projektejer, eller en person med **Manage Billing**, kan sætte projektets `disableOnCallNotificationFallback` via API'et. Et tilkald, der ingen regel finder, bliver så ikke leveret, og dets log siger, at brugeren skal tilføje regler under **Brugerindstillinger → Sådan når man mig**.
+En Projektejer, eller en person med **Manage Billing**, kan sætte projektets `disableOnCallNotificationFallback` via API'et. Et tilkald, der ingen regel finder, bliver så ikke leveret, og dets log siger, at brugeren skal tilføje regler under **Brugerindstillinger → Sådan når man mig**.
 :::
 
 ## En kollegas regler
 
-Projektejere og administratorer kan se og ændre den samme side for alle i projektet: Under **Brugere** åbner de personen og derefter **Sådan når man mig** i sektionen **Vagt**. **Parathed**, lige ved siden af, viser, om hver alvorlighed når personen. Når en anden tilføjer, ændrer eller sletter dine regler, får du en e-mail om det, og hver ændring står i projektets revisionslog.
+Projektejere og Projektadministratorer kan se og ændre den samme side for alle i projektet: Under **Brugere** åbner de personen og derefter **Sådan når man mig** i sektionen **Vagt**. **Parathed**, lige ved siden af, viser, om hver alvorlighed når personen. Når en anden tilføjer, ændrer eller sletter dine regler, får du en e-mail om det, og hver ændring står i projektets revisionslog.
 
 ## Fejlfinding
 

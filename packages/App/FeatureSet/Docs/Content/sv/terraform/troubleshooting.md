@@ -158,7 +158,7 @@ moved {
 
 ### Monitorer från före steg-ID:n
 
-ID:na i en monitors steg - för varje steg, kriterium, och varje incident- och larmmall - är serverns att ge. Äldre OneUptime-versioner gav bara kriterier ID:n, och en ny uppsättning vid varje skrivning, så en monitor som skrevs via API:et, som varje monitor som providern skapade, sparades med ett steg utan ID. Dess prober kontrollerade den fortfarande och dess status ändrades fortfarande, men monitorns sida hittade inte dess kontroller, dess incidenter kunde inte lösa sig själva, och varje `terraform apply` som ändrade `monitor_steps` slet loss öppna incidenter från deras kriterier.
+ID:na i en monitors steg - för varje steg, kriterium, och varje incident- och larmmall - är serverns att ge. Äldre OneUptime-versioner gav bara kriterier ID:n, och en ny uppsättning vid varje skrivning, så en monitor som skrevs via API:et, som varje monitor som providern skapade, sparades med ett steg utan ID. Dess sonder kontrollerade den fortfarande och dess status ändrades fortfarande, men monitorns sida hittade inte dess kontroller, dess incidenter kunde inte lösa sig själva, och varje `terraform apply` som ändrade `monitor_steps` slet loss öppna incidenter från deras kriterier.
 
 Nuvarande OneUptime ger var och en av dem ett ID när de skapas, behåller dem vid varje apply, och fyller i de saknade på befintliga monitorer när det uppgraderas. Ingenting ändras i din konfiguration: det finns fortfarande inga ID:n att skriva. En incident som det gamla beteendet lämnade öppen stängs vid monitorns nästa återhämtning, så länge kriteriet som öppnade den fortfarande finns; en incident vars kriterium en tidigare apply ersatte måste lösas en gång för hand.
 

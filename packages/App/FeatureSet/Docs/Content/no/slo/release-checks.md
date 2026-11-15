@@ -130,7 +130,7 @@ Et SLO som ikke kan måles – et forespørsels-SLO uten tjenester, et latens-SL
 
 ## Argo Rollouts
 
-En analyse med en `web`-metrikk spør kontrollen ved hvert trinn i en canary, og Argo Rollouts avbryter utrullingen og skalerer canaryen ned når den feiler. Lagre først API-nøkkelen som en hemmelighet:
+En analyse med en `web`-måling spør kontrollen ved hvert trinn i en canary, og Argo Rollouts avbryter utrullingen og skalerer canaryen ned når den feiler. Lagre først API-nøkkelen som en hemmelighet:
 
 ```bash
 kubectl create secret generic oneuptime --from-literal=api-key="$ONEUPTIME_API_KEY"

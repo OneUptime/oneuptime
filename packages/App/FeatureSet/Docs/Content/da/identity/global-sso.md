@@ -1,6 +1,6 @@
 # Global SSO
 
-Med global SSO opsætter en OneUptime-**instansadministrator** (master-admin) **én gang**, på instansniveau, en SAML 2.0- eller OpenID Connect-identitetsudbyder (OIDC) og forbinder den med ethvert projekt på serveren. I stedet for at hver projektejer opsætter sin egen identitetsudbyder, opsætter en master-admin én, der betjener hele instansen.
+Med global SSO opsætter en OneUptime-**instansadministrator** (master-admin) **én gang**, på instansniveau, en SAML 2.0- eller OpenID Connect-identitetsudbyder (OIDC) og forbinder den med ethvert projekt på serveren. I stedet for at hver Projektejer opsætter sin egen identitetsudbyder, opsætter en master-admin én, der betjener hele instansen.
 
 > [!NOTE]
 > Global SSO, herunder den instansdækkende kontakt "Require SSO for Login", er en del af alle OneUptime-udgaver: alle selvhostede instanser har det, også Community Edition, og det kræver ingen licens. Det hører til instansadministrationen og gælder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for, hvad hver udgave indeholder.
@@ -16,7 +16,7 @@ Med global SSO opsætter en OneUptime-**instansadministrator** (master-admin) **
 
 |                    | Projekt-SSO                                       | Global SSO                                          |
 | ------------------ | ------------------------------------------------- | --------------------------------------------------- |
-| Opsættes af        | Projektejer/-administrator (Projektindstillinger) | Instansens master-admin (Admin Dashboard)           |
+| Opsættes af        | Projektejer eller Projektadministrator (Projektindstillinger) | Instansens master-admin (Admin Dashboard)           |
 | Omfang             | Ét enkelt projekt                                 | Hele instansen, kan forbindes med ethvert projekt   |
 | Resultat af login  | Adgang til det ene projekt                        | Adgang til alle projekter, brugeren kan nå          |
 

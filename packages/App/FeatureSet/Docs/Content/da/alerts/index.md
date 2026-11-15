@@ -47,8 +47,8 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 - **Spørg AI.** Bed om en advarsel i [Spørg AI](/docs/ai/ask-ai): den opretter den som dig, knyttet til den ressource, hvis side du spurgte fra, fx en værts. For at registrere et problem, som nogen allerede tager sig af, eller som allerede er overstået, så bed om den bekræftet eller løst: den starter i den tilstand og tilkalder ingen. Se [Oprettet allerede bekræftet eller løst](#oprettet-allerede-bekræftet-eller-løst).
 - **En SLO's forbrugsrate.** En forbrugsrateregel kan oprette en advarsel, når en SLO bruger sit fejlbudget for hurtigt. Se [Forbrugsrateadvarsler og -hændelser](/docs/slo/burn-rate-alerts).
 - **Netværkslokationer og sikkerhedsbegivenheder.** En netværkslokation, der er sat til at advare, når den er usund, åbner en advarsel, når dens samlede tilstand ikke længere er operationel, og dine detektionsregler for sikkerhedsbegivenheder åbner også advarsler. Se [Netværkslokationer (tilstandsoversigt og oppetid)](/docs/monitor/network-sites) og [Sikkerhedsbegivenheder (SIEM)](/docs/telemetry/security-events).
-- **En tilkaldelse.** `/oneuptime page` i Slack eller Microsoft Teams, alle steder undtagen en hændelses eller en advarsels egen kanal, åbner en advarsel med din besked som titel og tilkalder de personer, du nævner. Et workflows tilkaldelsesblokke gør det samme med den titel og besked, du giver dem. Se [Tilkald nogen fra Slack](/docs/workspace-connections/slack#tilkald-nogen-fra-slack) og [Paging](/docs/workflows/components#paging).
-- **API'et, Terraform og workflows.** Advarsler er en almindelig ressource: `/api/alert`, Terraform-ressourcen `oneuptime_alert` og et workflows trin **Create One Alert**.
+- **En tilkaldelse.** `/oneuptime page` i Slack eller Microsoft Teams, alle steder undtagen en hændelses eller en advarsels egen kanal, åbner en advarsel med din besked som titel og tilkalder de personer, du nævner. En arbejdsgangs tilkaldelsesblokke gør det samme med den titel og besked, du giver dem. Se [Tilkald nogen fra Slack](/docs/workspace-connections/slack#tilkald-nogen-fra-slack) og [Paging](/docs/workflows/components#paging).
+- **API'et, Terraform og arbejdsgange.** Advarsler er en almindelig ressource: `/api/alert`, Terraform-ressourcen `oneuptime_alert` og en arbejdsgangs trin **Create One Alert**.
 
 ## Hvor advarsler findes i dashboardet
 
@@ -95,7 +95,7 @@ Lader du **Indledende tilstand** være tom, starter advarslen, hvor enhver ny ad
 
 I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne rækkefølge:
 
-1. **Den får et nummer og en tilstand.** Advarselsnummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`ALT-42`). Advarslen starter i din oprettelsestilstand, medmindre formularen, API'et, et workflow eller Spørg AI valgte en anden.
+1. **Den får et nummer og en tilstand.** Advarselsnummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`ALT-42`). Advarslen starter i din oprettelsestilstand, medmindre formularen, API'et, en arbejdsgang eller Spørg AI valgte en anden.
 2. **Privatlivsregler kører først**, så alt efter dem ved, om advarslen er privat.
 3. **Feedet og dine chatværktøjer hører om den.** En post **Advarsel oprettet** skrives i **Advarselsfeed**, og de kanaler, dine Slack- og Microsoft Teams-regler nævner, får besked; en regel kan oprette en kanal til advarslen.
 4. **Ejere og etiketter tilføjes**: dem, monitorens kriterier eller forespørgslen nævner, derefter dem fra matchende ejer- og etiketregler.
@@ -104,9 +104,9 @@ I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne ræ
 7. **Grupperingsregler lægger den i en episode**, når en af dem matcher. Se [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes).
 8. **Påmindelser planlægges**, når en påmindelsesregel matcher, og **OneUptime AI** undersøger advarslen, når **Undersøg nye advarsler** er slået til under **Advarsler → AI → Indstillinger**, og retter den, når **Ret nye advarsler automatisk** er slået til. Se [AI SRE](/docs/ai/ai-sre).
 
-Et baggrundsjob giver advarslens ejere besked omkring et minut efter, at den er oprettet, alle de ejere, den har til den tid, og workflow-udløseren **On Create Alert** starter ethvert workflow, der bygger på den.
+Et baggrundsjob giver advarslens ejere besked omkring et minut efter, at den er oprettet, alle de ejere, den har til den tid, og arbejdsgangsudløseren **On Create Alert** starter enhver arbejdsgang, der bygger på den.
 
-For at gøre personer og teams til advarslens ejere, når den oprettes, så denne besked når dem og ikke projektets ejere, giver du dem med ved oprettelsen: over API'et sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` med `POST /api/alert`; i et workflow vælger du dem under **Ejer-brugere** og **Ejer-teams** i **Create One Alert**; over MCP giver du `ownerUsers` og `ownerTeams` til `create_alert`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes. Ejere, som en separat anmodning tilføjer efter oprettelsen, hører kun om den, hvis de er tilføjet inden for det minut.
+For at gøre personer og teams til advarslens ejere, når den oprettes, så denne besked når dem og ikke projektets ejere, giver du dem med ved oprettelsen: over API'et sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` med `POST /api/alert`; i en arbejdsgang vælger du dem under **Ejer-brugere** og **Ejer-teams** i **Create One Alert**; over MCP giver du `ownerUsers` og `ownerTeams` til `create_alert`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes. Ejere, som en separat anmodning tilføjer efter oprettelsen, hører kun om den, hvis de er tilføjet inden for det minut.
 
 ### Oprettet allerede bekræftet eller løst
 
@@ -175,7 +175,7 @@ Et kriterium holder én åben advarsel ad gangen. Indtil den advarsel er løst, 
 :::
 
 :::details En kollega kan åbne en advarsel, som jeg ikke kan finde
-Advarslen er sandsynligvis privat. Bed en projektadministrator om at tilføje dig som ejer eller om at slå **Privat advarsel** fra på advarslens side **Indstillinger**.
+Advarslen er sandsynligvis privat. Bed en Projektadministrator om at tilføje dig som ejer eller om at slå **Privat advarsel** fra på advarslens side **Indstillinger**.
 :::
 
 ## Næste skridt

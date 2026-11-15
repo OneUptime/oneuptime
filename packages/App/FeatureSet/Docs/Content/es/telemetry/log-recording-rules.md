@@ -180,7 +180,7 @@ Con la agrupación definida, cada puerta de enlace es su propia serie: si WAN2 s
 - **Las marcas de tiempo vienen de los registros.** Un registro cae en el minuto de su propia marca de tiempo. Un dispositivo cuyo reloj va desfasado más de un poco deja sus registros en el minuto equivocado, o totalmente fuera de la ventana.
 - **Sin cálculo retroactivo.** Una regla nueva empieza por el minuto anterior a su primera ejecución; los registros más antiguos no se calculan.
 - **Eliminar una regla** la detiene. Los puntos que ya escribió permanecen hasta que caducan.
-- **Las reglas de grabación ven todos los registros del proyecto.** Quien pueda leer la métrica de salida ve números calculados a partir de cada registro que coincide con el filtro de la regla, así que crear y editar reglas de grabación de registros está limitado a los propietarios y administradores del proyecto y a los permisos **Create / Edit Log Recording Rule**.
+- **Las reglas de grabación ven todos los registros del proyecto.** Quien pueda leer la métrica de salida ve números calculados a partir de cada registro que coincide con el filtro de la regla, así que crear y editar reglas de grabación de registros está limitado a los Propietarios del proyecto y Administradores del proyecto y a los permisos **Create / Edit Log Recording Rule**.
 
 ## Permisos
 
@@ -191,7 +191,7 @@ Con la agrupación definida, cada puerta de enlace es su propia serie: si WAN2 s
 | Delete Log Recording Rule | Eliminar reglas. |
 | Read Log Recording Rule | Ver las reglas y lo que calculan. |
 
-Los propietarios y administradores del proyecto pueden hacer todo esto. Los miembros del proyecto, los lectores y los roles de telemetría pueden leer las reglas.
+Los Propietarios del proyecto y Administradores del proyecto pueden hacer todo esto. Los Miembros del proyecto, los Visores y los roles de telemetría pueden leer las reglas.
 
 ## Próximos pasos
 

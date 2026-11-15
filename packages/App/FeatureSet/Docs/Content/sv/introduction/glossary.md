@@ -54,7 +54,7 @@ Se [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 En maskin som kör monitorernas kontroller enligt ett schema: den hämtar en sida, anropar ett API eller pingar en värd. OneUptime Cloud kör sonder i flera regioner, och en anpassad sond som du kör i ditt eget nätverk kontrollerar det som bara det nätverket når.
 
-Kallas även: **Anpassade probes**. Se [Anpassade probes](/docs/probe/custom-probe).
+Kallas även: **Anpassade sonder**. Se [Anpassade sonder](/docs/probe/custom-probe).
 
 ### Incident
 

@@ -180,7 +180,7 @@ With Group By set, each gateway is its own series: WAN2 going slow opens an aler
 - **Timestamps come from the logs.** A log lands in the minute of its own timestamp. A device whose clock is off by more than a little lands its logs in the wrong minute, or outside the window entirely.
 - **No backfill.** A new rule starts with the minute before it first runs; older logs are not computed.
 - **Deleting a rule** stops it. The points it already wrote stay until they expire.
-- **Recording rules run with the project's full view of logs.** Anyone who can read the output metric sees numbers computed from every log the rule's filter matches, so creating and editing log recording rules is limited to project owners, admins and the **Create / Edit Log Recording Rule** permissions.
+- **Recording rules run with the project's full view of logs.** Anyone who can read the output metric sees numbers computed from every log the rule's filter matches, so creating and editing log recording rules is limited to Project Owners, Project Admins and the **Create / Edit Log Recording Rule** permissions.
 
 ## Permissions
 
@@ -191,7 +191,7 @@ With Group By set, each gateway is its own series: WAN2 going slow opens an aler
 | Delete Log Recording Rule | Deleting rules.                         |
 | Read Log Recording Rule   | Seeing rules and what they compute.     |
 
-Project owners and admins can do all of these. Project members, viewers and the telemetry roles can read rules.
+Project Owners and Project Admins can do all of these. Project Members, Viewers and the telemetry roles can read rules.
 
 ## Next steps
 

@@ -157,6 +157,10 @@ import GitOpsInspector, {
 import { AiRemediationRevertWatch } from "../../../../Types/AutoRemediation/AiRemediationGitOps";
 import { describeGitOpsOwner } from "../../../../Utils/AiRemediation/GitOpsOwnership";
 
+import { AI_TOOLKIT_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "../Toolbox/ReadTableWords";
+import { AIActionSentenceValue } from "../../../../Types/AI/AIActionWords";
+import { describeResourceWords } from "../ResourceAccess/ResourceAccessContext";
 /*
  * The run-scoped command toolkit for a RemediationExecution AI run.
  *
@@ -746,7 +750,10 @@ export default class RemediationCommandToolkit {
       result: {
         dataForLlm: `Proposed the rollback ${parsed.command.command}.`,
         rowCount: 1,
-        citationLabel: `Proposed rolling back ${target.namespace}/${target.deploymentName}`,
+        // In the reader's language (#8511).
+        ...citationSentence(AI_TOOLKIT_CITATIONS.proposedRollback, {
+          deployment: `${target.namespace}/${target.deploymentName}`,
+        }),
         redactionCount: 0,
         isTruncated: false,
       },
@@ -894,7 +901,7 @@ export default class RemediationCommandToolkit {
         result: {
           dataForLlm: "(no command targets available)",
           rowCount: 0,
-          citationLabel: "Available command targets",
+          ...citationSentence(AI_TOOLKIT_CITATIONS.commandTargets),
           redactionCount: 0,
           isTruncated: false,
         },
@@ -909,7 +916,7 @@ export default class RemediationCommandToolkit {
         result: {
           dataForLlm: "(no command targets available)",
           rowCount: 0,
-          citationLabel: "Available command targets",
+          ...citationSentence(AI_TOOLKIT_CITATIONS.commandTargets),
           redactionCount: 0,
           isTruncated: false,
         },
@@ -925,7 +932,7 @@ export default class RemediationCommandToolkit {
       result: {
         dataForLlm: serialized.text,
         rowCount: rows.length,
-        citationLabel: "Available command targets",
+        ...citationSentence(AI_TOOLKIT_CITATIONS.commandTargets),
         redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,
       },
@@ -2304,16 +2311,31 @@ export default class RemediationCommandToolkit {
       result: {
         dataForLlm: outcomeText,
         rowCount: 1,
-        citationLabel:
-          command.stepType === RunbookStepType.Kubectl
-            ? kubectlResultUnknown
-              ? `Sent to cluster "${command.kubernetesClusterNameSnapshot}", result unknown: ${this.summarizeCommand(command.command)}`
-              : `Executed on cluster "${command.kubernetesClusterNameSnapshot}": ${this.summarizeCommand(command.command)}`
-            : command.stepType === RunbookStepType.ResourceCommand
-              ? resourceResultUnknown
-                ? `Sent to ${this.describeCommandResource(command)}, result unknown: ${this.summarizeCommand(command.command)}`
-                : `Executed on ${this.describeCommandResource(command)}: ${this.summarizeCommand(command.command)}`
-              : `Executed on Runner "${command.runnerNameSnapshot}": ${this.summarizeCommand(command.command)}`,
+        // In the reader's language (#8511): where it ran, the command as data.
+        ...(command.stepType === RunbookStepType.Kubectl
+          ? citationSentence(
+              kubectlResultUnknown
+                ? AI_TOOLKIT_CITATIONS.sentToCluster
+                : AI_TOOLKIT_CITATIONS.executedOnCluster,
+              {
+                cluster: String(command.kubernetesClusterNameSnapshot),
+                command: this.summarizeCommand(command.command),
+              },
+            )
+          : command.stepType === RunbookStepType.ResourceCommand
+            ? citationSentence(
+                resourceResultUnknown
+                  ? AI_TOOLKIT_CITATIONS.sentToResource
+                  : AI_TOOLKIT_CITATIONS.executedOnResource,
+                {
+                  resource: this.describeCommandResourceWords(command),
+                  command: this.summarizeCommand(command.command),
+                },
+              )
+            : citationSentence(AI_TOOLKIT_CITATIONS.executedOnRunner, {
+                runner: String(command.runnerNameSnapshot),
+                command: this.summarizeCommand(command.command),
+              })),
         redactionCount,
         isTruncated,
       },
@@ -2326,6 +2348,20 @@ export default class RemediationCommandToolkit {
    * kind is a sentence's noun, as a kubectl step's 'cluster "prod"' is
    * (#8133).
    */
+  // The same, as words (#8511): the kind in the reader's language.
+  private describeCommandResourceWords(
+    command: AiRemediationCommand,
+  ): AIActionSentenceValue {
+    return describeResourceWords({
+      noun: isAiResourceType(command.resourceType)
+        ? describeResourceNoun(command.resourceType)
+        : "resource",
+      name: String(
+        command.resourceNameSnapshot || command.resourceId || "(unknown)",
+      ),
+    });
+  }
+
   private describeCommandResource(command: AiRemediationCommand): string {
     const noun: string = isAiResourceType(command.resourceType)
       ? describeResourceNoun(command.resourceType)
@@ -3951,7 +3987,9 @@ export default class RemediationCommandToolkit {
       result: {
         dataForLlm: `Proposed ${commands.length} command(s) for approval.`,
         rowCount: commands.length,
-        citationLabel: `Proposed a ${commands.length}-command remediation plan`,
+        ...citationSentence(AI_TOOLKIT_CITATIONS.proposedPlan, {
+          count: countFigure(commands.length),
+        }),
         redactionCount: 0,
         isTruncated: false,
       },

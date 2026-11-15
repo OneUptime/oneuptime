@@ -865,7 +865,7 @@ export default class TransceiverHealthUtil {
   ): string {
     switch (kind) {
       case TransceiverReadingKind.Temperature:
-        return `${value.toFixed(1)} °C`;
+        return `${value.toFixed(1)}\u00A0°C`;
       case TransceiverReadingKind.Voltage:
         return `${value.toFixed(2)} V`;
       case TransceiverReadingKind.BiasCurrent:
@@ -873,8 +873,8 @@ export default class TransceiverHealthUtil {
       case TransceiverReadingKind.TxPower:
       case TransceiverReadingKind.RxPower:
         return value <= TRANSCEIVER_MIN_POWER_DBM
-          ? `${value.toFixed(2)} dBm (no light)`
-          : `${value.toFixed(2)} dBm`;
+          ? `${value.toFixed(2)}\u00A0dBm (no light)`
+          : `${value.toFixed(2)}\u00A0dBm`;
       default:
         return `${value}`;
     }

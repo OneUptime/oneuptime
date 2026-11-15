@@ -145,7 +145,7 @@ Um die Daten einer einzelnen Person statt einer ganzen Anwendung zu löschen, st
 
 ## Berechtigungen
 
-Jeder mit der Betrachter-Rolle des Projekts sieht RUM-Anwendungen und ihre Telemetrie. Die Sitzungswiedergabe gehört absichtlich nicht zu dieser Rolle: Aufzeichnungen auflisten, eine ansehen und lesen, wer zugesehen hat, sind getrennte Berechtigungen. Projekteigentümer und -administratoren haben sie alle. Die Berechtigungsauswahl führt jede Berechtigung unter ihrem Titel, hier kursiv angegeben.
+Jeder mit der Betrachter-Rolle des Projekts sieht RUM-Anwendungen und ihre Telemetrie. Die Sitzungswiedergabe gehört absichtlich nicht zu dieser Rolle: Aufzeichnungen auflisten, eine ansehen und lesen, wer zugesehen hat, sind getrennte Berechtigungen. Projektinhaber und Projektadministratoren haben sie alle. Die Berechtigungsauswahl führt jede Berechtigung unter ihrem Titel, hier kursiv angegeben.
 
 | Berechtigung | Erlaubt einem Mitglied |
 | --- | --- |

@@ -13,7 +13,7 @@ OneUptime samler automatisk slike bølger i én e-post. Det er slått på for al
 
 ## Slik fungerer det
 
-Hvert eiervarsel på e-post du mottar, telles mot et lite budsjett som holdes per prosjekt, per mottaker, per e-postadresse og per **kategori** av ressurs — hendelser, varsler, monitorer, planlagt vedlikehold, statussider, prober, SLO-er og så videre.
+Hvert eiervarsel på e-post du mottar, telles mot et lite budsjett som holdes per prosjekt, per mottaker, per e-postadresse og per **kategori** av ressurs — hendelser, varsler, monitorer, planlagt vedlikehold, statussider, sonder, SLO-er og så videre.
 
 ```mermaid title="Slik leveres et eiervarsel på e-post"
 flowchart TB
@@ -41,7 +41,7 @@ Emnelinjen forteller deg omfanget _og typen_ storm før du åpner den:
 [Acme Production] 112 notifications: 63 Monitors, 41 Incidents, 6 Alerts +2 more
 ```
 
-Inni gir et sammendragskort totalen, tidsrommet oppsummeringen dekker og fordelingen per kategori. Under det er varslene gruppert i én seksjon per kategori, den mest presserende først — hendelser, så varsler, så monitorene og probene som oppdaget dem — slik at det første under sammendraget også er det første som er verdt et klikk.
+Inni gir et sammendragskort totalen, tidsrommet oppsummeringen dekker og fordelingen per kategori. Under det er varslene gruppert i én seksjon per kategori, den mest presserende først — hendelser, så varsler, så monitorene og sondene som oppdaget dem — slik at det første under sammendraget også er det første som er verdt et klikk.
 
 Hver seksjon har én rad per ressurs i stedet for én rad per hendelse:
 

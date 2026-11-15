@@ -181,5 +181,5 @@ Port-monitorer åpner bare TCP-tilkoblinger. For en DNS-server bruker du en [DNS
 - [Ping-overvåking](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
 - [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
 - [Databasehelse-overvåking](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
-- [Egendefinerte probes](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
 :::

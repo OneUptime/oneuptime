@@ -51,7 +51,7 @@ Geben Sie Ihre Mobilnummer mit Ländervorwahl in **Deine Telefonnummer** ein, et
 
 ![Der Schritt „Wer hat sonst Bereitschaft?“, „Speichern und weiter“ ist markiert](screen:paging-who-else)
 
-Unter **Wer hat sonst Bereitschaft?** stehen Sie bereits in **Zuerst alarmiert**. Klicken Sie auf **Teammitglieder hinzufügen**, um außer Ihnen weitere Personen zu alarmieren, und dann auf **Speichern und weiter**. Hat das Projekt noch keine Bereitschaftsrichtlinie, wird dabei die Richtlinie `Default on-call policy` angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung alarmiert. Hat es schon eine, wählen Sie sie stattdessen unter **Bereitschaftsrichtlinie** und nehmen Personen unter **Zur ersten Eskalationsregel hinzufügen** auf. Ist jemand noch nicht erreichbar, bleibt der Schritt bei **Erreicht sie eine Alarmierung?** offen: Klicken Sie für diese Person auf **Einrichtungserinnerung senden** und dann auf **Weiter**.
+Unter **Wer hat sonst Bereitschaft?** stehen Sie bereits in **Zuerst alarmiert**. Klicken Sie auf **Teammitglieder hinzufügen**, um außer Ihnen weitere Personen zu alarmieren, und dann auf **Speichern und weiter**. Hat das Projekt noch keine Bereitschaftsrichtlinie, wird dabei die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung alarmiert. Hat es schon eine, wählen Sie sie stattdessen unter **Bereitschaftsrichtlinie** und nehmen Personen unter **Zur ersten Eskalationsregel hinzufügen** auf. Ist jemand noch nicht erreichbar, bleibt der Schritt bei **Erreicht sie eine Alarmierung?** offen: Klicken Sie für diese Person auf **Einrichtungserinnerung senden** und dann auf **Weiter**.
 
 ### Festlegen, was passiert, wenn niemand antwortet
 
@@ -83,7 +83,7 @@ Alarmiert die Richtlinie noch jemand anderen, können Sie auch die Eskalation be
 ## Was schiefgehen kann
 
 :::details Es gibt keine Schaltfläche „Code per SMS senden“
-Der SMS-Versand ist ausgeschaltet oder nicht möglich, und der Schritt sagt, warum. Nur ein Projekteigentümer oder jemand, der die Abrechnung verwaltet, sieht **SMS und Anrufe einschalten**. Bei OneUptime Cloud blendet ein Guthaben von 1.00 USD oder weniger das Feld aus. Auf einem selbst gehosteten Server, der keine SMS senden kann, sieht sein Master-Admin **SMS und Anrufe einrichten**, was das Admin Dashboard öffnet, um Twilio hinzuzufügen, wie [Twilio-Integration](/docs/self-hosted/twilio-integration) zeigt.
+Der SMS-Versand ist ausgeschaltet oder nicht möglich, und der Schritt sagt, warum. Nur ein Projektinhaber oder jemand, der die Abrechnung verwaltet, sieht **SMS und Anrufe einschalten**. Bei OneUptime Cloud blendet ein Guthaben von 1.00 USD oder weniger das Feld aus. Auf einem selbst gehosteten Server, der keine SMS senden kann, sieht sein Master-Admin **SMS und Anrufe einrichten**, was das Admin Dashboard öffnet, um Twilio hinzuzufügen, wie [Twilio-Integration](/docs/self-hosted/twilio-integration) zeigt.
 :::
 
 :::details „Guthaben aufladen“ meldet, dass keine Zahlungsmethode gefunden wurde

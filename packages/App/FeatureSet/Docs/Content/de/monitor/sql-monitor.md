@@ -283,5 +283,5 @@ Die Sonde braucht einen Microsoft ODBC Driver for SQL Server und eine Identität
 - [Datenbank-Integritätsüberwachung](/docs/monitor/database-health-monitor): Verbindungen, Sperren und Replikation überwachen, ohne SQL zu schreiben.
 - [Überwachungs-Geheimnisse](/docs/monitor/monitor-secrets): Das Datenbankpasswort verschlüsselt aufbewahren.
 - [JavaScript-Ausdrücke](/docs/monitor/javascript-expression): Kriterien schreiben, die mehrere Werte kombinieren.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Prüfungen aus Ihrem Netzwerk heraus ausführen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Prüfungen aus Ihrem Netzwerk heraus ausführen.
 :::

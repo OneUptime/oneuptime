@@ -101,7 +101,7 @@ describe("what a resource's page leads with", () => {
       }),
     ).toEqual([
       ["CPU", "37%", 37.4, undefined],
-      ["Free storage", "12 GiB", undefined, undefined],
+      ["Free storage", "12\u00A0GiB", undefined, undefined],
       ["Connections", "42", undefined, undefined],
       // Every RDS instance reports these: a read without them says so.
       ["Free memory", "", undefined, NOT_REPORTED],
@@ -130,7 +130,7 @@ describe("what a resource's page leads with", () => {
     ).toEqual(["aws/lambda/invocations", "aws/lambda/duration"]);
     expect(lambda[0]!.sublabel).toBe(PER_MINUTE);
     expect(Number(lambda[0]!.value.replace(/,/g, ""))).toBeGreaterThan(0);
-    expect(lambda[1]!.value).toBe("230 ms");
+    expect(lambda[1]!.value).toBe("230\u00A0ms");
 
     expect(
       getCloudHeadlineTiles({
@@ -142,7 +142,7 @@ describe("what a resource's page leads with", () => {
       }).find((tile: CloudHeadlineTile): boolean => {
         return tile.key === "aws/sqs/approximateageofoldestmessage";
       })!.value,
-    ).toBe("90 min");
+    ).toBe("90\u00A0min");
   });
 
   test("a virtual machine leads with its CPU, memory, network, disks and availability", () => {
@@ -169,11 +169,11 @@ describe("what a resource's page leads with", () => {
       }),
     ).toEqual([
       ["CPU", "24%", undefined],
-      ["Free memory", "3.2 GiB", undefined],
-      ["Network in", "12 MiB", PER_MINUTE],
-      ["Network out", "512 KiB", PER_MINUTE],
-      ["Disk read", "0 B", PER_MINUTE],
-      ["Disk write", "64 MiB", PER_MINUTE],
+      ["Free memory", "3.2\u00A0GiB", undefined],
+      ["Network in", "12\u00A0MiB", PER_MINUTE],
+      ["Network out", "512\u00A0KiB", PER_MINUTE],
+      ["Disk read", "0\u00A0B", PER_MINUTE],
+      ["Disk write", "64\u00A0MiB", PER_MINUTE],
       ["Availability", "100%", undefined],
     ]);
     expect(
@@ -281,7 +281,7 @@ describe("what a resource's page leads with", () => {
     ).toEqual([
       ["Availability", "100%", 100],
       ["Healthy backends", "50%", 50],
-      ["Traffic", "3 MiB", undefined],
+      ["Traffic", "3\u00A0MiB", undefined],
     ]);
 
     const gateway: CloudHeadlineTile = getCloudHeadlineTiles({
@@ -294,7 +294,10 @@ describe("what a resource's page leads with", () => {
       return tile.key === "throughput";
     })!;
 
-    expect([gateway.value, gateway.sublabel]).toEqual(["2 MiB", PER_SECOND]);
+    expect([gateway.value, gateway.sublabel]).toEqual([
+      "2\u00A0MiB",
+      PER_SECOND,
+    ]);
 
     // A firewall's throughput is in bits: drawn in bytes.
     const firewall: CloudHeadlineTile = getCloudHeadlineTiles({
@@ -307,7 +310,10 @@ describe("what a resource's page leads with", () => {
       return tile.key === "throughput";
     })!;
 
-    expect([firewall.value, firewall.sublabel]).toEqual(["1 MiB", PER_SECOND]);
+    expect([firewall.value, firewall.sublabel]).toEqual([
+      "1\u00A0MiB",
+      PER_SECOND,
+    ]);
   });
 
   test("the types the issue asked about lead with what a person reads first about each", () => {
@@ -450,21 +456,21 @@ describe("what a resource's page leads with", () => {
   });
 
   test("sizes, amounts and times in the reader's numerals", () => {
-    expect(formatCloudBytes(0, ENGLISH)).toBe("0 B");
-    expect(formatCloudBytes(1536, ENGLISH)).toBe("1.5 KiB");
-    expect(formatCloudBytes(300 * GIB, ENGLISH)).toBe("300 GiB");
-    expect(formatCloudBytes(-5, ENGLISH)).toBe("0 B");
-    expect(formatCloudBytes(9.6 * GIB, ENGLISH)).toBe("9.6 GiB");
-    expect(formatCloudBytes(9.6 * GIB, GERMAN)).toBe("9,6 GiB");
+    expect(formatCloudBytes(0, ENGLISH)).toBe("0\u00A0B");
+    expect(formatCloudBytes(1536, ENGLISH)).toBe("1.5\u00A0KiB");
+    expect(formatCloudBytes(300 * GIB, ENGLISH)).toBe("300\u00A0GiB");
+    expect(formatCloudBytes(-5, ENGLISH)).toBe("0\u00A0B");
+    expect(formatCloudBytes(9.6 * GIB, ENGLISH)).toBe("9.6\u00A0GiB");
+    expect(formatCloudBytes(9.6 * GIB, GERMAN)).toBe("9,6\u00A0GiB");
 
     expect(formatCloudAmount(1240.4, ENGLISH)).toBe("1,240");
     expect(formatCloudAmount(37.54, ENGLISH)).toBe("37.5");
     expect(formatCloudAmount(0.421, ENGLISH)).toBe("0.42");
 
-    expect(formatCloudSeconds(0.23, ENGLISH)).toBe("230 ms");
-    expect(formatCloudSeconds(1.84, ENGLISH)).toBe("1.8 s");
-    expect(formatCloudSeconds(600, ENGLISH)).toBe("10 min");
-    expect(formatCloudSeconds(9000, ENGLISH)).toBe("2.5 h");
+    expect(formatCloudSeconds(0.23, ENGLISH)).toBe("230\u00A0ms");
+    expect(formatCloudSeconds(1.84, ENGLISH)).toBe("1.8\u00A0s");
+    expect(formatCloudSeconds(600, ENGLISH)).toBe("10\u00A0min");
+    expect(formatCloudSeconds(9000, ENGLISH)).toBe("2.5\u00A0h");
   });
 });
 

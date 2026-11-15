@@ -144,11 +144,11 @@ En sparad tratt eller kvarhållningstabell kan också visas på en instrumentpan
 
 ## Vem kan se det
 
-Att läsa de här sidorna kräver detsamma som att läsa sessionslistan: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som projektägare och administratörer har. Att se vem en inloggad användare är, och att söka efter personer på namn, kräver `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) beskriver.
+Att läsa de här sidorna kräver detsamma som att läsa sessionslistan: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som Projektägare och Projektadministratörer har. Att se vem en inloggad användare är, och att söka efter personer på namn, kräver `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) beskriver.
 
 Att spara, byta namn på och ta bort sparade trattar och kvarhållningstabeller kräver samma behörigheter som att läsa de här sidorna, och en widget på en instrumentpanel visar en bara för en läsare som har dem.
 
-Att slå på eller av händelserna kräver `EditRumApplication` (_Edit RUM Application_) eller rollen som projektägare, administratör eller medlem. Att ange användaregenskaper kräver `EditRumApplication` eller rollen som ägare eller administratör, eftersom det avgör vad som sparas om inloggade personer.
+Att slå på eller av händelserna kräver `EditRumApplication` (_Edit RUM Application_) eller rollen Projektägare, Projektadministratör eller Projektmedlem. Att ange användaregenskaper kräver `EditRumApplication` eller rollen som ägare eller administratör, eftersom det avgör vad som sparas om inloggade personer.
 
 ## Nästa steg
 

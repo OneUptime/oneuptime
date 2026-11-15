@@ -1,6 +1,6 @@
 # Architektur
 
-Eine selbst gehostete OneUptime-Installation besteht aus einer Handvoll Container: einem Ingress, über den jede Anfrage hereinkommt, einem App-Image, das die Arbeit erledigt, Probes, die die Prüfungen Ihrer Monitore ausführen, und drei Datenspeichern. Diese Seite zeigt, wie sie zusammenspielen, was jeder Teil tut und welche Verbindungen Ihr Netzwerk überqueren.
+Eine selbst gehostete OneUptime-Installation besteht aus einer Handvoll Container: einem Ingress, über den jede Anfrage hereinkommt, einem App-Image, das die Arbeit erledigt, Sonden, die die Prüfungen Ihrer Monitore ausführen, und drei Datenspeichern. Diese Seite zeigt, wie sie zusammenspielen, was jeder Teil tut und welche Verbindungen Ihr Netzwerk überqueren.
 
 ```mermaid title="Eine selbst gehostete OneUptime-Installation"
 flowchart TB
@@ -12,7 +12,7 @@ flowchart TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>Dashboards,<br/>Statusseiten,<br/>API, Ingest,<br/>Hintergrundjobs"]
         Runner["Globaler<br/>Runner"]
-        Probe["Probes"]
+        Probe["Sonden"]
         subgraph Data["Datenspeicher"]
             direction LR
             Postgres[("PostgreSQL<br/>Konfiguration<br/>und Zustand")]
@@ -36,10 +36,10 @@ flowchart TB
 
 - Menschen erreichen OneUptime über den **Ingress**, der TLS terminiert und jede Anfrage an die App weiterleitet: das Dashboard, die Statusseiten, die API und jeden Ingest-Endpunkt, an den Telemetrie gesendet wird.
 - Die **App** liest und schreibt ihren Zustand in PostgreSQL, speichert Telemetrie in ClickHouse und nutzt Valkey (den BSD-lizenzierten Fork von Redis 7.2) als Cache und für die Warteschlangen, die ihre Hintergrundjobs abarbeiten.
-- **Probes** können in Ihrem Cluster laufen (empfohlen) und/oder an anderer Stelle in Ihrem Netzwerk. Sie können Folgendes überwachen:
+- **Sonden** können in Ihrem Cluster laufen (empfohlen) und/oder an anderer Stelle in Ihrem Netzwerk. Sie können Folgendes überwachen:
   - Interne/private Dienste hinter Ihrer Firewall.
   - Externe/öffentliche Ressourcen im Internet.
-- Probe-Ergebnisse werden an die App gesendet, in Valkey eingereiht und von den Hintergrundjobs in Ihre Datenspeicher geschrieben. Eine Probe an anderer Stelle in Ihrem Netzwerk erreicht die App über den Ingress, unter Ihrer OneUptime-URL.
+- Sondenergebnisse werden an die App gesendet, in Valkey eingereiht und von den Hintergrundjobs in Ihre Datenspeicher geschrieben. Eine Sonde an anderer Stelle in Ihrem Netzwerk erreicht die App über den Ingress, unter Ihrer OneUptime-URL.
 - Telemetrie (Metriken, Traces, Logs und mehr) wird von derselben App aufgenommen und in ClickHouse gespeichert.
 
 > [!NOTE]
@@ -53,7 +53,7 @@ flowchart TB
 | App | `app` | `app` | Das Dashboard, die Statusseiten, die API- und Ingest-Endpunkte und, sofern Sie sie nicht abtrennen, die Hintergrundjobs. |
 | Worker | Teil von `app` | `worker` (standardmäßig aus) | Die Hintergrundjobs in eigenen Pods, damit aufwendige Warteschlangenverarbeitung nie mit API-Anfragen konkurriert. |
 | Telemetrie-Writer | Teil von `app` | `telemetryWriter` (standardmäßig aus) | Eine Stufe fester Größe, die jeden ClickHouse-Insert ausführt, damit die Inserts begrenzt bleiben, wie weit die Worker auch skalieren. |
-| Probe | `probe-1` | `probes` | Führt Monitorprüfungen aus und sendet die Ergebnisse zurück. Jede mitgelieferte Probe ist eine globale Probe, die alle Projekte nutzen können. |
+| Sonde | `probe-1` | `probes` | Führt Monitorprüfungen aus und sendet die Ergebnisse zurück. Jede mitgelieferte Sonde ist eine globale Sonde, die alle Projekte nutzen können. |
 | Globaler Runner | `global-runner` | `globalRunner` | Ein [globaler Runner](/docs/runbooks/agents#globale-runner): Er führt die JavaScript-Schritte jedes Projekts aus, das keinen eigenen Runner wählt, jeden in einer Sandbox, die nur das Internet erreicht, und die Codekorrekturen von OneUptime AI in jedem Code-Repository, das keinen wählt. Er hat seinen eigenen Schlüssel und sonst nichts vom Server. Bash-, SSH- und kubectl-Schritte laufen auf [Runnern](/docs/runbooks/agents), die Sie dort installieren, wo sie laufen sollen. |
 | PostgreSQL | `postgres` | `postgresql` oder `postgresOperator.cnpg` | Projekte, Monitore, Incidents, Benutzer und alle anderen Einstellungen und Zustände. |
 | ClickHouse | `clickhouse` | `clickhouse` oder `clickhouseOperator.altinity` | Logs, Metriken, Traces, Ausnahmen, Profile und Monitor-Logs. |
@@ -68,7 +68,7 @@ Vier Verbindungen werden aufgebaut, solange Sie keine Einstellung ändern:
 - Einmal am Tag fragt die App die API von GitHub (`api.github.com`), ob eine neuere Version erschienen ist. Außerdem liest sie die von OneUptime veröffentlichten Sicherheitshinweise, damit Ihre Master-Admins erfahren, wenn einer davon die Version betrifft, die Sie betreiben ([Update- und Sicherheitsprüfungen](/docs/self-hosted/update-checks)). Abschalten lässt sich das mit `updateCheck.disabled: true` im Helm-Chart oder mit `DISABLE_UPDATE_CHECK=true` in `config.env` bei Docker Compose.
 - Einmal am Tag meldet die App die Adresse Ihrer Installation und die laufende Version an `oneuptime.com`, damit OneUptime weiß, welche Installationen noch eine Version mit einer Sicherheitslücke ausführen. Über Ihre Benutzer, Projekte oder Monitoring-Daten wird nichts gesendet. Abschalten lässt sich das mit `instanceCheckIn.disabled: true` im Helm-Chart oder mit `DISABLE_INSTANCE_CHECK_IN=true` in `config.env` bei Docker Compose.
 - Registriert sich jemand mit aktiviertem „Benachrichtigen Sie mich über Sicherheitsupdates und neue Versionen“ (so ist es voreingestellt), gehen Name und E-Mail-Adresse der Person, eine angegebene Firma und Telefonnummer sowie Adresse und Version Ihrer Installation an `oneuptime.com`. Deaktivieren Sie das Kästchen in einem Netzwerk ohne Internetzugang. Ist der tägliche Aufruf oben ausgeschaltet, bietet das Formular das Kästchen nicht mehr an, und es wird nichts gesendet.
-- Unter Kubernetes greifen Probes nach dem DNS Ihres Clusters auf die öffentlichen Resolver `8.8.8.8` und `1.1.1.1` zurück. Setzen Sie `dnsConfig.nameservers` auf `[]`, damit jede Abfrage bei Ihrem eigenen DNS bleibt.
+- Unter Kubernetes greifen Sonden nach dem DNS Ihres Clusters auf die öffentlichen Resolver `8.8.8.8` und `1.1.1.1` zurück. Setzen Sie `dnsConfig.nameservers` auf `[]`, damit jede Abfrage bei Ihrem eigenen DNS bleibt.
 
 Alles andere baut nur dann Verbindungen nach außen auf, wenn Sie es einschalten, und zu jedem gibt es eine Seite, die die genauen freizugebenden Adressen nennt:
 
@@ -81,7 +81,7 @@ Alles andere baut nur dann Verbindungen nach außen auf, wenn Sie es einschalten
 | Ein LLM-Anbieter, etwa OpenAI, Anthropic, Microsoft Foundry oder ein Modell, das Sie selbst betreiben | OneUptime AI | [LLM-Anbieter](/docs/ai/llm-provider) |
 | `oneuptime.com` | Eine Enterprise-Lizenz online aktivieren | [Enterprise Edition](/docs/self-hosted/enterprise) |
 
-Verbindungen in die andere Richtung – SendGrid, das eingehende E-Mails zustellt, oder Slack und Microsoft Teams, die zurückrufen – setzen voraus, dass der Ingress aus dem Internet erreichbar ist. Welche privaten Adressen die App und die Probes erreichen dürfen, entscheiden Sie: siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
+Verbindungen in die andere Richtung – SendGrid, das eingehende E-Mails zustellt, oder Slack und Microsoft Teams, die zurückrufen – setzen voraus, dass der Ingress aus dem Internet erreichbar ist. Welche privaten Adressen die App und die Sonden erreichen dürfen, entscheiden Sie: siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
 Das Logo von OneUptime steckt in jeder E-Mail, die OneUptime versendet, selbst. Es wird also auch in einem Netzwerk ohne Internetzugang angezeigt, und beim Öffnen einer E-Mail wird kein anderer Host danach gefragt. Ein Logo, das Sie selbst hochladen, steckt ebenfalls in der E-Mail selbst: Ihr eigenes Logo, wenn es ein PNG, JPEG oder GIF ist, und das Logo einer Statusseite, wenn es ein PNG, JPEG, GIF, WebP oder SVG ist; OneUptime macht daraus ein Bild in der Größe des E-Mail-Kopfes. Alle anderen Bilder, die Sie hochladen, werden von Ihrer OneUptime-URL geladen; wer diese E-Mails liest, muss sie also erreichen können. Das gilt auch für das SVG-Logo einer Statusseite, dessen Schriftzug aus Text statt aus Formen besteht.
 
@@ -90,6 +90,6 @@ Das Logo von OneUptime steckt in jeder E-Mail, die OneUptime versendet, selbst. 
 :::cards
 - [Docker Compose](/docs/installation/docker-compose): Alle Komponenten auf einer Maschine installieren.
 - [Dimensionierung und Kapazitätsplanung](/docs/installation/sizing): Wie viel CPU, Arbeitsspeicher und Speicherplatz jede Stufe braucht.
-- [Eigene Probes](/docs/probe/custom-probe): Eine Probe in einem anderen Netzwerk betreiben.
+- [Eigene Sonden](/docs/probe/custom-probe): Eine Sonde in einem anderen Netzwerk betreiben.
 - [Enterprise Edition](/docs/self-hosted/enterprise): Was die Enterprise-Images hinzufügen und wie die Lizenzierung funktioniert.
 :::

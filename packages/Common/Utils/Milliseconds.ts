@@ -4,6 +4,10 @@ import {
   isEnglishDateLanguage,
 } from "../Types/DateLanguage";
 import {
+  NO_BREAK_SPACE,
+  withNumbersKeptWithUnits,
+} from "../Types/NoBreakSpaces";
+import {
   createTranslator,
   DEFAULT_LANGUAGE,
   translationKey,
@@ -209,9 +213,15 @@ export const formatMilliseconds: (
  * ARABIC.md): "1,50 Sek.", "۱٫۵۰ ثانیه", "1.50 ث", "2,5 Min.". English
  * reads exactly as the caller wrote it (`english`, "1.50 s" when left
  * out), and so does a language whose engine cannot write the unit, with
- * the figure in its digits.
+ * the figure in its digits. The same formatters' nanoseconds are written
+ * here too (#8348).
+ *
+ * In every language the figure stays on the line of its unit: the space
+ * between them, the caller's English one or the one Intl writes (a plain
+ * U+0020 in most languages), is a no-break space (#8302, #8303).
  */
 export type DurationInUnit =
+  | "nanosecond"
   | "microsecond"
   | "second"
   | "minute"
@@ -219,6 +229,7 @@ export type DurationInUnit =
   | "day";
 
 const DURATION_UNIT_SYMBOLS: Record<DurationInUnit, string> = {
+  nanosecond: "ns",
   microsecond: "µs",
   second: "s",
   minute: "min",
@@ -285,6 +296,35 @@ const getDurationUnitFormat: (
   return durationUnitFormats.get(key) || null;
 };
 
+// A space a line breaks at, between a figure and its unit.
+const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]+/g;
+
+/*
+ * What Intl writes, the space between the figure and its unit held, and
+ * any space inside a unit of two words too (Hindi's "नैनो से॰", #8304).
+ */
+const writeHeld: (format: Intl.NumberFormat, value: number) => string = (
+  format: Intl.NumberFormat,
+  value: number,
+): string => {
+  const parts: Array<Intl.NumberFormatPart> = format.formatToParts(value);
+
+  return parts
+    .map((part: Intl.NumberFormatPart, index: number): string => {
+      const before: string | undefined = parts[index - 1]?.type;
+      const after: string | undefined = parts[index + 1]?.type;
+      const isUnit: boolean = (part.type as string) === "unit";
+      const isBesideAUnit: boolean =
+        part.type === "literal" &&
+        ((before as string) === "unit" || (after as string) === "unit");
+
+      return isUnit || isBesideAUnit
+        ? part.value.replace(BREAKING_SPACES, NO_BREAK_SPACE)
+        : part.value;
+    })
+    .join("");
+};
+
 export const formatDurationInUnit: (
   translator: Translator,
   value: number,
@@ -306,10 +346,11 @@ export const formatDurationInUnit: (
   );
   const fixed: string = value.toFixed(decimals);
   const english: string =
-    options.english ??
-    `${options.dropTrailingZeros ? Number(fixed).toString() : fixed} ${
-      DURATION_UNIT_SYMBOLS[unit]
-    }`;
+    options.english === undefined
+      ? `${options.dropTrailingZeros ? Number(fixed).toString() : fixed}${NO_BREAK_SPACE}${
+          DURATION_UNIT_SYMBOLS[unit]
+        }`
+      : withNumbersKeptWithUnits(options.english, options.english);
 
   if (isEnglishDateLanguage(translator.language)) {
     return english;
@@ -327,11 +368,11 @@ export const formatDurationInUnit: (
       decimals: decimals,
       dropTrailingZeros: options.dropTrailingZeros,
       language: translator.language,
-    })} ${DURATION_UNIT_SYMBOLS[unit]}`;
+    })}${NO_BREAK_SPACE}${DURATION_UNIT_SYMBOLS[unit]}`;
   }
 
   // Rounded once, as toFixed rounds it, so every language says the same figure.
-  return format.format(Number(fixed));
+  return writeHeld(format, Number(fixed));
 };
 
 // English, as the server and a translator without wording write it.

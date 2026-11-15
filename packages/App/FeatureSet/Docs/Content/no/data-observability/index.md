@@ -76,7 +76,7 @@ En selvhostet OneUptime betaler ingenting for tabeller.
 
 :::cards
 - [Koble til en database](/docs/data-observability/connect): Brukeren med minst mulig tilgang for hver databasemotor, og sonder for private nettverk.
-- [Tabellhelse](/docs/data-observability/table-health): Aktualitet, volum, skjemaendringer, ubrukte tabeller og metrikkene hver tabell skriver.
+- [Tabellhelse](/docs/data-observability/table-health): Aktualitet, volum, skjemaendringer, ubrukte tabeller og målingene hver tabell skriver.
 - [Kontroller og avstemminger](/docs/data-observability/checks): Regler for verdiene i en tabell, sammenligning av en tabell med kopien av den, og dbt-testene.
 - [Avstamning og pipelines](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran og Airbyte, og én sak per årsak.
 - [Dataprodukter](/docs/data-observability/data-products): Aktualitets-SLA-er for dem som bruker data, på statussider og som SLO-er.

@@ -19,17 +19,22 @@ import { escapeRegExp } from "../Utils/RegExpEscape";
  *   broke inside its brackets: "Verfügbarkeit (24" over "Std.)" (#8043).
  *   Where the English text writes a number beside its unit - "{{hours}}h",
  *   "{{minutes}} min", "{{percent}}%", "24h", "10 MB" - the space a
- *   translation writes after that number is a no-break space (U+00A0).
+ *   translation writes after that number is a no-break space (U+00A0),
+ *   and so is the space English itself writes there: "Every 5 min" broke
+ *   as "Every 5" over "min" on a narrow pill (#8302). A unit a language
+ *   writes in two words - Arabic's milliseconds, "ملي ث" - is held
+ *   together too (#8304).
  *
  * The locale files keep their plain spaces, as translators type them and as
  * the checks that read the files expect them. The words are set with
  * no-break spaces where they are drawn: the Translator sets every wording
- * a locale gives it (Types/Translator, so the server's messages too), each
- * frontend sets its locale as i18next loads it (withNoBreakSpacesInLocale),
- * and the docs set their French pages and labels. Only OneUptime's own
- * words are set: a value - a monitor's name, a number someone typed - goes
- * into a sentence as it is written, and so does an English text left in a
- * locale for a translation still to come.
+ * a locale gives it, and every English template it fills
+ * (Types/Translator, so the server's messages too), each frontend sets its
+ * locale as i18next loads it (withNoBreakSpacesInLocale), and the docs set
+ * their French pages and labels. Only OneUptime's own words are set: a
+ * value - a monitor's name, a number someone typed - goes into a sentence
+ * as it is written, and so does a text no locale words (translateText of
+ * an untranslated text), which may be a value too.
  *
  * Code in backticks and an HTML tag are left as they are written: a space
  * there is the code's.
@@ -380,6 +385,54 @@ const DIGITS_BEFORE_SPACES: RegExp = new RegExp(
   "gu",
 );
 
+/*
+ * The units a language writes in two words after a number: Arabic's
+ * milliseconds, as Intl writes them short ("ملي ث", the Dashboard's
+ * "{{value}} ms") and long ("ملي ثانية"), and as its sentences spell them
+ * ("مللي ثانية", "ميلي ثانية"); its nanoseconds, long ("نانو ثانية").
+ * Holding the number to the unit's first word left the unit itself to
+ * break: "411 ملي" over "ث" (#8304). A unit a language joins with a
+ * zero-width non-joiner (Persian's "میلی‌ثانیه") is one word already.
+ */
+const UNITS_OF_TWO_WORDS: ReadonlyArray<[string, string]> = [
+  ["ملي", "ث"],
+  ["ملي", "ثانية"],
+  ["مللي", "ثانية"],
+  ["ميلي", "ثانية"],
+  ["نانو", "ثانية"],
+];
+
+/*
+ * The spaces between a unit's two words, right after a number held to it:
+ * a {{placeholder}} or written digits, then a no-break space. The unit
+ * ends where its second word does, not inside a longer word.
+ */
+const SPACES_INSIDE_A_UNIT_PATTERN: string = UNITS_OF_TWO_WORDS.map(
+  ([first, second]: [string, string]): string => {
+    return `(?<=(?:\\}\\}|\\p{Nd})\\u00A0${escapeRegExp(first)})${BREAKING_SPACES}(?=${escapeRegExp(second)}(?![\\p{L}\\p{M}\\p{N}]))`;
+  },
+).join("|");
+
+const SPACES_INSIDE_A_HELD_UNIT: RegExp = new RegExp(
+  `(${SPACES_INSIDE_A_UNIT_PATTERN})`,
+  "gu",
+);
+
+// The first words of the units of two words, each once.
+const FIRST_WORD_PATTERN: string = Array.from(
+  new Set(
+    UNITS_OF_TWO_WORDS.map(([first]: [string, string]): string => {
+      return escapeRegExp(first);
+    }),
+  ),
+).join("|");
+
+// Whether a text may hold a unit of two words after a held number.
+const HAS_A_UNIT_OF_TWO_WORDS: RegExp = new RegExp(
+  `\\u00A0(?:${FIRST_WORD_PATTERN})${BREAKING_SPACES}`,
+  "u",
+);
+
 // The zero of each run of digits a locale writes numbers in.
 const DIGIT_ZEROS: ReadonlyArray<number> = [
   0x30, // 0
@@ -518,7 +571,27 @@ export const withNumbersKeptWithUnits: (
     );
   }
 
-  return result;
+  return withUnitsOfTwoWordsHeld(result);
+};
+
+/*
+ * `words` with each unit of two words that follows a number held to it
+ * held together too: "411\u00A0ملي\u00A0ث". A unit only, and only after a
+ * number: elsewhere its words are words a line may break between.
+ */
+const withUnitsOfTwoWordsHeld: (words: string) => string = (
+  words: string,
+): string => {
+  if (!HAS_A_UNIT_OF_TWO_WORDS.test(words)) {
+    return words;
+  }
+
+  return replaceSpaces(
+    words,
+    SPACES_INSIDE_A_HELD_UNIT,
+    AS_WRITTEN_IN_TEXT,
+    always(NO_BREAK_SPACE),
+  );
 };
 
 /*

@@ -1,6 +1,6 @@
 # IoT-enhets-övervakning
 
-En IoT-enhetsmonitor bevakar en flotta av enheter och säger till när en enhet går offline, batteriet blir svagt, signalen försvagas, enheten blir överhettad eller processorn förblir upptagen. Den läser `iot_*`-mätvärdena som dina enheter skickar till OneUptime över OpenTelemetry eller MQTT, så ingenting kontrolleras utifrån och ingen probe är inblandad.
+En IoT-enhetsmonitor bevakar en flotta av enheter och säger till när en enhet går offline, batteriet blir svagt, signalen försvagas, enheten blir överhettad eller processorn förblir upptagen. Den läser `iot_*`-mätvärdena som dina enheter skickar till OneUptime över OpenTelemetry eller MQTT, så ingenting kontrolleras utifrån och ingen sond är inblandad.
 
 :::cards
 - [Skapa monitorn](#skapa-en-iot-enhetsmonitor): Sex steg i instrumentpanelen.
