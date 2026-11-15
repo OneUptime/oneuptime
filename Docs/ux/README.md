@@ -829,11 +829,16 @@ then `npm run i18n:validate` from the root.
   and headed its schema changes "Cambiar" ("change it", #8078). List the key in
   [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), so English reads it as
   the word alone, "View", wherever it is drawn: a column's or a filter's title, an option, a pill.
-  Enforced by
+  Look such a key up as any key, and never write its English by hand: no `hasTranslation` check,
+  no constant holding "Created", no lookup that falls back to the word, no options translated up
+  front to get the English right (#8180). A word one list words for its own noun takes such a key
+  too: an invoice's Deleted is "Eliminada" beside its "Pagada", where the Dashboard's shared
+  "Deleted" is "Eliminado" (#8181). Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts),
-  [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts)
+  [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts),
+  [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx)
   and
-  [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx).
+  [MeaningKeyFallbacksGuard](../../packages/Common/Tests/Types/MeaningKeyFallbacksGuard.test.ts).
 - **A thing has one name in each language: the one its menus say.** The side menu, the Products menu
   and a page's title name a thing, and every count, sentence and button on its pages says the same
   noun, in every app and in the docs that quote them. French said "Archiver ce workflow" under a list
