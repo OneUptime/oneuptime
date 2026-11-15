@@ -6,7 +6,9 @@ import LogPipelineProcessorType from "Common/Types/Log/LogPipelineProcessorType"
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { JSONObject } from "Common/Types/JSON";
 import { MAX_KEY_VALUE_INPUT_LENGTH } from "Common/Utils/Log/KeyValueParser";
+import { readOwnValue } from "Common/Utils/LookupTable";
 import logger from "Common/Server/Utils/Logger";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 
 /*
  * The KeyValueParser processor at ingest: a Sophos XGS or Fortinet line
@@ -316,6 +318,73 @@ describe("KeyValueParser - attributes the log already has", () => {
     );
 
     expect((out["attributes"] as JSONObject)["con_name"]).toBe("first");
+  });
+
+  /*
+   * Every name an object inherits but __proto__, which the parser never
+   * takes as a key (Common/Utils/Log/KeyValueParser), as a key a line
+   * carries: an attribute like any other. Free on a log without one, and,
+   * with overrideOnConflict off, never written over a log's own one.
+   */
+  it.each(
+    INHERITED_PROPERTY_NAMES.filter((name: string): boolean => {
+      return name !== "__proto__";
+    }),
+  )(
+    "writes a key named %s as an attribute, and keeps the log's own one",
+    (name: string) => {
+      const out: JSONObject = LogPipelineService.processLog(
+        syslogRow(`${name}=x other=y`),
+        keyValuePipeline({ source: "body" }),
+      );
+
+      expect(out["attributes"]).toEqual({
+        "syslog.hostname": "SFW",
+        "networkDevice.name": "hq-firewall",
+        [name]: "x",
+        other: "y",
+      });
+      expect(readOwnValue(out["attributes"] as JSONObject, name)).toBe("x");
+      expect(out["attributeKeys"]).toEqual([
+        "syslog.hostname",
+        "networkDevice.name",
+        name,
+        "other",
+      ]);
+
+      const own: JSONObject = {
+        body: `${name}=from-line`,
+        attributes: { [name]: "from-ingest" },
+        attributeKeys: [name],
+      };
+
+      expect(
+        LogPipelineService.processLog(
+          own,
+          keyValuePipeline({ source: "body" }),
+        )["attributes"],
+      ).toEqual({ [name]: "from-ingest" });
+      expect(
+        LogPipelineService.processLog(
+          own,
+          keyValuePipeline({ source: "body", overrideOnConflict: true }),
+        )["attributes"],
+      ).toEqual({ [name]: "from-line" });
+    },
+  );
+
+  it("never takes __proto__ from a line as a key, and the attributes keep their prototype", () => {
+    const out: JSONObject = LogPipelineService.processLog(
+      syslogRow("__proto__=x other=y"),
+      keyValuePipeline({ source: "body" }),
+    );
+
+    expect(out["attributes"]).toEqual({
+      "syslog.hostname": "SFW",
+      "networkDevice.name": "hq-firewall",
+      other: "y",
+    });
+    expect(Object.getPrototypeOf(out["attributes"])).toBe(Object.prototype);
   });
 });
 

@@ -5,6 +5,7 @@ import evaluateFilter from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator"
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import LogPipelineProcessorType from "Common/Types/Log/LogPipelineProcessorType";
 import { JSONObject } from "Common/Types/JSON";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 
 /*
  * The severity remapper writes straight onto the log row, after ingest has
@@ -158,4 +159,66 @@ describe("severity remapper writes only values a filter can match", () => {
       )["severityText"],
     ).toBe(LogSeverity.Warning);
   });
+
+  /*
+   * The same for every name an object inherits, __proto__ among them: the
+   * remapper reads the row's attributes where they are, so a row given an
+   * attribute of that name (a computed key) has it as its own. A mapping
+   * names the text a plain read of the name gives on a row without it -
+   * "function toString() { [native code] }", "[object Object]" - and the
+   * row is still left alone.
+   */
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a source key named %s is read from the row's own attributes",
+    (name: string) => {
+      const inheritedText: string = String(
+        (Object.create(Object.prototype) as Record<string, unknown>)[name],
+      );
+      const pipelines: Array<LoadedPipeline> = [
+        {
+          pipeline: { name: "test-pipeline" },
+          compiledFilter: { kind: "always-true" },
+          processors: [
+            {
+              name: "remap",
+              processorType: LogPipelineProcessorType.SeverityRemapper,
+              configuration: {
+                sourceKey: name,
+                mappings: [
+                  {
+                    matchValue: inheritedText,
+                    severityText: LogSeverity.Error,
+                    severityNumber: 17,
+                  },
+                  {
+                    matchValue: "oops",
+                    severityText: LogSeverity.Warning,
+                    severityNumber: 13,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ] as unknown as Array<LoadedPipeline>;
+
+      for (const without of [
+        logRow,
+        { ...logRow, attributes: {} },
+        { ...logRow, attributes: { [`resource.${name}`]: "oops" } },
+      ]) {
+        expect(LogPipelineService.processLog(without, pipelines)).toEqual(
+          without,
+        );
+      }
+
+      const withIt: JSONObject = LogPipelineService.processLog(
+        { ...logRow, attributes: { [name]: "OOPS" } },
+        pipelines,
+      );
+
+      expect(withIt["severityText"]).toBe(LogSeverity.Warning);
+      expect(withIt["severityNumber"]).toBe(13);
+    },
+  );
 });

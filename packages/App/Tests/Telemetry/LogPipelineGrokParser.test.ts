@@ -6,7 +6,9 @@ import LogPipelineProcessorType from "Common/Types/Log/LogPipelineProcessorType"
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { JSONObject } from "Common/Types/JSON";
 import { clearGrokCompileCache } from "Common/Utils/Grok/Grok";
+import { readOwnValue } from "Common/Utils/LookupTable";
 import logger from "Common/Server/Utils/Logger";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 
 /*
  * GrokParser was a defined processor type with a documented config
@@ -319,6 +321,122 @@ describe("GrokParser - target prefix", () => {
     ]);
   });
 });
+
+/*
+ * Every name an object inherits - Object.prototype's own: constructor,
+ * toString, valueOf, __proto__ and the rest - as a field a pattern names
+ * and as the source a processor parses. A field so named is an attribute
+ * like any other; a source so named is read only from the log's own
+ * fields and attributes, so a log without one has nothing to parse.
+ */
+describe.each(INHERITED_PROPERTY_NAMES)(
+  "GrokParser - the name %s",
+  (name: string) => {
+    beforeEach(() => {
+      clearGrokCompileCache();
+    });
+
+    it("is a field written as the log's own attribute, with the type the pattern names", () => {
+      const out: JSONObject = LogPipelineService.processLog(
+        logRowWithBody("alpha 42"),
+        grokPipeline({
+          source: "body",
+          pattern: `%{WORD:${name}} %{INT:count:int}`,
+        }),
+      );
+      const attributes: JSONObject = out["attributes"] as JSONObject;
+
+      expect(Object.keys(attributes)).toEqual(["service.name", name, "count"]);
+      expect(out["attributeKeys"]).toEqual(["service.name", name, "count"]);
+      expect(readOwnValue(attributes, name)).toBe("alpha");
+      expect(JSON.stringify(attributes)).toBe(
+        `{"service.name":"api","${name}":"alpha","count":42}`,
+      );
+      // Still a plain object: the field never became its prototype.
+      expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+
+      const typed: JSONObject = LogPipelineService.processLog(
+        logRowWithBody("7"),
+        grokPipeline({ source: "body", pattern: `%{INT:${name}:int}` }),
+      );
+
+      expect(readOwnValue(typed["attributes"] as JSONObject, name)).toBe(7);
+    });
+
+    it("is a field under a target prefix too", () => {
+      const out: JSONObject = LogPipelineService.processLog(
+        logRowWithBody("alpha"),
+        grokPipeline({
+          source: "body",
+          pattern: `%{WORD:${name}}`,
+          targetPrefix: "parsed",
+        }),
+      );
+
+      expect(out["attributes"]).toEqual({
+        "service.name": "api",
+        [`parsed.${name}`]: "alpha",
+      });
+    });
+
+    it("is a source read only from the log's own fields and attributes", () => {
+      // Neither a field nor an attribute of that name: nothing to parse.
+      for (const row of [
+        logRowWithBody(""),
+        { ...logRowWithBody(""), attributes: {}, attributeKeys: [] },
+      ]) {
+        expect(
+          LogPipelineService.processLog(
+            row,
+            grokPipeline({ source: name, pattern: "%{GREEDYDATA:all}" }),
+          ),
+        ).toEqual(row);
+        expect(
+          LogPipelineService.processLog(
+            row,
+            grokPipeline({
+              source: `attributes.${name}`,
+              pattern: "%{GREEDYDATA:all}",
+            }),
+          ),
+        ).toEqual(row);
+      }
+
+      /*
+       * A top-level field of that name. Not __proto__: processLog copies the
+       * row with a spread, which drops a key so named (issue #8025), and no
+       * ingest writes a top-level field so named.
+       */
+      if (name !== "__proto__") {
+        const topLevel: JSONObject = LogPipelineService.processLog(
+          { ...logRowWithBody(""), [name]: "user=jane" },
+          grokPipeline({ source: name, pattern: "user=%{USERNAME:user}" }),
+        );
+
+        expect(readOwnValue(topLevel["attributes"] as JSONObject, "user")).toBe(
+          "jane",
+        );
+      }
+
+      // Built with a computed key, so the log has it as its own, __proto__ too.
+      const fromAttribute: JSONObject = LogPipelineService.processLog(
+        {
+          body: "",
+          attributes: { [name]: "user=jane" },
+          attributeKeys: [name],
+        },
+        grokPipeline({
+          source: `attributes.${name}`,
+          pattern: "user=%{USERNAME:user}",
+        }),
+      );
+
+      expect(
+        readOwnValue(fromAttribute["attributes"] as JSONObject, "user"),
+      ).toBe("jane");
+    });
+  },
+);
 
 describe("GrokParser - broken configuration degrades safely", () => {
   beforeEach(() => {

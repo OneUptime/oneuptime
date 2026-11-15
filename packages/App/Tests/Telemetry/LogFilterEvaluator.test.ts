@@ -6,6 +6,7 @@ import {
   evaluateFilter,
 } from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator";
 import { JSONObject } from "Common/Types/JSON";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 
 /*
  * The log/span filter predicate engine (pipelines, drop filters, severity
@@ -309,3 +310,110 @@ describe("evaluateFilter — field path resolution", () => {
     ).toBe(true);
   });
 });
+
+/*
+ * Every name a plain object answers for without being given it - the
+ * members of Object.prototype: constructor, toString, valueOf,
+ * hasOwnProperty, __proto__ and the rest - as a field a row may or may not
+ * carry. A row without it answers each query as it answers the same query
+ * for a field no row has ("nosuch"): bare, as attributes.<name> and through
+ * the resource. fallback. Read with a plain `row[name]`, the name read the
+ * member every object inherits, whose text ("function Object() { [native
+ * code] }", "[object Object]") a LIKE matched.
+ */
+describe.each(INHERITED_PROPERTY_NAMES)(
+  "evaluateFilter — a field named %s",
+  (name: string) => {
+    const QUERIES: Array<(field: string) => string> = [
+      (field: string): string => {
+        return `${field} LIKE 'native'`;
+      },
+      (field: string): string => {
+        return `${field} LIKE '%function%'`;
+      },
+      (field: string): string => {
+        return `${field} LIKE 'object'`;
+      },
+      (field: string): string => {
+        return `NOT ${field} LIKE 'object'`;
+      },
+      (field: string): string => {
+        return `${field} = ''`;
+      },
+      (field: string): string => {
+        return `${field} != ''`;
+      },
+      (field: string): string => {
+        return `${field} IN ('', 'x')`;
+      },
+      (field: string): string => {
+        return `attributes.${field} LIKE 'native'`;
+      },
+      (field: string): string => {
+        return `attributes.${field} = ''`;
+      },
+      (field: string): string => {
+        return `attributes.${field} = '{}'`;
+      },
+    ];
+
+    test("a row without it answers each query as for a field no row has", () => {
+      for (const plain of [
+        row({ body: "x", attributes: { level: "info" } }),
+        row({ body: "x" }),
+      ]) {
+        for (const write of QUERIES) {
+          const query: string = write(name);
+
+          expect({ query, matches: evaluateFilter(plain, query) }).toEqual({
+            query,
+            matches: evaluateFilter(plain, write("nosuch")),
+          });
+        }
+      }
+
+      // Each pair is one answer and its negation, so exactly one holds.
+      const plain: JSONObject = row({ body: "x", attributes: {} });
+      expect(evaluateFilter(plain, `${name} = ''`)).toBe(true);
+      expect(evaluateFilter(plain, `${name} != ''`)).toBe(false);
+      expect(evaluateFilter(plain, `NOT ${name} LIKE 'object'`)).toBe(true);
+    });
+
+    // Built with a computed key, so the row has it as its own, __proto__ too.
+    test("a row with it reads its own value: top level, as an attribute and through resource.", () => {
+      expect(evaluateFilter(row({ [name]: "top" }), `${name} = 'top'`)).toBe(
+        true,
+      );
+      expect(
+        evaluateFilter(
+          row({ attributes: { [name]: "own" } }),
+          `${name} = 'own'`,
+        ),
+      ).toBe(true);
+      expect(
+        evaluateFilter(
+          row({ attributes: { [name]: "own" } }),
+          `attributes.${name} = 'own'`,
+        ),
+      ).toBe(true);
+      expect(
+        evaluateFilter(
+          row({ attributes: { [name]: "own" } }),
+          `${name} != 'own'`,
+        ),
+      ).toBe(false);
+      expect(
+        evaluateFilter(
+          row({ attributes: { [`resource.${name}`]: "r1" } }),
+          `attributes.${name} = 'r1'`,
+        ),
+      ).toBe(true);
+      expect(
+        evaluateFilter(
+          row({ attributes: { [`resource.${name}`]: "r1" } }),
+          `${name} IN ('r1')`,
+        ),
+      ).toBe(true);
+    });
+  },
+);
