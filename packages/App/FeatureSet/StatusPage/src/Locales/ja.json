@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 稼働率",
-    "uptimePercent": "稼働率 {{percent}}%",
+    "uptimePercent": "稼働率 {{percent}}",
     "operational": "稼働中",
     "notMonitored": "未監視",
     "noResourcesInGroup": "このグループにリソースが追加されていません。",

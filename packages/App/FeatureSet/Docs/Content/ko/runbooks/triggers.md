@@ -163,7 +163,7 @@ return { host };
 
 ## 트리거를 설정할 수 있는 사람
 
-일정이나 웹훅은 아무도 없을 때 실행을 시작하므로, 설정하려면 Runbook을 편집하고 실행할 권한이 필요합니다. Project Owner, Project Admin, Runbook Admin이거나, **Edit Runbook** 과 함께 Project Member, Runbook Member 또는 **Create Runbook Execution** 이 있어야 합니다. **지금 실행** 과 마찬가지로 역할이 제한된 레이블도 적용됩니다. 웹훅 URL을 보거나 재설정할 때도 같은 권한이 필요합니다.
+일정이나 웹훅은 아무도 없을 때 실행을 시작하므로, 설정하려면 Runbook을 편집하고 실행할 권한이 필요합니다. 프로젝트 소유자, 프로젝트 관리자, 런북 관리자이거나, **Edit Runbook** 과 함께 프로젝트 구성원, 런북 구성원 또는 **Create Runbook Execution** 이 있어야 합니다. **지금 실행** 과 마찬가지로 역할이 제한된 레이블도 적용됩니다. 웹훅 URL을 보거나 재설정할 때도 같은 권한이 필요합니다.
 
 일정이나 웹훅을 끄는 것은 아무것도 시작하지 않으므로 Runbook을 편집할 권한만 있으면 됩니다. Runbook을 편집할 수 있지만 실행할 수 없는 사람에게는 **일정 설정** 이 잠긴 **트리거** 페이지가 보이고, 웹훅 URL을 볼 수 있는 사람이 안내됩니다.
 
@@ -178,7 +178,7 @@ Runbook이 꺼져 있거나 단계가 없습니다. 카드에 어느 쪽인지 �
 :::
 
 :::details 일정 저장이 "You do not have permission to set up this runbook's schedule or webhook."으로 실패함
-트리거를 설정하려면 Runbook을 편집할 권한뿐 아니라 실행할 권한도 필요합니다. Runbook Admin을 요청하거나, **Edit Runbook** 에 더해 Runbook Member 또는 **Create Runbook Execution** 을 요청하세요.
+트리거를 설정하려면 Runbook을 편집할 권한뿐 아니라 실행할 권한도 필요합니다. 런북 관리자를 요청하거나, **Edit Runbook** 에 더해 런북 구성원 또는 **Create Runbook Execution** 을 요청하세요.
 :::
 
 :::details 호출에 "No runbook webhook answers at this URL."라는 응답이 옴

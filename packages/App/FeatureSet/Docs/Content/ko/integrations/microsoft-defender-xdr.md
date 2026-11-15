@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - Microsoft Defender XDR 라이선스가 있는 Microsoft Entra 테넌트. Defender for Endpoint, for Identity, for Office 365, for Cloud Apps처럼 Microsoft Defender 포털에 온보딩된 Defender 워크로드라면 무엇이든 됩니다.
 - Application Administrator처럼 애플리케이션을 등록할 수 있는 Entra 역할, 그리고 관리자 동의를 부여할 Global Administrator 또는 Privileged Role Administrator.
 - OneUptime 앱과 워커에서 `login.microsoftonline.com`과 `graph.microsoft.com`으로, Azure Government라면 `login.microsoftonline.us`와 `graph.microsoft.us`로 나가는 아웃바운드 HTTPS.

@@ -50,6 +50,7 @@ import {
   upperBound,
 } from "./PromQLMath";
 import { getPromQLValueType, parsePromQL } from "./PromQLParser";
+import { sortPromQLLabelSets } from "./PromQLLabelOrder";
 import { copyOwnValues, writeOwnValue } from "../LookupTable";
 
 /*
@@ -1603,21 +1604,15 @@ export default class PromQLEngine {
   }
 }
 
+/*
+ * A result's series or samples in the order Prometheus answers them
+ * (labels.Compare, sortPromQLLabelSets): what a chart's legend and colours
+ * follow, as Grafana's do for Prometheus' answer.
+ */
 const sortByLabels: <T extends { labels: PromQLLabels }>(
   items: Array<T>,
 ) => Array<T> = <T extends { labels: PromQLLabels }>(
   items: Array<T>,
 ): Array<T> => {
-  return items
-    .map((item: T): { item: T; key: string } => {
-      return { item, key: promQLLabelsKey(item.labels) };
-    })
-    .sort(
-      (a: { item: T; key: string }, b: { item: T; key: string }): number => {
-        return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
-      },
-    )
-    .map((entry: { item: T; key: string }): T => {
-      return entry.item;
-    });
+  return sortPromQLLabelSets(items);
 };

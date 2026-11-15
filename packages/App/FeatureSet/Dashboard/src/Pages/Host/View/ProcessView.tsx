@@ -78,7 +78,10 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import { formatHostBytes } from "../Utils/HostFacts";
 /*
  * The OTel hostmetrics `process` scraper attaches per-process identity
@@ -1089,7 +1092,9 @@ const HostProcessView: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By");
+          return ValueFormatter.formatValue(value, "By", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1102,7 +1107,9 @@ const HostProcessView: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By/s");
+          return ValueFormatter.formatValue(value, "By/s", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };

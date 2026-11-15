@@ -34,7 +34,7 @@ sequenceDiagram
 
 ## 始める前に
 
-- **モニターを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor 権限を持つカスタムロール。
+- **モニターを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor 権限を持つカスタムロール。
 - **API に到達できるプローブ。** 新しいモニターには、プロジェクトのデフォルトのプローブが選ばれます。API の前にファイアウォールがある場合は、[OneUptime Cloud のプローブの IP アドレス](/docs/configuration/ip-addresses) を許可します。プライベートネットワーク上の API には、そのネットワーク内で動く、プライベートアドレスへの到達を許可された [カスタムプローブ](/docs/probe/custom-probe) が必要です。[プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。
 - **モニターシークレットとしての認証情報。** API にキーやトークンが必要な場合は、先にそれを [モニターシークレット](/docs/monitor/monitor-secrets) として保存し、モニターには参照だけを持たせます。
 

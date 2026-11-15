@@ -36,7 +36,7 @@ flowchart TB
 
 ## 始める前に
 
-- **モニターを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor 権限を持つカスタムロール。
+- **モニターを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor 権限を持つカスタムロール。
 - **サイトに到達できるプローブ。** 新しいモニターには、プロジェクトのデフォルトのプローブが選ばれます。サイトの前にファイアウォールがある場合は、[OneUptime Cloud のプローブの IP アドレス](/docs/configuration/ip-addresses) を許可します。プライベートネットワーク上のサイトには、そのネットワーク内で動く、プライベートアドレスへの到達を許可された [カスタムプローブ](/docs/probe/custom-probe) が必要です。[プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。
 
 ## ウェブサイトモニターを作成する

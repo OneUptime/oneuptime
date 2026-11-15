@@ -295,7 +295,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 | **Edit SLO Error Budget Policy Tier** | 更改级别，并开启或关闭它们。 |
 | **Delete SLO Error Budget Policy Tier** | 移除级别。 |
 
-这些权限位于角色的 SLO 组中。Project Owner 和 Project Admin 角色拥有全部权限，Project Member 和 Viewer 角色可以读取级别。
+这些权限位于角色的 SLO 组中。项目所有者和项目管理员角色拥有全部权限，项目成员和查看者角色可以读取级别。
 
 ## 尚未提供
 

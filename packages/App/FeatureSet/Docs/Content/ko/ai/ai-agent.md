@@ -283,7 +283,7 @@ Runner를 다른 곳, 예를 들어 저장소와 가까운 머신에서 실행�
 :::steps
 ### Runner 만들기
 
-**런북 → Runbook 에이전트** 에서 Runner를 만들고 해당 행의 **설정 지침 표시** 를 클릭합니다. 명령에는 Runner의 비밀 키가 들어 있으며, 이 키는 Project Owner, Project Admin 또는 Runbook Admin만 읽을 수 있습니다. 다음과 같은 형태입니다:
+**런북 → Runbook 에이전트** 에서 Runner를 만들고 해당 행의 **설정 지침 표시** 를 클릭합니다. 명령에는 Runner의 비밀 키가 들어 있으며, 이 키는 프로젝트 소유자, 프로젝트 관리자 또는 런북 관리자만 읽을 수 있습니다. 다음과 같은 형태입니다:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

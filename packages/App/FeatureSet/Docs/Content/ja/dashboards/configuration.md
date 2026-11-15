@@ -15,15 +15,15 @@
 
 | 操作 | 必要なもの |
 | --- | --- |
-| ダッシュボードを閲覧する | `ReadDashboard`、またはプロジェクトのロール: Project Owner、Project Admin、Project Member、Viewer、Settings のロール |
-| ダッシュボードを作成する | `CreateDashboard`、Project Owner、または Project Admin |
-| ダッシュボードを変更する: ウィジェット、変数、共有、ブランディング、アーカイブ | `EditDashboard`、Project Owner、または Project Admin |
-| ダッシュボードを削除する | `DeleteDashboard`、Project Owner、または Project Admin |
-| 所有者を追加、削除する | ダッシュボードの所有者の権限、Project Owner、Project Admin、または Project Member |
-| カスタムドメインを追加、変更する | ダッシュボードのドメインの権限、Project Owner、Project Admin、Project Member、Settings Admin、または Settings Member |
-| 所有者ルールとラベルルールを作成する | ルールの権限、Project Owner、または Project Admin |
+| ダッシュボードを閲覧する | `ReadDashboard`、またはプロジェクトのロール: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、閲覧者、Settings のロール |
+| ダッシュボードを作成する | `CreateDashboard`、プロジェクト所有者、またはプロジェクト管理者 |
+| ダッシュボードを変更する: ウィジェット、変数、共有、ブランディング、アーカイブ | `EditDashboard`、プロジェクト所有者、またはプロジェクト管理者 |
+| ダッシュボードを削除する | `DeleteDashboard`、プロジェクト所有者、またはプロジェクト管理者 |
+| 所有者を追加、削除する | ダッシュボードの所有者の権限、プロジェクト所有者、プロジェクト管理者、またはプロジェクトメンバー |
+| カスタムドメインを追加、変更する | ダッシュボードのドメインの権限、プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、設定管理者、または設定メンバー |
+| 所有者ルールとラベルルールを作成する | ルールの権限、プロジェクト所有者、またはプロジェクト管理者 |
 
-つまり Project Member はすべてのダッシュボードを閲覧できますが、ダッシュボードを作るには `CreateDashboard` と `EditDashboard` が必要です。閲覧、編集、削除は、それぞれチームが所有するダッシュボード、または特定のラベルを持つダッシュボードに限定できます。[スコープ: 許可権限が及ぶ範囲](/docs/permissions/index#スコープ-許可権限が及ぶ範囲) を参照してください。
+つまりプロジェクトメンバーはすべてのダッシュボードを閲覧できますが、ダッシュボードを作るには `CreateDashboard` と `EditDashboard` が必要です。閲覧、編集、削除は、それぞれチームが所有するダッシュボード、または特定のラベルを持つダッシュボードに限定できます。[スコープ: 許可権限が及ぶ範囲](/docs/permissions/index#スコープ-許可権限が及ぶ範囲) を参照してください。
 
 権限はチームの **権限** ページで割り当てます。**製品 → チーム** を開いて、チームを選んでください。
 

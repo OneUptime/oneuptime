@@ -35,9 +35,16 @@ ForeignDomMutationGuard.install();
 /*
  * When the person last clicked, typed or scrolled, in any tab: every renewal
  * of the session says how long ago that was, and the server's idle timeout
- * is counted from it (Common/UI/Utils/UserActivity).
+ * is counted from it (Common/UI/Utils/UserActivity). While they use the
+ * page, the session is renewed often enough that the server always knows
+ * they are here, so it can record an idle timeout soon after it ran out
+ * without ever signing out someone still working (issue #8188).
  */
-UserActivity.install();
+UserActivity.install({
+  reportActivity: (): void => {
+    void API.reportActivityWhileInUse();
+  },
+});
 
 ThemeUtil.initialize();
 

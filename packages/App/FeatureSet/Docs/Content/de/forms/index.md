@@ -131,15 +131,15 @@ Formulare erlauben Menschen außerhalb Ihres Teams, Vorfälle und Wartungsereign
 
 | Berechtigung | Was sie erlaubt | Wer sie standardmäßig hat |
 | --- | --- | --- |
-| **Create Form** | Formulare anlegen und duplizieren. | Project Owner, Project Admin |
-| **Edit Form** | Ein Formular ändern: seine Fragen, sein Branding, seine Vorlagen, seine Einstellungen unter Beim Absenden, **Nimmt Einreichungen an**, seinen Link und die **IP-Zulassungsliste**. | Project Owner, Project Admin |
-| **Delete Form** | Ein Formular löschen und mit ihm seine Einreichungen. | Project Owner, Project Admin |
-| **Read Form** | Formulare, ihre Fragen, ihre Einstellungen und ihre Links sehen. | Die oben genannten sowie Project Member, Viewer und die Rollen für Vorfälle und geplante Wartung |
-| **Read Form Submission** | Die Einreichungen und ihre Antworten sehen. | Project Owner, Project Admin |
-| **Delete Form Submission** | Einreichungen löschen. | Project Owner, Project Admin |
-| **Create Form Domain** | Einem Formular eine [eigene Domain](/docs/forms/sharing-and-security#eigene-domains) hinzufügen. | Project Owner, Project Admin und **Edit Form** |
-| **Edit Form Domain** | Die eigenen Domains eines Formulars prüfen und ihre Zertifikate bestellen, neu ausstellen oder wechseln. | Project Owner, Project Admin und **Edit Form** |
-| **Delete Form Domain** | Die eigenen Domains eines Formulars entfernen. | Project Owner, Project Admin und **Edit Form** |
+| **Create Form** | Formulare anlegen und duplizieren. | Projektinhaber, Projektadministrator |
+| **Edit Form** | Ein Formular ändern: seine Fragen, sein Branding, seine Vorlagen, seine Einstellungen unter Beim Absenden, **Nimmt Einreichungen an**, seinen Link und die **IP-Zulassungsliste**. | Projektinhaber, Projektadministrator |
+| **Delete Form** | Ein Formular löschen und mit ihm seine Einreichungen. | Projektinhaber, Projektadministrator |
+| **Read Form** | Formulare, ihre Fragen, ihre Einstellungen und ihre Links sehen. | Die oben genannten sowie Projektmitglied, Betrachter und die Rollen für Vorfälle und geplante Wartung |
+| **Read Form Submission** | Die Einreichungen und ihre Antworten sehen. | Projektinhaber, Projektadministrator |
+| **Delete Form Submission** | Einreichungen löschen. | Projektinhaber, Projektadministrator |
+| **Create Form Domain** | Einem Formular eine [eigene Domain](/docs/forms/sharing-and-security#eigene-domains) hinzufügen. | Projektinhaber, Projektadministrator und **Edit Form** |
+| **Edit Form Domain** | Die eigenen Domains eines Formulars prüfen und ihre Zertifikate bestellen, neu ausstellen oder wechseln. | Projektinhaber, Projektadministrator und **Edit Form** |
+| **Delete Form Domain** | Die eigenen Domains eines Formulars entfernen. | Projektinhaber, Projektadministrator und **Edit Form** |
 | **Read Form Domain** | Die eigenen Domains eines Formulars sehen, ihre DNS-Einträge und wie weit jede auf dem Weg zu HTTPS ist. | Alle mit **Read Form** |
 
 Einreichungen enthalten, was Fremde eingetippt haben – Namen, E-Mail-Adressen und Antworten, die vielleicht nie im Datensatz landen –, daher sehen sie nur Projektinhaber und -administratoren, es sei denn, Sie gewähren **Read Form Submission**. Wer ein Formular lesen kann, kann seinen Link sehen und teilen. Ein Formular abzusenden braucht überhaupt keine Berechtigung. Wie Rollen und granulare Berechtigungen zusammenwirken, lesen Sie unter [Benutzer, Teams & Berechtigungen](/docs/permissions/index).

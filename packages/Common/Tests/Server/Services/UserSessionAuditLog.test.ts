@@ -1,6 +1,7 @@
 import UserSession from "../../../Models/DatabaseModels/UserSession";
 import UserSessionService, {
   Service,
+  SESSION_END_REVOKED_REASONS,
   SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS,
 } from "../../../Server/Services/UserSessionService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
@@ -17,7 +18,13 @@ import {
   getSessionEndCauseRevokedReason,
   SessionEndCause,
 } from "../../../Types/UserSession/SessionEndCause";
-import { SessionLengths } from "../../../Types/UserSession/SessionLength";
+import {
+  getIdleTimeoutSweepCutoff,
+  IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
+  SessionEndReason,
+  SessionLengths,
+} from "../../../Types/UserSession/SessionLength";
 import {
   SecondFactor,
   SignInMethod,
@@ -1179,14 +1186,204 @@ describe("the sweep that ends sessions that ran out", () => {
     expect(updates[0]!.props).toEqual({ isRoot: true });
   });
 
-  test("without a session length, ends nothing else - an idle timeout is decided at its renewal", async () => {
+  // The query that ends sessions by their idle timeout, of one kind.
+  const idleQueriesOf: (queries: Array<FakeQuery>) => Array<FakeQuery> = (
+    queries: Array<FakeQuery>,
+  ): Array<FakeQuery> => {
+    return queries.filter((query: FakeQuery): boolean => {
+      return query.conditions.some((condition: string): boolean => {
+        return condition.includes(
+          "session.lastActiveAt <= NOW() - make_interval(mins => :idleSweepMinutes)",
+        );
+      });
+    });
+  };
+
+  test("without an idle timeout or a session length, ends nothing by them", async () => {
     const { queries } = await sweepWith({
-      lengths: lengthsOf({ idle: 30 }),
+      lengths: lengthsOf({}),
       answers: [],
     });
 
     expect(queries).toHaveLength(1);
     expect(queries[0]!.conditions.join(" ")).not.toContain("lastActiveAt");
+  });
+
+  /*
+   * Issue #8188: a browser that never comes back had its idle timeout
+   * recorded only 30 days later, as "Not used for 30 days". A session whose
+   * browser said it renews while its person uses OneUptime, and of which
+   * nothing has been heard for the idle timeout and a margin, is not in
+   * use: the sweep ends it as the idle timeout.
+   */
+  test("with an idle timeout, ends the live sessions no browser can still be using, for the last day", async () => {
+    const { ended, queries, updates } = await sweepWith({
+      lengths: lengthsOf({ idle: 30 }),
+      // Nothing ran out of its refresh token; one standard sign-in idle, none by SSO.
+      answers: [[], [SESSION_ID.toString()], []],
+    });
+
+    expect(ended).toBe(1);
+
+    const idleQueries: Array<FakeQuery> = idleQueriesOf(queries);
+
+    expect(idleQueries).toHaveLength(2);
+
+    const [standard, sso] = idleQueries as [FakeQuery, FakeQuery];
+
+    expect(standard.conditions).toEqual([
+      "session.isRevoked = false",
+      "session.refreshTokenExpiresAt > NOW()",
+      "(session.additionalInfo ->> 'isGlobalLogin') IS DISTINCT FROM 'false'",
+      "(session.additionalInfo ->> :reportsActivityWhileInUseKey) = 'true'",
+      "session.lastActiveAt <= NOW() - make_interval(mins => :idleSweepMinutes)",
+      "session.lastActiveAt > NOW() - make_interval(mins => :ranOutLookbackMinutes)",
+    ]);
+    expect(standard.parameters).toEqual({
+      reportsActivityWhileInUseKey: REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
+      idleSweepMinutes: 30 + IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
+      ranOutLookbackMinutes: 30 + SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS * 60,
+    });
+    expect(sso.conditions).toContain(
+      "(session.additionalInfo ->> 'isGlobalLogin') = 'false'",
+    );
+
+    // Revoked as the idle timeout, and only if it is still past it as the write lands.
+    expect(updates).toHaveLength(1);
+    expect(updates[0]!.data).toEqual({
+      isRevoked: true,
+      revokedAt: NOW,
+      revokedReason: SESSION_END_REVOKED_REASONS[SessionEndReason.Inactive],
+    });
+    expect(updates[0]!.data).toEqual(
+      expect.objectContaining({
+        revokedReason: getSessionEndCauseRevokedReason(
+          SessionEndCause.IdleTimeout,
+        ),
+      }),
+    );
+    expect(Object.keys(updates[0]!.query).sort()).toEqual([
+      "_id",
+      "isRevoked",
+      "lastActiveAt",
+    ]);
+    const lastActiveAtQuery: {
+      type: string;
+      objectLiteralParameters?: Record<string, unknown>;
+      getSql?: (alias: string) => string;
+    } = (
+      updates[0]!.query as Record<
+        string,
+        {
+          type: string;
+          objectLiteralParameters?: Record<string, unknown>;
+          getSql?: (alias: string) => string;
+        }
+      >
+    )["lastActiveAt"]!;
+
+    // Last active at the cutoff or before: the idle timeout and the margin before now.
+    expect(lastActiveAtQuery.type).toBe("raw");
+    expect(lastActiveAtQuery.getSql!("lastActiveAt")).toMatch(
+      /^\(lastActiveAt <= :\w+\)$/,
+    );
+    expect(
+      Object.values(lastActiveAtQuery.objectLiteralParameters || {}),
+    ).toEqual([
+      getIdleTimeoutSweepCutoff({ idleTimeoutInMinutes: 30, now: NOW }),
+    ]);
+    expect(
+      getIdleTimeoutSweepCutoff({ idleTimeoutInMinutes: 30, now: NOW }),
+    ).toEqual(
+      new Date(
+        NOW.getTime() - (30 + IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES) * MINUTE,
+      ),
+    );
+    expect(updates[0]!.props).toEqual({ isRoot: true });
+  });
+
+  test("each kind of sign-in by its own idle timeout, and none by a kind without one", async () => {
+    const { queries } = await sweepWith({
+      lengths: {
+        standard: { lengthInMinutes: null, idleTimeoutInMinutes: null },
+        sso: { lengthInMinutes: null, idleTimeoutInMinutes: 120 },
+      },
+      answers: [],
+    });
+
+    const idleQueries: Array<FakeQuery> = idleQueriesOf(queries);
+
+    expect(idleQueries).toHaveLength(1);
+    expect(idleQueries[0]!.conditions).toContain(
+      "(session.additionalInfo ->> 'isGlobalLogin') = 'false'",
+    );
+    expect(idleQueries[0]!.parameters["idleSweepMinutes"]).toBe(
+      120 + IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
+    );
+    expect(idleQueries[0]!.parameters["ranOutLookbackMinutes"]).toBe(
+      120 + SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS * 60,
+    );
+  });
+
+  test("the session length is asked before the idle timeout of the same kind, as a renewal decides", async () => {
+    const { queries } = await sweepWith({
+      lengths: lengthsOf({ length: 8 * 60, idle: 30 }),
+      answers: [],
+    });
+
+    const asked: Array<string> = queries.map((query: FakeQuery): string => {
+      return query.conditions.join(" ");
+    });
+
+    const lengthIndex: number = asked.findIndex((sql: string): boolean => {
+      return sql.includes("session.createdAt <= NOW()");
+    });
+    const idleIndex: number = asked.findIndex((sql: string): boolean => {
+      return sql.includes(":idleSweepMinutes");
+    });
+
+    expect(lengthIndex).toBeGreaterThan(0);
+    expect(idleIndex).toBeGreaterThan(lengthIndex);
+  });
+
+  test("its end goes into the audit log as an idle timeout that ran out at the last activity plus the idle timeout", async () => {
+    fake.userSessionLengths = lengthsOf({ idle: 30 });
+
+    const { updates } = await sweepWith({
+      lengths: lengthsOf({ idle: 30 }),
+      answers: [[], [SESSION_ID.toString()], []],
+    });
+
+    // The write the sweep asked for, through the hooks every revocation passes.
+    const lastActiveAgoMs: number = 70 * MINUTE;
+
+    jest
+      .spyOn(UserSessionService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([
+        sessionRow({
+          lastActiveAgoMs,
+          additionalInfo: {
+            isGlobalLogin: true,
+            [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
+          },
+        }),
+      ] as never);
+
+    const before: OnUpdate<UserSession> = await hooks.onBeforeUpdate(
+      updates[0]!,
+    );
+    await hooks.onUpdateSuccess(before, [SESSION_ID]);
+
+    const event: SessionAuditEvent = recordedEvents()[0]!;
+
+    expect(event.action).toBe(AuditLogAction.SessionTimeout);
+    expect(event.endCause).toBe(SessionEndCause.IdleTimeout);
+    expect(event.lastActiveAt).toEqual(
+      new Date(NOW.getTime() - lastActiveAgoMs),
+    );
+    expect(event.endedAt).toEqual(
+      new Date(NOW.getTime() - lastActiveAgoMs + 30 * MINUTE),
+    );
   });
 
   test("with a session length, ends the live sessions past it, for the last day", async () => {

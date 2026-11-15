@@ -66,10 +66,10 @@ API와 Terraform에서 재생 목록은 `name`, 보여 주는 순서대로 놓�
 
 | 작업 | 필요한 것 |
 | --- | --- |
-| 재생 목록 보기 및 재생 | `ReadDashboardPlaylist` 또는 프로젝트 역할: Project Owner, Project Admin, Project Member, Viewer 또는 Settings 역할 |
-| 재생 목록 만들기 | `CreateDashboardPlaylist`, Project Owner 또는 Project Admin |
-| 재생 목록 변경: 이름, 대시보드, 시간 | `EditDashboardPlaylist`, Project Owner 또는 Project Admin |
-| 재생 목록 삭제 | `DeleteDashboardPlaylist`, Project Owner 또는 Project Admin |
+| 재생 목록 보기 및 재생 | `ReadDashboardPlaylist` 또는 프로젝트 역할: 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어 또는 Settings 역할 |
+| 재생 목록 만들기 | `CreateDashboardPlaylist`, 프로젝트 소유자 또는 프로젝트 관리자 |
+| 재생 목록 변경: 이름, 대시보드, 시간 | `EditDashboardPlaylist`, 프로젝트 소유자 또는 프로젝트 관리자 |
+| 재생 목록 삭제 | `DeleteDashboardPlaylist`, 프로젝트 소유자 또는 프로젝트 관리자 |
 
 재생 목록은 누구에게도 그 사람이 읽을 수 없는 대시보드를 보여 주지 않습니다. 플레이어는 화면에 로그인한 사람이 읽을 수 있고 보관되지 않은 대시보드만 재생하고, 나머지는 건너뜁니다. 삭제된 대시보드, 보관된 대시보드, 권한 때문에 볼 수 없는 대시보드가 여기에 해당합니다. 재생 목록 페이지에는 각각을 건너뛰는 이유가 표시됩니다. 재생 목록을 저장해도 편집자 자신이 볼 수 없는 대시보드는 그대로 남으므로, 다른 사람이 넣어 둔 것이 사라지지 않습니다.
 
@@ -81,7 +81,7 @@ API와 Terraform에서 재생 목록은 `name`, 보여 주는 순서대로 놓�
 | 읽기에 실패함 | **이 재생 목록을 불러올 수 없습니다**. 매분 다시 시도하며, **다시 시도**를 누르면 바로 다시 시도합니다. |
 
 > [!NOTE]
-> 플레이어는 OneUptime에 로그인한 사람을 위한 것입니다. 화면에서 재생 목록을 계속 재생하려면, 그 화면에서 재생 목록과 그 대시보드를 읽을 수 있는 계정(예: Viewer 역할의 팀 멤버)으로 로그인합니다.
+> 플레이어는 OneUptime에 로그인한 사람을 위한 것입니다. 화면에서 재생 목록을 계속 재생하려면, 그 화면에서 재생 목록과 그 대시보드를 읽을 수 있는 계정(예: 뷰어 역할의 팀 멤버)으로 로그인합니다.
 
 ## 다음 단계
 

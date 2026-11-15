@@ -13,7 +13,6 @@ import {
   MerakiUplinkChartMode,
   MerakiUplinkComparisonRow,
   UNKNOWN_VALUE,
-  formatLatency,
   formatLatencyInLanguage,
   formatLoss,
   getUplinkChartLines,
@@ -84,7 +83,14 @@ const LINE_COLORS: Array<ChartColorValue> = [
   "cyan",
 ];
 
-function getMeasurementAxis(mode: "latency" | "loss"): YAxis {
+/*
+ * The latency or loss axis, its ticks and tooltip written as the rows under
+ * the chart write them, in the reader's words and digits (#8349).
+ */
+function getMeasurementAxis(
+  mode: "latency" | "loss",
+  translator: Translator,
+): YAxis {
   return {
     legend: mode === "latency" ? "ms" : "%",
     options: {
@@ -92,7 +98,14 @@ function getMeasurementAxis(mode: "latency" | "loss"): YAxis {
       min: 0,
       max: "auto",
       precision: YAxisPrecision.TwoDecimals,
-      formatter: mode === "latency" ? formatLatency : formatLoss,
+      formatter:
+        mode === "latency"
+          ? (value: number): string => {
+              return formatLatencyInLanguage(value, translator);
+            }
+          : (value: number): string => {
+              return formatLoss(value, translator.language);
+            },
     },
   };
 }
@@ -271,7 +284,7 @@ const MerakiUplinkComparison: FunctionComponent<ComponentProps> = (
               yAxis={
                 mode === "traffic"
                   ? getTrafficChartRateAxis()
-                  : getMeasurementAxis(mode)
+                  : getMeasurementAxis(mode, translator)
               }
               curve={ChartCurve.MONOTONE}
               sync={false}
@@ -423,7 +436,7 @@ const MerakiUplinkComparison: FunctionComponent<ComponentProps> = (
                       value={
                         row.lossPercent === null
                           ? UNKNOWN_VALUE
-                          : formatLoss(row.lossPercent)
+                          : formatLoss(row.lossPercent, translator.language)
                       }
                       dataTestId="meraki-uplink-row-loss"
                     />

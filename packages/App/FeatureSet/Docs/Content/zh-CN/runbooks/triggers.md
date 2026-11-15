@@ -163,7 +163,7 @@ return { host };
 
 ## 谁可以设置触发器
 
-计划或 Webhook 会在无人在场时启动运行，因此设置它们需要编辑和运行该 Runbook 的权限：Project Owner、Project Admin 或 Runbook Admin，或者 **Edit Runbook** 加上 Project Member、Runbook Member 或 **Create Runbook Execution**。与 **立即运行** 一样，角色所限的标签也会计入。查看或重置 Webhook URL 需要同样的权限。
+计划或 Webhook 会在无人在场时启动运行，因此设置它们需要编辑和运行该 Runbook 的权限：项目所有者、项目管理员或运行手册管理员，或者 **Edit Runbook** 加上项目成员、运行手册成员或 **Create Runbook Execution**。与 **立即运行** 一样，角色所限的标签也会计入。查看或重置 Webhook URL 需要同样的权限。
 
 关闭计划或 Webhook 不会启动任何内容，因此只需要编辑该 Runbook 的权限。能编辑但不能运行该 Runbook 的人会看到 **设置计划** 被锁定的 **触发器** 页面，并被告知谁可以查看 Webhook URL。
 
@@ -178,7 +178,7 @@ Runbook 已关闭或没有步骤：卡片会说明是哪一种。在 Runbook 的
 :::
 
 :::details 保存计划失败，提示 "You do not have permission to set up this runbook's schedule or webhook."
-设置触发器除了需要编辑 Runbook 的权限，还需要运行它的权限。请申请 Runbook Admin，或者在 **Edit Runbook** 之外申请 Runbook Member 或 **Create Runbook Execution**。
+设置触发器除了需要编辑 Runbook 的权限，还需要运行它的权限。请申请运行手册管理员，或者在 **Edit Runbook** 之外申请运行手册成员或 **Create Runbook Execution**。
 :::
 
 :::details 调用收到响应 "No runbook webhook answers at this URL."
