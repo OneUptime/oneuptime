@@ -29,7 +29,7 @@ En selvhostet server snakker direkte med disse leverandørene, aldri via OneUpti
 Koble telefonene til de vakthavende til VPN-et ditt, enten alltid på eller ved behov for OneUptime-vertsnavnet ditt, så ingen må koble til VPN-et først for å bekrefte en varsling klokken tre om natten. Uten at noe er publisert:
 
 - Bekreftelseslenkene i e-post-, SMS-, WhatsApp- og Telegram-meldinger åpnes, fordi telefonen når serveren din.
-- OneUptime On-Call-appen fungerer: pek den mot adressen til serveren din. Push-varsler trenger ingen innkommende tilgang, fordi serveren sender dem gjennom push-reléet.
+- OneUptime On-Call-appen fungerer: pek den mot adressen til serveren din. Push-varslinger trenger ingen innkommende tilgang, fordi serveren sender dem gjennom push-reléet.
 - Folk kan koble til Telegram-kontoene sine når du slår på polling (se [Telegram](#telegram)).
 
 En lenke i en meldingsapp åpnes i appens egen nettleser eller i telefonens standardnettleser, aldri i OneUptime-appen. Et VPN per app må derfor dekke meldingsappene og nettleseren, ikke bare OneUptime-appen.
@@ -87,7 +87,7 @@ Knapper, menyer og kommandoer i meldingene deres kaller opp serveren din fra adr
 
 :::cards
 - [Twilio-integrasjon](/docs/self-hosted/twilio-integration): SMS og anrop gjennom din egen Twilio-konto.
-- [Push-varsler](/docs/self-hosted/push-notifications): Push-reléet, og hva serveren og telefonene dine når.
+- [Push-varslinger](/docs/self-hosted/push-notifications): Push-reléet, og hva serveren og telefonene dine når.
 - [Apper – Oversikt](/docs/mobile-desktop-apps/index): Koble OneUptime On-Call-appen til serveren din.
 - [Tilgang til privat nettverk](/docs/self-hosted/private-network-access): Andre veien: la OneUptime nå de interne verktøyene dine.
 :::

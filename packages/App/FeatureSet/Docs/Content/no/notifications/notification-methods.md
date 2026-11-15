@@ -1,6 +1,6 @@
-# Varselmetoder
+# Varslingsmetoder
 
-En varselmetode er en adresse OneUptime kan nå deg på i ett prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, et WhatsApp-nummer, en Telegram-konto, Slack-, Microsoft Teams- eller Mattermost-kontoen din, en telefon eller nettleser for push-varsler, eller en webhook. Du legger dem til under **Brukerinnstillinger → Varselmetoder**, verifiserer dem, og OneUptime begynner straks å bruke dem til tilkallingene dine.
+En varslingsmetode er en adresse OneUptime kan nå deg på i ett prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, et WhatsApp-nummer, en Telegram-konto, Slack-, Microsoft Teams- eller Mattermost-kontoen din, en telefon eller nettleser for push-varslinger, eller en webhook. Du legger dem til under **Brukerinnstillinger → Varslingsmetoder**, verifiserer dem, og OneUptime begynner straks å bruke dem til tilkallingene dine.
 
 > [!TIP]
 > Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
@@ -27,20 +27,20 @@ En metode du ikke har verifisert, blir aldri brukt. Push-enheter, Slack, Microso
 
 ## Velg en metode
 
-Hver fane i **Varselmetoder** har ett eller flere kort, ett per type metode:
+Hver fane i **Varslingsmetoder** har ett eller flere kort, ett per type metode:
 
 | Kort | Fane | Hva du legger til | Hvordan den verifiseres |
 | --- | --- | --- | --- |
-| **E-poster for varsler** | **Direkte kontakt** | En e-postadresse | En kode på e-post |
-| **Telefonnumre for SMS-varsler** | **Direkte kontakt** | Et telefonnummer | En kode på SMS |
-| **Telefonnumre for anropsvarsler** | **Direkte kontakt** | Et telefonnummer | En kode som leses opp i et anrop, eller ingen for et nummer som er verifisert for SMS |
-| **WhatsApp-numre for varsler** | **Direkte kontakt** | Et WhatsApp-nummer | En kode på WhatsApp |
-| **Telegram-kontoer for varsler** | **Direkte kontakt** | Telegram-kontoen din | En melding til OneUptime-boten |
-| **Slack-konto for varsler** | **Arbeidsområdeapper** | Slack-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
-| **Microsoft Teams-konto for varsler** | **Arbeidsområdeapper** | Microsoft Teams-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
-| **Mattermost-konto for varsler** | **Arbeidsområdeapper** | Mattermost-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
-| **Enheter for push-varsler** | **Push-varsler** | En telefon med appen OneUptime On-Call, eller en nettleser | Å registrere enheten |
-| **Webhooks for varsler** | **Webhooker** | Et eget HTTPS-endepunkt | Ingen |
+| **E-poster for varslinger** | **Direkte kontakt** | En e-postadresse | En kode på e-post |
+| **Telefonnumre for SMS-varslinger** | **Direkte kontakt** | Et telefonnummer | En kode på SMS |
+| **Telefonnumre for anropsvarslinger** | **Direkte kontakt** | Et telefonnummer | En kode som leses opp i et anrop, eller ingen for et nummer som er verifisert for SMS |
+| **WhatsApp-numre for varslinger** | **Direkte kontakt** | Et WhatsApp-nummer | En kode på WhatsApp |
+| **Telegram-kontoer for varslinger** | **Direkte kontakt** | Telegram-kontoen din | En melding til OneUptime-boten |
+| **Slack-konto for varslinger** | **Arbeidsområdeapper** | Slack-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
+| **Microsoft Teams-konto for varslinger** | **Arbeidsområdeapper** | Microsoft Teams-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
+| **Mattermost-konto for varslinger** | **Arbeidsområdeapper** | Mattermost-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
+| **Enheter for push-varslinger** | **Push-varslinger** | En telefon med appen OneUptime On-Call, eller en nettleser | Å registrere enheten |
+| **Webhooks for varslinger** | **Webhooker** | Et eget HTTPS-endepunkt | Ingen |
 
 **Arbeidsområdeapper** vises bare når prosjektet har koblet til Slack, Microsoft Teams eller Mattermost, og inneholder bare dem det har koblet til. SMS, anrop, WhatsApp og Telegram kan være slått av for hele prosjektet; se [Slå på en kanal for prosjektet](#slå-på-en-kanal-for-prosjektet).
 
@@ -51,11 +51,11 @@ E-postadresser, SMS-numre, anropsnumre og WhatsApp-numre verifiseres med en kode
 :::steps
 ### Åpne metodene dine
 
-Gå til **Brukerinnstillinger → Varselmetoder**. **Direkte kontakt** er den første fanen.
+Gå til **Brukerinnstillinger → Varslingsmetoder**. **Direkte kontakt** er den første fanen.
 
 ### Legg til adressen
 
-Klikk på legg-til-knappen i metodens kort, for eksempel **Legg til Telefonnummer for SMS-varsler**. Skriv inn **E-post**, eller **Telefonnummer** i internasjonalt format, for eksempel `+11234567890`, og lagre.
+Klikk på legg-til-knappen i metodens kort, for eksempel **Legg til Telefonnummer for SMS-varslinger**. Skriv inn **E-post**, eller **Telefonnummer** i internasjonalt format, for eksempel `+11234567890`, og lagre.
 
 ### Skriv inn koden
 
@@ -68,7 +68,7 @@ Raden er nå merket **Verifisert**. Lukket du dialogen for tidlig? Klikk **Verif
 
 - En kode gjelder i 15 minutter. Fem feil forsøk ugyldiggjør den, og du trenger en ny.
 - **Send en ny kode**, eller **Ring meg med en ny kode** for et anropsnummer, finnes i dialogen. Du kan be om en ny ett minutt etter den forrige.
-- Et nummer du har verifisert for SMS, er også verifisert for anrop. Å legge det til under **Telefonnumre for anropsvarsler** krever ingen kode, og å verifisere et SMS-nummer verifiserer også anropsnummeret du har lagt til for det.
+- Et nummer du har verifisert for SMS, er også verifisert for anrop. Å legge det til under **Telefonnumre for anropsvarslinger** krever ingen kode, og å verifisere et SMS-nummer verifiserer også anropsnummeret du har lagt til for det.
 - Påloggings-e-posten din er der allerede, verifisert, fra dagen du ble medlem av prosjektet.
 
 ## Koble til Telegram
@@ -76,7 +76,7 @@ Raden er nå merket **Verifisert**. Lukket du dialogen for tidlig? Klikk **Verif
 :::steps
 ### Legg til kontoen
 
-Klikk **Legg til Telegram-konto** i **Telegram-kontoer for varsler**. **Telegram-brukernavn (valgfritt)** er bare en merkelapp for deg selv, og kan stå tomt.
+Klikk **Legg til Telegram-konto** i **Telegram-kontoer for varslinger**. **Telegram-brukernavn (valgfritt)** er bare en merkelapp for deg selv, og kan stå tomt.
 
 ### Skriv til boten
 
@@ -95,15 +95,15 @@ Tilbake i OneUptime klikker du **Jeg har sendt meldingen – sjekk**. Så snart 
 2. Klikk **Legg til Slack-konto**, **Legg til Microsoft Teams-konto** eller **Legg til Mattermost-konto** på fanen **Arbeidsområdeapper**. Kontoen er verifisert så snart den er lagt til.
 3. Klikk **Send testmelding** i raden dens. Tilkallinger kommer som direktemeldinger fra OneUptime-appen, eller i Mattermost fra prosjektets bot.
 
-## Push-varsler
+## Push-varslinger
 
-Fanen **Push-varsler** viser **Enheter for push-varsler** dine.
+Fanen **Push-varslinger** viser **Enheter for push-varslinger** dine.
 
-- **En telefon.** Installer appen OneUptime On-Call, koble den til OneUptime-en din, logg inn og tillat varsler: telefonen legger seg selv til i denne listen. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
-- **Denne nettleseren.** Klikk **Registrer enhet**, fyll ut **Enhetsnavn**, og tillat varsler når nettleseren spør.
-- **Testvarsel** i raden til en enhet sender en push til den med en gang.
+- **En telefon.** Installer appen OneUptime On-Call, koble den til OneUptime-en din, logg inn og tillat varslinger: telefonen legger seg selv til i denne listen. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
+- **Denne nettleseren.** Klikk **Registrer enhet**, fyll ut **Enhetsnavn**, og tillat varslinger når nettleseren spør.
+- **Testvarsling** i raden til en enhet sender en push til den med en gang.
 - **Kritiske varsler** viser om telefonens tilkallinger bryter gjennom lydløs modus og Ikke forstyrr. Det slås på i appen, aldri her, og en nettleser kan ikke gjøre det. Se [Kritiske vaktvarsler](/docs/self-hosted/push-notifications#kritiske-vaktvarsler-overstyre-lydløs-modus).
-- En enhet merket **Mottar ikke varsler** får ingenting sendt. Åpne appen på den telefonen, eller registrer nettleseren på nytt, så er den med igjen.
+- En enhet merket **Mottar ikke varslinger** får ingenting sendt. Åpne appen på den telefonen, eller registrer nettleseren på nytt, så er den med igjen.
 
 ## Webhooks
 
@@ -150,7 +150,7 @@ En tilkalling er en JSON-`POST` som den nedenfor. Svar med en hvilken som helst 
 | `on-call.incidentEpisode.created` | En hendelsesepisode | `incidentEpisode` |
 | `on-call.alertEpisode.created` | En varselepisode | `alertEpisode` |
 
-Oppdateringene du slår på for Webhook i **Varselinnstillinger**, kommer til det samme endepunktet, med innstillingens hendelse i `eventType` og et kort sammendrag i `subject` og `message`.
+Oppdateringene du slår på for Webhook i **Varslingsinnstillinger**, kommer til det samme endepunktet, med innstillingens hendelse i `eventType` og et kort sammendrag i `subject` og `message`.
 
 Hver forespørsel har `X-OneUptime-Event`, hendelsestypen. Med en signeringshemmelighet har den også `X-OneUptime-Signature`: `sha256=` etterfulgt av HMAC-SHA256 av den rå bodyen, i heks. Sjekk den før du stoler på forespørselen:
 
@@ -173,7 +173,7 @@ En webhook trenger ingen verifisering, så når du legger den til, legges reglen
 
 **SMS**, **Telefonanrop**, **WhatsApp** og **Telegram** er slått av i hvert nytt prosjekt, fordi hver melding koster penger: I OneUptime Cloud betales den fra prosjektets saldo, og SMS og anrop går i stedet gjennom prosjektets egen Twilio-konto når standardkontoen sender dem. E-post, push, Slack, Microsoft Teams, Mattermost og webhooks er alltid slått på.
 
-Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den: kortet har ingen legg-til-knapp, og sier hvem som kan slå den på. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår den på, i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varsler → Varslingskanaler**. En Prosjektadministrator kan ikke det. I en selvdriftet OneUptime trenger SMS og anrop i tillegg en Twilio-konto eller en gateway du selv drifter, og Telegram en bot som serverens administrator kobler til; se [Twilio-integrasjon](/docs/self-hosted/twilio-integration) og [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway).
+Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den: kortet har ingen legg-til-knapp, og sier hvem som kan slå den på. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår den på, i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varslinger → Varslingskanaler**. En Prosjektadministrator kan ikke det. I en selvdriftet OneUptime trenger SMS og anrop i tillegg en Twilio-konto eller en gateway du selv drifter, og Telegram en bot som serverens administrator kobler til; se [Twilio-integrasjon](/docs/self-hosted/twilio-integration) og [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway).
 
 ## Slett en metode
 
@@ -186,22 +186,22 @@ Den kanalen er slått av i dette prosjektet. Kortet sier hvem som kan slå den p
 :::
 
 :::details Koden kom aldri
-E-poster kan ta noen minutter, og havner noen ganger i søppelpost; SMS kan ta ett minutt. Vent ett minutt, og klikk så **Send en ny kode** i dialogen. **Prosjektinnstillinger → Varsler → Varsellogger** viser hva som skjedde med meldingen.
+E-poster kan ta noen minutter, og havner noen ganger i søppelpost; SMS kan ta ett minutt. Vent ett minutt, og klikk så **Send en ny kode** i dialogen. **Prosjektinnstillinger → Varslinger → Varslingslogger** viser hva som skjedde med meldingen.
 :::
 
 :::details Det mislykkes å legge til Slack-kontoen min
 Koble først til kontoen din under **Brukerinnstillinger → Arbeidsområde → Slack**, og klikk så **Legg til Slack-konto** igjen. Feildialogen har en knapp som tar deg dit.
 :::
 
-:::details Telefonen min får ingen push-varsler
-Sjekk at telefonen står under **Enheter for push-varsler**, og send den et **Testvarsel**. Se [Vanlige spørsmål og feilsøking](/docs/mobile-desktop-apps/faq-troubleshooting#varsler).
+:::details Telefonen min får ingen push-varslinger
+Sjekk at telefonen står under **Enheter for push-varslinger**, og send den en **Testvarsling**. Se [Vanlige spørsmål og feilsøking](/docs/mobile-desktop-apps/faq-troubleshooting#varslinger).
 :::
 
 ## Neste steg
 
 :::cards
 - [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvilken metode hver tilkalling prøver, og når.
-- [Varselinnstillinger](/docs/notifications/notification-settings): Velg oppdateringene du får vite om, og via hvilke kanaler.
+- [Varslingsinnstillinger](/docs/notifications/notification-settings): Velg oppdateringene du får vite om, og via hvilke kanaler.
 - [Apper – Oversikt](/docs/mobile-desktop-apps/index): Få tilkallinger på telefonen eller datamaskinen.
 - [Slik når OneUptime deg](/docs/notifications/index): Hvordan metoder, regler og innstillinger henger sammen.
 :::

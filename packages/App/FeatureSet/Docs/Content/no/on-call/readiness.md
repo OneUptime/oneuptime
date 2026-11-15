@@ -46,11 +46,11 @@ Over listen teller flisene **Mottakere**, **Klar**, **Må settes opp** og **Util
 | **Dekning** | Hvor mange alvorlighetsgrader som har en regel, på hver fane, av alle. |
 | **Nås via** | Hvordan policyene når personen: hvert team som tilkaller personen gjennom en eskaleringsregel, med navnet sitt, eller **Direkte**, **Tidsplan** eller **Overstyring**. |
 
-**Dekning** i en rad viser varselmetodene til personen, hvorfor personen har statusen sin, og et rutenett over hver alvorlighetsgrad med eller uten regel. Trakten filtrerer listen etter **Mottaker**, **Status**, **Team** eller **Nås via**. Svaret kan være et minutt gammelt: **Oppdater** fastsetter det på nytt.
+**Dekning** i en rad viser varslingsmetodene til personen, hvorfor personen har statusen sin, og et rutenett over hver alvorlighetsgrad med eller uten regel. Trakten filtrerer listen etter **Mottaker**, **Status**, **Team** eller **Nås via**. Svaret kan være et minutt gammelt: **Oppdater** fastsetter det på nytt.
 
 ## Minn folk på å gjøre ferdig oppsettet
 
-Bare personen selv kan legge til og verifisere sine egne varselmetoder og regler, så løsningen er å be dem om det.
+Bare personen selv kan legge til og verifisere sine egne varslingsmetoder og regler, så løsningen er å be dem om det.
 
 :::steps
 1. Kryss av for mottakerne du vil minne på, på siden Beredskap. Mottakere som er klare, kan ikke krysses av: det er ingenting å minne dem på.
@@ -107,6 +107,6 @@ Den sendes bare i en uke der noen er **Utilgjengelig** eller **Må settes opp**,
 
 :::cards
 - [Slik når OneUptime deg](/docs/notifications/index): Metodene, reglene og reserveløsningen bak hver status.
-- [Varselmetoder](/docs/notifications/notification-methods): Legg til og verifiser måtene OneUptime når noen på.
+- [Varslingsmetoder](/docs/notifications/notification-methods): Legg til og verifiser måtene OneUptime når noen på.
 - [Slik når man meg](/docs/notifications/on-call-rules): Tett hullene, alvorlighetsgrad for alvorlighetsgrad.
 :::

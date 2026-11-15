@@ -120,7 +120,7 @@ Syntetiske skript kjører ikke i Node.js-prosessen til sonden. Verdier krysser k
 
 `page.waitForNavigation(...)`, `page.setDefaultTimeout(...)` og `page.setDefaultNavigationTimeout(...)` støttes. `page.waitForEvent(...)` venter på `dialog`, `domcontentloaded`, `load`, `popup`, `request`, `requestfailed`, `requestfinished` og `response`. Evalueringsfunksjoner som gis til metoder som `page.evaluate()`, kjøres i den overvåkede nettlesersiden, aldri i sondeprosessen. Hver kjøring kan bruke opptil åtte sider.
 
-Nettlesertillatelser er begrenset til geolokasjon og varsler. Utklippstavle, kamera, mikrofon, MIDI, lokale skrifter og andre tillatelser for vertens enheter er ikke tilgjengelige for overvåkingsskript.
+Nettlesertillatelser er begrenset til geolokasjon og varslinger. Utklippstavle, kamera, mikrofon, MIDI, lokale skrifter og andre tillatelser for vertens enheter er ikke tilgjengelige for overvåkingsskript.
 
 ### Hva skriptet returnerer
 

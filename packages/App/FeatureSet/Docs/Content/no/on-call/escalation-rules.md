@@ -106,7 +106,7 @@ flowchart TB
     team -->|"alle medlemmer"| person
     user -->|"direkte"| person
     person --> rules["Personens vaktregler"]
-    rules --> methods["Personens varselmetoder"]
+    rules --> methods["Personens varslingsmetoder"]
 ```
 
 En brukeroverstyring som gjelder for en person, sender varslene til den som dekker for personen i stedet. En overstyring som ikke navngir noen til å dekke, hopper over personen: personen får ingen varsler, kjøringen av policyen viser at personen er borte og til når, og i en vaktplan går hver av personens vakter til neste person i rotasjonen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
@@ -117,7 +117,7 @@ Hver melding er en som leverandøren tar imot, så et varsel går alltid ut. Så
 | --- | --- |
 | SMS | 1 600 tegn |
 | Telefonanrop | Det som får plass i Twilios anropsskript på 4 000 tegn |
-| Pushvarsel | 4 KB, der tittel, tekst og data tar opptil 3 KB |
+| Pushvarsling | 4 KB, der tittel, tekst og data tar opptil 3 KB |
 | WhatsApp | 1 024 tegn |
 | Telegram | 4 096 tegn |
 
@@ -167,16 +167,16 @@ Et varsel som ikke sendes, sier hvorfor i personens **Vaktlogger** (Brukerinnsti
 
 Prosjekteierne får én e-post om det, til saldoen er fylt på eller kanalen er slått på igjen.
 
-Et varsel som ikke nådde OneUptimes varslingstjeneste, sier `Could not reach the Notification service to send this (ECONNREFUSED).`, med koden for nettverksfeilen i parentesen. Et varsel der sendingen aldri ble ferdig, for eksempel fordi en server startet på nytt under sendingen, sier `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sendingen likevel ferdig, erstatter resultatet den meldingen.
+En varsling som ikke nådde OneUptimes varslingstjeneste, sier `Could not reach the Notification service to send this (ECONNREFUSED).`, med koden for nettverksfeilen i parentesen. En varsling der sendingen aldri ble ferdig, for eksempel fordi en server startet på nytt under sendingen, sier `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sendingen likevel ferdig, erstatter resultatet den meldingen.
 
-På OneUptime Cloud betales hver SMS, hvert anrop og hver WhatsApp- og Telegram-melding fra prosjektets saldo på **Prosjektinnstillinger > Varsler > Varslingskanaler**: den nøyaktige kostnaden trekkes fra saldoen når leverandøren tar imot meldingen, uansett hvor mange meldinger som går ut samtidig.
+På OneUptime Cloud betales hver SMS, hvert anrop og hver WhatsApp- og Telegram-melding fra prosjektets saldo på **Prosjektinnstillinger > Varslinger > Varslingskanaler**: den nøyaktige kostnaden trekkes fra saldoen når leverandøren tar imot meldingen, uansett hvor mange meldinger som går ut samtidig.
 
 - Med **Automatisk påfylling** slått på der, legger meldingen som finner saldoen under terskelen, først til beløpet automatisk påfylling er satt til, og belaster prosjektets kort; meldinger som finner saldoen lav i samme øyeblikk, belaster kortet én gang.
 - Hvis belastningen mislykkes (det finnes ingen betalingsmetode, eller kortet ble avvist), prøver automatisk påfylling kortet igjen en time senere, og **Varslingskanaler** sier det øverst til da. Å fylle på saldoen manuelt, eller å lagre automatisk påfylling på nytt, prøver med en gang.
 - Varslene fortsetter å gå ut på saldoen som er igjen, mens automatisk påfylling ikke får belastet kortet.
 
 > [!IMPORTANT]
-> SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto, en SMS- og anropsgateway eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en Prosjekteier, en **Faktureringsadministrator** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varslingskanaler** — en Prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
+> SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto, en SMS- og anropsgateway eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en Prosjekteier, en **Faktureringsadministrator** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varslinger > Varslingskanaler** — en Prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
 
 ## Eskaler til neste person i rotasjonen
 

@@ -51,7 +51,7 @@ Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av On
 | Slik når man meg | Hvordan én person nås: hvilken metode, og etter hvor lang tid | [Slik når man meg](/docs/notifications/on-call-rules) |
 | Policy for innkommende anrop | Et telefonnummer som ringer til den som har vakt | [Policy for innkommende anrop](/docs/on-call/incoming-call-policy) |
 
-Policyer, eskaleringsregler, vaktplaner og overstyringer hører til prosjektet, under **Vakt**. Varselmetoder og personlige vaktregler hører til hver person, under **Brukerinnstillinger**: en administrator kan se oppsettet til noen, men bare personen selv kan verifisere telefonen eller e-posten sin. Se [Slik når OneUptime deg](/docs/notifications/index).
+Policyer, eskaleringsregler, vaktplaner og overstyringer hører til prosjektet, under **Vakt**. Varslingsmetoder og personlige vaktregler hører til hver person, under **Brukerinnstillinger**: en administrator kan se oppsettet til noen, men bare personen selv kan verifisere telefonen eller e-posten sin. Se [Slik når OneUptime deg](/docs/notifications/index).
 
 ## Sett opp vakt
 

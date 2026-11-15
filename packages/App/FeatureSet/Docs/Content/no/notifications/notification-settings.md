@@ -1,6 +1,6 @@
-# Varselinnstillinger
+# Varslingsinnstillinger
 
-Varselinnstillinger avgjør hvilke oppdateringer som når deg om det du eier, som en hendelse, en overvåking eller en statusside, og om dine egne vakter, og via hvilke kanaler. De tilkaller deg aldri: å tilkalle er vaktreglenes jobb. Du setter dem opp under **Brukerinnstillinger → Varselinnstillinger**, med én bryter per hendelse og kanal.
+Varslingsinnstillinger avgjør hvilke oppdateringer som når deg om det du eier, som en hendelse, en overvåking eller en statusside, og om dine egne vakter, og via hvilke kanaler. De tilkaller deg aldri: å tilkalle er vaktreglenes jobb. Du setter dem opp under **Brukerinnstillinger → Varslingsinnstillinger**, med én bryter per hendelse og kanal.
 
 :::cards
 - [Slik virker innstillingene](#slik-virker-innstillingene): Én bryter per hendelse og kanal, sendt til hver verifisert metode.
@@ -30,7 +30,7 @@ flowchart TB
 :::steps
 ### Åpne innstillingene dine
 
-Gå til **Brukerinnstillinger → Varselinnstillinger**. Fanene er **Hendelser**, **Varsler**, **Overvåking**, **Statussider**, **Planlagt vedlikehold**, **Vakt** og **Sikkerhet**.
+Gå til **Brukerinnstillinger → Varslingsinnstillinger**. Fanene er **Hendelser**, **Varsler**, **Overvåking**, **Statussider**, **Planlagt vedlikehold**, **Vakt** og **Sikkerhet**.
 
 ### Finn hendelsen
 
@@ -93,12 +93,12 @@ Disse bryterne avgjør hvilke oppdateringer som når deg, ikke hvor mange e-post
 - **Email Rollup** samler en bølge av oppdateringer i én e-post: de første kommer fortsatt én og én, resten samlet noen minutter senere.
 - **Fewer routine emails** slår med **Reduce routine emails** av e-postene om notater, nye eiere, nye overvåkinger og statussider, tillegg i episoder og endringer i vaktpolicyer.
 
-Se [Varseloppsummering](/docs/emails/notification-rollup).
+Se [Varslingsoppsummering](/docs/emails/notification-rollup).
 
 ## Feilsøking
 
 :::details En bryter er på, men ingenting kommer
-Sjekk at du har en verifisert metode på den kanalen under **Brukerinnstillinger → Varselmetoder**. For SMS, anrop, WhatsApp og Telegram må prosjektet også ha slått på kanalen.
+Sjekk at du har en verifisert metode på den kanalen under **Brukerinnstillinger → Varslingsmetoder**. For SMS, anrop, WhatsApp og Telegram må prosjektet også ha slått på kanalen.
 :::
 
 :::details Jeg eier en overvåking, men får aldri vite når den går ned
@@ -112,8 +112,8 @@ Tilkallinger følger vaktreglene dine, ikke disse bryterne, og e-poster om pålo
 ## Neste steg
 
 :::cards
-- [Varselmetoder](/docs/notifications/notification-methods): Legg til metodene innstillingene dine sender til.
+- [Varslingsmetoder](/docs/notifications/notification-methods): Legg til metodene innstillingene dine sender til.
 - [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvordan en tilkalling når deg.
-- [Varseloppsummering](/docs/emails/notification-rollup): Færre, fyldigere e-poster under en bølge.
+- [Varslingsoppsummering](/docs/emails/notification-rollup): Færre, fyldigere e-poster under en bølge.
 - [Slik når OneUptime deg](/docs/notifications/index): Hvordan metoder, regler og innstillinger henger sammen.
 :::

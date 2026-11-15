@@ -137,7 +137,7 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 | **Oversikt** | **Oversikt** og **Tilstandstidslinje** |
 | **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedring**, **Runbooks**, **Tilknyttede hendelser** |
 | **Team** | **Vaktutførelser** og **Eiere**: hvem som ble tilkalt for varselet, og hvem som eier det |
-| **Varsler**           | **Varsellogger** og **AI-logger**: hver melding som er sendt om varselet, og alt AI har gjort for det      |
+| **Varslinger**           | **Varslingslogger** og **AI-logger**: hver melding som er sendt om varselet, og alt AI har gjort for det      |
 | **Notater**    | **Private notater**                                                                                         |
 | **Utvikler**         | **Terraform**, **API**, **CLI** og **AI-assistenter**: varselet styrt fra kode                              |
 | **Avansert** | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett varsel** |
@@ -161,7 +161,7 @@ En episode som et privat varsel åpner, er ikke privat, så den viser aldri vars
 ## Hvem som får vite om et varsel
 
 - **Vakten.** Varselets vaktpolicyer tilkaller personene sine, hver på den måten de har satt det opp under **Brukerinnstillinger → Slik når man meg** på fanen **Varsler**. Den som svarer på tilkallingen, bekrefter varselet, og tilkallingen stopper.
-- **Eierne.** På e-post, med mindre de har valgt andre kanaler under **Brukerinnstillinger → Varselinnstillinger** på fanen **Varsler**: **Varsel opprettet**, **Varseltilstand endret** og **Påminnelse om varsel** er slått på som standard, og **Varselnotat publisert** og **Lagt til som varseleier** er slått av til noen slår dem på. Et varsel uten eiere gir i stedet Prosjekteiere beskjed. Stopper OneUptime mens den sender et varsel, får personene den ennå ikke hadde nådd, det når OneUptime er tilbake, noen minutter forsinket, og ingen får det to ganger.
+- **Eierne.** På e-post, med mindre de har valgt andre kanaler under **Brukerinnstillinger → Varslingsinnstillinger** på fanen **Varsler**: **Varsel opprettet**, **Varseltilstand endret** og **Påminnelse om varsel** er slått på som standard, og **Varselnotat publisert** og **Lagt til som varseleier** er slått av til noen slår dem på. Et varsel uten eiere gir i stedet Prosjekteiere beskjed. Stopper OneUptime mens den sender et varsel, får personene den ennå ikke hadde nådd, det når OneUptime er tilbake, noen minutter forsinket, og ingen får det to ganger.
 - **Chatverktøyene dine.** **Varsler → Arbeidsområde** inneholder Slack- og Microsoft Teams-reglene som legger ut varsler og episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Feilsøking

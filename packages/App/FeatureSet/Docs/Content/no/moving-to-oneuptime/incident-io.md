@@ -71,7 +71,7 @@ En rotasjon med flere personer på vakt samtidig blir én OneUptime-vaktplan per
 - **Workflows, statussider, alert routes og integrasjoner.** Pek i stedet monitorene og varselkildene dine mot OneUptime, som beskrevet i [Fullfør byttet](#fullfør-byttet).
 - **Egendefinerte felt der alternativene kommer fra katalogen,** og statuser som OneUptime ikke har en tilstand for: declined, merged, canceled og learning.
 - **Overstyringer av vaktplaner, og endringer i en rotasjon som er planlagt til senere.** Forhåndsvisningen nevner hver planlagte endring, så du kan gjøre den i OneUptime når den skal skje.
-- **Eskaleringstrinn som OneUptime ikke har en eksakt motsvarighet til.** Et trinn som poster i en Slack- eller Microsoft Teams-kanal, utelates, fordi arbeidsområdets varslingsregler gjør det i OneUptime, og det samme gjelder et trinn som gir videre til en annen eskaleringsbane. Et trinn som varsler den som har vakt neste gang, overføres som det nærmeste OneUptime har, og forhåndsvisningen sier hva som endres.
+- **Eskaleringstrinn som OneUptime ikke har en eksakt motsvarighet til.** Et trinn som poster i en Slack- eller Microsoft Teams-kanal, utelates, fordi arbeidsområdets varslingsregler gjør det i OneUptime, og det samme gjelder et trinn som gir videre til en annen eskaleringsbane. Et trinn som varslinger den som har vakt neste gang, overføres som det nærmeste OneUptime har, og forhåndsvisningen sier hva som endres.
 
 ## Grenser
 
@@ -97,7 +97,7 @@ Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte ett
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 
 ### Slå av varsling i incident.io
-Når OneUptime varsler de riktige personene, slår du av varslene i incident.io, så ingen varsles to ganger.
+Når OneUptime varslinger de riktige personene, slår du av varslingene i incident.io, så ingen varsles to ganger.
 :::
 
 ## Feilsøking
