@@ -52362,5 +52362,21 @@
   "{{count}} more parts are not drawn. Search to find one.": "さらに {{count}} 件が描画されていません。検索して見つけてください。",
   "{{count}} more parts are not drawn. Search to find one._one": "さらに {{count}} 件が描画されていません。検索して見つけてください。",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "ブラウザーキーはクライアントへの配布を想定しています。Web オリジンはトレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントを送信できます。app:// ID が許可するのは React Native のセッションリプレイのみです。受け付ける ID: {{identities}}。ネイティブアプリの ID はアプリ自身による申告であり、プラットフォームによる証明ではありません。",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "ページに公開しても安全です。下の許可されたオリジンからのみ受け付けられ、トレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントにのみ使用できます。"
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "ページに公開しても安全です。下の許可されたオリジンからのみ受け付けられ、トレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントにのみ使用できます。",
+  "Checking {{host}}...": "{{host}} を確認しています...",
+  "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime は 5 分ごとに確認します。確認しているすべての拠点でダウン（応答なし、またはエラー応答）と判断されると、インシデントが作成されます。",
+  "That counts as down, so an incident opens.": "ダウンと見なされるため、インシデントが作成されます。",
+  "That counts as down, so its status changes to Offline.": "ダウンと見なされるため、ステータスがオフラインに変わります。",
+  "This project already pages people through its on-call policies and on-call rules, so they decide who is paged when this monitor opens an incident.": "このプロジェクトでは、すでにオンコールポリシーとオンコールルールで人を呼び出しているため、このモニターがインシデントを作成したときに誰を呼び出すかは、それらが決定します。",
+  "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Add a payment method before you start checking.": "このプロジェクトは Free プランです。サイトを確認するモニターは使用量に応じて請求され、モニター 1 つあたり月額 {{price}} です。確認を始める前に、支払い方法を追加してください。",
+  "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Ask a project owner to add a payment method before you start checking.": "このプロジェクトは Free プランです。サイトを確認するモニターは使用量に応じて請求され、モニター 1 つあたり月額 {{price}} です。確認を始める前に、支払い方法を追加するようプロジェクトのオーナーに依頼してください。",
+  "Waiting for {{count}} more locations...": "あと {{count}} 拠点の応答を待っています...",
+  "Waiting for {{count}} more locations..._one": "あと {{count}} 拠点の応答を待っています...",
+  "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "あなたはこのモニターの所有者ではないため、ダウンしてもメールは届きません。モニターの「所有者」ページで自分を追加してください。チームを呼び出すにはオンコールポリシーが必要です。プロジェクトのオーナーか管理者に設定を依頼してください。",
+  "{{host}} answered {{code}} from {{count}} locations.": "{{host}} は {{count}} 拠点から {{code}} を返しました。",
+  "{{host}} answered {{code}} from {{count}} locations._one": "{{host}} は {{count}} 拠点から {{code}} を返しました。",
+  "{{host}} was up from {{count}} locations, so no incident opens.": "{{host}} は {{count}} 拠点で稼働が確認できたため、インシデントは作成されません。",
+  "{{host}} was up from {{count}} locations, so no incident opens._one": "{{host}} は {{count}} 拠点で稼働が確認できたため、インシデントは作成されません。",
+  "{{host}} was up from {{count}} locations.": "{{host}} は {{count}} 拠点で稼働が確認できました。",
+  "{{host}} was up from {{count}} locations._one": "{{host}} は {{count}} 拠点で稼働が確認できました。"
 }

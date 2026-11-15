@@ -52362,5 +52362,21 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} بخش دیگر رسم نشده است. برای یافتن آن جستجو کنید.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} بخش دیگر رسم نشده است. برای یافتن آن جستجو کنید.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "کلید مرورگر — برای توزیع در کلاینت‌ها در نظر گرفته شده است. مبدأهای وب می‌توانند ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry بفرستند؛ شناسه‌های app:// فقط بازپخش نشست React Native را مجاز می‌کنند. شناسه‌های پذیرفته: {{identities}}. شناسه‌های اپ‌های بومی را خود اپ اعلام می‌کند و تأیید پلتفرم نیستند.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "انتشار آن در یک صفحه بی‌خطر است. فقط از مبدأهای مجاز زیر پذیرفته می‌شود، و فقط برای ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "انتشار آن در یک صفحه بی‌خطر است. فقط از مبدأهای مجاز زیر پذیرفته می‌شود، و فقط برای ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry.",
+  "Checking {{host}}...": "در حال بررسی {{host}}...",
+  "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime آن را هر ۵ دقیقه بررسی می‌کند. وقتی همهٔ مکان‌هایی که آن را بررسی می‌کنند آن را از کار افتاده ببینند، یعنی پاسخی نیاید یا پاسخ همراه با خطا باشد، یک حادثه باز می‌شود.",
+  "That counts as down, so an incident opens.": "این به معنی از کار افتادن است، پس یک حادثه باز می‌شود.",
+  "That counts as down, so its status changes to Offline.": "این به معنی از کار افتادن است، پس وضعیت آن به آفلاین تغییر می‌کند.",
+  "This project already pages people through its on-call policies and on-call rules, so they decide who is paged when this monitor opens an incident.": "این پروژه از قبل از طریق سیاست‌ها و قواعد آنکال خود افراد را فرا می‌خواند، پس همین‌ها تعیین می‌کنند وقتی این مانیتور حادثه‌ای باز می‌کند چه کسی فراخوانده شود.",
+  "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Add a payment method before you start checking.": "این پروژه در طرح Free است، که در آن هزینهٔ مانیتوری که سایت شما را بررسی می‌کند بر اساس مصرف محاسبه می‌شود: {{price}} به ازای هر مانیتور در ماه. پیش از شروع بررسی، یک روش پرداخت اضافه کنید.",
+  "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Ask a project owner to add a payment method before you start checking.": "این پروژه در طرح Free است، که در آن هزینهٔ مانیتوری که سایت شما را بررسی می‌کند بر اساس مصرف محاسبه می‌شود: {{price}} به ازای هر مانیتور در ماه. پیش از شروع بررسی، از مالک پروژه بخواهید یک روش پرداخت اضافه کند.",
+  "Waiting for {{count}} more locations...": "در انتظار {{count}} مکان دیگر...",
+  "Waiting for {{count}} more locations..._one": "در انتظار {{count}} مکان دیگر...",
+  "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "شما مالک این مانیتور نیستید، بنابراین وقتی از کار بیفتد ایمیلی دریافت نمی‌کنید: خودتان را در صفحهٔ «مالکان» آن اضافه کنید. فراخوانی یک تیم به سیاست آنکال نیاز دارد: از مالک یا مدیر پروژه بخواهید یکی راه‌اندازی کند.",
+  "{{host}} answered {{code}} from {{count}} locations.": "{{host}} از {{count}} مکان با کد {{code}} پاسخ داد.",
+  "{{host}} answered {{code}} from {{count}} locations._one": "{{host}} از {{count}} مکان با کد {{code}} پاسخ داد.",
+  "{{host}} was up from {{count}} locations, so no incident opens.": "{{host}} از {{count}} مکان در دسترس بود، پس هیچ حادثه‌ای باز نمی‌شود.",
+  "{{host}} was up from {{count}} locations, so no incident opens._one": "{{host}} از {{count}} مکان در دسترس بود، پس هیچ حادثه‌ای باز نمی‌شود.",
+  "{{host}} was up from {{count}} locations.": "{{host}} از {{count}} مکان در دسترس بود.",
+  "{{host}} was up from {{count}} locations._one": "{{host}} از {{count}} مکان در دسترس بود."
 }

@@ -52362,5 +52362,21 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} deler til er ikke tegnet. Søk for å finne en.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} del til er ikke tegnet. Søk for å finne den.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Nettlesernøkkel – ment for distribusjon til klienter. Nettopprinnelser kan sende spor, logger, målinger, øktavspillinger og Sentry-hendelser; app://-identiteter tillater bare øktavspilling fra React Native. Godtatte identiteter: {{identities}}. Identiteter for native apper oppgis av appen selv og er ikke en attestering fra plattformen.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "Trygg å publisere på en side. Godtas bare fra de tillatte opprinnelsene nedenfor, og bare for spor, logger, målinger, øktavspillinger og Sentry-hendelser."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "Trygg å publisere på en side. Godtas bare fra de tillatte opprinnelsene nedenfor, og bare for spor, logger, målinger, øktavspillinger og Sentry-hendelser.",
+  "Checking {{host}}...": "Sjekker {{host}}...",
+  "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "OneUptime sjekker den hvert 5. minutt. En hendelse åpnes når alle plasseringer som sjekker den, finner den nede: ikke noe svar, eller et svar med en feil.",
+  "That counts as down, so an incident opens.": "Det regnes som nede, så en hendelse åpnes.",
+  "That counts as down, so its status changes to Offline.": "Det regnes som nede, så statusen endres til Frakoblet.",
+  "This project already pages people through its on-call policies and on-call rules, so they decide who is paged when this monitor opens an incident.": "Dette prosjektet tilkaller allerede folk gjennom vaktpolicyene og vaktreglene sine, så de avgjør hvem som tilkalles når denne overvåkingen åpner en hendelse.",
+  "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Add a payment method before you start checking.": "Dette prosjektet er på Free-planen, der en overvåking som sjekker nettstedet ditt, faktureres etter bruk, til {{price}} per overvåking per måned. Legg til en betalingsmetode før du begynner å sjekke.",
+  "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Ask a project owner to add a payment method before you start checking.": "Dette prosjektet er på Free-planen, der en overvåking som sjekker nettstedet ditt, faktureres etter bruk, til {{price}} per overvåking per måned. Be en prosjekteier om å legge til en betalingsmetode før du begynner å sjekke.",
+  "Waiting for {{count}} more locations...": "Venter på {{count}} plasseringer til...",
+  "Waiting for {{count}} more locations..._one": "Venter på {{count}} plassering til...",
+  "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "Du eier ikke denne overvåkingen, så du får ikke e-post når den går ned: legg deg selv til på siden Eiere for den. Å tilkalle et team krever en vaktpolicy: be en prosjekteier eller administrator om å sette opp en.",
+  "{{host}} answered {{code}} from {{count}} locations.": "{{host}} svarte {{code}} fra {{count}} plasseringer.",
+  "{{host}} answered {{code}} from {{count}} locations._one": "{{host}} svarte {{code}} fra {{count}} plassering.",
+  "{{host}} was up from {{count}} locations, so no incident opens.": "{{host}} var oppe fra {{count}} plasseringer, så ingen hendelse åpnes.",
+  "{{host}} was up from {{count}} locations, so no incident opens._one": "{{host}} var oppe fra {{count}} plassering, så ingen hendelse åpnes.",
+  "{{host}} was up from {{count}} locations.": "{{host}} var oppe fra {{count}} plasseringer.",
+  "{{host}} was up from {{count}} locations._one": "{{host}} var oppe fra {{count}} plassering."
 }

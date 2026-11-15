@@ -52362,5 +52362,21 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} من الأجزاء الأخرى غير مرسومة. ابحث للعثور على أحدها.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} جزء آخر غير مرسوم. ابحث للعثور عليه.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "مفتاح متصفح — مخصص للتوزيع على العملاء. يمكن لأصول الويب إرسال التتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry؛ ولا تأذن هويات app:// إلا بإعادة التشغيل في React Native. الهويات المقبولة: {{identities}}. هويات التطبيقات الأصلية يعلنها التطبيق بنفسه، وليست شهادة من المنصة.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "آمن للنشر في صفحة. لا يُقبل إلا من المصادر المسموح بها أدناه، وللتتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry فقط."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "آمن للنشر في صفحة. لا يُقبل إلا من المصادر المسموح بها أدناه، وللتتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry فقط.",
+  "Checking {{host}}...": "جارٍ فحص {{host}}...",
+  "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.": "يفحصه OneUptime كل 5 دقائق. تُفتح حادثة عندما يجده كل موقع يفحصه متعطلًا: لا إجابة، أو إجابة بخطأ.",
+  "That counts as down, so an incident opens.": "يُعدّ هذا تعطلًا، لذا تُفتح حادثة.",
+  "That counts as down, so its status changes to Offline.": "يُعدّ هذا تعطلًا، لذا تتغير حالته إلى «غير متصل».",
+  "This project already pages people through its on-call policies and on-call rules, so they decide who is paged when this monitor opens an incident.": "يستدعي هذا المشروع الأشخاص بالفعل عبر سياسات المناوبة وقواعد المناوبة فيه، لذا فهي التي تحدد من يُستدعى عندما تفتح هذه المراقبة حادثة.",
+  "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Add a payment method before you start checking.": "هذا المشروع على خطة Free، حيث تُحتسب رسوم المراقبة التي تفحص موقعك حسب الاستخدام، بسعر {{price}} لكل مراقبة شهريًا. أضف طريقة دفع قبل أن تبدأ الفحص.",
+  "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Ask a project owner to add a payment method before you start checking.": "هذا المشروع على خطة Free، حيث تُحتسب رسوم المراقبة التي تفحص موقعك حسب الاستخدام، بسعر {{price}} لكل مراقبة شهريًا. اطلب من مالك المشروع إضافة طريقة دفع قبل أن تبدأ الفحص.",
+  "Waiting for {{count}} more locations...": "في انتظار مواقع أخرى عددها {{count}}...",
+  "Waiting for {{count}} more locations..._one": "في انتظار {{count}} موقع آخر...",
+  "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "لست مالك هذه المراقبة، لذا لا يصلك بريد إلكتروني عندما تتعطل: أضف نفسك في صفحة «المالكون» الخاصة بها. استدعاء فريق يتطلب سياسة مناوبة: اطلب من مالك المشروع أو مسؤوله إعدادها.",
+  "{{host}} answered {{code}} from {{count}} locations.": "أجاب {{host}} بالرمز {{code}} من مواقع عددها {{count}}.",
+  "{{host}} answered {{code}} from {{count}} locations._one": "أجاب {{host}} بالرمز {{code}} من {{count}} موقع.",
+  "{{host}} was up from {{count}} locations, so no incident opens.": "كان {{host}} يعمل من مواقع عددها {{count}}، لذا لا تُفتح حادثة.",
+  "{{host}} was up from {{count}} locations, so no incident opens._one": "كان {{host}} يعمل من {{count}} موقع، لذا لا تُفتح حادثة.",
+  "{{host}} was up from {{count}} locations.": "كان {{host}} يعمل من مواقع عددها {{count}}.",
+  "{{host}} was up from {{count}} locations._one": "كان {{host}} يعمل من {{count}} موقع."
 }
