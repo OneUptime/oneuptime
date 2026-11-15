@@ -103,6 +103,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * More fields on the new-scan form: the name, how hosts are named, and the
@@ -838,7 +839,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 </p>
                 {liveUpdates.error && (
                   <p className="mt-1 text-xs text-amber-800">
-                    {liveUpdates.error}
+                    <ErrorInSentence
+                      message={liveUpdates.error}
+                      showWhereToLook={true}
+                    />
                   </p>
                 )}
               </div>

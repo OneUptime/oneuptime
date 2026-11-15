@@ -60,6 +60,7 @@ import {
   getCloudStreamSourceWords,
   getCloudStreamStatusWords,
 } from "./CloudStreamWords";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Stream logs, for a Google Cloud connection - laid out as AWS's dialog
@@ -267,7 +268,7 @@ const CloudStreamGcpDialog: FunctionComponent<ComponentProps> = (
             role="alert"
             data-testid={cloudStreamPart("key-error")}
           >
-            {keyError}
+            <ErrorInSentence message={keyError} showWhereToLook={true} />
           </p>
         ) : (
           <></>

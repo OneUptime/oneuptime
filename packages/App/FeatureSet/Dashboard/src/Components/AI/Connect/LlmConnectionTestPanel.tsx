@@ -24,6 +24,7 @@ import {
   getLlmConnectionTestFigures,
   getLlmConnectionTestWords,
 } from "./LlmConnectionTestWords";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Test connection": a small real read with the settings as they are -
@@ -245,7 +246,7 @@ const LlmConnectionTestPanel: FunctionComponent<ComponentProps> = (
           data-testid="llm-connection-test-error"
           className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-800 ring-1 ring-inset ring-red-200"
         >
-          {state.message}
+          <ErrorInSentence message={state.message} showWhereToLook={true} />
         </div>
       ) : (
         <></>

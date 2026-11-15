@@ -33,6 +33,7 @@ import {
   isOpenStackProbeCollected,
   readOpenStackNames,
 } from "./OpenStackProbeCollectionView";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * How this cloud's data reaches OneUptime, on its Settings page: collected by a probe with the
@@ -434,7 +435,7 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
             />
             {saveError ? (
               <p className="mt-3 text-sm text-red-700" role="alert">
-                {saveError}
+                <ErrorInSentence message={saveError} showWhereToLook={true} />
               </p>
             ) : (
               <></>

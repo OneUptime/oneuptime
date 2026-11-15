@@ -63,6 +63,7 @@ import UpdateStatusUtil, {
 import { getReaderDateLocale } from "../../../Types/DateLanguage";
 import { getIsolatedLine } from "../IsolatedText/IsolatedLine";
 import { ReadingDirection } from "../../../Types/ReadingDirection";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 /*
  * The edition pill and its dialog. This component only READS the license
@@ -1983,7 +1984,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                         )}
                       </p>
                       <p className="mt-1 text-xs leading-relaxed text-red-800">
-                        {configError}
+                        <ErrorInSentence
+                          message={configError}
+                          showWhereToLook={true}
+                        />
                       </p>
                       <div className="mt-3">
                         {/*

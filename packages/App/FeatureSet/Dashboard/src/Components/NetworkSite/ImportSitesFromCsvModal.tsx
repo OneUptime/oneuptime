@@ -44,6 +44,7 @@ import React, {
   useState,
 } from "react";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Bulk CSV import for Network Sites, reached from the ⋯ menu on the Sites
@@ -489,7 +490,11 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {importError && <p className="text-sm text-red-700">{importError}</p>}
+        {importError && (
+          <p className="text-sm text-red-700">
+            <ErrorInSentence message={importError} showWhereToLook={true} />
+          </p>
+        )}
 
         {parseErrors.length > 0 && (
           <div className="rounded-md border border-red-200 bg-red-50 p-3">

@@ -35,6 +35,7 @@ import {
   getVMwareConnectionFormFields,
 } from "./VMwareConnectionFormFields";
 import { isProbeCollected } from "./VMwareProbeCollectionView";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * How this vCenter's data reaches OneUptime, on its Settings page: collected
@@ -380,7 +381,7 @@ const VMwareDataCollectionCard: FunctionComponent<ComponentProps> = (
           />
           {saveError ? (
             <p className="mt-3 text-sm text-red-700" role="alert">
-              {saveError}
+              <ErrorInSentence message={saveError} showWhereToLook={true} />
             </p>
           ) : (
             <></>

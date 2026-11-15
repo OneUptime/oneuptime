@@ -144,6 +144,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * GUIDED SETUP: PAGE THE RIGHT PERSON, AND ESCALATE (issue #6805), drawn
@@ -463,7 +464,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
 
   const errorLine: ReactElement = saveError ? (
     <p role="alert" className="text-sm text-red-600">
-      {saveError}
+      <ErrorInSentence message={saveError} showWhereToLook={true} />
     </p>
   ) : (
     <></>

@@ -78,6 +78,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The branch a task works from: the one picked when it was asked (kept on
@@ -740,7 +741,7 @@ const CodeTaskConversation: FunctionComponent<
           role="alert"
           className="mt-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700"
         >
-          {actionError}
+          <ErrorInSentence message={actionError} showWhereToLook={true} />
         </p>
       ) : (
         <></>

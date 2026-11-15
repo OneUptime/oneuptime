@@ -31,6 +31,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
 import { openAskAi } from "../AIChat/AskAiEvents";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * WHAT HAPPENED, ON THE EXCEPTION'S OVERVIEW.
@@ -183,7 +184,7 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
       role="alert"
       data-testid="exception-ai-explanation-error"
     >
-      {error}
+      <ErrorInSentence message={error} showWhereToLook={true} />
     </p>
   ) : (
     <></>
