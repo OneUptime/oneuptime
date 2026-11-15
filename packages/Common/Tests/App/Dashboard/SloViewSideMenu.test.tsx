@@ -12,6 +12,7 @@ import * as React from "react";
 import SloViewSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/SideMenu";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import Icon from "../../../UI/Components/Icon/Icon";
 import {
   DESKTOP_WIDTH,
@@ -462,4 +463,64 @@ describe("the SLO's Rules section", () => {
     expect(mobileSummaryText()).toContain("Rules / Monitor Rules");
     expect(mobileSummaryText()).not.toContain("Configuration");
   });
+});
+
+/*
+ * A request SLO measures the requests its services serve, so it has no
+ * monitors to list and no monitor rules to attach them: the menu leaves
+ * out Configuration (Monitors) and Monitor Rules, and keeps every other
+ * page where it was. Until the layout has read what the SLO measures,
+ * every page is listed.
+ */
+describe("the side menu of a request SLO", () => {
+  beforeEach(() => {
+    setViewportWidth(DESKTOP_WIDTH);
+    goTo(SLO_PATH);
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test.each([SliType.RequestSuccess, SliType.RequestLatency])(
+    "a %s SLO has no Monitors or Monitor Rules pages",
+    async (sliType: SliType) => {
+      await renderMenu(
+        <SloViewSideMenu modelId={new ObjectID(SLO_ID)} sliType={sliType} />,
+      );
+
+      expect(sectionTitlesInOrder()).toEqual([
+        "Overview",
+        "Activity",
+        "Rules",
+        "Developer",
+        "Management",
+      ]);
+      expect(titlesInMenu()).not.toContain("Monitors");
+      expect(titlesInMenu()).not.toContain("Monitor Rules");
+      expect(linksIn("Rules")).toEqual([
+        {
+          title: "Burn Rate Rules",
+          href: `${SLO_PATH}/burn-rate-rules`,
+        },
+        {
+          title: "Error Budget Policy",
+          href: `${SLO_PATH}/error-budget-policy`,
+        },
+      ]);
+    },
+  );
+
+  test.each([SliType.MonitorUptime, null, undefined])(
+    "an SLO measuring %s lists Monitors and Monitor Rules",
+    async (sliType: SliType | null | undefined) => {
+      await renderMenu(
+        <SloViewSideMenu modelId={new ObjectID(SLO_ID)} sliType={sliType} />,
+      );
+
+      expect(sectionTitlesInOrder()).toContain("Configuration");
+      expect(titlesInMenu()).toContain("Monitors");
+      expect(titlesInMenu()).toContain("Monitor Rules");
+    },
+  );
 });
