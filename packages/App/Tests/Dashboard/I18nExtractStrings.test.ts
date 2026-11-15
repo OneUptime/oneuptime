@@ -1720,6 +1720,9 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Workflow/Components",
       "keys packages/Common/Types/Workflow/Components.ts",
       "keys packages/Common/Types/Workflow/AffectedResourcesSetting.ts",
+      // Create One Incident's template and owners, and Create One Alert's (#8642).
+      "keys packages/Common/Types/Workflow/CreateFromTemplate.ts",
+      "keys packages/Common/Types/Workflow/OwnersOnCreateSetting.ts",
       // A naming rule's placeholders and what is wrong with a pattern or table.
       "keys packages/Common/Utils/NetworkDevice/Naming/NamePattern.ts",
       "keys packages/Common/Utils/NetworkDevice/Naming/NamingLookup.ts",
