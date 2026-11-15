@@ -76,7 +76,7 @@ Hendelser og varsler som er satt til å løses automatisk, slik standardkriterie
 
 ## Sonder og intervall
 
-Monitorer som sonder sjekker, avsluttes med dette trinnet: Nettsted, API, Ping, IP, Port, SSL-sertifikat, DNS, DNSSEC, NTP, Domene, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code og External Status Page. **Sonder** er maskinene som kjører sjekkene, og prosjektets standardsonder er valgt fra start. **Overvåkingsintervall** starter på **Hvert 5. minutt**.
+Monitorer som sonder sjekker, avsluttes med dette trinnet: Nettsted, API, Ping, IP, Port, SSL-sertifikat, DNS, DNSSEC, NTP, Domene, SQL-spørring, Databasehelse, Syntetisk monitor, Egendefinert JavaScript-kode og Ekstern statusside. **Sonder** er maskinene som kjører sjekkene, og prosjektets standardsonder er valgt fra start. **Overvåkingsintervall** starter på **Hvert 5. minutt**.
 
 :::steps
 ### Velg sondene
@@ -85,7 +85,7 @@ Behold de valgte **Sonder**, eller velg andre. En monitor uten sonder blir aldri
 
 ### Velg hvor ofte det skal sjekkes
 
-Velg et **Overvåkingsintervall**, fra **Hvert minutt** til **Hver uke**. Monitorer av typen Synthetic Monitor, Custom JavaScript Code og SSL-sertifikat får tilbud om intervaller på 5 minutter eller mer.
+Velg et **Overvåkingsintervall**, fra **Hvert minutt** til **Hver uke**. Monitorer av typen Syntetisk monitor, Egendefinert JavaScript-kode og SSL-sertifikat får tilbud om intervaller på 5 minutter eller mer.
 
 ### Opprett monitoren
 

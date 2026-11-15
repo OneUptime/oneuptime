@@ -2737,19 +2737,10 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     why: "A part's first fact, as its details list it: the fact's label, then its value.",
   },
   /*
-   * What a screen reader reads for a drawn path between workflow steps: the
-   * arrow's words, then the steps it leads to, a list (#8483).
+   * The workflow builder's paths between steps are no longer here: a screen
+   * reader hears "which led to {{steps}}" and "Leads to {{steps}}" as one
+   * sentence each, the steps a slot (#8570).
    */
-  {
-    file: "packages/Common/UI/Components/Workflow/StepTraceViewer.tsx",
-    text: '{" "} <DirectionArrow isDecorative={true}',
-    why: 'An arrow\'s words for a screen reader ("which led to") between a step and the steps it led to: a path drawn with an arrow, the steps a list.',
-  },
-  {
-    file: "packages/Common/UI/Components/Workflow/Switch/SwitchEditor.tsx",
-    text: '<span className="sr-only">{translator.translateText("Leads to")} </span>',
-    why: 'A branch\'s arrow, read as "Leads to", over the list of the steps it leads to: a label over a list.',
-  },
 ];
 
 interface RepositoryScan {
@@ -3214,6 +3205,75 @@ describe("the rule's pieces", () => {
         { kind: "piece", isSentence: false, isLabel: true },
       ]),
     ).toEqual([JoinedPieceKind.Value]);
+  });
+});
+
+/*
+ * Mutation checks (#8570): the workflow builder's paths between steps, each
+ * one sentence for a screen reader now, put back to the words they joined.
+ */
+describe("a workflow path read as one sentence, put back to joined words, fails the guard", () => {
+  test("the run log's which led to, its words before the steps again", () => {
+    const file: string =
+      "packages/Common/UI/Components/Workflow/StepTraceViewer.tsx";
+    const source: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, file),
+      "utf8",
+    );
+    const start: number = source.indexOf(
+      "<TranslatedSentence\n            template={LED_TO_SENTENCE}",
+    );
+    const end: number = source.indexOf(
+      "/>",
+      source.indexOf("renderText", start),
+    );
+
+    expect(start).toBeGreaterThan(0);
+    expect(end).toBeGreaterThan(start);
+    expect(findSentencesFromPieces({ file, source })).toEqual([]);
+
+    const putBack: string =
+      source.slice(0, start) +
+      `<DirectionArrow isDecorative={true} className="text-gray-400" />{" "}
+          <span className="sr-only">
+            {translator.translateText("which led to")}
+          </span>{" "}
+          {outcome.nextSteps.map((next: StepOutcomeNextStep) => {
+            return <NextStepLabel key={next.componentId} next={next} notRunLabel={props.notRunLabel} isFollowed={false} />;
+          })}` +
+      source.slice(end + 2);
+
+    expect(findSentencesFromPieces({ file, source: putBack })).toHaveLength(1);
+  });
+
+  test("the Switch / Case editor's Leads to, its words before the steps again", () => {
+    const file: string =
+      "packages/Common/UI/Components/Workflow/Switch/SwitchEditor.tsx";
+    const source: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, file),
+      "utf8",
+    );
+    const start: number = source.indexOf(
+      "<TranslatedSentence\n          template={LEADS_TO_SENTENCE}",
+    );
+    const end: number = source.indexOf(
+      "/>",
+      source.indexOf("renderText", start),
+    );
+
+    expect(start).toBeGreaterThan(0);
+    expect(end).toBeGreaterThan(start);
+    expect(findSentencesFromPieces({ file, source })).toEqual([]);
+
+    const putBack: string =
+      source.slice(0, start) +
+      `<span className="sr-only">{translator.translateText("Leads to")} </span>
+        {steps.map((step: ConnectedStep) => {
+          return <span key={step.componentId} className="font-medium text-gray-800">{step.title}</span>;
+        })}` +
+      source.slice(end + 2);
+
+    expect(findSentencesFromPieces({ file, source: putBack })).toHaveLength(1);
   });
 });
 
