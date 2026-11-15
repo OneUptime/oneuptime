@@ -74,7 +74,8 @@ export function dayLabel(
     return "Yesterday";
   }
 
-  return writeDay(day, options);
+  // The locale only: the day is decided on the phone's own calendar, above.
+  return writeDay(day, { locale: options.locale });
 }
 
 export function toTimestamp(value: string): number {

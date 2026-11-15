@@ -218,7 +218,8 @@ export function formatShiftTime(
 
   const date: Date = new Date(timestamp);
   const today: Date = new Date(now);
-  const clock: string = writeTimeOfDay(date, options);
+  // The locale only: the day words below are decided on the phone's own calendar.
+  const clock: string = writeTimeOfDay(date, { locale: options.locale });
 
   if (isSameCalendarDay(date, today)) {
     return `Today ${clock}`;
@@ -241,7 +242,7 @@ export function formatShiftTime(
   const differenceInDays: number = (timestamp - now) / MILLISECONDS_PER_DAY;
 
   if (differenceInDays > 0 && differenceInDays < 7) {
-    return writeWeekdayTime(date, options);
+    return writeWeekdayTime(date, { locale: options.locale });
   }
 
   return writeDateTime(date, { showYear: false, locale: options.locale });

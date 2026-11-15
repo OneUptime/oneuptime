@@ -173,6 +173,16 @@ export interface TimeTextOptions {
 }
 
 /*
+ * The locale, and the IANA zone a time is read in: the phone's own when
+ * undefined, as every caller in the app leaves it. The on-call formatters
+ * name only a locale: they decide "Today" and "Tomorrow" on the phone's
+ * own calendar, so the time beside the word must be read in the same zone.
+ */
+export interface ZonedTimeTextOptions extends TimeTextOptions {
+  timeZone?: string | undefined;
+}
+
+/*
  * A time of day alone, on the clock `locale` reads, in the phone's zone:
  * "9:00 AM", "09:00", "오전 9:00". What the on-call cards write after
  * "Today", "Tomorrow" and "Yesterday" (utils/duration formatShiftTime), so
@@ -180,7 +190,7 @@ export interface TimeTextOptions {
  */
 export function writeTimeOfDay(
   date: Date,
-  options: TimeTextOptions = {},
+  options: ZonedTimeTextOptions = {},
 ): string {
   const twelveHour: boolean = uses12HourClock(options.locale);
 
@@ -188,6 +198,7 @@ export function writeTimeOfDay(
     hour: getHourOption(twelveHour),
     minute: "2-digit",
     hour12: twelveHour,
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
   });
 }
 
@@ -198,7 +209,7 @@ export function writeTimeOfDay(
  */
 export function writeWeekdayTime(
   date: Date,
-  options: TimeTextOptions = {},
+  options: ZonedTimeTextOptions = {},
 ): string {
   const twelveHour: boolean = uses12HourClock(options.locale);
 
@@ -207,19 +218,24 @@ export function writeWeekdayTime(
     hour: getHourOption(twelveHour),
     minute: "2-digit",
     hour12: twelveHour,
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
   });
 }
 
 /*
- * A day as a weekday and a date, in the order and words of `locale`:
- * "Thu, Mar 5", "Thu 5 Mar", "Do., 5. März". What the list of a person's
- * shifts is grouped under (oncall/shiftGroups dayLabel).
+ * A day as a weekday and a date, in the order and words of `locale`, in
+ * the phone's zone: "Thu, Mar 5", "Thu 5 Mar", "Do., 5. März". What the
+ * list of a person's shifts is grouped under (oncall/shiftGroups dayLabel).
  */
-export function writeDay(date: Date, options: TimeTextOptions = {}): string {
+export function writeDay(
+  date: Date,
+  options: ZonedTimeTextOptions = {},
+): string {
   return date.toLocaleDateString(options.locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
   });
 }
 
