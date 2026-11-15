@@ -1,6 +1,7 @@
 import IO from "../../../../Server/Infrastructure/SocketIO";
 import Realtime from "../../../../Server/Utils/Realtime";
 import RealtimeAccessChanges, {
+  RealtimeAccessChange,
   RealtimeAccessChangeKind,
 } from "../../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import RealtimeReaders from "../../../../Server/Utils/Realtime/RealtimeReaders";
@@ -525,13 +526,11 @@ describe("how often: a burst is announced at most once per ANNOUNCE_EVERY_MS", (
     announced = [];
     jest
       .spyOn(RealtimeAccessChanges, "announce")
-      .mockImplementation(
-        (change: { kind: RealtimeAccessChangeKind; projectId?: string }) => {
-          if (change.kind === RealtimeAccessChangeKind.ProjectUsageChanged) {
-            announced.push({ projectId: change.projectId!, at: now });
-          }
-        },
-      );
+      .mockImplementation((change: RealtimeAccessChange): void => {
+        if (change.kind === RealtimeAccessChangeKind.ProjectUsageChanged) {
+          announced.push({ projectId: change.projectId, at: now });
+        }
+      });
   });
 
   // The clock and the timers move on together, 10 ms at a time.
