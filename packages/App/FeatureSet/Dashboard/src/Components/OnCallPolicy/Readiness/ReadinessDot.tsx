@@ -81,7 +81,7 @@ const ReadinessDot: FunctionComponent<ComponentProps> = (
   }`;
 
   return (
-    <Tooltip text={tooltipText}>
+    <Tooltip text={tooltipText} isTextTranslated={true}>
       <span
         role="img"
         aria-label={tooltipText}
@@ -119,7 +119,7 @@ export const ReadinessUnknownDot: FunctionComponent<UnknownDotProps> = (
   );
 
   return (
-    <Tooltip text={tooltipText}>
+    <Tooltip text={tooltipText} isTextTranslated={true}>
       <span
         role="img"
         aria-label={tooltipText}

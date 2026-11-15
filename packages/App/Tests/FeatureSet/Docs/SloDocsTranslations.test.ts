@@ -42,9 +42,10 @@ import { describe, expect, it } from "@jest/globals";
 
 /*
  * Docs overhaul task 18a: the SLO pages - SLOs Overview, Monitors and
- * Monitor Rules, Error Budgets, Burn Rate Alerts and Incidents, Error Budget
- * Policy, SLO Metrics and Dashboards, SLO Feed and Audit Logs, and Label and
- * Owner Rules - in every docs language. Each translation says what the English page says:
+ * Monitor Rules, Request and Latency SLOs, Error Budgets, Burn Rate Alerts
+ * and Incidents, Error Budget Policy, Release Checks, SLO Metrics and
+ * Dashboards, SLO Feed and Audit Logs, and Label and Owner Rules - in every
+ * docs language. Each translation says what the English page says:
  * the same sections, steps, tables, lists, cards, code and diagrams, links
  * that land on the heading the English link means, a title that is the nav
  * link's, and every screen named the way that language's Dashboard draws it.
@@ -105,9 +106,11 @@ interface TranslatedPage {
 
 const INTRODUCTION: string = "slo/introduction";
 const MONITOR_RULES: string = "slo/monitor-rules";
+const REQUEST_SLOS: string = "slo/request-slos";
 const ERROR_BUDGET: string = "slo/error-budget";
 const BURN_RATE: string = "slo/burn-rate-alerts";
 const ERROR_BUDGET_POLICY: string = "slo/error-budget-policy";
+const RELEASE_CHECKS: string = "slo/release-checks";
 const METRICS: string = "slo/metrics";
 const FEED: string = "slo/feed-and-audit-logs";
 const LABEL_RULES: string = "slo/label-and-owner-rules";
@@ -115,9 +118,11 @@ const LABEL_RULES: string = "slo/label-and-owner-rules";
 const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: INTRODUCTION, navTitle: "SLOs Overview" },
   { page: MONITOR_RULES, navTitle: "Monitors and Monitor Rules" },
+  { page: REQUEST_SLOS, navTitle: "Request and Latency SLOs" },
   { page: ERROR_BUDGET, navTitle: "Error Budgets" },
   { page: BURN_RATE, navTitle: "Burn Rate Alerts and Incidents" },
   { page: ERROR_BUDGET_POLICY, navTitle: "Error Budget Policy" },
+  { page: RELEASE_CHECKS, navTitle: "Release Checks" },
   { page: METRICS, navTitle: "SLO Metrics and Dashboards" },
   { page: FEED, navTitle: "SLO Feed and Audit Logs" },
   { page: LABEL_RULES, navTitle: "Label and Owner Rules" },
@@ -135,6 +140,7 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   // The default burn rate rules every new SLO is given, by these names.
   [INTRODUCTION]: ["Fast burn", "Slow burn", "Slow leak"],
+  [REQUEST_SLOS]: ["Fast burn", "Slow burn", "Slow leak"],
   [BURN_RATE]: ["Fast burn", "Slow burn", "Slow leak"],
   /*
    * The tiers Use the recommended policy creates, by these names, and the
@@ -225,6 +231,9 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "The target is out of range",
     "This SLO is disabled",
     "This SLO is archived",
+    // A request SLO's banners (#6799).
+    "No latency threshold",
+    "Waiting for requests",
   ],
   [MONITOR_RULES]: ["Auto-Add Monitors With Labels"],
   [METRICS]: [
@@ -283,6 +292,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
  */
 const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
   [INTRODUCTION]: ["Create Service Level Objective"],
+  [REQUEST_SLOS]: ["Create Service Level Objective"],
   [MONITOR_RULES]: ["Create SLO Monitor Rule"],
   [BURN_RATE]: ["Create SLO Burn Rate Rule"],
   [ERROR_BUDGET_POLICY]: [
@@ -305,6 +315,8 @@ const DRAWN_WITH_FIGURES: Record<string, Array<string>> = {
     // The Settings page's Error Budget line (describeSloErrorBudget).
     "43m 12s of downtime per 30-day window",
   ],
+  // A request SLO's window chip, while its older requests are counted.
+  [REQUEST_SLOS]: ["Window 23% full"],
   [ERROR_BUDGET]: [
     "31m 4s left of 43m 12s",
     "4d 23m over budget · 5m 47s allowed",
@@ -366,6 +378,18 @@ const VALUES_AS_IS: Record<string, Array<string>> = {
 const NUMBERS: Record<string, Array<string>> = {
   [INTRODUCTION]: ["5", "99.9", "30", "20", "366", "43", "12", "60", "6"],
   [MONITOR_RULES]: [],
+  // The cadence, the target, its 1 in 1,000, the counting steps and history.
+  [REQUEST_SLOS]: [
+    "5",
+    "99.9",
+    "1000",
+    "300",
+    "6",
+    "2",
+    "400",
+    "2000000",
+    "2000",
+  ],
   [ERROR_BUDGET]: [
     "43",
     "30",
@@ -412,6 +436,8 @@ const NUMBERS: Record<string, Array<string>> = {
     "100",
     "10000",
   ],
+  // The release check's defaults and limits, and the status code of a no.
+  [RELEASE_CHECKS]: ["1", "360", "2", "412", "400", "200"],
   [METRICS]: ["5", "30", "400", "60"],
   [FEED]: ["14", "30", "7", "180"],
   [LABEL_RULES]: [],

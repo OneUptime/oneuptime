@@ -212,8 +212,8 @@ För att skriva egna texter använder du mallvariabler i rubriken, beskrivningen
 | `{{targetPercentage}}` | SLO:ets mål, i procent. | `99.9` |
 | `{{currentSliPercentage}}` | SLI:n uppmätt över SLO:ets efterlevnadsfönster, i procent. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Andel av felbudgeten som fortfarande är tillgänglig, i procent. Negativ när budgeten är överskriden. | `42.5` |
-| `{{errorBudgetRemaining}}` | Felbudget som fortfarande är tillgänglig, som varaktighet. Börjar med ett minustecken när budgeten är överskriden. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Felbudget som fortfarande är tillgänglig, i minuter. | `18.37` |
+| `{{errorBudgetRemaining}}` | Felbudget som fortfarande är tillgänglig, som varaktighet eller, för ett SLO för begäranden, som de misslyckade eller långsamma begäranden som den fortfarande tillåter. Börjar med ett minustecken när budgeten är överskriden. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Felbudget som fortfarande är tillgänglig, i minuter. Tom för ett SLO för begäranden, vars budget räknas i begäranden. | `18.37` |
 | `{{windowDescription}}` | SLO:ets efterlevnadsfönster, i ord. | `rolling 30-day window` |
 | `{{policyTier}}` | Namnet på den nivå i felbudgetpolicyn som SLO:et är i efter den här utvärderingen. "None" när det inte är i någon nivå. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Nivåns tröskel för återstående budget, i procent. Tom när SLO:et inte är i någon nivå. | `25` |

@@ -93,6 +93,8 @@ Escolha as regiões a ler, dê um nome à nuvem e clique em **Conectar nuvem**. 
 
 A **Visão geral** da nuvem mostra um cartão **Coleta de dados**. Ele mostra **Verificando** até a primeira coleta, que começa em até um minuto, depois **Coletando**, e as páginas são preenchidas. Quando alguns serviços foram lidos e outro não, ele informa qual. Se nenhuma sonda vier buscar a nuvem por 15 minutos, porque está offline ou é antiga demais, ele mostra **Sem coleta** e informa isso, qualquer que seja o resultado da última coleta.
 
+Quando nenhuma sonda pode coletar a nuvem, o cartão mostra na hora **Sem coleta**, com o motivo e o que mudar: nenhuma credencial está salva, falta o endereço do Keystone, nenhuma sonda está definida para coletá-la, a sonda dela não pode coletá-la (uma sonda compartilhada no OneUptime Cloud, ou a de outro projeto), ou a sonda dela está desconectada. **Próxima coleta** é a hora em que uma sonda a coleta da próxima vez, **Previsto agora** enquanto ela espera por uma, **Atrasado** quando nenhuma veio por 15 minutos, e **Não agendado** enquanto nenhuma sonda pode coletá-la. Uma nuvem arquivada continua sendo coletada.
+
 O cartão **Coleta de dados** na página **Configurações** da nuvem guarda aquilo com que você a conectou:
 
 ![O cartão Coleta de dados na página Configurações de uma nuvem: seu endereço do Keystone, sua sonda, a credencial de aplicação com que ela faz login, suas regiões, o certificado em que confia e a frequência com que coleta](/docs/static/images/OpenStackDataCollection.png)

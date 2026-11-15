@@ -3,8 +3,17 @@ import DataSecurityCustomDataTypeService from "Common/Server/Services/DataSecuri
 import DataSecuritySettingService from "Common/Server/Services/DataSecuritySettingService";
 import DataStoreService from "Common/Server/Services/DataStoreService";
 import DataSecurityFindingWriter from "Common/Server/Utils/DataSecurity/DataSecurityFindingWriter";
-import { CLAIM_DUE_DATA_STORES_STATEMENT } from "Common/Server/Utils/DataSecurity/DataSecurityProbeClaim";
-import { DATA_SECURITY_PROBE_CLAIM_IN_MINUTES } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
+import {
+  CLAIM_DUE_DATA_STORES_STATEMENT,
+  DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT,
+  getContentScannableSql,
+} from "Common/Server/Utils/DataSecurity/DataSecurityProbeClaim";
+import {
+  DATA_SECURITY_PROBE_CLAIM_IN_MINUTES,
+  PROBE_SCANNABLE_KINDS,
+} from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
+import { SubscriptionStatusUtil } from "Common/Types/Billing/SubscriptionStatus";
+import { DataStoreProvider } from "Common/Types/DataSecurity/DataStoreKind";
 import { getFingerprintKey } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import Response from "Common/Server/Utils/Response";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -123,6 +132,7 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
  */
 import DataSecurityRouter, {
   FAILED_SCAN_RETRY_IN_HOURS,
+  NOT_SCANNABLE_REASON,
   readStartedAt,
 } from "../../FeatureSet/Telemetry/API/ProbeIngest/DataSecurity";
 
@@ -180,6 +190,12 @@ interface FakeStore {
 
 let stores: Array<FakeStore> = [];
 let lastClaim: Array<string> = [];
+/*
+ * The stores the claim's rule no longer holds for, as Postgres would answer
+ * the result route's question (DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT): a
+ * switch turned off, or the project suspended, while the probe scanned.
+ */
+let refusedStoreIds: Set<string> = new Set();
 const statements: Array<{ sql: string; parameters: Array<unknown> }> = [];
 
 function storeId(index: number): string {
@@ -222,6 +238,21 @@ function fakeManager(): { query: Mock } {
           return due.map((store: FakeStore) => {
             return { _id: store.id, projectId: PROJECT_ID.toString() };
           });
+        }
+
+        // The one store, through the probe it names, while the rule holds.
+        if (sql === DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT) {
+          return stores
+            .filter((store: FakeStore) => {
+              return (
+                store.id === values[0] &&
+                store.scanProbeId === values[1] &&
+                !refusedStoreIds.has(store.id)
+              );
+            })
+            .map((store: FakeStore) => {
+              return { _id: store.id };
+            });
         }
 
         return [];
@@ -311,6 +342,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   statements.length = 0;
   lastClaim = [];
+  refusedStoreIds = new Set();
   stores = [1, 2, 3].map((index: number) => {
     return {
       id: storeId(index),
@@ -895,6 +927,208 @@ describe("POST /probe/data-security/result", () => {
         next.getTime() - (Date.now() + FAILED_SCAN_RETRY_IN_HOURS * 3_600_000),
       ),
     ).toBeLessThan(10_000);
+  });
+
+  /*
+   * OneUptime issue #8391. A probe scans in the customer's network for up
+   * to DATA_SECURITY_PROBE_SCAN_TIME_LIMIT_IN_SECONDS after its claim, and
+   * the route kept what it found for a store whose Scan Content was turned
+   * off in that time, or the project's, or whose project was suspended:
+   * findings and masked samples of content a person had just said not to
+   * read. The workers' scan and the telemetry scan already ask again.
+   */
+  describe("a store that may no longer be scanned when the probe reports (#8391)", () => {
+    function scansAsked(): Array<{ sql: string; parameters: Array<unknown> }> {
+      return statements.filter(
+        (statement: { sql: string; parameters: Array<unknown> }) => {
+          return statement.sql === DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT;
+        },
+      );
+    }
+
+    function expectNothingRecorded(): void {
+      expect(writer.recordContentScan).not.toHaveBeenCalled();
+      expect(writer.recordFailedScan).not.toHaveBeenCalled();
+      // Its due time stays as the claim set it.
+      expect(storeService.updateColumnsByIdWithoutHooks).not.toHaveBeenCalled();
+    }
+
+    test("asks the claim's rule for the one store, through the authenticated probe, before it writes", async () => {
+      storeOfThisProbe();
+
+      await call(
+        RESULT_URI,
+        makeRequest({
+          body: {
+            probeId: OTHER_PROBE_ID.toString(),
+            dataStoreId: storeId(1),
+            startedAt: STARTED_AT,
+            result: result(),
+          },
+        }),
+      );
+
+      expect(sentBody()).toEqual({ accepted: true, findingsWritten: 3 });
+      expect(scansAsked()).toEqual([
+        {
+          sql: DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT,
+          parameters: [
+            storeId(1),
+            // The authenticated probe, never the body's.
+            PROBE_ID.toString(),
+            DataStoreProvider.SelfManaged,
+            [...PROBE_SCANNABLE_KINDS],
+            SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+          ],
+        },
+      ]);
+
+      // Asked before anything was written.
+      const asked: number =
+        storeService.getRepository.mock.invocationCallOrder[0]!;
+      expect(asked).toBeLessThan(
+        writer.recordContentScan.mock.invocationCallOrder[0]!,
+      );
+    });
+
+    test("a result for a store the rule no longer holds for is not recorded: no finding, no masked sample, its due time left", async () => {
+      storeOfThisProbe();
+      refusedStoreIds.add(storeId(1));
+
+      await call(
+        RESULT_URI,
+        makeRequest({
+          body: {
+            dataStoreId: storeId(1),
+            startedAt: STARTED_AT,
+            result: result(),
+          },
+        }),
+      );
+
+      expect(sentBody()).toEqual({
+        accepted: false,
+        findingsWritten: 0,
+        reason: NOT_SCANNABLE_REASON,
+      });
+      expectNothingRecorded();
+    });
+
+    test("a scan that could not run is not recorded either, nor tried again sooner", async () => {
+      storeOfThisProbe();
+      refusedStoreIds.add(storeId(1));
+
+      await call(
+        RESULT_URI,
+        makeRequest({
+          body: {
+            dataStoreId: storeId(1),
+            startedAt: STARTED_AT,
+            error: "connection refused",
+          },
+        }),
+      );
+
+      expect(sentBody()).toMatchObject({ accepted: false, findingsWritten: 0 });
+      expectNothingRecorded();
+    });
+
+    test("nothing of the project is read for a store it refuses: not its settings, not its custom data types", async () => {
+      storeOfThisProbe();
+      refusedStoreIds.add(storeId(1));
+
+      await call(
+        RESULT_URI,
+        makeRequest({
+          body: { dataStoreId: storeId(1), result: result() },
+        }),
+      );
+
+      expect(settingService.getOrCreateForProject).not.toHaveBeenCalled();
+      expect(customTypeService.findBy).not.toHaveBeenCalled();
+    });
+
+    test("the probe is told nothing was kept, and why, which it logs and does not retry", async () => {
+      storeOfThisProbe();
+      refusedStoreIds.add(storeId(1));
+
+      await call(
+        RESULT_URI,
+        makeRequest({ body: { dataStoreId: storeId(1), result: result() } }),
+      );
+
+      expect(NOT_SCANNABLE_REASON).toMatch(/nothing of this scan was recorded/);
+      // The probe reads `accepted: false` as not accepted (ScanDatabases.postScanReport).
+      expect(sentBody()["accepted"]).toBe(false);
+    });
+
+    test("another store of the same probe that the rule still holds for is recorded as usual", async () => {
+      storeService.findOneBy.mockResolvedValue({
+        id: new ObjectID(storeId(2)),
+        projectId: PROJECT_ID,
+      } as never);
+      refusedStoreIds.add(storeId(1));
+
+      await call(
+        RESULT_URI,
+        makeRequest({
+          body: {
+            dataStoreId: storeId(2),
+            startedAt: STARTED_AT,
+            result: result(),
+          },
+        }),
+      );
+
+      expect(sentBody()).toEqual({ accepted: true, findingsWritten: 3 });
+      expect(writer.recordContentScan).toHaveBeenCalledTimes(1);
+    });
+
+    test("a store that is not the probe's is refused before the rule is asked", async () => {
+      await call(
+        RESULT_URI,
+        makeRequest({ body: { dataStoreId: storeId(1), result: result() } }),
+      );
+
+      expect(refusal()).toBe("Data store not found.");
+      expect(scansAsked()).toEqual([]);
+    });
+
+    test("the question is the claim's own rule, for one store through the probe it names, whatever its due time", () => {
+      expect(DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT).toContain(
+        getContentScannableSql({
+          providerParameter: "$3",
+          kindsParameter: "$4",
+          statusesParameter: "$5",
+        }),
+      );
+      expect(DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT).toContain(
+        'ds."_id" = $1',
+      );
+      expect(DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT).toContain(
+        'ds."scanProbeId" = $2',
+      );
+      // The claim moved its due time on: a due time is no condition here.
+      expect(DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT).not.toContain(
+        "nextContentScanAt",
+      );
+
+      // The claim's joins, so the rule reads the same rows.
+      for (const join of [
+        'INNER JOIN "Project" p ON ds."projectId" = p."_id"',
+        'INNER JOIN "Probe" pr ON ds."scanProbeId" = pr."_id"',
+        'LEFT JOIN "DataSecuritySetting" s',
+        'ON s."projectId" = ds."projectId" AND s."deletedAt" IS NULL',
+      ]) {
+        expect(DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT).toContain(join);
+        expect(CLAIM_DUE_DATA_STORES_STATEMENT).toContain(join);
+      }
+
+      // Read-only: it locks and moves nothing.
+      expect(DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT).not.toMatch(
+        /\bUPDATE\b|\bFOR\s+(NO\s+KEY\s+)?UPDATE\b/,
+      );
+    });
   });
 
   test("refuses what is not a scan result, and a store id that is not an id", async () => {

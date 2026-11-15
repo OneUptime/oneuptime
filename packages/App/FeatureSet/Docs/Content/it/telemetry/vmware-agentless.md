@@ -61,6 +61,8 @@ Il nome predefinito è il nome host di vCenter. Fai clic su **Collega vCenter** 
 
 La **Panoramica** del vCenter mostra una scheda **Raccolta dati**. Indica **Verifica in corso** fino alla prima raccolta, che parte entro un minuto, poi **In raccolta**, e l'inventario si popola.
 
+Se per 20 minuti nessuna sonda si occupa del vCenter, perché è offline o troppo vecchia, la scheda indica **Nessuna raccolta** e lo dice, qualunque cosa abbia trovato l'ultima raccolta. Quando nessuna sonda può raccogliere il vCenter, indica subito **Nessuna raccolta**, con il motivo e cosa cambiare: non è salvata alcuna password, manca l'indirizzo o il nome utente di vCenter, nessuna sonda è impostata per raccoglierlo, la sua sonda non può raccoglierlo (una sonda condivisa su OneUptime Cloud, o quella di un altro progetto), oppure la sua sonda è disconnessa. **Prossima raccolta** è l'ora in cui una sonda lo raccoglie la prossima volta, **Previsto ora** mentre ne aspetta una, **In ritardo** quando nessuna se n'è occupata per 20 minuti, e **Non pianificato** finché nessuna sonda può raccoglierlo. Un vCenter archiviato continua a essere raccolto.
+
 ## Certificati
 
 La sonda non salta mai la verifica dei certificati. Ogni connessione completa un handshake TLS completo, e poi:
