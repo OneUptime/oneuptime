@@ -604,7 +604,7 @@ describe("the chips under Sources, in the reader's language (#7980)", () => {
     expect(screen.getByRole("button")).toHaveTextContent("۴");
   });
 
-  test.each([
+  test.each<[string, Record<string, unknown>]>([
     [
       "words whose English is not the label",
       {
@@ -615,27 +615,30 @@ describe("the chips under Sources, in the reader's language (#7980)", () => {
     ],
     ["words that are no sentence of the module", { words: { template: "Hi" } }],
     ["words in plain text", { words: "Monitors (4 found)" }],
-  ])("%s: the label as stored", async (_name: string, extra: JSONObject) => {
-    const citation: AIChatCitation = {
-      id: "C1",
-      toolName: "query_monitors",
-      label: "Monitors (4 found)",
-      queryArguments: {},
-      rowCount: 4,
-      ...(extra as unknown as Partial<AIChatCitation>),
-    };
-    const translator: Translator = dashboardTranslator("de");
+  ])(
+    "%s: the label as stored",
+    async (_name: string, extra: Record<string, unknown>) => {
+      const citation: AIChatCitation = {
+        id: "C1",
+        toolName: "query_monitors",
+        label: "Monitors (4 found)",
+        queryArguments: {},
+        rowCount: 4,
+        ...(extra as unknown as Partial<AIChatCitation>),
+      };
+      const translator: Translator = dashboardTranslator("de");
 
-    expect(getDrawnCitationLabel(citation, translator)).toBeNull();
-    expect(getCitationLabelText(citation, translator)).toBe(
-      "Monitors (4 found)",
-    );
+      expect(getDrawnCitationLabel(citation, translator)).toBeNull();
+      expect(getCitationLabelText(citation, translator)).toBe(
+        "Monitors (4 found)",
+      );
 
-    await inLanguage("de");
-    render(<CitationChips citations={[citation]} />);
+      await inLanguage("de");
+      render(<CitationChips citations={[citation]} />);
 
-    expect(chipLabels()).toEqual(["Monitors (4 found)"]);
-  });
+      expect(chipLabels()).toEqual(["Monitors (4 found)"]);
+    },
+  );
 
   test("an empty chip's tooltip names what was read in the language", async () => {
     const citation: AIChatCitation = {
