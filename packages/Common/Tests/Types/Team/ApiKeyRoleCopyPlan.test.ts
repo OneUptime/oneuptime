@@ -967,3 +967,101 @@ describe("planApiKeyRoleCopies", () => {
     });
   });
 });
+
+/*
+ * A ROW NO KEY MAY HOLD IS NEVER COPIED (#8281), as for a team
+ * (CustomRoleCopyPlan.test): the copies are written without hooks
+ * (CustomRoleSync), so the plan keeps them to what a key may be given.
+ */
+describe("a role's row no key may hold is never copied", () => {
+  const NOT_FOR_KEYS: Array<Permission> = [
+    Permission.CustomerSupport,
+    Permission.CurrentUser,
+    Permission.User,
+    Permission.Public,
+    Permission.AuthenticatedRequest,
+    Permission.UnAuthorizedSsoUser,
+    Permission.EditServiceTelemetryService,
+    "NotAPermission" as Permission,
+  ];
+
+  test.each(
+    NOT_FOR_KEYS.map((permission: Permission) => {
+      return [permission];
+    }),
+  )(
+    "a role holding %s and Incident Member gives a key only Incident Member",
+    (permission: Permission) => {
+      const roleGiven: RoleGivenToApiKey = given(1, KEY_A, ROLE_1);
+      const plan: ApiKeyRoleCopyPlan = planApiKeyRoleCopies({
+        rolesGivenToApiKeys: [roleGiven],
+        rolePermissions: [
+          rolePermission(1, ROLE_1, permission),
+          rolePermission(2, ROLE_1, Permission.IncidentMember),
+        ],
+        copies: [],
+      });
+
+      expect(plan.toDelete).toEqual([]);
+      expect(plan.toCreate).toEqual([
+        {
+          apiKeyId: KEY_A,
+          customRoleId: ROLE_1,
+          apiKeyCustomRoleId: roleGiven.id,
+          customRolePermissionId: id("row", 2),
+          permission: Permission.IncidentMember,
+          labelIds: [],
+        },
+      ]);
+      expect(plan.changedApiKeyIds).toEqual([KEY_A]);
+    },
+  );
+
+  test.each(
+    NOT_FOR_KEYS.map((permission: Permission) => {
+      return [permission];
+    }),
+  )(
+    "a copy of %s made before goes on the next sync, and the right copies stay",
+    (permission: Permission) => {
+      const roleGiven: RoleGivenToApiKey = given(1, KEY_A, ROLE_1);
+      const notForKeys: RolePermissionRow = rolePermission(
+        1,
+        ROLE_1,
+        permission,
+      );
+      const incidentMember: RolePermissionRow = rolePermission(
+        2,
+        ROLE_1,
+        Permission.IncidentMember,
+      );
+      const copies: Array<ApiKeyPermissionCopyRow> = [
+        copyOf(1, roleGiven, notForKeys),
+        copyOf(2, roleGiven, incidentMember),
+      ];
+      const plan: ApiKeyRoleCopyPlan = planApiKeyRoleCopies({
+        rolesGivenToApiKeys: [roleGiven],
+        rolePermissions: [notForKeys, incidentMember],
+        copies,
+      });
+
+      expect(plan.toDelete).toEqual([id("copy", 1)]);
+      expect(plan.toCreate).toEqual([]);
+      expect(plan.changedApiKeyIds).toEqual([KEY_A]);
+    },
+  );
+
+  test("a role of nothing a key may hold gives every key with it nothing", () => {
+    const plan: ApiKeyRoleCopyPlan = planApiKeyRoleCopies({
+      rolesGivenToApiKeys: [given(1, KEY_A, ROLE_1), given(2, KEY_B, ROLE_1)],
+      rolePermissions: NOT_FOR_KEYS.map(
+        (permission: Permission, index: number): RolePermissionRow => {
+          return rolePermission(index + 1, ROLE_1, permission);
+        },
+      ),
+      copies: [],
+    });
+
+    expect(plan).toEqual({ toDelete: [], toCreate: [], changedApiKeyIds: [] });
+  });
+});

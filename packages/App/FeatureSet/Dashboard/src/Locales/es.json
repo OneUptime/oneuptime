@@ -52373,7 +52373,7 @@
   "Execution Completed - No One Notified": "Ejecución completada - no se notificó a nadie",
   "Execution Exceeded Current Plan": "La ejecución supera el plan actual",
   "Foreign Table": "Tabla foránea",
-  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Inicializa OpenTelemetry con el exportador OTLP apuntando a tu instancia de OneUptime. Los registros son lo que escribe tu logger, no las líneas de print o console.log.",
   "Materialized View": "Vista materializada",
   "Notification Sent": "Notificación enviada",
   "Nullability changed": "Nulabilidad cambiada",
@@ -52391,7 +52391,7 @@
   "Successfully Acknowledged": "Reconocido correctamente",
   "Table dropped": "Tabla eliminada",
   "Table restored": "Tabla restaurada",
-  "Telemetry key": "Telemetry key",
+  "Telemetry key": "Clave de telemetría",
   "That counts as down, so an incident opens.": "Eso cuenta como caída, así que se abre un incidente.",
   "That counts as down, so its status changes to Offline.": "Eso cuenta como caída, así que su estado cambia a «Sin conexión».",
   "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "La página pausó la grabación aquí. No se graba nada hasta que la página la reanude, haga lo que haga el visitante mientras tanto.",
@@ -52424,7 +52424,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "Conexión interrumpida. La solicitud se interrumpió, quizá por un tiempo de espera agotado o porque la conexión se cerró de forma inesperada.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "Conexión rechazada. El servidor rechazó activamente la conexión. Normalmente significa que ningún servicio escucha en el puerto indicado o que un firewall bloquea la conexión.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "Conexión restablecida. El servidor o un dispositivo de red cerró la conexión a la fuerza. Puede pasar por reinicios del servidor, tiempos de espera de un balanceador de carga o problemas de red.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "Notificación de creación retenida el",
   "DNS resolution failed before a TCP connection could be attempted.": "La resolución DNS falló antes de poder intentar una conexión TCP.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "Falló la resolución DNS. El nombre de host no se pudo resolver a una dirección IP. Comprueba que el nombre de host es correcto y que el DNS funciona bien.",
   "Databases and APIs your services call": "Bases de datos y API a las que llaman tus servicios",
@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "Prueba",
   "UUID": "UUID",
   "Expected": "Esperado",
-  "Useful": "Útil"
+  "Useful": "Útil",
+  "The whole {{name}}": "{{name}} en su totalidad"
 }

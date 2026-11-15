@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "Test (dbt test)",
   "UUID": "UUID",
   "Expected": "Expected",
-  "Useful": "Useful"
+  "Useful": "Useful",
+  "The whole {{name}}": "The whole {{name}}"
 }

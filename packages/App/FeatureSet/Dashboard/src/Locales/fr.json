@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} attributs copiés en JSON {{format}}",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} attribut copié en JSON {{format}}",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Copier la référence à {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Copier {{count}} attributs en JSON {{format}}",
   "Copy {{count}} attributes as {{format}} JSON_one": "Copier {{count}} attribut en JSON {{format}}",
   "Copy {{field}}": "Copy {{field}}",
@@ -52373,7 +52373,7 @@
   "Execution Completed - No One Notified": "Exécution terminée - personne n'a été notifié",
   "Execution Exceeded Current Plan": "Exécution au-delà du forfait actuel",
   "Foreign Table": "Table étrangère",
-  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialisez OpenTelemetry avec l'exportateur OTLP pointant vers votre instance OneUptime. Les journaux sont ce qu'écrit votre logger, pas les lignes print ou console.log.",
   "Materialized View": "Vue matérialisée",
   "Notification Sent": "Notification envoyée",
   "Nullability changed": "Nullabilité modifiée",
@@ -52391,7 +52391,7 @@
   "Successfully Acknowledged": "Pris en compte avec succès",
   "Table dropped": "Table supprimée",
   "Table restored": "Table restaurée",
-  "Telemetry key": "Telemetry key",
+  "Telemetry key": "Clé de télémétrie",
   "That counts as down, so an incident opens.": "Cela compte comme une panne, un incident est donc ouvert.",
   "That counts as down, so its status changes to Offline.": "Cela compte comme une panne, son statut passe donc à « Hors ligne ».",
   "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "La page a mis l'enregistrement en pause ici. Rien n'est enregistré tant que la page ne le reprend pas, quoi que fasse le visiteur entre-temps.",
@@ -52424,7 +52424,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "Connexion interrompue. La requête a été interrompue, peut-être à cause d'un délai d'expiration ou d'une fermeture inattendue de la connexion.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "Connexion refusée. Le serveur a activement refusé la connexion. En général, aucun service n'écoute sur le port indiqué, ou un pare-feu bloque la connexion.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "Connexion réinitialisée. La connexion a été fermée de force par le serveur ou par un équipement réseau. Cela peut arriver lors d'un redémarrage du serveur, d'un délai d'expiration d'un équilibreur de charge ou d'un problème réseau.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "Notification de création retenue à",
   "DNS resolution failed before a TCP connection could be attempted.": "La résolution DNS a échoué avant qu'une connexion TCP puisse être tentée.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "Échec de la résolution DNS. Le nom d'hôte n'a pas pu être résolu en adresse IP. Vérifiez que le nom d'hôte est correct et que le DNS fonctionne correctement.",
   "Databases and APIs your services call": "Bases de données et API appelées par vos services",
@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "Test",
   "UUID": "UUID",
   "Expected": "Attendu",
-  "Useful": "Utile"
+  "Useful": "Utile",
+  "The whole {{name}}": "{{name}} en entier"
 }

@@ -52373,7 +52373,7 @@
   "Execution Completed - No One Notified": "実行完了 - 誰にも通知されていません",
   "Execution Exceeded Current Plan": "実行が現在のプランを超過",
   "Foreign Table": "外部テーブル",
-  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "OneUptime インスタンスを指す OTLP エクスポーターで OpenTelemetry を初期化します。ログとはロガーが書き出すもので、print や console.log の行ではありません。",
   "Materialized View": "マテリアライズドビュー",
   "Notification Sent": "通知を送信済み",
   "Nullability changed": "NULL 許容を変更",
@@ -52391,7 +52391,7 @@
   "Successfully Acknowledged": "確認完了",
   "Table dropped": "テーブルを削除",
   "Table restored": "テーブルを復元",
-  "Telemetry key": "Telemetry key",
+  "Telemetry key": "テレメトリキー",
   "That counts as down, so an incident opens.": "ダウンと見なされるため、インシデントが作成されます。",
   "That counts as down, so its status changes to Offline.": "ダウンと見なされるため、ステータスがオフラインに変わります。",
   "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "ページがここで録画を一時停止しました。その間に訪問者が何をしても、ページが再開するまで何も記録されません。",
@@ -52424,7 +52424,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "接続が中断されました。タイムアウトまたは予期しない接続の切断により、リクエストが中断された可能性があります。",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "接続が拒否されました。サーバーが接続を明示的に拒否しました。通常は、指定したポートで待ち受けているサービスがないか、ファイアウォールが接続をブロックしています。",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "接続がリセットされました。サーバーまたはネットワーク機器が接続を強制的に閉じました。サーバーの再起動、ロードバランサーのタイムアウト、ネットワークの問題で発生することがあります。",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "作成通知の保留日時",
   "DNS resolution failed before a TCP connection could be attempted.": "TCP 接続を試行する前に DNS の名前解決に失敗しました。",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS の名前解決に失敗しました。ホスト名を IP アドレスに解決できませんでした。ホスト名が正しいこと、および DNS が正常に動作していることを確認してください。",
   "Databases and APIs your services call": "サービスが呼び出すデータベースと API",
@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "テスト",
   "UUID": "UUID",
   "Expected": "想定どおり",
-  "Useful": "役に立った"
+  "Useful": "役に立った",
+  "The whole {{name}}": "{{name}} の全体"
 }

@@ -36,8 +36,8 @@ flowchart TB
 | **用於來電通知的電話號碼** | **直接聯絡** | 一個電話號碼 | 在電話中唸出的驗證碼；已為簡訊驗證的號碼則不需要驗證碼 |
 | **用於通知的 WhatsApp 號碼** | **直接聯絡** | 一個 WhatsApp 號碼 | 透過 WhatsApp 傳送的驗證碼 |
 | **用於通知的 Telegram 帳戶** | **直接聯絡** | 你的 Telegram 帳戶 | 傳送一則訊息給 OneUptime 機器人 |
-| **Slack Account for Notifications** | **工作區應用程式** | 你的 Slack 帳戶 | 將你的帳戶連結到專案的工作區 |
-| **Microsoft Teams Account for Notifications** | **工作區應用程式** | 你的 Microsoft Teams 帳戶 | 將你的帳戶連結到專案的工作區 |
+| **用於通知的 Slack 帳戶** | **工作區應用程式** | 你的 Slack 帳戶 | 將你的帳戶連結到專案的工作區 |
+| **用於通知的 Microsoft Teams 帳戶** | **工作區應用程式** | 你的 Microsoft Teams 帳戶 | 將你的帳戶連結到專案的工作區 |
 | **用於通知的 Mattermost 帳戶** | **工作區應用程式** | 你的 Mattermost 帳戶 | 將你的帳戶連結到專案的工作區 |
 | **推送通知裝置** | **推播通知** | 安裝了 OneUptime On-Call 應用程式的手機，或一個瀏覽器 | 註冊該裝置 |
 | **用於通知的 Webhook** | **Webhook** | 你自己的 HTTPS 端點 | 不需要驗證 |
@@ -67,7 +67,7 @@ flowchart TB
 :::
 
 - 驗證碼的有效期限為 15 分鐘。輸錯五次會使其作廢，你需要取得新的驗證碼。
-- 對話方塊中有 **Send a new code**，電話號碼則有 **Call me with a new code**。距離上一次要求一分鐘後，才能再次要求。
+- 對話方塊中有 **傳送新驗證碼**，電話號碼則有 **來電告知新驗證碼**。距離上一次要求一分鐘後，才能再次要求。
 - 為簡訊驗證過的號碼也會視為已為電話驗證。將其新增到 **用於來電通知的電話號碼** 下不需要驗證碼，而驗證一個簡訊號碼也會驗證你為它新增的電話號碼。
 - 從你加入專案的那天起，你的登入電子郵件就已在清單中，而且已驗證。
 
@@ -80,11 +80,11 @@ flowchart TB
 
 ### 傳訊息給機器人
 
-點選新列上的 **驗證**。 **驗證 Telegram 帳戶** 對話方塊提供三種聯絡 OneUptime 機器人的方式：用手機掃描 QR 碼、點選 **Open in Telegram**，或在 Telegram 中搜尋該機器人並傳送對話方塊中顯示的 `/start` 指令。
+點選新列上的 **驗證**。 **驗證 Telegram 帳戶** 對話方塊提供三種聯絡 OneUptime 機器人的方式：用手機掃描 QR 碼、點選 **在 Telegram 中開啟**，或在 Telegram 中搜尋該機器人並傳送對話方塊中顯示的 `/start` 指令。
 
 ### 確認
 
-回到 OneUptime，點選 **I've sent the message — check**。機器人收到你的訊息後，帳戶即完成驗證。
+回到 OneUptime，點選 **我已傳送訊息——檢查**。機器人收到你的訊息後，帳戶即完成驗證。
 :::
 
 **輪換驗證碼** 會為尚未驗證的帳戶產生新的驗證碼，先前的 QR 碼和你開啟過的連結將會失效。在自架的 OneUptime 上，需要伺服器管理員先連接一個 Telegram 機器人，其他人才能連結帳戶。
@@ -92,8 +92,8 @@ flowchart TB
 ## Slack、Microsoft Teams 和 Mattermost
 
 1. 將你自己的帳戶連結到專案的工作區： **使用者設定 → 工作區 → Slack**、 **Microsoft Teams** 或 **Mattermost**。請參閱 [Slack](/docs/workspace-connections/slack)、 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 和 [Mattermost](/docs/workspace-connections/mattermost)。
-2. 在 **工作區應用程式** 分頁上，點選 **Add Slack Account**、 **Add Microsoft Teams Account** 或 **新增 Mattermost 帳戶**。帳戶在新增時即完成驗證。
-3. 點選其所在列的 **Send Test Message**。呼叫會以來自 OneUptime 應用程式的私人訊息形式送達；在 Mattermost 中則來自專案的機器人。
+2. 在 **工作區應用程式** 分頁上，點選 **新增 Slack 帳戶**、 **新增 Microsoft Teams 帳戶** 或 **新增 Mattermost 帳戶**。帳戶在新增時即完成驗證。
+3. 點選其所在列的 **傳送測試訊息**。呼叫會以來自 OneUptime 應用程式的私人訊息形式送達；在 Mattermost 中則來自專案的機器人。
 
 ## 推播通知
 
@@ -186,11 +186,11 @@ Webhook 不需要驗證，因此新增後會立即新增其規則。私有地址
 :::
 
 :::details 一直沒收到驗證碼
-郵件可能需要幾分鐘，有時會進入垃圾郵件；簡訊可能需要一分鐘。請等待一分鐘，然後在對話方塊中點選 **Send a new code**。 **專案設定 → 通知 → 通知日誌** 會顯示該訊息的處理情況。
+郵件可能需要幾分鐘，有時會進入垃圾郵件；簡訊可能需要一分鐘。請等待一分鐘，然後在對話方塊中點選 **傳送新驗證碼**。 **專案設定 → 通知 → 通知日誌** 會顯示該訊息的處理情況。
 :::
 
 :::details 新增我的 Slack 帳戶失敗
-請先在 **使用者設定 → 工作區 → Slack** 下連結你的帳戶，然後再次點選 **Add Slack Account**。錯誤對話方塊中有一個按鈕可以帶你前往那裡。
+請先在 **使用者設定 → 工作區 → Slack** 下連結你的帳戶，然後再次點選 **新增 Slack 帳戶**。錯誤對話方塊中有一個按鈕可以帶你前往那裡。
 :::
 
 :::details 我的手機收不到推播通知
