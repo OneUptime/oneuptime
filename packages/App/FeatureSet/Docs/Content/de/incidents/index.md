@@ -157,7 +157,7 @@ Schweregrade bearbeiten oder ergänzen Sie unter **Vorfälle → Einstellungen �
 
 | Abschnitt | Was Sie dort tun |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Übersicht** | **Alle Vorfälle**, **Aktive Vorfälle** und **Postmortem-Analysen** – die zweite trägt ein rotes Badge mit der Anzahl der Vorfälle in einem Status über dem behobenen Status, die dritte listet das Postmortem jedes Vorfalls auf, zum Filtern nach Eigentümer, Schweregrad oder Status. |
+| **Übersicht** | **Alle Vorfälle**, **Aktive Vorfälle**, **Postmortem-Analysen** und **Maßnahmen** – die zweite trägt ein rotes Badge mit der Anzahl der Vorfälle in einem Status über dem behobenen Status, die dritte listet das Postmortem jedes Vorfalls auf, zum Filtern nach Eigentümer, Schweregrad oder Status, und die vierte listet die Maßnahmen aller Postmortems auf, die am frühesten fälligen zuerst. |
 | **Episoden** | Vorfallsepisoden, eine eigene Funktion zur Gruppierung mit eigenen Seiten. |
 | **KI** | **Einblicke**, **Protokolle**, **Einstellungen**: was die OneUptime-KI aus Ihren Vorfällen gelernt und alles, was sie für sie getan hat, und was sie selbstständig tun darf – mit den Regeln, welche Vorfälle sie untersucht und behebt. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Arbeitsbereich** | Die Chat-Arbeitsbereiche, die dieses Projekt verbunden hat: **Slack**, **Microsoft Teams** und **Mattermost**, jeweils mit ihren Benachrichtigungsregeln für Vorfälle. Ist keiner verbunden, enthält er **Arbeitsbereich verbinden**, eine Seite, die alle drei zeigt und erklärt, wie man sie verbindet. |
