@@ -177,7 +177,7 @@ Fra nu af starter hver ny hændelse i projektet en kørsel. Du finder dem alle u
 ## Sådan passer workflows ind i resten af OneUptime
 
 - **Monitorer** opdager problemet. **Hændelser** og **advarsler** registrerer det. **Workflows** reagerer på det.
-- **Runbooks** er beredskabsprocedurer, dit team gennemgår ved en hændelse, en advarsel eller en vedligeholdelse: manuelle trin, godkendelser og scripts, med mennesker involveret. Workflows kører uden opsyn. Brug en [runbook](/docs/runbooks/index), når en person skal træffe beslutninger undervejs, og et workflow, når hvert trin er automatisk.
+- **Runbooks** er beredskabsprocedurer, dit team gennemgår ved en hændelse, en advarsel eller en vedligeholdelseshændelse: manuelle trin, godkendelser og scripts, med mennesker involveret. Workflows kører uden opsyn. Brug en [runbook](/docs/runbooks/index), når en person skal træffe beslutninger undervejs, og et workflow, når hvert trin er automatisk.
 - **Arbejdsområdeforbindelser** forbinder et projekt med Slack og Microsoft Teams til hændelseskanaler og notifikationer. Workflowenes Slack- og Microsoft Teams-blokke bruger dem ikke: hver blok poster via sin egen indgående webhook-URL.
 
 ## Næste trin

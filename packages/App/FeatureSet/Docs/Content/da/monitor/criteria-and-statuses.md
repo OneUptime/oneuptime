@@ -89,7 +89,7 @@ flowchart TB
 - **Lukning.** Ved en senere kontrol, hvor et andet kriterium matcher, eller intet, løses en hændelse, hvis kriterium har **Løs hændelse automatisk** slået til, og det samme gælder en advarsel med **Løs advarsel automatisk**. Begge ligger under **Flere felter** i hændelsen eller advarslen, og de kriterier, en ny monitor starter med, har dem slået til.
 - **Flere sonder.** En monitor, som mere end én sonde kontrollerer, skifter kun, når dens sonder er enige. Se [Sådan evalueres kriterierne](/docs/monitor/create-monitor#sådan-evalueres-kriterier).
 - **En overordnet monitor, der er nede.** På en monitors side **Konfiguration → Afhængigheder** angiver **Afhænger af monitorer** de monitorer, den afhænger af. Så længe en af dem er i en status, der står i **Undertryk, når den overordnedes status er** (enhver offline-status, hvis feltet står tomt), åbner monitoren ingen hændelser eller advarsler. Dens status skifter stadig, og det, der er åbent, løses stadig.
-- **Planlagt vedligeholdelse.** En monitor i en vedligeholdelsesbegivenhed, der er i gang, kontrolleres ikke, så dens kriterier kører ikke. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
+- **Planlagt vedligeholdelse.** En monitor i en vedligeholdelseshændelse, der er i gang, kontrolleres ikke, så dens kriterier kører ikke. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
 
 For at se, hvordan en kontrol blev vurderet, skal du åbne monitorens **Oversigt**: kortet **Monitor-resumé** viser, hvilket kriterium der matchede, og hvad hvert kriterium gjorde, også en hændelse, der blev sprunget over, fordi der allerede var en åben.
 
@@ -189,7 +189,7 @@ En statusændring giver kun monitorens ejere besked, hvis de har slået **Overv�
 Arkiver en status, som dit team ikke længere skal bruge, i stedet for at slette den. Arkivering ændrer ingen monitor: En monitor i statussen bliver i den, indtil dens status ændres, og dens tidslinje over statusser viser den stadig.
 
 - **Arkiver** findes i rækkens menu **⋯**. Den spørger først og viser de monitorkriterier, skabeloner og statussider, der er sat op til at bruge statussen: De bliver ved med at bruge den, indtil du ændrer dem.
-- **Ingen kan vælge den igen.** Et kriterium, en monitors statusmenu, monitorstatus for en hændelse eller en vedligeholdelsesbegivenhed og en statussides nedetidsstatusser udelader den. API'et, Terraform og MCP afviser den.
+- **Ingen kan vælge den igen.** Et kriterium, en monitors statusmenu, monitorstatus for en hændelse eller en vedligeholdelseshændelse og en statussides nedetidsstatusser udelader den. API'et, Terraform og MCP afviser den.
 - **Arkiverede statusser vises for sig**, i den sammenfoldede sektion **Arkiverede monitorstatusser** under tabellen. **Fjern fra arkivet** sætter en tilbage, som den var.
 - **De indbyggede statusser kan ikke arkiveres.** Nye monitorer starter i driftsstatussen, og OneUptime betragter en monitor i offlinestatussen som nede. Deres **Arkiver** er låst, med begrundelsen.
 
