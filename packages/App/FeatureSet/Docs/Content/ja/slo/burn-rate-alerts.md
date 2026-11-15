@@ -212,8 +212,8 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 | `{{targetPercentage}}` | SLO の目標 (パーセント)。 | `99.9` |
 | `{{currentSliPercentage}}` | SLO のコンプライアンスの時間枠で測定した SLI (パーセント)。 | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | まだ使えるエラーバジェットの割合 (パーセント)。予算を超過すると負の値になります。 | `42.5` |
-| `{{errorBudgetRemaining}}` | まだ使えるエラーバジェット (期間)。予算を超過するとマイナス記号で始まります。 | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | まだ使えるエラーバジェット (分)。 | `18.37` |
+| `{{errorBudgetRemaining}}` | まだ使えるエラーバジェット (期間)。リクエスト SLO では、まだ許容される失敗したリクエストまたは遅いリクエストの数です。予算を超過するとマイナス記号で始まります。 | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | まだ使えるエラーバジェット (分)。リクエスト SLO では、予算をリクエスト数で数えるため空です。 | `18.37` |
 | `{{windowDescription}}` | SLO のコンプライアンスの時間枠を言葉で表したもの。 | `rolling 30-day window` |
 | `{{policyTier}}` | この評価のあとに SLO がいるエラーバジェットポリシーの段階の名前。どの段階にもいないときは「None」。 | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | その段階の予算残量のしきい値 (パーセント)。SLO がどの段階にもいないときは空です。 | `25` |
