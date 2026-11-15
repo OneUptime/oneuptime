@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "Forbindelsen blev afbrudt. Anmodningen blev afbrudt, muligvis på grund af en timeout, eller fordi forbindelsen uventet blev lukket.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "Forbindelsen blev afvist. Serveren afviste aktivt forbindelsen. Det betyder som regel, at ingen tjeneste lytter på den angivne port, eller at en firewall blokerer forbindelsen.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "Forbindelsen blev nulstillet. Forbindelsen blev tvangslukket af serveren eller en netværksenhed. Det kan ske ved genstart af serveren, timeouts i en load balancer eller netværksproblemer.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "Oprettelsesnotifikation tilbageholdt kl.",
   "DNS resolution failed before a TCP connection could be attempted.": "DNS-opslaget mislykkedes, før en TCP-forbindelse kunne forsøges.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS-opslag mislykkedes. Værtsnavnet kunne ikke slås op til en IP-adresse. Kontrollér, at værtsnavnet er korrekt, og at DNS fungerer, som det skal.",
   "Databases and APIs your services call": "Databaser og API'er, som dine tjenester kalder",

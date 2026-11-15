@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "أُلغي الاتصال. أُلغي الطلب، ربما بسبب انتهاء المهلة أو إغلاق الاتصال على نحو غير متوقع.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "رُفض الاتصال. رفض الخادم الاتصال صراحةً. يعني هذا عادةً أنه لا توجد خدمة تستمع على المنفذ المحدد، أو أن جدار حماية يحظر الاتصال.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "أُعيد تعيين الاتصال. أغلق الخادم أو جهاز في الشبكة الاتصال قسرًا. قد يحدث هذا عند إعادة تشغيل الخادم، أو انتهاء مهلة موازن التحميل، أو مشكلات في الشبكة.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "وقت تعليق إشعار الإنشاء",
   "DNS resolution failed before a TCP connection could be attempted.": "فشل تحليل أسماء DNS قبل أن تمكن محاولة اتصال TCP.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "فشل تحليل أسماء DNS. تعذّر تحويل اسم المضيف إلى عنوان IP. تحقّق من أن اسم المضيف صحيح وأن DNS يعمل كما ينبغي.",
   "Databases and APIs your services call": "قواعد البيانات وواجهات API التي تستدعيها خدماتك",

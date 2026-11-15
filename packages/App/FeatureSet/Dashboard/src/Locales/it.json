@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "Connessione interrotta. La richiesta è stata interrotta, forse per un timeout o perché la connessione è stata chiusa in modo imprevisto.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "Connessione rifiutata. Il server ha rifiutato attivamente la connessione. Di solito significa che nessun servizio è in ascolto sulla porta indicata, oppure che un firewall blocca la connessione.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "Connessione reimpostata. La connessione è stata chiusa forzatamente dal server o da un dispositivo di rete. Può succedere per un riavvio del server, un timeout di un bilanciatore di carico o problemi di rete.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "Notifica di creazione trattenuta il",
   "DNS resolution failed before a TCP connection could be attempted.": "La risoluzione DNS non è riuscita prima che si potesse tentare una connessione TCP.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "Risoluzione DNS non riuscita. Non è stato possibile risolvere il nome host in un indirizzo IP. Controlla che il nome host sia corretto e che il DNS funzioni correttamente.",
   "Databases and APIs your services call": "Database e API chiamati dai tuoi servizi",

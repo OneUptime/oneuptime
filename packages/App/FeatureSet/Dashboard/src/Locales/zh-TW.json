@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "連線已中止。請求遭到中止，可能是因為逾時或連線意外關閉。",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "連線遭拒。伺服器主動拒絕了連線。這通常表示指定的連接埠上沒有服務在接聽，或有防火牆封鎖了連線。",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "連線已重設。伺服器或網路裝置強制關閉了連線。伺服器重新啟動、負載平衡器逾時或網路問題都可能造成這種情況。",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "建立通知暫緩時間",
   "DNS resolution failed before a TCP connection could be attempted.": "在嘗試 TCP 連線之前，DNS 解析就已失敗。",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS 解析失敗。無法將主機名稱解析為 IP 位址。請確認主機名稱正確，且 DNS 運作正常。",
   "Databases and APIs your services call": "您的服務呼叫的資料庫和 API",

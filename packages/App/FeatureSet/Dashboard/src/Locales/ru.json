@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "Подключение прервано. Запрос был прерван, возможно, из-за тайм-аута или неожиданного закрытия подключения.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "В подключении отказано. Сервер явно отклонил подключение. Обычно это значит, что на указанном порту не работает ни одна служба или подключение блокирует брандмауэр.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "Подключение сброшено. Подключение принудительно закрыл сервер или сетевое устройство. Так бывает при перезапуске сервера, тайм-аутах балансировщика нагрузки или проблемах в сети.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "Время задержки уведомления о создании",
   "DNS resolution failed before a TCP connection could be attempted.": "Не удалось разрешить DNS-имя до попытки TCP-подключения.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "Не удалось разрешить DNS-имя. Имя хоста не удалось преобразовать в IP-адрес. Проверьте, что имя хоста указано верно и DNS работает правильно.",
   "Databases and APIs your services call": "Базы данных и API, которые вызывают ваши сервисы",

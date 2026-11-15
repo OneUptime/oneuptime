@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "接続が中断されました。タイムアウトまたは予期しない接続の切断により、リクエストが中断された可能性があります。",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "接続が拒否されました。サーバーが接続を明示的に拒否しました。通常は、指定したポートで待ち受けているサービスがないか、ファイアウォールが接続をブロックしています。",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "接続がリセットされました。サーバーまたはネットワーク機器が接続を強制的に閉じました。サーバーの再起動、ロードバランサーのタイムアウト、ネットワークの問題で発生することがあります。",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "作成通知の保留日時",
   "DNS resolution failed before a TCP connection could be attempted.": "TCP 接続を試行する前に DNS の名前解決に失敗しました。",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS の名前解決に失敗しました。ホスト名を IP アドレスに解決できませんでした。ホスト名が正しいこと、および DNS が正常に動作していることを確認してください。",
   "Databases and APIs your services call": "サービスが呼び出すデータベースと API",

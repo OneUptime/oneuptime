@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "Verbinding afgebroken. De aanvraag is afgebroken, mogelijk door een time-out of doordat de verbinding onverwacht werd gesloten.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "Verbinding geweigerd. De server heeft de verbinding actief geweigerd. Meestal luistert er geen dienst op de opgegeven poort, of blokkeert een firewall de verbinding.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "Verbinding opnieuw ingesteld. De verbinding is geforceerd gesloten door de server of een netwerkapparaat. Dit kan gebeuren door herstarts van de server, time-outs van een load balancer of netwerkproblemen.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "Aanmaakmelding vastgehouden om",
   "DNS resolution failed before a TCP connection could be attempted.": "De DNS-resolutie is mislukt voordat een TCP-verbinding kon worden geprobeerd.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS-resolutie mislukt. De hostnaam kon niet naar een IP-adres worden omgezet. Controleer of de hostnaam klopt en of DNS goed werkt.",
   "Databases and APIs your services call": "Databases en API's die uw services aanroepen",

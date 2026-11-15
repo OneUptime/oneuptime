@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "कनेक्शन बीच में रुक गया। अनुरोध रद्द हो गया, शायद टाइमआउट के कारण या कनेक्शन अचानक बंद हो जाने से।",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "कनेक्शन अस्वीकार किया गया। सर्वर ने कनेक्शन को सक्रिय रूप से अस्वीकार किया। आम तौर पर इसका मतलब है कि बताए गए पोर्ट पर कोई सेवा नहीं सुन रही है, या कोई फ़ायरवॉल कनेक्शन रोक रहा है।",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "कनेक्शन रीसेट हो गया। सर्वर या किसी नेटवर्क डिवाइस ने कनेक्शन को ज़बरदस्ती बंद कर दिया। ऐसा सर्वर के रीस्टार्ट, लोड बैलेंसर के टाइमआउट या नेटवर्क समस्याओं से हो सकता है।",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "बनाए जाने की सूचना रोकने का समय",
   "DNS resolution failed before a TCP connection could be attempted.": "TCP कनेक्शन आज़माने से पहले ही DNS रिज़ॉल्यूशन विफल हो गया।",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS रिज़ॉल्यूशन विफल रहा। होस्टनाम को IP पते में रिज़ॉल्व नहीं किया जा सका। जाँचें कि होस्टनाम सही है और DNS ठीक से काम कर रहा है।",
   "Databases and APIs your services call": "डेटाबेस और API, जिन्हें आपकी सेवाएँ कॉल करती हैं",

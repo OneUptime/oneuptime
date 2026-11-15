@@ -52429,7 +52429,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "연결이 중단되었습니다. 시간 초과 또는 예기치 않은 연결 종료로 요청이 중단되었을 수 있습니다.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "연결이 거부되었습니다. 서버가 연결을 직접 거부했습니다. 보통 지정한 포트에서 수신 대기 중인 서비스가 없거나 방화벽이 연결을 차단하고 있다는 뜻입니다.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "연결이 재설정되었습니다. 서버 또는 네트워크 장치가 연결을 강제로 닫았습니다. 서버 재시작, 로드 밸런서 시간 초과, 네트워크 문제로 발생할 수 있습니다.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "생성 알림 보류 시각",
   "DNS resolution failed before a TCP connection could be attempted.": "TCP 연결을 시도하기 전에 DNS 이름 확인에 실패했습니다.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS 이름 확인에 실패했습니다. 호스트 이름을 IP 주소로 확인할 수 없었습니다. 호스트 이름이 올바른지, DNS가 제대로 작동하는지 확인하세요.",
   "Databases and APIs your services call": "서비스가 호출하는 데이터베이스와 API",
