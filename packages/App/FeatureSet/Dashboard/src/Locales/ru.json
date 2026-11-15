@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "Атрибутов скопировано как JSON ({{format}}): {{count}}",
   "Copied {{count}} attributes as {{format}} JSON_one": "Атрибутов скопировано как JSON ({{format}}): {{count}}",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Копировать ссылку на {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Скопировать атрибуты как JSON ({{format}}): {{count}}",
   "Copy {{count}} attributes as {{format}} JSON_one": "Скопировать атрибуты как JSON ({{format}}): {{count}}",
   "Copy {{field}}": "Copy {{field}}",
@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "Тест",
   "UUID": "UUID",
   "Expected": "Ожидаемо",
-  "Useful": "Полезно"
+  "Useful": "Полезно",
+  "The whole {{name}}": "{{name}} целиком"
 }

@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "テスト",
   "UUID": "UUID",
   "Expected": "想定どおり",
-  "Useful": "役に立った"
+  "Useful": "役に立った",
+  "The whole {{name}}": "{{name}} の全体"
 }

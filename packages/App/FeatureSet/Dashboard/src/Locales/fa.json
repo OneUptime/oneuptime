@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "تست",
   "UUID": "UUID",
   "Expected": "مورد انتظار",
-  "Useful": "مفید"
+  "Useful": "مفید",
+  "The whole {{name}}": "کل {{name}}"
 }

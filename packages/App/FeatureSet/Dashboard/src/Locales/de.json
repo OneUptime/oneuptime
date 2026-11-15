@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} Attribute als JSON ({{format}}) kopiert",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} Attribut als JSON ({{format}}) kopiert",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Verweis auf {{name}} kopieren",
   "Copy {{count}} attributes as {{format}} JSON": "{{count}} Attribute als JSON ({{format}}) kopieren",
   "Copy {{count}} attributes as {{format}} JSON_one": "{{count}} Attribut als JSON ({{format}}) kopieren",
   "Copy {{field}}": "Copy {{field}}",
@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "Test",
   "UUID": "UUID",
   "Expected": "Erwartet",
-  "Useful": "Nützlich"
+  "Useful": "Nützlich",
+  "The whole {{name}}": "{{name}} als Ganzes"
 }
