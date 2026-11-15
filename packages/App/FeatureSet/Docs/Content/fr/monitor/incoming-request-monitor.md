@@ -77,13 +77,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Remplacez `https://oneuptime.com` par l'URL de votre instance OneUptime si vous l'auto-hébergez.
 
-Envoyez des requêtes **GET** ou **POST** à cette URL. HEAD est accepté et traité comme GET ; PUT, PATCH et DELETE renvoient 404. La clé secrète dans le chemin est le seul identifiant — aucun en-tête ni jeton n'est nécessaire. Les chaînes de requête sont ignorées : envoyez ce que les critères doivent lire dans le corps ou les en-têtes.
+Envoyez des requêtes **GET** ou **POST** à cette URL. HEAD est accepté et traité comme GET ; PUT, PATCH et DELETE renvoient 404. La clé secrète dans le chemin est l'identifiant : aucun en-tête ni jeton n'est nécessaire, sauf si le projet [exige un secret à chaque requête](#exiger-un-secret-à-chaque-requête). Les chaînes de requête sont ignorées : envoyez ce que les critères doivent lire dans le corps ou les en-têtes.
 
 > [!WARNING]
 > Quiconque connaît cette URL peut marquer le moniteur comme sain : traitez-la donc comme un secret. Si elle fuit, ouvrez la page **Paramètres** du moniteur et cliquez sur **Réinitialiser la clé secrète des requêtes entrantes**, puis mettez à jour chaque expéditeur. La vue d'ensemble du moniteur montre la dernière requête telle que ses journaux la conservent : avec les secrets et les données personnelles masqués, et sans en-têtes ni corps quand **Conserver le contenu de la requête** est désactivé. Le masquage repère les noms et les motifs qu'il connaît, alors n'envoyez pas de clés d'API ni de jetons vers ce point de terminaison.
 
 > [!IMPORTANT]
-> OneUptime répond immédiatement `200` avec un objet JSON vide (`{}`) et traite la requête dans une file d'attente. Cette réponse est écrite avant toute validation : un `200` n'est donc **pas** la confirmation que la requête a été acceptée — une clé secrète erronée, un moniteur supprimé et un moniteur désactivé renvoient aussi `200`. Vérifiez la chronologie du moniteur pour confirmer que les requêtes arrivent.
+> OneUptime répond immédiatement `200` avec un objet JSON vide (`{}`) et traite la requête dans une file d'attente. Cette réponse est écrite avant toute validation : un `200` n'est donc **pas** la confirmation que la requête a été acceptée — une clé secrète erronée, un moniteur supprimé et un moniteur désactivé renvoient aussi `200`. Vérifiez la chronologie du moniteur pour confirmer que les requêtes arrivent. La seule exception est un projet qui exige un secret à chaque requête : une requête sans secret reçoit la réponse `401`.
 
 ### Envoyer un corps de requête
 
@@ -186,6 +186,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Exiger un secret à chaque requête
+
+Toute personne qui possède l'URL d'un moniteur peut lui envoyer des requêtes. Un propriétaire ou un administrateur du projet peut faire exiger en plus, par chaque moniteur de requêtes entrantes du projet, l'un des secrets propres au projet, quelle que soit la personne qui a configuré le moniteur : activez **Exiger un secret à chaque requête**. Une requête sans secret est refusée avec `401` et le motif, avant de compter comme heartbeat, d'être conservée comme dernière requête du moniteur ou d'atteindre des critères. Une requête avec un secret poursuit vers les critères propres au moniteur, comme avant.
+
+:::steps
+### Créer un secret
+
+Allez dans **Moniteurs → Paramètres → Secrets de requête entrante** et créez un secret. Donnez-lui un nom et OneUptime génère la valeur ; copiez-la depuis la liste.
+
+### L'envoyer depuis chaque expéditeur
+
+Envoyez le secret dans l'en-tête `X-OneUptime-Secret`, ou comme jeton Bearer dans l'en-tête `Authorization`, selon ce que votre expéditeur sait définir.
+
+### Activer l'exigence
+
+Activez **Exiger un secret à chaque requête**. L'exigence ne peut pas être activée tant que le projet n'a aucun secret, afin qu'aucun expéditeur ne soit refusé par erreur.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime ne stocke jamais le secret : il retire l'en-tête de la requête et masque un jeton Bearer qui est l'un des secrets du projet avant de conserver quoi que ce soit.
+
+> [!TIP]
+> Pour remplacer un secret sans refuser personne, créez-en un second, faites-y passer vos expéditeurs, puis supprimez l'ancien une fois que sa valeur **Dernière utilisation** ne change plus. N'importe quel secret du projet est accepté, et le dernier ne peut pas être supprimé tant que l'exigence est active.
 
 ## Critères de surveillance
 
@@ -357,6 +389,10 @@ Pour une configuration Alertmanager complète, voir [Prometheus Alertmanager](/d
 
 :::details Mon expéditeur reçoit un 200, mais rien n'apparaît sur le moniteur
 Le `200` est envoyé avant la validation de la requête : il ne prouve donc pas qu'elle a été acceptée. Vérifiez que la clé secrète de l'URL correspond à l'**URL de heartbeat** du moniteur, et que le moniteur n'est pas désactivé. Regardez ensuite la chronologie du moniteur pour voir si les requêtes arrivent.
+:::
+
+:::details Mon expéditeur reçoit un 401
+Le projet exige un secret à chaque requête, et la requête n'en a envoyé aucun, ou un qui n'est pas celui du projet : la réponse précise lequel des deux. Envoyez l'un des secrets du projet dans l'en-tête `X-OneUptime-Secret` ou comme jeton Bearer, comme l'indique [Exiger un secret à chaque requête](#exiger-un-secret-à-chaque-requête). Une requête refusée n'atteint jamais le moniteur.
 :::
 
 :::details Le moniteur ne passe jamais hors ligne quand les heartbeats cessent

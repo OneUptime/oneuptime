@@ -77,13 +77,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Replace `https://oneuptime.com` with your OneUptime instance URL if self-hosted.
 
-Send **GET** or **POST** requests to this URL. HEAD is accepted and treated as GET; PUT, PATCH and DELETE return 404. The secret key in the path is the only credential — no header or token is required. Query strings are ignored: send what criteria should read in the body or the headers.
+Send **GET** or **POST** requests to this URL. HEAD is accepted and treated as GET; PUT, PATCH and DELETE return 404. The secret key in the path is the credential: no header or token is needed, unless the project [requires a secret on every request](#require-a-secret-on-every-request). Query strings are ignored: send what criteria should read in the body or the headers.
 
 > [!WARNING]
 > Anyone who knows this URL can mark the monitor healthy, so treat it as a secret. If it leaks, open the monitor's **Settings** page and click **Reset Incoming Request Secret Key**, then update every sender. The monitor's overview shows the latest request as its logs keep it: with secrets and personal data masked, and with no headers or body when **Keep request content** is off. Masking catches the names and patterns it knows, so do not send API keys or tokens to this endpoint.
 
 > [!IMPORTANT]
-> OneUptime replies `200` with an empty JSON object (`{}`) immediately and processes the request on a queue. That reply is written before any validation happens, so a `200` is **not** confirmation that the request was accepted — a wrong secret key, a deleted monitor, and a disabled monitor all return `200` too. Check the monitor's own timeline to confirm requests are landing.
+> OneUptime replies `200` with an empty JSON object (`{}`) immediately and processes the request on a queue. That reply is written before any validation happens, so a `200` is **not** confirmation that the request was accepted — a wrong secret key, a deleted monitor, and a disabled monitor all return `200` too. Check the monitor's own timeline to confirm requests are landing. The one exception is a project that requires a secret on every request: a request without one is answered `401`.
 
 ### Sending a request body
 
@@ -186,6 +186,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Require a secret on every request
+
+Anyone who has a monitor's URL can send it requests. A project owner or admin can make every Incoming Request monitor in the project also require one of the project's own secrets, whoever set the monitor up: turn on **Require a secret on every request**. A request without one is refused with `401` and the reason, before it counts as a heartbeat, is kept as the monitor's latest request or reaches any criteria. A request with one goes on to the monitor's own criteria, as before.
+
+:::steps
+### Create a secret
+
+Go to **Monitors → Settings → Incoming Request Secrets** and create a secret. Give it a name and OneUptime generates the value; copy it from the list.
+
+### Send it from every sender
+
+Send the secret in the `X-OneUptime-Secret` header, or as a bearer token in the `Authorization` header, whichever your sender can set.
+
+### Turn on the requirement
+
+Turn on **Require a secret on every request**. It cannot be turned on while the project has no secret, so no sender is refused by mistake.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime never stores the secret: it takes the header off the request, and masks a bearer token that is one of the project's secrets, before it keeps anything.
+
+> [!TIP]
+> To replace a secret without refusing anyone, create a second one, move your senders to it, then delete the old one once its **Last Used** stops changing. Any of the project's secrets is accepted, and the last one cannot be deleted while the requirement is on.
 
 ## Criteria
 
@@ -357,6 +389,10 @@ For a full Alertmanager configuration, see [Prometheus Alertmanager](/docs/integ
 
 :::details My sender gets a 200, but nothing shows on the monitor
 The `200` is sent before the request is validated, so it does not prove the request was accepted. Check that the secret key in the URL matches the monitor's **Heartbeat URL**, and that the monitor is not disabled. Then look at the monitor's timeline to see whether requests are landing.
+:::
+
+:::details My sender gets a 401
+The project requires a secret on every request, and the request sent none, or one that is not the project's: the reply says which. Send one of the project's secrets in the `X-OneUptime-Secret` header or as a bearer token, as [Require a secret on every request](#require-a-secret-on-every-request) shows. A refused request never reaches the monitor.
 :::
 
 :::details The monitor never goes offline when the heartbeats stop
