@@ -46,7 +46,7 @@ flowchart TB
 
 :::cards
 - [创建监视器](/docs/monitor/create-monitor): 选择类型，说明要检查什么以及多久检查一次。
-- [自定义探针](/docs/probe/custom-probe): 检查只有你自己的网络才能访问的内容。
+- [自定义探测器](/docs/probe/custom-probe): 检查只有你自己的网络才能访问的内容。
 :::
 
 ## 你监视的对象

@@ -1,13 +1,19 @@
 import {
+  AIActionSentence,
+  AIActionSentenceValue,
   AIActionTableCell,
   AIActionTableWords,
   describeAIActionSentence,
   describeAIActionTableCell,
   getAIActionSentenceDirection,
+  getAIActionSentenceLanguage,
+  isAIActionMoment,
   isAIActionTerm,
   isKnownAIActionTableWords,
 } from "Common/Types/AI/AIActionWords";
 import { AIChatWidget, AIChatWidgetType } from "Common/Types/AI/AIChatTypes";
+import OneUptimeDate from "Common/Types/Date";
+import { withDateDisplayLanguage } from "Common/Types/DateLanguage";
 import { getReadingDirection } from "Common/Types/ReadingDirection";
 import { getSentenceLanguage, Translator } from "Common/Types/Translator";
 import { DrawnActionSentence } from "./ToolActionWords";
@@ -73,19 +79,100 @@ export interface DrawnWidgetHeading {
   description: DrawnActionSentence | null;
 }
 
-// A sentence of the module in the reader's language: its values set apart.
-function drawSentence(
-  sentence: AIActionTableWords["title"],
+/*
+ * The moment a window's end of this name starts at: "end" ends "start",
+ * "beforeEnd" ends "beforeStart".
+ */
+function getStartOf(name: string): string | null {
+  if (name === "end") {
+    return "start";
+  }
+
+  return name.endsWith("End") ? `${name.slice(0, -"End".length)}Start` : null;
+}
+
+/*
+ * A sentence's moments - the ends of a window a read names (issue #7979) -
+ * as every page writes a window, in the sentence's language and the
+ * reader's own time ("14. Sep., 17:49 – 18:49"): a window's end on the
+ * day it started says its time alone. The server stores them as ISO text,
+ * which is what the English says.
+ */
+export function withMomentsWritten(
+  sentence: AIActionSentence,
+  translator: Translator,
+  options?: { use12HourFormat?: boolean | undefined } | undefined,
+): AIActionSentence {
+  const values: Record<string, AIActionSentenceValue> | undefined =
+    sentence.values;
+
+  if (
+    !values ||
+    !Object.values(values).some((value: AIActionSentenceValue): boolean => {
+      return isAIActionMoment(value);
+    })
+  ) {
+    return sentence;
+  }
+
+  const use12HourFormat: boolean =
+    options?.use12HourFormat ?? OneUptimeDate.getUserPrefers12HourFormat();
+  const language: string = getAIActionSentenceLanguage(sentence, translator);
+  const written: Record<string, AIActionSentenceValue> = {};
+
+  withDateDisplayLanguage(language, (): void => {
+    for (const name of Object.keys(values)) {
+      const value: AIActionSentenceValue = values[name]!;
+
+      if (!isAIActionMoment(value)) {
+        written[name] = value;
+        continue;
+      }
+
+      const moment: Date = new Date(value.moment);
+      const startName: string | null = getStartOf(name);
+      const start: AIActionSentenceValue | undefined = startName
+        ? values[startName]
+        : undefined;
+
+      written[name] =
+        start &&
+        isAIActionMoment(start) &&
+        OneUptimeDate.areOnTheSameLocalDay(new Date(start.moment), moment)
+          ? OneUptimeDate.getLocalTimeString(moment, { use12HourFormat })
+          : OneUptimeDate.getDateAsLocalShortDateTimeString(moment, {
+              use12HourFormat,
+            });
+    }
+  });
+
+  return { ...sentence, values: written };
+}
+
+/*
+ * A sentence of the module in the reader's language: its values set
+ * apart, its moments in the reader's time. A table's title and line, a
+ * cell, and a source chip's label (CitationChips) are drawn with it.
+ */
+export function drawReadSentence(
+  sentence: AIActionSentence,
   translator: Translator,
 ): DrawnActionSentence {
   return {
-    text: describeAIActionSentence(sentence, translator, {
-      setsValuesApart: true,
-    }),
+    text: describeAIActionSentence(
+      withMomentsWritten(sentence, translator),
+      translator,
+      { setsValuesApart: true },
+    ),
     direction: getAIActionSentenceDirection(sentence, translator),
     separatorBefore: "",
   };
 }
+
+const drawSentence: (
+  sentence: AIActionSentence,
+  translator: Translator,
+) => DrawnActionSentence = drawReadSentence;
 
 /*
  * A widget's title and the line under it, as drawn: in the reader's

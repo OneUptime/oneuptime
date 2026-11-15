@@ -77,7 +77,9 @@ describe("query_scheduled_maintenance — detail mode", () => {
     expect(result.dataForLlm).toContain("Database upgrade");
     expect(result.dataForLlm).toContain("Payments API");
     expect(result.dataForLlm).toContain("2026-07-20");
-    expect(result.citationLabel).toBe("Scheduled maintenance #7");
+    // One record is a maintenance event (#6817), in the chip as in its table.
+    expect(result.citationLabel).toBe("Maintenance event #7");
+    expect(result.widget?.title).toBe("Maintenance event #7");
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.ScheduledMaintenanceView,
       params: { scheduledMaintenanceId: EVENT_ID.toString() },

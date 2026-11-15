@@ -10,6 +10,8 @@ import Response from "../Utils/Response";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
+import AiRunRefusalException from "../../Types/Exception/AiRunRefusalException";
+import { AiRunRefusalCode } from "../../Types/AI/AiRunRefusal";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import AIInsightStatus from "../../Types/AI/AIInsightStatus";
 import AIInsightHumanVerdict from "../../Types/AI/AIInsightHumanVerdict";
@@ -57,7 +59,10 @@ async function getLoggedInProps(
  * Access check under the USER's permissions: the user props enforce project
  * membership and the model's read ACL, so a null result means "does not
  * exist or is not yours" — reported identically so the route never leaks
- * whether an insight id exists in another project.
+ * whether an insight id exists in another project. It is refused with its
+ * code (#8052), so the insight's page says it in the reader's language
+ * under Confirm, Dismiss, Resolve, Reopen and a triage's Try again. A
+ * request that names no insight is malformed: the page never sends one.
  */
 async function findAccessibleInsight(
   req: ExpressRequest,
@@ -78,9 +83,7 @@ async function findAccessibleInsight(
   });
 
   if (!insight || !insight.id) {
-    throw new BadDataException(
-      "AI insight not found (or you do not have access to it).",
-    );
+    throw new AiRunRefusalException(AiRunRefusalCode.InsightNotFoundOrNoAccess);
   }
 
   return insight;

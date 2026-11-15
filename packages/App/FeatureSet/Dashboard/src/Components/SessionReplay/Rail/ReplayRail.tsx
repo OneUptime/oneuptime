@@ -29,8 +29,8 @@ import {
 } from "../../../Utils/ReplayCorrelation";
 import { ReplayTimelineEventKind } from "../ReplayTimelineTypes";
 import {
-  formatReplayOffset,
-  formatReplayOffsetPrecise,
+  formatReplayOffsetInLanguage,
+  formatReplayOffsetPreciseInLanguage,
 } from "../ReplayTimeFormat";
 import {
   ReplayButtonGroup,
@@ -1294,20 +1294,25 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     } else if (tab.count !== null) {
       /* A lower bound: the fetch was capped, or part of it failed. */
       const isLowerBound: boolean = tab.isTruncated || tab.isPartial;
-      const total: string = `${tab.count}${isLowerBound ? "+" : ""}`;
-      const text: string =
-        tab.matchingCount !== null ? `${tab.matchingCount}/${total}` : total;
+      // Counted in the reader's digits, as every count is (#7318).
+      const count: string = translator.formatNumber(tab.count);
+      const total: string = `${count}${isLowerBound ? "+" : ""}`;
+      const matching: string | null =
+        tab.matchingCount !== null
+          ? translator.formatNumber(tab.matchingCount)
+          : null;
+      const text: string = matching !== null ? `${matching}/${total}` : total;
       let title: string | undefined = undefined;
 
-      if (tab.matchingCount !== null) {
-        title = `${tab.matchingCount} of ${total} match the search`;
+      if (matching !== null) {
+        title = `${matching} of ${total} match the search`;
       } else if (tab.isPartial) {
-        title = `${tab.count} loaded; some rows did not load`;
+        title = `${count} loaded; some rows did not load`;
       } else if (tab.isTraceIdSetCapped) {
         /* The same cause the notice names, not the row cap. */
-        title = `${tab.count} rows; this session has more traces than one fetch names, so the rows of some of its traces were not fetched`;
+        title = `${count} rows; this session has more traces than one fetch names, so the rows of some of its traces were not fetched`;
       } else if (tab.isTruncated) {
-        title = `The first ${tab.count} rows; the fetch was capped`;
+        title = `The first ${count} rows; the fetch was capped`;
       }
 
       badge = (
@@ -1554,8 +1559,14 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         {/* Tenths only while paused: at 1x the decimal would flicker ten times a second. */}
         {translator.translateTemplate(RAIL_NOW_DIVIDER, {
           time: props.isPlaying
-            ? formatReplayOffset(props.currentTimeMs)
-            : formatReplayOffsetPrecise(props.currentTimeMs),
+            ? formatReplayOffsetInLanguage(
+                props.currentTimeMs,
+                translator.language,
+              )
+            : formatReplayOffsetPreciseInLanguage(
+                props.currentTimeMs,
+                translator.language,
+              ),
         })}
       </span>
       <div className="h-px flex-1 bg-indigo-200" />
@@ -1950,7 +1961,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         <div className="sr-only" aria-live="polite">
           {translator.translateTemplate(RAIL_SELECTED_ROW, {
             title: selectedRow.signal.title,
-            time: formatReplayOffsetPrecise(selectedRow.signal.offsetMs),
+            time: formatReplayOffsetPreciseInLanguage(
+              selectedRow.signal.offsetMs,
+              translator.language,
+            ),
           })}
         </div>
       )}

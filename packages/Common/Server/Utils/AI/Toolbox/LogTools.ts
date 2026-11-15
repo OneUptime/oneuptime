@@ -27,6 +27,17 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_TELEMETRY_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import {
+  citationSentence,
+  countFigure,
+  windowSentence,
+  windowValues,
+} from "./ReadTableWords";
 import { readAttributeFilter } from "./MetricAttributeQuery";
 
 // Keep pivoted histogram rows under the serializer's 50-row cap.
@@ -173,15 +184,23 @@ export const SearchLogsTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Logs ${startTime.toISOString()} – ${endTime.toISOString()} (${serialized.rowCount} shown)`,
+      // In the reader's language and time (issues #7979, #7980).
+      ...citationSentence(AI_READ_CITATIONS.logs, {
+        ...windowValues(startTime, endTime),
+        count: countFigure(serialized.rowCount),
+      }),
       citationTarget: logsLink,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Logs (${rows.length})`,
-              description: `${startTime.toISOString()} – ${endTime.toISOString()}`,
+              words: {
+                title: aiActionSentence(AI_READ_TELEMETRY_TABLE_TITLES.logs, {
+                  count: countFigure(rows.length),
+                }),
+                description: windowSentence(startTime, endTime),
+              },
               columns: [
                 { key: "time", title: translationKey("Time"), type: "date" },
                 {
@@ -336,7 +355,11 @@ export const LogHistogramTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Log volume by severity, ${startTime.toISOString()} – ${endTime.toISOString()}`,
+      // In the reader's language and time (issue #7980).
+      ...citationSentence(
+        AI_READ_CITATIONS.logVolume,
+        windowValues(startTime, endTime),
+      ),
       citationTarget: {
         type: AIChatCitationTargetType.Logs,
       },

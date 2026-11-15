@@ -30,6 +30,23 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AIActionTableCell,
+  aiActionPluralSentence,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATION_PLURALS,
+  AI_READ_CITATIONS,
+  AI_READ_RECORD_TABLE_LINES,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import {
+  citationOf,
+  citationSentence,
+  countFigure,
+  yesOrNo,
+} from "./ReadTableWords";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -356,9 +373,16 @@ export const QueryRunbooksTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `Runbook "${runbook.name}" (${steps.length} step${
-          steps.length === 1 ? "" : "s"
-        })`,
+        // In the reader's language (issues #7977, #7980).
+        ...citationOf(
+          aiActionPluralSentence(
+            AI_READ_CITATION_PLURALS.runbook,
+            steps.length,
+            {
+              name: runbook.name || "",
+            },
+          ),
+        ),
         citationTarget: {
           type: AIChatCitationTargetType.RunbookView,
           params: { runbookId: runbookIdString },
@@ -368,8 +392,13 @@ export const QueryRunbooksTool: ObservabilityTool = {
         widget:
           stepRows.length > 0
             ? WidgetBuilder.table({
-                title: `Runbook: ${runbook.name}`,
-                description: runbook.description,
+                words: {
+                  title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.runbook, {
+                    name: runbook.name || "",
+                  }),
+                },
+                // The runbook's own description, as written.
+                description: runbook.description || undefined,
                 columns: [
                   {
                     key: "stepNumber",
@@ -464,9 +493,15 @@ export const QueryRunbooksTool: ObservabilityTool = {
     return {
       dataForLlm: `${pagingPrefix}${serialized.text}`,
       rowCount: serialized.rowCount,
-      citationLabel: isPaged
-        ? `Runbooks (${rows.length} of ${totalCount})`
-        : `Runbooks (${serialized.rowCount} found)`,
+      // In the reader's language (issues #7977, #7980).
+      ...(isPaged
+        ? citationSentence(AI_READ_CITATIONS.runbooksPaged, {
+            count: countFigure(rows.length),
+            total: countFigure(totalCount),
+          })
+        : citationSentence(AI_READ_CITATIONS.runbooks, {
+            count: countFigure(serialized.rowCount),
+          })),
       citationTarget: {
         type: AIChatCitationTargetType.Runbooks,
       },
@@ -475,10 +510,28 @@ export const QueryRunbooksTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Runbooks (${rows.length})`,
-              description: isPaged
-                ? `Showing ${rows.length} of ${totalCount} runbooks`
-                : undefined,
+              words: {
+                title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.runbooks, {
+                  count: countFigure(rows.length),
+                }),
+                ...(isPaged
+                  ? {
+                      description: aiActionSentence(
+                        AI_READ_RECORD_TABLE_LINES.runbooksShown,
+                        {
+                          shown: countFigure(rows.length),
+                          total: countFigure(totalCount),
+                        },
+                      ),
+                    }
+                  : {}),
+                // Enabled, as Yes or No: it read "true" on every page.
+                cells: rows.map(
+                  (row: JSONObject): Record<string, AIActionTableCell> => {
+                    return { enabled: yesOrNo(row["enabled"] === true) };
+                  },
+                ),
+              },
               columns: [
                 { key: "name", title: translationKey("Name"), type: "text" },
                 {

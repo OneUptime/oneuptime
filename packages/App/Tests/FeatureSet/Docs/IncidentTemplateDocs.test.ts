@@ -17,6 +17,7 @@ import Permission from "Common/Types/Permission";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { namesRoleAsDrawn } from "./DocsRoleNames";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -1115,8 +1116,9 @@ describe("Incident docs", () => {
 
         expect({
           language: language,
-          projectMember: line.includes("Project Member"),
-          incidentMember: line.includes("Incident Member"),
+          // Each role as this language's Dashboard draws it (#7514).
+          projectMember: namesRoleAsDrawn(language, line, "Project Member"),
+          incidentMember: namesRoleAsDrawn(language, line, "Incident Member"),
           customFieldEditors: line.includes("**Edit Incident Custom Field**"),
         }).toEqual({
           language: language,

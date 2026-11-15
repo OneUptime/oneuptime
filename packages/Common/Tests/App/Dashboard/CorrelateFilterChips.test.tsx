@@ -503,14 +503,21 @@ describe("CorrelateFilterChips remove", () => {
     );
   });
 
-  test("the remove label is translated with the number composed outside", () => {
-    mockTranslations["Remove condition"] = "Quitar condicion";
+  /*
+   * One sentence with the number as its value (#8076): a language puts the
+   * number where its grammar does ("条件 2 を削除"), and no number is baked
+   * into a key.
+   */
+  test("the remove label is one translated sentence, its number a value", () => {
+    mockTranslations["Remove condition {{number}}"] = "条件 {{number}} を削除";
     renderChips([hostCondition, severityCondition]);
 
     expect(
       screen.getByTestId("correlate-filter-chip-remove-1"),
-    ).toHaveAttribute("aria-label", "Quitar condicion 2");
-    expect(mockTranslationKeys).toContain("Remove condition");
+    ).toHaveAttribute("aria-label", "条件 2 を削除");
+    expect(mockTranslationKeys).toContain("Remove condition {{number}}");
+    // The phrase is never looked up on its own, to have the number tacked on.
+    expect(mockTranslationKeys).not.toContain("Remove condition");
     const numberedKey: RegExp = /^Remove condition \d/;
     expect(
       mockTranslationKeys.some((key: string): boolean => {

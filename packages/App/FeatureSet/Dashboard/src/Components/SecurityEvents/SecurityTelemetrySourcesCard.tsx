@@ -42,7 +42,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Your OneUptime data": the telemetry beyond logs that OneUptime already
@@ -265,7 +267,7 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
             className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
             data-testid="security-telemetry-sources-error"
           >
-            {error}
+            <ErrorInSentence message={error} showWhereToLook={true} />
           </p>
         ) : (
           <></>

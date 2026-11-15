@@ -110,6 +110,7 @@ import {
   windowText,
   zoomOfChart,
 } from "./ContainerChartZoomStandIn";
+import { CHART_TITLE_ROW_TEST_ID } from "../../../UI/Components/Charts/ChartGroup/ChartGroup";
 
 const NOW: Date = new Date("2026-09-24T12:00:00.000Z");
 const HOUR_START: Date = new Date("2026-09-24T11:00:00.000Z");
@@ -236,8 +237,12 @@ function cardOf(title: string): HTMLElement {
 // The hint ChartGroup prints beside a chart's title.
 function hintOf(title: string): string {
   const heading: HTMLElement = screen.getByRole("heading", { name: title });
+  // The chart's title row: its title group, then the hint (#8048).
+  const row: Element | null = heading.closest(
+    `[data-testid="${CHART_TITLE_ROW_TEST_ID}"]`,
+  );
 
-  return (heading.parentElement?.textContent || "").replace(title, "").trim();
+  return (row?.textContent || "").replace(title, "").trim();
 }
 
 function customLabel(start: Date, end: Date): string {

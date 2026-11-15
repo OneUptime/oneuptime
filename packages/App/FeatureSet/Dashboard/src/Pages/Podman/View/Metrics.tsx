@@ -17,10 +17,14 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const PodmanHostMetrics: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [host, setHost] = useState<PodmanHost | null>(null);
@@ -198,8 +202,12 @@ const PodmanHostMetrics: FunctionComponent<
       },
     };
 
-    return [cpuMax, cpuAvg, memMax, memTotal, netRx, netTx, pidsMax];
-  }, [host?.hostIdentifier]);
+    // In the reader's language: the charts draw their words as handed (#8047).
+    return chartWordsInReadersLanguage(
+      [cpuMax, cpuAvg, memMax, memTotal, netRx, netTx, pidsMax],
+      translator,
+    );
+  }, [host?.hostIdentifier, translator.language]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

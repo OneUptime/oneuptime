@@ -52,6 +52,7 @@ import StatusPageSessionLengthCopy, {
   STATUS_PAGE_SESSION_LENGTH_SETTING_TEST_ID,
   toSessionLengthChoiceValue,
 } from "@oneuptime/dashboard/Components/StatusPage/StatusPageSessionLengthCopy";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The Reader Sessions card on Security -> Access: "Sign readers out after", one
@@ -216,7 +217,7 @@ const SessionLengthSetting: FunctionComponent<SettingProps> = (
           role="alert"
           data-testid={`${STATUS_PAGE_SESSION_LENGTH_SETTING_TEST_ID}-error`}
         >
-          {setting.error}
+          <ErrorInSentence message={setting.error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

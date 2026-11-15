@@ -16,10 +16,10 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import {
-  drawnActionLabel,
   drawnDashboardLabel,
   drawnTableButton,
   isActionLabel,
+  writtenActionLabel,
 } from "./DocsDashboardLabels";
 import {
   boldLabels,
@@ -249,7 +249,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [`**${label}**`, `**${writtenActionLabel(language, label)}**`];
     }),
     ...listed(CREATE_BUTTONS, page).map((button: string): [string, string] => {
       return [`**${button}**`, `**${drawnTableButton(language, button)}**`];

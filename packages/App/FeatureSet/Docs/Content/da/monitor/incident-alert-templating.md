@@ -226,10 +226,10 @@ I en titel afkortes hver af dem til én linje på højst 150 tegn. Beskrivelser 
 
 | Variabel | Hvad den indeholder | Type |
 | --- | --- | --- |
-| `isOnline` | Om tidsserveren svarede på probens anmodning. | `boolean` |
+| `isOnline` | Om tidsserveren svarede på sondens anmodning. | `boolean` |
 | `isSynchronized` | Om den svarede med stratum 1 til 15, uden leap-alarmen og med rigtige tidsstempler. | `boolean` |
 | `stratum` | Det stratum, serveren rapporterede: 1 for en primær server, 16 når den ikke er synkroniseret, 0 for en kiss-o'-death. | `number` |
-| `clockOffsetInMs` | Hvor langt serverens ur er fra probens, i millisekunder. Positiv betyder, at serveren er foran. | `number` |
+| `clockOffsetInMs` | Hvor langt serverens ur er fra sondens, i millisekunder. Positiv betyder, at serveren er foran. | `number` |
 | `referenceId` | Hvad serveren synkroniserer med: en kilde som `GPS` på stratum 1, eller adressen på dens upstream-server. | `string` |
 | `leapIndicator` | 0 til 2, når alt er i orden, 3 når serveren siger, at dens ur ikke er synkroniseret. | `number` |
 | `kissCode` | Med stratum 0 den firebogstavskode, serveren sendte i stedet for tiden, som `RATE`. | `string` |
@@ -423,7 +423,7 @@ En netværksenhed pinges ved hver polling og gennemgås kun via SNMP, når den h
 
 | Variabel | Hvad den indeholder | Type |
 | --- | --- | --- |
-| `isOnline` | Om proben kunne forbinde og køre basisforespørgslen. Manglende metrikker gør den aldrig falsk. | `boolean` |
+| `isOnline` | Om sonden kunne forbinde og køre basisforespørgslen. Manglende metrikker gør den aldrig falsk. | `boolean` |
 | `responseTimeInMs` | Tiden til at forbinde og køre basisforespørgslen, i millisekunder. | `number` |
 | `failureCause` | Hvorfor tjekket fejlede, når det gjorde. | `string` |
 | `connectionError` | Forbindelsesfejlen, uden legitimationsoplysninger eller forbindelsesstrengen. | `string` |

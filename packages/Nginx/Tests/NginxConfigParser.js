@@ -252,28 +252,44 @@ function ingressListenEnvironment({
 }
 
 /**
- * What envsubst-on-templates.sh exports to name the primary server by: HOST
- * without its port, which is all of a Host header that nginx compares with a
- * server name. A bracketed IPv6 address keeps its brackets, as nginx keeps
- * them in a Host ("[::1]:8080" is "[::1]"); one without brackets has no port,
- * as all its colons are its own.
+ * The names the primary server lists before HOST's
+ * (`server_name localhost ingress ${HOST_SERVER_NAME};`).
+ */
+const PRIMARY_SERVER_FIXED_NAMES = ["localhost", "ingress"];
+
+/**
+ * What envsubst-on-templates.sh exports to name the primary server by.
+ *
+ * HOST_WITHOUT_PORT is HOST without its port, which is all of a Host header
+ * that nginx compares with a server name. A bracketed IPv6 address keeps its
+ * brackets, as nginx keeps them in a Host ("[::1]:8080" is "[::1]"); one
+ * without brackets has no port, as all its colons are its own.
+ *
+ * HOST_SERVER_NAME is what the primary's server_name lists after localhost
+ * and ingress: HOST_WITHOUT_PORT, or nothing when it is one of those two, in
+ * any case (nginx reads server names in lower case), so that no name is
+ * listed twice (#8023).
  *
  * PrimaryServerName.test.js runs the real script and holds it to this.
  */
 function primaryServerNameEnvironment(host = "") {
   const closingBracket = host.indexOf("]");
+  const colon = host.indexOf(":");
+  let hostWithoutPort = host;
 
   if (host.startsWith("[") && closingBracket !== -1) {
-    return { HOST_WITHOUT_PORT: host.slice(0, closingBracket + 1) };
+    hostWithoutPort = host.slice(0, closingBracket + 1);
+  } else if (colon !== -1 && colon === host.lastIndexOf(":")) {
+    hostWithoutPort = host.slice(0, colon);
   }
 
-  const colon = host.indexOf(":");
-
   return {
-    HOST_WITHOUT_PORT:
-      colon === -1 || colon !== host.lastIndexOf(":")
-        ? host
-        : host.slice(0, colon),
+    HOST_WITHOUT_PORT: hostWithoutPort,
+    HOST_SERVER_NAME: PRIMARY_SERVER_FIXED_NAMES.includes(
+      hostWithoutPort.toLowerCase(),
+    )
+      ? ""
+      : hostWithoutPort,
   };
 }
 
@@ -288,6 +304,7 @@ module.exports = {
   readTemplate,
   readNginxConf,
   ingressListenEnvironment,
+  PRIMARY_SERVER_FIXED_NAMES,
   primaryServerNameEnvironment,
   stripComments,
   findBlocks,

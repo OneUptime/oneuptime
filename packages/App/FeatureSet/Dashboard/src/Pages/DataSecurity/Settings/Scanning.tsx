@@ -67,6 +67,7 @@ import React, {
   useId,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Data Security > Settings > Scan Settings: the project's DataSecuritySetting,
@@ -657,7 +658,7 @@ const SeverityPicker: FunctionComponent<{
       </div>
       {error ? (
         <p className="mt-2 text-sm text-red-600" role="alert">
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

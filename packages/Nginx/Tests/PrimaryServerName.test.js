@@ -19,6 +19,12 @@
  * "[2001:db8::1]". Cut at its first ":", it was named "[2001" (#7889), and
  * so was run.sh's PRIMARY_DOMAIN, which names the primary's certificate.
  *
+ * The name lists localhost and ingress before HOST's, and leaves HOST out
+ * when it is one of them. Under the default HOST=localhost it read
+ * "localhost ingress localhost", and nginx warned
+ * 'conflicting server name "localhost" on 0.0.0.0:7849, ignored' for each of
+ * the primary's listens, four warnings on every start (#8023).
+ *
  * These tests run the real scripts (sh and envsubst, and run.sh's own lines
  * with bash), and a real nginx where there is one at least as new as the
  * shipped image's.
@@ -35,8 +41,10 @@ const { spawn, spawnSync } = require("node:child_process");
 
 const {
   NGINX_DIRECTORY,
+  PRIMARY_SERVER_FIXED_NAMES,
   getDirectives,
   getServerBlocks,
+  ingressListenEnvironment,
   primaryServerNameEnvironment,
   readNginxConf,
   readTemplate,
@@ -48,24 +56,62 @@ const SCRIPT_PATH = path.join(NGINX_DIRECTORY, "envsubst-on-templates.sh");
 const RUN_SCRIPT_PATH = path.join(NGINX_DIRECTORY, "run.sh");
 
 /*
- * HOST as people set it, and the name of the primary server it gives: HOST
- * without its port. run.sh's PRIMARY_DOMAIN is the same, in lower case.
+ * HOST as people set it; HOST without its port, which the script exports as
+ * HOST_WITHOUT_PORT and run.sh's PRIMARY_DOMAIN is in lower case; and what the
+ * primary server's name lists after localhost and ingress (HOST_SERVER_NAME):
+ * HOST without its port, or nothing when that is localhost or ingress.
  */
 const HOSTS = [
-  ["oneuptime.example.com", "oneuptime.example.com"],
-  ["oneuptime.example.com:8080", "oneuptime.example.com"],
-  ["10.0.0.5", "10.0.0.5"],
-  ["10.0.0.5:8080", "10.0.0.5"],
-  ["localhost", "localhost"],
-  ["localhost:3000", "localhost"],
+  ["oneuptime.example.com", "oneuptime.example.com", "oneuptime.example.com"],
+  [
+    "oneuptime.example.com:8080",
+    "oneuptime.example.com",
+    "oneuptime.example.com",
+  ],
+  ["10.0.0.5", "10.0.0.5", "10.0.0.5"],
+  ["10.0.0.5:8080", "10.0.0.5", "10.0.0.5"],
+  // localhost and ingress are named already: in any case, with a port or not.
+  ["localhost", "localhost", ""],
+  ["localhost:3000", "localhost", ""],
+  ["LOCALHOST", "LOCALHOST", ""],
+  ["LocalHost:3000", "LocalHost", ""],
+  ["ingress", "ingress", ""],
+  ["ingress:7849", "ingress", ""],
+  ["Ingress", "Ingress", ""],
+  // A name with one of them in it is a name of its own.
+  ["localhost.localdomain", "localhost.localdomain", "localhost.localdomain"],
+  ["oneuptime-ingress:8080", "oneuptime-ingress", "oneuptime-ingress"],
+  ["ingress.example.com", "ingress.example.com", "ingress.example.com"],
   // An IPv6 address keeps its brackets, with a port and without one.
-  ["[::1]:8080", "[::1]"],
-  ["[::1]", "[::1]"],
-  ["[2001:DB8::1]:8443", "[2001:DB8::1]"],
-  ["[2001:db8::1]", "[2001:db8::1]"],
+  ["[::1]:8080", "[::1]", "[::1]"],
+  ["[::1]", "[::1]", "[::1]"],
+  ["[2001:DB8::1]:8443", "[2001:DB8::1]", "[2001:DB8::1]"],
+  ["[2001:db8::1]", "[2001:db8::1]", "[2001:db8::1]"],
   // Without brackets an IPv6 address has no port: all its colons are its own.
-  ["2001:db8::1", "2001:db8::1"],
-  ["", ""],
+  ["2001:db8::1", "2001:db8::1", "2001:db8::1"],
+  ["", "", ""],
+];
+
+/*
+ * One HOST of each kind, for the tests that render the whole config: the
+ * default, and localhost and ingress with a port; an IPv4 address; an IPv6
+ * address in brackets and without; a real domain, with a port and without;
+ * and none.
+ */
+const HOST_KINDS = [
+  "localhost",
+  "localhost:3000",
+  "LOCALHOST",
+  "ingress",
+  "ingress:7849",
+  "10.0.0.5",
+  "10.0.0.5:8080",
+  "[::1]:8080",
+  "[2001:DB8::1]",
+  "2001:db8::1",
+  "oneuptime.example.com",
+  "oneuptime.example.com:8080",
+  "",
 ];
 
 function isOnPath(binary, args = ["--version"]) {
@@ -176,12 +222,22 @@ function containerEnvironment(overrides = {}) {
   };
 }
 
-// The script's HOST_WITHOUT_PORT, read back through a template that prints it.
-function exportedServerName(environment) {
-  return runScript(
-    "HOST_WITHOUT_PORT=${HOST_WITHOUT_PORT}\n",
+/*
+ * The script's HOST_WITHOUT_PORT and HOST_SERVER_NAME, read back through a
+ * template that prints them.
+ */
+function exportedServerNames(environment) {
+  const printed = runScript(
+    "HOST_WITHOUT_PORT=${HOST_WITHOUT_PORT}\nHOST_SERVER_NAME=${HOST_SERVER_NAME}\n",
     containerEnvironment(environment),
-  ).trimEnd();
+  );
+  const match = /^HOST_WITHOUT_PORT=(.*)\nHOST_SERVER_NAME=(.*)\n$/.exec(
+    printed,
+  );
+
+  assert.ok(match, printed);
+
+  return { HOST_WITHOUT_PORT: match[1], HOST_SERVER_NAME: match[2] };
 }
 
 /** The primary server's server_name, as rendered from `source`. */
@@ -199,31 +255,288 @@ function primaryServerName(source) {
   return names[0];
 }
 
-test("the primary server is named by HOST without its port, and no server by HOST itself", () => {
+// The names a server_name directive lists, in its order.
+function namesOf(directive) {
+  return directive
+    .replace(/^server_name\b/, "")
+    .replace(/;$/, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/*
+ * The names nginx files a rendered config's servers under, for each address
+ * and port they listen on: in lower case, as nginx reads a server name, and
+ * with "listen 7849" (a port alone) on every IPv4 address, as nginx reads it.
+ * A name filed twice under one address and port draws the warning
+ * 'conflicting server name "<name>" on <address>, ignored'.
+ */
+function serverNamesBySocket(source) {
+  const sockets = new Map();
+
+  for (const block of getServerBlocks(source)) {
+    const names = getDirectives(block.body, "server_name")
+      .flatMap(namesOf)
+      .map((name) => {
+        return name.toLowerCase();
+      });
+
+    for (const listen of getDirectives(block.body, "listen")) {
+      // "listen [::]:7849 ssl default_server;" listens on "[::]:7849".
+      const [address] = listen.replace(/^listen\s+/, "").split(/[\s;]/);
+      const socket = /^\d+$/.test(address) ? `0.0.0.0:${address}` : address;
+
+      sockets.set(socket, [...(sockets.get(socket) || []), ...names]);
+    }
+  }
+
+  return sockets;
+}
+
+// Each name `names` lists more than once.
+function namesListedTwice(names) {
+  return names.filter((name, index) => {
+    return names.indexOf(name) !== index;
+  });
+}
+
+/*
+ * The template rendered for `host` with envsubst, from the script's exports
+ * as NginxConfigParser models them (the listens of `listens`, the primary's
+ * names). With PROVISION_SSL on, the script writes the primary's certificate
+ * under /etc/nginx/certs, which only the image allows, so the PROVISION_SSL
+ * listens are rendered from the model here. IngressListensOnIpv6.test.js and
+ * the script test below hold the model to the script.
+ */
+function renderModelled(host, listens, overrides = {}) {
+  const environment = {
+    ...containerEnvironment({ HOST: host }),
+    BACKEND_APP_TARGET: "$backend_app",
+    BACKEND_APP_GRPC_TARGET: "$backend_app_grpc",
+    PROVISION_SSL_CERTIFICATE_DIRECTIVE: "",
+    PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: "",
+    ...ingressListenEnvironment(listens),
+    ...primaryServerNameEnvironment(host),
+    ...overrides,
+  };
+  // The script's own removals, for the settings left unset here.
+  const source = template
+    .replace(/^[ \t]*server_names_hash_(bucket|max)_size[ \t].*\n/gm, "")
+    .replace(
+      /# BEGIN upstream-keepalive[\s\S]*?# END upstream-keepalive\n/,
+      "",
+    );
+  const result = spawnSync(
+    "envsubst",
+    [
+      Object.keys(environment)
+        .map((name) => {
+          return `\${${name}}`;
+        })
+        .join(" "),
+    ],
+    {
+      input: source,
+      encoding: "utf8",
+      env: { PATH: process.env.PATH, ...environment },
+    },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+
+  return result.stdout;
+}
+
+test("the primary server is named localhost, ingress and HOST without its port, and no server by HOST itself", () => {
   assert.equal(
     primaryServerName(template),
-    "server_name localhost ingress ${HOST_WITHOUT_PORT};",
+    "server_name localhost ingress ${HOST_SERVER_NAME};",
+  );
+
+  // localhost first: it is $server_name, the Host the primary hands the app.
+  assert.deepEqual(
+    namesOf(primaryServerName(template)).slice(0, -1),
+    PRIMARY_SERVER_FIXED_NAMES,
   );
 
   // nginx never compares a server name with a port, so none may keep HOST's.
   for (const directive of getDirectives(template, "server_name")) {
     assert.ok(!directive.includes("${HOST}"), directive);
+    assert.ok(!directive.includes("${HOST_WITHOUT_PORT}"), directive);
   }
 });
 
 test(
-  "the script takes the port off HOST, and nothing off a HOST without one",
+  "the script takes the port off HOST, and leaves it out of the name when the name lists it already",
   { skip: scriptSkipReason },
   () => {
-    for (const [host, serverName] of HOSTS) {
-      assert.equal(
-        exportedServerName({ HOST: host }),
-        `HOST_WITHOUT_PORT=${serverName}`,
+    for (const [host, hostWithoutPort, hostServerName] of HOSTS) {
+      const expected = {
+        HOST_WITHOUT_PORT: hostWithoutPort,
+        HOST_SERVER_NAME: hostServerName,
+      };
+
+      assert.deepEqual(
+        exportedServerNames({ HOST: host }),
+        expected,
         `HOST="${host}"`,
       );
-      assert.deepEqual(primaryServerNameEnvironment(host), {
-        HOST_WITHOUT_PORT: serverName,
-      });
+      assert.deepEqual(
+        primaryServerNameEnvironment(host),
+        expected,
+        `HOST="${host}"`,
+      );
+    }
+  },
+);
+
+/*
+ * The script leaves HOST out for the names the template lists before it,
+ * read from the template here: a name added to the line, and not to the
+ * script, would be listed twice again.
+ */
+test(
+  "the script leaves out of HOST_SERVER_NAME exactly the names the template lists before it",
+  { skip: scriptSkipReason },
+  () => {
+    const fixedNames = namesOf(primaryServerName(template)).filter((name) => {
+      return name !== "${HOST_SERVER_NAME}";
+    });
+
+    assert.deepEqual(fixedNames, PRIMARY_SERVER_FIXED_NAMES);
+
+    for (const name of fixedNames) {
+      for (const host of [
+        name,
+        name.toUpperCase(),
+        `${name}:8080`,
+        `${name[0].toUpperCase()}${name.slice(1)}:443`,
+      ]) {
+        assert.equal(
+          exportedServerNames({ HOST: host }).HOST_SERVER_NAME,
+          "",
+          `HOST="${host}"`,
+        );
+      }
+
+      // ...and only those: a longer name is HOST's own.
+      for (const host of [`${name}.example.com`, `my-${name}`, `${name}2`]) {
+        assert.equal(
+          exportedServerNames({ HOST: host }).HOST_SERVER_NAME,
+          host,
+          `HOST="${host}"`,
+        );
+      }
+    }
+  },
+);
+
+/*
+ * The regression of #8023: under HOST=localhost the primary listed
+ * "localhost" twice, and nginx warned once for each address and port it
+ * listens on (7849 and, with PROVISION_SSL, 7850; IPv4 and IPv6).
+ */
+test(
+  "every server name is listed once for each address and port, under every kind of HOST, rendered by the real script",
+  { skip: scriptSkipReason },
+  () => {
+    for (const host of HOST_KINDS) {
+      for (const [listenAddress, ipv6, sockets] of [
+        // A kernel with IPv6: every listen has a twin on [::].
+        ["", true, ["0.0.0.0:7849", "[::]:7849", "0.0.0.0:7850", "[::]:7850"]],
+        ["", false, ["0.0.0.0:7849", "0.0.0.0:7850"]],
+        // NGINX_LISTEN_ADDRESS names the one address to listen on.
+        ["127.0.0.1:", true, ["127.0.0.1:7849", "127.0.0.1:7850"]],
+      ]) {
+        const rendered = runScript(
+          template,
+          containerEnvironment({
+            HOST: host,
+            NGINX_LISTEN_ADDRESS: listenAddress,
+            ...(ipv6 ? { NGINX_IPV6_SUPPORT_FILE: SCRIPT_PATH } : {}),
+          }),
+        );
+        const names = serverNamesBySocket(rendered);
+        const label = `HOST="${host}", NGINX_LISTEN_ADDRESS="${listenAddress}", IPv6 ${ipv6}`;
+
+        assert.deepEqual([...names.keys()].sort(), [...sockets].sort(), label);
+
+        for (const [socket, socketNames] of names) {
+          assert.deepEqual(
+            namesListedTwice(socketNames),
+            [],
+            `${label}: ${socket}`,
+          );
+        }
+      }
+    }
+  },
+);
+
+test(
+  "every server name is listed once for each address and port with PROVISION_SSL, where the primary listens on 7850 as well",
+  { skip: scriptSkipReason },
+  () => {
+    for (const host of HOST_KINDS) {
+      const names = serverNamesBySocket(
+        renderModelled(host, { provisionSsl: true }),
+      );
+
+      assert.deepEqual(
+        [...names.keys()].sort(),
+        ["0.0.0.0:7849", "0.0.0.0:7850", "[::]:7849", "[::]:7850"],
+        host,
+      );
+
+      for (const [socket, socketNames] of names) {
+        // The primary answers on each, beside a status-page default server.
+        assert.ok(socketNames.includes("localhost"), `${host}: ${socket}`);
+        assert.deepEqual(
+          namesListedTwice(socketNames),
+          [],
+          `HOST="${host}": ${socket}`,
+        );
+      }
+    }
+  },
+);
+
+/*
+ * Leaving the second "localhost" out changes nothing nginx routes: it filed
+ * the primary under localhost, ingress and HOST without its port, in lower
+ * case, and ignored a name filed twice. So the primary answers those names
+ * still, and localhost is still the first, $server_name.
+ */
+test(
+  "the primary answers localhost, ingress and HOST without its port under every kind of HOST, localhost first",
+  { skip: scriptSkipReason },
+  () => {
+    for (const [host, hostWithoutPort] of HOSTS) {
+      const names = namesOf(
+        primaryServerName(
+          runScript(template, containerEnvironment({ HOST: host })),
+        ),
+      );
+      const answeredBefore = new Set(
+        ["localhost", "ingress", hostWithoutPort]
+          .filter(Boolean)
+          .map((name) => {
+            return name.toLowerCase();
+          }),
+      );
+
+      assert.equal(names[0], "localhost", `HOST="${host}"`);
+      assert.deepEqual(
+        new Set(
+          names.map((name) => {
+            return name.toLowerCase();
+          }),
+        ),
+        answeredBefore,
+        `HOST="${host}"`,
+      );
+      assert.deepEqual(namesListedTwice(names), [], `HOST="${host}"`);
     }
   },
 );
@@ -266,10 +579,10 @@ test(
   "run.sh's PRIMARY_DOMAIN is HOST without its port, in lower case, as the server name takes it off",
   { skip: bashSkipReason },
   () => {
-    for (const [host, serverName] of HOSTS) {
+    for (const [host, hostWithoutPort] of HOSTS) {
       assert.equal(
         primaryDomainOf(host),
-        serverName.toLowerCase(),
+        hostWithoutPort.toLowerCase(),
         `HOST="${host}"`,
       );
     }
@@ -286,23 +599,56 @@ test(
   "the server name comes from HOST, whatever PRIMARY_DOMAIN says",
   { skip: scriptSkipReason },
   () => {
-    assert.equal(
-      exportedServerName({
+    assert.deepEqual(
+      exportedServerNames({
         HOST: "oneuptime.example.com:8080",
         PRIMARY_DOMAIN: "certificate.example.com",
       }),
-      "HOST_WITHOUT_PORT=oneuptime.example.com",
+      {
+        HOST_WITHOUT_PORT: "oneuptime.example.com",
+        HOST_SERVER_NAME: "oneuptime.example.com",
+      },
     );
 
-    assert.equal(
-      primaryServerName(
-        runScript(
-          template,
-          containerEnvironment({ HOST: "oneuptime.example.com:8080" }),
-        ),
-      ),
-      "server_name localhost ingress oneuptime.example.com;",
+    // HOST, not PRIMARY_DOMAIN, decides whether the name lists it.
+    assert.deepEqual(
+      exportedServerNames({
+        HOST: "localhost",
+        PRIMARY_DOMAIN: "certificate.example.com",
+      }),
+      { HOST_WITHOUT_PORT: "localhost", HOST_SERVER_NAME: "" },
     );
+    assert.deepEqual(
+      exportedServerNames({
+        HOST: "oneuptime.example.com",
+        PRIMARY_DOMAIN: "localhost",
+      }),
+      {
+        HOST_WITHOUT_PORT: "oneuptime.example.com",
+        HOST_SERVER_NAME: "oneuptime.example.com",
+      },
+    );
+
+    for (const [host, serverName] of [
+      [
+        "oneuptime.example.com:8080",
+        "server_name localhost ingress oneuptime.example.com;",
+      ],
+      ["localhost", "server_name localhost ingress ;"],
+    ]) {
+      assert.equal(
+        primaryServerName(
+          runScript(
+            template,
+            containerEnvironment({
+              HOST: host,
+              PRIMARY_DOMAIN: "other.example",
+            }),
+          ),
+        ),
+        serverName,
+      );
+    }
   },
 );
 
@@ -330,6 +676,186 @@ function mainConfIn(prefix) {
       ].join("\n");
     });
 }
+
+/*
+ * `nginx -t` on nginx.conf and the rendered `defaultConf`, with what depends
+ * on the image moved into a temporary prefix: its status, and all it printed.
+ * nginx -t binds the ports it would listen on, and lets one in use pass.
+ */
+function nginxTest(defaultConf) {
+  const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-name-"));
+
+  try {
+    fs.mkdirSync(path.join(prefix, "conf.d"));
+    fs.mkdirSync(path.join(prefix, "logs"));
+    fs.writeFileSync(path.join(prefix, "nginx.conf"), mainConfIn(prefix));
+    fs.writeFileSync(
+      path.join(prefix, "conf.d", "default.conf"),
+      // The template's own access_log lines name the image's log folder too.
+      defaultConf.replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`),
+    );
+
+    const result = spawnSync(
+      "nginx",
+      [
+        "-t",
+        "-p",
+        prefix,
+        "-e",
+        path.join(prefix, "logs", "startup-error.log"),
+        "-c",
+        path.join(prefix, "nginx.conf"),
+      ],
+      { encoding: "utf8" },
+    );
+
+    return {
+      status: result.status,
+      output: `${result.stdout || ""}${result.stderr || ""}`,
+    };
+  } finally {
+    fs.rmSync(prefix, { recursive: true, force: true });
+  }
+}
+
+// The IPv6 twins where this kernel has IPv6, as the script decides in the image.
+const IPV6_SUPPORT_FILE = "/proc/net/if_inet6";
+const hasIpv6 = fs.existsSync(IPV6_SUPPORT_FILE);
+
+/*
+ * The warning of #8023, from a real nginx: with HOST=localhost the primary
+ * was named "localhost ingress localhost", and nginx warned for each of its
+ * listens. Rendered as the template named it then, to show the check below
+ * sees the warning it looks for.
+ */
+test(
+  "a real nginx warns of a conflicting server name for each listen when the primary lists localhost twice",
+  { skip: nginxSkipReason },
+  () => {
+    const before = template.replace(
+      "server_name localhost ingress ${HOST_SERVER_NAME};",
+      "server_name localhost ingress ${HOST_WITHOUT_PORT};",
+    );
+
+    assert.notEqual(before, template);
+
+    const { status, output } = nginxTest(
+      runScript(
+        before,
+        containerEnvironment({
+          HOST: "localhost",
+          ...(hasIpv6 ? { NGINX_IPV6_SUPPORT_FILE: IPV6_SUPPORT_FILE } : {}),
+        }),
+      ),
+    );
+
+    assert.equal(status, 0, output);
+    assert.equal(
+      output.match(/\[warn\][^\n]*conflicting server name "localhost"/g)
+        ?.length,
+      hasIpv6 ? 2 : 1,
+      output,
+    );
+  },
+);
+
+test(
+  "a real nginx reads the config of every kind of HOST without a conflicting server name warning",
+  { skip: nginxSkipReason, timeout: 60000 },
+  () => {
+    for (const host of HOST_KINDS) {
+      const { status, output } = nginxTest(
+        runScript(
+          template,
+          containerEnvironment({
+            HOST: host,
+            ...(hasIpv6 ? { NGINX_IPV6_SUPPORT_FILE: IPV6_SUPPORT_FILE } : {}),
+          }),
+        ),
+      );
+
+      assert.equal(status, 0, `HOST="${host}": ${output}`);
+      assert.doesNotMatch(
+        output,
+        /conflicting server name/,
+        `HOST="${host}": ${output}`,
+      );
+    }
+  },
+);
+
+/*
+ * With PROVISION_SSL the primary listens on 7850 too, and nginx filed its
+ * names under four addresses and ports where there is IPv6: the four
+ * warnings of #8023. Rendered from the model, with a certificate made here,
+ * so this runs outside the image as well (the image test below runs the
+ * script itself).
+ */
+test(
+  "a real nginx reads the PROVISION_SSL config of every kind of HOST without a conflicting server name warning",
+  {
+    skip:
+      nginxSkipReason ||
+      (isOnPath("openssl", ["version"]) ? false : "openssl not on PATH"),
+    timeout: 60000,
+  },
+  () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-name-"));
+    const certificate = path.join(directory, "primary.crt");
+    const key = path.join(directory, "primary.key");
+
+    try {
+      // The workers may run as another user than the one that made it.
+      fs.chmodSync(directory, 0o755);
+
+      const made = spawnSync(
+        "openssl",
+        [
+          "req",
+          "-x509",
+          "-newkey",
+          "rsa:2048",
+          "-nodes",
+          "-subj",
+          "/CN=localhost",
+          "-keyout",
+          key,
+          "-out",
+          certificate,
+          "-days",
+          "1",
+        ],
+        { encoding: "utf8" },
+      );
+
+      assert.equal(made.status, 0, made.stderr);
+
+      for (const host of HOST_KINDS) {
+        const rendered = renderModelled(
+          host,
+          { ipv6: hasIpv6, provisionSsl: true },
+          {
+            PROVISION_SSL_CERTIFICATE_DIRECTIVE: `    ssl_certificate ${certificate};`,
+            PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: `    ssl_certificate_key ${key};`,
+          },
+        );
+
+        assert.ok(rendered.includes("    listen 7850 ssl;\n"), host);
+
+        const { status, output } = nginxTest(rendered);
+
+        assert.equal(status, 0, `HOST="${host}": ${output}`);
+        assert.doesNotMatch(
+          output,
+          /conflicting server name/,
+          `HOST="${host}": ${output}`,
+        );
+      }
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 /** A stand-in app that answers with the path the ingress handed it. */
 function startApp() {
@@ -608,7 +1134,6 @@ test(
     const certificate = "/etc/nginx/certs/ServerCerts/[2001:db8::1].crt";
     const key = "/etc/nginx/certs/ServerCerts/[2001:db8::1].key";
     const madeHere = !fs.existsSync(certificate) && !fs.existsSync(key);
-    const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-name-"));
 
     try {
       const rendered = runScript(
@@ -618,7 +1143,7 @@ test(
           PROVISION_SSL: "true",
           PRIMARY_DOMAIN: primaryDomainOf(host),
         }),
-      ).replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`);
+      );
 
       assert.ok(
         rendered.includes(`ssl_certificate ${certificate};`),
@@ -627,25 +1152,89 @@ test(
       assert.ok(fs.existsSync(certificate), `${certificate} was not made`);
       assert.ok(fs.existsSync(key), `${key} was not made`);
 
-      fs.mkdirSync(path.join(prefix, "conf.d"));
-      fs.mkdirSync(path.join(prefix, "logs"));
-      fs.writeFileSync(path.join(prefix, "nginx.conf"), mainConfIn(prefix));
-      fs.writeFileSync(path.join(prefix, "conf.d", "default.conf"), rendered);
+      const { status, output } = nginxTest(rendered);
 
-      const result = spawnSync(
-        "nginx",
-        ["-t", "-p", prefix, "-c", path.join(prefix, "nginx.conf")],
-        { encoding: "utf8" },
-      );
-
-      assert.equal(result.status, 0, result.stderr);
+      assert.equal(status, 0, output);
     } finally {
       if (madeHere) {
         fs.rmSync(certificate, { force: true });
         fs.rmSync(key, { force: true });
       }
+    }
+  },
+);
 
-      fs.rmSync(prefix, { recursive: true, force: true });
+/*
+ * The image as it starts: PROVISION_SSL on, so the primary listens on 7850
+ * as well as 7849, and an IPv6 twin for each listen where the kernel has
+ * IPv6. Under HOST=localhost nginx warned four times on every start (#8023);
+ * under no HOST may it warn at all.
+ */
+test(
+  "inside the image, with PROVISION_SSL and IPv6, nginx -t warns of nothing under every kind of HOST",
+  { skip: provisionSslSkipReason, timeout: 120000 },
+  () => {
+    for (const host of [
+      "localhost",
+      "localhost:3000",
+      "LOCALHOST",
+      "ingress",
+      "ingress:7849",
+      "10.0.0.5:8080",
+      "[::1]:8080",
+      "[2001:DB8::1]",
+      "oneuptime.example.com",
+      "oneuptime.example.com:8080",
+    ]) {
+      const primaryDomain = primaryDomainOf(host);
+      const certificate = `/etc/nginx/certs/ServerCerts/${primaryDomain}.crt`;
+      const key = `/etc/nginx/certs/ServerCerts/${primaryDomain}.key`;
+      const madeHere = !fs.existsSync(certificate) && !fs.existsSync(key);
+
+      try {
+        const rendered = runScript(
+          template,
+          containerEnvironment({
+            HOST: host,
+            PROVISION_SSL: "true",
+            PRIMARY_DOMAIN: primaryDomain,
+            NGINX_IPV6_SUPPORT_FILE: IPV6_SUPPORT_FILE,
+          }),
+        );
+        const sockets = [...serverNamesBySocket(rendered).entries()].filter(
+          ([, names]) => {
+            return names.includes("localhost");
+          },
+        );
+
+        // The primary listens on 7849 and 7850, on IPv6 too where there is one.
+        assert.deepEqual(
+          sockets
+            .map(([socket]) => {
+              return socket;
+            })
+            .sort(),
+          (hasIpv6
+            ? ["0.0.0.0:7849", "0.0.0.0:7850", "[::]:7849", "[::]:7850"]
+            : ["0.0.0.0:7849", "0.0.0.0:7850"]
+          ).sort(),
+          `HOST="${host}"`,
+        );
+
+        const { status, output } = nginxTest(rendered);
+
+        assert.equal(status, 0, `HOST="${host}": ${output}`);
+        assert.doesNotMatch(
+          output,
+          /\[(warn|error|crit|alert|emerg)\]/,
+          `HOST="${host}": ${output}`,
+        );
+      } finally {
+        if (madeHere) {
+          fs.rmSync(certificate, { force: true });
+          fs.rmSync(key, { force: true });
+        }
+      }
     }
   },
 );

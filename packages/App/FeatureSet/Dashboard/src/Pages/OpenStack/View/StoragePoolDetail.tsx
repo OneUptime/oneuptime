@@ -56,6 +56,7 @@ import {
   getOpenStackFactNumber,
   getOpenStackFactText,
 } from "../Utils/OpenStackResourceUtils";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * One Cinder pool: how full it is at the storage pool templates' two lines, what is free,
@@ -254,6 +255,7 @@ function getVolumesOfPoolQuery(row: OpenStackResource): {
 const OpenStackCloudStoragePoolDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.StoragePool,
   );
@@ -305,28 +307,31 @@ const OpenStackCloudStoragePoolDetail: FunctionComponent<
                 description="What this pool holds and what it has free, over the selected time range."
               >
                 <ResourceMetricsTab
-                  queryConfigs={[
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "pool_free",
-                      title: "Free",
-                      description: "How much of this pool is free.",
-                      metricName: "openstack_cinder_pool_capacity_free_gb",
-                      legend: "Free",
-                      legendUnit: "GiB",
-                      attributes,
-                    }),
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "pool_total",
-                      title: "Total",
-                      description: "How much this pool holds.",
-                      metricName: "openstack_cinder_pool_capacity_total_gb",
-                      legend: "Total",
-                      legendUnit: "GiB",
-                      attributes,
-                    }),
-                  ]}
+                  queryConfigs={chartWordsInReadersLanguage(
+                    [
+                      getOpenStackMetricQuery({
+                        part,
+                        variable: "pool_free",
+                        title: "Free",
+                        description: "How much of this pool is free.",
+                        metricName: "openstack_cinder_pool_capacity_free_gb",
+                        legend: "Free",
+                        legendUnit: "GiB",
+                        attributes,
+                      }),
+                      getOpenStackMetricQuery({
+                        part,
+                        variable: "pool_total",
+                        title: "Total",
+                        description: "How much this pool holds.",
+                        metricName: "openstack_cinder_pool_capacity_total_gb",
+                        legend: "Total",
+                        legendUnit: "GiB",
+                        attributes,
+                      }),
+                    ],
+                    translator,
+                  )}
                 />
               </Card>
             ),

@@ -516,16 +516,26 @@ describe("CorrelateNodeCard class card", () => {
     expect(screen.getByText("No severity")).toBeInTheDocument();
   });
 
+  /*
+   * The count and its noun are one plural sentence (#8076), never a figure
+   * joined to "event" or "events" in English's order.
+   */
   test("routes its own words through the translator", () => {
     mockTranslations["No severity"] = "Sin gravedad";
-    mockTranslations["events"] = "eventos";
-    mockTranslations["event"] = "evento";
+    mockTranslations["{{count}} events"] = "{{count}} eventos";
+    mockTranslations["{{count}} events_one"] = "{{count}} evento";
     renderCard("class", { worstSeverity: undefined, count: 3 });
     expect(screen.getByText("Sin gravedad")).toBeInTheDocument();
     expect(screen.getByText("3 eventos")).toBeInTheDocument();
     cleanup();
     renderCard("class", { count: 1 });
     expect(screen.getByText("1 evento")).toBeInTheDocument();
+  });
+
+  test("a language that puts the count after its noun keeps the floor's +", () => {
+    mockTranslations["{{count}} events"] = "イベント {{count}} 件";
+    renderCard("class", { count: 12, countIsLowerBound: true });
+    expect(screen.getByText("イベント 12+ 件")).toBeInTheDocument();
   });
 
   test("shows the selection ring only when selected", () => {

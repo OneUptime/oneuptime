@@ -29,6 +29,7 @@ import {
 import { pluralizeSiteType } from "./SiteMapViewModel";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The search box of every drill-down over the site hierarchy: the Network
@@ -477,7 +478,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
               className="px-3 py-2 text-xs text-red-600"
               data-testid={`${testId}-error`}
             >
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </p>
           ) : (
             <></>

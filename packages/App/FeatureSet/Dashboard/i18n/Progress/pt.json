@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9271
+    "keys": 52416,
+    "untranslated": 9154
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -185,6 +185,7 @@
     "Namespaces",
     "Nav",
     "Normal",
+    "OID Collection Template",
     "OK",
     "OSD",
     "OSDs",
@@ -225,6 +226,7 @@
     "Powered by OneUptime",
     "PromQL",
     "Prompt",
+    "Proxies",
     "Pull Requests",
     "Pull request",
     "Pull request #{{number}}",
@@ -233,6 +235,7 @@
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
     "Push",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Re-encrypt",
     "Recordsets",
@@ -243,12 +246,15 @@
     "Runbook \"{{name}}\"",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "SHA",
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
+    "SLOs ({{count}})",
     "SSH",
     "ScheduledMaintenance",
     "Script",
@@ -291,6 +297,7 @@
     "URLs",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Uplink",

@@ -42,6 +42,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   huntId: ObjectID;
@@ -154,7 +155,7 @@ const FoundCell: FunctionComponent<{
           {translator.translateText(COULD_NOT_RUN) || COULD_NOT_RUN}
         </span>
         <span className="break-words text-xs font-normal text-red-700">
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </span>
       </div>
     );

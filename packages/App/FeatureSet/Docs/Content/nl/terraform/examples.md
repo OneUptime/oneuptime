@@ -604,9 +604,9 @@ Tijden zijn in RFC 3339, en hetzelfde tijdstip anders geschreven is geen wijzigi
 
 Om de monitoren van de gebeurtenis in een status te zetten zolang die loopt, koppel je ze met `monitors` en stel je `change_monitor_status_to_id` in op een van je monitorstatussen: de monitoren gaan naar die status als de gebeurtenis begint, en terug naar operationeel als die eindigt. Terraform wijzigt `change_monitor_status_to_id` ter plekke totdat de gebeurtenis begint. Zodra de gebeurtenis is begonnen, staan de monitoren al in die status, en een apply die hem wijzigt, mislukt met „Change Monitor Status to can no longer be changed: this event has already started.”
 
-## Probes
+## Sondes
 
-Een eigen probe voert controles uit vanuit je netwerk. Geef hem een naam, en OneUptime maakt zijn `key` aan, het geheim waarmee de probe zich aanmeldt. Terraform houdt de sleutel buiten plannen en logs, en een output ervan moet als gevoelig gemarkeerd zijn:
+Een eigen sonde voert controles uit vanuit je netwerk. Geef hem een naam, en OneUptime maakt zijn `key` aan, het geheim waarmee de sonde zich aanmeldt. Terraform houdt de sleutel buiten plannen en logs, en een output ervan moet als gevoelig gemarkeerd zijn:
 
 ```hcl
 resource "oneuptime_probe" "eu_west" {
@@ -622,7 +622,7 @@ output "eu_west_probe_key" {
 }
 ```
 
-Voer de probe uit met `PROBE_ID` ingesteld op de `id` van de probe en `PROBE_KEY` op de sleutel, die `terraform output -raw eu_west_probe_key` toont: zie [Aangepaste probes](/docs/probe/custom-probe). Wil je de sleutel zelf kiezen, zet `key` dan uit een gevoelige variabele. De end-to-endtests `23-probe-crud` en `61-name-only-and-choices` passen probes toe.
+Voer de sonde uit met `PROBE_ID` ingesteld op de `id` van de sonde en `PROBE_KEY` op de sleutel, die `terraform output -raw eu_west_probe_key` toont: zie [Aangepaste sondes](/docs/probe/custom-probe). Wil je de sleutel zelf kiezen, zet `key` dan uit een gevoelige variabele. De end-to-endtests `23-probe-crud` en `61-name-only-and-choices` passen sondes toe.
 
 ## Volgende stappen
 

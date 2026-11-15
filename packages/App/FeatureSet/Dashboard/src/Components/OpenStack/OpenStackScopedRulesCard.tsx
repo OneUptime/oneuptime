@@ -37,6 +37,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * WHICH TEAM OR LABELS A PROJECT'S OR DOMAIN'S ALERTS AND INCIDENTS GET.
@@ -560,7 +561,9 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       <div data-testid={`openstack-scoped-rules-${props.mode}`}>
         {isLoading ? <ComponentLoader /> : null}
         {error ? (
-          <p className="px-4 py-3 text-sm text-red-700">{error}</p>
+          <p className="px-4 py-3 text-sm text-red-700">
+            <ErrorInSentence message={error} showWhereToLook={true} />
+          </p>
         ) : null}
         {!isLoading && !error && rules.length === 0 ? (
           <p

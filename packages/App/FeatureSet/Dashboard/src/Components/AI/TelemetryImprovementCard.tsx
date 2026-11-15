@@ -25,6 +25,7 @@ import {
   parseTelemetryImprovementSuggestion,
 } from "Common/Utils/Suggestions/TelemetryImprovementSuggestion";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Improve logging / tracing with AI" — the service-scoped instrumentation
@@ -238,7 +239,11 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
               ? "Could not create the logging improvement task"
               : "Could not create the tracing improvement task"
           }
-          title={<span>{error}</span>}
+          title={
+            <span>
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </span>
+          }
           onClose={() => {
             setError(null);
           }}

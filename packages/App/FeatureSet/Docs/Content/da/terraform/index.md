@@ -105,7 +105,7 @@ Provideren har en ressource for hver slags post, du kan oprette via OneUptime-AP
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | Hændelser, deres alvorligheder og deres tilstande |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | Advarsler, deres alvorligheder og deres tilstande |
 | `oneuptime_scheduled_maintenance_event` | Et planlagt vedligeholdelsesvindue |
-| `oneuptime_probe` | En egen probe, som tjekker fra dit netværk |
+| `oneuptime_probe` | En egen sonde, som tjekker fra dit netværk |
 
 [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) viser hver ressource med alle dens attributter.
 
