@@ -1022,6 +1022,18 @@ En enhet som ikke er sett på 30 dager, fjernes fra listen og kartet, med mindre
 
 Prosjekteiere og prosjektadministratorer velger standarden: bytt til et oppsett og velg **Make default for everyone**. Deretter åpner hver visning av enhetskartet med det: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**. På standardoppsettet sender **Clear default** hvert kart tilbake til sin egen standard. Flyttede posisjoner lagres for hvert oppsett i nettleseren din, så kartet åpner med plasseringen du laget i det oppsettet.
 
+### Finn frem i et stort nettverk
+
+I oppsettet **Parent and child** tegner en enhet med seks eller flere enheter som ikke har noe under seg, dem som et kompakt rutenett under seg i stedet for én lang rad, koblet med rettvinklede linjer som ikke krysser noen enhet eller noe navn. Oppsettet velger rutenettformen som får hele kartet til å passe på skjermen i størst mulig størrelse.
+
+En enhet med noe under seg har en knapp `−` under navnet: velg den for å skjule grenen til enheten og antallet enheter den inneholder, for eksempel `+24`, og velg antallet for å vise den igjen. **Skjul alle grener** og **Vis alle grener**, ved siden av zoomknappene, folder kartet sammen til en oversikt og ut igjen. Nettleseren din husker skjulte grener for hver lokasjon.
+
+For å se én gren for seg selv klikker du på enheten og velger **Vis bare denne grenen**. Kartet viser da enheten og alt under den, med stien fra toppen av nettverket øverst: velg et trinn for å utvide visningen til grenen til den enheten, eller **Vis hele kartet** for å se alt igjen.
+
+Søket flytter kartet til enhetene det finner. Pilene ved siden av antall treff, eller Enter i søkefeltet, går til hvert treff etter tur og markerer det med en ring. I oppsettet **Parent and child** forblir stien fra toppen av nettverket ned til hvert treff uthevet, og et treff i en skjult gren telles også, med en knapp som åpner grenene det ligger i.
+
+Når du har dratt enheter, bytter en bryter øverst på kartet mellom **Tilpasset oppsett · 2 flyttet** og **Opprinnelig oppsett**: det opprinnelige oppsettet er kartet slik OneUptime ordner det, og det tilpassede oppsettet ditt beholdes til du bytter tilbake. **Reset layout** forkaster det.
+
 ### Eksporter kartet som PDF
 
 **Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.

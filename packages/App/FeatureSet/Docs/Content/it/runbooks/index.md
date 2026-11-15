@@ -1,6 +1,6 @@
 # Panoramica dei Runbook
 
-Un runbook è una procedura di risposta riutilizzabile: un elenco ordinato di passaggi manuali e automatici che esegui su un incidente, un avviso o un evento di manutenzione programmata. Trasforma il thread «e adesso che facciamo?» in una checklist che chiunque sia reperibile può seguire alle 3 di notte, con script, chiamate API e approvazioni già scritti. I runbook sono pensati per gli ingegneri reperibili che rispondono agli incidenti e per i team di piattaforma che automatizzano quella risposta. Per scegliere tra un runbook, un workflow, un playbook e una regola IA, vedi [Quale usare?](/docs/introduction/which-one#workflow-runbook-playbook-o-regola-ia).
+Un runbook è una procedura di risposta riutilizzabile: un elenco ordinato di passaggi manuali e automatici che esegui su un incidente, un avviso o un evento di manutenzione. Trasforma il thread «e adesso che facciamo?» in una checklist che chiunque sia reperibile può seguire alle 3 di notte, con script, chiamate API e approvazioni già scritti. I runbook sono pensati per gli ingegneri reperibili che rispondono agli incidenti e per i team di piattaforma che automatizzano quella risposta. Per scegliere tra un runbook, un workflow, un playbook e una regola IA, vedi [Quale usare?](/docs/introduction/which-one#workflow-runbook-playbook-o-regola-ia).
 
 :::cards
 - [Scrivere un runbook](/docs/runbooks/authoring): Creare un runbook e scriverne i passaggi.
@@ -46,7 +46,7 @@ Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/gloss
 | --- | --- |
 | **Runbook** | Il modello. Una procedura con un nome, riutilizzabile, con un elenco ordinato di passaggi e un interruttore **Esegui questo runbook**. |
 | **Passaggio** | Un elemento di un runbook. Ha un tipo (Manual, JavaScript, HTTP request, Bash, SSH, kubectl o AI), un titolo, una descrizione e impostazioni specifiche del tipo. |
-| **Regola di runbook** | Una regola che collega automaticamente uno o più runbook agli incidenti, agli avvisi o agli eventi di manutenzione programmata che soddisfano le sue condizioni: i loro monitor, la gravità, le etichette, le etichette dei monitor, il titolo o la descrizione. |
+| **Regola di runbook** | Una regola che collega automaticamente uno o più runbook agli incidenti, agli avvisi o agli eventi di manutenzione che soddisfano le sue condizioni: i loro monitor, la gravità, le etichette, le etichette dei monitor, il titolo o la descrizione. |
 | **Esecuzione** | Un'esecuzione di un runbook. Viene creata quando scatta una regola, quando qualcuno fa clic su **Esegui Runbook** su un evento o quando qualcuno fa clic su **Esegui ora** sul runbook stesso. Contiene un'istantanea dei passaggi e lo stato e l'output di ciascuno. |
 | **Istantanea** | La copia congelata dei passaggi del runbook che vive su ogni esecuzione. Puoi modificare il runbook in seguito senza riscrivere la storia delle esecuzioni passate. |
 | **Runner** | Un piccolo agente che esegui su un host della tua infrastruttura. Esegue i passaggi JavaScript, Bash, SSH e kubectl che lo indicano. Detto anche agente di runbook. Un Runner globale, uno di quelli che OneUptime esegue per ogni progetto, esegue i passaggi JavaScript che non ne nominano nessuno, a meno che il progetto non abbia un Runner predefinito. |
@@ -74,7 +74,7 @@ Un runbook può combinarli tutti. La forza dei runbook sta nell'alternare verifi
 | Come | Dove | L'esecuzione è collegata a |
 | --- | --- | --- |
 | Una regola di runbook | **Incidenti**, **Avvisi** o **Manutenzione programmata** → **Regole** → **Regole di runbook** | Il nuovo incidente, avviso o evento |
-| **Esegui Runbook** | La pagina **Runbook** di un incidente, un avviso o un evento di manutenzione programmata | Quell'evento |
+| **Esegui Runbook** | La pagina **Runbook** di un incidente, un avviso o un evento di manutenzione | Quell'evento |
 | **Esegui ora** | La pagina **Panoramica** del runbook | Niente: un'esecuzione estemporanea |
 | Una regola IA | Vedi [AI SRE](/docs/ai/ai-sre) | L'incidente o l'avviso |
 | La pianificazione del runbook | La pagina **Trigger** del runbook, vedi [Trigger dei runbook](/docs/runbooks/triggers#eseguire-secondo-una-pianificazione) | Nulla: un'esecuzione non presidiata |

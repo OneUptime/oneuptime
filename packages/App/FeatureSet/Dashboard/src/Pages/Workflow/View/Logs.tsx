@@ -16,8 +16,9 @@ import {
   getWorkflowRunStartedBy,
 } from "Common/UI/Components/Workflow/WorkflowRunExport";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import WorkflowStatusElement from "Common/UI/Components/Workflow/WorkflowStatus";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import WorkflowStatusElement, {
+  getWorkflowStatusFilterOptions,
+} from "Common/UI/Components/Workflow/WorkflowStatus";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import WorkflowLogs from "Common/Models/DatabaseModels/WorkflowLog";
@@ -132,8 +133,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Workflow Status",
               type: FieldType.Dropdown,
-              filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(WorkflowStatus),
+              // Each status in the words its pill draws: "Executed", never "Success".
+              filterDropdownOptions: getWorkflowStatusFilterOptions(),
             },
             {
               field: {

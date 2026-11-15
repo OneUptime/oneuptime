@@ -1,3 +1,4 @@
+import { StateListType } from "Common/Utils/StateOrder";
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import StateChangePublicNote from "Common/Server/Utils/StatusPage/StateChangePublicNote";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -74,10 +75,14 @@ const MAINTENANCE_SUBJECT: string =
     stateName: "Ongoing",
     eventTitle: "<title>",
   });
-const RESOLVED_LINE: string =
-  StateChangeNoteMessage.getChatStatusLine("Resolved").toString();
-const ONGOING_LINE: string =
-  StateChangeNoteMessage.getChatStatusLine("Ongoing").toString();
+const RESOLVED_LINE: string = StateChangeNoteMessage.getChatStatusLine(
+  StateListType.IncidentState,
+  "Resolved",
+).toString();
+const ONGOING_LINE: string = StateChangeNoteMessage.getChatStatusLine(
+  StateListType.ScheduledMaintenanceState,
+  "Ongoing",
+).toString();
 
 describe("the code the guides quote", () => {
   test("the subjects, SMS and chat lines are the ones the jobs send", () => {
@@ -166,10 +171,7 @@ describe("the English guides", () => {
     "## Telling status page subscribers about a state change",
   );
   const subscribers: string = readGuide("en", SUBSCRIBERS_PAGE);
-  const maintenance: string = sectionOf(
-    subscribers,
-    "### Scheduled maintenance events",
-  );
+  const maintenance: string = sectionOf(subscribers, "### Maintenance events");
   const noteTemplates: string = sectionOf(
     subscribers,
     "### The state in note templates",
@@ -239,7 +241,7 @@ describe("the Persian guides say the same", () => {
   const subscribers: string = readGuide("fa", SUBSCRIBERS_PAGE);
   const maintenance: string = sectionOf(
     subscribers,
-    "### رویدادهای نگهداری زمان‌بندی‌شده",
+    "### رویدادهای تعمیر و نگهداری",
   );
   const noteTemplates: string = sectionOf(
     subscribers,

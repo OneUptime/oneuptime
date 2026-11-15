@@ -3459,6 +3459,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/GrpcServerKeyLastUsedPostgres.test.ts --forceExit
 
+      # The same for a key used only over MQTT (issue #8020): the broker's
+      # own hooks, a real key resolved at CONNECT, and the stamp followed to
+      # the row. Clones the migrated Project and TelemetryIngestionKey into
+      # an isolated schema.
+      - name: Test that a key used only over MQTT is stamped as used on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_MQTT_KEY_LAST_USED_TESTS: "true"
+          MQTT_KEY_LAST_USED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MQTT_KEY_LAST_USED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MQTT_KEY_LAST_USED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/MqttServerKeyLastUsedPostgres.test.ts --forceExit
+
       # An exception's activity timeline: a triage written through the
       # service's updates leaves its rows (and one that changes nothing
       # leaves none), and a teammate reads only the timelines of the
@@ -3496,6 +3512,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/SignInStatementsPostgres.test.ts --forceExit
+
+      # #8105: every write of a measurement's backfill - each page's cursor,
+      # the completion stamp - is held to the backfillRequestedAt the walk
+      # read, so an edit made while it is walked always wins. Clones the
+      # migrated IncidentMeasurement, AlertMeasurement and
+      # ScheduledMaintenanceMeasurement tables into an isolated schema: the
+      # guard compares to the millisecond (FirstPagedAt stamps the request
+      # with now(), whose microseconds a read drops), and an edit that commits
+      # while the walk's write waits for the row is still never written over.
+      - name: Test the measurement backfill's writes held to their request on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MEASUREMENT_BACKFILL_PROGRESS_TESTS: "true"
+          MEASUREMENT_BACKFILL_PROGRESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MEASUREMENT_BACKFILL_PROGRESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MEASUREMENT_BACKFILL_PROGRESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Measurement/MeasurementBackfillProgressPostgres.test.ts
+          --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out

@@ -181,3 +181,157 @@ describe.each(PAGE_EMAILS)("$file", (email: PageEmail) => {
     expect(visibleText(html)).toContain("paged you about this incident.");
   });
 });
+
+/*
+ * A POLICY A PERSON STARTED BY HAND OPENS ITS EMAIL WITH WHO STARTED IT
+ * (#7838).
+ *
+ * Execute On-Call Policy, or a page that names a policy, starts a policy for
+ * an incident, an alert or an episode that is there already: its generator
+ * hands every one of the four templates the line to open with
+ * (personPageInfo) - "Alice Kim started Database escalation for Incident
+ * INC-42 in the project Acme. You're getting this because ..." - and the
+ * message (personPageMessage). An episode's email had no place for them.
+ */
+
+interface PolicyEmail {
+  file: string;
+  noun: string;
+  vars: Record<string, unknown>;
+}
+
+const POLICY_EMAILS: Array<PolicyEmail> = [
+  {
+    file: "AcknowledgeIncident.hbs",
+    noun: "incident",
+    vars: {
+      incidentTitle: "Checkout is down",
+      incidentNumber: "INC-42",
+      acknowledgeIncidentLink: "https://oneuptime.example.com/ack",
+    },
+  },
+  {
+    file: "AcknowledgeAlert.hbs",
+    noun: "alert",
+    vars: {
+      alertTitle: "Checkout is down",
+      alertNumber: "ALR-12",
+      acknowledgeAlertLink: "https://oneuptime.example.com/ack",
+    },
+  },
+  {
+    file: "AcknowledgeIncidentEpisode.hbs",
+    noun: "incident episode",
+    vars: {
+      incidentEpisodeTitle: "Checkout is down",
+      episodeNumber: "EP-7",
+      acknowledgeIncidentEpisodeLink: "https://oneuptime.example.com/ack",
+    },
+  },
+  {
+    file: "AcknowledgeAlertEpisode.hbs",
+    noun: "alert episode",
+    vars: {
+      alertEpisodeTitle: "Checkout is down",
+      episodeNumber: "AEP-3",
+      acknowledgeAlertEpisodeLink: "https://oneuptime.example.com/ack",
+    },
+  },
+];
+
+const POLICY_INFO: string =
+  "Alice Kim started Database escalation for this record in the project Acme. You're getting this because you're a member of Platform, on level 2 of Database escalation.";
+
+function policyVars(
+  email: PolicyEmail,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    currentState: "Acknowledged",
+    resourcesAffected: "checkout-api",
+    projectName: "Acme",
+    rootCause: "<p>Pool exhausted.</p>",
+    passOnLink: "https://oneuptime.example.com/escalate",
+    ...email.vars,
+    ...overrides,
+  };
+}
+
+describe.each(POLICY_EMAILS)(
+  "$file, for a policy started by hand",
+  (email: PolicyEmail) => {
+    test("opens with who started which policy and why, then the message - not with a new record", () => {
+      const text: string = visibleText(
+        render(
+          email.file,
+          policyVars(email, {
+            personPageInfo: POLICY_INFO,
+            personPageMessage: MESSAGE_LINE,
+          }),
+        ),
+      );
+
+      expect(text).toContain(POLICY_INFO);
+      expect(text).toContain(MESSAGE_LINE);
+      expect(text.indexOf(POLICY_INFO)).toBeLessThan(
+        text.indexOf(MESSAGE_LINE),
+      );
+      expect(text).not.toContain(`A new ${email.noun} has been created`);
+      expect(text).toContain("Checkout is down");
+      expect(text).toContain("Acknowledge");
+      expect(text).toContain("Escalate");
+    });
+
+    test("with no message, has the one line", () => {
+      const text: string = visibleText(
+        render(email.file, policyVars(email, { personPageInfo: POLICY_INFO })),
+      );
+
+      expect(text).toContain(POLICY_INFO);
+      expect(text).not.toContain("wrote:");
+    });
+
+    test("a page again of it keeps the page-again line", () => {
+      const line: string = `This ${email.noun} in the project Acme is still not resolved 30 minutes after it was acknowledged.`;
+      const text: string = visibleText(
+        render(
+          email.file,
+          policyVars(email, {
+            pageAgainInfo: line,
+            personPageInfo: POLICY_INFO,
+            personPageMessage: MESSAGE_LINE,
+          }),
+        ),
+      );
+
+      expect(text).toContain(line);
+      expect(text).not.toContain("started Database escalation");
+      expect(text).not.toContain(MESSAGE_LINE);
+    });
+
+    test("a run OneUptime started opens as it always did", () => {
+      const text: string = visibleText(render(email.file, policyVars(email)));
+
+      expect(text).toContain(
+        `A new ${email.noun} has been created in the project - Acme`,
+      );
+      expect(text).not.toContain("started Database escalation");
+    });
+
+    test("the policy's name and the message are text: what a person typed never becomes markup", () => {
+      const html: string = render(
+        email.file,
+        policyVars(email, {
+          personPageInfo:
+            'Eve started <img src=x onerror="alert(1)"> for this record.',
+          personPageMessage:
+            'Eve wrote: “<a href="https://evil.example">x</a>”',
+        }),
+      );
+
+      expect(html).not.toContain('<img src=x onerror="alert(1)">');
+      expect(html).not.toContain('<a href="https://evil.example">');
+      expect(visibleText(html)).toContain("for this record.");
+    });
+  },
+);

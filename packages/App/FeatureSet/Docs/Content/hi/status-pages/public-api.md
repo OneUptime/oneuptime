@@ -1,6 +1,6 @@
 # सार्वजनिक API
 
-हर स्थिति पृष्ठ कुछ रीड-ओनली JSON एंडपॉइंट का जवाब देता है: उसका अवलोकन, सारांश, अपटाइम, घटनाएं, एपिसोड, अनुसूचित रखरखाव इवेंट और घोषणाएं। ये वही एंडपॉइंट हैं जिन्हें स्थिति पृष्ठ खुद लोड करता है, इसलिए वे ठीक वही लौटाते हैं जो किसी विज़िटर को दिखता है, और सार्वजनिक पृष्ठ के लिए किसी API कुंजी की ज़रूरत नहीं होती। इनका इस्तेमाल अपनी स्थिति को अपने ऐप, किसी चैट बॉट या दीवार पर लगी स्क्रीन में दिखाने के लिए करें।
+हर स्थिति पृष्ठ कुछ रीड-ओनली JSON एंडपॉइंट का जवाब देता है: उसका अवलोकन, सारांश, अपटाइम, घटनाएं, एपिसोड, रखरखाव इवेंट और घोषणाएं। ये वही एंडपॉइंट हैं जिन्हें स्थिति पृष्ठ खुद लोड करता है, इसलिए वे ठीक वही लौटाते हैं जो किसी विज़िटर को दिखता है, और सार्वजनिक पृष्ठ के लिए किसी API कुंजी की ज़रूरत नहीं होती। इनका इस्तेमाल अपनी स्थिति को अपने ऐप, किसी चैट बॉट या दीवार पर लगी स्क्रीन में दिखाने के लिए करें।
 
 :::cards
 - [एंडपॉइंट](#एंडपॉइंट): पृष्ठ जो कुछ दिखाता है, उसके हर हिस्से के लिए एक एंडपॉइंट।
@@ -57,8 +57,8 @@ flowchart TB
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | एक घटना। |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | पृष्ठ पर सूचीबद्ध घटना एपिसोड। |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | एक एपिसोड। |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | पृष्ठ पर सूचीबद्ध अनुसूचित रखरखाव इवेंट, उनके सार्वजनिक नोट और स्थिति बदलावों के साथ। |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | एक अनुसूचित रखरखाव इवेंट। |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | पृष्ठ पर सूचीबद्ध रखरखाव इवेंट, उनके सार्वजनिक नोट और स्थिति बदलावों के साथ। |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | एक रखरखाव इवेंट। |
 | `/announcements/{statusPageIdOrDomain}` | `GET`, `POST` | पृष्ठ पर सूचीबद्ध घोषणाएं। |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | एक घोषणा। |
 
@@ -140,13 +140,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | पृष्ठ पर दिखने वाली अनसुलझी घटनाएं, उनके सार्वजनिक नोट और स्थिति बदलाव, और प्रोजेक्ट की घटना स्थितियां। |
 | `timelineIncidents` | अपटाइम बार की अवधि की घटनाएं, सुलझी हुई भी, बार के टूलटिप के लिए। |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | घटना एपिसोड के लिए यही सब। |
-| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | अनुसूचित रखरखाव इवेंट जो अभी आने वाले हैं या चल रहे हैं, उनके सार्वजनिक नोट और स्थिति बदलाव। |
-| `timelineScheduledMaintenanceEvents` | अपटाइम बार की अवधि के वे अनुसूचित रखरखाव इवेंट जो शुरू हो चुके हैं, जारी या समाप्त, बार के टूलटिप और हर दिन के डायलॉग के लिए: पृष्ठ पर दिखने वाले इवेंट जिनमें पृष्ठ का कोई मॉनिटर शामिल है, हर एक के साथ केवल पृष्ठ के मॉनिटर। |
+| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | रखरखाव इवेंट जो अभी आने वाले हैं या चल रहे हैं, उनके सार्वजनिक नोट और स्थिति बदलाव। |
+| `timelineScheduledMaintenanceEvents` | अपटाइम बार की अवधि के वे रखरखाव इवेंट जो शुरू हो चुके हैं, जारी या समाप्त, बार के टूलटिप और हर दिन के डायलॉग के लिए: पृष्ठ पर दिखने वाले इवेंट जिनमें पृष्ठ का कोई मॉनिटर शामिल है, हर एक के साथ केवल पृष्ठ के मॉनिटर। |
 | `activeAnnouncements` | अभी दिख रही घोषणाएं: शुरू हो चुकी और खत्म नहीं हुई। |
 
 ## सारांश पढ़ें
 
-सारांश वह अवलोकन है जिसे उतना छोटा किया गया है जितना कोई मॉनिटरिंग टूल किसी पृष्ठ से पूछता है: हर संसाधन की स्थिति, और क्या कोई जारी अनुसूचित रखरखाव इवेंट उसे प्रभावित करता है। पृष्ठ चाहे जितना इतिहास दिखाए, यह छोटा रहता है, और किसी दूसरे OneUptime का [बाहरी स्थिति पृष्ठ मॉनिटर](/docs/monitor/external-status-page-monitor#oneuptime-स्थिति-पृष्ठ) यही पढ़ता है। यह उसी कैश से आता है जिससे अवलोकन आता है, उन्हीं पहुँच नियमों के बाद।
+सारांश वह अवलोकन है जिसे उतना छोटा किया गया है जितना कोई मॉनिटरिंग टूल किसी पृष्ठ से पूछता है: हर संसाधन की स्थिति, और क्या कोई जारी रखरखाव इवेंट उसे प्रभावित करता है। पृष्ठ चाहे जितना इतिहास दिखाए, यह छोटा रहता है, और किसी दूसरे OneUptime का [बाहरी स्थिति पृष्ठ मॉनिटर](/docs/monitor/external-status-page-monitor#oneuptime-स्थिति-पृष्ठ) यही पढ़ता है। यह उसी कैश से आता है जिससे अवलोकन आता है, उन्हीं पहुँच नियमों के बाद।
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `overallStatus` | पृष्ठ की समग्र स्थिति, जैसी उसका बैनर दिखाता है: `name`, `color` और `isOperational`। जब पृष्ठ का हर संसाधन **निगरानी नहीं** होता, तो `null`। |
 | `resources` | पृष्ठ पर दिखने वाला हर संसाधन, उसी क्रम में: पृष्ठ पर उसका `name`, ऊपर के समूहों सहित उसका `groupName`, उसका `currentStatus`, `isMonitored`, और `isUnderMaintenance`। |
 | `activeIncidents` | पृष्ठ पर दिखने वाली अनसुलझी घटनाएँ, हर एक के साथ उन संसाधनों के `affectedResourceIds` जिन्हें वह प्रभावित करती है। |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | जारी और आने वाले अनुसूचित रखरखाव इवेंट, हर एक के साथ उसके `affectedResourceIds`। |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | जारी और आने वाले रखरखाव इवेंट, हर एक के साथ उसके `affectedResourceIds`। |
 
 जब पृष्ठ किसी संसाधन की स्थिति नहीं दिखाता, और जब `isMonitored` `false` होता है, तो उसका `currentStatus` `null` होता है: तब संसाधन की कोई जाँच नहीं होती, क्योंकि उसके मॉनिटर की निगरानी बंद है या उसके मॉनिटर समूह के हर मॉनिटर की निगरानी बंद है, इसलिए पृष्ठ उसे **निगरानी नहीं** के रूप में दिखाता है। जब तक कोई जारी इवेंट संसाधन के किसी मॉनिटर या उसके मॉनिटर समूह के किसी मॉनिटर का नाम लेता है, `isUnderMaintenance` `true` रहता है, चाहे वे मॉनिटर किसी भी स्थिति में हों।
 
@@ -346,7 +346,7 @@ for group in uptime["groupUptimes"]:
 # The incidents the page lists
 curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-# One scheduled maintenance event
+# One maintenance event
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
 ```
 @tab Node.js
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | घटनाएं | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
 | एपिसोड | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| अनुसूचित रखरखाव इवेंट | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
+| रखरखाव इवेंट | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | घोषणाएं | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
 एक आइटम वाली रिक्वेस्ट उन्हीं कुंजियों के साथ जवाब देती है, जिनमें वह एक रिकॉर्ड होता है।
@@ -406,7 +406,7 @@ for incident in incidents:
 
 ## स्थिति पृष्ठ पढ़ने के दूसरे तरीके
 
-- **RSS।** हर स्थिति पृष्ठ `/rss` देता है, जो उसकी घटनाओं, घोषणाओं और अनुसूचित रखरखाव इवेंट का फ़ीड है, और हर आइटम पर वही तारीख़ होती है जो पृष्ठ पर है। देखें [embed होने वाला badge और RSS feed](/docs/status-pages/index#एम्बेड-करने-योग्य-बैज-और-rss-फ़ीड)।
+- **RSS।** हर स्थिति पृष्ठ `/rss` देता है, जो उसकी घटनाओं, घोषणाओं और रखरखाव इवेंट का फ़ीड है, और हर आइटम पर वही तारीख़ होती है जो पृष्ठ पर है। देखें [embed होने वाला badge और RSS feed](/docs/status-pages/index#एम्बेड-करने-योग्य-बैज-और-rss-फ़ीड)।
 - **llms.txt।** `/rss` के साथ ही हर स्थिति पृष्ठ `/llms.txt` भी देता है, जो AI एजेंटों को RSS फ़ीड और अवलोकन JSON का पता बताता है।
 - **MCP।** AI एजेंट OneUptime के MCP सर्वर `https://oneuptime.com/mcp` के ज़रिए बिना API कुंजी के पृष्ठ पढ़ सकते हैं, पृष्ठ की ID या डोमेन को `statusPageIdOrDomain` के रूप में देकर। यह डिफ़ॉल्ट रूप से चालू रहता है; इसे पृष्ठ के साइड मेन्यू में **एआई → MCP** के तहत **MCP सर्वर सक्षम करें** से बंद करें। देखें [MCP सर्वर](/docs/ai/mcp-server)।
 - **REST API।** स्थिति पृष्ठ, संसाधन, सब्सक्राइबर और घोषणाएं बनाने या बदलने के लिए, API कुंजी के साथ [OneUptime API](/docs/api-reference/api-reference) इस्तेमाल करें।

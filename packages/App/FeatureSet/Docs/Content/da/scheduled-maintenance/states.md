@@ -1,6 +1,6 @@
 # Vedligeholdelsestilstande
 
-Hver planlagt vedligeholdelsesbegivenhed er i én **tilstand**: hvor langt arbejdet er nået, fra planlagt til godkendt. Tilstande bestemmer, hvad OneUptime gør med begivenheden: hvornår dens monitorer holder op med at blive kontrolleret, hvad dine statussider viser, hvornår dens påmindelser stopper. Denne side gennemgår de fire tilstande, hvert projekt starter med, hvad der flytter en begivenhed mellem dem, og hvordan du tilføjer dine egne trin.
+Hver vedligeholdelseshændelse er i én **tilstand**: hvor langt arbejdet er nået, fra planlagt til godkendt. Tilstande bestemmer, hvad OneUptime gør med begivenheden: hvornår dens monitorer holder op med at blive kontrolleret, hvad dine statussider viser, hvornår dens påmindelser stopper. Denne side gennemgår de fire tilstande, hvert projekt starter med, hvad der flytter en begivenhed mellem dem, og hvordan du tilføjer dine egne trin.
 
 :::cards
 - [Standardtilstandene](#standardtilstandene): Planlagt, Igangværende, Afsluttet og Fuldført.
@@ -167,7 +167,7 @@ Headerens knapper starter og afslutter begivenheden. At fuldføre den findes i m
 
 :::cards
 - [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index): Hvor alt findes, og hvad en begivenhed påvirker.
-- [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events): Formularen, felt for felt.
+- [Opret vedligeholdelseshændelser](/docs/scheduled-maintenance/creating-events): Formularen, felt for felt.
 - [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings): Påmind ejere, indtil en begivenhed er fuldført.
 - [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities): Den samme ordnede liste, for hændelser.
 :::

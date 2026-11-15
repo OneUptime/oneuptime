@@ -38,7 +38,7 @@ flowchart TB
 3. Klikk på **Opprett ingestion-nøkkel**, og velg **Nettleser** som **Nøkkeltype**.
 4. I trinnet **Nettleserinnstillinger** lister du opprinnelsene dine under **Tillatte opprinnelser** som en JSON-matrise, for eksempel `["https://app.example.com"]`, og oppretter så nøkkelen. På gratisplanen i OneUptime Cloud viser et siste trinn **Fakturering** først prisen for telemetri.
 
-![Siden med telemetri-inntaksnøkler i prosjektinnstillingene](/docs/static/images/TelemetryIngestionKeys.png)
+![Listen «Inntaksnøkler», med «Opprett ingestion-nøkkel» uthevet](screen:ingestion-keys)
 
 Den nye nøkkelen åpnes på en egen side. Kopier **Hemmelig nøkkel**: Det er tokenet SDK-et sender som `x-oneuptime-token`.
 

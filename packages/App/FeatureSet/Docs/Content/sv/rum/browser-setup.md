@@ -38,7 +38,7 @@ flowchart TB
 3. Klicka på **Skapa ingestion-nyckel** och välj **Webbläsare** som **Nyckeltyp**.
 4. Ange dina ursprung under **Tillåtna ursprung** i steget **Webbläsarinställningar** som en JSON-array, till exempel `["https://app.example.com"]`, och skapa sedan nyckeln. På OneUptime Clouds gratisplan visar ett sista steg **Fakturering** först priset för telemetri.
 
-![Sidan med intagningsnycklar för telemetri i projektinställningarna](/docs/static/images/TelemetryIngestionKeys.png)
+![Listan ”Intagningsnycklar”, med ”Skapa ingestion-nyckel” markerad](screen:ingestion-keys)
 
 Den nya nyckeln öppnas på en egen sida. Kopiera dess **Hemlig nyckel**: Det är den token som SDK:t skickar som `x-oneuptime-token`.
 

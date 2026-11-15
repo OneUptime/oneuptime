@@ -206,6 +206,12 @@ export interface ComponentProps {
   id?: string | undefined;
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
+  /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
   ariaLabelledby?: string | undefined;
   // What describes the list besides its error, read first: its field's help.
   ariaDescribedby?: string | undefined;
@@ -1150,7 +1156,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         onFocus={() => {
           props.onFocus?.();
         }}
-        aria-label={tx(props.ariaLabel)}
+        aria-label={
+          props.isAriaLabelTranslated ? props.ariaLabel : tx(props.ariaLabel)
+        }
         aria-labelledby={props.ariaLabelledby}
         aria-invalid={props.error ? true : undefined}
         classNames={{

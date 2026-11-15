@@ -134,10 +134,13 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
         : MailTransportType.SMTP;
 
     /*
-     * "config not yet set" detection: for SMTP we look at host/port/credentials;
-     * for Microsoft Graph we look at OAuth credentials. If none of the relevant
-     * fields are populated, treat it as "no global SMTP configured" rather than
-     * throwing — callers handle null gracefully.
+     * "config not yet set" detection: for SMTP we look at the host, the
+     * sender and the credentials; for Microsoft Graph we look at OAuth
+     * credentials. If none of the relevant fields are populated, treat it as
+     * "no global SMTP configured" rather than throwing — callers handle null
+     * gracefully. A port alone is not set up: an installation's settings
+     * were seeded with port 25 when SMTP_PORT was not set (#7458), and
+     * ServerChannelSetup reads such a row as nothing set up too.
      */
     if (transportType === MailTransportType.MicrosoftGraph) {
       if (
@@ -151,7 +154,6 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
     } else if (
       !globalConfig.smtpFromEmail &&
       !globalConfig.smtpHost &&
-      !globalConfig.smtpPort &&
       !globalConfig.smtpUsername &&
       !globalConfig.smtpPassword &&
       !globalConfig.smtpFromName

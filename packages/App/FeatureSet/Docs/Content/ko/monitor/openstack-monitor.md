@@ -120,7 +120,7 @@ OneUptime은 흔한 OpenStack 문제를 위한 템플릿 120개를 제공하며,
 | Image API Down | 가용성 | 치명적 | `image`에 대한 `openstack_glance_up`과 `up`, 지역별 최소, **지난 15분** | 모든 호출이 실패했거나 exporter가 응답하지 않음 | 둘 다 1 |
 | Placement API Down | 가용성 | 치명적 | `placement`에 대한 `openstack_placement_up`과 `up`, 지역별 최소, **지난 10분** | 모든 호출이 실패했거나 exporter가 응답하지 않음 | 둘 다 1 |
 | Compute Service Down | 컨트롤 플레인 | 치명적 | `service = nova-compute` 및 `adminState = enabled`로 필터링한 `openstack_nova_agent_state`, 호스트별 최소, **지난 10분** | 1 미만: 활성화된 nova-compute가 중단됨. 누군가 비활성화한 것은 발생하지 않음 | 가동 중이거나 비활성화됨 |
-| Compute Service Disabled | 컨트롤 플레인 | 경고 | `service = nova-compute` 및 `adminState = disabled`로 필터링한 `openstack_nova_agent_state`, 호스트별 개수, **지난 10분** | 0 초과: `nova-compute`가 비활성화되었고, 해당 호스트, 가용 영역 또는 클라우드를 포함하는 진행 중인 유지보수 이벤트가 없음. libvirt가 중단되어 스스로 비활성화된 것(사유가 `AUTO:`로 시작)은 libvirt Service Down이 열려 있는 동안 조용함. 프로젝트에는 알리지 않음 | 다시 활성화되거나 이벤트가 포함함 |
+| Compute Service Disabled | 컨트롤 플레인 | 경고 | `service = nova-compute` 및 `adminState = disabled`로 필터링한 `openstack_nova_agent_state`, 호스트별 개수, **지난 10분** | 0 초과: `nova-compute`가 비활성화되었고, 해당 호스트, 가용 영역 또는 클라우드를 포함하는 진행 중인 유지 관리 이벤트가 없음. libvirt가 중단되어 스스로 비활성화된 것(사유가 `AUTO:`로 시작)은 libvirt Service Down이 열려 있는 동안 조용함. 프로젝트에는 알리지 않음 | 다시 활성화되거나 이벤트가 포함함 |
 | Scheduler or Conductor Down | 컨트롤 플레인 | 경고 | `nova-scheduler` 또는 `nova-conductor` 및 `adminState = enabled`로 필터링한 `openstack_nova_agent_state`, 호스트 및 바이너리별 최소, **지난 10분** | 1 미만. 하나라도 남아 있으면 나머지가 계속 동작함 | 가동 중이거나 비활성화됨 |
 | Every Scheduler or Conductor Down | 컨트롤 플레인 | 치명적 | 위와 같음, 지역 및 바이너리별 최대, **지난 10분** | 1 미만: 살아 있는 것이 없어 새로 부팅할 수 없음 | 하나가 가동됨 |
 | Network Agent Down | 컨트롤 플레인 | 치명적 | `adminState = up`으로 필터링한 `openstack_neutron_agent_state`, 호스트 및 바이너리별 최소, **지난 10분** | 1 미만: 켜 둔 에이전트가 살아 있지 않음. 누군가 내려 둔 것은 발생하지 않음 | 살아 있거나 내려짐 |
@@ -185,9 +185,9 @@ OneUptime은 흔한 OpenStack 문제를 위한 템플릿 120개를 제공하며,
 | Database Volume Nearly Full | 데이터베이스 | 경고 | `openstack_trove_instance_volume_size_gb` 대비 `openstack_trove_instance_volume_used_gb`, 인스턴스별, **지난 15분** | 85% 이상. 실행 중이 아닌 인스턴스는 사용량이 0으로 읽힘. 실행 중인 인스턴스에 대한 기록은 없음 | 크기가 조정되거나 줄어듦 |
 | Bare Metal API Down | 베어메탈 | 치명적 | `openstack_ironic_up`, 지역별 최소, **지난 15분** | 1 미만. Ironic 읽기로 알 수 있는 경우에만 동작함: 프로브 또는 exporter 1.7.0. Ironic이 중지되면 에이전트의 exporter는 Ironic이 없는 클라우드와 같이 읽을 것이 없으므로 그곳에서는 조용하고 클라우드 페이지에 Ironic의 마지막 응답 시점이 표시됨 | 1로 읽히거나 사라짐 |
 | Bare Metal Conductor Down | 베어메탈 | 경고 | `openstack_ironic_agent_state`, 호스트별 최소, **지난 15분**. 프로브만 이 값을 보내며, 클라우드 정책이 자격 증명에 Ironic의 conductor 읽기를 허용한 경우에 한함: 기본값은 프로젝트의 읽기를 거부함 | Ironic이 conductor를 살아 있지 않은 것으로 표시함. API는 계속 응답하고 모든 노드가 이전처럼 읽히므로 다른 곳에서는 알 수 없음 | 1로 읽히거나 Ironic이 해당 기록을 삭제함 |
-| Bare Metal Node in Error | 베어메탈 | 경고 | 실패한 각 `provision_state`의 `openstack_ironic_node`, 노드별 최대, **지난 15분** | 유지보수 여부와 관계없이 15분 동안 모든 수집에서 해당 상태임 | 상태를 벗어나거나 삭제됨 |
+| Bare Metal Node in Error | 베어메탈 | 경고 | 실패한 각 `provision_state`의 `openstack_ironic_node`, 노드별 최대, **지난 15분** | 유지 관리 여부와 관계없이 15분 동안 모든 수집에서 해당 상태임 | 상태를 벗어나거나 삭제됨 |
 | Bare Metal Node Stuck Transitioning | 베어메탈 | 경고 | `maintenance = false`인 정상 진행 `provision_state`별 `openstack_ironic_node`, 노드별 최대, **지난 2시간** | 2시간 동안 모든 수집에서 해당 상태임. 디스크를 오래 지우면 실제로 이만큼 걸릴 수 있으며, 노드 페이지에서는 알 수 있지만 이 템플릿은 알 수 없음 | 상태를 벗어나거나 삭제됨 |
-| Bare Metal Node in Maintenance Too Long | 베어메탈 | 경고 | `maintenance = true`인 `openstack_ironic_node`, 노드별 최대, **지난 7일** | 7일 동안 모든 수집에서 유지보수 중임. 메트릭을 그만큼 보관해야 함 | 유지보수에서 벗어나거나 삭제됨 |
+| Bare Metal Node in Maintenance Too Long | 베어메탈 | 경고 | `maintenance = true`인 `openstack_ironic_node`, 노드별 최대, **지난 7일** | 7일 동안 모든 수집에서 유지 관리 중임. 메트릭을 그만큼 보관해야 함 | 유지 관리에서 벗어나거나 삭제됨 |
 | Bare Metal Power State Unexpected | 베어메탈 | 경고 | `provision_state = active`, `power_state = power off`, `maintenance = false`인 `openstack_ironic_node`, 노드별 최대, **지난 15분** | 15분 동안 모든 수집에서 해당 상태임. 소유자가 중지한 인스턴스도 같게 읽히며, 노드 페이지에서는 알 수 있지만 이 템플릿은 알 수 없음 | 전원이 켜지거나 더 이상 배포되지 않음 |
 | Project Quota Nearly Reached | 프로젝트 | 경고 | `openstack_nova_limits_*`와 `openstack_cinder_limits_volume_*`, 프로젝트별 사용량 / 최대값, **지난 3시간** | vCPU, 메모리, 인스턴스 또는 볼륨 할당량의 90% 초과. [limits 시계열을 켜야](#limits-시계열-켜기) 함 | 81% 이하 |
 | Token Issue Failing | 가용성 | 치명적 | `openstack_check_token_success`, 지역별 최소, **지난 5분**. API 점검을 켜야 함 | 1 미만: Keystone이 프로브에 토큰을 발급하지 않음 | 토큰이 발급됨 |
@@ -379,7 +379,7 @@ exporter는 머신을 접근하는 주소로, Neutron은 호스트 이름으로 
 | 메트릭 | 단위 | 읽기 | 설명 |
 | --- | --- | --- | --- |
 | `haproxy_backend_status` | - | 최대 | 백엔드가 될 수 있는 상태마다 시계열 하나이며, 현재 상태에 1이 붙습니다. state 레이블이 그 단어입니다. |
-| `haproxy_server_status` | - | 최대 | 백엔드의 서버가 될 수 있는 상태마다 시계열 하나이며, 현재 상태에 1이 붙습니다. state 레이블이 그 단어입니다. 유지보수는 가동도 중단도 아닌 것으로 읽힙니다. |
+| `haproxy_server_status` | - | 최대 | 백엔드의 서버가 될 수 있는 상태마다 시계열 하나이며, 현재 상태에 1이 붙습니다. state 레이블이 그 단어입니다. 유지 관리는 가동도 중단도 아닌 것으로 읽힙니다. |
 | `haproxy_backend_active_servers` | `count` | 최소 | 각 백엔드에서 가동 중인 서버 수입니다. 서버가 없는 섹션은 영원히 0으로 읽히므로 이것만으로는 백엔드가 중단되었다고 알 수 없습니다. |
 | `haproxy_backend_http_responses_increase` | `count` | 최대 | 마지막 수집 이후 각 백엔드가 클래스별(2xx, 3xx, 4xx, 5xx)로 낸 응답 수입니다. HAProxy는 더 세분화해 세지 않으므로 401도 4xx입니다. |
 
@@ -659,7 +659,7 @@ Ironic을 실행하는 클라우드만 이 메트릭을 보내며, 실행하지 
 | 메트릭 | 단위 | 읽기 | 설명 |
 | --- | --- | --- | --- |
 | `openstack_ironic_up` | | 최소 | Ironic 읽기가 판단할 수 있을 만큼 진행되었을 때 1입니다. 중지되면 OpenStack 에이전트가 실행하는 exporter는 Ironic이 없는 클라우드와 같이 빈 200으로 응답하므로 이 시계열은 0으로 읽히지 않고 조용해집니다. 프로브와 exporter 1.7.0은 0을 보고할 수 있습니다. |
-| `openstack_ironic_node` | | 최대 | Ironic이 이 자격 증명에 보여 주는 노드마다 시계열 하나이며 항상 1입니다. 내용은 레이블에 있으며 프로비저닝 상태, 전원 상태, 유지보수 여부입니다. Ironic은 프로젝트에 해당 프로젝트가 소유한 노드만 보여 줍니다. |
+| `openstack_ironic_node` | | 최대 | Ironic이 이 자격 증명에 보여 주는 노드마다 시계열 하나이며 항상 1입니다. 내용은 레이블에 있으며 프로비저닝 상태, 전원 상태, 유지 관리 여부입니다. Ironic은 프로젝트에 해당 프로젝트가 소유한 노드만 보여 줍니다. |
 | `openstack_ironic_node_provision_updated_at` | `seconds` | 최대 | Ironic이 이 노드의 프로비저닝 상태가 마지막으로 바뀐 것을 본 시각이며 Unix 시간입니다. 배포 에이전트의 하트비트도 이 값을 바꾸므로 오래 걸리는 삭제가 노드가 멈춘 것은 아닙니다. 한 번도 바뀌지 않은 노드는 이 시계열이 없습니다. |
 | `openstack_ironic_node_updated_at` | `seconds` | 최대 | 이 노드의 레코드가 마지막으로 변경된 시각이며 Unix 시간입니다. 한 번도 변경되지 않은 노드는 이 시계열이 없습니다. |
 | `openstack_ironic_agent_state` | | 최소 | Ironic이 conductor를 살아 있다고 보는 동안 1이고, 하트비트가 오래되어 만료되면 0입니다. 프로브만 보냅니다. exporter에는 이런 시계열이 없고, 프로젝트로 한정된 자격 증명은 목록 조회가 거부됩니다. |

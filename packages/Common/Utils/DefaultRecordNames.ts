@@ -39,8 +39,11 @@ import { StateListType } from "./StateOrder";
  * the project made it (a severity has no built-in flag, both get the same
  * kind of slug, and a badge is handed a name and a colour), so a project's
  * own record named exactly as a default of its list reads as that default
- * does - the same word the status page and the notifications use for it
- * (StatusPage/DefaultStatusNames.translateStateName).
+ * does - the same word the status page and the notifications use for it.
+ * A status page (StatusPage/src/Utils/StatusTranslation), an on-call page
+ * (OnCallDutyPolicy/OnCallPageWords) and a status page's notifications
+ * (Server/Utils/StatusPage/SubscriberMessageText) decide by this rule too,
+ * each handed its record's list (#8066).
  */
 
 interface NamedDefault {

@@ -35,6 +35,7 @@ import {
 } from "./DocsDashboardMenus";
 import { boldPaths } from "./DocsPageShape";
 import { escapeRegExp } from "./DocsTranslationChecks";
+import { expectPushRepeatPastAcknowledgement } from "./PushRepeatPastAcknowledgement";
 import {
   ON_CALL_RULE_KIND_DEFINITIONS,
   OnCallRuleKindDefinition,
@@ -1689,6 +1690,19 @@ describe("personal on-call rules", () => {
     expect(rules).toContain(
       `It repeats up to ${MAX_NOTIFICATION_REPEATS} more times, and stops as soon as the incident, alert or episode is acknowledged.`,
     );
+  });
+
+  /*
+   * A page that goes on after an acknowledgement - a page again, a page to
+   * observers, a person's page, a policy started by hand - repeats its push
+   * on too, until somebody it paged answers it or its record is resolved
+   * (#7840): the page says so, by the worker's rule.
+   */
+  it("says a page that goes on after an acknowledgement repeats until somebody it paged answers it, as the worker sends it", () => {
+    expectPushRepeatPastAcknowledgement({
+      page: rules,
+      stopsLine: `It repeats up to ${MAX_NOTIFICATION_REPEATS} more times, and stops as soon as the incident, alert or episode is acknowledged.`,
+    });
   });
 
   it("asks a phone for its push sound, and any push device for its repeat", () => {

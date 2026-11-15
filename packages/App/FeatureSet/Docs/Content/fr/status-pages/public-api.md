@@ -1,6 +1,6 @@
 # API publique
 
-Chaque page de statut répond à un petit ensemble de points de terminaison JSON en lecture seule : sa vue d'ensemble, un résumé, sa disponibilité, ses incidents, ses épisodes, ses événements de maintenance planifiée et ses annonces. Ce sont les points de terminaison que la page de statut charge elle-même : ils renvoient donc exactement ce que voit un visiteur, et une page publique n'a besoin d'aucune clé d'API. Utilisez-les pour afficher votre statut dans votre propre application, un chatbot ou un écran mural.
+Chaque page de statut répond à un petit ensemble de points de terminaison JSON en lecture seule : sa vue d'ensemble, un résumé, sa disponibilité, ses incidents, ses épisodes, ses événements de maintenance et ses annonces. Ce sont les points de terminaison que la page de statut charge elle-même : ils renvoient donc exactement ce que voit un visiteur, et une page publique n'a besoin d'aucune clé d'API. Utilisez-les pour afficher votre statut dans votre propre application, un chatbot ou un écran mural.
 
 :::cards
 - [Points de terminaison](#points-de-terminaison): Un point de terminaison pour chaque chose que montre la page.
@@ -57,8 +57,8 @@ Partout où un chemin ci-dessous indique `{statusPageIdOrDomain}`, vous pouvez e
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | Un incident. |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | Les épisodes d'incidents que la page liste. |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | Un épisode. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | Les événements de maintenance planifiée que la page liste, avec leurs notes publiques et leurs changements d'état. |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | Un événement de maintenance planifiée. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | Les événements de maintenance que la page liste, avec leurs notes publiques et leurs changements d'état. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | Un événement de maintenance. |
 | `/announcements/{statusPageIdOrDomain}` | `GET`, `POST` | Les annonces que la page liste. |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | Une annonce. |
 
@@ -140,13 +140,13 @@ Le statut global est le pire statut actuel des moniteurs et groupes de moniteurs
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Les incidents non résolus que la page montre, leurs notes publiques et leurs changements d'état, et les états d'incident du projet. |
 | `timelineIncidents` | Les incidents de la fenêtre des barres de disponibilité, résolus compris, pour les infobulles des barres. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | La même chose pour les épisodes d'incidents. |
-| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Les événements de maintenance planifiée à venir ou en cours, leurs notes publiques et leurs changements d'état. |
-| `timelineScheduledMaintenanceEvents` | Les événements de maintenance planifiée de la fenêtre des barres de disponibilité qui ont commencé, en cours ou passés, pour les infobulles des barres et la boîte de dialogue de chaque jour : ceux que la page montre et qui concernent l'un de ses moniteurs, chacun avec les seuls moniteurs de la page. |
+| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Les événements de maintenance à venir ou en cours, leurs notes publiques et leurs changements d'état. |
+| `timelineScheduledMaintenanceEvents` | Les événements de maintenance de la fenêtre des barres de disponibilité qui ont commencé, en cours ou passés, pour les infobulles des barres et la boîte de dialogue de chaque jour : ceux que la page montre et qui concernent l'un de ses moniteurs, chacun avec les seuls moniteurs de la page. |
 | `activeAnnouncements` | Les annonces affichées en ce moment : commencées, et pas encore terminées. |
 
 ## Lire le résumé
 
-Le résumé, c'est la vue d'ensemble réduite à ce qu'un outil de surveillance demande à une page : le statut de chaque ressource, et si un événement de maintenance planifiée en cours la touche. Il reste petit quel que soit l'historique que montre la page, et c'est ce que lit le [moniteur de page de statut externe](/docs/monitor/external-status-page-monitor#pages-de-statut-oneuptime) d'un autre OneUptime. Il vient du même cache que la vue d'ensemble, après les mêmes règles d'accès.
+Le résumé, c'est la vue d'ensemble réduite à ce qu'un outil de surveillance demande à une page : le statut de chaque ressource, et si un événement de maintenance en cours la touche. Il reste petit quel que soit l'historique que montre la page, et c'est ce que lit le [moniteur de page de statut externe](/docs/monitor/external-status-page-monitor#pages-de-statut-oneuptime) d'un autre OneUptime. Il vient du même cache que la vue d'ensemble, après les mêmes règles d'accès.
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ La réponse :
 | `overallStatus` | Le statut global de la page, tel que l'affiche sa bannière : `name`, `color` et `isOperational`. `null` quand la page affiche toutes ses ressources comme **Non surveillé**. |
 | `resources` | Chaque ressource que montre la page, dans son ordre : son `name` sur la page, son `groupName` avec les groupes au-dessus, son `currentStatus`, `isMonitored`, et `isUnderMaintenance`. |
 | `activeIncidents` | Les incidents non résolus que montre la page, chacun avec les `affectedResourceIds` des ressources qu'il touche. |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Les événements de maintenance planifiée en cours et encore à venir, chacun avec ses `affectedResourceIds`. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Les événements de maintenance en cours et encore à venir, chacun avec ses `affectedResourceIds`. |
 
 Le `currentStatus` d'une ressource vaut `null` quand la page ne l'affiche pas, et quand `isMonitored` vaut `false` : rien ne vérifie la ressource, parce que la surveillance de son moniteur est désactivée ou que tous les moniteurs de son groupe de moniteurs l'ont désactivée, et la page l'affiche donc comme **Non surveillé**. `isUnderMaintenance` vaut `true` tant qu'un événement en cours nomme l'un des moniteurs de la ressource, ou un moniteur de son groupe de moniteurs, quel que soit le statut de ces moniteurs.
 
@@ -346,7 +346,7 @@ Les points de terminaison de liste répondent à `GET` comme à `POST` ; ceux d'
 # The incidents the page lists
 curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-# One scheduled maintenance event
+# One maintenance event
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
 ```
 @tab Node.js
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | Incidents | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
 | Épisodes | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Événements de maintenance planifiée | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
+| Événements de maintenance | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Annonces | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
 Une requête pour un seul élément répond avec les mêmes clés, qui contiennent cet unique enregistrement.
@@ -406,7 +406,7 @@ Une erreur répond avec un code de statut et un corps JSON qui en donne la raiso
 
 ## Autres façons de lire une page de statut
 
-- **RSS.** Chaque page de statut sert `/rss`, un flux de ses incidents, annonces et événements de maintenance planifiée, chacun daté comme la page le date. Voir [Le badge intégrable et le flux RSS](/docs/status-pages/index#le-badge-intégrable-et-le-flux-rss).
+- **RSS.** Chaque page de statut sert `/rss`, un flux de ses incidents, annonces et événements de maintenance, chacun daté comme la page le date. Voir [Le badge intégrable et le flux RSS](/docs/status-pages/index#le-badge-intégrable-et-le-flux-rss).
 - **llms.txt.** À côté de `/rss`, chaque page de statut sert `/llms.txt`, qui oriente les agents d'IA vers le flux RSS et le JSON de la vue d'ensemble.
 - **MCP.** Les agents d'IA peuvent lire la page via le serveur MCP de OneUptime à l'adresse `https://oneuptime.com/mcp`, sans clé d'API, en passant l'ID ou le domaine de la page dans `statusPageIdOrDomain`. Il est activé par défaut ; désactivez-le avec **Activer le serveur MCP** sous **IA → MCP** dans le menu latéral de la page. Voir [Serveur MCP](/docs/ai/mcp-server).
 - **L'API REST.** Pour créer ou modifier des pages de statut, des ressources, des abonnés et des annonces, utilisez l'[API OneUptime](/docs/api-reference/api-reference) avec une clé d'API.

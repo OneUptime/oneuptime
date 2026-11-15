@@ -281,6 +281,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
         hasPopup="listbox"
         isExpanded={isOpen}
         ariaLabel={translator.translatePlural(copy.triggerName, count)}
+        isAriaLabelTranslated={true}
         /* An English key: the button looks its title up. */
         title={isTruncated ? copy.truncatedTitle : copy.title}
         dataAttributes={isTruncated ? { "data-truncated": "true" } : undefined}

@@ -112,7 +112,7 @@ Mattermost 没有可供 OneUptime 将您引导过去的登录页面，因此 One
 
 人员通过其已连接的 Mattermost 账户加入规则的频道；否则，当您的服务器向机器人显示电子邮件地址时（ **System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address** ），通过使用其电子邮件地址的 Mattermost 账户加入。OneUptime 会在频道中用一条消息列出它无法添加的所有人，并附上连接其账户的链接。
 
-拥有专属频道的事件、警报、片段或计划维护事件，会在其 OneUptime 页面标题的状态按钮旁显示 **在 Mattermost 中打开**。它会在新标签页中打开您的 Mattermost 服务器上的该频道。拥有两个专属频道的记录会在按钮下列出这两个频道。同时在 Slack 或 Microsoft Teams 中有频道的记录，会改为只显示一个 **打开频道** 按钮，列出所有频道。不会提供您的规则所发布到的现有频道。
+拥有专属频道的事件、警报、片段或维护事件，会在其 OneUptime 页面标题的状态按钮旁显示 **在 Mattermost 中打开**。它会在新标签页中打开您的 Mattermost 服务器上的该频道。拥有两个专属频道的记录会在按钮下列出这两个频道。同时在 Slack 或 Microsoft Teams 中有频道的记录，会改为只显示一个 **打开频道** 按钮，列出所有频道。不会提供您的规则所发布到的现有频道。
 
 规则所在行的 **测试规则** 会将该规则的测试消息发布到它指定的频道，与 Slack 中一样。
 
@@ -120,7 +120,7 @@ OneUptime 的消息不会因其引用的内容而通知任何人：包含 `@chan
 
 ## 记录频道中的成员
 
-拥有专属 Mattermost 频道的事件、警报、片段或计划维护事件，在其 OneUptime 页面上有一张 **Mattermost 频道** 卡片。卡片显示该频道（一个在您的 Mattermost 服务器上打开它的链接）、它是否为私密频道，以及频道中有谁，您排在最前面。无需 Mattermost 管理员，即可在卡片上：
+拥有专属 Mattermost 频道的事件、警报、片段或维护事件，在其 OneUptime 页面上有一张 **Mattermost 频道** 卡片。卡片显示该频道（一个在您的 Mattermost 服务器上打开它的链接）、它是否为私密频道，以及频道中有谁，您排在最前面。无需 Mattermost 管理员，即可在卡片上：
 
 - **加入频道** 会在您不在频道中时把您加入频道。
 - **添加成员** 会打开项目的人员和团队列表：选择一个人即添加此人，选择一个团队即添加其中的所有人。
@@ -145,7 +145,7 @@ OneUptime 的消息带有按钮，以及一个 **More actions** 菜单，用于�
 | **事件片段、警报片段** | **Acknowledge**、 **Resolve**、 **Add Note**、 **Change State**、 **Execute On-Call Policy** |
 | **计划维护** | **Mark as Ongoing**、 **Mark as Complete**、 **Add Note**、 **Change State** |
 
-**Add Note**、 **Change State**、 **Change Severity** 和 **Execute On-Call Policy** 会在 Mattermost 中打开一个表单。事件或计划维护活动上的备注可以是公开的（显示在状态页上），也可以是私密的；私密事件上的备注始终是私密的，警报上的备注也始终是私密的。每条消息还有一个在 OneUptime 中打开其记录的链接，用于其他所有操作。如果项目的公开备注需要审批，从表单发送的公开备注会等待审批，并有一条只有你能看到的消息说明它在等待谁：参见 [公开备注审批](/docs/incidents/notes-owners-and-feed#公开备注审批)。
+**Add Note**、 **Change State**、 **Change Severity** 和 **Execute On-Call Policy** 会在 Mattermost 中打开一个表单。事件或维护事件上的备注可以是公开的（显示在状态页上），也可以是私密的；私密事件上的备注始终是私密的，警报上的备注也始终是私密的。每条消息还有一个在 OneUptime 中打开其记录的链接，用于其他所有操作。如果项目的公开备注需要审批，从表单发送的公开备注会等待审批，并有一条只有你能看到的消息说明它在等待谁：参见 [公开备注审批](/docs/incidents/notes-owners-and-feed#公开备注审批)。
 
 如果您的 Mattermost 账户尚未连接，按钮会告诉您这一点，并附上指向 **用户设置** > **工作区** > **Mattermost** 的链接。连接您的账户后，再按一次按钮。
 

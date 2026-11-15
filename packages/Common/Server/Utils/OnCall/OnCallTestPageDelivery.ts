@@ -29,6 +29,7 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPageLine";
 import {
   OnCallTestPageRecordKind,
+  getOnCallTestPageSeverityList,
   isOnCallTestPageRecordKind,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
@@ -747,6 +748,7 @@ export default class OnCallTestPageDelivery {
       if (run?.testPageSeverityId) {
         context.severityName = getOnCallPageStateName(
           data.translator,
+          getOnCallTestPageSeverityList(context.recordKind),
           await this.readSeverityName({
             recordKind: context.recordKind,
             severityId: run.testPageSeverityId,

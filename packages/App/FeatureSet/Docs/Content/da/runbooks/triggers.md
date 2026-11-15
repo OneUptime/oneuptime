@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["OneUptime Worker<br/>kører trinnene"]
 ```
 
-En udløser starter en kørsel, som **Kør nu** gør: kørslen gennemgår runbookets nuværende trin og er ikke knyttet til nogen hændelse, nogen advarsel eller noget planlagt vedligeholdelsesarrangement. Hver kørsel registrerer, hvad der startede den. Runbookets **Udførelser** og **Runbooks → Udførelser** viser det under **Udløst af**, med hvornår en planlagt kørsel skulle ske, eller den adresse, der kaldte webhooken, og begge lister kan filtreres efter det.
+En udløser starter en kørsel, som **Kør nu** gør: kørslen gennemgår runbookets nuværende trin og er ikke knyttet til nogen hændelse, nogen advarsel eller nogen vedligeholdelseshændelse. Hver kørsel registrerer, hvad der startede den. Runbookets **Udførelser** og **Runbooks → Udførelser** viser det under **Udløst af**, med hvornår en planlagt kørsel skulle ske, eller den adresse, der kaldte webhooken, og begge lister kan filtreres efter det.
 
 ## Før du begynder
 

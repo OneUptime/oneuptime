@@ -29,6 +29,7 @@ import {
   SessionReplayStringMapLimits,
   sanitizeSessionReplayStringMap,
 } from "../../Utils/Rum/SessionReplayStringMap";
+import UrlScrubber from "../../Utils/Rum/UrlScrubber";
 import {
   SESSION_REPLAY_MAX_CUSTOM_EVENT_NAME_LENGTH,
   SESSION_REPLAY_MAX_CUSTOM_EVENT_PROPERTY_KEYS,
@@ -333,6 +334,14 @@ export function toProductAnalyticsEventName(value: unknown): string | null {
  * A page as stored: its path, from the first "/", without a query or a
  * fragment. A mobile app's screen name ("Checkout") becomes "/Checkout",
  * the path part one files its sessions' pages under. "" when there is none.
+ *
+ * In the path's one spelling (UrlScrubber.normalizePathSpelling), the one
+ * Session Replay stores and User Flows keys a page by: "/caf%c3%a9",
+ * "/cafe%CC%81" and "/café" are all "/caf%C3%A9". The recorder writes that
+ * spelling, but an older or cached recorder still sends the one the browser
+ * had, and the server runs this over what it was sent. Every read of a page
+ * a request names runs it too (toProductAnalyticsEventRef), so a link or a
+ * saved funnel with an older spelling names the same page.
  */
 export function toProductAnalyticsPage(value: unknown): string {
   if (typeof value !== "string") {
@@ -361,7 +370,10 @@ export function toProductAnalyticsPage(value: unknown): string {
     page = `/${page}`;
   }
 
-  return page.slice(0, PRODUCT_ANALYTICS_MAX_PAGE_LENGTH);
+  return UrlScrubber.normalizePathSpelling(page).slice(
+    0,
+    PRODUCT_ANALYTICS_MAX_PAGE_LENGTH,
+  );
 }
 
 function toContextValue(value: unknown): string {

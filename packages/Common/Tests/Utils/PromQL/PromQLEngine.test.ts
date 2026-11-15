@@ -372,6 +372,135 @@ describe("instant selectors", () => {
     ).toEqual(['up{instance="host-1:9100", job="node", x="[]"}']);
   });
 
+  test("a label pattern reads a value's newlines as Prometheus does", async () => {
+    // Label values with a newline in them, such as a log line's.
+    const lines: PromQLEngine = new PromQLEngine(
+      new MemorySource([
+        {
+          labels: { __name__: "log_line", text: "GET /api\nok" },
+          samples: [[600, 1]],
+        },
+        {
+          labels: { __name__: "log_line", text: "x\napi" },
+          samples: [[600, 2]],
+        },
+      ]),
+    );
+    // An instant vector as { 'labels': value }.
+    const answer: (query: string) => Promise<Record<string, number>> = async (
+      query: string,
+    ): Promise<Record<string, number>> => {
+      const result: PromQLQueryResult = await lines.instantQuery(
+        query,
+        600_000,
+      );
+
+      if (result.resultType !== PromQLResultType.Vector) {
+        throw new Error(`Expected a vector, got ${result.resultType}.`);
+      }
+
+      const values: Record<string, number> = {};
+
+      for (const sample of result.samples) {
+        values[formatPromQLLabels(sample.labels)] = sample.value;
+      }
+
+      return values;
+    };
+    const getLine: string = 'log_line{text="GET /api\\nok"}';
+    const apiLine: string = 'log_line{text="x\\napi"}';
+
+    // "." matches "\n" (DotNL), as in Prometheus' ^(?s:<pattern>)$.
+    expect(await answer('log_line{text=~"GET.*ok"}')).toEqual({
+      [getLine]: 1,
+    });
+    // (?m) stays inside: the pattern still has to match the whole value.
+    expect(await answer('log_line{text=~"(?m)api"}')).toEqual({});
+    expect(await answer('log_line{text!~"(?m)api"}')).toEqual({
+      [getLine]: 1,
+      [apiLine]: 2,
+    });
+    expect(await answer('log_line{text=~"(?m)x$\\n^api"}')).toEqual({
+      [apiLine]: 2,
+    });
+    // label_replace() too: (.*) matches the whole value, newline and all.
+    expect(
+      await answer('label_replace(log_line, "copy", "$1", "text", "(.*)")'),
+    ).toEqual({
+      'log_line{copy="GET /api\\nok", text="GET /api\\nok"}': 1,
+      'log_line{copy="x\\napi", text="x\\napi"}': 2,
+    });
+  });
+
+  test("a flag group in a label pattern covers the rest of its group, as in Prometheus", async () => {
+    const services: PromQLEngine = new PromQLEngine(
+      new MemorySource(
+        ["apiServer", "APIserver", "api-SERVER", "WEB", "web"].map(
+          (service: string, index: number): TestSeries => {
+            return {
+              labels: { __name__: "up", service },
+              samples: [[600, index + 1]],
+            };
+          },
+        ),
+      ),
+    );
+    // Which services a selector finds, in order.
+    const found: (query: string) => Promise<Array<string>> = async (
+      query: string,
+    ): Promise<Array<string>> => {
+      const result: PromQLQueryResult = await services.instantQuery(
+        query,
+        600_000,
+      );
+
+      if (result.resultType !== PromQLResultType.Vector) {
+        throw new Error(`Expected a vector, got ${result.resultType}.`);
+      }
+
+      return result.samples
+        .map((sample: PromQLVectorResultSample): string => {
+          return sample.labels["service"] ?? "";
+        })
+        .sort();
+    };
+
+    // "api" as written, then SERVER in either case.
+    expect(await found('up{service=~"api(?i)SERVER"}')).toEqual(["apiServer"]);
+    expect(await found('up{service!~"api(?i)SERVER"}')).toEqual([
+      "APIserver",
+      "WEB",
+      "api-SERVER",
+      "web",
+    ]);
+    // (?i) reaches the alternatives after it; (?-i) clears it for the rest.
+    expect(await found('up{service=~"(?i)apiserver|(?-i)web"}')).toEqual([
+      "APIserver",
+      "apiServer",
+      "web",
+    ]);
+    // A group's ")" ends the flags its flag groups set.
+    expect(await found('up{service=~"(a(?i)PI)-SERVER"}')).toEqual([
+      "api-SERVER",
+    ]);
+    expect(await found('up{service=~"(a(?i)PI)-server"}')).toEqual([]);
+    // label_replace() reads the same pattern the same way.
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$1", "instance", "(HOST(?i)-1):.*")',
+        ),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node"}']);
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$1", "instance", "(h(?i)OST-1):.*")',
+        ),
+      ),
+    ).toEqual(['up{host="host-1", instance="host-1:9100", job="node"}']);
+  });
+
   /*
    * No series here has a label named constructor, toString or __proto__, so
    * each reads "" (Prometheus' Labels.Get), as a label no series has does:
@@ -1413,6 +1542,23 @@ describe("other functions", () => {
         ),
       ),
     ).toEqual(['up{instance="host-1:9100", job="node"}']);
+  });
+
+  test("label_replace reads RE2's (?U), as Prometheus does: x+ is lazy, x+? greedy", async () => {
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$1", "instance", "(?U)(.+)(.*)")',
+        ),
+      ),
+    ).toEqual(['up{host="h", instance="host-1:9100", job="node"}']);
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$1", "instance", "(?U)(.+?)(.*)")',
+        ),
+      ),
+    ).toEqual(['up{host="host-1:9100", instance="host-1:9100", job="node"}']);
   });
 
   test("label_replace is anchored, as Prometheus anchors it: a pattern that matches part of the value leaves the series alone", async () => {

@@ -1,4 +1,3 @@
-import Text from "../../../Types/Text";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -11,7 +10,9 @@ import {
   translationKey,
   Translator,
 } from "../../../Types/Translator";
-import { translateStateName } from "../../../Types/StatusPage/DefaultStatusNames";
+import { StatusPageNameList } from "../../../Types/StatusPage/DefaultStatusNames";
+import { translateRecordName } from "../../../Utils/DefaultRecordNames";
+import { StateListType } from "../../../Utils/StateOrder";
 import { isolateValueForReader } from "../ServerTranslation";
 
 /*
@@ -34,7 +35,11 @@ import { isolateValueForReader } from "../ServerTranslation";
  * before - each piece is the English it always was, character for
  * character. Values go in as written: titles, names, notes, links. A
  * state's or a severity's name is OneUptime's default name in the reader's
- * language, or the project's own as written (translateStateName).
+ * language, or the project's own as written - decided by the list it is a
+ * name of (an incident state, an incident severity, a maintenance state:
+ * Utils/DefaultRecordNames), so an incident state a project named
+ * "Degraded" reads as written, though Degraded is a default monitor
+ * status (#8066).
  *
  * A text message's links go out exactly as written (SubscriberSms): every
  * sentence keeps a space before each link, in every language
@@ -237,37 +242,29 @@ export default class SubscriberMessageText {
 
   /*
    * A state's or severity's name in a sentence - the value a sentence takes
-   * for {{state}} or {{severity}}: OneUptime's default name in the
-   * sentence's language, the project's own as written.
+   * for {{state}} or {{severity}}: OneUptime's default name of its `list`
+   * in the sentence's language, the project's own as written.
    */
-  public static stateName(name: string | null | undefined): ComposedValue {
+  public static stateName(
+    list: StatusPageNameList,
+    name: string | null | undefined,
+  ): ComposedValue {
     return composedValue((translator: Translator): string => {
-      return translateStateName(translator, name);
-    });
-  }
-
-  /*
-   * A state as the state change messages write it in a sentence, with a
-   * capital first letter ("Resolved").
-   */
-  public static formattedStateName(name: string): ComposedValue {
-    return composedValue((translator: Translator): string => {
-      return Text.uppercaseFirstLetter(
-        translateStateName(translator, name.trim()),
-      );
+      return this.nameInLanguage(translator, list, name);
     });
   }
 
   /*
    * A state's or severity's name on its own (a detail row, a chat line):
-   * OneUptime's default names in `translator`'s language, the project's own
-   * as written.
+   * OneUptime's default names of its `list` in `translator`'s language, the
+   * project's own as written.
    */
   public static nameInLanguage(
     translator: Translator,
+    list: StatusPageNameList,
     name: string | null | undefined,
   ): string {
-    return translateStateName(translator, name);
+    return translateRecordName(translator, list, name);
   }
 
   // A fixed word or sentence in the reader's language.
@@ -363,8 +360,8 @@ ${this.chatLine(translator, SubscriberChatText.resourcesAffected, data.resources
     }
 
     message += mdText`
-${this.chatLine(translator, SubscriberChatText.severity, data.severityName ? this.nameInLanguage(translator, data.severityName) : " - ")}
-${this.chatLine(translator, SubscriberChatText.status, this.nameInLanguage(translator, data.stateName))}${data.customFields || FeedMarkdown.empty()}
+${this.chatLine(translator, SubscriberChatText.severity, data.severityName ? this.nameInLanguage(translator, StateListType.IncidentSeverity, data.severityName) : " - ")}
+${this.chatLine(translator, SubscriberChatText.status, this.nameInLanguage(translator, StateListType.IncidentState, data.stateName))}${data.customFields || FeedMarkdown.empty()}
 
 ${this.chatLinks(translator, { statusPageUrl: data.statusPageUrl, unsubscribeUrl: data.unsubscribeUrl })}`.toString();
 
@@ -394,7 +391,7 @@ ${this.chatLinks(translator, { statusPageUrl: data.statusPageUrl, unsubscribeUrl
     },
   ): string {
     const statusLine: MarkdownText = data.stateChangeName
-      ? mdText`${this.chatLine(translator, SubscriberChatText.status, this.nameInLanguage(translator, data.stateChangeName.trim()))}\n`
+      ? mdText`${this.chatLine(translator, SubscriberChatText.status, this.nameInLanguage(translator, StateListType.IncidentState, data.stateChangeName.trim()))}\n`
       : FeedMarkdown.empty();
 
     return mdText`## ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: data.title || "" })}
@@ -402,7 +399,7 @@ ${this.chatLinks(translator, { statusPageUrl: data.statusPageUrl, unsubscribeUrl
 **${this.text(translator, data.sentence)}**
 
 ${this.chatLine(translator, SubscriberChatText.resourcesAffected, data.resourcesAffected)}
-${this.chatLine(translator, SubscriberChatText.severity, data.severityName ? this.nameInLanguage(translator, data.severityName) : " - ")}
+${this.chatLine(translator, SubscriberChatText.severity, data.severityName ? this.nameInLanguage(translator, StateListType.IncidentSeverity, data.severityName) : " - ")}
 ${statusLine}${data.customFields || FeedMarkdown.empty()}
 ${this.chatLabel(translator, SubscriberChatText.note)}
 ${FeedMarkdown.asMarkdown(data.note || "")}
@@ -457,10 +454,10 @@ ${text(SubscribedChatText.stayInformed)} 🚀`.toString();
     return data.resources
       ? translator.translateTemplate(SubscriberEmailText.incidentOnIsState, {
           resources: data.resources,
-          state: this.stateName(data.state),
+          state: this.stateName(StateListType.IncidentState, data.state),
         })
       : translator.translateTemplate(SubscriberEmailText.incidentIsState, {
-          state: this.stateName(data.state),
+          state: this.stateName(StateListType.IncidentState, data.state),
         });
   }
 
