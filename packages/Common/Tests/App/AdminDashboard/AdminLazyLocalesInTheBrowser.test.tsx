@@ -159,7 +159,9 @@ const loadAdmin: (data: {
     jest.doMock(LOADER_MODULE, () => {
       const actual: {
         loadLocaleResource: (code: string) => Promise<unknown>;
-      } = jest.requireActual(LOADER_MODULE);
+      } = jest.requireActual(LOADER_MODULE) as {
+        loadLocaleResource: (code: string) => Promise<unknown>;
+      };
 
       return {
         ...actual,
