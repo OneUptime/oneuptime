@@ -45,7 +45,7 @@ A partir daí, um SLO de requisições funciona como qualquer outro. O status, a
 :::steps
 ### Abrir os SLOs
 
-Abra **SLOs** no menu **Produtos** da barra superior e clique em **Criar: Service Level Objective**.
+Abra **SLOs** no menu **Produtos** da barra superior e clique em **Criar: Objetivo de nível de serviço**.
 
 ### Escolher o que ele mede
 
@@ -53,14 +53,14 @@ Em **O que mede**, escolha **Sucesso das requisições** ou **Latência das requ
 
 ### Dar um nome e definir uma meta
 
-Informe um **Nome**, por exemplo "Checkout requests", e uma **Meta (%)**: a parcela das requisições que precisa ser boa. Clique em **Criar: Service Level Objective**.
+Informe um **Nome**, por exemplo "Checkout requests", e uma **Meta (%)**: a parcela das requisições que precisa ser boa. Clique em **Criar: Objetivo de nível de serviço**.
 
 ### Ver os primeiros números chegarem
 
 A primeira avaliação, em até 5 minutos, conta as requisições das últimas 6 horas, então o SLO já tem números logo de início. As avaliações seguintes contam também requisições mais antigas, até cobrir a janela de conformidade.
 :::
 
-A página **SLOs** de um serviço lista os SLOs que o medem, e o seu **Criar: Service Level Objective** abre o mesmo formulário com o serviço já escolhido. Para mudar depois o que um SLO mede, os serviços dele, o limite ou o filtro, abra as **Configurações** dele e clique em **Editar o que mede**.
+A página **SLOs** de um serviço lista os SLOs que o medem, e o seu **Criar: Objetivo de nível de serviço** abre o mesmo formulário com o serviço já escolhido. Para mudar depois o que um SLO mede, os serviços dele, o limite ou o filtro, abra as **Configurações** dele e clique em **Editar o que mede**.
 
 ## Contar só algumas requisições
 

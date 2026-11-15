@@ -45,7 +45,7 @@ OneUptime 各處使用的詞彙都收錄在 [詞彙表](/docs/introduction/gloss
 :::steps
 ### 開啟 SLO
 
-從頂部列的 **產品** 選單開啟 **SLOs**。它位於第一組，與監測器和事件放在一起。按一下 **建立Service Level Objective**。
+從頂部列的 **產品** 選單開啟 **SLOs**。它位於第一組，與監測器和事件放在一起。按一下 **建立服務等級目標**。
 
 ### 選擇衡量對象
 
@@ -61,7 +61,7 @@ OneUptime 各處使用的詞彙都收錄在 [詞彙表](/docs/introduction/gloss
 
 ### 儲存 SLO
 
-按一下 **建立Service Level Objective**。OneUptime 會開啟新的 SLO。由於監測器可用率 SLO 還沒有監測器，它的 **概覽** 會顯示 **Choose what this SLO measures**。
+按一下 **建立服務等級目標**。OneUptime 會開啟新的 SLO。由於監測器可用率 SLO 還沒有監測器，它的 **概覽** 會顯示 **Choose what this SLO measures**。
 
 ### 連結監測器
 

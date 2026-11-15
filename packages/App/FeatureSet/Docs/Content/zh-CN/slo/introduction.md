@@ -45,7 +45,7 @@ OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary
 :::steps
 ### 打开 SLO
 
-从顶部栏的 **产品** 菜单打开 **SLOs**。它位于第一组，与监视器和事件在一起。点击 **创建Service Level Objective**。
+从顶部栏的 **产品** 菜单打开 **SLOs**。它位于第一组，与监视器和事件在一起。点击 **创建服务级别目标**。
 
 ### 选择衡量对象
 
@@ -61,7 +61,7 @@ OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary
 
 ### 保存 SLO
 
-点击 **创建Service Level Objective**。OneUptime 会打开新的 SLO。监视器可用率 SLO 还没有监视器，因此它的 **概览** 会显示 **Choose what this SLO measures**。
+点击 **创建服务级别目标**。OneUptime 会打开新的 SLO。监视器可用率 SLO 还没有监视器，因此它的 **概览** 会显示 **Choose what this SLO measures**。
 
 ### 关联监视器
 

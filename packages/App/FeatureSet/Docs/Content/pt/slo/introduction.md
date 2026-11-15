@@ -45,7 +45,7 @@ Você precisa de uma função que possa criar SLOs: Proprietário do projeto, Ad
 :::steps
 ### Abrir os SLOs
 
-Abra **SLOs** no menu **Produtos** da barra superior. Ele fica no primeiro grupo, ao lado de monitores e incidentes. Clique em **Criar: Service Level Objective**.
+Abra **SLOs** no menu **Produtos** da barra superior. Ele fica no primeiro grupo, ao lado de monitores e incidentes. Clique em **Criar: Objetivo de nível de serviço**.
 
 ### Escolher o que ele mede
 
@@ -61,7 +61,7 @@ Informe um **Nome**, por exemplo "API Availability", e uma **Meta (%)**: a parce
 
 ### Salvar o SLO
 
-Clique em **Criar: Service Level Objective**. O OneUptime abre o novo SLO. A **Visão geral** de um SLO de disponibilidade dos monitores mostra **Choose what this SLO measures**, porque ele ainda não tem monitores.
+Clique em **Criar: Objetivo de nível de serviço**. O OneUptime abre o novo SLO. A **Visão geral** de um SLO de disponibilidade dos monitores mostra **Choose what this SLO measures**, porque ele ainda não tem monitores.
 
 ### Associar monitores
 

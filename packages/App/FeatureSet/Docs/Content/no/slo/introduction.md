@@ -45,7 +45,7 @@ Du trenger en rolle som kan opprette SLO-er: Prosjekteier, Prosjektadministrator
 :::steps
 ### Åpne SLO-er
 
-Åpne **SLOs** fra menyen **Produkter** i topplinjen. Den ligger i den første gruppen, ved siden av monitorer og hendelser. Klikk på **Opprett Service Level Objective**.
+Åpne **SLOs** fra menyen **Produkter** i topplinjen. Den ligger i den første gruppen, ved siden av monitorer og hendelser. Klikk på **Opprett Tjenestenivåmål**.
 
 ### Velg hva SLO-et måler
 
@@ -61,7 +61,7 @@ Skriv inn et **Navn**, for eksempel «API Availability», og et **Mål (%)**: hv
 
 ### Lagre SLO-et
 
-Klikk på **Opprett Service Level Objective**. OneUptime åpner det nye SLO-et. **Oversikt** for et SLO for monitoroppetid viser **Choose what this SLO measures**, fordi det ennå ikke har noen monitorer.
+Klikk på **Opprett Tjenestenivåmål**. OneUptime åpner det nye SLO-et. **Oversikt** for et SLO for monitoroppetid viser **Choose what this SLO measures**, fordi det ennå ikke har noen monitorer.
 
 ### Knytt til monitorer
 

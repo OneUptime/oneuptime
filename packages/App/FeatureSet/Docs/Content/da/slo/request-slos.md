@@ -45,7 +45,7 @@ Derfra fungerer et anmodnings-SLO som ethvert andet SLO. Dets status, forbrugsra
 :::steps
 ### Åbn SLO'er
 
-Åbn **SLOs** fra menuen **Produkter** i topbjælken, og klik på **Opret Service Level Objective**.
+Åbn **SLOs** fra menuen **Produkter** i topbjælken, og klik på **Opret Serviceniveaumål**.
 
 ### Vælg, hvad det måler
 
@@ -53,14 +53,14 @@ Under **Hvad det måler** vælger du **Vellykkede anmodninger** eller **Anmodnin
 
 ### Giv det et navn og et mål
 
-Angiv et **Navn**, for eksempel "Checkout requests", og et **Mål (%)**: den andel af anmodningerne, der skal være gode. Klik på **Opret Service Level Objective**.
+Angiv et **Navn**, for eksempel "Checkout requests", og et **Mål (%)**: den andel af anmodningerne, der skal være gode. Klik på **Opret Serviceniveaumål**.
 
 ### Se de første tal komme ind
 
 Den første evaluering, inden for 5 minutter, tæller anmodningerne fra de seneste 6 timer, så SLO'et har tal med det samme. De efterfølgende evalueringer tæller også ældre anmodninger, indtil hele compliancevinduet er dækket.
 :::
 
-En tjenestes egen side **SLOs** viser de SLO'er, der måler den, og dens **Opret Service Level Objective** åbner den samme formular med tjenesten allerede valgt. Vil du senere ændre, hvad et SLO måler, dets tjenester, dets grænse eller dets filter, skal du åbne dets **Indstillinger** og klikke på **Rediger, hvad det måler**.
+En tjenestes egen side **SLOs** viser de SLO'er, der måler den, og dens **Opret Serviceniveaumål** åbner den samme formular med tjenesten allerede valgt. Vil du senere ændre, hvad et SLO måler, dets tjenester, dets grænse eller dets filter, skal du åbne dets **Indstillinger** og klikke på **Rediger, hvad det måler**.
 
 ## Tæl kun nogle anmodninger
 

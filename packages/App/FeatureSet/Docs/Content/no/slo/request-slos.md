@@ -45,7 +45,7 @@ Derfra fungerer et forespørsels-SLO som alle andre. Statusen, forbruksrateregle
 :::steps
 ### Åpne SLO-er
 
-Åpne **SLOs** fra menyen **Produkter** i topplinjen, og klikk på **Opprett Service Level Objective**.
+Åpne **SLOs** fra menyen **Produkter** i topplinjen, og klikk på **Opprett Tjenestenivåmål**.
 
 ### Velg hva SLO-et måler
 
@@ -53,14 +53,14 @@ Under **Hva den måler** velger du **Vellykkede forespørsler** eller **Forespø
 
 ### Gi det et navn og et mål
 
-Skriv inn et **Navn**, for eksempel «Checkout requests», og et **Mål (%)**: andelen forespørsler som må være gode. Klikk på **Opprett Service Level Objective**.
+Skriv inn et **Navn**, for eksempel «Checkout requests», og et **Mål (%)**: andelen forespørsler som må være gode. Klikk på **Opprett Tjenestenivåmål**.
 
 ### Se de første tallene komme inn
 
 Den første evalueringen, innen 5 minutter, teller forespørslene fra de siste 6 timene, så SLO-et har tall med en gang. Evalueringene etter den teller også eldre forespørsler, helt til samsvarsvinduet er dekket.
 :::
 
-En tjenestes egen side **SLOs** viser SLO-ene som måler den, og **Opprett Service Level Objective** der åpner det samme skjemaet med tjenesten allerede valgt. Vil du senere endre hva et SLO måler, tjenestene, grensen eller filteret, åpner du **Innstillinger** for SLO-et og klikker på **Rediger hva den måler**.
+En tjenestes egen side **SLOs** viser SLO-ene som måler den, og **Opprett Tjenestenivåmål** der åpner det samme skjemaet med tjenesten allerede valgt. Vil du senere endre hva et SLO måler, tjenestene, grensen eller filteret, åpner du **Innstillinger** for SLO-et og klikker på **Rediger hva den måler**.
 
 ## Tell bare noen forespørsler
 

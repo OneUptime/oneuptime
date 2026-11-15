@@ -45,7 +45,7 @@ Därifrån fungerar ett SLO för begäranden som alla andra. Dess status, regler
 :::steps
 ### Öppna SLO:er
 
-Öppna **SLOs** från menyn **Produkter** i det övre fältet och klicka på **Skapa Service Level Objective**.
+Öppna **SLOs** från menyn **Produkter** i det övre fältet och klicka på **Skapa Tjänstenivåmål**.
 
 ### Välj vad SLO:et mäter
 
@@ -53,14 +53,14 @@ Under **Vad den mäter** väljer du **Lyckade begäranden** eller **Latens för 
 
 ### Ge det ett namn och ett mål
 
-Ange ett **Namn**, till exempel ”Checkout requests”, och ett **Mål (%)**: den andel av begärandena som måste vara bra. Klicka på **Skapa Service Level Objective**.
+Ange ett **Namn**, till exempel ”Checkout requests”, och ett **Mål (%)**: den andel av begärandena som måste vara bra. Klicka på **Skapa Tjänstenivåmål**.
 
 ### Se de första siffrorna komma in
 
 Den första utvärderingen, inom 5 minuter, räknar begärandena från de senaste 6 timmarna, så SLO:et har siffror direkt. Utvärderingarna efter den räknar även äldre begäranden, tills hela efterlevnadsfönstret är täckt.
 :::
 
-En tjänsts egen sida **SLOs** visar de SLO:er som mäter den, och dess **Skapa Service Level Objective** öppnar samma formulär med tjänsten redan vald. För att senare ändra vad ett SLO mäter, dess tjänster, dess gräns eller dess filter öppnar du dess **Inställningar** och klickar på **Redigera vad den mäter**.
+En tjänsts egen sida **SLOs** visar de SLO:er som mäter den, och dess **Skapa Tjänstenivåmål** öppnar samma formulär med tjänsten redan vald. För att senare ändra vad ett SLO mäter, dess tjänster, dess gräns eller dess filter öppnar du dess **Inställningar** och klickar på **Redigera vad den mäter**.
 
 ## Räkna bara vissa begäranden
 
