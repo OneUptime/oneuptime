@@ -92,6 +92,7 @@ import {
   SecurityEntity,
   SecurityEntityType,
 } from "../../../Types/SecurityCase/SecurityEntity";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 const IP_LAST_SEEN: Date = new Date("2026-10-14T11:51:00.000Z");
@@ -280,10 +281,10 @@ describe("the case's entities", () => {
       "Domain",
       "0",
       "0",
-      "-",
-      "-",
+      QUIET_DASH_TEXT,
+      QUIET_DASH_TEXT,
       // A domain carries no risk.
-      "-",
+      QUIET_DASH_TEXT,
     ]);
   });
 
@@ -428,7 +429,7 @@ describe("each entity's risk", () => {
     await waitFor(() => {
       expect(cellsOf(rows()[1]!)[6]).toBe("200Critical");
     });
-    expect(cellsOf(rows()[0]!)[6]).toBe("-");
+    expect(cellsOf(rows()[0]!)[6]).toBe(QUIET_DASH_TEXT);
 
     cleanup();
     getListMock.mockImplementation(async () => {
@@ -442,8 +443,8 @@ describe("each entity's risk", () => {
     await waitFor(() => {
       expect(cellsOf(rows()[0]!)[2]).toBe("475");
     });
-    expect(cellsOf(rows()[0]!)[6]).toBe("-");
-    expect(cellsOf(rows()[1]!)[6]).toBe("-");
+    expect(cellsOf(rows()[0]!)[6]).toBe(QUIET_DASH_TEXT);
+    expect(cellsOf(rows()[1]!)[6]).toBe(QUIET_DASH_TEXT);
     // The activity is the card's: it still reads.
     expect(
       screen.queryByTestId(SECURITY_CASE_ENTITIES_TEST_IDS.activityError),
@@ -457,7 +458,7 @@ describe("each entity's risk", () => {
       expect(getEntityActivityMock).toHaveBeenCalled();
     });
     expect(getListMock).not.toHaveBeenCalled();
-    expect(cellsOf(rows()[0]!)[6]).toBe("-");
+    expect(cellsOf(rows()[0]!)[6]).toBe(QUIET_DASH_TEXT);
   });
 });
 

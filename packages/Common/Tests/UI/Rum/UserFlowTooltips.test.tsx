@@ -41,6 +41,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/RumMetricDescriptions";
 import { expectReadableDescriptionRecord } from "../../App/Dashboard/MetricDescriptionRules";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 /*
  * The User Flows page's (i) tooltips, rendered: the five overview tiles,
@@ -501,7 +502,7 @@ describe("User Flows Top paths headers", () => {
      * errors: the column counts any error in the session.
      */
     expect(byPath["/product/:id > /cart"]?.[4]).toBe("100%");
-    expect(byPath["/home > /cart > /home"]?.[4]).toBe("—");
+    expect(byPath["/home > /cart > /home"]?.[4]).toBe(QUIET_DASH_TEXT);
   });
 });
 
@@ -575,9 +576,9 @@ describe("User Flows Pages headers", () => {
 
     // Only s1's error was placed on a page; s4's reached no page's column.
     expect(checkout[6]).toBe("1");
-    expect(cart[6]).toBe("—");
+    expect(cart[6]).toBe(QUIET_DASH_TEXT);
     expect(cart[7]).toBe("1");
-    expect(home[7]).toBe("—");
+    expect(home[7]).toBe(QUIET_DASH_TEXT);
   });
 
   test("Exit rate is Left divided by Sessions on every row", () => {

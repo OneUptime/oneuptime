@@ -12,6 +12,7 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The pills a case, a detection and a playbook run are read by. A case's
@@ -40,7 +41,7 @@ interface TooltipPillProps extends ValuePillProps {
 }
 
 const NoValue: FunctionComponent = (): ReactElement => {
-  return <span className="text-gray-400">-</span>;
+  return <TableEmptyValue />;
 };
 
 // A priority or a status of the project's: its name and its colour.

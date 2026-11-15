@@ -195,12 +195,12 @@ const KubernetesClusterJobDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "job_cpu",
-      title: "Pod CPU Utilization",
+      title: translator.translateText("Pod CPU Utilization"),
       description: translator.translateTemplate(
         "CPU utilization for pods in job {{jobName}}",
         { jobName: jobName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -227,12 +227,12 @@ const KubernetesClusterJobDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "job_memory",
-      title: "Pod Memory Usage",
+      title: translator.translateText("Pod Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for pods in job {{jobName}}",
         { jobName: jobName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {

@@ -176,12 +176,12 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "node_cpu",
-      title: "CPU Utilization",
+      title: translator.translateText("CPU Utilization"),
       description: translator.translateTemplate(
         "CPU usage as a percentage of allocatable CPU for node {{nodeName}}",
         { nodeName: nodeName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -205,12 +205,12 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "node_memory",
-      title: "Memory Usage",
+      title: translator.translateText("Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for node {{nodeName}}",
         { nodeName: nodeName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -233,12 +233,12 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   const filesystemQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "node_filesystem",
-      title: "Filesystem Usage",
+      title: translator.translateText("Filesystem Usage"),
       description: translator.translateTemplate(
         "Filesystem usage for node {{nodeName}}",
         { nodeName: nodeName },
       ),
-      legend: "Filesystem",
+      legend: translator.translateText("Filesystem"),
       legendUnit: "",
     },
     metricQueryData: {

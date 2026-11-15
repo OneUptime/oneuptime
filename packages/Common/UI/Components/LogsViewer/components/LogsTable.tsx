@@ -47,6 +47,7 @@ import ResizableHeaderCell, {
 } from "../../Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "../../Table/ColumnResize/ColumnWidths";
 import ResetColumnWidthsButton from "../../Table/ColumnResize/ResetColumnWidthsButton";
+import TableEmptyValue from "../../Table/TableEmptyValue";
 
 export interface LogsTableProps {
   logs: Array<Log>;
@@ -695,11 +696,13 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                             className="whitespace-nowrap px-4 py-2 text-[13px] font-mono text-gray-600"
                             key={columnId}
                           >
-                            {log.time
-                              ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                                  log.time,
-                                )
-                              : "-"}
+                            {log.time ? (
+                              OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                                log.time,
+                              )
+                            ) : (
+                              <TableEmptyValue />
+                            )}
                           </td>
                         );
                       }
@@ -755,7 +758,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                                   {message ? (
                                     <IsolatedText text={message} />
                                   ) : (
-                                    "-"
+                                    <TableEmptyValue />
                                   )}
                                 </p>
                                 {((traceId && !showTraceColumn) ||
@@ -807,7 +810,11 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                             key={columnId}
                           >
                             <span className="block truncate font-mono">
-                              {traceId ? renderTraceIdValue(traceId, log) : "-"}
+                              {traceId ? (
+                                renderTraceIdValue(traceId, log)
+                              ) : (
+                                <TableEmptyValue />
+                              )}
                             </span>
                           </td>
                         );
@@ -820,7 +827,11 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                             key={columnId}
                           >
                             <span className="block truncate font-mono">
-                              {spanId ? renderSpanIdValue(spanId, log) : "-"}
+                              {spanId ? (
+                                renderSpanIdValue(spanId, log)
+                              ) : (
+                                <TableEmptyValue />
+                              )}
                             </span>
                           </td>
                         );
@@ -861,7 +872,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                           className="px-4 py-2 text-sm text-gray-600"
                           key={columnId}
                         >
-                          -
+                          <TableEmptyValue />
                         </td>
                       );
                     })}

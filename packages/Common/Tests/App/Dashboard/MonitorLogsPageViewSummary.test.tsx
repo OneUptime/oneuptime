@@ -179,6 +179,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
 import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const MONITOR_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -1095,7 +1096,7 @@ describe("Monitoring Logs on a telemetry monitor", () => {
       ],
     });
 
-    expect(textsOfColumn("Observed")).toEqual(["—"]);
+    expect(textsOfColumn("Observed")).toEqual([QUIET_DASH_TEXT]);
   });
 
   test("exports the Observed column as its words, not the log body behind it", async () => {

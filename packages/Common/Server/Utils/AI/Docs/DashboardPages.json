@@ -1542,6 +1542,23 @@
     "kind": "page"
   },
   {
+    "title": "Action Items",
+    "where": [
+      "Incidents",
+      "Overview"
+    ],
+    "keywords": [
+      "postmortem action items",
+      "follow-ups",
+      "follow ups",
+      "corrective actions",
+      "remediation items",
+      "overdue action items"
+    ],
+    "path": "/dashboard/:projectId/incidents/action-items",
+    "kind": "page"
+  },
+  {
     "title": "All Episodes",
     "where": [
       "Incidents",

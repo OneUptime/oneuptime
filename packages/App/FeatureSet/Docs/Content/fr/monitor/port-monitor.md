@@ -98,7 +98,7 @@ Pour un nom d'hôte, la sonde mesure la vérification en deux phases :
 | **Résolution DNS** | Le début de la vérification | La première tentative de connexion TCP |
 | **Connexion TCP** | La première tentative de connexion TCP | L'acceptation de la connexion, y compris le temps passé à basculer entre adresses IPv6 et IPv4 |
 
-**Total Connection Time (DNS + TCP)** va du début de la vérification jusqu'à l'acceptation de la connexion. C'est aussi le temps de réponse du moniteur de port, donc les critères, les alertes et les graphiques existants qui utilisent le temps de réponse continuent de fonctionner.
+**Temps de connexion total (DNS + TCP)** va du début de la vérification jusqu'à l'acceptation de la connexion. C'est aussi le temps de réponse du moniteur de port, donc les critères, les alertes et les graphiques existants qui utilisent le temps de réponse continuent de fonctionner.
 
 Quand la cible est une adresse IP, il n'y a pas de résolution DNS, donc cette phase est omise. Les résultats de vérification antérieurs à la mesure par phase ne montrent que le temps de connexion total.
 

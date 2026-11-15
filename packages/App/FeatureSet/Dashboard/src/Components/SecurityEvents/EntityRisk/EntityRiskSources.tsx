@@ -171,7 +171,7 @@ const EntityRiskSources: FunctionComponent<ComponentProps> = (
                     <MitreAttackChips
                       tactics={row.mitreTactics}
                       techniques={row.mitreTechniques}
-                      emptyText="-"
+                      isEmptyDash={true}
                     />
                   );
                 },

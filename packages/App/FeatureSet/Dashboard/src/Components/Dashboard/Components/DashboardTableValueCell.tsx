@@ -19,6 +19,7 @@ import {
   getTableThresholdOfLevel,
   getTableThresholdRule,
 } from "./DashboardTableThresholdCopy";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // What a metric table knows about a value column, to draw one of its cells.
 export interface DashboardTableValueCellColumn {
@@ -57,7 +58,7 @@ const DashboardTableValueCell: FunctionComponent<ComponentProps> = (
   if (props.value === undefined || !Number.isFinite(props.value)) {
     return (
       <td className={`${CELL_CLASS_NAME} ${TABLE_VALUE_CELL_CLASS_NAME}`}>
-        <span className="text-gray-300">—</span>
+        <TableEmptyValue />
       </td>
     );
   }

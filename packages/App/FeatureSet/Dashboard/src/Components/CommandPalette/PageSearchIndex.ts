@@ -1190,6 +1190,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "postmortems owed",
             ],
           },
+          {
+            page: PageMap.INCIDENT_ACTION_ITEMS,
+            title: "Action Items",
+            icon: IconProp.CheckCircle,
+            keywords: [
+              "postmortem action items",
+              "follow-ups",
+              "follow ups",
+              "corrective actions",
+              "remediation items",
+              "overdue action items",
+            ],
+          },
         ],
       },
       {

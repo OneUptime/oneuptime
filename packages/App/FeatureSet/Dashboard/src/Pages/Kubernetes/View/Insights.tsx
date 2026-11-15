@@ -35,6 +35,9 @@ import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface MetricSpec {
   variable: string;
@@ -188,6 +191,7 @@ function getPodQueries(
 const KubernetesClusterInsights: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
@@ -270,7 +274,10 @@ const KubernetesClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.CPUChip, "Compute & Storage")}
         description="CPU, memory and filesystem usage across all nodes in the cluster."
-        queryConfigs={getNodeQueries(clusterIdentifier, allocatable)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getNodeQueries(clusterIdentifier, allocatable),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -306,7 +313,10 @@ const KubernetesClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.Circle, "Pods")}
         description="CPU and memory usage aggregated across all pods in the cluster."
-        queryConfigs={getPodQueries(clusterIdentifier, allocatable)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getPodQueries(clusterIdentifier, allocatable),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}

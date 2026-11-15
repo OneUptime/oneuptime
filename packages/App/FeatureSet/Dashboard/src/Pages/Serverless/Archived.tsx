@@ -16,6 +16,7 @@ import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ServerlessArchivedPage: FunctionComponent<
   PageComponentProps
@@ -129,7 +130,7 @@ const ServerlessArchivedPage: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || "—"}
+                    {name || <TableEmptyValue />}
                   </AppLink>
                   {showId && (
                     <div className="text-xs text-gray-500 font-mono truncate">
@@ -197,7 +198,7 @@ const ServerlessArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: ServerlessFunction): ReactElement => {
               if (!item["archivedByUser"]) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item["archivedByUser"] as User} />;
             },

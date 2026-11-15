@@ -39,6 +39,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 type FormatNumberFunction = (
   value: number | undefined,
@@ -68,7 +69,9 @@ const StatusDot: FunctionComponent<StatusDotProps> = (
   props: StatusDotProps,
 ): ReactElement => {
   if (props.isGood === undefined) {
-    return <span className="text-gray-400">{props.text || "—"}</span>;
+    return (
+      <span className="text-gray-400">{props.text || <TableEmptyValue />}</span>
+    );
   }
 
   return (

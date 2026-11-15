@@ -70,7 +70,7 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
   return (
     <SummaryView dataTestId="domain-monitor-summary">
       <SummaryFacts>
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(
@@ -88,20 +88,20 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
         <SummaryFact
           isWide={true}
           title="Registrar"
-          value={domainResponse?.registrar || "-"}
+          value={domainResponse?.registrar}
         />
-        <SummaryFact title="DNSSEC" value={domainResponse?.dnssec || "-"} />
+        <SummaryFact title="DNSSEC" value={domainResponse?.dnssec} />
         {/* With the Auto lookup method this varies by TLD, so it is worth showing. */}
         <SummaryFact
           title="Lookup Method"
-          value={domainResponse?.lookupMethod || "-"}
+          value={domainResponse?.lookupMethod}
         />
         <SummaryFact
           title="Response Time"
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -111,7 +111,7 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
         {failureCause ? (

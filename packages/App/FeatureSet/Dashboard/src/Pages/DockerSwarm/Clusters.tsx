@@ -44,6 +44,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const DockerSwarmClusters: FunctionComponent<
   PageComponentProps
@@ -204,7 +205,7 @@ const DockerSwarmClusters: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -254,7 +255,7 @@ const DockerSwarmClusters: FunctionComponent<
                */
               const total: number = item.nodeCount || 0;
               if (total <= 0) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               const ready: number = item.readyNodeCount || 0;
               const allReady: boolean = ready >= total;
@@ -300,7 +301,7 @@ const DockerSwarmClusters: FunctionComponent<
             getElement: (item: DockerSwarmCluster): ReactElement => {
               const total: number = item.taskCount || 0;
               if (total <= 0) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               const running: number = item.runningTaskCount || 0;
               return (

@@ -14,6 +14,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -217,7 +218,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
               item.currentDaySpendInUSD === undefined ||
               item.currentDaySpendInUSD === null
             ) {
-              return <span className="text-sm text-gray-500">—</span>;
+              return <TableEmptyValue />;
             }
 
             const spend: number = item.currentDaySpendInUSD;

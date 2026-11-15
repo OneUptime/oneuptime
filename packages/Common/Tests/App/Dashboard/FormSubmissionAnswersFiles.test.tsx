@@ -7,6 +7,7 @@ import FormSubmission from "../../../Models/DatabaseModels/FormSubmission";
 import { CustomFieldFile } from "../../../Types/CustomField/CustomFieldFile";
 import MimeType from "../../../Types/File/MimeType";
 import { JSONObject } from "../../../Types/JSON";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 /*
  * A submission's View Answers, for a form with file questions: each file
@@ -136,7 +137,7 @@ describe("a submission's file answers", () => {
 
     expect(screen.getByText("Checkout fails")).toBeInTheDocument();
     expect(screen.getByText("Yes")).toBeInTheDocument();
-    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.getByText(EMPTY_VALUE_MARK)).toBeInTheDocument();
     expect(screen.queryByTestId("custom-field-file")).toBeNull();
   });
 

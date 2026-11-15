@@ -30,9 +30,11 @@ export const SUMMARY_ERROR_DETAILS_TEST_ID: string =
  *
  * The probe stores all of it in English, which criteria compare. Drawn
  * here: the phase in the reader's word (DNS-Auflösung, not DNS Resolution),
- * the probe's timeout sentence in the reader's language, and the rest -
- * the network's own message, the details - as written, each on a line of
- * its own direction (ProbeMessageLine), so an English message on an Arabic
+ * the probe's timeout sentence and the details OneUptime writes ("DNS
+ * resolution failed. ...", RequestFailureDescriptions) in the reader's
+ * language, and the rest - the network's own message, a newer probe's
+ * details - as written, each on a line of its own direction
+ * (ProbeMessageLine), so an English message on an Arabic
  * or Persian page keeps its full stop and its brackets at its end. The
  * error code is a code (ECONNREFUSED, HTTP_503), the same in every
  * language.
@@ -76,8 +78,8 @@ const SummaryErrorFacts: FunctionComponent<ComponentProps> = (
       )}
       {details ? (
         <>
-          <SummaryFact title="Failed Phase" value={failedPhase || "-"} />
-          <SummaryFact title="Error Code" value={details.errorCode || "-"} />
+          <SummaryFact title="Failed Phase" value={failedPhase} />
+          <SummaryFact title="Error Code" value={details.errorCode} />
           <SummaryFact
             isWide={true}
             title="Error Details"
@@ -87,9 +89,7 @@ const SummaryErrorFacts: FunctionComponent<ComponentProps> = (
                   message={errorDescription}
                   dataTestId={SUMMARY_ERROR_DETAILS_TEST_ID}
                 />
-              ) : (
-                "-"
-              )
+              ) : undefined
             }
           />
         </>

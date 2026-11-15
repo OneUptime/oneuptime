@@ -28,6 +28,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // How many distributed-DDL / replica / table rows to list before truncating.
 const MAX_ROWS_TO_SHOW: number = 10;
@@ -206,11 +207,14 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
             >
               <div className="min-w-0">
                 <div className="text-sm font-medium text-gray-900">
-                  Shard {String(shard["shardNum"] ?? "—")} · Replica{" "}
-                  {String(shard["replicaNum"] ?? "—")}
+                  Shard {String(shard["shardNum"] ?? "") || <TableEmptyValue />}{" "}
+                  · Replica{" "}
+                  {String(shard["replicaNum"] ?? "") || <TableEmptyValue />}
                 </div>
                 <div className="text-xs text-gray-500 font-mono truncate">
-                  {String(shard["hostName"] ?? "—")}
+                  {String(shard["hostName"] ?? "") || (
+                    <TableEmptyValue isSmall={true} />
+                  )}
                 </div>
                 {storageParts.length > 0 ? (
                   <div className="text-xs text-gray-600 mt-0.5 tabular-nums">
@@ -265,7 +269,9 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
             >
               <div className="min-w-0">
                 <div className="text-sm font-medium text-gray-900 font-mono truncate">
-                  {String(conn["host"] ?? conn["name"] ?? "—")}
+                  {String(conn["host"] ?? conn["name"] ?? "") || (
+                    <TableEmptyValue />
+                  )}
                 </div>
                 <div className="text-xs text-gray-500">
                   session up {formatNumber(uptime)}s
@@ -338,7 +344,7 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
           <div className="text-sm text-gray-600">
             Cluster{" "}
             <span className="font-mono text-gray-900">
-              {String(data?.["clusterName"] ?? "—")}
+              {String(data?.["clusterName"] ?? "") || <TableEmptyValue />}
             </span>{" "}
             · {shards.length} {shards.length === 1 ? "node" : "nodes"}
           </div>
@@ -385,7 +391,10 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
                       key={index}
                       className="text-xs font-mono text-red-800 truncate"
                     >
-                      {String(item["host"] ?? "—")} · {String(item["status"])}
+                      {String(item["host"] ?? "") || (
+                        <TableEmptyValue isSmall={true} />
+                      )}{" "}
+                      · {String(item["status"])}
                       {item["exceptionText"]
                         ? ` — ${String(item["exceptionText"])}`
                         : ""}
@@ -465,7 +474,7 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
                         {String(replica["database"])}.{String(replica["table"])}
                       </span>
                       <span className="text-red-700 whitespace-nowrap">
-                        {flags.join(", ") || "—"}
+                        {flags.join(", ") || <TableEmptyValue isSmall={true} />}
                       </span>
                     </div>
                   );

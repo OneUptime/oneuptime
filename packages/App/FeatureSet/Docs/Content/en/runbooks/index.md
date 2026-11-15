@@ -169,6 +169,7 @@ The execution stays on the incident's **Runbooks** page. When you write the post
 - **[On-call policies](/docs/on-call/schedules)** decide who is paged. Runbooks decide what that person does once they are awake.
 - **[Workspace connections](/docs/workspace-connections/slack)** such as Slack and Microsoft Teams are natural targets for HTTP request steps that post updates.
 - **[Status pages](/docs/status-pages/index)** are often updated as a Manual step of a customer-facing runbook.
+- **[OneUptime AI](/docs/ai/ai-sre#save-a-fix-that-worked-as-a-runbook)** writes a runbook from a fix of its own that worked: **Save as Runbook** on a verified fix saves the steps that ran, turned off until you review them.
 
 ## Next steps
 

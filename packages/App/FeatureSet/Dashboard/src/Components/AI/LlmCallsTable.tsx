@@ -37,6 +37,7 @@ import useLlmSetupCheck, {
   LlmSetupCheckState,
 } from "./SetupCheck/useLlmSetupCheck";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   // Extra query (merged with isLlmSpan + projectId).
@@ -171,7 +172,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
     const shown: string = requested || served;
 
     if (!shown) {
-      return <span className="text-gray-400">—</span>;
+      return <TableEmptyValue />;
     }
 
     const showsServed: boolean =
@@ -202,7 +203,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
     const label: string = getUserLabel(span);
 
     if (!label) {
-      return <span className="text-gray-400">—</span>;
+      return <TableEmptyValue />;
     }
 
     return <span className="text-xs text-gray-700">{label}</span>;
@@ -412,7 +413,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
             return title ? (
               <span className="text-sm text-gray-900">{title}</span>
             ) : (
-              <span className="text-gray-400">—</span>
+              <TableEmptyValue />
             );
           },
           getExportValue: (span: Span): string => {
@@ -486,7 +487,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
           getElement: (span: Span): ReactElement => {
             const cost: number = Number(span.llmCost || 0);
             if (cost <= 0) {
-              return <span className="text-gray-400">—</span>;
+              return <TableEmptyValue />;
             }
             return (
               <span className="font-mono text-xs text-gray-700">
@@ -512,7 +513,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
             const nanos: number = Number(span.durationUnixNano || 0);
 
             if (!Number.isFinite(nanos) || nanos <= 0) {
-              return <span className="text-gray-400">—</span>;
+              return <TableEmptyValue />;
             }
 
             return (
