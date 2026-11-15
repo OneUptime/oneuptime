@@ -19459,7 +19459,6 @@
   "A method you add stays inactive until {{name}} verifies it — the code goes to the address or device itself and only they can enter it. Push devices, Telegram and webhooks have to be set up by {{name}} on their own device.": "你添加的方式在 {{name}} 验证前保持未启用——验证码会发送到该地址或设备本身，只有此人能输入。推送设备、Telegram 和 Webhook 需要由 {{name}} 在自己的设备上设置。",
   "A moment counts as downtime when any attached monitor is down. Pick this when every monitor is essential, such as an API and the database behind it.": "只要任一关联的监视器宕机，该时刻就计为停机时间。当每个监视器都必不可少时（例如 API 及其背后的数据库）请选择此项。",
   "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.": "新的验证码正在发送。{{name}} 需要在自己的用户设置中输入它，此方式才能呼叫此人。",
-  "A refused key, or metrics that arrive {{lateness}} late.": "A refused key, or metrics that arrive {{lateness}} late.",
   "A refused key, or no charted metrics for {{system}}.": "A refused key, or no charted metrics for {{system}}.",
   "A rolling {{count}} days": "滚动 {{count}} 天",
   "A rolling {{count}} days_one": "滚动 {{count}} 天",
@@ -55881,5 +55880,17 @@
   "Record the serial number, make, model and firmware version": "记录序列号、制造商、型号和固件版本",
   "Stamp the hardware facts no detector can read onto the host's Inventory item.": "把任何检测器都读不到的硬件信息写入主机的资产清单项。",
   "Upgrade the collector": "升级收集器",
-  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "在 SLO 过快消耗错误预算时采取行动，例如关闭功能开关。"
+  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "在 SLO 过快消耗错误预算时采取行动，例如关闭功能开关。",
+  "A new queue for every request": "A new queue for every request",
+  "Broker health stays empty": "Broker health stays empty",
+  "No queue page charts them: they arrive in the Metrics explorer.": "No queue page charts them: they arrive in the Metrics explorer.",
+  "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.": "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.",
+  "They add the broker's view of each queue to its Overview, under Broker health.": "They add the broker's view of each queue to its Overview, under Broker health.",
+  "They add the broker's view of this queue to its Overview, under Broker health.": "They add the broker's view of this queue to its Overview, under Broker health.",
+  "They chart on the same destination's queue in its namespace, not on this one.": "They chart on the same destination's queue in its namespace, not on this one.",
+  "Two queues for one destination": "Two queues for one destination",
+  "What a queue's page charts": "What a queue's page charts",
+  "What this queue's page charts": "What this queue's page charts",
+  "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.": "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.",
+  "A queue my applications use was not created": "A queue my applications use was not created"
 }

@@ -19459,7 +19459,6 @@
   "A method you add stays inactive until {{name}} verifies it — the code goes to the address or device itself and only they can enter it. Push devices, Telegram and webhooks have to be set up by {{name}} on their own device.": "Une méthode que vous ajoutez reste inactive jusqu'à ce que {{name}} la vérifie : le code est envoyé à l'adresse ou à l'appareil lui-même et seule cette personne peut le saisir. Les appareils push, Telegram et les webhooks doivent être configurés par {{name}} sur son propre appareil.",
   "A moment counts as downtime when any attached monitor is down. Pick this when every monitor is essential, such as an API and the database behind it.": "Un instant compte comme indisponibilité dès qu'un moniteur rattaché est hors service. Choisissez cette option quand chaque moniteur est essentiel, comme une API et la base de données derrière elle.",
   "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.": "Un nouveau code de vérification est en route. {{name}} doit le saisir dans ses propres paramètres utilisateur avant que cette méthode puisse l'alerter.",
-  "A refused key, or metrics that arrive {{lateness}} late.": "A refused key, or metrics that arrive {{lateness}} late.",
   "A refused key, or no charted metrics for {{system}}.": "A refused key, or no charted metrics for {{system}}.",
   "A rolling {{count}} days": "{{count}} jours glissants",
   "A rolling {{count}} days_one": "{{count}} jour glissant",
@@ -55881,5 +55880,17 @@
   "Record the serial number, make, model and firmware version": "Enregistrer le numéro de série, le fabricant, le modèle et la version du firmware",
   "Stamp the hardware facts no detector can read onto the host's Inventory item.": "Inscrire sur l'élément d'inventaire de l'hôte les données matérielles qu'aucun détecteur ne sait lire.",
   "Upgrade the collector": "Mettre à niveau le collecteur",
-  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "Agissez lorsqu'un SLO consomme son budget d'erreur trop vite, par exemple en désactivant un indicateur de fonctionnalité."
+  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "Agissez lorsqu'un SLO consomme son budget d'erreur trop vite, par exemple en désactivant un indicateur de fonctionnalité.",
+  "A new queue for every request": "A new queue for every request",
+  "Broker health stays empty": "Broker health stays empty",
+  "No queue page charts them: they arrive in the Metrics explorer.": "No queue page charts them: they arrive in the Metrics explorer.",
+  "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.": "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.",
+  "They add the broker's view of each queue to its Overview, under Broker health.": "They add the broker's view of each queue to its Overview, under Broker health.",
+  "They add the broker's view of this queue to its Overview, under Broker health.": "They add the broker's view of this queue to its Overview, under Broker health.",
+  "They chart on the same destination's queue in its namespace, not on this one.": "They chart on the same destination's queue in its namespace, not on this one.",
+  "Two queues for one destination": "Two queues for one destination",
+  "What a queue's page charts": "What a queue's page charts",
+  "What this queue's page charts": "What this queue's page charts",
+  "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.": "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.",
+  "A queue my applications use was not created": "A queue my applications use was not created"
 }

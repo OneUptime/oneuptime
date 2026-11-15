@@ -19459,7 +19459,6 @@
   "A method you add stays inactive until {{name}} verifies it — the code goes to the address or device itself and only they can enter it. Push devices, Telegram and webhooks have to be set up by {{name}} on their own device.": "روشی که اضافه می‌کنید تا وقتی {{name}} آن را تأیید نکند غیرفعال می‌ماند — کد به خود آن نشانی یا دستگاه می‌رود و فقط خود او می‌تواند آن را وارد کند. دستگاه‌های پوش، Telegram و وب‌هوک‌ها را باید خود {{name}} روی دستگاه خودش راه‌اندازی کند.",
   "A moment counts as downtime when any attached monitor is down. Pick this when every monitor is essential, such as an API and the database behind it.": "هر لحظه‌ای که یکی از مانیتورهای وصل‌شده از کار بیفتد، زمان قطعی حساب می‌شود. وقتی هر مانیتور ضروری است، مثل یک API و پایگاه داده پشت آن، این را انتخاب کنید.",
   "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.": "یک کد تأیید جدید در راه است. {{name}} باید پیش از آنکه این روش بتواند به او خبر دهد، آن را در تنظیمات کاربری خودش وارد کند.",
-  "A refused key, or metrics that arrive {{lateness}} late.": "کلیدی که رد شده، یا متریک‌هایی که {{lateness}} دیر می‌رسند.",
   "A refused key, or no charted metrics for {{system}}.": "کلیدی که رد شده، یا نبود متریک‌های نموداری برای {{system}}.",
   "A rolling {{count}} days": "{{count}} روز اخیر (غلتان)",
   "A rolling {{count}} days_one": "{{count}} روز اخیر (غلتان)",
@@ -55881,5 +55880,17 @@
   "Record the serial number, make, model and firmware version": "ثبت شماره سریال، سازنده، مدل و نسخه سفت‌افزار",
   "Stamp the hardware facts no detector can read onto the host's Inventory item.": "داده‌های سخت‌افزاری را که هیچ آشکارسازی نمی‌تواند بخواند، روی مورد موجودی میزبان بنویسید.",
   "Upgrade the collector": "ارتقای کالکتور",
-  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "وقتی یک SLO بودجه خطای خود را خیلی سریع مصرف می‌کند، کاری انجام دهید، مثلاً یک پرچم ویژگی را خاموش کنید."
+  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "وقتی یک SLO بودجه خطای خود را خیلی سریع مصرف می‌کند، کاری انجام دهید، مثلاً یک پرچم ویژگی را خاموش کنید.",
+  "A new queue for every request": "A new queue for every request",
+  "Broker health stays empty": "Broker health stays empty",
+  "No queue page charts them: they arrive in the Metrics explorer.": "No queue page charts them: they arrive in the Metrics explorer.",
+  "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.": "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.",
+  "They add the broker's view of each queue to its Overview, under Broker health.": "They add the broker's view of each queue to its Overview, under Broker health.",
+  "They add the broker's view of this queue to its Overview, under Broker health.": "They add the broker's view of this queue to its Overview, under Broker health.",
+  "They chart on the same destination's queue in its namespace, not on this one.": "They chart on the same destination's queue in its namespace, not on this one.",
+  "Two queues for one destination": "Two queues for one destination",
+  "What a queue's page charts": "What a queue's page charts",
+  "What this queue's page charts": "What this queue's page charts",
+  "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.": "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.",
+  "A queue my applications use was not created": "A queue my applications use was not created"
 }

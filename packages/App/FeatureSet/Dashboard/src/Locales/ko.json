@@ -19459,7 +19459,6 @@
   "A method you add stays inactive until {{name}} verifies it — the code goes to the address or device itself and only they can enter it. Push devices, Telegram and webhooks have to be set up by {{name}} on their own device.": "추가한 방법은 {{name}} 님이 인증할 때까지 비활성 상태로 남습니다. 코드는 해당 주소나 기기로 전송되며 본인만 입력할 수 있습니다. 푸시 기기, Telegram, 웹훅은 {{name}} 님이 직접 자신의 기기에서 설정해야 합니다.",
   "A moment counts as downtime when any attached monitor is down. Pick this when every monitor is essential, such as an API and the database behind it.": "연결된 모니터 중 하나라도 다운되면 그 순간을 다운타임으로 셉니다. API와 그 뒤의 데이터베이스처럼 모든 모니터가 꼭 필요할 때 고르세요.",
   "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.": "새 인증 코드를 보내는 중입니다. 이 방법으로 호출하려면 {{name}} 님이 자신의 사용자 설정에서 코드를 입력해야 합니다.",
-  "A refused key, or metrics that arrive {{lateness}} late.": "A refused key, or metrics that arrive {{lateness}} late.",
   "A refused key, or no charted metrics for {{system}}.": "A refused key, or no charted metrics for {{system}}.",
   "A rolling {{count}} days": "최근 {{count}}일(롤링)",
   "A rolling {{count}} days_one": "최근 {{count}}일(롤링)",
@@ -55881,5 +55880,17 @@
   "Record the serial number, make, model and firmware version": "일련번호, 제조사, 모델, 펌웨어 버전 기록",
   "Stamp the hardware facts no detector can read onto the host's Inventory item.": "어떤 검출기도 읽을 수 없는 하드웨어 정보를 호스트의 인벤토리 항목에 기록합니다.",
   "Upgrade the collector": "컬렉터 업그레이드",
-  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "SLO가 오류 예산을 너무 빨리 소진할 때 기능 플래그를 끄는 등의 조치를 취합니다."
+  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "SLO가 오류 예산을 너무 빨리 소진할 때 기능 플래그를 끄는 등의 조치를 취합니다.",
+  "A new queue for every request": "A new queue for every request",
+  "Broker health stays empty": "Broker health stays empty",
+  "No queue page charts them: they arrive in the Metrics explorer.": "No queue page charts them: they arrive in the Metrics explorer.",
+  "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.": "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.",
+  "They add the broker's view of each queue to its Overview, under Broker health.": "They add the broker's view of each queue to its Overview, under Broker health.",
+  "They add the broker's view of this queue to its Overview, under Broker health.": "They add the broker's view of this queue to its Overview, under Broker health.",
+  "They chart on the same destination's queue in its namespace, not on this one.": "They chart on the same destination's queue in its namespace, not on this one.",
+  "Two queues for one destination": "Two queues for one destination",
+  "What a queue's page charts": "What a queue's page charts",
+  "What this queue's page charts": "What this queue's page charts",
+  "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.": "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.",
+  "A queue my applications use was not created": "A queue my applications use was not created"
 }

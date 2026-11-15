@@ -19459,7 +19459,6 @@
   "A method you add stays inactive until {{name}} verifies it — the code goes to the address or device itself and only they can enter it. Push devices, Telegram and webhooks have to be set up by {{name}} on their own device.": "Eine Methode, die Sie hinzufügen, bleibt inaktiv, bis {{name}} sie verifiziert – der Code geht an die Adresse oder das Gerät selbst, und nur diese Person kann ihn eingeben. Push-Geräte, Telegram und Webhooks muss {{name}} auf dem eigenen Gerät einrichten.",
   "A moment counts as downtime when any attached monitor is down. Pick this when every monitor is essential, such as an API and the database behind it.": "Ein Moment zählt als Ausfallzeit, wenn irgendein verbundener Monitor ausgefallen ist. Wählen Sie dies, wenn jeder Monitor unverzichtbar ist, etwa eine API und die Datenbank dahinter.",
   "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.": "Ein neuer Verifizierungscode ist unterwegs. {{name}} muss ihn in den eigenen Benutzereinstellungen eingeben, bevor diese Methode die Person alarmieren kann.",
-  "A refused key, or metrics that arrive {{lateness}} late.": "A refused key, or metrics that arrive {{lateness}} late.",
   "A refused key, or no charted metrics for {{system}}.": "A refused key, or no charted metrics for {{system}}.",
   "A rolling {{count}} days": "{{count}} gleitende Tage",
   "A rolling {{count}} days_one": "{{count}} gleitender Tag",
@@ -55881,5 +55880,17 @@
   "Record the serial number, make, model and firmware version": "Seriennummer, Hersteller, Modell und Firmware-Version erfassen",
   "Stamp the hardware facts no detector can read onto the host's Inventory item.": "Die Hardwaredaten, die kein Detektor lesen kann, fest in das Inventarelement des Hosts schreiben.",
   "Upgrade the collector": "Collector aktualisieren",
-  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "Handeln Sie, wenn ein SLO sein Fehlerbudget zu schnell verbraucht, etwa indem Sie ein Feature-Flag ausschalten."
+  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "Handeln Sie, wenn ein SLO sein Fehlerbudget zu schnell verbraucht, etwa indem Sie ein Feature-Flag ausschalten.",
+  "A new queue for every request": "A new queue for every request",
+  "Broker health stays empty": "Broker health stays empty",
+  "No queue page charts them: they arrive in the Metrics explorer.": "No queue page charts them: they arrive in the Metrics explorer.",
+  "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.": "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.",
+  "They add the broker's view of each queue to its Overview, under Broker health.": "They add the broker's view of each queue to its Overview, under Broker health.",
+  "They add the broker's view of this queue to its Overview, under Broker health.": "They add the broker's view of this queue to its Overview, under Broker health.",
+  "They chart on the same destination's queue in its namespace, not on this one.": "They chart on the same destination's queue in its namespace, not on this one.",
+  "Two queues for one destination": "Two queues for one destination",
+  "What a queue's page charts": "What a queue's page charts",
+  "What this queue's page charts": "What this queue's page charts",
+  "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.": "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.",
+  "A queue my applications use was not created": "A queue my applications use was not created"
 }
