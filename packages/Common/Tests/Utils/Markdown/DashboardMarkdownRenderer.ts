@@ -64,6 +64,105 @@ export const renderAsDashboard: RenderAsDashboardFunction = (
   ) as Array<string>;
 };
 
+/*
+ * The links of a text as the dashboard's parser reads them, with where
+ * each is written: remark's own tree (mdast, from micromark and its GitHub
+ * extensions, as react-markdown builds it). A reference's address is its
+ * definition's.
+ */
+const LINKS_SCRIPT: string = `
+  import { fromMarkdown } from "mdast-util-from-markdown";
+  import { gfm } from "micromark-extension-gfm";
+  import { gfmFromMarkdown } from "mdast-util-gfm";
+
+  const LINK_TYPES = new Set(["link", "image", "linkReference", "imageReference"]);
+
+  let input = "";
+
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (chunk) => {
+    input += chunk;
+  });
+  process.stdin.on("end", () => {
+    const texts = JSON.parse(input);
+
+    process.stdout.write(
+      JSON.stringify(
+        texts.map((text) => {
+          const tree = fromMarkdown(text, {
+            extensions: [gfm()],
+            mdastExtensions: [gfmFromMarkdown()],
+          });
+          const definitions = new Map();
+          const found = [];
+          // A stack, not recursion: in the order the text is written.
+          const stack = [tree];
+
+          while (stack.length > 0) {
+            const node = stack.pop();
+
+            if (node.type === "definition") {
+              definitions.set(node.identifier, node.url);
+            }
+
+            if (LINK_TYPES.has(node.type)) {
+              found.push(node);
+            }
+
+            const children = node.children || [];
+
+            for (let index = children.length - 1; index >= 0; index--) {
+              stack.push(children[index]);
+            }
+          }
+
+          return found
+            .map((node) => {
+              return {
+                href: node.url ?? definitions.get(node.identifier) ?? null,
+                start: node.position.start.offset,
+                end: node.position.end.offset,
+              };
+            })
+            .filter((link) => {
+              return link.href !== null;
+            });
+        }),
+      ),
+    );
+  });
+`;
+
+// A link, an image or a reference to one, and where it is written.
+export interface DashboardLink {
+  href: string;
+  start: number;
+  end: number;
+}
+
+export type ReadLinksAsDashboardFunction = (
+  texts: Array<string>,
+) => Array<Array<DashboardLink>>;
+
+// The links the dashboard's parser reads in each text, in order.
+export const readLinksAsDashboard: ReadLinksAsDashboardFunction = (
+  texts: Array<string>,
+): Array<Array<DashboardLink>> => {
+  return JSON.parse(
+    childProcess.execFileSync(
+      process.execPath,
+      ["--input-type=module", "-e", LINKS_SCRIPT],
+      {
+        cwd: COMMON_ROOT,
+        input: JSON.stringify(texts),
+        encoding: "utf8",
+        timeout: 120000,
+        maxBuffer: 64 * 1024 * 1024,
+      },
+    ),
+  ) as Array<Array<DashboardLink>>;
+};
+
 export type HrefsOfFunction = (html: string) => Array<string>;
 
 // Every link's address in the HTML, with its HTML escapes undone.
