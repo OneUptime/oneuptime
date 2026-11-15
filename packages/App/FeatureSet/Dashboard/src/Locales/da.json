@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "Hver header i e-mailen, efter navnet med små bogstaver, fx message-id.",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "Hvert medlem af hvert team tilkaldes. Vælg teams, eller brug et teams ID fra et tidligere trin.",
   "Execute": "Udfør",
-  "Execute Workflow": "Kør arbejdsgang",
+  "Execute Workflow": "Kør en anden arbejdsgang",
   "Execute another workflow in the same project (fire-and-forget)": "Kør en anden arbejdsgang i samme projekt (uden at vente)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "Kører, hvis den underordnede arbejdsgang ikke kunne sættes i kø (fx ikke fundet, slået fra eller i et andet projekt).",
   "Fields to pass on": "Felter, der sendes videre",

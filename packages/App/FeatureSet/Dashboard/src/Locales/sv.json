@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "Varje rubrik i e-postmeddelandet, efter namnet med gemener, till exempel message-id.",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "Varje medlem i varje team larmas. Välj team, eller använd ID:t för ett team från ett tidigare steg.",
   "Execute": "Utför",
-  "Execute Workflow": "Kör arbetsflöde",
+  "Execute Workflow": "Kör ett annat arbetsflöde",
   "Execute another workflow in the same project (fire-and-forget)": "Kör ett annat arbetsflöde i samma projekt (utan att vänta)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "Körs om det underordnade arbetsflödet inte kunde köas (t.ex. hittades inte, är inaktiverat eller i ett annat projekt).",
   "Fields to pass on": "Fält att skicka vidare",

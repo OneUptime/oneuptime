@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "이메일의 모든 헤더로, 소문자 이름별로 나뉩니다(예: message-id).",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "각 팀의 모든 구성원을 호출합니다. 팀을 고르거나 이전 단계의 팀 ID를 사용하세요.",
   "Execute": "실행",
-  "Execute Workflow": "워크플로 실행",
+  "Execute Workflow": "다른 워크플로 실행",
   "Execute another workflow in the same project (fire-and-forget)": "같은 프로젝트의 다른 워크플로를 실행합니다(기다리지 않음)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "하위 워크플로를 대기열에 넣지 못했을 때 실행됩니다(예: 찾을 수 없음, 비활성화됨, 다른 프로젝트에 있음).",
   "Fields to pass on": "넘겨줄 필드",

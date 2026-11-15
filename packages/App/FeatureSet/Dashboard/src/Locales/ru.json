@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "Каждый заголовок письма по его имени в нижнем регистре, например message-id.",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "Вызывается каждый участник каждой команды. Выберите команды или используйте ID команды из предыдущего шага.",
   "Execute": "Выполнить",
-  "Execute Workflow": "Запустить рабочий процесс",
+  "Execute Workflow": "Запустить другой рабочий процесс",
   "Execute another workflow in the same project (fire-and-forget)": "Запустить другой рабочий процесс в том же проекте (без ожидания)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "Выполняется, если дочерний рабочий процесс не удалось поставить в очередь (например, не найден, отключён или в другом проекте).",
   "Fields to pass on": "Передаваемые поля",

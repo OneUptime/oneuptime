@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "郵件的每個標頭，依其小寫名稱，例如 message-id。",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "呼叫每個團隊的每位成員。選擇團隊，或使用前面步驟中的團隊 ID。",
   "Execute": "執行",
-  "Execute Workflow": "執行工作流程",
+  "Execute Workflow": "執行另一個工作流程",
   "Execute another workflow in the same project (fire-and-forget)": "執行同一專案中的另一個工作流程（不等待）",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "子工作流程無法加入佇列時執行（例如找不到、已停用或位於其他專案）。",
   "Fields to pass on": "要傳遞的欄位",

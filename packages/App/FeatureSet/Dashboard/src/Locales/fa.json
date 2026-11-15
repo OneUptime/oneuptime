@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "همهٔ سرآیندهای ایمیل، با نامشان به حروف کوچک، مثلاً message-id.",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "همهٔ اعضای هر تیم فراخوانده می‌شوند. تیم‌ها را انتخاب کنید یا شناسهٔ یک تیم را از گامی قبلی به کار ببرید.",
   "Execute": "اجرا",
-  "Execute Workflow": "اجرای گردش کاری",
+  "Execute Workflow": "اجرای گردش کاری دیگر",
   "Execute another workflow in the same project (fire-and-forget)": "اجرای گردش کاری دیگری در همین پروژه (بدون انتظار)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "وقتی اجرا می‌شود که گردش کاری فرزند در صف قرار نگرفت (مثلاً پیدا نشد، غیرفعال است یا در پروژهٔ دیگری است).",
   "Fields to pass on": "فیلدهای ارسالی به گام‌های بعد",

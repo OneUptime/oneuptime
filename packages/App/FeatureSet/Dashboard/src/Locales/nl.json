@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "Elke header van de e-mail, op de naam in kleine letters, zoals message-id.",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "Elk lid van elk team wordt opgeroepen. Kies teams of gebruik de ID van een team uit een eerdere stap.",
   "Execute": "Uitvoeren",
-  "Execute Workflow": "Workflow uitvoeren",
+  "Execute Workflow": "Andere workflow uitvoeren",
   "Execute another workflow in the same project (fire-and-forget)": "Een andere workflow in hetzelfde project uitvoeren (zonder te wachten)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "Draait als de onderliggende workflow niet in de wachtrij kon worden gezet (bijv. niet gevonden, uitgeschakeld of in een ander project).",
   "Fields to pass on": "Velden om door te geven",

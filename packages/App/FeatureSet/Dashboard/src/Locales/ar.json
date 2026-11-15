@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "كل ترويسة في البريد الإلكتروني، باسمها بالأحرف الصغيرة، مثل message-id.",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "يُستدعى كل عضو في كل فريق. اختر فرقًا، أو استخدم معرّف فريق من خطوة سابقة.",
   "Execute": "تنفيذ",
-  "Execute Workflow": "تنفيذ سير العمل",
+  "Execute Workflow": "تنفيذ سير عمل آخر",
   "Execute another workflow in the same project (fire-and-forget)": "تنفيذ سير عمل آخر في المشروع نفسه (دون انتظار)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "يعمل إذا تعذّر وضع سير العمل الفرعي في الطابور (مثلًا غير موجود أو معطّل أو في مشروع آخر).",
   "Fields to pass on": "الحقول التي تُمرَّر",

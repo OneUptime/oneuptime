@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "メールのすべてのヘッダー。小文字の名前ごと (message-id など)。",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "各チームのメンバー全員を呼び出します。チームを選ぶか、前のステップのチーム ID を使います。",
   "Execute": "実行",
-  "Execute Workflow": "ワークフローを実行",
+  "Execute Workflow": "別のワークフローを実行",
   "Execute another workflow in the same project (fire-and-forget)": "同じプロジェクトの別のワークフローを実行します (待たずに進みます)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "子ワークフローをキューに入れられなかった場合に実行されます (見つからない、無効、別のプロジェクトにあるなど)。",
   "Fields to pass on": "引き渡すフィールド",

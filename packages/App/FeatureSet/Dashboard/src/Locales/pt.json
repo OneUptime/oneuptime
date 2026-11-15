@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "Cada cabeçalho do e-mail, pelo nome em minúsculas, como message-id.",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "Cada membro de cada equipe é acionado. Escolha equipes ou use o ID de uma equipe de uma etapa anterior.",
   "Execute": "Executar",
-  "Execute Workflow": "Executar fluxo de trabalho",
+  "Execute Workflow": "Executar outro fluxo de trabalho",
   "Execute another workflow in the same project (fire-and-forget)": "Executar outro fluxo de trabalho do mesmo projeto (sem esperar)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "É executado se o fluxo de trabalho filho não puder ser colocado na fila (por exemplo, não encontrado, desativado ou em outro projeto).",
   "Fields to pass on": "Campos a repassar",

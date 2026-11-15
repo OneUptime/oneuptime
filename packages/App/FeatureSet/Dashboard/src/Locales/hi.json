@@ -54362,7 +54362,7 @@
   "Every header of the email, by its name in lower case, such as message-id.": "ईमेल का हर हेडर, छोटे अक्षरों वाले उसके नाम से, जैसे message-id।",
   "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.": "हर टीम के हर सदस्य को बुलाया जाता है। टीमें चुनें, या पिछले चरण से किसी टीम की ID इस्तेमाल करें।",
   "Execute": "चलाएँ",
-  "Execute Workflow": "वर्कफ़्लो चलाएँ",
+  "Execute Workflow": "दूसरा वर्कफ़्लो चलाएँ",
   "Execute another workflow in the same project (fire-and-forget)": "उसी प्रोजेक्ट का कोई दूसरा वर्कफ़्लो चलाएँ (इंतज़ार किए बिना)",
   "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).": "तब चलता है जब चाइल्ड वर्कफ़्लो कतार में नहीं डाला जा सका (जैसे नहीं मिला, बंद है, या किसी दूसरे प्रोजेक्ट में है)।",
   "Fields to pass on": "आगे भेजने वाले फ़ील्ड",
