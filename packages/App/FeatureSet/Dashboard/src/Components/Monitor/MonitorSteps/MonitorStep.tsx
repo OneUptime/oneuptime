@@ -53,7 +53,7 @@ import MonitorStepViewModel, {
 } from "../../../Utils/MonitorStepViewModel";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import DictionaryFilterSentence from "Common/UI/Components/Dictionary/DictionaryFilterSentence";
+import AttributeFilterSentences from "./AttributeFilterSentences";
 import { JSONObject } from "Common/Types/JSON";
 
 export interface ComponentProps {
@@ -98,39 +98,8 @@ const fieldTypeByValueType: Record<MonitorStepViewValueType, FieldType> = {
   [MonitorStepViewValueType.NetworkDevice]: FieldType.Text,
   // Resolved to the probes' names by this component.
   [MonitorStepViewValueType.Probes]: FieldType.ArrayOfText,
-  // Each filter said as one sentence by this component.
+  // Each filter said as one sentence (AttributeFilterSentences).
   [MonitorStepViewValueType.AttributeFilters]: FieldType.Element,
-};
-
-/*
- * A log, trace or security events monitor's attribute filters, one sentence
- * each in the reader's language - "http.route stimmt überein /api/*" - its
- * key and value as written, its words where the language puts them
- * (#8309). The view model hands them over as stored.
- */
-const AttributeFiltersElement: FunctionComponent<{
-  filters: JSONObject;
-}> = (props: { filters: JSONObject }): ReactElement => {
-  return (
-    <ul
-      className="space-y-1 text-sm text-gray-900"
-      data-testid="monitor-step-attribute-filters"
-    >
-      {Object.keys(props.filters).map((key: string): ReactElement => {
-        return (
-          <li key={key}>
-            <DictionaryFilterSentence
-              attributeKey={key}
-              value={props.filters[key]}
-              keyClassName="font-medium text-gray-900"
-              wordsClassName="text-gray-500"
-              dataTestId="monitor-step-attribute-filter"
-            />
-          </li>
-        );
-      })}
-    </ul>
-  );
 };
 
 // A probe the step names that no probe list holds any more.
@@ -429,7 +398,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         fieldType: FieldType.Element,
         placeholder: row.placeholder,
         getElement: (): ReactElement => {
-          return <AttributeFiltersElement filters={filters} />;
+          return <AttributeFilterSentences filters={filters} />;
         },
       });
 

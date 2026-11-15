@@ -211,6 +211,8 @@ type GetLockedFilterChipAriaLabelFunction = (
   scopeValueCount?: number | undefined,
   // An attribute filter's stored value: the name says it as one sentence.
   filterValue?: unknown,
+  // The reader's, as the chip reads it; the Dashboard's own without one.
+  translator?: Translator | undefined,
 ) => string;
 
 /**
@@ -226,17 +228,22 @@ export const getLockedFilterChipAriaLabel: GetLockedFilterChipAriaLabelFunction 
     hasSearchToken?: boolean | undefined,
     scopeValueCount?: number | undefined,
     filterValue?: unknown,
+    translator?: Translator | undefined,
   ): string => {
     if (
       filterValue !== undefined &&
       !(scopeValueCount && scopeValueCount > 0)
     ) {
-      return translateTemplate(
-        hasSearchToken
-          ? LOCKED_FILTER_SENTENCE_LABEL_WITH_COPY_HINT
-          : LOCKED_FILTER_SENTENCE_LABEL,
-        { filter: getLockedFilterSentence(displayKey, filterValue) },
-      );
+      const template: string = hasSearchToken
+        ? LOCKED_FILTER_SENTENCE_LABEL_WITH_COPY_HINT
+        : LOCKED_FILTER_SENTENCE_LABEL;
+      const values: TemplateValues = {
+        filter: getLockedFilterSentence(displayKey, filterValue),
+      };
+
+      return translator
+        ? translator.translateTemplate(template, values)
+        : translateTemplate(template, values);
     }
 
     const values: TemplateValues = {
@@ -706,6 +713,7 @@ const DetailedLockedFilterChip: FunctionComponent<
         Boolean(searchToken),
         scopeValueCount,
         props.filterValue,
+        translator,
       )}
       onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
         /*
