@@ -129,22 +129,22 @@ Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e
 
 ### Controlla il titolo
 
-Fai clic su **Aggiungi componente**, scegli **If / Else** e collega a esso il punto **Success** del trigger. Imposta **Valore da verificare** sul titolo dell'avviso (fai clic su **{ }** e sceglilo), **Confronto** su **contiene** e **Confronta con** sull'inizio comune ai titoli dei tuoi inneschi, come `LLM budget exceeded`.
+Fai clic su **Aggiungi componente**, scegli **If / Else** e collega a esso il punto **Successo** del trigger. Imposta **Valore da verificare** sul titolo dell'avviso (fai clic su **{ }** e sceglilo), **Confronto** su **contiene** e **Confronta con** sull'inizio comune ai titoli dei tuoi inneschi, come `LLM budget exceeded`.
 
 ### Chiama il tuo endpoint
 
-Aggiungi **API Post (JSON)** e collega a esso il punto **Yes** dell'**If / Else**. Imposta il suo **URL** sul tuo endpoint, come `https://agents.example.com/circuit-breaker`, e compila le intestazioni e il corpo qui sotto.
+Aggiungi **API Post (JSON)** e collega a esso il punto **Sì** dell'**If / Else**. Imposta il suo **URL** sul tuo endpoint, come `https://agents.example.com/circuit-breaker`, e compila le intestazioni e il corpo qui sotto.
 
 ### Segnala un errore
 
-Aggiungi **Send Message to Slack**, o **Send Email**, e collega a esso il punto **Error** del blocco API. Un circuit breaker che non riesce a scattare è proprio l'avviso che una persona deve vedere.
+Aggiungi **Send Message to Slack**, o **Send Email**, e collega a esso il punto **Errore** del blocco API. Un circuit breaker che non riesce a scattare è proprio l'avviso che una persona deve vedere.
 
 ### Attivalo
 
 Attiva **Abilitato** in cima al **Costruttore**.
 :::
 
-Le **Request Headers** del blocco API:
+Le **Intestazioni della richiesta** del blocco API:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ Le **Request Headers** del blocco API:
 }
 ```
 
-Il suo **Request Body**:
+Il suo **Corpo della Richiesta**:
 
 ```json title="Request Body"
 {

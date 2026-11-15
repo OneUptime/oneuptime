@@ -58,7 +58,7 @@ Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e esco
 
 ### Criar o registro
 
-Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Success** do gatilho. Defina a **URL** dele como `https://your-instance.service-now.com/api/now/table/incident`. Em **Mais campos**, defina os **Request Headers** dele como:
+Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://your-instance.service-now.com/api/now/table/incident`. Em **Mais campos**, defina os **Cabeçalhos da Requisição** dele como:
 
 ```json
 {
@@ -67,7 +67,7 @@ Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligu
 }
 ```
 
-E o **Request Body** como:
+E o **Corpo da Requisição** como:
 
 ```json
 {
@@ -101,11 +101,11 @@ Crie um workflow chamado `Resolve ServiceNow incidents` e escolha **On Update In
 
 ### Verificar que o incidente está resolvido
 
-Adicione um bloco **If / Else** depois do gatilho. Defina **Value to check** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparison** como **is true**.
+Adicione um bloco **If / Else** depois do gatilho. Defina **Valor a verificar** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparação** como **é verdadeiro**.
 
 ### Encontrar o registro
 
-Adicione um bloco **API Get (JSON)** depois do lado **Yes**, com os mesmos **Request Headers** e esta **URL**:
+Adicione um bloco **API Get (JSON)** depois do lado **Sim**, com os mesmos **Cabeçalhos da Requisição** e esta **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Resolver o registro
 
-Adicione um bloco **API Patch (JSON)** depois do **Success** do bloco de busca, com os mesmos **Request Headers** e esta **URL**:
+Adicione um bloco **API Patch (JSON)** depois do **Sucesso** do bloco de busca, com os mesmos **Cabeçalhos da Requisição** e esta **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Defina o **Request Body** dele como:
+Defina o **Corpo da Requisição** dele como:
 
 ```json
 {

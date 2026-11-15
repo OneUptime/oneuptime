@@ -178,7 +178,7 @@ Chaque analyse garde une trace de ce qu'elle a lu, par nom : les objets, tables 
 
 ## Analyser une base de données que vous exploitez
 
-Sécurité des données échantillonne les bases de données PostgreSQL et MySQL, de l'une de deux façons. Une base de données que surveille le produit Bases de données, ou avec laquelle vos services communiquent sur la carte des services, est déjà un magasin de données. Une base de données qu'aucune analyse ne trouve, ajoutez-la vous-même comme magasin de données.
+Sécurité des données échantillonne les bases de données PostgreSQL, MySQL et SQL Server, de l'une de deux façons. Une base de données que surveille le produit Bases de données, ou avec laquelle vos services communiquent sur la carte des services, est déjà un magasin de données. Une base de données qu'aucune analyse ne trouve, ajoutez-la vous-même comme magasin de données.
 
 - **Depuis les workers de OneUptime.** Dans les **Paramètres** du magasin de données, réglez **Chaîne de connexion** sur une chaîne qui ne peut que lire, comme `postgresql://reader:password@db.internal:5432/app`. Elle est chiffrée au repos et jamais renvoyée par l'API. Donnez-lui un utilisateur de base de données qui peut lire et rien d'autre.
 - **Depuis une sonde dans votre réseau.** Choisissez la sonde sous **Analyser depuis la sonde**, et saisissez dans **Variable de connexion de la sonde** le nom de la variable d'environnement de cette sonde qui contient la chaîne de connexion. La sonde lit la base de données depuis votre réseau et ne renvoie que ce qu'elle a trouvé : la chaîne de connexion n'atteint jamais OneUptime. Voir [Sondes personnalisées](/docs/probe/custom-probe) pour exécuter une sonde.

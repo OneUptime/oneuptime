@@ -43,6 +43,8 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
     default: {
       getPolicyFromSecretKey: jest.fn(),
       getProjectIdFromSecretKey: jest.fn(),
+      // A connected MQTT session's key, as it is now (issue #8147).
+      getCurrentPolicyById: jest.fn(),
       findOneBy: jest.fn(),
       markUsed: jest.fn(),
     },
@@ -332,6 +334,14 @@ beforeEach(() => {
   ).mockResolvedValue(undefined);
   admit.mockResolvedValue({ refusal: null, charge: null });
   resolver().mockResolvedValue(buildPolicy());
+  /*
+   * The key as it is now, as CONNECT asks it after the lookup by secret: a
+   * key stopped since CONNECT, and what that counts, is
+   * MqttServerKeyStopped.test.ts.
+   */
+  (
+    TelemetryIngestionKeyService.getCurrentPolicyById as unknown as MockedFn
+  ).mockResolvedValue(buildPolicy());
 });
 
 describe("gRPC OTLP: refusals counted against the key, on the Grpc surface", () => {

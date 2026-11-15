@@ -107,8 +107,8 @@ O gatilho Incoming Email dá ao workflow um endereço próprio, e qualquer pesso
 
 - Não o publique nem o coloque em um repositório público. O gatilho oculta a chave até você clicar em **Mostrar**, e **Copiar endereço** copia o endereço sem mostrá-lo.
 - Se o endereço vazar, clique no gatilho Incoming Email no **Construtor** e depois em **Redefinir endereço**. O workflow recebe um endereço novo, e e-mails para o antigo passam a ser ignorados.
-- Qualquer pessoa pode colocar qualquer remetente em um e-mail, então **From** não prova quem o enviou. Antes que um workflow faça algo importante, verifique algo que só o remetente real saiba — um token no assunto ou em um cabeçalho — com um bloco **If / Else**. Salve o token esperado como variável secreta.
-- A chave fica oculta em tudo o que a execução recebe — **To**, **CC**, os cabeçalhos e os corpos —, porque o log da execução fica visível para qualquer pessoa que pode ler as execuções do workflow.
+- Qualquer pessoa pode colocar qualquer remetente em um e-mail, então **De** não prova quem o enviou. Antes que um workflow faça algo importante, verifique algo que só o remetente real saiba — um token no assunto ou em um cabeçalho — com um bloco **If / Else**. Salve o token esperado como variável secreta.
+- A chave fica oculta em tudo o que a execução recebe — **Para**, **CC**, os cabeçalhos e os corpos —, porque o log da execução fica visível para qualquer pessoa que pode ler as execuções do workflow.
 
 Só quem pode editar o workflow — **Proprietário do projeto**, **Administrador do projeto**, **Administrador de fluxos de trabalho** ou **Edit Workflow** — pode ver ou redefinir o endereço dele. Todos os outros veem uma nota dizendo a quem pedir.
 
@@ -132,14 +132,14 @@ Veja [Acesso a redes privadas](/docs/self-hosted/private-network-access) para sa
 
 O que o provedor recebe, e o que o modelo pode fazer com isso:
 
-- **Só o que você coloca no bloco.** O OneUptime envia uma instrução de segurança fixa e depois as **System Instructions**, o **Prompt** e o **Context** do bloco, com as referências preenchidas. **Context** vem por último, depois de um marcador, e a instrução de segurança diz ao modelo que tudo o que vem depois do marcador são dados não confiáveis, mesmo um texto que pareça instruções.
+- **Só o que você coloca no bloco.** O OneUptime envia uma instrução de segurança fixa e depois as **System Instructions**, o **Prompt** e o **Contexto** do bloco, com as referências preenchidas. **Contexto** vem por último, depois de um marcador, e a instrução de segurança diz ao modelo que tudo o que vem depois do marcador são dados não confiáveis, mesmo um texto que pareça instruções.
 - **Nada mais.** Os dados do gatilho, o histórico do workflow, as saídas de outros blocos, os registros do projeto, a telemetria e os segredos nunca são anexados. Eles só saem do OneUptime quando você faz referência a eles em uma dessas três configurações.
 - **Texto, e nenhuma ferramenta.** O modelo não consegue consultar o OneUptime, fazer requisições HTTP nem alterar dados. Os parâmetros adicionais de um provedor só deixam passar uma lista permitida de campos de ajuste da geração: eles não podem substituir as mensagens, acrescentar ferramentas, busca na web ou outras fontes de dados, pedir algo além de texto ou várias respostas, ativar streaming, fazer o provedor guardar a requisição nem aumentar o limite de saída do bloco. Os campos que o OneUptime não conhece são descartados.
 - **O modelo é escolha do seu administrador.** Se a geração precisa ficar offline, escolha um modelo que não busque nada por conta própria do lado do provedor.
 
 O que é registrado:
 
-- O log da execução oculta as **System Instructions**, o **Prompt**, o **Context** e a **Response** do bloco. Os blocos seguintes ainda podem usá-los durante a execução, e um bloco em que você insere um deles o registra pelas regras dele, então inseri-lo é uma escolha de mostrá-lo.
+- O log da execução oculta as **System Instructions**, o **Prompt**, o **Contexto** e a **Resposta** do bloco. Os blocos seguintes ainda podem usá-los durante a execução, e um bloco em que você insere um deles o registra pelas regras dele, então inseri-lo é uma escolha de mostrá-lo.
 - O provedor, o modelo, as contagens de tokens, o **LLM Log ID** e uma mensagem de erro segura continuam visíveis, para operação e cobrança. O erro bruto de um provedor fica fora de todos os logs, porque um provedor pode repetir a requisição nele.
 - Cada chamada aparece em **Configurações do projeto → IA → Registros de IA** com o provedor, o modelo, o status, os tokens, o custo e a cobrança, sem o prompt, a resposta nem o erro bruto.
 
@@ -147,17 +147,17 @@ Do que o bloco precisa, e quanto ele custa:
 
 - **Habilitar IA** precisa estar ligado, em **Configurações do projeto → IA → Recursos de IA**. No OneUptime Cloud, o projeto também precisa do plano Growth ou superior e de uma assinatura paga. Instalações self-hosted sem cobrança não têm restrição de plano.
 - As chamadas por um provedor global pago usam os créditos de IA do projeto.
-- Cada chamada conta para os [limites diários de IA do próprio projeto](/docs/ai/ai-sre#os-limites-diários-do-próprio-projeto), quando um proprietário do projeto os define. Quando um limite é atingido, o bloco toma **Error** sem contatar o modelo, até a meia-noite UTC.
+- Cada chamada conta para os [limites diários de IA do próprio projeto](/docs/ai/ai-sre#os-limites-diários-do-próprio-projeto), quando um proprietário do projeto os define. Quando um limite é atingido, o bloco toma **Erro** sem contatar o modelo, até a meia-noite UTC.
 
 | Limite                                                       | Valor                                                                     |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** e **Context** juntos     | 50.000 caracteres                                                         |
-| **Temperature**                                              | De `0` a `1`                                                              |
+| **System Instructions**, **Prompt** e **Contexto** juntos     | 50.000 caracteres                                                         |
+| **Temperatura**                                              | De `0` a `1`                                                              |
 | **Maximum Output Tokens**                                    | De `1` a `4096`, `1024` por padrão                                        |
 | Uma requisição                                               | Uma única tentativa, de no máximo 60 segundos                             |
-| Chamadas ao mesmo tempo                                      | 3 por projeto. As demais tomam **Error**, e uma execução posterior pode tentar de novo. |
+| Chamadas ao mesmo tempo                                      | 3 por projeto. As demais tomam **Erro**, e uma execução posterior pode tentar de novo. |
 
-As falhas de validação, configuração, acesso, limite, créditos, concorrência, provedor e tempo esgotado tomam todas o caminho **Error**, com o motivo em **Error**. Ligue esse caminho antes de o workflow entrar em produção.
+As falhas de validação, configuração, acesso, limite, créditos, concorrência, provedor e tempo esgotado tomam todas o caminho **Erro**, com o motivo em **Erro**. Ligue esse caminho antes de o workflow entrar em produção.
 
 > [!WARNING]
 > Cada valor a que você faz referência é um dado que você envia ao provedor. Não coloque uma variável secreta no prompt nem no contexto, a menos que o provedor esteja aprovado para recebê-la. Um provedor local self-hosted como o Ollama mantém as requisições dentro da sua própria infraestrutura; um provedor hospedado as recebe sob os termos de tratamento de dados dele.
@@ -196,11 +196,11 @@ Os passos que leem e alteram registros do OneUptime — os componentes Find, Cre
   - editar ou excluir uma entrada de feed (os feeds de incidentes, alertas, episódios, monitores, políticas de plantão e manutenções agendadas);
   - gravar um log de notificação (os logs de SMS, chamadas, e-mail, WhatsApp, Telegram, push, webhook e mensagens de workspace);
   - os valores que o OneUptime define conforme as coisas acontecem: se o CNAME de um domínio personalizado está verificado, as chaves de proteção de uma equipe (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), qual papel de incidente é o principal e se ele pode ser excluído, se um proprietário ou membro foi notificado, os horários e contagens de lembretes, quem está de plantão agora e em seguida em uma escala, o andamento de uma execução de plantão, a taxa de consumo e o error budget atuais de um SLO, um monitor pausado por um incidente ou um evento de manutenção, o token de redefinição de senha e o último acesso de um usuário privado de uma página de status, os dados que um serviço informa sobre si mesmo (versão, runtime, nuvem) e a última execução de uma regra de detecção ou de um feed de ameaças;
-  - declarar um incidente a partir de um modelo enviando `createdIncidentTemplateId` para **Create One Incident** — escolha o modelo na configuração **Incident Template** do passo: o passo então declara o incidente a partir dele, como Project Admin, e registra o modelo;
+  - declarar um incidente a partir de um modelo enviando `createdIncidentTemplateId` para **Create One Incident** — escolha o modelo na configuração **Modelo de incidente** do passo: o passo então declara o incidente a partir dele, como Project Admin, e registra o modelo;
   - alterar a qual registro um registro pertence depois de criado, como o monitor de uma linha de proprietário ou o incidente de uma nota.
 - **Como ninguém.** Um registro que um workflow cria não nomeia criador, e o log de auditoria nomeia o workflow, com o nome que ele tinha na hora, como autor da alteração.
 
-Quando uma verificação recusa um passo, o passo toma a saída **Error** sem fazer a alteração recusada, e o log da execução nomeia o passo e o motivo em palavras simples, por exemplo *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leia-o nas [Execuções](/docs/workflows/runs-and-logs) do workflow. Um passo Create Many cria os registros um de cada vez e para no primeiro recusado: os registros criados antes dele são mantidos.
+Quando uma verificação recusa um passo, o passo toma a saída **Erro** sem fazer a alteração recusada, e o log da execução nomeia o passo e o motivo em palavras simples, por exemplo *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leia-o nas [Execuções](/docs/workflows/runs-and-logs) do workflow. Um passo Create Many cria os registros um de cada vez e para no primeiro recusado: os registros criados antes dele são mantidos.
 
 Os passos que conversam com outros sistemas — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Generate Text with AI — não leem nem alteram registros do OneUptime, então nada disso os afeta.
 
@@ -228,7 +228,7 @@ O executor verifica o prazo antes e depois de cada bloco, e marca uma execução
 
 ## Limite para chamar outros workflows
 
-O componente **Execute Workflow** permite que um workflow inicie outro. Para evitar loops em que o workflow A inicia o B, que inicia o A de novo, uma cadeia de workflows que se iniciam uns aos outros é recusada quando voltaria a um workflow que já está nela, ou passaria de 10 workflows de profundidade. O bloco **Execute Workflow** então toma a saída **Error**, e o erro mostra a cadeia.
+O componente **Execute Workflow** permite que um workflow inicie outro. Para evitar loops em que o workflow A inicia o B, que inicia o A de novo, uma cadeia de workflows que se iniciam uns aos outros é recusada quando voltaria a um workflow que já está nela, ou passaria de 10 workflows de profundidade. O bloco **Execute Workflow** então toma a saída **Erro**, e o erro mostra a cadeia.
 
 Se você precisa mesmo de uma cadeia longa (como um job que processa um item por execução), normalmente é mais simples fazer o loop dentro de um único workflow com **Run Custom JavaScript**.
 

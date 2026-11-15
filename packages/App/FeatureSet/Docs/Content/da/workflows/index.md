@@ -17,7 +17,7 @@ Hvert workflow har tre dele:
 2. **Komponenter** — det, workflowet gør: sende en besked, kalde en API, tjekke en betingelse, oprette eller opdatere en OneUptime-post.
 3. **Forbindelser** — de linjer, du trækker fra én blok til den næste. De afgør, hvad der kører efter hvad.
 
-Når triggeren udløses, starter OneUptime en **kørsel**. Hver blok slutter med at tage en af sine udgange, som **Success** eller **Error**, **Yes** eller **No**, og kun de blokke, der er forbundet til den udgang, kører bagefter. Er der ingen blok forbundet til den udgang, en blok tog, slutter den vej der. Kørslen gemmes med sin status, den vej, den tog, og det, hver blok modtog og returnerede.
+Når triggeren udløses, starter OneUptime en **kørsel**. Hver blok slutter med at tage en af sine udgange, som **Succes** eller **Fejl**, **Ja** eller **Nej**, og kun de blokke, der er forbundet til den udgang, kører bagefter. Er der ingen blok forbundet til den udgang, en blok tog, slutter den vej der. Kørslen gemmes med sin status, den vej, den tog, og det, hver blok modtog og returnerede.
 
 ```mermaid title="Hvad der sker, når et workflow kører"
 flowchart TB
@@ -52,10 +52,10 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 
 | Begreb                 | Hvad det betyder                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Workflow**           | Hele automatikken: et navn, et lærred med blokke og en kontakt til at slå det til og fra.                         |
+| **Arbejdsgang**           | Hele automatikken: et navn, et lærred med blokke og en kontakt til at slå det til og fra.                         |
 | **Trigger**            | Den første blok. Den afgør, hvornår workflowet kører. Hvert workflow har præcis én.                               |
 | **Komponent**          | Enhver anden blok: den sender en besked, laver en forespørgsel, tjekker en betingelse eller ændrer en post.        |
-| **Udgang**             | Et punkt nederst på en blok, som **Success** eller **Error**. Linjer derfra fører til de næste blokke.             |
+| **Udgang**             | Et punkt nederst på en blok, som **Succes** eller **Fejl**. Linjer derfra fører til de næste blokke.             |
 | **Kørsel**             | Én kørsel af workflowet, gemt med status, tidsstempler og det, hver blok gjorde.                                   |
 | **Global variabel**    | En værdi, som en API-nøgle, du gemmer én gang og bruger i alle projektets workflows.                              |
 
@@ -107,13 +107,13 @@ Dette workflow sender et JSON-resumé af hver ny hændelse til en URL, du vælge
 
 ```mermaid title="Det færdige eksempel"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["Kørslen slutter"]
+    trigger["On Create Incident"] -->|"Succes"| post["API Post (JSON)"]
+    post -->|"Fejl"| log["Log"]
+    post -->|"Succes"| done["Kørslen slutter"]
 ```
 
 > [!TIP]
-> Skabelonen **Forward new incidents to another system** bygger dette workflow for dig, uden Log-blokken: uden noget på **Error** får en forespørgsel, der fejler, kørslen til at mislykkes, og kørslens **Trin** siger hvorfor. Du finder den under **Hændelser**, når du opretter et workflow.
+> Skabelonen **Forward new incidents to another system** bygger dette workflow for dig, uden Log-blokken: uden noget på **Fejl** får en forespørgsel, der fejler, kørslen til at mislykkes, og kørslens **Trin** siger hvorfor. Du finder den under **Hændelser**, når du opretter et workflow.
 
 :::steps
 ### Opret workflowet
@@ -136,11 +136,11 @@ Triggeren sender den nye hændelse videre med disse felter. Et felt, du ikke væ
 
 ### Tilføj API-blokken
 
-Klik på **Tilføj komponent**, og klik så på **API Post (JSON)** under **Populære**. Træk fra triggerens punkt **Success** ned til det øverste punkt på den nye blok.
+Klik på **Tilføj komponent**, og klik så på **API Post (JSON)** under **Populære**. Træk fra triggerens punkt **Succes** ned til det øverste punkt på den nye blok.
 
 ### Udfyld forespørgslen
 
-Klik på API-blokken, hvor der står **Click to set up**. Skriv dit endpoint i **URL**. Skriv i **Request Body** det JSON, der skal sendes, brug **{ }** til at indsætte hændelsens felter, hvor du har brug for dem, og klik på **Gem**.
+Klik på API-blokken, hvor der står **Click to set up**. Skriv dit endpoint i **URL**. Skriv i **Anmodningsbrødtekst** det JSON, der skal sendes, brug **{ }** til at indsætte hændelsens felter, hvor du har brug for dem, og klik på **Gem**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Hver `{{…}}`-reference erstattes med hændelsens værdi, når workflowet køre
 
 ### Fang fejl
 
-Klik på **Tilføj komponent**, og klik så på **Log**. Forbind API-blokkens punkt **Error** til den, og sæt Log-blokkens **Value** til `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Klik på **Tilføj komponent**, og klik så på **Log**. Forbind API-blokkens punkt **Fejl** til den, og sæt Log-blokkens **Værdi** til `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 En forespørgsel, der mislykkes — en URL, der ikke kan nås, eller et svar, der ikke er 2xx — tager nu denne vej, og kørslens log siger hvorfor.
 

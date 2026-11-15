@@ -178,7 +178,7 @@ Each scan keeps a record of what it read, by name: the objects, tables or servic
 
 ## Scan a database you run
 
-Data Security samples PostgreSQL and MySQL databases, in one of two ways. A database the Database product monitors, or one your services talk to on the service map, is a store already. A database no scan finds, add as a store yourself.
+Data Security samples PostgreSQL, MySQL and SQL Server databases, in one of two ways. A database the Database product monitors, or one your services talk to on the service map, is a store already. A database no scan finds, add as a store yourself.
 
 - **From OneUptime's workers.** In the store's **Settings**, set **Connection String** to one that can only read, such as `postgresql://reader:password@db.internal:5432/app`. It is encrypted at rest and never returned by the API. Give it a database user that can read and do nothing else.
 - **From a probe in your network.** Pick the probe under **Scan From Probe**, and enter in **Probe Connection Variable** the name of the environment variable on that probe that holds the connection string. The probe reads the database from inside your network and sends back only what it found: the connection string never reaches OneUptime. See [Custom Probes](/docs/probe/custom-probe) to run a probe.

@@ -140,7 +140,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 关于 OTLP 导出器可能收到的其他应答，请参阅 [应答](/docs/telemetry/open-telemetry#响应)。
 
 :::details 停用密钥一分钟后仍有数据到达
-每台 OneUptime 服务器最多会把它所知道的密钥信息保留一分钟，因此更改大约一分钟内到达所有服务器。之后的请求会被拒绝。
+每台 OneUptime 服务器最多会把它所知道的密钥信息保留一分钟，因此更改大约一分钟内到达所有服务器。之后的请求会被拒绝。用该密钥连接的 MQTT 客户端会在几秒内被断开。
 :::
 
 :::details 浏览器密钥在我的笔记本电脑上可用，但在生产环境中不可用

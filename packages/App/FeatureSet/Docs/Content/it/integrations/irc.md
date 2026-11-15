@@ -56,8 +56,8 @@ Il passo prende l'uscita **Successo** appena il server ha accettato ogni riga. P
 
 Decidi dove vanno i messaggi: il nome host del server, per esempio `irc.libera.chat`, e il canale, per esempio `#your-channel`.
 
-- **IRC Server** accetta il nome host e nient'altro: niente `ircs://` e niente porta. Il passo si collega via TLS sulla porta `6697`. Se il tuo server accetta TLS su un'altra porta, impostala in **Port**, sotto **Altri campi**.
-- **Channel** deve essere un canale. Un nickname scritto lì viene rifiutato, così il passo non manda mai per sbaglio un messaggio privato a qualcuno.
+- **IRC Server** accetta il nome host e nient'altro: niente `ircs://` e niente porta. Il passo si collega via TLS sulla porta `6697`. Se il tuo server accetta TLS su un'altra porta, impostala in **Porta**, sotto **Altri campi**.
+- **Canale** deve essere un canale. Un nickname scritto lì viene rifiutato, così il passo non manda mai per sbaglio un messaggio privato a qualcuno.
 
 Il server deve essere uno a cui OneUptime può collegarsi. Gli indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e dei metadati cloud vengono sempre rifiutati. Su OneUptime Cloud viene rifiutato anche un server su un indirizzo di rete privata. Un'installazione self-hosted può raggiungere un server IRC della propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato a `true`.
 
@@ -89,7 +89,7 @@ Il workflow si apre nel **Costruttore** con due passi: **On Create Incident** e 
 1. Apri **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, scegli **Parti da zero**, dai un nome al workflow e fai clic su **Crea flusso di lavoro**.
 2. Nel **Costruttore**, fai clic su **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident** sotto **Popolari**. Fai clic sul trigger e, in **Fields to pass on**, scegli i campi dell'incidente che il tuo messaggio mostra, per esempio il titolo.
 3. Fai clic su **Aggiungi componente**, cerca `irc` e fai clic su **Send Message to IRC**. Collega l'uscita **Successo** del trigger a questo passo.
-4. Fai clic sul nuovo passo e compila **IRC Server**, **Channel** e **Message Text**. Il pulsante **{ }** di **Message Text** inserisce i campi dell'incidente, per esempio il titolo.
+4. Fai clic sul nuovo passo e compila **IRC Server**, **Canale** e **Message Text**. Il pulsante **{ }** di **Message Text** inserisce i campi dell'incidente, per esempio il titolo.
 5. Se nel passo precedente hai salvato delle password, apri **Altri campi**. In **Server Password**, **SASL Password** o **Channel Key**, fai clic su **{ }** e scegli la variabile sotto **Global variables**. Metti il nome del tuo account in **SASL Username**.
 :::
 

@@ -8,6 +8,11 @@ import CloudConnectionService from "../../../Server/Services/CloudConnectionServ
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import DataSecurityIssueFeedService from "../../../Server/Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssueService";
+import DataSecuritySettingService from "../../../Server/Services/DataSecuritySettingService";
+import DataSecuritySetting from "../../../Models/DatabaseModels/DataSecuritySetting";
+import Probe, {
+  ProbeConnectionStatus,
+} from "../../../Models/DatabaseModels/Probe";
 import DataStoreFindingService from "../../../Server/Services/DataStoreFindingService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
@@ -93,7 +98,10 @@ import { getDataSecurityCheck } from "../../../Types/DataSecurity/DataSecurityCh
 import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import DataStoreEnvironment from "../../../Types/DataSecurity/DataStoreEnvironment";
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreKind,
+  DataStoreProvider,
+} from "../../../Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
 import {
   afterEach,
@@ -323,6 +331,8 @@ let queueSpy: jest.SpyInstance;
 let storeFindOneSpy: jest.SpyInstance;
 let storeFindSpy: jest.SpyInstance;
 let storeUpdateSpy: jest.SpyInstance;
+let settingFindOneSpy: jest.SpyInstance;
+let settingRow: DataSecuritySetting | null;
 let issueFindOneSpy: jest.SpyInstance;
 let issueFindSpy: jest.SpyInstance;
 let findingFindOneSpy: jest.SpyInstance;
@@ -441,7 +451,8 @@ beforeAll(() => {
 beforeEach(() => {
   jest.clearAllMocks();
 
-  storeRow = new DataStore(STORE_ID);
+  // A store Scan Now may scan: the workers' S3 bucket (workerStore).
+  storeRow = workerStore();
   issueRow = issueOf();
   findingRow = telemetryFinding(DataStoreKind.TelemetryLogs);
   stores = [];
@@ -470,6 +481,12 @@ beforeEach(() => {
   storeUpdateSpy = jest
     .spyOn(DataStoreService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  settingRow = null;
+  settingFindOneSpy = jest
+    .spyOn(DataSecuritySettingService, "findOneBy")
+    .mockImplementation((async () => {
+      return settingRow;
+    }) as never);
   issueFindOneSpy = jest
     .spyOn(DataSecurityIssueService, "findOneBy")
     .mockImplementation((async () => {
@@ -628,8 +645,47 @@ describe("routes and who may call them", () => {
   );
 });
 
+// An S3 bucket OneUptime's workers scan, with nothing stopping it.
+function workerStore(): DataStore {
+  const store: DataStore = new DataStore(STORE_ID);
+  store.projectId = PROJECT_ID;
+  store.kind = DataStoreKind.AwsS3Bucket;
+  store.provider = DataStoreProvider.Aws;
+  store.isContentScanEnabled = true;
+  store.isArchived = false;
+  return store;
+}
+
+const PROBE_ID: ObjectID = new ObjectID("88888888-8888-4888-8888-888888888888");
+
+// A PostgreSQL database the project's own connected probe scans.
+function probeStore(probe: Partial<Probe> = {}): DataStore {
+  const store: DataStore = workerStore();
+  store.kind = DataStoreKind.PostgreSql;
+  store.provider = DataStoreProvider.SelfManaged;
+  store.scanProbeId = PROBE_ID;
+  store.probeConnectionVariable = "ORDERS_DB_URL";
+  const scanProbe: Probe = new Probe(PROBE_ID);
+  scanProbe.name = "Datacenter probe";
+  scanProbe.isGlobalProbe = false;
+  scanProbe.projectId = PROJECT_ID;
+  scanProbe.connectionStatus = ProbeConnectionStatus.Connected;
+  Object.assign(scanProbe, probe);
+  store.scanProbe = scanProbe;
+  return store;
+}
+
+function settingOf(data: Partial<DataSecuritySetting>): DataSecuritySetting {
+  const setting: DataSecuritySetting = new DataSecuritySetting();
+  setting.projectId = PROJECT_ID;
+  Object.assign(setting, data);
+  return setting;
+}
+
 describe("Scan Now and Check Now", () => {
   test("Scan Now makes the store due now and queues its scan", async () => {
+    storeRow = workerStore();
+
     const result: RouteCall = await call(
       DATA_SECURITY_API_ROUTES.scanNow(":id"),
       {
@@ -637,9 +693,29 @@ describe("Scan Now and Check Now", () => {
       },
     );
 
+    expect(result.thrown).toBeUndefined();
     expect(result.answer).toEqual({});
     expect(storeFindOneSpy.mock.calls[0]![0]).toMatchObject({
       query: { _id: STORE_ID, projectId: PROJECT_ID },
+      // What decides whether anything scans it, its probe read through it.
+      select: {
+        kind: true,
+        provider: true,
+        isContentScanEnabled: true,
+        isArchived: true,
+        scanProbeId: true,
+        probeConnectionVariable: true,
+        scanProbe: {
+          isGlobalProbe: true,
+          projectId: true,
+          connectionStatus: true,
+        },
+      },
+      props: { isRoot: true },
+    });
+    expect(settingFindOneSpy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      select: { isContentScanEnabled: true, isTelemetryScanEnabled: true },
       props: { isRoot: true },
     });
     expect(storeUpdateSpy).toHaveBeenCalledWith({
@@ -656,6 +732,174 @@ describe("Scan Now and Check Now", () => {
       },
     ]);
   });
+
+  test("Scan Now on a SQL Server database the workers scan: queued, as PostgreSQL's is (#8322)", async () => {
+    storeRow = workerStore();
+    storeRow.kind = DataStoreKind.SqlServer;
+    storeRow.provider = DataStoreProvider.SelfManaged;
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scanNow(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(queuedJobs()).toHaveLength(1);
+  });
+
+  test("Scan Now on a probe's store makes it due now for the probe, and queues no worker", async () => {
+    storeRow = probeStore();
+    settingRow = settingOf({ isContentScanEnabled: true });
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scanNow(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(result.answer).toEqual({});
+    expect(storeUpdateSpy).toHaveBeenCalledWith({
+      id: STORE_ID,
+      data: { nextContentScanAt: NOW },
+    });
+    expect(queueSpy).not.toHaveBeenCalled();
+  });
+
+  test("Scan Now in a project with no Data Security settings yet: the defaults, content scanning on", async () => {
+    storeRow = workerStore();
+    settingRow = null;
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scanNow(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(queuedJobs()).toHaveLength(1);
+  });
+
+  /*
+   * It made any store due and queued a scan, and answered success, for a
+   * store whose project scans no content or one no claim will hand out
+   * (#8325). Each is refused now, with the sentence the Overview shows,
+   * and nothing is made due or queued.
+   */
+  test.each([
+    [
+      "the store's Scan Content switch off",
+      (): void => {
+        storeRow = workerStore();
+        storeRow.isContentScanEnabled = false;
+      },
+      "Content scanning is off for this store. Turn it on in its Settings.",
+    ],
+    [
+      "the project's Scan Content switch off",
+      (): void => {
+        storeRow = workerStore();
+        settingRow = settingOf({ isContentScanEnabled: false });
+      },
+      "Content scanning is off for this project. Turn it on in Data Security's Settings.",
+    ],
+    [
+      "an archived store",
+      (): void => {
+        storeRow = workerStore();
+        storeRow.isArchived = true;
+      },
+      "A store that is no longer found is not scanned. It is scanned again once it is found.",
+    ],
+    [
+      "a kind OneUptime cannot sample",
+      (): void => {
+        storeRow = workerStore();
+        storeRow.kind = DataStoreKind.AwsDynamoDbTable;
+      },
+      "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+    ],
+    [
+      "a service's telemetry, which the hourly telemetry scan reads",
+      (): void => {
+        storeRow = workerStore();
+        storeRow.kind = DataStoreKind.TelemetryLogs;
+        storeRow.provider = DataStoreProvider.OneUptime;
+      },
+      "A service's telemetry is scanned every hour, with the project's telemetry scan.",
+    ],
+    [
+      "a service's telemetry whose own switch is off",
+      (): void => {
+        storeRow = workerStore();
+        storeRow.kind = DataStoreKind.TelemetryLogs;
+        storeRow.provider = DataStoreProvider.OneUptime;
+        storeRow.isContentScanEnabled = false;
+      },
+      "Content scanning is off for this store. Turn it on in its Settings.",
+    ],
+    [
+      "a probe's store with the project's switch off",
+      (): void => {
+        storeRow = probeStore();
+        settingRow = settingOf({ isContentScanEnabled: false });
+      },
+      "Content scanning is off for this project. Turn it on in Data Security's Settings.",
+    ],
+    [
+      "a probe's store with no connection variable",
+      (): void => {
+        storeRow = probeStore();
+        storeRow.probeConnectionVariable = "";
+      },
+      "Name the probe's environment variable that holds the connection string, in its Settings.",
+    ],
+    [
+      "a store on a global probe",
+      (): void => {
+        storeRow = probeStore({ isGlobalProbe: true });
+      },
+      "Only a probe of this project's own scans a store. Pick one in its Settings.",
+    ],
+    [
+      "a store on another project's probe",
+      (): void => {
+        storeRow = probeStore({ projectId: ObjectID.generate() });
+      },
+      "Only a probe of this project's own scans a store. Pick one in its Settings.",
+    ],
+    [
+      "a store whose probe is gone",
+      (): void => {
+        storeRow = probeStore();
+        delete storeRow.scanProbe;
+      },
+      "Only a probe of this project's own scans a store. Pick one in its Settings.",
+    ],
+    [
+      "a store on a disconnected probe, named",
+      (): void => {
+        storeRow = probeStore({
+          connectionStatus: ProbeConnectionStatus.Disconnected,
+        });
+      },
+      "Nothing scans this store while Datacenter probe is disconnected.",
+    ],
+  ])(
+    "Scan Now on %s: refused, with why, and nothing made due or queued",
+    async (_name: string, arrange: () => void, reason: string) => {
+      arrange();
+
+      const result: RouteCall = await call(
+        DATA_SECURITY_API_ROUTES.scanNow(":id"),
+        { id: STORE_ID.toString() },
+      );
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+      expect((result.thrown as Exception).message).toBe(reason);
+      expect(result.answer).toBeUndefined();
+      expect(storeUpdateSpy).not.toHaveBeenCalled();
+      expect(queueSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("a store of another project, or none at all, is not found, and nothing is queued", async () => {
     storeRow = null;

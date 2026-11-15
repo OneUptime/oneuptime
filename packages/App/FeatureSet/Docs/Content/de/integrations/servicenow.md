@@ -58,7 +58,7 @@ Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsabla
 
 ### Den Datensatz anlegen
 
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie seine **URL** auf `https://your-instance.service-now.com/api/now/table/incident`. Setzen Sie unter **Weitere Felder** seine **Request Headers** auf:
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **URL** auf `https://your-instance.service-now.com/api/now/table/incident`. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
 
 ```json
 {
@@ -67,7 +67,7 @@ Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**
 }
 ```
 
-Und seinen **Request Body** auf:
+Und seinen **Anfragetext** auf:
 
 ```json
 {
@@ -101,11 +101,11 @@ Legen Sie einen Workflow namens `Resolve ServiceNow incidents` an und wählen Si
 
 ### Prüfen, ob der Vorfall behoben ist
 
-Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Value to check** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Comparison** auf **is true**.
+Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Zu prüfender Wert** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Vergleich** auf **ist wahr**.
 
 ### Den Datensatz finden
 
-Fügen Sie nach der Seite **Yes** einen **API Get (JSON)**-Baustein hinzu, mit denselben **Request Headers** und dieser **URL**:
+Fügen Sie nach der Seite **Ja** einen **API Get (JSON)**-Baustein hinzu, mit denselben **Anfrage-Header** und dieser **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Den Datensatz beheben
 
-Fügen Sie nach dem Punkt **Success** des Suchbausteins einen **API Patch (JSON)**-Baustein hinzu, mit denselben **Request Headers** und dieser **URL**:
+Fügen Sie nach dem Punkt **Erfolg** des Suchbausteins einen **API Patch (JSON)**-Baustein hinzu, mit denselben **Anfrage-Header** und dieser **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Setzen Sie seinen **Request Body** auf:
+Setzen Sie seinen **Anfragetext** auf:
 
 ```json
 {

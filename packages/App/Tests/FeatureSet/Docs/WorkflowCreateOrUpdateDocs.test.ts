@@ -28,8 +28,9 @@ import { writtenPermissionTitle } from "./DocsRoleNames";
  * language, held to the product: its name and its siblings' as the catalog
  * generates them, What Happened and its two values, the reference to it, and
  * Run Workflow's question, named the way that language's Dashboard draws it.
- * The output keeps its English name in every language: the value picker
- * lists a step's values as the step names them.
+ * The value is named so too: the value picker and the settings panel list a
+ * step's values in the reader's words (ReturnValueNames, #8316), under the
+ * same key as Run Workflow's question.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
@@ -200,8 +201,11 @@ describe.each(
     );
   });
 
-  it("keeps the value's own name in English, as the value picker lists it", () => {
-    expect(page).toContain(`**${WHAT_HAPPENED_NAME}**`);
+  it("names the value as the value picker lists it, in this language's words (#8316)", () => {
+    const drawn: string = drawnDashboardLabel(language, WHAT_HAPPENED_NAME);
+
+    expect(page).toContain(`**${drawn}**`);
+    expect(page).not.toContain(`**${WHAT_HAPPENED_NAME}**`);
   });
 
   it("names Run Workflow's question as this language's Dashboard draws it", () => {
@@ -209,9 +213,10 @@ describe.each(
 
     // Every Dashboard language translates it.
     expect(drawn).not.toBe(WHAT_HAPPENED_NAME);
+    // The value the trigger passes, and Run Workflow's question about it.
     expect(
       linesWith(page, ["**On Create or Update**", `**${drawn}**`]),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 
   it("quotes the two values and the reference exactly", () => {

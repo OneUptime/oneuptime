@@ -4,6 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import StoreNextContentScan, {
   StoreNextContentScanWords,
+  getStoreContentScanKindRefusal,
   getStoreNextContentScanWords,
   getStoreScanNowRefusal,
   getStoreScanStopDetail,
@@ -11,8 +12,11 @@ import StoreNextContentScan, {
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import OneUptimeDate from "../../../Types/Date";
 import {
+  DATA_STORE_KINDS,
   DataStoreKind,
+  DataStoreKindInfo,
   DataStoreProvider,
+  TELEMETRY_DATA_STORE_KINDS,
 } from "../../../Types/DataSecurity/DataStoreKind";
 import {
   Translator,
@@ -21,7 +25,9 @@ import {
 import {
   DataStoreContentScanFacts,
   DataStoreContentScanStop,
+  getDataStoreContentScanStopSentence,
   getDataStoreNextContentScan,
+  getDataStoreScanNowRefusalSentence,
 } from "../../../Utils/DataSecurity/DataStoreContentScanSchedule";
 
 /*
@@ -331,34 +337,37 @@ describe("Scan Now, which never says a scan started that will not run", () => {
     ).toBeUndefined();
   });
 
-  test("an archived store from OneUptime's workers: a worker scans one it is asked to", () => {
+  test("an archived store from OneUptime's workers: refused, as the workers' scan reads the claim's rule and no claim hands one out (#8325)", () => {
     expect(
       getStoreScanNowRefusal(workerFacts({ isArchived: true }), ENGLISH),
-    ).toBeUndefined();
+    ).toBe(
+      "A store that is no longer found is not scanned. It is scanned again once it is found.",
+    );
   });
 
-  test("an archived store from OneUptime's workers in a project that scans no content: what else stops it", () => {
-    expect(
-      getStoreScanNowRefusal(
-        workerFacts(
-          { isArchived: true },
-          { projectSetting: { isContentScanEnabled: false } },
-        ),
-        ENGLISH,
-      ),
-    ).toBe(
-      "Content scanning is off for this project. Turn it on in Data Security's Settings.",
-    );
+  test("SQL Server from OneUptime's workers, which sample it now: Scan Now scans (#8322)", () => {
     expect(
       getStoreScanNowRefusal(
         workerFacts({
-          isArchived: true,
-          kind: DataStoreKind.AwsDynamoDbTable,
+          kind: DataStoreKind.SqlServer,
+          provider: DataStoreProvider.SelfManaged,
         }),
         ENGLISH,
       ),
+    ).toBeUndefined();
+  });
+
+  test("a service's telemetry whose store's switch is off: that is why (#8323)", () => {
+    expect(
+      getStoreScanNowRefusal(
+        {
+          ...telemetryFacts(),
+          store: { ...telemetryFacts().store, isContentScanEnabled: false },
+        },
+        ENGLISH,
+      ),
     ).toBe(
-      "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+      "Content scanning is off for this store. Turn it on in its Settings.",
     );
   });
 
@@ -379,12 +388,20 @@ describe("Scan Now, which never says a scan started that will not run", () => {
       "A store that is no longer found is not scanned. It is scanned again once it is found.",
     ],
     [
-      "SQL Server from OneUptime's workers, which never sample it",
+      "a database kind OneUptime's workers never sample",
       workerFacts({
-        kind: DataStoreKind.SqlServer,
+        kind: DataStoreKind.MongoDb,
         provider: DataStoreProvider.SelfManaged,
       }),
       "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+    ],
+    [
+      "an archived store from OneUptime's workers in a project that scans no content",
+      workerFacts(
+        { isArchived: true },
+        { projectSetting: { isContentScanEnabled: false } },
+      ),
+      "A store that is no longer found is not scanned. It is scanned again once it is found.",
     ],
     [
       "no probe connection variable",
@@ -489,5 +506,178 @@ describe("the Next Content Scan field", () => {
     expect(field).toHaveTextContent(
       "OneUptime's workers have not scanned it yet.",
     );
+  });
+});
+
+/*
+ * Scan Now's route refuses in English, by the same rule
+ * (getDataStoreScanNowRefusalSentence): the server and the page must say
+ * the same words, so an API caller reads what a person reads.
+ */
+describe("the server's Scan Now refusals are the page's words", () => {
+  test("every reason, with the probe named and without", () => {
+    for (const stop of Object.values(DataStoreContentScanStop)) {
+      for (const probeName of ["Datacenter probe", undefined]) {
+        expect(getStoreScanStopDetail(stop, ENGLISH, probeName)).toBe(
+          getDataStoreContentScanStopSentence(stop, probeName),
+        );
+      }
+    }
+  });
+
+  test.each([
+    ["a store something will scan", probeFacts()],
+    ["a worker's store", workerFacts()],
+    ["a store switched off", workerFacts({ isContentScanEnabled: false })],
+    ["an archived worker's store", workerFacts({ isArchived: true })],
+    [
+      "a project that scans no content",
+      workerFacts({}, { projectSetting: { isContentScanEnabled: false } }),
+    ],
+    [
+      "a probe's store with no variable",
+      probeFacts({ probeConnectionVariable: "" }),
+    ],
+    [
+      "a disconnected probe",
+      probeFacts(
+        {},
+        {
+          scanProbe: {
+            isGlobalProbe: false,
+            projectId: PROJECT_ID,
+            connectionStatus: ProbeConnectionStatus.Disconnected,
+          },
+        },
+      ),
+    ],
+    ["a service's telemetry", telemetryFacts()],
+    [
+      "a service's telemetry switched off",
+      {
+        ...telemetryFacts(),
+        store: { ...telemetryFacts().store, isContentScanEnabled: false },
+      },
+    ],
+    [
+      "a project that scans no telemetry",
+      telemetryFacts({ projectSetting: { isTelemetryScanEnabled: false } }),
+    ],
+  ])("%s", (_name: string, facts: DataStoreContentScanFacts) => {
+    expect(getStoreScanNowRefusal(facts, ENGLISH, "Datacenter probe")).toBe(
+      getDataStoreScanNowRefusalSentence(facts, "Datacenter probe") ??
+        undefined,
+    );
+  });
+});
+
+/*
+ * The Settings page's Scan Content (#8322): it said OneUptime cannot
+ * sample SQL Server, even for a database a probe scans.
+ */
+describe("why a store's Scan Content switch can do nothing", () => {
+  const UNSAMPLED: string =
+    "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.";
+  const NOT_FROM_A_PROBE: string =
+    "A probe scans PostgreSQL, MySQL and SQL Server databases only. Scan this store from OneUptime's workers in its Settings.";
+
+  test.each([
+    [
+      "SQL Server from a probe",
+      {
+        kind: DataStoreKind.SqlServer,
+        provider: DataStoreProvider.SelfManaged,
+        scanProbeId: "66666666-6666-4666-8666-666666666666",
+      },
+      undefined,
+    ],
+    [
+      "SQL Server from OneUptime's workers",
+      {
+        kind: DataStoreKind.SqlServer,
+        provider: DataStoreProvider.SelfManaged,
+      },
+      undefined,
+    ],
+    [
+      "an S3 bucket",
+      { kind: DataStoreKind.AwsS3Bucket, provider: DataStoreProvider.Aws },
+      undefined,
+    ],
+    [
+      "a MongoDB database",
+      { kind: DataStoreKind.MongoDb, provider: DataStoreProvider.SelfManaged },
+      UNSAMPLED,
+    ],
+    [
+      "a MongoDB database from a probe",
+      {
+        kind: DataStoreKind.MongoDb,
+        provider: DataStoreProvider.SelfManaged,
+        scanProbeId: "66666666-6666-4666-8666-666666666666",
+      },
+      NOT_FROM_A_PROBE,
+    ],
+    [
+      "an S3 bucket set to scan from a probe",
+      {
+        kind: DataStoreKind.AwsS3Bucket,
+        provider: DataStoreProvider.Aws,
+        scanProbeId: "66666666-6666-4666-8666-666666666666",
+      },
+      NOT_FROM_A_PROBE,
+    ],
+    ["no kind read", {}, UNSAMPLED],
+  ])(
+    "%s",
+    (
+      _name: string,
+      store: DataStoreContentScanFacts["store"],
+      refusal: string | undefined,
+    ) => {
+      expect(getStoreContentScanKindRefusal(store, ENGLISH)).toBe(refusal);
+    },
+  );
+
+  test("the switches, archived or a connection variable never change what the kind allows", () => {
+    for (const store of [
+      { isContentScanEnabled: false },
+      { isArchived: true },
+      { probeConnectionVariable: null },
+    ]) {
+      expect(
+        getStoreContentScanKindRefusal(
+          {
+            kind: DataStoreKind.PostgreSql,
+            provider: DataStoreProvider.SelfManaged,
+            scanProbeId: "66666666-6666-4666-8666-666666666666",
+            ...store,
+          },
+          ENGLISH,
+        ),
+      ).toBeUndefined();
+    }
+  });
+
+  test("every telemetry kind can be scanned, so its switch does something", () => {
+    for (const kind of TELEMETRY_DATA_STORE_KINDS) {
+      expect(
+        getStoreContentScanKindRefusal(
+          { kind, provider: DataStoreProvider.OneUptime },
+          ENGLISH,
+        ),
+      ).toBeUndefined();
+    }
+  });
+
+  test("every kind whose info says it is sampled has a switch that does something, from OneUptime's workers", () => {
+    for (const info of DATA_STORE_KINDS) {
+      expect(
+        getStoreContentScanKindRefusal(
+          { kind: info.kind, provider: info.provider },
+          ENGLISH,
+        ) === undefined,
+      ).toBe((info as DataStoreKindInfo).contentScannable);
+    }
   });
 });

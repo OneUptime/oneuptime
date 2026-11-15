@@ -2,7 +2,7 @@
 
 Telemetrie bevat wat je code ook schrijft: een e-mailadres in een logregel, een kaartnummer in een span-attribuut, een token in een stacktrace, de vraag van een klant in een prompt. Gegevensbeveiliging behandelt de logs, traces, uitzonderingen en AI-gesprekken van elke service, en de sessies van elke RUM-applicatie, als eigen gegevensopslagen. Het neemt er elk uur een steekproef van, vindt er gevoelige gegevens in zoals in een bucket, en **Opschonen** maakt van een bevinding een opschoonregel die die gegevens vanaf dan bij de inname maskeert.
 
-Er is niets in te stellen: de telemetrie van elke service wordt elk uur gescand, tenzij **Telemetrie scannen** uit staat in de instellingen van het project.
+Er is niets in te stellen: de telemetrie van elke service wordt elk uur gescand, tenzij **Telemetrie scannen** uit staat in de instellingen van het project. Wil je de logs, traces of een ander signaal van één service overslaan, zet dan **Inhoud scannen** uit in de **Instellingen** van die opslag: vanaf de volgende scan wordt er niets van gelezen.
 
 :::cards
 - [Wat wordt gelezen](#wat-wordt-gelezen): De attributen, bodies, berichten en prompts van elk signaal.

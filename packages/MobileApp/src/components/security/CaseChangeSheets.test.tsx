@@ -1,5 +1,14 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
+import {
+  listenForUserActivity,
+  type HeardUserActivity,
+} from "../../__tests__/userActivityHeard";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { CaseValueSheet, CloseCaseSheet } from "./CaseChangeSheets";
 import { ThemeProvider, darkColors, lightColors } from "../../theme";
@@ -317,6 +326,28 @@ describe("Close case", () => {
       verdict: "Benign Positive",
       closingNote: "Our own red team.",
     });
+  });
+
+  test("typing the closing note counts as using the app, which the idle timeout counts from", async () => {
+    const activity: HeardUserActivity = listenForUserActivity();
+
+    try {
+      await render(closeSheet());
+
+      await fireEvent.changeText(
+        screen.getByTestId("close-case-note"),
+        "Our own red team.",
+      );
+
+      await waitFor((): void => {
+        expect(activity.heard.length).toBeGreaterThan(0);
+      });
+      expect(screen.getByTestId("close-case-note").props.value).toBe(
+        "Our own red team.",
+      );
+    } finally {
+      activity.stop();
+    }
   });
 
   test("a note being written keeps the sheet open on a stray tap outside", async () => {

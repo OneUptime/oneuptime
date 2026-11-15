@@ -51,7 +51,7 @@ Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og 
 
 ### Åpne issuet
 
-Klikk på **Legg til komponent**, legg til en blokk **API Post (JSON)**, og koble utløserens punkt **Success** til den. Sett **URL** til `https://gitlab.com/api/v4/projects/12345678/issues`, med ID-en til prosjektet ditt i stedet for `12345678`. Sett **Request Headers** under **Flere felt** til:
+Klikk på **Legg til komponent**, legg til en blokk **API Post (JSON)**, og koble utløserens punkt **Suksess** til den. Sett **URL** til `https://gitlab.com/api/v4/projects/12345678/issues`, med ID-en til prosjektet ditt i stedet for `12345678`. Sett **Forespørselshoder** under **Flere felt** til:
 
 ```json
 {
@@ -59,7 +59,7 @@ Klikk på **Legg til komponent**, legg til en blokk **API Post (JSON)**, og kobl
 }
 ```
 
-Og **Request Body** til:
+Og **Forespørselstekst** til:
 
 ```json
 {
@@ -81,11 +81,11 @@ Blokken sender JSON, så den trenger ingen `Content-Type`-header. GitLab opprett
 - **Din egen GitLab.** Send forespørselen til serveren din i stedet: `https://gitlab.example.com/api/v4/projects/12345678/issues`. En server på en privat nettverksadresse krever en selvdriftet OneUptime der administratoren tillater det: se [Utgående nettverkstilgang](/docs/workflows/configuration#utgående-nettverkstilgang).
 - **Prosjektbanen i stedet for ID-en.** Banen fungerer i stedet for ID-en, med `/` skrevet som `%2F`: `projects/your-group%2Fyour-project/issues`. URL-en sendes nøyaktig slik den er skrevet, så kod den selv.
 - **Tildel det.** Legg til `"assignee_ids": [42]` eller `"due_date": "2026-12-31"` i bodyen, eller `"confidential": true` for å vise det bare til prosjektmedlemmer.
-- **Bare noen hendelser.** Sett en blokk **If / Else** mellom utløseren og API-blokken, og åpne issues bare på **Yes**-siden, for eksempel for én alvorlighetsgrad.
+- **Bare noen hendelser.** Sett en blokk **If / Else** mellom utløseren og API-blokken, og åpne issues bare på **Ja**-siden, for eksempel for én alvorlighetsgrad.
 
 ## Feilsøking
 
-Trinnet **API Post (JSON)** tar **Error** når GitLab avviser forespørselen. **Response Status** og **Response Body** i kjøringen sier hvorfor.
+Trinnet **API Post (JSON)** tar **Feil** når GitLab avviser forespørselen. **Response Status** og **Svartekst** i kjøringen sier hvorfor.
 
 :::details GitLab svarer 401
 Tokenet er feil, utløpt eller tilbakekalt. Opprett et nytt, og erstatt innholdet i `GITLAB_TOKEN`.

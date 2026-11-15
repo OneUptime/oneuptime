@@ -229,7 +229,7 @@ curl -X POST https://oneuptime.com/api/incident \
 
 要在宣告事件時新增擁有者，請在 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式傳送他們的 ID。如果呼叫方無權新增這些擁有者，要求會在儲存任何內容之前遭到拒絕；否則，事件一建立就會新增他們，且不傳送「你已被新增」通知。API 金鑰不是人：它不會成為擁有者，也沒有任何擁有者規則會為它新增建立者的團隊。要查詢哪些擁有者規則會執行，請將表單所持有的事件——`title`、`description`、`severityId`、`labelIds`、`monitorIds` 以及其他資源的 ID——傳送到 `POST /api/incident/owner-rule-preview`：回應會列出每條會新增某人的規則，以及它所新增對象的 ID。對於警示，則是 `POST /api/alert/owner-rule-preview`。
 
-API 金鑰不能從範本宣告：傳送 `createdIncidentTemplateId` 的請求會被拒絕。這一欄由 OneUptime 自己設定，用於透過 [表單](/docs/forms/on-submit) 回報的事件，以及工作流程的 **Create One Incident** 步驟——它會根據其 **Incident Template** 設定中選擇的範本進行宣告（請參閱 [工作流程元件](/docs/workflows/components)）。要透過 API 從範本宣告，請從 `/api/incident-templates` 讀取範本，並在請求中傳送它的值。
+API 金鑰不能從範本宣告：傳送 `createdIncidentTemplateId` 的請求會被拒絕。這一欄由 OneUptime 自己設定，用於透過 [表單](/docs/forms/on-submit) 回報的事件，以及工作流程的 **Create One Incident** 步驟——它會根據其 **事件範本** 設定中選擇的範本進行宣告（請參閱 [工作流程元件](/docs/workflows/components)）。要透過 API 從範本宣告，請從 `/api/incident-templates` 讀取範本，並在請求中傳送它的值。
 
 相關端點有 `/api/incident-state`、`/api/incident-severity` 和 `/api/incident-state-timeline`。產生的 [API 參考](/reference) 列出了每個端點確切的請求和回應結構，包括監測器等關聯欄位的表示方式。
 

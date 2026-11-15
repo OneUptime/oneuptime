@@ -52,7 +52,7 @@ flowchart TB
 
 ### 傳送 trigger 事件
 
-點選 **新增元件**，新增一個 **API Post (JSON)** 區塊，並把觸發器的 **Success** 點連接到它。把它的 **URL** 設為 `https://events.pagerduty.com/v2/enqueue`，**Request Body** 設為：
+點選 **新增元件**，新增一個 **API Post (JSON)** 區塊，並把觸發器的 **成功** 點連接到它。把它的 **URL** 設為 `https://events.pagerduty.com/v2/enqueue`，**請求內文** 設為：
 
 ```json
 {
@@ -92,11 +92,11 @@ flowchart TB
 
 ### 檢查事件是否已解決
 
-在觸發器之後新增一個 **If / Else** 區塊。把 **Value to check** 設為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**Comparison** 設為 **is true**。
+在觸發器之後新增一個 **If / Else** 區塊。把 **要檢查的值** 設為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比較** 設為 **為真**。
 
 ### 傳送 resolve 事件
 
-在 **Yes** 一側之後新增一個 **API Post (JSON)** 區塊，使用相同的 **URL** 和以下 **Request Body**：
+在 **是** 一側之後新增一個 **API Post (JSON)** 區塊，使用相同的 **URL** 和以下 **請求內文**：
 
 ```json
 {
@@ -118,7 +118,7 @@ flowchart TB
 要傳送每個事件的嚴重程度，請在觸發器和 **API Post (JSON)** 區塊之間新增一個 **Run Custom JavaScript** 區塊，並在請求內文中讀取它的結果。
 
 1. 在觸發器的 **Fields to pass on** 中點選 **新增欄位**，展開 **事件嚴重性** 並選擇 **名稱**。
-2. 把該區塊的 **Arguments** 設為 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript Code** 設為：
+2. 把該區塊的 **Arguments** 設為 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript 程式碼** 設為：
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details 工作流程從未執行
-檢查它是否已啟用：它的 **建構器** 頂部的 **已啟用**。然後開啟 **日誌 → 執行記錄**：走了 **If / Else** 區塊 **No** 一側的執行，是一次不是解決的更新。
+檢查它是否已啟用：它的 **建構器** 頂部的 **已啟用**。然後開啟 **日誌 → 執行記錄**：走了 **If / Else** 區塊 **否** 一側的執行，是一次不是解決的更新。
 :::
 
 :::details PagerDuty 顯示的是引用而不是值

@@ -17,7 +17,7 @@
 2. **组件** —— 工作流要做的事：发送消息、调用 API、检查条件、创建或更新 OneUptime 记录。
 3. **连接** —— 你从一个块画到下一个块的线。它们决定什么在什么之后运行。
 
-触发器触发时，OneUptime 会开始一次 **运行**。每个块最后都会选择它的一个输出，例如 **Success** 或 **Error**、**Yes** 或 **No**，接下来只运行连接到该输出的块。如果没有块连接到某个块所选的输出，那条路径就到此结束。运行会连同它的状态、走过的路径以及每个块接收和返回的内容一起保存。
+触发器触发时，OneUptime 会开始一次 **运行**。每个块最后都会选择它的一个输出，例如 **成功** 或 **错误**、**是** 或 **否**，接下来只运行连接到该输出的块。如果没有块连接到某个块所选的输出，那条路径就到此结束。运行会连同它的状态、走过的路径以及每个块接收和返回的内容一起保存。
 
 ```mermaid title="工作流运行时会发生什么"
 flowchart TB
@@ -55,7 +55,7 @@ OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary
 | **工作流**       | 整个自动化：一个名称、一块放着块的画布，以及一个开启或关闭它的开关。                                   |
 | **触发器**       | 第一个块。它决定工作流何时运行。每个工作流恰好有一个。                                                 |
 | **组件**         | 其他任何块：它发送消息、发出请求、检查条件或更改记录。                                                 |
-| **输出**         | 块底部的一个点，例如 **Success** 或 **Error**。从它引出的线通向下一个块。                              |
+| **输出**         | 块底部的一个点，例如 **成功** 或 **错误**。从它引出的线通向下一个块。                              |
 | **运行**         | 工作流的一次执行，连同状态、时间戳以及每个块做了什么一起保存。                                         |
 | **全局变量**     | 一个值（例如 API 密钥），你只需保存一次，就能在项目的任何工作流中使用。                                |
 
@@ -107,13 +107,13 @@ OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary
 
 ```mermaid title="完成后的示例"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["运行结束"]
+    trigger["On Create Incident"] -->|"成功"| post["API Post (JSON)"]
+    post -->|"错误"| log["日志"]
+    post -->|"成功"| done["运行结束"]
 ```
 
 > [!TIP]
-> **Forward new incidents to another system** 模板会为你搭建这个工作流，但不含 Log 块： **Error** 上没有连接任何东西时，失败的请求会让运行失败，运行的 **步骤** 会说明原因。创建工作流时，可以在 **事件** 下找到它。
+> **Forward new incidents to another system** 模板会为你搭建这个工作流，但不含 Log 块： **错误** 上没有连接任何东西时，失败的请求会让运行失败，运行的 **步骤** 会说明原因。创建工作流时，可以在 **事件** 下找到它。
 
 :::steps
 ### 创建工作流
@@ -136,11 +136,11 @@ flowchart TB
 
 ### 添加 API 块
 
-点击 **添加组件**，然后点击 **热门** 下的 **API Post (JSON)**。从触发器的 **Success** 点向下拖到新块顶部的点。
+点击 **添加组件**，然后点击 **热门** 下的 **API Post (JSON)**。从触发器的 **成功** 点向下拖到新块顶部的点。
 
 ### 填写请求
 
-点击写着 **Click to set up** 的 API 块。在 **URL** 中填入你的端点。在 **Request Body** 中写下要发送的 JSON，在需要的地方用 **{ }** 插入事件的字段，然后点击 **保存**。
+点击写着 **Click to set up** 的 API 块。在 **URL** 中填入你的端点。在 **请求主体** 中写下要发送的 JSON，在需要的地方用 **{ }** 插入事件的字段，然后点击 **保存**。
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ flowchart TB
 
 ### 捕获失败
 
-点击 **添加组件**，然后点击 **日志**。把 API 块的 **Error** 点连接到它，然后把 Log 块的 **Value** 设为 `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`。
+点击 **添加组件**，然后点击 **日志**。把 API 块的 **错误** 点连接到它，然后把 Log 块的 **值** 设为 `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`。
 
 失败的请求——无法访问的 URL，或者不是 2xx 的响应——现在会走这条路径，运行的日志会说明原因。
 

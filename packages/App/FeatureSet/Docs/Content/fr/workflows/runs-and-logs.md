@@ -49,11 +49,11 @@ stateDiagram-v2
 | **En cours d'exécution**            | Le workflow est en cours.                                                                                                                                                                                                                                             |
 | **En attente**                      | L'exécution est garée sur un bloc **Sleep** et reprendra d'elle-même. Elle n'occupe aucun worker pendant l'attente.                                                                                                                                                   |
 | **Exécuté**                         | L'exécution est allée jusqu'au bout sans échouer. C'est le statut de réussite : la pastille indique **Exécuté**, pas « Réussite ».                                                                                                                                    |
-| **Erreur**                          | Un bloc a arrêté l'exécution, ou a échoué sans que rien ne soit relié à sa sortie **Error**. Ce statut sert aussi quand une exécution en file n'est jamais prise en charge, quand la reprise d'une exécution endormie se perd, quand une expression de planification ne peut pas être résolue, et quand le workflow a été désactivé ou archivé pendant que l'exécution attendait sur un bloc **Sleep**. |
+| **Erreur**                          | Un bloc a arrêté l'exécution, ou a échoué sans que rien ne soit relié à sa sortie **Erreur**. Ce statut sert aussi quand une exécution en file n'est jamais prise en charge, quand la reprise d'une exécution endormie se perd, quand une expression de planification ne peut pas être résolue, et quand le workflow a été désactivé ou archivé pendant que l'exécution attendait sur un bloc **Sleep**. |
 | **Délai dépassé**                   | L'exécution a duré plus longtemps que permis : 2 minutes par défaut. Voir [Combien de temps peut durer une exécution](/docs/workflows/configuration#combien-de-temps-peut-durer-une-exécution).                                                                                          |
 | **Exécution au-delà du forfait actuel** | Le projet a utilisé toutes ses exécutions de workflow des 30 derniers jours, ou l'abonnement est impayé. L'exécution est enregistrée mais pas exécutée. OneUptime Cloud uniquement.                                                                                  |
 
-Un bloc qui prend sa sortie **Error** — un bloc API qui a reçu une réponse 4xx, par exemple — ne fait échouer l'exécution que si rien n'est relié à **Error**. Si des blocs y sont reliés, ils s'exécutent, et l'exécution peut quand même se terminer avec **Exécuté**. Si rien n'y est relié, le reste de l'exécution continue, puis elle se termine avec **Erreur**, et la dernière ligne de son **Full Log** nomme le bloc. Dans les deux cas, l'étape elle-même est dessinée en rouge, pour que vous la trouviez.
+Un bloc qui prend sa sortie **Erreur** — un bloc API qui a reçu une réponse 4xx, par exemple — ne fait échouer l'exécution que si rien n'est relié à **Erreur**. Si des blocs y sont reliés, ils s'exécutent, et l'exécution peut quand même se terminer avec **Exécuté**. Si rien n'y est relié, le reste de l'exécution continue, puis elle se termine avec **Erreur**, et la dernière ligne de son **Full Log** nomme le bloc. Dans les deux cas, l'étape elle-même est dessinée en rouge, pour que vous la trouviez.
 
 ## Lire une exécution
 
@@ -89,7 +89,7 @@ Les valeurs affichées sont ce que le bloc a reçu, après le remplissage des va
 
 ### L'onglet Full Log
 
-Le journal brut, ligne par ligne, écrit par le moteur d'exécution, y compris tout ce que les blocs ont journalisé eux-mêmes, comme la valeur d'un bloc **Log** ou le `console.log` d'un script. Utilisez-le quand l'onglet Étapes n'explique pas l'échec.
+Le journal brut, ligne par ligne, écrit par le moteur d'exécution, y compris tout ce que les blocs ont journalisé eux-mêmes, comme la valeur d'un bloc **Journal** ou le `console.log` d'un script. Utilisez-le quand l'onglet Étapes n'explique pas l'échec.
 
 ## Copier et télécharger une exécution
 
@@ -121,7 +121,7 @@ Si l'exécution apparaît, avec le statut **Exécution au-delà du forfait actue
 Un bloc qui ne s'exécute pas révèle en général un problème de liaison. Ouvrez le **Constructeur** et vérifiez :
 
 - La sortie du bloc précédent est-elle reliée à l'entrée de ce bloc ?
-- Le bloc précédent a-t-il pris une autre sortie que celle attendue — **Error** au lieu de **Success**, ou **No** au lieu de **Yes** ? L'onglet **Étapes** indique quelle sortie il a prise et où elle a mené, ou que rien n'y est relié.
+- Le bloc précédent a-t-il pris une autre sortie que celle attendue — **Erreur** au lieu de **Succès**, ou **Non** au lieu de **Oui** ? L'onglet **Étapes** indique quelle sortie il a prise et où elle a mené, ou que rien n'y est relié.
 :::
 
 :::details Une valeur est arrivée vide, ou sous forme de texte {{…}}

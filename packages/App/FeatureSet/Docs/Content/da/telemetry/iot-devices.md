@@ -179,7 +179,7 @@ OneUptime har sit eget MQTT-endpoint, så enheder, der taler MQTT, publicerer m�
 
 En enheds legitimationsoplysninger kan kun publicere under dens egne `oneuptime/<fleet>/<device>/`-topics. Du kan tilbagekalde én enhed uden at røre resten af flåden: slå dens kontakt **Aktiveret** fra, eller slet den, og en forbundet enhed afbrydes inden for omkring et minut. En registreret enhed, der bliver tavs, bliver i inventaret som offline, og advarselsskabelonen Device Offline udløses for den, selv hvis den dør uden en Last Will.
 
-OneUptime afviser forkerte legitimationsoplysninger ved CONNECT med returkode 4 (forkert brugernavn eller adgangskode), så en fejlkonfigureret enhed fejler tydeligt. Browsernøgler afvises over MQTT.
+OneUptime afviser forkerte legitimationsoplysninger ved CONNECT med returkode 4 (forkert brugernavn eller adgangskode), så en fejlkonfigureret enhed fejler tydeligt. Browsernøgler afvises over MQTT. En klient, der har forbundet med indtagelsesnøglen, afbrydes inden for få sekunder, når nøglen slås fra, udløber, får nulstillet sin hemmelighed eller slettes, og afvises, når den forbinder igen.
 
 ### Topics og payloads
 

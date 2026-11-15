@@ -1,5 +1,11 @@
 import React from "react";
-import { act, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import App from "./App";
 import { darkColors, lightColors, useTheme } from "./theme";
@@ -78,9 +84,36 @@ const mockThemeControl: {
   setPreference: ((preference: "system" | "light" | "dark") => void) | null;
 } = { setPreference: null };
 
+/*
+ * What the app tells its activity tracker (auth/userActivity), counted:
+ * the tracker itself has a suite of its own.
+ */
+const mockActivity: { touches: number; starts: number; stops: number } = {
+  touches: 0,
+  starts: 0,
+  stops: 0,
+};
+
+jest.mock("./auth/userActivity", () => {
+  return {
+    recordUserActivity: (): void => {
+      mockActivity.touches++;
+    },
+    startUserActivityTracking: (): (() => void) => {
+      mockActivity.starts++;
+      return (): void => {
+        mockActivity.stops++;
+      };
+    },
+  };
+});
+
+// Whether the navigator stub has a sheet open over it (an RN Modal, as the app's sheets are).
+const mockSheet: { open: boolean } = { open: false };
+
 jest.mock("./navigation/RootNavigator", () => {
   const ReactModule: typeof React = jest.requireActual("react");
-  const { Text } = jest.requireActual(
+  const { Modal, Pressable, Text } = jest.requireActual(
     "react-native",
   ) as typeof import("react-native");
   const theme: { useTheme: typeof useTheme } = jest.requireActual("./theme");
@@ -88,10 +121,29 @@ jest.mock("./navigation/RootNavigator", () => {
     __esModule: true,
     default: function RootNavigatorStub(): React.JSX.Element {
       mockThemeControl.setPreference = theme.useTheme().setPreference;
-      return ReactModule.createElement(
+      const navigator: React.JSX.Element = ReactModule.createElement(
         Text,
         { testID: "root-navigator" },
         "navigator",
+      );
+
+      if (!mockSheet.open) {
+        return navigator;
+      }
+
+      return ReactModule.createElement(
+        ReactModule.Fragment,
+        null,
+        navigator,
+        ReactModule.createElement(
+          Modal,
+          { visible: true, transparent: true },
+          ReactModule.createElement(
+            Pressable,
+            { testID: "sheet-button", accessibilityRole: "button" },
+            ReactModule.createElement(Text, null, "Add note"),
+          ),
+        ),
       );
     },
   };
@@ -136,6 +188,10 @@ jest.mock("./components/OfflineBanner", () => {
 afterEach(() => {
   mockSystemScheme = "light";
   mockThemeControl.setPreference = null;
+  mockSheet.open = false;
+  mockActivity.touches = 0;
+  mockActivity.starts = 0;
+  mockActivity.stops = 0;
 });
 
 type RenderedElement = ReturnType<typeof screen.getByTestId>;
@@ -215,5 +271,44 @@ describe("The status bar and canvas follow the theme", () => {
     expect(frame()).toHaveStyle({
       backgroundColor: darkColors.backgroundPrimary,
     });
+  });
+});
+
+/*
+ * The idle timeout counts from the last time the person used the app
+ * (auth/userActivity, issue #8187): a touch anywhere is that. The frame
+ * around everything hears every touch - touch events bubble through every
+ * view an element is in, a sheet's included - without taking any from the
+ * view it was meant for.
+ */
+describe("Using the app is noticed", () => {
+  test("a touch anywhere in the app counts", async () => {
+    await render(<App />);
+
+    await fireEvent(screen.getByTestId("root-navigator"), "touchStart");
+    await fireEvent(screen.getByTestId("offline-banner"), "touchStart");
+
+    expect(mockActivity.touches).toBe(2);
+  });
+
+  test("so does a touch inside a sheet drawn over the app, which still reaches its button", async () => {
+    mockSheet.open = true;
+    await render(<App />);
+
+    await fireEvent(screen.getByTestId("sheet-button"), "touchStart");
+
+    expect(mockActivity.touches).toBe(1);
+    expect(screen.getByRole("button", { name: "Add note" })).toBeTruthy();
+  });
+
+  test("noticing starts once, when the app starts, and stops with it", async () => {
+    const rendered: Awaited<ReturnType<typeof render>> = await render(<App />);
+
+    expect(mockActivity.starts).toBe(1);
+    expect(mockActivity.stops).toBe(0);
+
+    await rendered.unmount();
+
+    expect(mockActivity.stops).toBe(1);
   });
 });

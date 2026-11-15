@@ -87,10 +87,10 @@ Varje mall för larm är byggd som sin tvilling för incidenter, steg för steg.
 **Monitorer utlöser larm av sig själva, och det kan bli många.** **Create a Jira issue when an alert is created** skapar ett ärende för vart och ett. Om inte varje larm förtjänar ett ärende sätter du ett villkor framför Jira-steget. För att bara skapa ärenden för larm med High:
 
 1. Öppna arbetsflödets **Byggare** och lägg till ett **If / Else**-block.
-2. Ställ in **Value to check** på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparison** på **is equal to** och **Compare with** på `High`.
-3. Ta bort linjen från `alert-on-create-1` till `prepare-issue-1` genom att dra dess ände bort från punkten (se [Städa upp](/docs/workflows/authoring#städa-upp)). Koppla utlösarens **Success** till **If / Else**-blocket och dess **Yes** till `prepare-issue-1`.
+2. Ställ in **Värde att kontrollera** på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Jämförelse** på **är lika med** och **Jämför med** på `High`.
+3. Ta bort linjen från `alert-on-create-1` till `prepare-issue-1` genom att dra dess ände bort från punkten (se [Städa upp](/docs/workflows/authoring#städa-upp)). Koppla utlösarens **Framgång** till **If / Else**-blocket och dess **Ja** till `prepare-issue-1`.
 
-Ett larm som tar **No**-sidan avslutar körningen där, och inget ärende skapas för det.
+Ett larm som tar **Nej**-sidan avslutar körningen där, och inget ärende skapas för det.
 
 ### Vad mallarna frågar efter
 
@@ -129,7 +129,7 @@ Ett Atlassian-**tjänstkonto** fungerar också. En organisationsadministratör s
 4. Klicka på **Skapa arbetsflöde**. Varje arbetsflöde skapas avstängt: slå på **Aktiverad** högst upp i dess **Byggare**.
 :::
 
-Börja med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** för larm: alla andra mallar OneUptime → Jira av samma slag hittar ärendet via etiketten som den här lägger till. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningen ska sluta som **Utförd**, och **Response Body** i dess sista steg, `create-issue-1`, nämner det nya ärendet.
+Börja med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** för larm: alla andra mallar OneUptime → Jira av samma slag hittar ärendet via etiketten som den här lägger till. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningen ska sluta som **Utförd**, och **Svarstext** i dess sista steg, `create-issue-1`, nämner det nya ärendet.
 
 Varje arbetsflöde har sin egen kopia av de här värdena. När du byter ut token uppdaterar du `jiraBasicAuthToken` under **Arbetsflödesvariabler** i varje Jira-arbetsflöde som frågade efter den. Om Jira flyttar till en annan adress uppdaterar du `jiraSiteUrl` och `jiraBaseUrl` på samma sätt.
 
@@ -183,7 +183,7 @@ Innan du förlitar dig på det:
 Varje körnings **Steg** säger vad mallen gjorde, så öppna körningen i **Loggar → Körningar** och se hur den slutade:
 
 - **Utförd**: den gjorde sitt jobb, och dess sista steg nämner ärendet, incidenten eller larmet.
-- **Utförd**, med steget **Check With JavaScript** på **No**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från Jira, posten är privat, eller den nya statusen har ingen Jira-status kopplad till sig.
+- **Utförd**, med steget **Check With JavaScript** på **Nej**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från Jira, posten är privat, eller den nya statusen har ingen Jira-status kopplad till sig.
 - **Fel**: ett steg misslyckades, och dess post under **Steg** säger varför. Vid ett Jira-anrop ingår Jiras svar.
 - **Fel** vid `link-issue-1`: en mall som skapar en post utifrån ett Jira-ärende skapade den, men Jira tog inte emot länketiketterna, så de andra mallarna kan inte hitta den än. Lägg till etiketterna för hand.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Ändra vad en mall gör
 
-Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript Code** i ett **Check With JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm av en mall har samma konstanter i samma block:
+Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript-kod** i ett **Check With JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm av en mall har samma konstanter i samma block:
 
 | Konstant | Mall och block | Vad den styr |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ const STATE_TO_JIRA_STATUS = {
 
 Status- och statusnamn som används som nycklar måste stavas exakt som de heter, versaler inräknade. Håll `{{` borta från koden: ett skript fylls i som vilken annan inställning som helst innan det körs, så två öppnande klammerparenteser i rad skulle läsas som en referens.
 
-För att skicka fler fält på nya ärenden redigerar du **Request Body** i blocket `create-issue-1` i mallarna som skapar ett ärende. Det innehåller ärendets projekt, typ, sammanfattning, etiketter och beskrivning, och du kan lägga till en prioritet, komponenter, en ansvarig eller anpassade fält inuti `fields`, i de former som [Fyll i fler fält](#fyll-i-fler-fält) beskriver. Behåll båda etiketterna. Formuleringen av sammanfattningen och beskrivningen finns i skriptet `prepare-issue-1`. Beskrivningen anger postens allvarlighetsgrad, status och beskrivning, och sedan dess grundorsak och åtgärdsanteckningar när den har sådana: en monitor fyller i dem när den utlöser en incident eller ett larm, och de förklarar det ofta.
+För att skicka fler fält på nya ärenden redigerar du **Begärandekropp** i blocket `create-issue-1` i mallarna som skapar ett ärende. Det innehåller ärendets projekt, typ, sammanfattning, etiketter och beskrivning, och du kan lägga till en prioritet, komponenter, en ansvarig eller anpassade fält inuti `fields`, i de former som [Fyll i fler fält](#fyll-i-fler-fält) beskriver. Behåll båda etiketterna. Formuleringen av sammanfattningen och beskrivningen finns i skriptet `prepare-issue-1`. Beskrivningen anger postens allvarlighetsgrad, status och beskrivning, och sedan dess grundorsak och åtgärdsanteckningar när den har sådana: en monitor fyller i dem när den utlöser en incident eller ett larm, och de förklarar det ofta.
 
-Privata anteckningar och redigeringskommentarer markeras som interna av `properties`-posten, `sd.public.comment`, i **Request Body** i deras `post-comment-1`-block. Bara Jira Service Management läser den. Ta bort den bara om kunderna ska se de kommentarerna.
+Privata anteckningar och redigeringskommentarer markeras som interna av `properties`-posten, `sd.public.comment`, i **Begärandekropp** i deras `post-comment-1`-block. Bara Jira Service Management läser den. Ta bort den bara om kunderna ska se de kommentarerna.
 
 ### Begränsningar
 
@@ -307,8 +307,8 @@ Tokens löper som standard ut efter ett år och förnyas inte. För att slippa b
 
 :::steps
 1. Skapa ett arbetsflöde från grunden som heter `Incidents to Jira`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Dess **Fields to pass on** börjar med **Titel**: klicka på **Lägg till fält** och välj **Beskrivning** och **Incidentnummer**. ID:t skickas alltid vidare. Låt dess **Identifier** vara `incident-on-create-1`.
-2. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Success**-punkt till det. Ställ in dess **Identifier** på `create-issue`, dess **URL** på `{{global.variables.JIRA_URL}}/rest/api/3/issue` och, under **Fler fält**, dess **Request Headers** på `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
-3. Ställ in dess **Request Body** på ärendet, och ersätt `OPS` och `Bug` med din projektnyckel och en ärendetyp i det projektet:
+2. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in dess **Identifier** på `create-issue`, dess **URL** på `{{global.variables.JIRA_URL}}/rest/api/3/issue` och, under **Fler fält**, dess **Begärandehuvuden** på `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+3. Ställ in dess **Begärandekropp** på ärendet, och ersätt `OPS` och `Bug` med din projektnyckel och en ärendetyp i det projektet:
 
    ```json
    {
@@ -391,8 +391,8 @@ Bygg detta som ett andra arbetsflöde, så att ett fel här aldrig hindrar att �
 
 :::steps
 1. Skapa ett arbetsflöde som heter `Incident updates to Jira`, med utlösaren **On Update Incident**. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**. Klicka på **Lägg till fält** i **Fields to pass on**, öppna **Current Incident State** och välj **Namn**.
-2. Lägg till ett **If / Else**-block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, eller namnet på din lösta status.
-3. Hitta ärendet efter dess **Yes**-sida med ett **API Post (JSON)**-block vars **Identifier** är `find-issue`, som publicerar till `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+2. Lägg till ett **If / Else**-block: **Värde att kontrollera** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Jämförelse** **är lika med**, **Jämför med** `Resolved`, eller namnet på din lösta status.
+3. Hitta ärendet efter dess **Ja**-sida med ett **API Post (JSON)**-block vars **Identifier** är `find-issue`, som publicerar till `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -425,7 +425,7 @@ Bygg först det mottagande arbetsflödet:
 
    En egenhostad installation använder sin egen värd. Behandla URL:en som ett lösenord: alla som har den kan starta arbetsflödet. Om den läcker klickar du på **Återställ URL** på samma ställe, och den gamla URL:en slutar fungera direkt.
 
-3. Lägg till ett **Update One Incident**-block från utlösaren. Ställ in dess **Query** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON Object)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Lägg till ett **Update One Incident**-block från utlösaren. Ställ in dess **Fråga** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON Object)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå på det och låt sedan Jira anropa det, från en automatiseringsregel eller från en webhook:
 
@@ -447,7 +447,7 @@ Slå på det och låt sedan Jira anropa det, från en automatiseringsregel eller
 
 4. Slå på regeln och flytta ett testärende till Done. Kontrollera regelns granskningslogg i Jira och **Loggar → Körningar** i OneUptime.
 
-För att vara säker på att en begäran kommer från din regel lägger du till en andra rubrik, `X-OneUptime-Secret`, med ett värde du hittar på, och använder åtgärdens alternativ **Hide** på den. Placera ett **If / Else**-block före uppdateringen i arbetsflödet: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to** och **Compare with** samma värde, sparat i en hemlig global variabel.
+För att vara säker på att en begäran kommer från din regel lägger du till en andra rubrik, `X-OneUptime-Secret`, med ett värde du hittar på, och använder åtgärdens alternativ **Hide** på den. Placera ett **If / Else**-block före uppdateringen i arbetsflödet: **Värde att kontrollera** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Jämförelse** **är lika med** och **Jämför med** samma värde, sparat i en hemlig global variabel.
 
 Send web request anropar bara portarna 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 och 9900. Jira Cloud räknar regelkörningar mot en månatlig kvot som beror på ditt abonnemang, så en regel på varje övergång i ett livligt projekt blir snabbt många.
 @tab Jira webhook
@@ -476,7 +476,7 @@ Börja med mallarna för larm i [Börja från en mall](#börja-från-en-mall). F
 | Etikett `oneuptime-incident-<incident id>` | Etikett `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. För att göra samma Jira-arbete för båda bygger du det en gång i ett arbetsflöde med en **Manual**-utlösare och startar det från båda med ett **Execute Workflow**-block.
+Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. För att göra samma Jira-arbete för båda bygger du det en gång i ett arbetsflöde med en **Manuell**-utlösare och startar det från båda med ett **Execute Workflow**-block.
 
 ## Jira Data Center
 

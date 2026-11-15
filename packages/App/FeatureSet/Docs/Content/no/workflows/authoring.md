@@ -47,23 +47,23 @@ Dra blokkene dit du vil; lerretet fester dem til et rutenett underveis. Plasseri
 | **Identifier** (under **ID**)         | Den korte ID-en som vises på blokken, som `log-1`. Det er slik andre blokker viser til denne, så hvis du gir den nytt navn, slutter alle `{{local.components.…}}`-referanser som peker på den, å virke. Blokkens overskrift er komponentens eget navn og kan ikke endres.                                    |
 | **Innstillinger**                     | Det blokken trenger for å gjøre jobben sin — en URL, en Slack-kanal, en meldingstekst. Valgfrie felt er merket **(Valgfritt)**; alt annet er påkrevd. En av/på-bryter har ingen av delene, fordi den alltid har en verdi. Mindre brukte innstillinger er foldet sammen under **Flere felt**, der overskriften nevner dem og viser de som er fylt ut. |
 | **Input**                             | Punktet på den øverste kanten, der linjer fra tidligere blokker kommer inn. Triggere har ikke noe — ingenting kjører før dem.                                                                                                                                                                                  |
-| **Outputs**                           | Punktene langs den nederste kanten, med etiketter rett over, der linjer går ut til de neste blokkene. Mange blokker har separate utganger **Success** og **Error**, slik at du kan håndtere begge tilfellene.                                                                                               |
+| **Outputs**                           | Punktene langs den nederste kanten, med etiketter rett over, der linjer går ut til de neste blokkene. Mange blokker har separate utganger **Suksess** og **Feil**, slik at du kan håndtere begge tilfellene.                                                                                               |
 
 ## Koble sammen blokker
 
 Dra fra et punkt nederst på én blokk ned til punktet øverst på den neste. Linjen du trekker, avgjør hva som kjører etterpå.
 
-- Kobler du fra **Success**, kjører den neste blokken bare når den forrige lyktes.
-- Kobler du fra **Error**, kjører den neste blokken bare når den forrige mislyktes.
+- Kobler du fra **Suksess**, kjører den neste blokken bare når den forrige lyktes.
+- Kobler du fra **Feil**, kjører den neste blokken bare når den forrige mislyktes.
 - Kobler du ikke en utgang, stopper den veien bare.
 
 ```mermaid title="Bare utgangen en blokk tar, fører noe sted"
 flowchart TB
-    hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Ingenting er koblet til,<br/>så kjøringen slutter"])
-    post -->|"Success"| slack["Send Message to Slack"]
-    post -->|"Error"| log["Log"]
+    hook["Webhook"] -->|"Ut"| check{"If / Else"}
+    check -->|"Ja"| post["API Post (JSON)"]
+    check -->|"Nei"| ends(["Ingenting er koblet til,<br/>så kjøringen slutter"])
+    post -->|"Suksess"| slack["Send Message to Slack"]
+    post -->|"Feil"| log["Logg"]
 ```
 
 Du kan koble én utgang til flere blokker. Alle kjører — men etter hverandre, i én kø, ikke parallelt. Ikke regn med rekkefølgen mellom grenene, og ikke regn med at de overlapper i tid.
@@ -105,7 +105,7 @@ I innstillingen vises en verdi som en brikke, som **Webhook › Request Body**. 
 
 - **Verdier som finnes, kommer først, og resten vises for seg.** Triggeren og blokkene som kjører før denne, tilbys. En blokk som bare kjører før denne i noen kjøringer — etter én utgang fra en **If / Else**, for eksempel — sier det, fordi verdiene kan være tomme her. En blokk som kjører senere, eller på en gren som ikke fører hit, vises til slutt, slått sammen og nedtonet, med årsaken, og verdiene kan ikke velges. Inntil en blokk er koblet til, vises bare triggerens verdier, og listen sier det.
 - **En post åpnes på feltene sine.** En Find One- eller On Create-blokk returnerer en hel post. Velg den for å se feltene: først de blokken sender videre, som **Fields to pass on** i blokken nevner, og deretter, for seg, de den ikke sender videre, som er tomme her. En JSON-verdi eller et sett med headere åpnes på et felt der du skriver en sti, som `title` eller `alerts[0].status`.
-- **Når en blokk har kjørt, vet listen hva som er i verdiene dens.** Hver verdi sier hva den inneholdt i den siste kjøringen — `"production"` eller `3 fields` —, og en JSON-verdi eller et sett med headere åpnes på feltene den hadde, hvert med innholdet sitt. Fra en Webhooks **Request Body** velger du altså **incident.title** i stedet for å skrive en sti. Søk finner også disse feltene: skriv `title`, eller `{{` og begynnelsen av en sti. Feltene til en post viser også hva de inneholdt. Feltene kommer fra den siste kjøringen, så et felt som en senere forespørsel utelater, er tomt i den kjøringen. En verdi som ser ut som en hemmelighet, som en `Authorization`-header, et token eller et passord, vises uten innholdet sitt.
+- **Når en blokk har kjørt, vet listen hva som er i verdiene dens.** Hver verdi sier hva den inneholdt i den siste kjøringen — `"production"` eller `3 fields` —, og en JSON-verdi eller et sett med headere åpnes på feltene den hadde, hvert med innholdet sitt. Fra en Webhooks **Forespørselstekst** velger du altså **incident.title** i stedet for å skrive en sti. Søk finner også disse feltene: skriv `title`, eller `{{` og begynnelsen av en sti. Feltene til en post viser også hva de inneholdt. Feltene kommer fra den siste kjøringen, så et felt som en senere forespørsel utelater, er tomt i den kjøringen. En verdi som ser ut som en hemmelighet, som en `Authorization`-header, et token eller et passord, vises uten innholdet sitt.
 - **En Webhook som ennå ikke har mottatt en forespørsel, sier det** øverst i verdiene sine, med **Kopier testforespørsel**: en `curl`-kommando som sender `{"message": "Hello"}` til arbeidsflytens webhook-URL. Kjør den i en terminal mens listen er åpen, så dukker feltene i forespørselen opp i den så snart kjøringen den starter, er ferdig, vanligvis i løpet av noen sekunder. Bare personer som har lov til å se webhook-URL-en, får knappen. Så lenge arbeidsflyten er slått av, avviser URL-en forespørsler, så listen tilbyr **Test med «Kjør arbeidsflyt»** i stedet: feltene i forespørselen du sender derfra, dukker opp på samme måte. En Incoming Email-trigger som ennå ikke har mottatt en e-post, sier det samme sted; send en e-post til adressen dens, så dukker headerne og vedleggene opp på samme måte.
 - **Kodeeditorer har Insert value i verktøylinjen.** I JSON legger den til anførselstegnene en verdi trenger inne i et dokument. **Run Custom JavaScript** leser verdier gjennom sine **Arguments**, så koden har ingen velger.
 - **Tall, passord, brytere og datoer beholder sin egen kontroll,** med **{ }** ved siden av. En valgt verdi erstatter kontrollen, og **abc** går tilbake til å skrive.
@@ -135,7 +135,7 @@ Den raskeste måten å bli kjent med lerretet på er en arbeidsflyt med to blokk
 :::steps
 1. Klikk på den stiplede plassholderblokken, og klikk deretter på **Manuell** i panelet **Legg til utløser**.
 2. Klikk på **Legg til komponent**, og klikk deretter på **Logg** under **Populære**. Den nye blokken havner under triggeren. Koble triggerens punkt **Execute** ned til inngangspunktet på Log-blokken.
-3. Klikk på Log-blokken, der det står **Click to set up**, og skriv `Hello from ` i **Value**. Klikk på **{ }**, og klikk deretter på **JSON** under **Manuell**. Innstillingen viser **Manual › JSON** og lagrer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klikk på **Lagre**.
+3. Klikk på Log-blokken, der det står **Click to set up**, og skriv `Hello from ` i **Verdi**. Klikk på **{ }**, og klikk deretter på **JSON** under **Manuell**. Innstillingen viser **Manual › JSON** og lagrer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klikk på **Lagre**.
 4. Tilbake i **Bygger** klikker du på **Kjør arbeidsflyt**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Kjør arbeidsflyten manuelt** og bekrefter med **Kjør**. Arbeidsflyten er fortsatt slått av, og den trenger ikke være på: en kjøring du starter selv, er en **Testkjøring**.
 5. Et panel **Arbeidsflytkjøring** åpnes av seg selv og følger kjøringen. Øverst står det **Testkjøring**, og loggen viser `Value:` etterfulgt av `Hello from` og JSON-en du skrev.
 :::
@@ -158,7 +158,7 @@ Mens en arbeidsflyt er slått av, avgjør det som starter den, om den kjører:
 | Triggeren: en tidsplan, en OneUptime-begivenhet eller en e-post | Ignorert.                                                                                                                                                                            |
 | **Kjør arbeidsflyt** eller **Run just this step**          | Kjører, som **Testkjøring**. Blokkene kjører på ekte: en melding blir virkelig sendt, og en post blir virkelig endret. Kjøringen er merket som **Testkjøring** i listene over kjøringer og øverst i kjøringen, med hvem som startet den. |
 | Et kall til webhook-URL-en                                 | Avvist med HTTP 400 og "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                          |
-| En annen arbeidsflyts **Execute Workflow**-blokk           | Den blokken tar veien **Error**, og feilen nevner arbeidsflyten den kalte. Det gjelder også i en testkjøring: en arbeidsflyt den kaller, må være slått på. |
+| En annen arbeidsflyts **Execute Workflow**-blokk           | Den blokken tar veien **Feil**, og feilen nevner arbeidsflyten den kalte. Det gjelder også i en testkjøring: en arbeidsflyt den kaller, må være slått på. |
 
 Rekkefølgen er altså: bygg den, test den med **Kjør arbeidsflyt** mens den fortsatt er slått av, les kjøringens logg, og slå på **Aktivert** når du er klar for at triggeren skal utløses. For å teste én blokk uten å kjøre alt bruker du **Run just this step** i innstillingene til den blokken.
 

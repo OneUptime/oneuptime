@@ -129,22 +129,22 @@ Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet*
 
 ### Kontrollera titeln
 
-Klicka på **Lägg till komponent**, välj **If / Else** och koppla utlösarens punkt **Success** till den. Sätt **Värde att kontrollera** till larmets titel (klicka på **{ }** och välj den), **Jämförelse** till **innehåller** och **Jämför med** till början som dina snubbeltrådars titlar har gemensamt, till exempel `LLM budget exceeded`.
+Klicka på **Lägg till komponent**, välj **If / Else** och koppla utlösarens punkt **Framgång** till den. Sätt **Värde att kontrollera** till larmets titel (klicka på **{ }** och välj den), **Jämförelse** till **innehåller** och **Jämför med** till början som dina snubbeltrådars titlar har gemensamt, till exempel `LLM budget exceeded`.
 
 ### Anropa din slutpunkt
 
-Lägg till **API Post (JSON)** och koppla punkten **Yes** på **If / Else** till den. Sätt dess **URL** till din slutpunkt, till exempel `https://agents.example.com/circuit-breaker`, och fyll i huvudena och kroppen nedan.
+Lägg till **API Post (JSON)** och koppla punkten **Ja** på **If / Else** till den. Sätt dess **URL** till din slutpunkt, till exempel `https://agents.example.com/circuit-breaker`, och fyll i huvudena och kroppen nedan.
 
 ### Rapportera ett fel
 
-Lägg till **Send Message to Slack** eller **Send Email** och koppla API-blockets punkt **Error** till den. En circuit breaker som inte lyckas lösa ut är det enda larm som en människa måste se.
+Lägg till **Send Message to Slack** eller **Send Email** och koppla API-blockets punkt **Fel** till den. En circuit breaker som inte lyckas lösa ut är det enda larm som en människa måste se.
 
 ### Slå på det
 
 Slå på **Aktiverad** högst upp i **Byggare**.
 :::
 
-API-blockets **Request Headers**:
+API-blockets **Begärandehuvuden**:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ API-blockets **Request Headers**:
 }
 ```
 
-Dess **Request Body**:
+Dess **Begärandekropp**:
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ Dess **Request Body**:
 }
 ```
 
-För att reagera på flera snubbeltrådar låter du alla deras titlar börja på samma sätt, eller kedjar fler **If / Else**-block från punkten **No**. Se [Bygga ett arbetsflöde](/docs/workflows/authoring) för arbetsytan och [Variabler](/docs/workflows/variables) för `{{…}}`-referenserna.
+För att reagera på flera snubbeltrådar låter du alla deras titlar börja på samma sätt, eller kedjar fler **If / Else**-block från punkten **Nej**. Se [Bygga ett arbetsflöde](/docs/workflows/authoring) för arbetsytan och [Variabler](/docs/workflows/variables) för `{{…}}`-referenserna.
 
 ## Testa circuit breakern
 

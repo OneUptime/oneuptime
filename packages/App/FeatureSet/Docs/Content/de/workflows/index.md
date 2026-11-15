@@ -17,7 +17,7 @@ Jeder Workflow hat drei Teile:
 2. **Komponenten** – was der Workflow tut: eine Nachricht senden, eine API aufrufen, eine Bedingung prüfen, einen OneUptime-Datensatz anlegen oder ändern.
 3. **Verbindungen** – die Linien, die Sie von einem Baustein zum nächsten ziehen. Sie entscheiden, was nach was läuft.
 
-Wenn der Trigger auslöst, startet OneUptime eine **Ausführung**. Jeder Baustein endet, indem er einen seiner Ausgänge nimmt, etwa **Success** oder **Error**, **Yes** oder **No**, und nur die Bausteine, die mit diesem Ausgang verbunden sind, laufen als Nächstes. Ist mit dem genommenen Ausgang kein Baustein verbunden, endet dieser Pfad. Die Ausführung wird mit ihrem Status, dem genommenen Pfad und dem, was jeder Baustein erhalten und zurückgegeben hat, gespeichert.
+Wenn der Trigger auslöst, startet OneUptime eine **Ausführung**. Jeder Baustein endet, indem er einen seiner Ausgänge nimmt, etwa **Erfolg** oder **Fehler**, **Ja** oder **Nein**, und nur die Bausteine, die mit diesem Ausgang verbunden sind, laufen als Nächstes. Ist mit dem genommenen Ausgang kein Baustein verbunden, endet dieser Pfad. Die Ausführung wird mit ihrem Status, dem genommenen Pfad und dem, was jeder Baustein erhalten und zurückgegeben hat, gespeichert.
 
 ```mermaid title="Was passiert, wenn ein Workflow läuft"
 flowchart TB
@@ -52,10 +52,10 @@ Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/i
 
 | Begriff              | Was er bedeutet                                                                                                     |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Workflow**         | Die ganze Automatisierung: ein Name, eine Arbeitsfläche voller Bausteine und ein Schalter zum Ein- und Ausschalten. |
+| **Arbeitsablauf**         | Die ganze Automatisierung: ein Name, eine Arbeitsfläche voller Bausteine und ein Schalter zum Ein- und Ausschalten. |
 | **Trigger**          | Der erste Baustein. Er entscheidet, wann der Workflow läuft. Jeder Workflow hat genau einen.                        |
 | **Komponente**       | Jeder andere Baustein: Er sendet eine Nachricht, stellt eine Anfrage, prüft eine Bedingung oder ändert einen Datensatz. |
-| **Ausgang**          | Ein Punkt unten an einem Baustein, etwa **Success** oder **Error**. Linien von dort führen zu den nächsten Bausteinen. |
+| **Ausgang**          | Ein Punkt unten an einem Baustein, etwa **Erfolg** oder **Fehler**. Linien von dort führen zu den nächsten Bausteinen. |
 | **Ausführung**       | Ein Durchlauf des Workflows, gespeichert mit Status, Zeitstempeln und dem, was jeder Baustein getan hat.            |
 | **Globale Variable** | Ein Wert wie ein API-Schlüssel, den Sie einmal speichern und in jedem Workflow des Projekts verwenden.               |
 
@@ -107,13 +107,13 @@ Dieser Workflow sendet eine JSON-Zusammenfassung jedes neuen Vorfalls an eine UR
 
 ```mermaid title="Das fertige Beispiel"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["Ausführung endet"]
+    trigger["On Create Incident"] -->|"Erfolg"| post["API Post (JSON)"]
+    post -->|"Fehler"| log["Protokoll"]
+    post -->|"Erfolg"| done["Ausführung endet"]
 ```
 
 > [!TIP]
-> Die Vorlage **Forward new incidents to another system** baut diesen Workflow für Sie, ohne den Log-Baustein: Ist mit **Error** nichts verbunden, lässt eine fehlgeschlagene Anfrage die Ausführung fehlschlagen, und die **Schritte** der Ausführung sagen, warum. Sie finden sie unter **Vorfälle**, wenn Sie einen Workflow anlegen.
+> Die Vorlage **Forward new incidents to another system** baut diesen Workflow für Sie, ohne den Log-Baustein: Ist mit **Fehler** nichts verbunden, lässt eine fehlgeschlagene Anfrage die Ausführung fehlschlagen, und die **Schritte** der Ausführung sagen, warum. Sie finden sie unter **Vorfälle**, wenn Sie einen Workflow anlegen.
 
 :::steps
 ### Den Workflow anlegen
@@ -136,11 +136,11 @@ Der Trigger reicht den neuen Vorfall mit diesen Feldern weiter. Ein Feld, das Si
 
 ### Den API-Baustein hinzufügen
 
-Klicken Sie auf **Komponente hinzufügen** und dann unter **Beliebt** auf **API Post (JSON)**. Ziehen Sie vom Punkt **Success** des Triggers nach unten zum oberen Punkt des neuen Bausteins.
+Klicken Sie auf **Komponente hinzufügen** und dann unter **Beliebt** auf **API Post (JSON)**. Ziehen Sie vom Punkt **Erfolg** des Triggers nach unten zum oberen Punkt des neuen Bausteins.
 
 ### Die Anfrage ausfüllen
 
-Klicken Sie auf den API-Baustein, auf dem **Click to set up** steht. Tragen Sie Ihren Endpunkt unter **URL** ein. Schreiben Sie unter **Request Body** das JSON, das gesendet werden soll, fügen Sie die Felder des Vorfalls mit **{ }** dort ein, wo Sie sie brauchen, und klicken Sie auf **Speichern**.
+Klicken Sie auf den API-Baustein, auf dem **Click to set up** steht. Tragen Sie Ihren Endpunkt unter **URL** ein. Schreiben Sie unter **Anfragetext** das JSON, das gesendet werden soll, fügen Sie die Felder des Vorfalls mit **{ }** dort ein, wo Sie sie brauchen, und klicken Sie auf **Speichern**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Jeder `{{…}}`-Verweis wird beim Ausführen durch den Wert des Vorfalls ersetzt
 
 ### Fehler abfangen
 
-Klicken Sie auf **Komponente hinzufügen** und dann auf **Protokoll**. Verbinden Sie den Punkt **Error** des API-Bausteins damit und setzen Sie den **Value** des Log-Bausteins auf `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Klicken Sie auf **Komponente hinzufügen** und dann auf **Protokoll**. Verbinden Sie den Punkt **Fehler** des API-Bausteins damit und setzen Sie den **Wert** des Log-Bausteins auf `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 Eine Anfrage, die fehlschlägt – eine nicht erreichbare URL oder eine Antwort, die nicht 2xx ist –, nimmt jetzt diesen Pfad, und das Protokoll der Ausführung sagt, warum.
 

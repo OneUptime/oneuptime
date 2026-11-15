@@ -136,10 +136,11 @@ export const CHAT_STEP_PAGES: ReadonlyArray<string> = [DISCORD, TELEGRAM];
 /*
  * What a workflow step defines itself, named on the page: a step's title,
  * its settings, its outputs and the values it returns, and the comparisons
- * an If / Else block offers. The canvas draws them as the step names them,
- * and the workflow pages keep them in English in every language
- * (WorkflowDocsTranslations), so these pages do too. The facts suite holds
- * each to the step catalog.
+ * an If / Else block offers. The facts suite holds each to the step
+ * catalog. The builder looks each up in the Dashboard's locale, so a
+ * translation names the ones a locale has a word for as its Dashboard
+ * draws them (#7511, isStepNameOnPage), and keeps the rest, most of the
+ * steps' titles, as written.
  */
 const OUTBOUND_STEPS: ReadonlyArray<string> = [
   "On Create Incident",
@@ -486,6 +487,8 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Allow manual close",
     "Problem update",
     "Update operations",
+    // The media type's Type, as Zabbix names it (DocsWorkflowStepNames).
+    "Webhook",
   ],
   [PAGERDUTY]: [
     "Integrations",
@@ -602,6 +605,11 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Alerting → Notification policies",
     "Max Alerts",
     "Test",
+    /*
+     * The contact point's integration, as Grafana names it: the first
+     * Webhook on the page (the others are OneUptime's trigger, drawn).
+     */
+    "Webhook",
   ],
   // Datadog's monitor states, and the fields of its Webhooks integration.
   [DATADOG]: [
@@ -628,6 +636,8 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Closed",
     "Activate workflow",
     "Send test notification",
+    // The destination's type, as New Relic names it (DocsWorkflowStepNames).
+    "Webhook",
   ],
   // A SOAR playbook's HTTP request action, Google Cloud and SecOps.
   [GOOGLE_SECOPS]: [

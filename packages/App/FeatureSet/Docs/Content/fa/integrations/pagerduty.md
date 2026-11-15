@@ -52,7 +52,7 @@ flowchart TB
 
 ### فرستادن رویداد trigger
 
-روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **URL** آن را روی `https://events.pagerduty.com/v2/enqueue` و **Request Body** آن را روی این بگذارید:
+روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **موفق** تریگر را به آن وصل کنید. **URL** آن را روی `https://events.pagerduty.com/v2/enqueue` و **بدنه درخواست** آن را روی این بگذارید:
 
 ```json
 {
@@ -92,11 +92,11 @@ flowchart TB
 
 ### بررسی اینکه حادثه رفع شده است
 
-پس از تریگر یک بلوک **If / Else** اضافه کنید. **Value to check** را روی `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` و **Comparison** را روی **is true** بگذارید.
+پس از تریگر یک بلوک **If / Else** اضافه کنید. **مقدار مورد بررسی** را روی `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` و **مقایسه** را روی **درست است** بگذارید.
 
 ### فرستادن رویداد resolve
 
-پس از سمت **Yes** یک بلوک **API Post (JSON)** اضافه کنید، با همان **URL** و این **Request Body**:
+پس از سمت **بله** یک بلوک **API Post (JSON)** اضافه کنید، با همان **URL** و این **بدنه درخواست**:
 
 ```json
 {
@@ -118,7 +118,7 @@ flowchart TB
 برای فرستادن شدت هر حادثه، یک بلوک **Run Custom JavaScript** میان تریگر و بلوک **API Post (JSON)** اضافه کنید، و پاسخ آن را در بدنه بخوانید.
 
 1. در **Fields to pass on** تریگر روی **افزودن فیلد** کلیک کنید، **شدت حادثه** را باز کنید و **نام** را برگزینید.
-2. **Arguments** بلوک را روی `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` و **JavaScript Code** آن را روی این بگذارید:
+2. **Arguments** بلوک را روی `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` و **کد JavaScript** آن را روی این بگذارید:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details گردش کاری هرگز اجرا نمی‌شود
-بررسی کنید که روشن باشد: **فعال**، در بالای **سازنده** آن. سپس **لاگ‌ها** > **اجراها** را باز کنید: اجرایی که به سمت **No** بلوک **If / Else** رفته، به‌روزرسانی‌ای بوده که رفع نبوده است.
+بررسی کنید که روشن باشد: **فعال**، در بالای **سازنده** آن. سپس **لاگ‌ها** > **اجراها** را باز کنید: اجرایی که به سمت **خیر** بلوک **If / Else** رفته، به‌روزرسانی‌ای بوده که رفع نبوده است.
 :::
 
 :::details PagerDuty به جای مقدار، یک ارجاع نشان می‌دهد
