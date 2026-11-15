@@ -90,6 +90,10 @@ import {
   withBrandedSubject,
 } from "../Utils/EmailBranding";
 import {
+  SERVER_KIND_VARIABLE_NAMES,
+  getCurrentEmailServerKindVariables,
+} from "../Utils/EmailServerKind";
+import {
   EMAIL_SENT_STATUS_MESSAGE,
   getSentWithoutImagesStatusMessage,
   toEmailStatusMessage,
@@ -1162,6 +1166,17 @@ export default class MailService {
     }
 
     Object.assign(vars, brandVariables);
+
+    /*
+     * Whether this is a self-hosted server, whose people ask its admin for
+     * help, not OneUptime's support (EmailServerKind.ts, #8190). Reserved
+     * like the brand's.
+     */
+    for (const name of SERVER_KIND_VARIABLE_NAMES) {
+      delete vars[name];
+    }
+
+    Object.assign(vars, getCurrentEmailServerKindVariables());
 
     /*
      * The language the email's own words are in, and the way it reads

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53516,
-    "untranslated": 2528
+    "keys": 53571,
+    "untranslated": 2523
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -610,6 +610,7 @@
     "Top",
     "Top P",
     "Top {{count}}",
+    "Topic",
     "Trace",
     "Trace Explorer",
     "Trace {{traceId}}",

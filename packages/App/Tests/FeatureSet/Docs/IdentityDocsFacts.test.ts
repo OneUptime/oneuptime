@@ -917,7 +917,7 @@ describe("the SSO guide", () => {
       'column="requireSsoForLogin"',
     );
     expect(readSource("adminSettingsSideMenu")).toMatch(
-      /title: t\("sideMenu\.settingsSso"\),\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_SSO\]/,
+      /title: t\("sideMenu\.settingsSso"\),\s*(?:isTitleTranslated: true,\s*)?to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_SSO\]/,
     );
 
     for (const page of [SSO, GLOBAL_SSO]) {

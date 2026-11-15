@@ -835,3 +835,119 @@ describe("whether a page reaches people", () => {
     ).toContain(`/on-call-readiness/policy/${POLICY_ID}`);
   });
 });
+
+/*
+ * THE POLICIES IT OFFERS ARE THE ONES IN SERVICE (#8234). An archived
+ * policy pages no one - incidents and alerts that use it skip it - and the
+ * On-Call Policies list hides it. The setup offered it all the same, and a
+ * project whose only policy was archived was told it already had one, so
+ * the setup never made a policy that pages anyone. The fake server below
+ * answers a list as the real one does: only the records its query matches.
+ */
+describe("the project's policies to set up (#8234)", () => {
+  const LIVE_ID: string = "60000000-0000-4000-8000-000000000011";
+  const ARCHIVED_ID: string = "60000000-0000-4000-8000-000000000012";
+  const OTHER_ARCHIVED_ID: string = "60000000-0000-4000-8000-000000000013";
+
+  // What the project holds, as the database would hand it back.
+  const serve: (
+    policies: Array<{ _id: string; name: string; isArchived: boolean }>,
+  ) => void = (
+    policies: Array<{ _id: string; name: string; isArchived: boolean }>,
+  ): void => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+      query: Record<string, unknown>;
+    }) => {
+      if (args.modelType !== OnCallDutyPolicy) {
+        return list([]);
+      }
+
+      return list(
+        policies
+          .filter((policy: Record<string, unknown>): boolean => {
+            return Object.entries(args.query).every(
+              ([column, value]: [string, unknown]): boolean => {
+                return policy[column] === value;
+              },
+            );
+          })
+          .map((policy: Record<string, unknown>): OnCallDutyPolicy => {
+            return model(OnCallDutyPolicy, policy);
+          }),
+      );
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+  };
+
+  const offeredIds: () => Promise<Array<string>> = async (): Promise<
+    Array<string>
+  > => {
+    return (await OnCallSetupApi.loadPolicyChoices()).policies.map(
+      (policy: { id: string }): string => {
+        return policy.id;
+      },
+    );
+  };
+
+  test("the list is asked for as the On-Call Policies list asks: archived ones left out", async () => {
+    serve([]);
+    await OnCallSetupApi.loadPolicyChoices();
+
+    const calls: Array<Record<string, unknown>> = callsFor(
+      getListSpy,
+      OnCallDutyPolicy,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!["query"]).toEqual({ isArchived: false });
+  });
+
+  test("a project whose only policy is archived has none to offer, so the setup makes one", async () => {
+    serve([{ _id: ARCHIVED_ID, name: "Old rota", isArchived: true }]);
+
+    expect(await offeredIds()).toEqual([]);
+  });
+
+  test("every policy archived: none offered, however many there are", async () => {
+    serve([
+      { _id: ARCHIVED_ID, name: "Old rota", isArchived: true },
+      { _id: OTHER_ARCHIVED_ID, name: "Older rota", isArchived: true },
+    ]);
+
+    expect(await offeredIds()).toEqual([]);
+  });
+
+  test("an archived policy beside one in service: only the one in service is offered", async () => {
+    serve([
+      { _id: ARCHIVED_ID, name: "Old rota", isArchived: true },
+      { _id: LIVE_ID, name: "Payments", isArchived: false },
+    ]);
+
+    expect(await offeredIds()).toEqual([LIVE_ID]);
+    expect((await OnCallSetupApi.loadPolicyChoices()).policies).toEqual([
+      { id: LIVE_ID, name: "Payments" },
+    ]);
+  });
+
+  test("policies in service are all offered, by name", async () => {
+    serve([
+      { _id: LIVE_ID, name: "Payments", isArchived: false },
+      { _id: POLICY_ID, name: "Default on-call policy", isArchived: false },
+    ]);
+
+    expect((await offeredIds()).sort()).toEqual([LIVE_ID, POLICY_ID].sort());
+  });
+
+  test("what the person may do is read whatever the project holds", async () => {
+    serve([{ _id: ARCHIVED_ID, name: "Old rota", isArchived: true }]);
+
+    expect(await OnCallSetupApi.loadPolicyChoices()).toEqual({
+      policies: [],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+  });
+});

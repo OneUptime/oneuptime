@@ -18,6 +18,7 @@ import APIException from "../../../Types/Exception/ApiException";
 import {
   isEmptyErrorPhrase,
   isErrorPage,
+  isTooLargePhrase,
 } from "../../../Types/Exception/ErrorMessageRule";
 import Exception from "../../../Types/Exception/Exception";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
@@ -643,6 +644,24 @@ class BaseAPI extends API {
       }
 
       /*
+       * A 413 a proxy answered - nginx's "413 Request Entity Too Large"
+       * page, a load balancer's empty body, an API gateway's bare "Request
+       * Too Long" - says that what was sent was too large, and what to do:
+       * send less. It read as a failure the server could not explain, with
+       * "Try again in a moment", which never helps (#8278). A 413 the API
+       * wrote in a sentence of its own (the limit it holds a gzip body to)
+       * is kept.
+       */
+      if (
+        err.statusCode === 413 &&
+        (isErrorPage(err.message) ||
+          isEmptyErrorPhrase(err.message) ||
+          isTooLargePhrase(err.message))
+      ) {
+        return UNEXPLAINED_ERROR_MESSAGES.tooLarge;
+      }
+
+      /*
        * The other statuses a gateway answers for a server it could not
        * reach - a load balancer's or an ingress's 503 while no app is
        * running, Cloudflare's 520 to 524 and 530 - are the server being
@@ -694,9 +713,10 @@ class BaseAPI extends API {
    * A message as the reader should see it: as it came, in whatever script
    * it is written (#7536), unless it says nothing - "Server Error",
    * "Internal Server Error", an empty body - or is a page rather than a
-   * message (a proxy's HTML for a 500, a 413 or a 404, which used to be
-   * shown as its markup): then it becomes the sentence for a failure the
-   * server did not explain.
+   * message (a proxy's HTML for a 500 or a 404, which used to be shown as
+   * its markup): then it becomes the sentence for a failure the server did
+   * not explain. A 413's page says what was too large, above, while its
+   * status is known.
    */
   private static explainServerMessage(message: string | undefined): string {
     if (isEmptyErrorPhrase(message) || isErrorPage(message)) {

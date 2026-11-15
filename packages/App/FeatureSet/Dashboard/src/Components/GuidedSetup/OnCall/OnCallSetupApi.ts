@@ -406,12 +406,18 @@ export default class OnCallSetupApi {
     };
   }
 
-  // The project's policies, and whether this person may make or change one.
+  /*
+   * The project's policies in service, and whether this person may make or
+   * change one. An archived policy pages no one, so it is never offered,
+   * and a project whose only policies are archived has none to set up: the
+   * setup makes one that pages people (#8234). Pinned as the On-Call
+   * Policies list pins it, so the setup offers what the list shows.
+   */
   public static async loadPolicyChoices(): Promise<PolicyChoiceFacts> {
     const policies: ListResult<OnCallDutyPolicy> =
       await ModelAPI.getList<OnCallDutyPolicy>({
         modelType: OnCallDutyPolicy,
-        query: {},
+        query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: { _id: true, name: true },

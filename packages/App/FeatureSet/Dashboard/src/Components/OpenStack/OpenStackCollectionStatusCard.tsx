@@ -15,11 +15,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import {
-  TemplateValue,
-  Translator,
-  translatableTerm,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -37,6 +33,7 @@ import {
   OpenStackCollectionTone,
   OpenStackGentlerRow,
   OpenStackServiceRow,
+  getOpenStackCollectionDescription,
   getOpenStackCollectionStatusView,
   getOpenStackGentlerRows,
   getOpenStackInventoryPhrases,
@@ -126,7 +123,6 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
         authUrl: true,
         // What decides whether a probe may collect it (OpenStackCollectionStop).
         projectId: true,
-        isArchived: true,
         isCredentialSet: true,
         collectionProbeId: true,
         collectionProbe: {
@@ -200,10 +196,6 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
     { modelId: props.modelId },
   );
 
-  // Translated along with the sentence it goes into, never on its own.
-  const probeName: TemplateValue =
-    cloud.collectionProbe?.name || translatableTerm("its probe");
-
   const trustCertificate: (fingerprint: string) => Promise<void> = async (
     fingerprint: string,
   ): Promise<void> => {
@@ -255,21 +247,11 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
     <div className="mb-5" data-testid="openstack-data-collection-status">
       <Card
         title="Data Collection"
-        description={translator.translatePlural(
-          {
-            /*
-             * The one form names the count too: Russian's "one" is 1, 21, 31, 41 and 51 as
-             * well, and a cloud may be collected every 21 minutes.
-             */
-            one: "Collected by {{probe}} from {{address}}, every {{count}} minute. No agent runs for it.",
-            other:
-              "Collected by {{probe}} from {{address}}, every {{count}} minutes. No agent runs for it.",
-          },
-          cloud.collectionIntervalInMinutes || 2,
-          {
-            probe: probeName,
-            address: cloud.authUrl || "",
-          },
+        description={getOpenStackCollectionDescription(
+          cloud,
+          translator,
+          new Date(),
+          BILLING_ENABLED,
         )}
         rightElement={
           <StatusBadge text={view.label} type={badgeTypeOf(view.tone)} />

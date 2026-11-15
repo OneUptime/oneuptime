@@ -542,8 +542,20 @@ export default class MonitorResourceUtil {
           MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
         )
       ) {
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} - Probe ${reportingProbeId.toString()} reported a check result for a monitor probes do not check. Refused.`,
+        /*
+         * Logged once, at warn, naming the probe: the telemetry worker
+         * completes the job rather than retrying it (the monitor's type
+         * does not change between attempts), so this line is the one place
+         * a probe that keeps reporting for monitors it does not check is
+         * seen (isNonActionableIngestError, issue #8161).
+         */
+        logger.warn(
+          `Probe ${reportingProbeId.toString()} reported a check result for monitor ${dataToProcess.monitorId.toString()}, a ${monitor.monitorType || "type of"} monitor probes do not check. The result was refused.`,
+          {
+            projectId: monitor.projectId?.toString(),
+            monitorId: dataToProcess.monitorId.toString(),
+            probeId: reportingProbeId.toString(),
+          } as LogAttributes,
         );
 
         throw new BadDataException(ExceptionMessages.ProbeNotAssignedToMonitor);
@@ -802,6 +814,23 @@ export default class MonitorResourceUtil {
             });
 
           if (!reportingProbe) {
+            /*
+             * Usually harmless: the probe was taken off the monitor, or the
+             * monitor switched off for it, while a check it had already
+             * claimed was in flight. Logged once, at warn, naming the probe,
+             * and the job is completed rather than retried - the monitor's
+             * probes do not change between attempts
+             * (isNonActionableIngestError, issue #8161).
+             */
+            logger.warn(
+              `Probe ${resultProbeId} reported a check result for monitor ${monitor.id?.toString()}, which it is not assigned to. The result was refused.`,
+              {
+                projectId: monitor.projectId?.toString(),
+                monitorId: monitor.id?.toString(),
+                probeId: resultProbeId,
+              } as LogAttributes,
+            );
+
             throw new BadDataException(
               ExceptionMessages.ProbeNotAssignedToMonitor,
             );

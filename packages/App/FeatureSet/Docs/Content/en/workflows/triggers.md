@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | **Request Headers**      | Every header of the request, by name in lower case, such as `content-type`.                                     |
 | **Request Query Params** | The query string parameters in the URL, by name.                                                                |
-| **Request Body**         | The body the caller sent. A JSON body, sent with `Content-Type: application/json`, can be read field by field. |
+| **Request Body**         | The body the caller sent. A JSON body, sent with `Content-Type: application/json`, can be read field by field, and so can JSON sent as plain text, as Amazon SNS sends it. |
 
 Read one field by adding its name to the reference, as in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

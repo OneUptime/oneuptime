@@ -387,6 +387,13 @@ const cases = [
     template: "ForgotPassword.hbs",
   },
   {
+    // A self-hosted server's help line: its admin, not OneUptime's support (#8190).
+    slug: "password-reset-self-hosted",
+    label: "Password reset (self-hosted)",
+    template: "ForgotPassword.hbs",
+    vars: { isSelfHosted: "true" },
+  },
+  {
     slug: "incident",
     label: "Incident with rich details",
     template: "IncidentOwnerResourceCreated.hbs",

@@ -886,6 +886,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
           >
             <EmbeddedMetricCard
               title={getSectionTitle(tab.icon, tab.name, translator)}
+              isTitleTranslated={true}
               description={tab.description}
               queryConfigs={chartWordsInReadersLanguage(
                 tab.getQueries(clusterIdentifier),

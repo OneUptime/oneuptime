@@ -458,6 +458,9 @@ import {
   ServerSendingChannel,
   ServerSendingState,
 } from "../../../Types/ServerSending/ServerSendingStatus";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import {
@@ -1260,6 +1263,153 @@ describe("who else is on call", () => {
 
     expect(api["addEveryNewEventRules"]).not.toHaveBeenCalled();
     expect(stepState("no_answer")).toBe("open");
+  });
+});
+
+/*
+ * ARCHIVED POLICIES ARE NOT THE PROJECT'S POLICIES TO SET UP (#8234). An
+ * archived policy pages no one, and the On-Call Policies list hides it; the
+ * setup offered it, and a project whose only policy was archived never got
+ * one that pages people. Here the project's policies are read by the real
+ * OnCallSetupApi.loadPolicyChoices from a fake server that answers a list
+ * as the real one does: only the records its query matches.
+ */
+describe("archived on-call policies (#8234)", () => {
+  const LIVE_ID: string = "60000000-0000-4000-8000-000000000011";
+  const ARCHIVED_ID: string = "60000000-0000-4000-8000-000000000012";
+
+  const realApi: { loadPolicyChoices: () => Promise<unknown> } = (
+    jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetupApi",
+    ) as { default: { loadPolicyChoices: () => Promise<unknown> } }
+  ).default;
+
+  // The project's policies, as its database holds them.
+  const holds: (
+    policies: Array<{ _id: string; name: string; isArchived: boolean }>,
+  ) => void = (
+    policies: Array<{ _id: string; name: string; isArchived: boolean }>,
+  ): void => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (args: {
+      modelType: { new (): unknown };
+      query: Record<string, unknown>;
+    }) => {
+      const matching: Array<OnCallDutyPolicy> =
+        args.modelType === OnCallDutyPolicy
+          ? policies
+              .filter((policy: Record<string, unknown>): boolean => {
+                return Object.entries(args.query).every(
+                  ([column, value]: [string, unknown]): boolean => {
+                    return policy[column] === value;
+                  },
+                );
+              })
+              .map((policy: Record<string, unknown>): OnCallDutyPolicy => {
+                return Object.assign(new OnCallDutyPolicy(), policy);
+              })
+          : [];
+
+      return {
+        data: matching,
+        count: matching.length,
+        skip: 0,
+        limit: matching.length,
+      };
+    }) as unknown as typeof ModelAPI.getList);
+    api["loadPolicyChoices"]!.mockImplementation(() => {
+      return realApi.loadPolicyChoices();
+    });
+  };
+
+  const offeredIds: () => Array<string> = (): Array<string> => {
+    return Array.from(
+      screen
+        .getByTestId("on-call-setup-policy-choice")
+        .querySelectorAll("option"),
+    ).map((option: HTMLOptionElement): string => {
+      return option.value;
+    });
+  };
+
+  test("a project whose only policy is archived: the setup makes one, paging who is picked", async () => {
+    holds([{ _id: ARCHIVED_ID, name: "Old rota", isArchived: true }]);
+    keepRun({ reachConfirmed: true });
+    await renderSetup();
+
+    expect(stepState("who_else")).toBe("open");
+    // Making one, not "already has on-call policies".
+    expect(screen.queryByTestId("on-call-setup-policy-choice")).toBeNull();
+    expect(
+      screen.getByText(
+        'This makes the on-call policy "Default on-call policy". It pages these people first, for every new incident and alert in this project.',
+      ),
+    ).toBeInTheDocument();
+
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(api["createPolicy"]).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: [USER_ID], addRules: true }),
+    );
+    expect(api["addToFirstLevel"]).not.toHaveBeenCalled();
+    expect(storedRun()["policyId"]).toBe(POLICY_ID);
+    expect(storedRun()["policyIsExisting"]).toBeUndefined();
+  });
+
+  test("Save and continue's read just before making one leaves the archived policy out too, so one is made", async () => {
+    holds([{ _id: ARCHIVED_ID, name: "Old rota", isArchived: true }]);
+    keepRun({ reachConfirmed: true });
+    await renderSetup();
+    await press("on-call-setup-who-save");
+
+    // Read as the page opened, and again just before the policy was made.
+    expect(api["loadPolicyChoices"]).toHaveBeenCalledTimes(2);
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByTestId("on-call-setup-policy-made-elsewhere"),
+    ).toBeNull();
+  });
+
+  test("an archived policy beside one in service: only the one in service is offered, and the people join it", async () => {
+    holds([
+      { _id: ARCHIVED_ID, name: "Old rota", isArchived: true },
+      { _id: LIVE_ID, name: "Payments", isArchived: false },
+    ]);
+    keepRun({ reachConfirmed: true });
+    api["loadPolicy"]!.mockResolvedValue(
+      policyRecord({ id: LIVE_ID, name: "Payments" }),
+    );
+    await renderSetup();
+
+    expect(offeredIds()).toEqual([LIVE_ID]);
+    expect(screen.getByTestId("on-call-setup-policy-choice")).toHaveValue(
+      LIVE_ID,
+    );
+    expect(
+      screen.getByTestId("on-call-setup-policy-choice"),
+    ).not.toHaveTextContent("Old rota");
+
+    await pressText("Add Ben to on-call-setup-people");
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(api["addToFirstLevel"]).toHaveBeenCalledWith(
+      expect.objectContaining({ policyId: LIVE_ID }),
+    );
+    expect(storedRun()["policyId"]).toBe(LIVE_ID);
+    expect(storedRun()["policyIsExisting"]).toBe(true);
+  });
+
+  test("a project with policies in service only: every one is offered, as before", async () => {
+    holds([
+      { _id: LIVE_ID, name: "Payments", isArchived: false },
+      { _id: POLICY_ID, name: "Default on-call policy", isArchived: false },
+    ]);
+    keepRun({ reachConfirmed: true });
+    await renderSetup();
+
+    expect(offeredIds().sort()).toEqual([LIVE_ID, POLICY_ID].sort());
   });
 });
 

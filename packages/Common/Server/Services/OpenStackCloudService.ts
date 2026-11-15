@@ -844,24 +844,24 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Unarchived: collected and checked again at once. While it was archived the claims set its
-     * collection and its checks aside for up to a quarter of an hour at a time
-     * (Utils/Probe/ClaimSetAside), and restoring a cloud must not wait for that. Its own try: the
-     * cloud is saved already.
+     * Unarchived: checked again at once. While it was archived the checks' claim set its checks
+     * aside for up to a quarter of an hour at a time (Utils/Probe/ClaimSetAside), and restoring a
+     * cloud must not wait for that. Its collection never stopped: an archived cloud is still
+     * collected (OpenStackProbeCollectionStore.getCollectableSql, OneUptime issue #8324). Its own
+     * try: the cloud is saved already.
      */
     if (
       updatedItemIds.length > 0 &&
       Service.isUnarchive(onUpdate.updateBy.data)
     ) {
       try {
-        await OpenStackProbeCollectionStore.makeDueNow(this, updatedItemIds);
         await OpenStackCheckStore.makeDueNow(this, {
           ids: updatedItemIds,
           byCloud: true,
         });
       } catch (error) {
         logger.error(
-          "OpenStackCloudService.onUpdateSuccess: could not make an unarchived cloud's collection and checks due now; the claims pick them up within a quarter of an hour.",
+          "OpenStackCloudService.onUpdateSuccess: could not make an unarchived cloud's checks due now; the checks' claim picks them up within a quarter of an hour.",
         );
         logger.error(error as Error);
       }

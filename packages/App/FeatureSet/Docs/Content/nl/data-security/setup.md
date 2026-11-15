@@ -176,6 +176,8 @@ Een scan leest een klein deel van een opslag, binnen de limieten van het project
 
 Elke scan houdt bij wat hij las, op naam: de objecten, tabellen of services, nooit hun inhoud. Wat hij niet kon lezen - een verzoek dat de cloud weigerde, de deadline, het bytebudget - is een waarschuwing op de scan, en de scan wordt gemarkeerd als **Gedeeltelijk geslaagd**.
 
+Het **Overzicht** van een opslag zegt wanneer de inhoud ervan de volgende keer wordt gescand. **Volgende inhoudsscan** is het tijdstip waarop iets hem scant, **Nu aan de beurt** terwijl hij op zijn beurt wacht, en **Te laat** zodra hij een uur aan de beurt is. Anders zegt het waarom niets hem zal scannen: **Uit** zolang **Inhoud scannen** uit staat voor de opslag of het project, of zolang de opslag niet meer wordt gevonden; **Wordt niet gescand** als OneUptime van dat soort opslag geen steekproeven kan nemen, of zijn sonde hem niet kan scannen; en **Wachten** zolang zijn sonde is losgekoppeld. De telemetrie van een service wordt **Elk uur** gescand, met de telemetriescan van het project. **Nu scannen** staat uit, met de reden, voor een opslag die niets zou scannen. Een scan die bezig is wanneer het scannen van inhoud wordt uitgezet, of wanneer het project wordt opgeschort, bewaart niets van wat hij vond.
+
 ## Een database scannen die je zelf beheert
 
 Gegevensbeveiliging bemonstert PostgreSQL-, MySQL- en SQL Server-databases, op een van twee manieren. Een database die het product Database bewaakt, of een waarmee je services praten op de servicekaart, is al een opslag. Een database die geen enkele scan vindt, voeg je zelf toe als opslag.

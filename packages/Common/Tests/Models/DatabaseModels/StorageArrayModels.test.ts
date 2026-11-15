@@ -1024,7 +1024,14 @@ describe("Storage Array database models", () => {
           PERMISSION_PROPS_BY_NAME.get(name);
 
         expect(props).toBeDefined();
-        expect(props!.isAssignableToTenant).toBe(true);
+        /*
+         * Offered to a custom role, but Edit Storage Array Feed: a feed's
+         * entries are never edited, so it is retired (#8275).
+         */
+        expect({ name, offered: props!.isAssignableToTenant }).toEqual({
+          name,
+          offered: name !== "EditStorageArrayFeed",
+        });
         expect(props!.isRolePermission).toBe(false);
         expect(props!.group).toBe("Telemetry");
         expect(props!.title).toContain("Storage Array");

@@ -583,7 +583,8 @@ export default class DataSecurityRunner {
    * claim's rule again (isDataStoreContentScannableByWorkers): a store
    * whose switch was turned off, or whose project turned content scanning
    * off or stopped being served, after it was claimed - or one Scan Now
-   * queued - is left alone.
+   * queued - is left alone. It asks once more before it writes what it
+   * read, so the same turned off while it read keeps nothing of the scan.
    */
   public static async scanStore(
     projectId: ObjectID,
@@ -632,6 +633,23 @@ export default class DataSecurityRunner {
         store,
         setup.options,
       );
+
+      /*
+       * And again before anything of the scan is written. A scan reads for
+       * minutes (8 for a bucket), and a store whose switch, or whose
+       * project's, was turned off in that time, or whose project was
+       * suspended, keeps no finding and no masked sample of it - as a
+       * probe's result is not kept then either (OneUptime issue #8391), and
+       * as the telemetry scan asks again before it writes.
+       */
+      if (
+        !(await isDataStoreContentScannableByWorkers({
+          projectId,
+          dataStoreId,
+        }))
+      ) {
+        return;
+      }
 
       if (!result) {
         await DataSecurityFindingWriter.recordFailedScan({
