@@ -59,7 +59,7 @@ Ett extra kriterium vid `80` med lägre allvarlighetsgrad, tillagt med **Rediger
 En agent som har fastnat lämnar ett spår du kan känna igen: samma verktygsspan, om och om igen. En frisk körning anropar inte ett verktyg dussintals gånger på några minuter, så en räkning fångar slingan långt innan budgeten gör det.
 
 :::steps
-1. Öppna **Övervakare**, klicka på **Skapa monitor** och välj **Spår** under **Fler monitortyper**. Under **Vad ska den här övervakningen berätta om?** väljer du **Något annat** och tömmer **Span-status**.
+1. Öppna **Monitorer**, klicka på **Skapa monitor** och välj **Spår** under **Fler monitortyper**. Under **Vad ska den här övervakningen berätta om?** väljer du **Något annat** och tömmer **Span-status**.
 2. Under **Fler fält** sätter du **Filtrera efter tjänst** till agentens tjänst och **Filtrera efter attribut** till `gen_ai.tool.name` lika med verktyget du väntar dig att den fastnar i en slinga på, till exempel `search_web`. Om din instrumentering namnger varje verktygs span anger du i stället det namnet i **Spannamnet innehåller**.
 3. Sätt **Tidsfönster** till **Senaste 5 minuterna**.
 4. I **När det ska larmas** sätter du **Fler än** till ett tal som ingen frisk körning når på fem minuter, till exempel `50`, och ger larmet en titel som `Agent loop: support-bot`.

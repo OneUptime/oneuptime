@@ -1058,6 +1058,31 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
       props: ctx.props,
     });
 
+    /*
+     * The person owns it, as the card said: the server makes the creator of
+     * an operational resource its owner (DatabaseService.autoOwnerOnCreate),
+     * but never a master admin - and the first person to sign up to a
+     * self-hosted server is one. The guided setup makes them the owner, and
+     * so does this, quietly (#7409). A failure leaves the monitor as made.
+     */
+    if (ctx.props.isMasterAdmin && ctx.props.userId) {
+      try {
+        await MonitorService.addOwners(
+          ctx.projectId,
+          created.id!,
+          [ctx.props.userId],
+          [],
+          false,
+          ctx.props,
+        );
+      } catch (error) {
+        logger.error(
+          `set_up_website_monitoring could not make its master admin the owner of monitor ${created.id!.toString()}.`,
+        );
+        logger.error(error as Error);
+      }
+    }
+
     const monitorId: string = created.id!.toString();
     const incidentSeverityName: string | null = await readIncidentSeverityName(
       ctx,

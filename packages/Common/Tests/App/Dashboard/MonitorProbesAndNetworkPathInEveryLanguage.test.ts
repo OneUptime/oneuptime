@@ -36,6 +36,8 @@ const CARD_FILES: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorProbesCard.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/NetworkPathView.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/TracerouteHopsTable.tsx",
+  // The agreement footnote's words, the rule the server decides by (#7410).
+  "packages/Common/Utils/Monitor/ProbeAgreementRule.ts",
 ];
 
 // The Response time card's sentences about the probes' latest results.

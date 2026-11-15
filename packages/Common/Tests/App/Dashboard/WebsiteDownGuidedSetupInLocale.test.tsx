@@ -40,6 +40,8 @@ const api: Record<string, MockFunction> = {
   loadPolicy: getJestMockFunction(),
   loadIncidentSeverityName: getJestMockFunction(),
   isMonitorOwner: getJestMockFunction(),
+  ensureMonitorOwner: getJestMockFunction(),
+  needsPaymentMethod: getJestMockFunction(),
 };
 
 jest.mock(
@@ -57,6 +59,8 @@ jest.mock(
       "loadPolicy",
       "loadIncidentSeverityName",
       "isMonitorOwner",
+      "ensureMonitorOwner",
+      "needsPaymentMethod",
     ]) {
       calls[name] = (...args: Array<unknown>): unknown => {
         return api[name]!(...args);
@@ -68,6 +72,12 @@ jest.mock(
       default: calls,
       mayCreateMonitor: (): boolean => {
         return true;
+      },
+      mayAddPaymentMethod: (): boolean => {
+        return true;
+      },
+      isPaymentRequired: (): boolean => {
+        return false;
       },
     };
   },
@@ -300,6 +310,7 @@ beforeEach(() => {
   api["loadMonitor"]!.mockResolvedValue(MONITOR);
   api["loadFirstCheck"]!.mockResolvedValue({
     locationCount: 2,
+    activeLocationCount: 2,
     answers: [
       { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
       { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
@@ -320,6 +331,8 @@ beforeEach(() => {
   });
   api["loadIncidentSeverityName"]!.mockResolvedValue(SEVERITY_NAME);
   api["isMonitorOwner"]!.mockResolvedValue(true);
+  api["ensureMonitorOwner"]!.mockResolvedValue(true);
+  api["needsPaymentMethod"]!.mockResolvedValue(false);
   getResultMock.mockResolvedValue(acknowledged);
 });
 

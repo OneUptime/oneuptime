@@ -71,7 +71,7 @@ Spring dette trin over, hvis din server, dit netværk og din kanal ikke kræver 
 | **SASL Password**   | Netværket vil have dig logget ind på din konto. **SASL Username** tager kontoens navn. | `IRC_SASL_PASSWORD`    |
 | **Channel Key**     | Kanalen har en nøgle (tilstand `+k`).                                                  | `IRC_CHANNEL_KEY`      |
 
-For at gemme en skal du åbne **Arbejdsgange → Globale variabler** og klikke på **Opret Workflow Variabel**. Skriv navnet i **Navn**, og klik på **Næste**. Indsæt adgangskoden i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**. Kørselslogge viser `[REDACTED]` i stedet for værdien af en hemmelig variabel.
+For at gemme en skal du åbne **Arbejdsgange → Globale variabler** og klikke på **Opret Arbejdsgangsvariabel**. Skriv navnet i **Navn**, og klik på **Næste**. Indsæt adgangskoden i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**. Kørselslogge viser `[REDACTED]` i stedet for værdien af en hemmelig variabel.
 
 ### Byg workflowet
 

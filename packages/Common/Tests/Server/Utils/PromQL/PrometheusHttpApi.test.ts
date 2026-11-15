@@ -651,11 +651,7 @@ describe("series, label names and label values", () => {
       expect(labelValuesOf(without, name)).toEqual([]);
       expect(labelNamesOf(without)).toEqual(["__name__", "job"]);
 
-      // __proto__ is the one name a label set cannot hold yet (issue #8025).
-      if (name === "__proto__") {
-        return;
-      }
-
+      // __proto__ included: a label set holds it as its own (issue #8025).
       const withIt: Array<PromQLLabels> = [
         ...without,
         { __name__: "up", job: "db", [name]: "second" },

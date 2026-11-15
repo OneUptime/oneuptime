@@ -15,10 +15,10 @@ flowchart TB
     OU["OneUptime"] -->|"立即收集，每隔幾分鐘"| P["您的探測器"]
     P -->|"HTTPS 443，唯讀 vSphere API"| VC["vCenter Server 或 ESXi 主機"]
     P -->|"指標，與 VMware 代理程式傳送的一致"| OU
-    OU --> V["VMware 頁面、監控器、警示與 AI"]
+    OU --> V["VMware 頁面、監測器、警示與 AI"]
 ```
 
-探測器每隔幾分鐘就會使用您儲存的帳戶登入 vCenter，讀取清單、效能計數器與 vSAN 統計資料，並將其傳送到 OneUptime。這些資料的抵達方式與 VMware 代理程式的完全相同，因此每個 VMware 頁面、[VMware 監控器](/docs/monitor/vmware-monitor)、警示範本與 OneUptime AI 都會以相同方式讀取。探測器在兩次收集之間會保持 vCenter 工作階段，因此 vCenter 的事件記錄不會被登入紀錄塞滿。
+探測器每隔幾分鐘就會使用您儲存的帳戶登入 vCenter，讀取清單、效能計數器與 vSAN 統計資料，並將其傳送到 OneUptime。這些資料的抵達方式與 VMware 代理程式的完全相同，因此每個 VMware 頁面、[VMware 監測器](/docs/monitor/vmware-monitor)、警示範本與 OneUptime AI 都會以相同方式讀取。探測器在兩次收集之間會保持 vCenter 工作階段，因此 vCenter 的事件記錄不會被登入紀錄塞滿。
 
 ## 探測器還是代理程式？
 
@@ -123,7 +123,7 @@ vCenter 出示的是其自有憑證授權單位簽發的憑證。將顯示的指
 ## 後續步驟
 
 :::cards
-- [VMware 監控器](/docs/monitor/vmware-monitor)：針對主機、虛擬機器、資料存放區與叢集的警示。
+- [VMware 監測器](/docs/monitor/vmware-monitor)：針對主機、虛擬機器、資料存放區與叢集的警示。
 - [自訂探測器](/docs/probe/custom-probe)：在 vCenter 網路中執行探測器。
 - [VMware 代理程式](/docs/telemetry/vmware)：改用代理程式收集 vCenter。
 :::

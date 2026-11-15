@@ -20,6 +20,7 @@ import ObjectID from "Common/Types/ObjectID";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
+import { assignOwnValues } from "Common/Utils/LookupTable";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import logger, {
   getLogAttributesFromRequest,
@@ -516,15 +517,17 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     Math.trunc(endTime.unixNano - startTime.unixNano),
                   );
 
+                  // A profile attribute named __proto__ is kept as a key.
                   const containerAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = {
-                    ...resourceAttributes,
-                    ...TelemetryUtil.getAttributes({
+                  > = assignOwnValues<AttributeType | Array<AttributeType>>(
+                    {},
+                    resourceAttributes,
+                    TelemetryUtil.getAttributes({
                       items: frame.attributes,
                       prefixKeysWithString: "",
                     }),
-                  };
+                  );
 
                   if (
                     scopeProfile["scope"] &&

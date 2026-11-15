@@ -968,6 +968,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                           ? health.tooltip
                           : translator.translateText(health.tooltip)
                       }
+                      isTooltipUserContent={true}
                     />
                     {lastRead}
                     {warnings.length > 0 ? (

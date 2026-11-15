@@ -143,6 +143,17 @@ const MENU_WORD_KEYS: Array<string> = [
   "navbar.search.recent",
 ];
 
+/*
+ * A product's words on its products menu card - its description and its
+ * category, the Dashboard's own too (#8075) - and the English the hidden
+ * products' row is headed by, looked up by the menu.
+ */
+const CARD_WORD_KEYS: Array<string> = [
+  "navbar.items.networkDescription",
+  "navbar.categories.infrastructure",
+];
+const HIDDEN_ROW_TITLE: string = "More products";
+
 // What each of them reads looked up again, in this test's Spanish.
 const MENU_WORD_TWICE: string = "Rojo";
 
@@ -236,9 +247,11 @@ beforeAll(async () => {
 
   const spanish: Locale = { ...readDashboardLocale("es") };
 
-  for (const key of MENU_WORD_KEYS) {
+  for (const key of [...MENU_WORD_KEYS, ...CARD_WORD_KEYS]) {
     spanish[wordIn("es", key)] = MENU_WORD_TWICE;
   }
+
+  spanish[spanish[HIDDEN_ROW_TITLE] as string] = MENU_WORD_TWICE;
 
   await i18next.use(initReactI18next).init({
     lng: "es",
@@ -417,5 +430,69 @@ describe("the products menu says its words as the Dashboard words them", () => {
       screen.getByText(wordIn("es", "navbar.search.recent")),
     ).toBeInTheDocument();
     expect(drawnTexts(document.body)).not.toContain(MENU_WORD_TWICE);
+  });
+});
+
+/*
+ * The products menu now looks up an item's words unless the item says
+ * they are translated, so the Admin Dashboard's, handed over in English,
+ * reads in the reader's language (#8075). The Dashboard's products say
+ * their title, description and category are, and keep being drawn as
+ * given - here each is also a key that reads "Rojo".
+ */
+describe("the products menu draws each product as the Dashboard words it (#8075)", () => {
+  async function openProductsMenu(page: string): Promise<HTMLElement> {
+    await renderNavBar("es", routeFor(page));
+
+    fireEvent.click(productButton());
+    await settle();
+
+    return screen.getByRole("dialog", {
+      name: lookedUpAgain("es", "Products menu"),
+    });
+  }
+
+  test("es: Network's card - its name, its description and its category's row - each as given, never looked up again", async () => {
+    const menu: HTMLElement = await openProductsMenu(PageMap.NETWORK_OVERVIEW);
+    const card: HTMLElement | undefined = within(menu)
+      .getAllByRole("option")
+      .find((option: HTMLElement): boolean => {
+        return (
+          option.querySelector("span.truncate")?.textContent ===
+          wordIn("es", "navbar.items.networkTitle")
+        );
+      });
+
+    expect(card).toBeDefined();
+    expect(card!.querySelector("p.text-xs")?.textContent).toBe(
+      wordIn("es", "navbar.items.networkDescription"),
+    );
+    // The page's own category, open by itself.
+    expect(
+      within(menu).getByRole("button", {
+        name: wordIn("es", "navbar.categories.infrastructure"),
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(drawnTexts(menu)).not.toContain(MENU_WORD_TWICE);
+  });
+
+  test("es: the products the project hides are under its Spanish More products, looked up once", async () => {
+    given({ hidden: [ProductKey.Network] });
+
+    const menu: HTMLElement = await openProductsMenu(PageMap.LOGS);
+    const hiddenRow: HTMLElement = within(menu).getByRole("button", {
+      name: wordIn("es", HIDDEN_ROW_TITLE),
+    });
+
+    expect(hiddenRow).toHaveAttribute("aria-expanded", "false");
+    expect(drawnTexts(menu)).not.toContain(MENU_WORD_TWICE);
+
+    fireEvent.click(hiddenRow);
+    await settle();
+
+    expect(
+      within(menu).getByText(wordIn("es", "navbar.items.networkDescription")),
+    ).toBeInTheDocument();
+    expect(drawnTexts(menu)).not.toContain(MENU_WORD_TWICE);
   });
 });

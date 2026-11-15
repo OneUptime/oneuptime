@@ -28,7 +28,10 @@ import { isWhiteSpaceCode } from "../RegExpCharacterClasses";
  *     on from the kept start into the middle keeps its structure: its
  *     address and its title are held back apart, with what parts them in
  *     view (holdBackMiddle). So does one that goes on from the middle
- *     into the kept end: its "[" and "](" stay in view.
+ *     into the kept end: its "[" and "](" stay in view - and a link whose
+ *     text crosses a cut keeps its "[" and "](" in view too, and a bare
+ *     address from the middle into the kept end its scheme and domain
+ *     (#7600).
  *   - in every run of lines with no blank line between them that is longer
  *     than OVER_LONG_RUN_LENGTH characters, each group of consecutive lines
  *     that only continue the block they are in (isContinuationLine: plain
@@ -593,6 +596,302 @@ const isInLink: (reading: LinkReading) => boolean = (
 };
 
 /*
+ * A LINK'S TEXT ACROSS A CUT (#7600).
+ *
+ * A link's text can be longer than what a line keeps on its side of a cut
+ * - a run's name, an error's first line. Where its "[" is in the middle and
+ * its "](" in the kept end, the "[" went into the middle's token, and an
+ * email showed "run run ... run](https://example.com/x)", the address
+ * autolinked; where its "[" is in the kept start and its "](" in the
+ * middle, the "](" and the address went into the token, and it showed
+ * "[run run ..." as text. So such a link keeps its "[" and its "](" in
+ * view, and the part of its text the middle holds is held back as a piece
+ * of its own, read as plain text between them.
+ *
+ * Which "[" opens the link is read as marked reads a link's text (its
+ * `_inlineLabel`, readLinkText): brackets nested one deep, a backslash
+ * escaping the character after it, a code span in single backticks hiding
+ * brackets - and only where the text is in none of those at the cut, so
+ * the token in its place reads as the text it stands for. The first "["
+ * whose text closes with "](" across the cut opens it, as marked takes the
+ * first, of the last MAX_CROSSING_LINK_TEXTS labels left open there.
+ */
+
+// The most labels open at a cut that are read to see whether they close across it.
+const MAX_CROSSING_LINK_TEXTS: number = 4;
+
+const BACKTICK: number = 0x60;
+
+// Where a link's text being read is (readLinkText).
+type LinkTextPart = "text" | "nested" | "code";
+
+/*
+ * Reads a link's text - what follows its "[", from `from` - as marked reads
+ * one (see "A link's text across a cut" above), and returns where the "]"
+ * that closes it is. -1 when it closes before `cut`, cannot close (a "["
+ * in brackets nested in it, a backslash before a line break), is in nested
+ * brackets, code or an escape at the cut, or reads past the cut to `end`
+ * without closing - or when `isRead` says, at the cut, not to read on.
+ */
+const readLinkTextAcross: (data: {
+  text: string;
+  from: number;
+  cut: number;
+  end: number;
+  isRead: () => boolean;
+}) => number = (data: {
+  text: string;
+  from: number;
+  cut: number;
+  end: number;
+  isRead: () => boolean;
+}): number => {
+  const text: string = data.text;
+  let part: LinkTextPart = "text";
+  let index: number = data.from;
+
+  while (index < data.end) {
+    if (index === data.cut && (part !== "text" || !data.isRead())) {
+      return -1;
+    }
+
+    const code: number = text.charCodeAt(index);
+
+    if (part === "code") {
+      if (code === BACKTICK) {
+        part = "text";
+      }
+
+      index++;
+      continue;
+    }
+
+    if (code === BACKSLASH) {
+      const escaped: number = text.charCodeAt(index + 1);
+
+      if (
+        index + 1 >= data.end ||
+        index + 1 === data.cut ||
+        escaped === 0x0a ||
+        escaped === CARRIAGE_RETURN
+      ) {
+        return -1;
+      }
+
+      index += 2;
+      continue;
+    }
+
+    if (code === OPEN_BRACKET) {
+      if (part === "nested") {
+        return -1;
+      }
+
+      part = "nested";
+    } else if (code === CLOSE_BRACKET) {
+      if (part === "text") {
+        return index >= data.cut ? index : -1;
+      }
+
+      part = "text";
+    } else if (code === BACKTICK && part === "text") {
+      part = "code";
+    }
+
+    index++;
+  }
+
+  return -1;
+};
+
+/*
+ * Of the labels `opens` - where each "[" or "![" is, the first first -
+ * whose "[" is at or after `from`, the first whose text closes with "](" at
+ * or past `cut` (reading on to `end`), reading plainly at the cut: where it
+ * starts and where its "]" is. Null when none does. At most
+ * MAX_CROSSING_LINK_TEXTS of them are read past the cut.
+ */
+const findLinkTextAcross: (data: {
+  text: string;
+  opens: ReadonlyArray<number>;
+  from: number;
+  cut: number;
+  end: number;
+}) => { start: number; close: number } | null = (data: {
+  text: string;
+  opens: ReadonlyArray<number>;
+  from: number;
+  cut: number;
+  end: number;
+}): { start: number; close: number } | null => {
+  let readPastCut: number = 0;
+
+  const isRead: () => boolean = (): boolean => {
+    readPastCut++;
+    return readPastCut <= MAX_CROSSING_LINK_TEXTS;
+  };
+
+  for (const start of data.opens) {
+    if (start < data.from) {
+      continue;
+    }
+
+    const labelOpen: number =
+      data.text.charCodeAt(start) === OPEN_BRACKET ? start : start + 1;
+    const close: number = readLinkTextAcross({
+      text: data.text,
+      from: labelOpen + 1,
+      cut: data.cut,
+      end: data.end,
+      isRead: isRead,
+    });
+
+    if (close !== -1 && data.text.charCodeAt(close + 1) === OPEN_PARENTHESIS) {
+      return { start: start, close: close };
+    }
+
+    if (readPastCut >= MAX_CROSSING_LINK_TEXTS) {
+      return null;
+    }
+  }
+
+  return null;
+};
+
+/*
+ * A BARE ADDRESS ACROSS THE END OF A LINE'S MIDDLE (#7600).
+ *
+ * An address written as text - a GFM autolink literal, "https://",
+ * "http://", "ftp://" or "www." and what follows - can start in the middle
+ * and run into the kept end: a signed URL of 2 KB at the end of a long log
+ * line. Its start went into the middle's token, and the kept end showed
+ * the rest of it as text. So its start - the scheme and the domain, and a
+ * "/" after it - stays in view, and the rest of it the middle holds is held
+ * back as a piece of its own, which the parser reads as part of the
+ * address: no white space or "<" ends it. The white space before it stays
+ * in view too, where a parser needs it before "www.". A word with a
+ * backtick or a "<" in it before the cut is left as it was: it may be code
+ * or a tag.
+ */
+
+// The schemes that start an address written as text, in lower case.
+const ADDRESS_SCHEMES: ReadonlyArray<string> = [
+  "https://",
+  "http://",
+  "ftp://",
+  "www.",
+];
+
+// Whether text[index] is a character of an address's domain: a letter, a digit, "-" or ".".
+const isDomainCode: (code: number) => boolean = (code: number): boolean => {
+  return isAsciiLetter(code) || isDigit(code) || code === 0x2d || code === 0x2e;
+};
+
+/*
+ * The scheme that text[index] starts, as one of ADDRESS_SCHEMES - any case
+ * - with a domain's character after it; null when it starts none.
+ */
+const getAddressSchemeAt: (text: string, index: number) => string | null = (
+  text: string,
+  index: number,
+): string | null => {
+  // "h", "f" or "w", in either case: most characters start no scheme.
+  const first: number = text.charCodeAt(index) | 0x20;
+
+  if (first !== 0x68 && first !== 0x66 && first !== 0x77) {
+    return null;
+  }
+
+  for (const scheme of ADDRESS_SCHEMES) {
+    if (
+      text.slice(index, index + scheme.length).toLowerCase() === scheme &&
+      isDomainCode(text.charCodeAt(index + scheme.length)) &&
+      text.charCodeAt(index + scheme.length) !== 0x2e
+    ) {
+      return scheme;
+    }
+  }
+
+  return null;
+};
+
+/*
+ * Where to keep a bare address that starts in text[from, cut) and runs on
+ * past `cut` in view: from where the address - or the white space before
+ * it - starts, to past its scheme, its domain and a "/" after it (at most
+ * MAX_KEPT_SEPARATOR_LENGTH characters of the domain). Null when the cut is
+ * not inside such an address.
+ */
+const findAddressAcrossEnd: (
+  text: string,
+  from: number,
+  cut: number,
+) => { start: number; keepEnd: number } | null = (
+  text: string,
+  from: number,
+  cut: number,
+): { start: number; keepEnd: number } | null => {
+  if (
+    cut <= from ||
+    isWhiteSpaceCode(text.charCodeAt(cut - 1)) ||
+    isWhiteSpaceCode(text.charCodeAt(cut))
+  ) {
+    return null;
+  }
+
+  let wordStart: number = cut - 1;
+
+  while (
+    wordStart > from &&
+    !isWhiteSpaceCode(text.charCodeAt(wordStart - 1))
+  ) {
+    wordStart--;
+  }
+
+  if (wordStart === from && !isWhiteSpaceCode(text.charCodeAt(from - 1))) {
+    // The word goes on before what is left to hold back: as it was.
+    return null;
+  }
+
+  for (let index: number = wordStart; index < cut; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === BACKTICK || code === LESS_THAN) {
+      return null;
+    }
+  }
+
+  for (let index: number = wordStart; index < cut; index++) {
+    const scheme: string | null = getAddressSchemeAt(text, index);
+
+    if (scheme === null) {
+      continue;
+    }
+
+    let keepEnd: number = index + scheme.length;
+    const domainLimit: number = Math.min(
+      cut,
+      keepEnd + MAX_KEPT_SEPARATOR_LENGTH,
+    );
+
+    while (keepEnd < domainLimit && isDomainCode(text.charCodeAt(keepEnd))) {
+      keepEnd++;
+    }
+
+    if (keepEnd < cut && text.charCodeAt(keepEnd) === 0x2f) {
+      keepEnd++;
+    }
+
+    return {
+      start: index === wordStart && index > from ? index - 1 : index,
+      keepEnd: Math.min(keepEnd, cut),
+    };
+  }
+
+  return null;
+};
+
+/*
  * Where the address of the link reference definition on the line that
  * starts at `lineStart` starts to be read - just after its "]:" - or -1
  * when the line holds none before `limit`: a "[" that starts the line once
@@ -673,6 +972,7 @@ const holdBackMiddle: (data: {
   lineStart: number;
   middleStart: number;
   middleEnd: number;
+  lineEnd: number;
   hold: HoldBackFunction;
   pieces: Array<string>;
 }) => void = (data: {
@@ -680,6 +980,7 @@ const holdBackMiddle: (data: {
   lineStart: number;
   middleStart: number;
   middleEnd: number;
+  lineEnd: number;
   hold: HoldBackFunction;
   pieces: Array<string>;
 }): void => {
@@ -783,6 +1084,11 @@ const holdBackMiddle: (data: {
     let autolinkStart: number = -1;
     // The last "!" read as text: an "[" right after it opens an image.
     let exclamationMark: number = -1;
+    /*
+     * Whether a backtick has opened code a later one closes: as in a link's
+     * text (readLinkTextAcross), a bracket in it opens and closes no label.
+     */
+    let isInCode: boolean = false;
 
     // The start of the label a "]" closes, or -1 when it is not known.
     const closeLabel: () => number = (): number => {
@@ -800,7 +1106,11 @@ const holdBackMiddle: (data: {
     while (at < middleEnd) {
       const part: LinkPart = reading.part;
 
-      if (part === "text") {
+      if (part === "text" && text.charCodeAt(at) === BACKTICK) {
+        isInCode = !isInCode;
+      }
+
+      if (part === "text" && !isInCode) {
         const code: number = text.charCodeAt(at);
 
         if (code === OPEN_BRACKET) {
@@ -870,6 +1180,43 @@ const holdBackMiddle: (data: {
         },
         linkClose + 2,
       );
+    } else if (reading.part === "text") {
+      /*
+       * A link whose text the middle ends inside of, with its "](" in the
+       * kept end: its "[" or "![" stays in view, and what the middle holds
+       * of its text is a piece of its own (see "A link's text across a
+       * cut"). Not when more labels were open than are remembered: which
+       * are open then is not known. Else a bare address the middle ends
+       * inside of keeps its start in view (see "A bare address across the
+       * end of a line's middle").
+       */
+      const across: { start: number; close: number } | null =
+        labelsLeftOut === 0
+          ? findLinkTextAcross({
+              text: text,
+              opens: labelStarts.slice(-MAX_CROSSING_LINK_TEXTS),
+              from: position,
+              cut: middleEnd,
+              end: data.lineEnd,
+            })
+          : null;
+
+      if (across !== null) {
+        holdTo(across.start);
+        keepTo(
+          text.charCodeAt(across.start) === OPEN_BRACKET
+            ? across.start + 1
+            : across.start + 2,
+        );
+      } else {
+        const address: { start: number; keepEnd: number } | null =
+          findAddressAcrossEnd(text, position, middleEnd);
+
+        if (address !== null) {
+          holdTo(address.start);
+          keepTo(address.keepEnd);
+        }
+      }
     }
 
     holdTo(middleEnd);
@@ -895,8 +1242,60 @@ const holdBackMiddle: (data: {
     reading.part = "beforeDestination";
   }
 
+  // The "[" the kept start opens as text - in no code - the first first.
+  const opens: Array<number> = [];
+  let isInCode: boolean = false;
+
   while (index < data.middleStart) {
+    if (reading.part === "text") {
+      const code: number = text.charCodeAt(index);
+
+      if (code === BACKTICK) {
+        isInCode = !isInCode;
+      } else if (
+        code === OPEN_BRACKET &&
+        !isInCode &&
+        opens.length < MAX_OPEN_LABELS
+      ) {
+        opens.push(index);
+      }
+    }
+
     index = readLinkUnit(text, index, reading);
+  }
+
+  /*
+   * A link whose text the kept start ends inside of, with its "](" in the
+   * middle: what the middle holds of its text is a piece of its own, and
+   * its "](" stays in view (see "A link's text across a cut"). Its address
+   * and title are then read as a link's across the start.
+   */
+  const across: { start: number; close: number } | null = isInLink(reading)
+    ? null
+    : findLinkTextAcross({
+        text: text,
+        opens: opens,
+        from: data.lineStart,
+        cut: data.middleStart,
+        end: middleEnd,
+      });
+
+  if (across !== null && across.close + 2 > middleEnd) {
+    // Its "(" is the kept end's first character.
+    holdTo(across.close);
+    keepTo(middleEnd);
+
+    return;
+  }
+
+  if (across !== null) {
+    holdTo(across.close);
+    keepTo(across.close + 2);
+    index = across.close + 2;
+    reading.part = "beforeDestination";
+    reading.isInline = true;
+    reading.depth = 0;
+    reading.spaced = false;
   }
 
   if (!isInLink(reading)) {
@@ -1029,6 +1428,7 @@ export const holdBackOverLongLines: (
         lineStart: lineStart,
         middleStart: middleStart,
         middleEnd: middleEnd,
+        lineEnd: lineEnd,
         hold: hold,
         pieces: pieces,
       });

@@ -11,7 +11,7 @@ En **Log Recording Rule** gjør logger om til en måling. Hvert minutt tar den l
 
 ## Oversikt
 
-Resultatet er en vanlig måling. Vis den i **Metrikkutforsker** og på dashbord, og få varsler på den med en monitor av typen **Målinger**, også varsler per serie med **Grupper etter**.
+Resultatet er en vanlig måling. Vis den i **Målingsutforsker** og på dashbord, og få varsler på den med en monitor av typen **Målinger**, også varsler per serie med **Grupper etter**.
 
 Bruk en opptaksregel for logger når tallet du er interessert i, bare finnes i loggene dine: SLA-sammendragene til en brannmur, en batchjobb som logger hvor lang tid den brukte, svarstørrelsene i en tilgangslogg, eller ganske enkelt hvor mange feillogger en tjeneste skriver hvert minutt.
 

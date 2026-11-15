@@ -13,6 +13,7 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import PayloadTooLargeException from "Common/Types/Exception/PayloadTooLargeException";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
+import { writeOwnValue } from "Common/Utils/LookupTable";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import protobuf from "protobufjs";
@@ -916,7 +917,8 @@ export default class PyroscopeIngestService {
         continue;
       }
 
-      labels[key] = value;
+      // As the sample's own label, even one named __proto__.
+      writeOwnValue(labels, key, value);
     }
 
     return labels;
