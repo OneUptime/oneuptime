@@ -1,0 +1,103 @@
+# Request and Latency SLOs
+
+A request SLO measures what your users get from a service: the share of its requests that succeed, or that are served fast enough. OneUptime counts them from the traces your services already send, so there is no monitor to set up: choose the services and a target, and OneUptime measures them every 5 minutes.
+
+:::cards
+- [Create a request SLO](#create-a-request-slo): The services, a threshold for latency, and a target.
+- [How requests are counted](#how-requests-are-counted): Which spans count, and when.
+- [Release Checks](/docs/slo/release-checks): Roll back a release that burns the error budget.
+:::
+
+## Request success and request latency
+
+| What it measures | A request is bad when | Its error budget counts |
+| --- | --- | --- |
+| **Request success** | Its span's status is `Error`. A span with no status counts as good, as OpenTelemetry means it. | Failed requests |
+| **Request latency** | It took longer than the SLO's **Latency Threshold (ms)**, whatever its status. | Slow requests |
+
+The SLI is the share of good requests in the compliance window, and the error budget is the bad requests the target allows: at 99.9%, one in every 1,000. A latency SLO counts a request that failed fast as good, so measure an important service both ways: one SLO that it works, and one that it is fast.
+
+## How it works
+
+```mermaid title="From traces to a request SLO's status"
+flowchart TB
+    services["The SLO's services"] --> spans["Their entry spans,<br/>from traces"]
+    spans --> steps["Good and total requests,<br/>counted in 5-minute steps"]
+    steps --> sli["SLI: share of good requests<br/>in the compliance window"]
+    sli --> budget["Error budget left,<br/>in requests"]
+    budget --> status["Status: Healthy, At Risk<br/>or Budget Exhausted"]
+    steps --> burn["Burn rate over each<br/>burn rate rule's windows"]
+    burn --> rules["Alerts and incidents<br/>for your on-call team"]
+```
+
+A request is an entry span of one of the SLO's services: the span where a request or a message enters the service, as the [Traces](/docs/telemetry/traces-explorer#traces-and-spans) list shows them by default. A request that passes through two of the SLO's services counts once in each.
+
+From there a request SLO works like any other. Its status, burn rate rules, error budget policy, owners and notifications are the same, with its error budget in requests instead of minutes.
+
+## Before you begin
+
+- The services send traces to OneUptime: see [OpenTelemetry](/docs/telemetry/open-telemetry). Each one is in the [service catalog](/docs/telemetry/services) under its `service.name`.
+- A role that can create SLOs: Project Owner, Project Admin, or a custom role with the Create Service Level Objective permission.
+
+## Create a request SLO
+
+:::steps
+### Open SLOs
+
+Open **SLOs** from the **Products** menu in the top bar, and click **Create Service Level Objective**.
+
+### Choose what it measures
+
+Under **What It Measures**, pick **Request success** or **Request latency**, then the **Services** whose requests it counts. For **Request latency**, set the **Latency Threshold (ms)** too: a request served within it counts as fast enough, for example `300`. Click **Next**.
+
+### Name it and set a target
+
+Enter a **Name**, for example "Checkout requests", and a **Target (%)**: the share of requests that must be good. Click **Create Service Level Objective**.
+
+### Watch the first numbers arrive
+
+The first evaluation, within 5 minutes, counts the last 6 hours of requests, so the SLO has numbers at once. The evaluations after it count older requests too, until the compliance window is covered.
+:::
+
+To change what an SLO measures, its services or its threshold later, open its **Settings** and click **Edit What It Measures**.
+
+## How requests are counted
+
+OneUptime counts each SLO's good and total requests in 5-minute steps and keeps the counts, so the SLO reads its window from its own counts rather than from every span each time:
+
+- A step is counted 2 minutes after it ends, so spans that arrive late are in it, and the next evaluation counts the last two steps again for spans that arrive later still.
+- A new SLO starts with the last 6 hours. Each evaluation after that counts up to a day of older requests, newest first, until the window is covered.
+- Only requests still within your [telemetry retention](/docs/telemetry/data-retention#how-long-telemetry-is-kept) can be counted. Counted steps are kept for 400 days, longer than any compliance window, so a window longer than the retention fills as the SLO ages.
+- Changing what the SLO measures, its services or its latency threshold counts its requests again from the start. A longer compliance window is filled by counting further back.
+
+While the counts cover only part of the compliance window, the **Overview** says so with a **Window 23% full** chip, and the **Error budget left** tile repeats it under its number. Both go once the counts cover the whole window.
+
+## The error budget in requests
+
+The budget is the bad requests the target allows among the requests counted in the window, so it grows with traffic: at 99.9%, a window of 2,000,000 requests allows 2,000 failed ones. On the **Overview**:
+
+- **Error budget left** says how many bad requests are left of how many, or how many over the budget the SLO is.
+- **Budget runway** says how long the budget lasts at the current burn rate, as long as traffic stays as it was.
+- The summary counts the SLO's services, and a latency SLO says its threshold under its target.
+
+Burn rate alerts, notifications and the feed say the budget in requests too. The `oneuptime.slo.error.budget.remaining.seconds` metric is not posted for a request SLO; chart `oneuptime.slo.error.budget.remaining.percent` instead.
+
+A request SLO gets the same **Fast burn**, **Slow burn** and **Slow leak** rules as any new SLO. A quiet hour with a handful of requests can burn fast with one failure, so a rule can ignore windows with too few requests: set the rule's `minimumSampleCount` through the API, and the rule skips a long window with fewer requests than that.
+
+## Troubleshooting
+
+:::details The SLO says Waiting for requests
+None of its services has served a request in the window yet. Check that the services send traces to OneUptime, and that their spans include entry spans: a service whose spans are all internal ones has no requests to count.
+:::
+
+:::details The SLI changed after I changed the services
+Changing what the SLO measures, its services or its latency threshold counts its requests again, starting with the last 6 hours, so the SLI and the budget start again from there. The **Window 23% full** chip shows how much of the window is counted so far.
+:::
+
+## Next steps
+
+:::cards
+- [Release Checks](/docs/slo/release-checks): Let Argo Rollouts, Flagger or a pipeline roll back a release that burns the budget.
+- [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts): Page your team when the budget burns too fast.
+- [Error Budget Policy](/docs/slo/error-budget-policy): Agree what the team does as the budget runs down.
+:::
