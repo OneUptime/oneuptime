@@ -454,16 +454,24 @@ describe.each(PICKERS)("the $name metric picker", (picker: PickerCase) => {
       (_id: string, metric: CatalogMetric) => {
         const line: HTMLElement = drawIn(language, picker.draw(metric.id));
         const shown: string = withoutIsolates(line.textContent || "");
+        /*
+         * The description in the page's language, its code in its words'
+         * order, once the language words it (#8014); the English until then.
+         */
+        const worded: string =
+          typeof locale[metric.description] === "string"
+            ? (locale[metric.description] as string)
+            : metric.description;
 
         expect(between.trim()).not.toBe("");
         expect(shown).toBe(
-          `${withoutBackticks(metric.description)}${between}${metric.metricName}`,
+          `${withoutBackticks(worded)}${between}${metric.metricName}`,
         );
         expect(
           codesIn(line).map((code: HTMLElement): string => {
             return withoutIsolates(code.textContent || "");
           }),
-        ).toEqual([...backtickedParts(metric.description), metric.metricName]);
+        ).toEqual([...backtickedParts(worded), metric.metricName]);
         expect(codesDrawnAsWritten(layOut(line, true))).toEqual(
           codesIn(line).map((): boolean => {
             return true;
