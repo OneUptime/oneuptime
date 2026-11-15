@@ -154,6 +154,67 @@ function prose(line: string): string {
   return line.replace(/`[^`]*`/g, "");
 }
 
+// The bold segments of a line: **A → B** is A and B.
+function boldSegments(line: string): Array<string> {
+  return Array.from(line.matchAll(/\*\*([^*\n]+)\*\*/g)).flatMap(
+    (match: RegExpMatchArray): Array<string> => {
+      return (match[1] as string).split(" → ").map((segment: string) => {
+        return segment.trim();
+      });
+    },
+  );
+}
+
+/*
+ * A line without the bold labels it quotes as the Dashboard draws the
+ * English line's own bold labels in the same place: a notification's label
+ * (**알림을 받는 대상** for **Who is told about this**) on a line about
+ * alerts says 알림 because the screen does. A bold 알림 the English line
+ * does not quote as a notification still counts.
+ */
+function withoutDrawnLabels(
+  line: string,
+  englishLine: string,
+  drawn: Map<string, string>,
+): string {
+  const quoted: Set<string> = new Set<string>(
+    boldSegments(englishLine)
+      .map((english: string): string | undefined => {
+        return drawn.get(english);
+      })
+      .filter((korean: string | undefined): korean is string => {
+        return typeof korean === "string";
+      }),
+  );
+
+  return line.replace(/\*\*([^*\n]+)\*\*/g, (whole: string, inner: string) => {
+    return inner.split(" → ").every((segment: string): boolean => {
+      return quoted.has(segment.trim());
+    })
+      ? ""
+      : whole;
+  });
+}
+
+// What a locale draws for each English string, nested keys included.
+function drawnStrings(language: string): Map<string, string> {
+  const drawn: Map<string, string> = new Map<string, string>();
+
+  for (const app of APPS) {
+    const english: Map<string, string> = flatten(readStrings(app, "en"));
+
+    for (const [key, value] of flatten(readStrings(app, language))) {
+      const text: string | undefined = english.get(key);
+
+      if (typeof text === "string" && !drawn.has(text)) {
+        drawn.set(text, value);
+      }
+    }
+  }
+
+  return drawn;
+}
+
 /*
  * "<page>:<line>" for each Korean line that says 알림 where its English line,
  * in the same place, names only an alert.
@@ -162,6 +223,7 @@ function docsLinesSayingNotification(
   englishPage: (page: string) => Array<string> | null,
   koreanPage: (page: string) => Array<string>,
   pages: Array<string>,
+  drawn: Map<string, string> = new Map<string, string>(),
 ): Array<string> {
   const found: Array<string> = [];
 
@@ -175,7 +237,9 @@ function docsLinesSayingNotification(
     koreanPage(page).forEach((line: string, index: number) => {
       if (
         namesOnlyAnAlert(english[index] || "") &&
-        saysNotification(prose(line))
+        saysNotification(
+          prose(withoutDrawnLabels(line, english[index] || "", drawn)),
+        )
       ) {
         found.push(`${page}:${index + 1}`);
       }
@@ -376,6 +440,7 @@ describe("Korean says an alert 경고", () => {
           return readDocsLines("ko", page)!;
         },
         docsPages("ko"),
+        drawnStrings("ko"),
       ),
     ).toEqual([]);
   });
@@ -430,6 +495,8 @@ describe("Korean says an alert 경고", () => {
             "Open **Alerts** to see them.",
             "Notifications go out by email.",
             "Use `alert` in the query.",
+            "Each alert reaches **Who is told about this**.",
+            "Each alert lists its **Notifications**.",
           ];
         },
         () => {
@@ -437,9 +504,16 @@ describe("Korean says an alert 경고", () => {
             "**알림**을 열어 확인하세요.",
             "알림은 이메일로 나갑니다.",
             "쿼리에 `알림`을 사용하세요.",
+            "각 경고는 **알림을 받는 대상**에게 갑니다.",
+            "각 경고에는 **알림**이 나열됩니다.",
           ];
         },
         ["planted.md"],
+        new Map<string, string>([
+          ["Who is told about this", "알림을 받는 대상"],
+          ["Notifications", "알림"],
+          ["Alerts", "경고"],
+        ]),
       ),
     ).toEqual(["planted.md:1"]);
   });
