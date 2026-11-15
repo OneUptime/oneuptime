@@ -410,7 +410,7 @@ Siden til hver nøkkel, under **Prosjektinnstillinger → Telemetri og APM → I
 | **Aktivert** | Slå den av for straks å slutte å godta data sendt med nøkkelen, uten å slette den. |
 | **Utløper** | Etter denne datoen avvises nøkkelen. Tom betyr at den aldri utløper. |
 | **Requests Per Minute Limit** | Det høyeste antallet OTLP/HTTP-forespørsler per minutt som godtas med nøkkelen, på tvers av alle klienter som bruker den. Tom betyr ingen grense på en servernøkkel og 6 000 på en nettlesernøkkel. |
-| **Last Used At** | Når data sist ble godtatt med nøkkelen. Bruk den til å finne nøkler som trygt kan roteres eller slettes. |
+| **Sist brukt den** | Når data sist ble godtatt med nøkkelen. Bruk den til å finne nøkler som trygt kan roteres eller slettes. |
 
 **Tilbakestill hemmelig nøkkel** på nøkkelens side erstatter hemmeligheten. Alle applikasjoner og collectorer som sender med den gamle, avvises til du oppdaterer dem. Om nettlesernøkler, trygg utskifting av en nøkkel og hva hver avvisning betyr, se [Inntaksnøkler](/docs/telemetry/ingestion-keys).
 

@@ -43,7 +43,7 @@ Deretter [konfigurerer du New Relic](#konfigurer-new-relic) til å sende sakene 
 
 ### Hva arbeidsflyten gjør
 
-Etter triggeren **Webhook** leser steget **Check With JavaScript** `read-event-1` den `state` New Relic sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i varselmalen, gjør det den betyr, ut fra sakens ID. Hendelsen tar vare på ID-en i det egendefinerte feltet `newRelicIssueId`.
+Etter triggeren **Webhook** leser steget **Sjekk med JavaScript** `read-event-1` den `state` New Relic sender, og **Hendelse fra et annet verktøy**, eller **Varsel fra et annet verktøy** i varselmalen, gjør det den betyr, ut fra sakens ID. Hendelsen tar vare på ID-en i det egendefinerte feltet `newRelicIssueId`.
 
 | Det New Relic sender | Hva arbeidsflyten gjør |
 | --- | --- |

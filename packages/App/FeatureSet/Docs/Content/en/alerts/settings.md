@@ -123,7 +123,7 @@ The incident takes the alert's title, description, monitor, affected resources a
 
 ## Privacy and runbook rules
 
-**Privacy Rules** make new alerts that match private, before anything else runs: only their owners and the project's admins and owners can see them. A rule has two steps: **Match**, the alerts it makes private, then **Name**, filled in as "Make alerts private". See [Private alerts](/docs/alerts/index#private-alerts).
+**Privacy Rules** make new alerts that match private, before anything else runs: only their owners, Project Admins and Project Owners can see them. A rule has two steps: **Match**, the alerts it makes private, then **Name**, filled in as "Make alerts private". See [Private alerts](/docs/alerts/index#private-alerts).
 
 **Runbook Rules** start a runbook when a new alert matches, unless the alert was created resolved. See [Runbook Rules](/docs/runbooks/rules).
 

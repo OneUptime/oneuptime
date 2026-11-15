@@ -44,20 +44,20 @@ Connectez-vous en tant qu'administrateur principal et ouvrez l'Admin Dashboard a
 
 :::tabs
 @tab SAML
-Sur la page du fournisseur, la carte **Identity Provider URLs** affiche l'**ACS URL (Assertion Consumer Service / Reply URL)** et l'**Issuer (Entity ID)**. Collez les deux dans votre fournisseur d'identité (Okta, Microsoft Entra ID, OneLogin, JumpCloud et d'autres).
+Sur la page du fournisseur, la carte **Adresses du fournisseur d'identité** affiche l'**ACS URL (Assertion Consumer Service / Reply URL)** et l'**Issuer (Entity ID)**. Collez les deux dans votre fournisseur d'identité (Okta, Microsoft Entra ID, OneLogin, JumpCloud et d'autres).
 @tab OpenID Connect
-Sur la page du fournisseur, la carte **Identity Provider URL** affiche la **Redirect URI (Callback URL)**. Ajoutez-la aux URI de redirection autorisées de votre fournisseur d'identité.
+Sur la page du fournisseur, la carte **URL du fournisseur d'identité** affiche la **Redirect URI (Callback URL)**. Ajoutez-la aux URI de redirection autorisées de votre fournisseur d'identité.
 :::
 
 ### Activer le fournisseur
 
-Un nouveau fournisseur est désactivé au départ. Cliquez sur **Edit Configuration** sur la page du fournisseur et activez **Activé**.
+Un nouveau fournisseur est désactivé au départ. Cliquez sur **Modifier la configuration** sur la page du fournisseur et activez **Activé**.
 
 Activer un fournisseur global l'ajoute seulement aux options d'authentification unique de la page de connexion — cela n'impose jamais le SSO et n'exclut personne ; vous pouvez donc l'activer, le tester et le désactiver sans risque si besoin. Tant que toute l'instance exige le SSO, en revanche, la page de connexion ne propose que les fournisseurs activés : testez un fournisseur avant d'exiger le SSO.
 
 ### Tester le fournisseur
 
-Utilisez le lien de la carte **Test this SSO provider** (**Test this OIDC provider** pour OpenID Connect) pour effectuer une connexion complète via votre fournisseur d'identité. **Tester la connexion** dans la ligne du fournisseur sur **Authentification unique** lance la même connexion dans un nouvel onglet. Vous n'avez pas besoin d'attacher de projet au préalable : le test vous connecte aux projets dont vous faites déjà partie. Le fournisseur doit être activé pour que le lien fonctionne.
+Utilisez le lien de la carte **Tester ce fournisseur SSO** (**Tester ce fournisseur OIDC** pour OpenID Connect) pour effectuer une connexion complète via votre fournisseur d'identité. **Tester la connexion** dans la ligne du fournisseur sur **Authentification unique** lance la même connexion dans un nouvel onglet. Vous n'avez pas besoin d'attacher de projet au préalable : le test vous connecte aux projets dont vous faites déjà partie. Le fournisseur doit être activé pour que le lien fonctionne.
 :::
 
 ## Connexion des utilisateurs
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Aucun projet attaché (tous les projets / invitation d'abord) :** les utilisateurs peuvent se connecter avec le fournisseur et accéder à **tout projet dont ils sont déjà membres**. Les nouveaux utilisateurs ne sont **pas** créés automatiquement — un utilisateur doit d'abord être invité dans un projet. Utilisez ce mode pour un SSO à l'échelle de l'entreprise quand les appartenances sont gérées ailleurs.
 
-- **Projets attachés (approvisionnement automatique) :** Ouvrez le fournisseur et utilisez le tableau **Attached Projects** pour attacher un ou plusieurs projets, chacun avec un ensemble d'équipes par défaut. Les utilisateurs qui se connectent sont **approvisionnés automatiquement** dans ces projets et ajoutés aux équipes par défaut lors de leur première connexion. Un projet que vous attachez commence avec son équipe des membres ; choisissez d'autres équipes si les nouveaux venus doivent commencer avec un autre accès. Ajoutez un projet + des équipes à la fois pour construire la liste ; pour modifier un attachement, supprimez-le et ajoutez-le à nouveau.
+- **Projets attachés (approvisionnement automatique) :** Ouvrez le fournisseur et utilisez le tableau **Projets associés** pour attacher un ou plusieurs projets, chacun avec un ensemble d'équipes par défaut. Les utilisateurs qui se connectent sont **approvisionnés automatiquement** dans ces projets et ajoutés aux équipes par défaut lors de leur première connexion. Un projet que vous attachez commence avec son équipe des membres ; choisissez d'autres équipes si les nouveaux venus doivent commencer avec un autre accès. Ajoutez un projet + des équipes à la fois pour construire la liste ; pour modifier un attachement, supprimez-le et ajoutez-le à nouveau.
 
 Une personne déjà membre d'un projet attaché garde les équipes qu'elle y a.
 

@@ -43,7 +43,7 @@ Allez dans **Paramètres du projet → Journaux d'audit → Paramètres**. **Jou
 
 ### Modifier les paramètres
 
-Cliquez sur **Edit Audit Log Settings**.
+Cliquez sur **Modifier les paramètres des journaux d'audit**.
 
 ### L'activer
 

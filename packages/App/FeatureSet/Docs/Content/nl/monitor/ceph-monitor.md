@@ -89,7 +89,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **Ceph Metric** | Custom Metric | Eén metric uit de [catalogus](#verzamelde-metrics). |
 | **Aggregatie** | Custom Metric | Hoe meetwaarden worden gecombineerd: **Gemiddelde**, **Maximum** of **Minimum**. Begint bij de gebruikelijke aggregatie van de metric. Een som of een telling zou elke scrape in een minuut optellen, dus die blijven over voor **Geavanceerd**. |
 | **Tijdsbereik** | Alle | Het voortschuivende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; sjablonen stellen hun eigen waarde in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregeren op**, **Filteren op attributen**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
 
 Gegevensreeksen van pools dragen alleen het label `pool_id`: de naam van de pool bestaat alleen in `ceph_pool_metadata`. Filter en groepeer poolreeksen op `pool_id`, en zoek de naam op in `ceph_pool_metadata` als je die nodig hebt.
 

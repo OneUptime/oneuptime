@@ -9,6 +9,8 @@ import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onChange?: ((value: TelemetryRetentionConfig | null) => void) | undefined;
@@ -35,6 +37,7 @@ const SPAN_STATUSES: Array<{ status: SpanStatus; label: string }> = [
 const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [config, setConfig] = useState<TelemetryRetentionConfig>(
     props.value || props.initialValue || {},
   );
@@ -206,20 +209,23 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
     <div className="space-y-6">
       <div className="rounded-md border border-gray-200 dark:border-slate-700 p-4">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-1">
-          Logs
+          {translator.translateText("Logs")}
         </h3>
         <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-          Retention in days for log records. Per-severity values take precedence
-          over the logs default; leave any field blank to fall back.
+          {translator.translateText(
+            "Retention in days for log records. Per-severity values take precedence over the logs default; leave any field blank to fall back.",
+          )}
         </p>
         {renderPillarDefault(
           "logs",
-          "Logs default (days)",
-          "Applies to every log record unless its severity has a specific override below.",
+          translationKey("Logs default (days)"),
+          translationKey(
+            "Applies to every log record unless its severity has a specific override below.",
+          ),
         )}
         <div className="border-t border-gray-100 dark:border-slate-800 pt-3 mt-2">
           <p className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">
-            Per-severity overrides
+            {translator.translateText("Per-severity overrides")}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {LOG_SEVERITIES.map((severity: LogSeverity) => {
@@ -243,20 +249,23 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
 
       <div className="rounded-md border border-gray-200 dark:border-slate-700 p-4">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-1">
-          Traces
+          {translator.translateText("Traces")}
         </h3>
         <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-          Retention in days for spans and the exceptions captured on them.
-          Per-status values take precedence over the traces default.
+          {translator.translateText(
+            "Retention in days for spans and the exceptions captured on them. Per-status values take precedence over the traces default.",
+          )}
         </p>
         {renderPillarDefault(
           "traces",
-          "Traces default (days)",
-          "Applies to every span unless its status has a specific override below.",
+          translationKey("Traces default (days)"),
+          translationKey(
+            "Applies to every span unless its status has a specific override below.",
+          ),
         )}
         <div className="border-t border-gray-100 dark:border-slate-800 pt-3 mt-2">
           <p className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">
-            Per-status overrides
+            {translator.translateText("Per-status overrides")}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {SPAN_STATUSES.map(
@@ -287,29 +296,35 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
 
       <div className="rounded-md border border-gray-200 dark:border-slate-700 p-4">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-1">
-          Metrics
+          {translator.translateText("Metrics")}
         </h3>
         <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-          Retention in days for metric data points.
+          {translator.translateText(
+            "Retention in days for metric data points.",
+          )}
         </p>
         {renderPillarDefault(
           "metrics",
-          "Metrics default (days)",
-          "Applies to all metric points. Leave blank to use the default retention.",
+          translationKey("Metrics default (days)"),
+          translationKey(
+            "Applies to all metric points. Leave blank to use the default retention.",
+          ),
         )}
       </div>
 
       <div className="rounded-md border border-gray-200 dark:border-slate-700 p-4">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-1">
-          Profiles
+          {translator.translateText("Profiles")}
         </h3>
         <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-          Retention in days for profile samples.
+          {translator.translateText("Retention in days for profile samples.")}
         </p>
         {renderPillarDefault(
           "profiles",
-          "Profiles default (days)",
-          "Applies to all profile samples. Leave blank to use the default retention.",
+          translationKey("Profiles default (days)"),
+          translationKey(
+            "Applies to all profile samples. Leave blank to use the default retention.",
+          ),
         )}
       </div>
     </div>

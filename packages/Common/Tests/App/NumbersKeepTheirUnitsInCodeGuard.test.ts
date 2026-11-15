@@ -42,6 +42,16 @@ import { listSourceFiles, toRelativePath } from "../ForeignHiddenRuleGuard";
  * A file another issue rewords whole is listed in OWNED_ELSEWHERE with
  * that issue. Both lists only shrink: a listed file that no longer joins a
  * figure to a unit with a plain space fails until it is taken off.
+ *
+ * Intl writes a plain space between a number and its unit too ("5 Min.",
+ * "vor 5 Minuten", #8456), and Common/Types/DateLanguage holds it: its
+ * formatUnitAmount, getUnitAmountParts, formatDurationUnit,
+ * formatDurationText, formatRelativeAmount and formatRelativeDate read
+ * Intl's parts and write a no-break space there. So no other code asks
+ * Intl for a unit (an options object with `style: "unit"`) or a relative
+ * time (Intl.RelativeTimeFormat, by any name): the second half of this
+ * file reads every package and ee for one, outside DateLanguage itself and
+ * the files listed in INTL_OWNED_ELSEWHERE, a list that only shrinks.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
@@ -669,5 +679,305 @@ describe("negative controls: the scan catches what it is for", () => {
         ].join("\n"),
       ),
     ).toEqual([]);
+  });
+});
+
+/*
+ * A UNIT OR A RELATIVE TIME IS ASKED OF INTL IN ONE PLACE (#8456).
+ *
+ * Intl.NumberFormat's unit style and Intl.RelativeTimeFormat write a plain
+ * space between a number and its unit in most languages. DateLanguage asks
+ * Intl for them and holds that space; anywhere else the text would come
+ * back with the space a line breaks at.
+ */
+
+// The helpers that ask Intl for a unit or a relative time, and hold it.
+const INTL_HELPERS: ReadonlyArray<string> = [
+  "packages/Common/Types/DateLanguage.ts",
+];
+
+// Files another issue rewrites, each with the issue: a unit held in a variable.
+const INTL_OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
+  "packages/Common/Utils/ValueFormatter.ts": "#8457",
+};
+
+// Every package, and ee, which is not in every checkout.
+const INTL_SCAN_SCOPES: ReadonlyArray<string> = ["packages", "ee"];
+
+// A file that could ask Intl for one: read through the AST only then.
+const MAY_ASK_INTL: RegExp = /RelativeTimeFormat|["'`]unit["'`]/;
+
+// A test's own file, which may build one to compare against.
+const TEST_FILE: RegExp = /(^|\/)(Tests|E2E)\/|\.(test|spec)\.tsx?$/;
+
+const STYLE: string = "style";
+
+const UNIT_STYLE: string = "unit";
+
+const RELATIVE_TIME_FORMAT: string = "RelativeTimeFormat";
+
+// The name a property is written with: `style` or "style".
+const nameOf: (name: ts.PropertyName) => string | undefined = (
+  name: ts.PropertyName,
+): string | undefined => {
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name)) {
+    return name.text;
+  }
+
+  return undefined;
+};
+
+// Every place `source` asks Intl for a unit or a relative time itself.
+const findIntlUnitRequests: (data: {
+  file: string;
+  source: string;
+}) => Array<UnitFinding> = (data: {
+  file: string;
+  source: string;
+}): Array<UnitFinding> => {
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    data.file,
+    data.source,
+    ts.ScriptTarget.Latest,
+    true,
+    data.file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const findings: Array<UnitFinding> = [];
+
+  const report: (node: ts.Node) => void = (node: ts.Node): void => {
+    findings.push({
+      file: data.file,
+      line:
+        sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
+          .line + 1,
+      text: node.getText(sourceFile).replace(WHITESPACE_RUN, " ").slice(0, 120),
+    });
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    // { style: "unit" }: Intl.NumberFormat's, or toLocaleString's, options.
+    if (
+      ts.isPropertyAssignment(node) &&
+      nameOf(node.name) === STYLE &&
+      ts.isStringLiteralLike(node.initializer) &&
+      node.initializer.text === UNIT_STYLE
+    ) {
+      report(node);
+    }
+
+    // Intl.RelativeTimeFormat, read off Intl however it is typed.
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      node.name.text === RELATIVE_TIME_FORMAT
+    ) {
+      report(node);
+    }
+
+    // new RelativeTimeFormat(...), a constructor read off Intl before.
+    if (
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === RELATIVE_TIME_FORMAT
+    ) {
+      report(node);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return findings;
+};
+
+let intlScanResult: ScanResult | undefined = undefined;
+
+// Every file in every package and ee, read once for all the tests below.
+const readAllIntlFindings: () => ScanResult = (): ScanResult => {
+  if (intlScanResult) {
+    return intlScanResult;
+  }
+
+  const findings: Array<UnitFinding> = [];
+  const filesRead: Record<string, number> = {};
+
+  for (const scope of INTL_SCAN_SCOPES) {
+    filesRead[scope] = 0;
+
+    for (const filePath of listSourceFiles(path.join(REPOSITORY_ROOT, scope))) {
+      const file: string = toRelativePath(REPOSITORY_ROOT, filePath);
+
+      if (TEST_FILE.test(file)) {
+        continue;
+      }
+
+      filesRead[scope] = (filesRead[scope] || 0) + 1;
+
+      const source: string = fs.readFileSync(filePath, "utf8");
+
+      if (MAY_ASK_INTL.test(source)) {
+        findings.push(...findIntlUnitRequests({ file, source }));
+      }
+    }
+  }
+
+  intlScanResult = { findings, filesRead };
+
+  return intlScanResult;
+};
+
+// The line and text of each request in a made-up source.
+const intlLinesOf: (source: string) => Array<string> = (
+  source: string,
+): Array<string> => {
+  return findIntlUnitRequests({
+    file: "packages/App/FeatureSet/Dashboard/src/Made.tsx",
+    source,
+  }).map((finding: UnitFinding): string => {
+    return `${finding.line} ${finding.text}`;
+  });
+};
+
+describe("a unit or a relative time is asked of Intl only where its number is held", () => {
+  test("no code but DateLanguage asks Intl for a unit or a relative time", () => {
+    const { findings } = readAllIntlFindings();
+
+    expect(
+      findings
+        .filter((finding: UnitFinding): boolean => {
+          return (
+            !INTL_HELPERS.includes(finding.file) &&
+            INTL_OWNED_ELSEWHERE[finding.file] === undefined
+          );
+        })
+        .map((finding: UnitFinding): string => {
+          return `${finding.file}:${finding.line} ${finding.text}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("DateLanguage still asks Intl for both, and a listed file still asks: the list only shrinks", () => {
+    const { findings } = readAllIntlFindings();
+    const askedIn: (file: string) => string = (file: string): string => {
+      return findings
+        .filter((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        })
+        .map((finding: UnitFinding): string => {
+          return finding.text;
+        })
+        .join("\n");
+    };
+
+    for (const helper of INTL_HELPERS) {
+      expect(askedIn(helper)).toContain('style: "unit"');
+      expect(askedIn(helper)).toContain(RELATIVE_TIME_FORMAT);
+    }
+
+    for (const [file, issue] of Object.entries(INTL_OWNED_ELSEWHERE)) {
+      expect({
+        file,
+        exists: fs.existsSync(path.join(REPOSITORY_ROOT, file)),
+        stillAsks: askedIn(file).length > 0,
+      }).toEqual({ file, exists: true, stillAsks: true });
+      expect(issue).toMatch(/^#\d+$/);
+    }
+  });
+
+  test("the scan reads every package", () => {
+    const { filesRead } = readAllIntlFindings();
+
+    expect(filesRead["packages"]).toBeGreaterThan(8000);
+  });
+
+  test("the callers the issue named, and the others found then, go through DateLanguage now", () => {
+    const { findings } = readAllIntlFindings();
+
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Utils/CompactDuration.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/ScanDetail.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcase.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftTime.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/Home/HomeRelativeTime.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/Runbook/Triggers/RunbookTriggersCopy.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiWords.ts",
+      "packages/App/FeatureSet/Dashboard/src/Utils/ExceptionDetailPresentation.ts",
+      "packages/App/FeatureSet/Accounts/src/Utils/Form.ts",
+      "packages/App/FeatureSet/StatusPage/src/Utils/LiveRefresh.ts",
+      "packages/Common/UI/Components/Feed/FeedTime.ts",
+      "packages/Common/Utils/Milliseconds.ts",
+    ]) {
+      expect({
+        file,
+        exists: fs.existsSync(path.join(REPOSITORY_ROOT, file)),
+        asks: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, exists: true, asks: false });
+    }
+  });
+});
+
+describe("negative controls: the Intl scan catches what it is for", () => {
+  test("a unit's options and a relative time, however they are written", () => {
+    expect(
+      intlLinesOf(
+        [
+          'const a: string = new Intl.NumberFormat("de", { style: "unit", unit: "minute" }).format(5);',
+          'const b: Intl.NumberFormatOptions = { style: "unit", unit: "byte" };',
+          'const c: string = (5).toLocaleString("de", { "style": "unit", unit: "hour" });',
+          'const d: string = new Intl.RelativeTimeFormat("de").format(-5, "minute");',
+          "const e: unknown = (Intl as unknown as { RelativeTimeFormat: unknown }).RelativeTimeFormat;",
+          'const f: unknown = new RelativeTimeFormat(locale, { numeric: "auto" });',
+          'const g: Intl.NumberFormatOptions = { style: `unit`, unit: "second" };',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '1 style: "unit"',
+      '2 style: "unit"',
+      '3 "style": "unit"',
+      "4 Intl.RelativeTimeFormat",
+      "5 (Intl as unknown as { RelativeTimeFormat: unknown }).RelativeTimeFormat",
+      '6 new RelativeTimeFormat(locale, { numeric: "auto" })',
+      "7 style: `unit`",
+    ]);
+  });
+
+  test("a helper's call, another style, a type, a comment or a string is no request", () => {
+    expect(
+      intlLinesOf(
+        [
+          'const a: string | null = formatUnitAmount({ value: 5, unit: "minute", locale: "de", unitDisplay: "short" });',
+          'const b: string = new Intl.NumberFormat("de", { style: "percent" }).format(0.5);',
+          "type C = Intl.RelativeTimeFormatUnit;",
+          "let d: typeof Intl.RelativeTimeFormat | undefined = undefined;",
+          '// const e: string = new Intl.RelativeTimeFormat("de").format(-5, "minute");',
+          "const f: string = 'style: \"unit\"';",
+          'const g: { style: string } = { style: "units" };',
+          "interface H { RelativeTimeFormat?: unknown }",
+          'const i: string | null = formatRelativeAmount({ count: 5, unit: "minute", isFuture: false, locale: "de" });',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a test's own file is left out by its path, a page's is read", () => {
+    expect(
+      TEST_FILE.test("packages/Common/Tests/Types/DateLanguage.test.ts"),
+    ).toBe(true);
+    expect(TEST_FILE.test("packages/E2E/Tests/Monitor.spec.ts")).toBe(true);
+    expect(TEST_FILE.test("ee/Tests/UI/Backups.test.ts")).toBe(true);
+    expect(
+      TEST_FILE.test(
+        "packages/App/FeatureSet/Dashboard/src/Utils/CompactDuration.ts",
+      ),
+    ).toBe(false);
+    expect(TEST_FILE.test("ee/AdminDashboard/Backups/BackupFormat.ts")).toBe(
+      false,
+    );
+    expect(MAY_ASK_INTL.test('{ style: "unit" }')).toBe(true);
+    expect(MAY_ASK_INTL.test("Intl.RelativeTimeFormat")).toBe(true);
+    expect(MAY_ASK_INTL.test("const units: number = 5;")).toBe(false);
   });
 });

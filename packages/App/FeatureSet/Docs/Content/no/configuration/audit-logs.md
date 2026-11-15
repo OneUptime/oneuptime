@@ -43,7 +43,7 @@ Gå til **Prosjektinnstillinger → Revisjonslogger → Innstillinger**. **Revis
 
 ### Rediger innstillingene
 
-Klikk på **Edit Audit Log Settings**.
+Klikk på **Rediger innstillinger for revisjonslogger**.
 
 ### Slå den på
 

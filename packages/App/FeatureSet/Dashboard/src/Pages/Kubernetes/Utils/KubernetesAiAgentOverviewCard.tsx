@@ -1,4 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useAiAgentAccessStatus, {
   AiAgentAccessStatusRead,
@@ -88,7 +89,9 @@ const KubernetesAiAgentOverviewCard: FunctionComponent<ComponentProps> = (
             <StatusBadge text={state.text} type={BADGE_TYPES[state.tone]} />
           </span>
         ) : (
-          <span className="text-2xl font-semibold text-gray-300">—</span>
+          <span className="text-2xl font-semibold">
+            <EmptyFigure />
+          </span>
         )
       }
     />

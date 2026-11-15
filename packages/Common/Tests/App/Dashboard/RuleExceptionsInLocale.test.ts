@@ -146,10 +146,16 @@ const PROBLEMS: Array<string> = Array.from(
 const MODEL: DetectionRuleException = new DetectionRuleException();
 
 /*
- * A row's status pill: the status itself, looked up as a key (Upcoming was
+ * A row's status pill: the status's label, looked up as a key (Upcoming was
  * still English in thirteen languages, a time window's pill said so).
+ * Expired and Upcoming are the exception's own keys (MeaningKeys), worded to
+ * agree with its Active and Ended (#8659).
  */
-const STATUSES: Array<string> = Object.values(DetectionRuleExceptionStatus);
+const STATUSES: Array<string> = Object.values(DetectionRuleExceptionStatus).map(
+  (status: DetectionRuleExceptionStatus): string => {
+    return RuleExceptionsCopy.RULE_EXCEPTION_STATUS_LABELS[status];
+  },
+);
 
 const SENTENCES: Array<string> = Array.from(
   new Set([
@@ -212,8 +218,19 @@ describe("the words there are", () => {
     );
   });
 
-  test("a row's status is one of four", () => {
-    expect(STATUSES).toEqual(["Active", "Expired", "Upcoming", "Ended"]);
+  test("a row's status is one of four, each with its label", () => {
+    expect(Object.values(DetectionRuleExceptionStatus)).toEqual([
+      "Active",
+      "Expired",
+      "Upcoming",
+      "Ended",
+    ]);
+    expect(STATUSES).toEqual([
+      "Active",
+      "Expired (rule exception)",
+      "Upcoming (rule exception)",
+      "Ended",
+    ]);
   });
 
   test("the list's, the form's and the run's words, and their plurals", () => {

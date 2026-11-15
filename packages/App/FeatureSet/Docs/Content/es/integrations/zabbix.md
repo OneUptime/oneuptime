@@ -60,14 +60,14 @@ Empieza con **Declare an incident for each Zabbix problem**, o con **Create an a
 
 ### Qué piden las plantillas
 
-- **Zabbix URL**: la dirección en la que abres Zabbix, como `https://zabbix.example.com`, o `https://example.com/zabbix` cuando Zabbix funciona bajo una ruta. Los enlaces a un problema van allí, y las plantillas que llaman a Zabbix envían sus solicitudes a su `api_jsonrpc.php`. El campo rechaza la dirección de una página dentro de Zabbix.
+- **URL de Zabbix**: la dirección en la que abres Zabbix, como `https://zabbix.example.com`, o `https://example.com/zabbix` cuando Zabbix funciona bajo una ruta. Los enlaces a un problema van allí, y las plantillas que llaman a Zabbix envían sus solicitudes a su `api_jsonrpc.php`. El campo rechaza la dirección de una página dentro de Zabbix.
 - **Zabbix API Token**: un token de API del usuario de Zabbix con el que actúa el flujo de trabajo. [Crear el token de API](#crear-el-token-de-api) muestra cómo. Se guarda como variable secreta y solo se envía a Zabbix: en la cabecera `Authorization`, o en el cuerpo de la solicitud en Zabbix 6.0.
 
 ### Recibir problemas con la plantilla
 
 :::steps
 1. Ve a **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**. En **O empieza con una plantilla**, elige **Zabbix** en la lista de categorías, haz clic en **Declare an incident for each Zabbix problem** y luego en **Usar esta plantilla**.
-2. Rellena **Zabbix URL**. En **Who to page for High and Disaster problems**, elige las políticas de guardia a las que avisar, o ninguna para no avisar a nadie, y haz clic en **Crear flujo de trabajo**. El flujo de trabajo se abre en el **Constructor**, desactivado.
+2. Rellena **URL de Zabbix**. En **Who to page for High and Disaster problems**, elige las políticas de guardia a las que avisar, o ninguna para no avisar a nadie, y haz clic en **Crear flujo de trabajo**. El flujo de trabajo se abre en el **Constructor**, desactivado.
 3. Haz clic en el disparador **Webhook**, luego en **Copiar URL**, y guarda la URL para Zabbix.
 4. Activa **Habilitado** en la parte superior del **Constructor**. Un flujo de trabajo desactivado responde a Zabbix con `400`.
 :::
@@ -76,7 +76,7 @@ Después [configura Zabbix](#configurar-zabbix) para que envíe sus problemas a 
 
 ### Qué hace el flujo de trabajo
 
-Tras el disparador **Webhook**, el paso **Check With JavaScript** `read-event-1` lee el `event` que envía el tipo de medio, e **Incident From Another Tool**, o **Alert From Another Tool** en la plantilla de alertas, hace lo que significa, por el ID de evento del problema:
+Tras el disparador **Webhook**, el paso **Comprobar con JavaScript** `read-event-1` lee el `event` que envía el tipo de medio, e **Incidente desde otra herramienta**, o **Alerta desde otra herramienta** en la plantilla de alertas, hace lo que significa, por el ID de evento del problema:
 
 | Evento | Qué hace el flujo de trabajo |
 | --- | --- |
@@ -102,13 +102,13 @@ En un proyecto nuevo, la plantilla asigna las seis gravedades de Zabbix a estas 
 Con gravedades propias, Disaster y High van a tu más grave, Average y Warning a la del medio, e Information y Not classified a tu menos grave. Zabbix numera sus gravedades del 0 (Not classified) al 5 (Disaster), y la plantilla lee el número, así que renombrar una gravedad en Zabbix no cambia nada.
 
 - Para asignar una gravedad a una de las tuyas por su nombre, edita `SEVERITY_BY_NAME` en el paso `read-event-1`, como `{ 2: 'Minor Incident' }` para Warning.
-- Para avisar también con los problemas Average, pon **Comparar con** del paso `if-page-1` **If / Else** a `3`.
+- Para avisar también con los problemas Average, pon **Comparar con** del paso `if-page-1` **Si / Si no** a `3`.
 
 ### Enviar reconocimientos y notas de vuelta a Zabbix
 
 :::steps
 1. [Crea el token de API](#crear-el-token-de-api).
-2. Crea un flujo de trabajo a partir de **Acknowledge or close the Zabbix problem with the incident**. Rellena **Zabbix URL** y **Zabbix API Token**, haz clic en **Crear flujo de trabajo** y activa **Habilitado**.
+2. Crea un flujo de trabajo a partir de **Acknowledge or close the Zabbix problem with the incident**. Rellena **URL de Zabbix** y **Zabbix API Token**, haz clic en **Crear flujo de trabajo** y activa **Habilitado**.
 3. Si también quieres las notas en Zabbix, haz lo mismo con **Copy incident private notes to the Zabbix problem**.
 :::
 
@@ -126,7 +126,7 @@ La plantilla de estado pregunta primero a Zabbix por el problema, así que un pr
 
 ### En Zabbix 6.0
 
-Zabbix 6.0 lee el token de API del cuerpo de la solicitud, no de su cabecera `Authorization`. En el paso **Update Zabbix Problem** de cada plantilla que llama a Zabbix, activa **Zabbix 6.0**, en **Más campos**. Zabbix 7.2 y posteriores rechazan un token en el cuerpo, así que desactívalo de nuevo cuando actualices.
+Zabbix 6.0 lee el token de API del cuerpo de la solicitud, no de su cabecera `Authorization`. En el paso **Actualizar problema de Zabbix** de cada plantilla que llama a Zabbix, activa **Zabbix 6.0**, en **Más campos**. Zabbix 7.2 y posteriores rechazan un token en el cuerpo, así que desactívalo de nuevo cuando actualices.
 
 ## Recibir problemas con un monitor
 
@@ -344,7 +344,7 @@ Probablemente la acción tiene dos operaciones que envían al mismo usuario, com
 ## Seguridad
 
 - **Trata la URL como una contraseña.** Quien la tenga puede abrir incidentes. Si se filtra, restablécela: **Restablecer URL** en el disparador **Webhook** del flujo de trabajo, o **Restablecer clave secreta de solicitud entrante** en la página **Ajustes** del monitor. Después actualiza **Send to** en el medio del usuario de Zabbix.
-- **Los enlaces van a tu Zabbix.** La plantilla enlaza un problema en el sitio que nombra su **Zabbix URL**, diga lo que diga una solicitud, y escribe lo que envió Zabbix como texto.
+- **Los enlaces van a tu Zabbix.** La plantilla enlaza un problema en el sitio que nombra su **URL de Zabbix**, diga lo que diga una solicitud, y escribe lo que envió Zabbix como texto.
 - **Limita el token de API a lo que hace el flujo de trabajo.** Es una variable secreta, ocultada en los registros de ejecución y enviada solo a Zabbix, en la cabecera `Authorization` salvo que **Zabbix 6.0** esté activado. Da a su usuario un rol con nada más que las acciones de arriba, y borra el token en **Users → API tokens** si se filtra.
 - **Envía solo lo que necesita un incidente.** Usa las condiciones de la acción, o las gravedades del medio del usuario, para dejar en Zabbix los problemas de baja gravedad.
 - **¿Autoalojado?** Deja que tu servidor Zabbix llegue a tu OneUptime por HTTPS a través de tu cortafuegos. Para llamar a un Zabbix en una red privada, el flujo de trabajo necesita [acceso de red saliente](/docs/workflows/configuration#acceso-de-red-saliente).

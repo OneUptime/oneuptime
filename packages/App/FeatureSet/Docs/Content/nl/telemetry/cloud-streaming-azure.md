@@ -28,7 +28,7 @@ flowchart TB
 ## Voordat u begint
 
 - **Een gekoppeld Azure-abonnement.** Koppel het eerst onder **Cloud → Koppelen**: zie [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts).
-- **Een projecteigenaar of beheerder.** Alleen zij kunnen het lezen aanzetten en het streamen stoppen.
+- **Een Projecteigenaar of Projectbeheerder.** Alleen zij kunnen het lezen aanzetten en het streamen stoppen.
 - **Azure Cloud Shell**, aangemeld als **Owner** van de abonnementen, of als **Contributor** die ook **User Access Administrator** is: de opdracht maakt een resourcegroep en een roltoewijzing aan, en wijzigt diagnostische instellingen.
 - **Een weg naar Azure, bij een zelf gehoste OneUptime.** OneUptime leest elke namespace op `<namespace>.servicebus.windows.net` via poort 9093, en de namespaces nemen verbindingen vanaf internet aan.
 

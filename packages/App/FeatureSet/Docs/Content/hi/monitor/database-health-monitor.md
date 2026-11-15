@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` एक बिल्ट-इन रोल है (PostgreSQL 10 और बाद के संस्करण) जो आँकड़ों और मॉनिटरिंग के व्यू पढ़ने की पहुँच देता है। यह आपकी टेबल तक कोई पहुँच नहीं देता।
 
 > [!IMPORTANT]
-> **PostgreSQL पर `pg_monitor` वैकल्पिक क्यों नहीं है।** इसके बिना `pg_stat_activity` विफल नहीं होता — क्वेरी सफल होती है और केवल मॉनिटरिंग सेशन की अपनी पंक्ति लौटाती है। तब कनेक्शन की गिनती हमेशा `1`, ब्लॉक हुए सेशन `0` और रेप्लिकेशन लैग `0` दिखेगा, ऐसे सर्वर पर भी जो असल में जल रहा हो। इसलिए प्रोब उन क्वेरी को चलाने से **पहले** जाँचता है कि लॉगिन `pg_monitor` (या `pg_read_all_stats`) का सदस्य है या सुपरयूज़र है। अगर इनमें से कुछ भी नहीं है, तो प्रोब Connections, Activity और Locks ग्रुप को उपलब्ध नहीं के रूप में रिपोर्ट करता है, साथ में वह `GRANT` भी जो आपको चाहिए। कुछ न बताना ईमानदार जवाब है; `1` बताना नहीं।
+> **PostgreSQL पर `pg_monitor` वैकल्पिक क्यों नहीं है।** इसके बिना `pg_stat_activity` विफल नहीं होता — क्वेरी सफल होती है और केवल मॉनिटरिंग सेशन की अपनी पंक्ति लौटाती है। तब कनेक्शन की गिनती हमेशा `1`, ब्लॉक हुए सेशन `0` और रेप्लिकेशन लैग `0` दिखेगा, ऐसे सर्वर पर भी जो असल में जल रहा हो। इसलिए प्रोब उन क्वेरी को चलाने से **पहले** जाँचता है कि लॉगिन `pg_monitor` (या `pg_read_all_stats`) का सदस्य है या सुपरयूज़र है। अगर इनमें से कुछ भी नहीं है, तो प्रोब **कनेक्शन**, **गतिविधि** और **लॉक और ब्लॉकिंग** ग्रुप को उपलब्ध नहीं के रूप में रिपोर्ट करता है, साथ में वह `GRANT` भी जो आपको चाहिए। कुछ न बताना ईमानदार जवाब है; `1` बताना नहीं।
 
 जिस मैनेज्ड सेवा पर `pg_monitor` उपलब्ध नहीं है, वहाँ `pg_read_all_stats` वही व्यू कवर करता है। Amazon RDS पर `GRANT rds_superuser` की ज़रूरत नहीं — `GRANT pg_monitor TO oneuptime_health;` `rds_superuser` के सदस्य के रूप में काम करता है।
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-MySQL का `performance_schema` चालू होना चाहिए (`performance_schema = ON`, 5.6 से डिफ़ॉल्ट)। अगर यह बंद है, तो Connections, Throughput और Locks ग्रुप उपलब्ध नहीं के रूप में रिपोर्ट होते हैं, और इसका समाधान सर्वर को रीस्टार्ट करना है, कोई अनुमति नहीं।
+MySQL का `performance_schema` चालू होना चाहिए (`performance_schema = ON`, 5.6 से डिफ़ॉल्ट)। अगर यह बंद है, तो **कनेक्शन**, **थ्रूपुट** और **लॉक और ब्लॉकिंग** ग्रुप उपलब्ध नहीं के रूप में रिपोर्ट होते हैं, और इसका समाधान सर्वर को रीस्टार्ट करना है, कोई अनुमति नहीं।
 
 ### Microsoft SQL Server और Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 किसी भी दूसरे डेटाबेस से चलाने पर `GRANT VIEW SERVER STATE` Msg 4621 के साथ विफल होता है: "Permissions at the server scope can only be granted when the current database is master"।
 
 > [!WARNING]
-> **आपकी टेबल पढ़ने की पहुँच काफ़ी नहीं है।** जो लॉगिन केवल डेटा पढ़ सकता है — `db_datareader` या कोई भी दूसरा "पढ़ने की पहुँच" वाला रोल — वह जुड़ सकता है और डेटाबेस का आकार पाता है, इसके अलावा कुछ नहीं। SQL Server मॉनिटर जिन व्यू को पढ़ता है, उन्हें `The user does not have permission to perform this action.` (Msg 297) के साथ मना कर देता है। उससे पहले का संदेश बताता है कि क्या मना किया गया: सर्वर व्यू के लिए Msg 300 `VIEW SERVER STATE` (2022 पर `VIEW SERVER PERFORMANCE STATE`), जिनमें ट्रांज़ैक्शन लॉग की जगह और tempdb की खाली जगह शामिल हैं, या रेप्लिकेशन व्यू के लिए Msg 262 `VIEW DATABASE STATE` (2022 पर `VIEW DATABASE PERFORMANCE STATE`)। मॉनिटर ऑनलाइन रहता है, Connections, Activity, Throughput, Locks, Storage और Replication ग्रुप में अनुमति की कमी रिपोर्ट करता है, और उनके बगल में ऊपर वाला `GRANT` दिखाता है। `VIEW SERVER STATE` इन सबको कवर करता है।
+> **आपकी टेबल पढ़ने की पहुँच काफ़ी नहीं है।** जो लॉगिन केवल डेटा पढ़ सकता है — `db_datareader` या कोई भी दूसरा "पढ़ने की पहुँच" वाला रोल — वह जुड़ सकता है और डेटाबेस का आकार पाता है, इसके अलावा कुछ नहीं। SQL Server मॉनिटर जिन व्यू को पढ़ता है, उन्हें `The user does not have permission to perform this action.` (Msg 297) के साथ मना कर देता है। उससे पहले का संदेश बताता है कि क्या मना किया गया: सर्वर व्यू के लिए Msg 300 `VIEW SERVER STATE` (2022 पर `VIEW SERVER PERFORMANCE STATE`), जिनमें ट्रांज़ैक्शन लॉग की जगह और tempdb की खाली जगह शामिल हैं, या रेप्लिकेशन व्यू के लिए Msg 262 `VIEW DATABASE STATE` (2022 पर `VIEW DATABASE PERFORMANCE STATE`)। मॉनिटर ऑनलाइन रहता है, **कनेक्शन**, **गतिविधि**, **थ्रूपुट**, **लॉक और ब्लॉकिंग**, **स्टोरेज** और **रेप्लिकेशन** ग्रुप में अनुमति की कमी रिपोर्ट करता है, और उनके बगल में ऊपर वाला `GRANT` दिखाता है। `VIEW SERVER STATE` इन सबको कवर करता है।
 >
 > दो व्यू मना नहीं करते: अनुमति के बिना `sys.dm_exec_sessions` और `sys.dm_exec_requests` चुपचाप केवल मॉनिटर का अपना सेशन दिखाते हैं। मॉनिटर इन्हें कभी अकेले नहीं पढ़ता — हमेशा किसी ऐसे व्यू के साथ जो मना करता है — इसलिए अनुमति की कमी कभी "1 कनेक्शन" के रूप में दर्ज नहीं हो सकती।
 
@@ -151,7 +151,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 प्रोब Azure SQL Database को उसके संस्करण से नहीं, बल्कि `SERVERPROPERTY('EngineEdition')` से पहचानता है — Azure SQL Database असल में चाहे जो चला रहा हो, `12.0.2000.8` ही बताता है, जो SQL Server 2014 जैसा पढ़ा जाता है। इसलिए मॉनिटर का **इंजन** `Azure SQL Database 12.0.2000.8` दिखाता है, और अनुमति की कमी ऊपर वाले Azure स्टेटमेंट के रूप में दिखती है, कभी `VIEW SERVER STATE` के रूप में नहीं।
 
-- **Azure SQL Database पर रेप्लिकेशन इकट्ठा नहीं होता।** Azure SQL Database में `sys.dm_hadr_database_replica_states` नहीं है, इसलिए वहाँ Replication ग्रुप को हर जाँच पर विफल बताने के बजाय छोड़ दिया जाता है। Azure के अपने रेप्लिका व्यू (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) अभी नहीं पढ़े जाते।
+- **Azure SQL Database पर रेप्लिकेशन इकट्ठा नहीं होता।** Azure SQL Database में `sys.dm_hadr_database_replica_states` नहीं है, इसलिए वहाँ **रेप्लिकेशन** ग्रुप को हर जाँच पर विफल बताने के बजाय छोड़ दिया जाता है। Azure के अपने रेप्लिका व्यू (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) अभी नहीं पढ़े जाते।
 - **कनेक्शन हर डेटाबेस के हिसाब से होते हैं।** `VIEW DATABASE STATE` के साथ Azure SQL Database केवल निगरानी वाले डेटाबेस के सेशन दिखाता है, इसलिए **कनेक्शन** लॉजिकल सर्वर के बजाय उसी डेटाबेस को गिनता है। जिन डेटाबेस की आपको परवाह है, हर एक की अलग से निगरानी करें।
 - **इलास्टिक पूल में "TempDB में खाली स्थान" पूरे पूल का होता है।** पूल के डेटाबेस एक ही tempdb साझा करते हैं।
 
@@ -221,17 +221,17 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ## मेट्रिक ग्रुप
 
-ग्रुप वह इकाई है जिसे आप चालू या बंद करते हैं, और वह इकाई जिसके लिए अनुमति की कमी रिपोर्ट होती है। ग्रुप इसलिए हैं ताकि एक अनुमति की कमी से पूरा मॉनिटर नहीं, बल्कि केवल एक ग्रुप जाए। किसी ग्रुप के स्टेटमेंट एक-एक करके चलते हैं, इसलिए कोई ग्रुप आंशिक रूप से इकट्ठा हो सकता है: तब वह `collectedGroups` और `unavailableGroups` दोनों में दिखता है। आम मामला `VIEW SERVER STATE` के बिना वाले लॉगिन के लिए SQL Server का Storage ग्रुप है — डेटाबेस का आकार इकट्ठा होता है, लॉग की जगह और tempdb की खाली जगह नहीं।
+ग्रुप वह इकाई है जिसे आप चालू या बंद करते हैं, और वह इकाई जिसके लिए अनुमति की कमी रिपोर्ट होती है। ग्रुप इसलिए हैं ताकि एक अनुमति की कमी से पूरा मॉनिटर नहीं, बल्कि केवल एक ग्रुप जाए। किसी ग्रुप के स्टेटमेंट एक-एक करके चलते हैं, इसलिए कोई ग्रुप आंशिक रूप से इकट्ठा हो सकता है: तब वह `collectedGroups` और `unavailableGroups` दोनों में दिखता है। आम मामला `VIEW SERVER STATE` के बिना वाले लॉगिन के लिए SQL Server का **स्टोरेज** ग्रुप है — डेटाबेस का आकार इकट्ठा होता है, लॉग की जगह और tempdb की खाली जगह नहीं।
 
 | ग्रुप | क्या इकट्ठा करता है | क्या चाहिए |
 |---|---|---|
 | कनेक्शन | कनेक्शन की गिनती, सेट की गई सीमा, रद्द हुए कनेक्शन प्रयास, सर्वर का अपटाइम | PostgreSQL: `pg_monitor`। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
-| Activity | सबसे लंबी चल रही क्वेरी, सबसे लंबा खुला ट्रांज़ैक्शन, खुले ट्रांज़ैक्शन | PostgreSQL: `pg_monitor`। MySQL: `PROCESS`। SQL Server: `VIEW SERVER STATE` |
+| गतिविधि | सबसे लंबी चल रही क्वेरी, सबसे लंबा खुला ट्रांज़ैक्शन, खुले ट्रांज़ैक्शन | PostgreSQL: `pg_monitor`। MySQL: `PROCESS`। SQL Server: `VIEW SERVER STATE` |
 | थ्रूपुट | ट्रांज़ैक्शन, क्वेरी, कैश हिट अनुपात, डिस्क रीड और राइट, I/O समय | PostgreSQL: `CONNECT` के अलावा कुछ नहीं। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
-| Locks | ब्लॉक हुए सेशन, लॉक प्रतीक्षा, डेडलॉक, टेबल लॉक प्रतीक्षा | PostgreSQL: `pg_monitor`। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
-| Storage | डेटाबेस का आकार, अस्थायी फ़ाइलों में जाना, लॉग की जगह, tempdb की खाली जगह | PostgreSQL: `CONNECT` के अलावा कुछ नहीं। MySQL: डेटाबेस पर `SELECT`। SQL Server: डेटाबेस के आकार के लिए कुछ नहीं; लॉग की जगह और tempdb की खाली जगह के लिए `VIEW SERVER STATE` |
-| Replication | जुड़ी हुई रेप्लिका, सेकंड और बाइट में रेप्लिकेशन लैग, निष्क्रिय स्लॉट, रिकवरी स्थिति | PostgreSQL: `pg_monitor`। MySQL: `REPLICATION CLIENT`। SQL Server: `VIEW SERVER STATE`; Azure SQL Database पर इकट्ठा नहीं होता |
-| Maintenance | ट्रांज़ैक्शन ID रैपअराउंड तक की गुंजाइश, डेड ट्यूपल, ऐसी टेबल जिन्हें autovacuum ने कभी नहीं छुआ, चेकपॉइंट | PostgreSQL: `pg_monitor` |
+| लॉक और ब्लॉकिंग | ब्लॉक हुए सेशन, लॉक प्रतीक्षा, डेडलॉक, टेबल लॉक प्रतीक्षा | PostgreSQL: `pg_monitor`। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
+| स्टोरेज | डेटाबेस का आकार, अस्थायी फ़ाइलों में जाना, लॉग की जगह, tempdb की खाली जगह | PostgreSQL: `CONNECT` के अलावा कुछ नहीं। MySQL: डेटाबेस पर `SELECT`। SQL Server: डेटाबेस के आकार के लिए कुछ नहीं; लॉग की जगह और tempdb की खाली जगह के लिए `VIEW SERVER STATE` |
+| रेप्लिकेशन | जुड़ी हुई रेप्लिका, सेकंड और बाइट में रेप्लिकेशन लैग, निष्क्रिय स्लॉट, रिकवरी स्थिति | PostgreSQL: `pg_monitor`। MySQL: `REPLICATION CLIENT`। SQL Server: `VIEW SERVER STATE`; Azure SQL Database पर इकट्ठा नहीं होता |
+| रखरखाव | ट्रांज़ैक्शन ID रैपअराउंड तक की गुंजाइश, डेड ट्यूपल, ऐसी टेबल जिन्हें autovacuum ने कभी नहीं छुआ, चेकपॉइंट | PostgreSQL: `pg_monitor` |
 
 Azure SQL Database पर, जहाँ भी यह तालिका `VIEW SERVER STATE` कहती है, वहाँ `VIEW DATABASE STATE` पढ़ें — या Basic, S0, S1 और इलास्टिक पूल पर `##MS_ServerStateReader##`। [Azure SQL Database](#azure-sql-database) देखें।
 
@@ -264,7 +264,7 @@ Azure SQL Database पर, जहाँ भी यह तालिका `VIEW S
 - **SQL Server या Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, `master` में चलाया गया (मॉनिटर इसे `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master` के रूप में दिखाता है)।
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, निगरानी वाले डेटाबेस में चलाया गया; Basic, S0, S1 और इलास्टिक पूल पर इसके बजाय `##MS_ServerStateReader##` की सदस्यता। [Azure SQL Database](#azure-sql-database) देखें।
 
-इस बीच डेटाबेस का आकार इकट्ठा होता रहता है, क्योंकि Storage ग्रुप में यही एकमात्र मेट्रिक है जिसे कोई भी लॉगिन पढ़ सकता है।
+इस बीच डेटाबेस का आकार इकट्ठा होता रहता है, क्योंकि **स्टोरेज** ग्रुप में यही एकमात्र मेट्रिक है जिसे कोई भी लॉगिन पढ़ सकता है।
 
 ## इकट्ठा किए गए मेट्रिक्स
 
@@ -296,18 +296,18 @@ Azure SQL Database पर, जहाँ भी यह तालिका `VIEW S
 | **क्वेरी** | `oneuptime.monitor.database.queries.total` | थ्रूपुट | MySQL, SQL Server |
 | **धीमी क्वेरी** | `oneuptime.monitor.database.queries.slow.total` | थ्रूपुट | MySQL |
 | **रोलबैक अनुपात** (%) | `oneuptime.monitor.database.rollback.percent` | थ्रूपुट | PostgreSQL |
-| **सबसे लंबी चल रही क्वेरी** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **सबसे लंबा खुला ट्रांज़ैक्शन** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **खुले ट्रांज़ैक्शन** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **सबसे लंबी चल रही क्वेरी** (s) | `oneuptime.monitor.database.query.longest.seconds` | गतिविधि | PostgreSQL, MySQL, SQL Server |
+| **सबसे लंबा खुला ट्रांज़ैक्शन** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | गतिविधि | PostgreSQL, MySQL, SQL Server |
+| **खुले ट्रांज़ैक्शन** | `oneuptime.monitor.database.transaction.open.count` | गतिविधि | MySQL |
 
 ### लॉक और ब्लॉकिंग
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **ब्लॉक हुए सेशन** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **लॉक प्रतीक्षा** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **डेडलॉक** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **टेबल लॉक प्रतीक्षा** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **ब्लॉक हुए सेशन** | `oneuptime.monitor.database.sessions.blocked` | लॉक और ब्लॉकिंग | PostgreSQL, MySQL, SQL Server |
+| **लॉक प्रतीक्षा** | `oneuptime.monitor.database.locks.waiting` | लॉक और ब्लॉकिंग | PostgreSQL, MySQL, SQL Server |
+| **डेडलॉक** | `oneuptime.monitor.database.deadlocks.total` | लॉक और ब्लॉकिंग | PostgreSQL, SQL Server |
+| **टेबल लॉक प्रतीक्षा** | `oneuptime.monitor.database.table.locks.waited.total` | लॉक और ब्लॉकिंग | MySQL |
 
 मानक MySQL किसी भी तरह का डेडलॉक काउंटर नहीं देता, इसीलिए **डेडलॉक** केवल PostgreSQL और SQL Server पर है।
 
@@ -325,25 +325,25 @@ Azure SQL Database पर, जहाँ भी यह तालिका `VIEW S
 
 PostgreSQL I/O के पढ़ने और लिखने का समय केवल तब मापता है जब `track_io_timing` चालू हो। यह डिफ़ॉल्ट रूप से बंद होता है, और तब PostgreSQL दोनों को `0` बताता है — इसलिए PostgreSQL पर इन दो सीरीज़ में सपाट शून्य का मतलब आम तौर पर "मापा नहीं गया" होता है, "तेज़" नहीं। यह सर्वर की सेटिंग है, अनुमति की समस्या नहीं।
 
-### भंडारण
+### स्टोरेज
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **डेटाबेस आकार** (बाइट) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **लिखे गए अस्थायी बाइट** (बाइट) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **डिस्क पर अस्थायी टेबल** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **उपयोग किया गया लॉग स्थान** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB में खाली स्थान** (बाइट) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **डेटाबेस आकार** (बाइट) | `oneuptime.monitor.database.size.bytes` | स्टोरेज | PostgreSQL, MySQL, SQL Server |
+| **लिखे गए अस्थायी बाइट** (बाइट) | `oneuptime.monitor.database.temp.bytes.total` | स्टोरेज | PostgreSQL |
+| **डिस्क पर अस्थायी टेबल** | `oneuptime.monitor.database.temp.disk.tables.total` | स्टोरेज | MySQL |
+| **उपयोग किया गया लॉग स्थान** (%) | `oneuptime.monitor.database.log.space.used.percent` | स्टोरेज | SQL Server |
+| **TempDB में खाली स्थान** (बाइट) | `oneuptime.monitor.database.tempdb.free.bytes` | स्टोरेज | SQL Server |
 
 ### रेप्लिकेशन
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **कनेक्टेड रेप्लिका** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **रेप्लिकेशन लैग** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **रेप्लिकेशन लैग (बाइट)** (बाइट) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **रिकवरी में** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **निष्क्रिय रेप्लिकेशन स्लॉट** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **कनेक्टेड रेप्लिका** | `oneuptime.monitor.database.replica.count` | रेप्लिकेशन | PostgreSQL, SQL Server |
+| **रेप्लिकेशन लैग** (s) | `oneuptime.monitor.database.replication.lag.seconds` | रेप्लिकेशन | PostgreSQL, MySQL |
+| **रेप्लिकेशन लैग (बाइट)** (बाइट) | `oneuptime.monitor.database.replication.lag.bytes` | रेप्लिकेशन | PostgreSQL, SQL Server |
+| **रिकवरी में** | `oneuptime.monitor.database.is.in.recovery` | रेप्लिकेशन | PostgreSQL |
+| **निष्क्रिय रेप्लिकेशन स्लॉट** | `oneuptime.monitor.database.replication.slots.inactive` | रेप्लिकेशन | PostgreSQL |
 
 रेप्लिकेशन मेट्रिक्स लिंक के उस तरफ़ से बताए जाते हैं जिससे मॉनिटर जुड़ा है। जुड़ी हुई रेप्लिका और भेजने की कतार देखने के लिए मॉनिटर को प्राइमरी की ओर करें; हर स्टैंडबाय असल में कितना पीछे है, यह देखने के लिए हर स्टैंडबाय की ओर एक मॉनिटर करें।
 
@@ -353,11 +353,11 @@ PostgreSQL I/O के पढ़ने और लिखने का समय �
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **उपयोग किए गए ट्रांज़ैक्शन ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **डेड ट्यूपल** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **जिन टेबल पर कभी autovacuum नहीं चला** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **अनुरोधित चेकपॉइंट** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **समयबद्ध चेकपॉइंट** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **उपयोग किए गए ट्रांज़ैक्शन ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | रखरखाव | PostgreSQL |
+| **डेड ट्यूपल** | `oneuptime.monitor.database.dead.tuples` | रखरखाव | PostgreSQL |
+| **जिन टेबल पर कभी autovacuum नहीं चला** | `oneuptime.monitor.database.tables.never.autovacuumed` | रखरखाव | PostgreSQL |
+| **अनुरोधित चेकपॉइंट** | `oneuptime.monitor.database.checkpoints.requested.total` | रखरखाव | PostgreSQL |
+| **समयबद्ध चेकपॉइंट** | `oneuptime.monitor.database.checkpoints.timed.total` | रखरखाव | PostgreSQL |
 
 > [!IMPORTANT]
 > आप जो भी PostgreSQL मॉनिटर बनाएं, हर एक पर **उपयोग किए गए ट्रांज़ैक्शन ID** के लिए एक मानदंड रखना ज़रूरी है। जब यह 100% पर पहुँचता है तो PostgreSQL सभी राइट मना कर देता है, रिकवरी के लिए डेटाबेस बंद करके सिंगल-यूज़र मोड में vacuum चलाना पड़ता है, और लगभग कोई इस पर नज़र नहीं रखता। चट्टान से काफ़ी पहले अलर्ट करें — ज़्यादातर वर्कलोड पर 80% से कई दिनों की गुंजाइश मिलती है।
@@ -371,7 +371,7 @@ PostgreSQL I/O के पढ़ने और लिखने का समय �
 | फ़िल्टर प्रकार | यह क्या जाँचता है |
 |---|---|
 | **डेटाबेस ऑनलाइन है** | क्या डेटाबेस पहुँच में था और प्रोब क्वेरी सफल रही। यह वही ऑफ़लाइन मानदंड है जिसके साथ मॉनिटर बनता है, और पहुँच दिखाने वाली इकलौती जाँच है। |
-| **डेटाबेस मेट्रिक** | कोई मेट्रिक चुनें, फिर उसकी तुलना करें: से बड़ा, से छोटा, से बड़ा या बराबर, से छोटा या बराबर, बराबर है या बराबर नहीं है। मेट्रिक पिकर केवल वही मेट्रिक्स देता है जो आपका चुना हुआ इंजन बना सकता है, इसलिए आप ऐसा मानदंड नहीं बना सकते जो हमेशा अधूरा रहे (एक अपवाद: Microsoft SQL Server के लिए दिए गए Replication मेट्रिक्स Azure SQL Database पर कभी इकट्ठा नहीं होते)। अगर किसी जाँच पर मेट्रिक इकट्ठा नहीं हुआ — ग्रुप विफल हुआ, या इंजन उसे रिपोर्ट नहीं करता — तो फ़िल्टर मेल नहीं खाता, और "false" के रूप में भी मेल नहीं खाता: उसे छोड़ दिया जाता है। अनुमति की कोई समस्या किसी को कॉल नहीं कर सकती। |
+| **डेटाबेस मेट्रिक** | कोई मेट्रिक चुनें, फिर उसकी तुलना करें: से बड़ा, से छोटा, से बड़ा या बराबर, से छोटा या बराबर, बराबर है या बराबर नहीं है। मेट्रिक पिकर केवल वही मेट्रिक्स देता है जो आपका चुना हुआ इंजन बना सकता है, इसलिए आप ऐसा मानदंड नहीं बना सकते जो हमेशा अधूरा रहे (एक अपवाद: Microsoft SQL Server के लिए दिए गए **रेप्लिकेशन** मेट्रिक्स Azure SQL Database पर कभी इकट्ठा नहीं होते)। अगर किसी जाँच पर मेट्रिक इकट्ठा नहीं हुआ — ग्रुप विफल हुआ, या इंजन उसे रिपोर्ट नहीं करता — तो फ़िल्टर मेल नहीं खाता, और "false" के रूप में भी मेल नहीं खाता: उसे छोड़ दिया जाता है। अनुमति की कोई समस्या किसी को कॉल नहीं कर सकती। |
 | **डेटाबेस डेटा संग्रह त्रुटि** | जाँच की संग्रह समस्याओं का सारांश, हर उपलब्ध न होने वाले ग्रुप के लिए एक "ग्रुप: संदेश"। दृश्यता खोने को पकड़ने के लिए इसके खाली न होने पर अलर्ट करें, या किसी एक खास ग्रुप पर नज़र रखने के लिए "शामिल है" का उपयोग करें। |
 | **JavaScript एक्सप्रेशन** | पूरा नियंत्रण। [JavaScript एक्सप्रेशन](/docs/monitor/javascript-expression) देखें। |
 
@@ -433,11 +433,11 @@ Database Health मॉनिटर के लिए एक्सप्रेश�
 ऑफ़लाइन का मतलब है कि प्रोब जुड़ नहीं सका या प्रोब क्वेरी विफल हुई: होस्ट या पोर्ट प्रोब से पहुँच में नहीं है, लॉगिन अस्वीकार हुआ, TLS विफल हुआ, या कनेक्शन का समय खत्म हो गया। मॉनिटर का सारांश त्रुटि दिखाता है। जाँचें कि प्रोब डेटाबेस तक पहुँच सकता है (OneUptime द्वारा होस्ट किए गए प्रोब को सार्वजनिक पते की ज़रूरत होती है; वरना [कस्टम प्रोब](/docs/probe/custom-probe) का उपयोग करें), उपयोगकर्ता नाम और पासवर्ड या उसका मॉनिटर सीक्रेट जाँचें, और सेल्फ़-साइन्ड सर्टिफ़िकेट के लिए **Verify server certificate** बंद करें। फिर दोबारा जाँचने के लिए **मॉनिटर का परीक्षण करें** पर क्लिक करें।
 :::
 
-:::details PostgreSQL पर Connections, Activity और Locks गायब हैं
+:::details PostgreSQL पर **कनेक्शन**, **गतिविधि** और **लॉक और ब्लॉकिंग** गायब हैं
 लॉगिन न तो `pg_monitor` या `pg_read_all_stats` का सदस्य है, न सुपरयूज़र, इसलिए प्रोब गलत आँकड़े दर्ज करने के बजाय उन ग्रुप को छोड़ देता है। [PostgreSQL](#postgresql) में बताए अनुसार `GRANT pg_monitor TO oneuptime_health;` चलाएँ।
 :::
 
-:::details MySQL पर Connections, Throughput और Locks गायब हैं
+:::details MySQL पर **कनेक्शन**, **थ्रूपुट** और **लॉक और ब्लॉकिंग** गायब हैं
 या तो लॉगिन के पास `performance_schema` पर `SELECT` नहीं है, या सर्वर पर `performance_schema` बंद है; मॉनिटर का सारांश MySQL का संदेश दिखाता है। अनुमति की कमी के लिए [MySQL](#mysql) के स्टेटमेंट चलाएँ। बंद `performance_schema` के लिए सर्वर के कॉन्फ़िगरेशन में `performance_schema = ON` और एक रीस्टार्ट चाहिए।
 :::
 

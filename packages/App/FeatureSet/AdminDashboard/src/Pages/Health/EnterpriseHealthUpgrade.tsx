@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -18,11 +19,13 @@ export interface ComponentProps {
 const ENTERPRISE_OVERVIEW_URL: string =
   "https://oneuptime.com/enterprise/overview";
 
-export const ENTERPRISE_HEALTH_NOTE_DESCRIPTION: string =
-  "Live PostgreSQL, ClickHouse cluster and Valkey health, background queues, diagnostic logs, telemetry ingestion and the query console are part of the OneUptime Enterprise Edition.";
+export const ENTERPRISE_HEALTH_NOTE_DESCRIPTION: string = translationKey(
+  "Live PostgreSQL, ClickHouse cluster and Valkey health, background queues, diagnostic logs, telemetry ingestion and the query console are part of the OneUptime Enterprise Edition.",
+);
 
-export const EVERY_EDITION_HEALTH_NOTE: string =
-  "ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle work on the Community Edition too — find them in the menu on the left.";
+export const EVERY_EDITION_HEALTH_NOTE: string = translationKey(
+  "ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle work on the Community Edition too — find them in the menu on the left.",
+);
 
 /*
  * Shared "this is an Enterprise feature" screen for the OneUptime Health pages

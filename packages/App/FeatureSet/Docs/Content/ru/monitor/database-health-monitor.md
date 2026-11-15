@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` — встроенная роль (PostgreSQL 10 и новее), которая даёт доступ на чтение к представлениям статистики и мониторинга. К вашим таблицам она доступа не даёт.
 
 > [!IMPORTANT]
-> **Почему `pg_monitor` в PostgreSQL обязательна.** Без неё `pg_stat_activity` не завершается ошибкой — запрос выполняется успешно и возвращает только строку самого сеанса мониторинга. Число соединений всегда показывало бы `1`, заблокированные сеансы — `0`, а задержка репликации — `0`, на сервере, который на самом деле горит. Поэтому зонд **до** выполнения этих запросов проверяет, что учётная запись входит в `pg_monitor` (или `pg_read_all_stats`) либо является суперпользователем. Если ничего из этого не выполняется, зонд сообщает группы Connections, Activity и Locks как недоступные вместе с нужным вам `GRANT`. Не сообщать ничего — честный ответ; сообщать `1` — нет.
+> **Почему `pg_monitor` в PostgreSQL обязательна.** Без неё `pg_stat_activity` не завершается ошибкой — запрос выполняется успешно и возвращает только строку самого сеанса мониторинга. Число соединений всегда показывало бы `1`, заблокированные сеансы — `0`, а задержка репликации — `0`, на сервере, который на самом деле горит. Поэтому зонд **до** выполнения этих запросов проверяет, что учётная запись входит в `pg_monitor` (или `pg_read_all_stats`) либо является суперпользователем. Если ничего из этого не выполняется, зонд сообщает группы **Подключения**, **Активность** и **Блокировки и ожидания** как недоступные вместе с нужным вам `GRANT`. Не сообщать ничего — честный ответ; сообщать `1` — нет.
 
 В управляемом сервисе, где `pg_monitor` недоступна, те же представления покрывает `pg_read_all_stats`. В Amazon RDS `GRANT rds_superuser` не нужен — `GRANT pg_monitor TO oneuptime_health;` работает от имени участника `rds_superuser`.
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-В MySQL должна быть включена `performance_schema` (`performance_schema = ON`, по умолчанию начиная с 5.6). Если она выключена, группы Connections, Throughput и Locks помечаются как недоступные, и исправляется это перезапуском сервера, а не правами.
+В MySQL должна быть включена `performance_schema` (`performance_schema = ON`, по умолчанию начиная с 5.6). Если она выключена, группы **Подключения**, **Пропускная способность** и **Блокировки и ожидания** помечаются как недоступные, и исправляется это перезапуском сервера, а не правами.
 
 ### Microsoft SQL Server и Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 При запуске из любой другой базы данных `GRANT VIEW SERVER STATE` завершается ошибкой Msg 4621: «Permissions at the server scope can only be granted when the current database is master».
 
 > [!WARNING]
-> **Доступа на чтение к вашим таблицам недостаточно.** Учётная запись, которая может только читать данные, — `db_datareader` или любая другая роль «доступа на чтение» — может подключиться и получает размер базы данных, но больше ничего. SQL Server отказывает в доступе к представлениям, которые читает монитор, с сообщением `The user does not have permission to perform this action.` (Msg 297). Сообщение перед ним называет, в чём отказано: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` в 2022) для серверных представлений, включая место в журнале транзакций и свободное место в tempdb, или Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` в 2022) для представления репликации. Монитор остаётся в сети, сообщает, что группам Connections, Activity, Throughput, Locks, Storage и Replication не хватает прав, и показывает рядом с ними `GRANT` выше. `VIEW SERVER STATE` покрывает их все.
+> **Доступа на чтение к вашим таблицам недостаточно.** Учётная запись, которая может только читать данные, — `db_datareader` или любая другая роль «доступа на чтение» — может подключиться и получает размер базы данных, но больше ничего. SQL Server отказывает в доступе к представлениям, которые читает монитор, с сообщением `The user does not have permission to perform this action.` (Msg 297). Сообщение перед ним называет, в чём отказано: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` в 2022) для серверных представлений, включая место в журнале транзакций и свободное место в tempdb, или Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` в 2022) для представления репликации. Монитор остаётся в сети, сообщает, что группам **Подключения**, **Активность**, **Пропускная способность**, **Блокировки и ожидания**, **Хранилище** и **Репликация** не хватает прав, и показывает рядом с ними `GRANT` выше. `VIEW SERVER STATE` покрывает их все.
 >
 > Два представления не отказывают: без этого права `sys.dm_exec_sessions` и `sys.dm_exec_requests` молча показывают только собственный сеанс монитора. Монитор никогда не читает их отдельно — только вместе с представлением, которое отказывает, — поэтому отсутствующее право никогда не может быть записано как «1 соединение».
 
@@ -151,7 +151,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 Зонд распознаёт Azure SQL Database по `SERVERPROPERTY('EngineEdition')`, а не по версии — Azure SQL Database сообщает `12.0.2000.8`, что бы она ни выполняла на самом деле, а это читается как SQL Server 2014. Поэтому **Движок** монитора показывает `Azure SQL Database 12.0.2000.8`, а отсутствующее право показывается как инструкция для Azure выше и никогда как `VIEW SERVER STATE`.
 
-- **Репликация не собирается в Azure SQL Database.** В Azure SQL Database нет `sys.dm_hadr_database_replica_states`, поэтому группа Replication там пропускается, а не помечается как сбойная при каждой проверке. Собственные представления реплик Azure (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) пока не читаются.
+- **Репликация не собирается в Azure SQL Database.** В Azure SQL Database нет `sys.dm_hadr_database_replica_states`, поэтому группа **Репликация** там пропускается, а не помечается как сбойная при каждой проверке. Собственные представления реплик Azure (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) пока не читаются.
 - **Соединения считаются по базе данных.** С `VIEW DATABASE STATE` Azure SQL Database показывает только сеансы отслеживаемой базы данных, поэтому метрика **Подключения** считает эту базу, а не логический сервер. Отслеживайте каждую базу данных, которая для вас важна.
 - **В эластичном пуле метрика «Свободное место в TempDB» относится к пулу.** Базы данных в пуле используют одну общую tempdb.
 
@@ -221,17 +221,17 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ## Группы метрик
 
-Группа — это единица, которую вы включаете или выключаете, и единица, по которой сообщается об отсутствующем праве. Группы нужны, чтобы отсутствие одного права стоило вам одной группы, а не всего монитора. Инструкции группы выполняются по одной, поэтому группа может быть собрана частично: тогда она есть и в `collectedGroups`, и в `unavailableGroups`. Типичный случай — группа Storage в SQL Server для учётной записи без `VIEW SERVER STATE`: размер базы данных собирается, а место в журнале и свободное место в tempdb — нет.
+Группа — это единица, которую вы включаете или выключаете, и единица, по которой сообщается об отсутствующем праве. Группы нужны, чтобы отсутствие одного права стоило вам одной группы, а не всего монитора. Инструкции группы выполняются по одной, поэтому группа может быть собрана частично: тогда она есть и в `collectedGroups`, и в `unavailableGroups`. Типичный случай — группа **Хранилище** в SQL Server для учётной записи без `VIEW SERVER STATE`: размер базы данных собирается, а место в журнале и свободное место в tempdb — нет.
 
 | Группа | Что собирает | Что нужно |
 |---|---|---|
 | Подключения | Число соединений, настроенный предел, прерванные подключения, время работы сервера | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Activity | Самый долгий выполняющийся запрос, самая долгая открытая транзакция, открытые транзакции | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
+| Активность | Самый долгий выполняющийся запрос, самая долгая открытая транзакция, открытые транзакции | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
 | Пропускная способность | Транзакции, запросы, доля попаданий в кэш, чтения и записи на диск, время ввода-вывода | PostgreSQL: ничего, кроме `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Locks | Заблокированные сеансы, ожидания блокировок, взаимоблокировки, ожидания табличных блокировок | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Storage | Размер базы данных, сброс во временные файлы, место в журнале, свободное место в tempdb | PostgreSQL: ничего, кроме `CONNECT`. MySQL: `SELECT` на базу данных. SQL Server: ничего для размера базы данных; `VIEW SERVER STATE` для места в журнале и свободного места в tempdb |
-| Replication | Подключённые реплики, задержка репликации в секундах и байтах, неактивные слоты, состояние восстановления | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; в Azure SQL Database не собирается |
-| Maintenance | Запас до переполнения идентификаторов транзакций, мёртвые кортежи, таблицы, которые autovacuum ни разу не обрабатывал, контрольные точки | PostgreSQL: `pg_monitor` |
+| Блокировки и ожидания | Заблокированные сеансы, ожидания блокировок, взаимоблокировки, ожидания табличных блокировок | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Хранилище | Размер базы данных, сброс во временные файлы, место в журнале, свободное место в tempdb | PostgreSQL: ничего, кроме `CONNECT`. MySQL: `SELECT` на базу данных. SQL Server: ничего для размера базы данных; `VIEW SERVER STATE` для места в журнале и свободного места в tempdb |
+| Репликация | Подключённые реплики, задержка репликации в секундах и байтах, неактивные слоты, состояние восстановления | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; в Azure SQL Database не собирается |
+| Обслуживание | Запас до переполнения идентификаторов транзакций, мёртвые кортежи, таблицы, которые autovacuum ни разу не обрабатывал, контрольные точки | PostgreSQL: `pg_monitor` |
 
 В Azure SQL Database читайте `VIEW DATABASE STATE` везде, где в этой таблице написано `VIEW SERVER STATE`, — или `##MS_ServerStateReader##` на Basic, S0, S1 и в эластичных пулах. См. [Azure SQL Database](#azure-sql-database).
 
@@ -264,7 +264,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 - **SQL Server или Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, выполненная в `master` (монитор показывает её как `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`).
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, выполненная в отслеживаемой базе данных; на Basic, S0, S1 и в эластичных пулах вместо неё — членство в `##MS_ServerStateReader##`. См. [Azure SQL Database](#azure-sql-database).
 
-Размер базы данных тем временем продолжает собираться, потому что это единственная метрика группы Storage, которую может прочитать любая учётная запись.
+Размер базы данных тем временем продолжает собираться, потому что это единственная метрика группы **Хранилище**, которую может прочитать любая учётная запись.
 
 ## Собираемые метрики
 
@@ -277,7 +277,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **Время работы** (s) | `oneuptime.monitor.database.uptime.seconds` | Подключения | PostgreSQL, MySQL, SQL Server |
 | **Сбойные группы метрик** | `oneuptime.monitor.database.metric.groups.failed` | Подключения | PostgreSQL, MySQL, SQL Server |
 
-### Соединения
+### Подключения
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
@@ -296,22 +296,22 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **Запросы** | `oneuptime.monitor.database.queries.total` | Пропускная способность | MySQL, SQL Server |
 | **Медленные запросы** | `oneuptime.monitor.database.queries.slow.total` | Пропускная способность | MySQL |
 | **Доля откатов** (%) | `oneuptime.monitor.database.rollback.percent` | Пропускная способность | PostgreSQL |
-| **Самый долгий выполняемый запрос** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Самая долгая открытая транзакция** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Открытые транзакции** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **Самый долгий выполняемый запрос** (s) | `oneuptime.monitor.database.query.longest.seconds` | Активность | PostgreSQL, MySQL, SQL Server |
+| **Самая долгая открытая транзакция** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Активность | PostgreSQL, MySQL, SQL Server |
+| **Открытые транзакции** | `oneuptime.monitor.database.transaction.open.count` | Активность | MySQL |
 
-### Блокировки
+### Блокировки и ожидания
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
-| **Заблокированные сеансы** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Ожидания блокировок** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Взаимоблокировки** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Ожидания блокировок таблиц** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **Заблокированные сеансы** | `oneuptime.monitor.database.sessions.blocked` | Блокировки и ожидания | PostgreSQL, MySQL, SQL Server |
+| **Ожидания блокировок** | `oneuptime.monitor.database.locks.waiting` | Блокировки и ожидания | PostgreSQL, MySQL, SQL Server |
+| **Взаимоблокировки** | `oneuptime.monitor.database.deadlocks.total` | Блокировки и ожидания | PostgreSQL, SQL Server |
+| **Ожидания блокировок таблиц** | `oneuptime.monitor.database.table.locks.waited.total` | Блокировки и ожидания | MySQL |
 
 Стандартная MySQL не предоставляет вообще никакого счётчика взаимоблокировок, поэтому метрика **Взаимоблокировки** есть только в PostgreSQL и SQL Server.
 
-### Кэш и ввод-вывод
+### Кеш и I/O
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
@@ -325,25 +325,25 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 PostgreSQL измеряет время чтения и записи ввода-вывода, только когда включён `track_io_timing`. По умолчанию он выключен, и тогда PostgreSQL сообщает оба значения как `0` — поэтому в PostgreSQL ровный ноль в этих двух рядах обычно означает «не измерялось», а не «быстро». Это настройка сервера, а не проблема прав.
 
-### Хранение данных
+### Хранилище
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
-| **Размер базы данных** (байты) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Записано временных байтов** (байты) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Временные таблицы на диске** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Использованное место журнала** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **Свободное место в TempDB** (байты) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **Размер базы данных** (байты) | `oneuptime.monitor.database.size.bytes` | Хранилище | PostgreSQL, MySQL, SQL Server |
+| **Записано временных байтов** (байты) | `oneuptime.monitor.database.temp.bytes.total` | Хранилище | PostgreSQL |
+| **Временные таблицы на диске** | `oneuptime.monitor.database.temp.disk.tables.total` | Хранилище | MySQL |
+| **Использованное место журнала** (%) | `oneuptime.monitor.database.log.space.used.percent` | Хранилище | SQL Server |
+| **Свободное место в TempDB** (байты) | `oneuptime.monitor.database.tempdb.free.bytes` | Хранилище | SQL Server |
 
 ### Репликация
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
-| **Подключённые реплики** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Отставание репликации** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Отставание репликации (байты)** (байты) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **В режиме восстановления** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Неактивные слоты репликации** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **Подключённые реплики** | `oneuptime.monitor.database.replica.count` | Репликация | PostgreSQL, SQL Server |
+| **Отставание репликации** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Репликация | PostgreSQL, MySQL |
+| **Отставание репликации (байты)** (байты) | `oneuptime.monitor.database.replication.lag.bytes` | Репликация | PostgreSQL, SQL Server |
+| **В режиме восстановления** | `oneuptime.monitor.database.is.in.recovery` | Репликация | PostgreSQL |
+| **Неактивные слоты репликации** | `oneuptime.monitor.database.replication.slots.inactive` | Репликация | PostgreSQL |
 
 Метрики репликации сообщаются с той стороны связи, к которой подключён монитор. Направьте монитор на основной сервер, чтобы видеть подключённые реплики и очередь отправки; направьте по монитору на каждую реплику, чтобы видеть, насколько именно она отстаёт.
 
@@ -353,11 +353,11 @@ PostgreSQL измеряет время чтения и записи ввода-�
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
-| **Использованные ID транзакций** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Мёртвые кортежи** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Таблицы без autovacuum** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Запрошенные контрольные точки** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Плановые контрольные точки** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **Использованные ID транзакций** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Обслуживание | PostgreSQL |
+| **Мёртвые кортежи** | `oneuptime.monitor.database.dead.tuples` | Обслуживание | PostgreSQL |
+| **Таблицы без autovacuum** | `oneuptime.monitor.database.tables.never.autovacuumed` | Обслуживание | PostgreSQL |
+| **Запрошенные контрольные точки** | `oneuptime.monitor.database.checkpoints.requested.total` | Обслуживание | PostgreSQL |
+| **Плановые контрольные точки** | `oneuptime.monitor.database.checkpoints.timed.total` | Обслуживание | PostgreSQL |
 
 > [!IMPORTANT]
 > Метрика **Использованные ID транзакций** заслуживает критерия на каждом мониторе PostgreSQL, который вы создаёте. Когда значение доходит до 100 %, PostgreSQL отказывает во всех записях, восстановление требует VACUUM в однопользовательском режиме при остановленной базе, и почти никто за этим не следит. Настройте оповещение задолго до обрыва — 80 % оставляют дни запаса для большинства нагрузок.
@@ -371,7 +371,7 @@ PostgreSQL измеряет время чтения и записи ввода-�
 | Тип фильтра | Что проверяет |
 |---|---|
 | **База данных в сети** | Была ли база данных доступна и выполнился ли проверочный запрос. Это критерий «не в сети», с которым создаётся монитор, и единственная проверка, отражающая доступность. |
-| **Метрика базы данных** | Выберите метрику и сравните её: Больше, Меньше, Больше или равно, Меньше или равно, Равно или Не равно. Список метрик предлагает только те, которые может выдать выбранная СУБД, поэтому нельзя построить критерий, который навсегда останется невыполненным (одно исключение: метрики Replication, предлагаемые для Microsoft SQL Server, никогда не собираются в Azure SQL Database). Если метрика не была собрана при проверке — группа завершилась сбоем или СУБД её не сообщает, — фильтр не совпадает, причём не совпадает и как «false»: он пропускается. Проблема прав не может никого вызвать. |
+| **Метрика базы данных** | Выберите метрику и сравните её: Больше, Меньше, Больше или равно, Меньше или равно, Равно или Не равно. Список метрик предлагает только те, которые может выдать выбранная СУБД, поэтому нельзя построить критерий, который навсегда останется невыполненным (одно исключение: метрики **Репликация**, предлагаемые для Microsoft SQL Server, никогда не собираются в Azure SQL Database). Если метрика не была собрана при проверке — группа завершилась сбоем или СУБД её не сообщает, — фильтр не совпадает, причём не совпадает и как «false»: он пропускается. Проблема прав не может никого вызвать. |
 | **Ошибка сбора данных из базы данных** | Сводка проблем сбора за проверку, по одной строке «группа: сообщение» на каждую недоступную группу. Настройте оповещение, когда она не пуста, чтобы замечать потерю видимости, или используйте Содержит, чтобы следить за конкретной группой. |
 | **Выражение JavaScript** | Полный контроль. См. [Выражения JavaScript](/docs/monitor/javascript-expression). |
 
@@ -433,11 +433,11 @@ PostgreSQL измеряет время чтения и записи ввода-�
 «Не в сети» означает, что зонд не смог подключиться или проверочный запрос завершился сбоем: хост или порт недоступны с зонда, в доступе для учётной записи отказано, TLS завершился сбоем или истёк тайм-аут подключения. Сводка монитора показывает ошибку. Проверьте, что зонд достаёт до базы данных (зонду, размещённому OneUptime, нужен публичный адрес; иначе используйте [пользовательский зонд](/docs/probe/custom-probe)), проверьте имя пользователя и пароль или его секрет монитора и отключите **Verify server certificate** для самоподписанного сертификата. Затем нажмите **Протестировать монитор**, чтобы проверить снова.
 :::
 
-:::details В PostgreSQL нет Connections, Activity и Locks
+:::details В PostgreSQL нет групп **Подключения**, **Активность** и **Блокировки и ожидания**
 Учётная запись не входит ни в `pg_monitor`, ни в `pg_read_all_stats` и не является суперпользователем, поэтому зонд пропускает эти группы вместо записи неверных чисел. Выполните `GRANT pg_monitor TO oneuptime_health;`, как описано в разделе [PostgreSQL](#postgresql).
 :::
 
-:::details В MySQL нет Connections, Throughput и Locks
+:::details В MySQL нет групп **Подключения**, **Пропускная способность** и **Блокировки и ожидания**
 Либо у учётной записи нет `SELECT` на `performance_schema`, либо `performance_schema` на сервере выключена; сводка монитора показывает сообщение MySQL. Если не хватает права, выполните инструкции из раздела [MySQL](#mysql). Для выключенной `performance_schema` нужны `performance_schema = ON` в конфигурации сервера и перезапуск.
 :::
 

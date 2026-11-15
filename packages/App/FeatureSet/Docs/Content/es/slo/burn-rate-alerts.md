@@ -132,7 +132,7 @@ En **Regla**, escribe un **Nombre**, como «Fast burn». Una regla nueva está a
 
 ### Fijar la ventana de consumo
 
-En **Ventana de consumo**, fija el **Umbral de tasa de consumo** (por ejemplo `14.4`), la **Ventana larga (minutos)** y la **Ventana corta (minutos)**, y si quieres la **Supresión de nueva activación (minutos)**.
+En **Ventana de consumo**, fija el **Umbral de tasa de consumo** (por ejemplo `14.4`), la **Ventana larga (minutos)** y la **Ventana corta (minutos)**, y si quieres la **Supresión de nueva activación (minutos)**. La regla de un SLO de solicitudes admite además un **Mínimo de solicitudes**, por ejemplo `100`: la regla omite una ventana larga que tenga menos solicitudes que ese número.
 
 ### Elegir qué declara
 
@@ -151,10 +151,11 @@ OneUptime comprueba los números de una regla al guardarla:
 | **Ventana corta (minutos)** | Mayor que 0. |
 | **Ventana larga (minutos)** | Más larga que la ventana corta. |
 | **Supresión de nueva activación (minutos)** | 0 o más. Vacío significa la duración de la ventana larga. |
+| **Mínimo de solicitudes** | Un número entero, 0 o más. Vacío significa sin mínimo. |
 
 Cada respuesta a **Cuando se dispara** abre algo. La API rechaza una regla que no crearía ninguna alerta ni declararía ningún incidente, porque se comprobaría en cada evaluación sin declarar nunca nada.
 
-La tabla de reglas muestra, para cada regla, su umbral, sus ventanas y su supresión, qué declara (y si la alerta o el incidente solo se resuelve a mano, o es privado), sus gravedades, políticas de guardia, propietarios y etiquetas.
+La tabla de reglas muestra, para cada regla, su umbral, sus ventanas y su supresión, qué declara (y si la alerta o el incidente solo se resuelve a mano, o es privado), sus gravedades, políticas de guardia, propietarios y etiquetas. En un SLO de solicitudes, también indica el mínimo de cada regla bajo sus ventanas.
 
 > [!TIP]
 > Un buen comienzo: conserva las tres reglas predeterminadas, envía la regla de consumo rápido a tu política de guardia que avisa con una gravedad alta, deja que la regla de consumo lento genere una alerta de gravedad más baja para el horario laboral, y mantén la regla de fuga lenta como un ticket para el equipo responsable. Si tu equipo lo gestiona todo con incidentes, elige **Declarar un incidente** para la regla de consumo rápido, o **Ambos** para recibir también una alerta.
@@ -276,7 +277,7 @@ Las reglas de tasa de consumo permanecen en silencio mientras alguno de los moni
 :::
 
 :::details ¿Hay un número mínimo de muestras?
-No para los SLO que se miden con la disponibilidad de los monitores. La disponibilidad se mide en segundos, así que cada segundo de la ventana es una muestra y no hay casos de poco tráfico de los que protegerse. Un número mínimo de muestras solo importa para los SLI basados en eventos, que todavía no están disponibles.
+No para los SLO que se miden con la disponibilidad de los monitores. La disponibilidad se mide en segundos, así que cada segundo de la ventana es una muestra y no hay casos de poco tráfico de los que protegerse. La regla de un SLO de solicitudes sí lo tiene: fija su **Mínimo de solicitudes**, y la regla omite una ventana larga con menos solicitudes que ese número, así que una hora tranquila con una solicitud fallida de cinco no avisa a nadie.
 :::
 
 ## Próximos pasos

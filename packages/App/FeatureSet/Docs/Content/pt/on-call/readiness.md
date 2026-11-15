@@ -69,7 +69,7 @@ Depois, um aviso diz quantos lembretes foram enviados, ignorados ou falharam, e 
 
 ## O e-mail semanal de prontidão
 
-Uma vez por semana, o OneUptime verifica cada projeto que tem uma política de plantão. Quando alguém nele está **Inacessível** ou **Precisa de configuração**, os proprietários do projeto recebem um e-mail que lista essas pessoas em dois grupos, quem não pode ser acionado de jeito nenhum e quem pode ser contatado com lacunas, até 20 nomes cada, com um link para a página Prontidão.
+Uma vez por semana, o OneUptime verifica cada projeto que tem uma política de plantão. Quando alguém nele está **Inacessível** ou **Precisa de configuração**, os Proprietários do projeto recebem um e-mail que lista essas pessoas em dois grupos, quem não pode ser acionado de jeito nenhum e quem pode ser contatado com lacunas, até 20 nomes cada, com um link para a página Prontidão.
 
 Uma semana em que todos estão prontos não envia nada, então o e-mail sempre significa que há algo a corrigir. Quando alguém não pode ser acionado de jeito nenhum, o assunto começa com `[Action Required]`.
 
@@ -100,7 +100,7 @@ A lista só tem pessoas que uma política de plantão pode acionar. Ficam de for
 :::
 
 :::details Os proprietários nunca recebem o e-mail semanal
-Ele só é enviado em uma semana em que alguém está **Inacessível** ou **Precisa de configuração**, e só para os proprietários do projeto.
+Ele só é enviado em uma semana em que alguém está **Inacessível** ou **Precisa de configuração**, e só para os Proprietários do projeto.
 :::
 
 ## Próximos passos

@@ -43,7 +43,7 @@ Vai a **Impostazioni del progetto → Registri di audit → Impostazioni**. **Re
 
 ### Modificare le impostazioni
 
-Fai clic su **Edit Audit Log Settings**.
+Fai clic su **Modifica le impostazioni dei registri di audit**.
 
 ### Attivarlo
 

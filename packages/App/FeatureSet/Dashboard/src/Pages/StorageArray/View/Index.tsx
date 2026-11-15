@@ -1343,7 +1343,7 @@ const StorageArrayOverview: FunctionComponent<
           iconColor="amber"
           value={
             openAlerts === null || openAlerts === undefined
-              ? "—"
+              ? undefined
               : String(openAlerts)
           }
           sublabel={translator.translateTemplate(
@@ -1361,7 +1361,7 @@ const StorageArrayOverview: FunctionComponent<
           iconColor="emerald"
           value={
             unhealthyHardware === null || unhealthyHardware === undefined
-              ? "—"
+              ? undefined
               : String(unhealthyHardware)
           }
           sublabel={
@@ -1385,7 +1385,7 @@ const StorageArrayOverview: FunctionComponent<
             value={
               storageArray.fileSystemCount === null ||
               storageArray.fileSystemCount === undefined
-                ? "—"
+                ? undefined
                 : String(storageArray.fileSystemCount)
             }
             sublabel={translator.translatePlural(
@@ -1402,7 +1402,7 @@ const StorageArrayOverview: FunctionComponent<
             value={
               storageArray.volumeCount === null ||
               storageArray.volumeCount === undefined
-                ? "—"
+                ? undefined
                 : String(storageArray.volumeCount)
             }
             sublabel={translator.translatePlural(

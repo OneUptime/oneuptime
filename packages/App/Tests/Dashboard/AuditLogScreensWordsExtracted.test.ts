@@ -88,7 +88,13 @@ describe("the roots the extractor reads", () => {
     expect(rootOf(SESSION_LABELS).kind).toBe("keys");
   });
 
-  test("the rest of ee/Dashboard is not read yet: each screen comes in as its words are routed", () => {
+  /*
+   * Each Enterprise screen comes in as its words are routed through the
+   * translator: Team Compliance, the SCIM pages, the retention overrides and
+   * the Enterprise settings' license notice joined the audit log in #8296 and
+   * #8461 (EnterpriseScreensWordsExtracted holds them to their words).
+   */
+  test("the rest of ee/Dashboard comes in as each screen's words are routed", () => {
     const enterpriseRoots: Array<string> = SOURCE_ROOTS.filter(
       (root: SourceRoot): boolean => {
         return root.directory.startsWith("ee/");
@@ -97,7 +103,13 @@ describe("the roots the extractor reads", () => {
       return root.directory;
     });
 
-    expect(enterpriseRoots).toEqual([SCREENS]);
+    expect(enterpriseRoots).toEqual([
+      SCREENS,
+      "ee/Dashboard/TeamCompliance",
+      "ee/Dashboard/Identity",
+      "ee/Dashboard/TelemetryRetention",
+      "ee/Dashboard/EnterpriseSettings",
+    ]);
   });
 });
 

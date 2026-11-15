@@ -131,7 +131,7 @@ describe("a plural's one form in the Admin Dashboard", () => {
    * the forms it words as English does - so a form dropped from a list
    * fails above, by its language and key.
    */
-  test("without the lists, the guard names the ten forms #8068 found", () => {
+  test("without the lists, the guard names the forms #8068 found, and the nodes #8599 added", () => {
     const found: Array<string> = [];
 
     for (const code of readsOneForm) {
@@ -146,11 +146,13 @@ describe("a plural's one form in the Admin Dashboard", () => {
     expect(found.sort()).toEqual(
       [
         "da {{count}} monitors_one",
+        "da {{count}} nodes_one",
         "da {{count}} people_one",
         "es {{count}} monitors_one",
         "nl {{count}} products_one",
         "nl {{count}} projects_one",
         "no {{count}} monitors_one",
+        "no {{count}} nodes_one",
         "no {{count}} people_one",
         "pt {{count}} monitors_one",
         "sv {{count}} monitors_one",

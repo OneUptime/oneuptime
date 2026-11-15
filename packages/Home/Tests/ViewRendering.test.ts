@@ -2926,7 +2926,10 @@ describe("queues.ejs", () => {
     expect(html).toContain('data-queue-tile="Errors"');
     expect([...sublabels.keys()]).toContain("Errors");
     expect(sublabels.get("Errors")).toContain("{{rate}} of {{count}} spans");
-    expect(overview).toContain("count: formatMessageQueueCount(m.total)");
+    // In the reader's digits (33b1a8b9206): the count goes through their translator.
+    expect(overview).toContain(
+      "count: formatMessageQueueCount(m.total, translator)",
+    );
     expect(html).toMatch(/>[\d.]+% of [\d.]+M spans</);
 
     expect(servicesCard).toContain('title: "Producers"');

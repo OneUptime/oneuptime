@@ -2,7 +2,11 @@ import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import BreakableCode from "./BreakableCode";
 import { ReturnValue } from "../../../Types/Workflow/Component";
 import { componentReturnValueReference } from "../../../Types/Workflow/TemplateSyntax";
-import { returnValueDescription, returnValueName } from "./ReturnValueNames";
+import {
+  returnValueDescription,
+  returnValueName,
+  returnValueTypeLabel,
+} from "./ReturnValueNames";
 import React, { FunctionComponent, ReactElement } from "react";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -79,7 +83,12 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                     className="ml-2 inline-block whitespace-nowrap rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 align-middle text-[11px] font-medium leading-4 text-indigo-700"
                     data-testid="workflow-return-value-type"
                   >
-                    {returnValue.type}
+                    {/*
+                     * The kind of value in the words the value picker uses,
+                     * in the reader's language ("Key / value"), not the
+                     * code's type name ("Dictionary of String", #8361).
+                     */}
+                    {returnValueTypeLabel(returnValue, translator)}
                   </span>
                 </p>
                 {description && (

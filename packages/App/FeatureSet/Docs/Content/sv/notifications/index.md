@@ -95,7 +95,7 @@ Ett larm kan nå dig för en typ och en allvarlighetsgrad som du inte har någon
 2. Har du ingen av dem, en betald metod, i den här ordningen: SMS, ett telefonsamtal, WhatsApp, Telegram. Det är den första som du har verifierat, på en kanal som projektet har slagit på.
 3. Har du ingen av dem heller, en webhook.
 
-Du får ett e-postmeddelande om det, och det får även jourpolicyns ägare, eller projektets ägare om policyn inte har några. Är ingenting verifierat kan larmet inte levereras, och e-postmeddelandet säger det i stället. De här e-postmeddelandena hålls tillbaka medan larmen fortsätter komma, så att en storm av larm inte blir en storm av e-post. Hur du lägger till den saknade regeln står under [Så når man mig](/docs/notifications/on-call-rules#när-en-allvarlighetsgrad-saknar-regel).
+Du får ett e-postmeddelande om det, och det får även jourpolicyns ägare, eller Projektägare om policyn inte har några. Är ingenting verifierat kan larmet inte levereras, och e-postmeddelandet säger det i stället. De här e-postmeddelandena hålls tillbaka medan larmen fortsätter komma, så att en storm av larm inte blir en storm av e-post. Hur du lägger till den saknade regeln står under [Så når man mig](/docs/notifications/on-call-rules#när-en-allvarlighetsgrad-saknar-regel).
 
 ## Språket i dina larm
 

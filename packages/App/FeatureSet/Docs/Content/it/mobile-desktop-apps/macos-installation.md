@@ -67,7 +67,7 @@ Nell'app, apri **Impostazioni utente → Metodi di notifica** e la scheda **Noti
 Fai clic su **Registra dispositivo**, mantieni il valore proposto in **Nome del dispositivo**, ad esempio `Safari on macOS`, o modificalo, e fai di nuovo clic su **Registra dispositivo**. Quando macOS o il browser chiede se OneUptime può inviare notifiche, scegli **Consenti**.
 
 ### Inviare un test
-Nella finestra di dialogo **Browser Registered**, fai clic su **Send Test Notification**. Se non compare nulla, guarda le impostazioni di notifica del Mac: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
+Nella finestra di dialogo **Browser registrato**, fai clic su **Invia notifica di prova**. Se non compare nulla, guarda le impostazioni di notifica del Mac: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 :::
 
 Un browser non può suonare nonostante una modalità Full immersion come Non disturbare. Per gli avvisi che devono svegliarti, usa l'app mobile con gli avvisi critici: vedi [Installazione iOS](/docs/mobile-desktop-apps/ios-installation#suonare-in-modalità-silenziosa).

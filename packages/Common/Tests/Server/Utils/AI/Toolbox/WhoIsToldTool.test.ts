@@ -50,7 +50,8 @@ const ctx: ToolContext = {
 type Spy = jest.SpyInstance;
 
 // Words that say who, never a gap ("undefined", an empty string) or a hedge.
-const OWNERS_WORDS_PATTERN: RegExp = /^(?:its|the) [a-z' ]*owner[a-z ]*$/u;
+const OWNERS_WORDS_PATTERN: RegExp =
+  /^(?:its|the) [A-Za-z' ]*[Oo]wner[a-z ]*$/u;
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -149,7 +150,7 @@ describe("describeWhoIsToldForModel", () => {
       '- Criteria "Check if offline": sets status Offline; emails the monitor\'s owners (Me Myself) of the change',
     );
     expect(text.split("\n")).toContain(
-      "  - opens an incident (Critical Incident); emails the project's owners (Me Myself)",
+      "  - opens an incident (Critical Incident); emails the Project Owners (Me Myself)",
     );
     expect(text).toContain(
       '    - pages on-call policy "Default on-call policy" (1 escalation level), whose first level pages: Me Myself: by email, SMS (what the fallback picks of their verified methods, as no rule of theirs covers this severity); Ana Lopez (Team Platform): cannot be reached by this page (NoVerifiedMethod)',
@@ -302,7 +303,7 @@ function linesOf(result: WhoIsToldResult): Array<string> {
 const BARE_WORDS: Array<[WhoIsToldOwnersSource, string]> = [
   [WhoIsToldOwnersSource.Named, "its owners"],
   [WhoIsToldOwnersSource.OwnerRules, "the owners added by owner rules"],
-  [WhoIsToldOwnersSource.ProjectOwners, "the project's owners"],
+  [WhoIsToldOwnersSource.ProjectOwners, "the Project Owners"],
   [WhoIsToldOwnersSource.MonitorOwners, "the monitor's owners"],
 ];
 
@@ -372,7 +373,7 @@ describe("describeWhoIsToldForModel: who it emails, for each owners source", () 
       "Nothing breaks the chain.",
     ]);
     // Never the project's owners, nor a guess about whether a rule adds anyone.
-    expect(lines.join("\n")).not.toContain("the project's owners");
+    expect(lines.join("\n")).not.toContain("the Project Owners");
     expect(lines.join("\n")).not.toContain("unless");
   });
 
@@ -386,7 +387,7 @@ describe("describeWhoIsToldForModel: who it emails, for each owners source", () 
     );
 
     expect(lines).toContain(
-      `${OPENS}the project's owners (Me Myself, Ana Lopez)`,
+      `${OPENS}the Project Owners (Me Myself, Ana Lopez)`,
     );
     // The resolver read the owner rules: none adds anyone, so nothing hedges.
     expect(lines.join("\n")).not.toContain("owner rule");
@@ -414,7 +415,7 @@ describe("describeWhoIsToldForModel: who it emails, for each owners source", () 
           teamNames: [],
         }),
       ),
-    ).toContain(`${STATUS}the project's owners (Me Myself) of the change`);
+    ).toContain(`${STATUS}the Project Owners (Me Myself) of the change`);
   });
 
   test.each(BARE_WORDS)(

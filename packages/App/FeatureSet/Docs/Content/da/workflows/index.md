@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Nej"| saved["Kørslen gemmes med trin og log"]
 ```
 
-Du bygger det hele visuelt på et lærred. De fleste arbejdsgange kræver ingen kode overhovedet; når et gør, kører en **Run Custom JavaScript**-blok et par linjer JavaScript.
+Du bygger det hele visuelt på et lærred. De fleste arbejdsgange kræver ingen kode overhovedet; når et gør, kører en **Kør egen JavaScript**-blok et par linjer JavaScript.
 
 ## Hvad du kan bruge arbejdsgange til
 
@@ -44,7 +44,7 @@ Du bygger det hele visuelt på et lærred. De fleste arbejdsgange kræver ingen 
 - **Reager på det, der sker i OneUptime** — når en hændelse oprettes, så giv den rigtige kanal besked og åbn automatisk en sag.
 - **Kør job efter en tidsplan** — hvert femte minut, hver nat, hver mandag morgen.
 - **Modtag data udefra** — lad andre systemer starte en arbejdsgang ved at kalde dens URL eller skrive til dens e-mailadresse.
-- **Genbrug fælles automatik** — byg den én gang, og start den fra enhver anden arbejdsgang med en **Execute Workflow**-blok.
+- **Genbrug fælles automatik** — byg den én gang, og start den fra enhver anden arbejdsgang med en **Kør en anden arbejdsgang**-blok.
 
 ## Vigtige begreber
 
@@ -107,7 +107,7 @@ Denne arbejdsgang sender et JSON-resumé af hver ny hændelse til en URL, du væ
 
 ```mermaid title="Det færdige eksempel"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| post["API Post (JSON)"]
+    trigger["On Create Incident"] -->|"Succes"| post["API-kald POST (JSON)"]
     post -->|"Fejl"| log["Log"]
     post -->|"Succes"| done["Kørslen slutter"]
 ```
@@ -130,13 +130,13 @@ Triggeren tager den stiplede bloks plads. ID'et på den, `incident-on-create-1`,
 
 ### Vælg hændelsens felter
 
-Klik på triggeren. **Fields to pass on** starter med titlen: klik på **Tilføj felt**, sæt flueben ved beskrivelsen og de andre felter, forespørgslen skal have med, og klik på **Gem**.
+Klik på triggeren. **Felter, der sendes videre** starter med titlen: klik på **Tilføj felt**, sæt flueben ved beskrivelsen og de andre felter, forespørgslen skal have med, og klik på **Gem**.
 
 Triggeren sender den nye hændelse videre med disse felter. Et felt, du ikke vælger, kommer tomt frem.
 
 ### Tilføj API-blokken
 
-Klik på **Tilføj komponent**, og klik så på **API Post (JSON)** under **Populære**. Træk fra triggerens punkt **Succes** ned til det øverste punkt på den nye blok.
+Klik på **Tilføj komponent**, og klik så på **API-kald POST (JSON)** under **Populære**. Træk fra triggerens punkt **Succes** ned til det øverste punkt på den nye blok.
 
 ### Udfyld forespørgslen
 
@@ -162,7 +162,7 @@ En forespørgsel, der mislykkes — en URL, der ikke kan nås, eller et svar, de
 
 Klik på **Kør arbejdsgang**, og vælg en hændelse i dette projekt under **Hændelse**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Arbejdsgangen er stadig slået fra, så dette er en **Testkørsel**, og forespørgslen bliver virkelig sendt.
 
-Et panel **Arbejdsgangskørsel** åbner og følger kørslen. Åbn trinnet **API Post (JSON)** for at se den body, det sendte, og det svar, det fik.
+Et panel **Arbejdsgangskørsel** åbner og følger kørslen. Åbn trinnet **API-kald POST (JSON)** for at se den body, det sendte, og det svar, det fik.
 
 ### Slå den til
 

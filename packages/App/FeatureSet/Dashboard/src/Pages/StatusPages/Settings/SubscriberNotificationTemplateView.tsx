@@ -34,6 +34,7 @@ import SubscriberTemplateVariablesFooter, {
   getSubscriberTemplateVariableGroups,
 } from "../../../Components/StatusPage/SubscriberTemplateVariables";
 import SubscriberTemplateVariablesCopy from "../../../Components/StatusPage/SubscriberTemplateVariablesCopy";
+import { getSubscriberNotificationEventTypeText } from "../../../Components/StatusPage/SubscriberNotificationEventTypeOptions";
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -156,7 +157,20 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                 eventType: true,
               },
               title: "Event Type",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              // In the words the templates list and its filter draw it in.
+              getElement: (
+                item: StatusPageSubscriberNotificationTemplate,
+              ): ReactElement => {
+                return (
+                  <span>
+                    {getSubscriberNotificationEventTypeText(
+                      translator,
+                      item.eventType,
+                    )}
+                  </span>
+                );
+              },
             },
             {
               field: {

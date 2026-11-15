@@ -51,12 +51,12 @@ Hver tjeneste viser sin status, beregnet ud fra de kald, den modtog i de seneste
 | Status | Hvornår |
 | --- | --- |
 | **Sund** | Højst 1 % af de modtagne kald fejlede. |
-| **Some errors** | Mere end 1 % og mindre end 5 % fejlede. |
-| **High error rate** | 5 % eller mere fejlede. |
-| **Entry point** | Den modtog ingen kald, men foretog nogle: en webfrontend eller et planlagt job. |
-| **No calls observed** | Den hverken foretog eller modtog et kald. |
+| **Nogle fejl** | Mere end 1 % og mindre end 5 % fejlede. |
+| **Høj fejlrate** | 5 % eller mere fejlede. |
+| **Indgangspunkt** | Den modtog ingen kald, men foretog nogle: en webfrontend eller et planlagt job. |
+| **Ingen kald observeret** | Den hverken foretog eller modtog et kald. |
 
-En tjeneste med en aktiv hændelse eller advarsel viser i stedet, hvor mange, og ligesom en tjeneste med **Some errors** eller en **High error rate** tæller den som en, der kræver opmærksomhed.
+En tjeneste med en aktiv hændelse eller advarsel viser i stedet, hvor mange, og ligesom en tjeneste med status **Nogle fejl** eller **Høj fejlrate** tæller den som en, der kræver opmærksomhed.
 
 :::steps
 ### Find de tjenester, der kræver opmærksomhed

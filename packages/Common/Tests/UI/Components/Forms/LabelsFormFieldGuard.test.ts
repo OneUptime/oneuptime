@@ -968,7 +968,12 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     steps: ["measures", "objective"],
     rows: {
       measures: {
-        open: ["sliType", "services", "latencyThresholdInMilliseconds"],
+        open: [
+          "sliType",
+          "services",
+          "latencyThresholdInMilliseconds",
+          "requestFilter",
+        ],
         folded: [],
       },
       objective: {

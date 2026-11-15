@@ -11,7 +11,7 @@ Det här behöver du veta innan du riktar ett arbetsflöde mot riktig trafik: hu
 
 ## Slå på eller av ett arbetsflöde
 
-Varje arbetsflöde har en brytare, **Aktiverad**, högst upp i sin **Byggare** och på sin sida **Översikt**. När den är avslagen är dess utlösare pausad — webhook-anrop, inkommande e-post, schemalagda tider, OneUptime-händelser och andra arbetsflödens **Execute Workflow**-steg startar det inte. **Kör arbetsflöde** och **Run just this step** gör det: en körning som du startar själv medan arbetsflödet är avstängt är en **Testkörning**. Nya arbetsflöden börjar inaktiverade.
+Varje arbetsflöde har en brytare, **Aktiverad**, högst upp i sin **Byggare** och på sin sida **Översikt**. När den är avslagen är dess utlösare pausad — webhook-anrop, inkommande e-post, schemalagda tider, OneUptime-händelser och andra arbetsflödens **Kör ett annat arbetsflöde**-steg startar det inte. **Kör arbetsflöde** och **Run just this step** gör det: en körning som du startar själv medan arbetsflödet är avstängt är en **Testkörning**. Nya arbetsflöden börjar inaktiverade.
 
 Använd den här brytaren som din ”redo att köra”-spärr:
 
@@ -22,14 +22,14 @@ Använd den här brytaren som din ”redo att köra”-spärr:
 4. Slå på **Aktiverad** när det är klart: därefter aktiveras dess utlösare av riktiga händelser.
 :::
 
-Att slå av ett arbetsflöde hindrar dess utlösare från att starta nya körningar. En körning som redan pågår gör klart, men en körning som dess utlösare startade och som väntar vid ett **Sleep**-block avbryts när den vaknar. Testkörningar fortsätter. För att slå på eller av flera på en gång markerar du dem i listan **Arbetsflöden** och väljer **Aktivera** eller **Inaktivera** under **Massåtgärder**.
+Att slå av ett arbetsflöde hindrar dess utlösare från att starta nya körningar. En körning som redan pågår gör klart, men en körning som dess utlösare startade och som väntar vid ett **Paus**-block avbryts när den vaknar. Testkörningar fortsätter. För att slå på eller av flera på en gång markerar du dem i listan **Arbetsflöden** och väljer **Aktivera** eller **Inaktivera** under **Massåtgärder**.
 
 ## Arkivera ett arbetsflöde
 
 Arkivera ett arbetsflöde som du inte längre behöver men vill behålla. Ett arkiverat arbetsflöde:
 
-- **Körs aldrig**, från någon utlösare. Manuella körningar och **Run just this step**, webhook-anrop, scheman, OneUptime-händelser, inkommande e-post och andra arbetsflödens **Execute Workflow**-steg avvisas alla. Ett webhook-anrop till ett arkiverat arbetsflöde får ett fel som säger att arbetsflödet är arkiverat.
-- **Stoppar körningar som väntar.** En körning som sover i ett **Sleep**-steg avbryts när den vaknar, och en körning som stod i kö men ännu inte hade startat slutar med "Workflow was archived before this run started, so it did not run."
+- **Körs aldrig**, från någon utlösare. Manuella körningar och **Run just this step**, webhook-anrop, scheman, OneUptime-händelser, inkommande e-post och andra arbetsflödens **Kör ett annat arbetsflöde**-steg avvisas alla. Ett webhook-anrop till ett arkiverat arbetsflöde får ett fel som säger att arbetsflödet är arkiverat.
+- **Stoppar körningar som väntar.** En körning som sover i ett **Paus**-steg avbryts när den vaknar, och en körning som stod i kö men ännu inte hade startat slutar med "Workflow was archived before this run started, so it did not run."
 - **Försvinner från listan över arbetsflöden.** Du hittar det under **Arbetsflöden → Avancerad → Arkiverad**.
 - **Behåller allt.** Dess steg, variabler, ägare, etiketter och körningshistorik förblir som de var.
 
@@ -96,7 +96,7 @@ Webhook-utlösare ger dig en unik URL. Alla som känner till URL:en kan anropa d
 - Behandla URL:en som ett lösenord. Dela den inte offentligt och checka inte in den i ett offentligt repo. Webhook-utlösaren döljer URL:ens hemliga nyckel tills du klickar på **Visa**, och **Kopiera URL** kopierar URL:en utan att visa den.
 - Om URL:en läcker klickar du på Webhook-utlösaren i **Byggare** och sedan på **Återställ URL**. Arbetsflödet får en ny URL och den gamla slutar fungera direkt.
 - Om utlösaren säger att dess URL slutar med arbetsflödets ID återställer du den. Arbetsflöden som skapades innan webhook-URL:er fick en egen hemlig nyckel använder i stället arbetsflödets ID, och det kan alla som kan öppna arbetsflödet se.
-- För känsliga arbetsflöden ber du det anropande systemet att skicka en delad token som header (som `X-Webhook-Token`) och kontrollerar den med ett **If / Else**-block innan något viktigt händer. Spara den förväntade token som en hemlig variabel.
+- För känsliga arbetsflöden ber du det anropande systemet att skicka en delad token som header (som `X-Webhook-Token`) och kontrollerar den med ett **Om / Annars**-block innan något viktigt händer. Spara den förväntade token som en hemlig variabel.
 - För mycket känsliga arbetsflöden är en utlösare för OneUptime-händelser och ett manuellt importsteg att föredra framför en offentlig webhook.
 
 Bara personer som kan redigera arbetsflödet — **Projektägare**, **Projektadministratör**, **Arbetsflödesadministratör** eller **Edit Workflow** — kan se eller återställa dess webhook-URL. Alla som har URL:en kan starta arbetsflödet varifrån som helst, utan att logga in, så alla andra ser en notering om vem de kan fråga i stället. Det gäller även en **Arbetsflödesmedlem**, som kör arbetsflödet manuellt från **Byggare**.
@@ -107,7 +107,7 @@ Incoming Email-utlösaren ger arbetsflödet en egen adress, och alla som känner
 
 - Publicera den inte och lägg den inte i ett offentligt repo. Utlösaren döljer nyckeln tills du klickar på **Visa**, och **Kopiera adress** kopierar adressen utan att visa den.
 - Om adressen läcker klickar du på Incoming Email-utlösaren i **Byggare** och sedan på **Återställ adress**. Arbetsflödet får en ny adress, och e-post till den gamla ignoreras från och med då.
-- Vem som helst kan sätta vilken avsändare som helst på ett e-postmeddelande, så **Från** bevisar inte vem som skickade det. Innan ett arbetsflöde gör något viktigt kontrollerar du något som bara den riktiga avsändaren vet — en token i ämnet eller i en header — med ett **If / Else**-block. Spara den förväntade token som en hemlig variabel.
+- Vem som helst kan sätta vilken avsändare som helst på ett e-postmeddelande, så **Från** bevisar inte vem som skickade det. Innan ett arbetsflöde gör något viktigt kontrollerar du något som bara den riktiga avsändaren vet — en token i ämnet eller i en header — med ett **Om / Annars**-block. Spara den förväntade token som en hemlig variabel.
 - Nyckeln döljs i allt som körningen tar emot — **Till**, **CC**, headers och innehållet — eftersom körningens logg är synlig för alla som kan läsa arbetsflödets körningar.
 
 Bara personer som kan redigera arbetsflödet — **Projektägare**, **Projektadministratör**, **Arbetsflödesadministratör** eller **Edit Workflow** — kan se eller återställa dess adress. Alla andra ser en notering om vem de kan fråga.
@@ -120,27 +120,27 @@ Vilka adresser ett block får nå beror på blocket:
 
 | Block                                                          | Loopback, link-local, molnmetadata                                           | Privata nätverksadresser                                                                                                                          |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API**- och **Mattermost**-block samt förfrågningar från **Run Custom JavaScript** | Avvisas, om inte den exakta värden står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Avvisas, om inte en administratör för en självhostad installation tillåter dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** och OAuth 2.0-token-URL:er             | Avvisas                                                                      | Avvisas i OneUptime Cloud. Tillåts på en självhostad installation, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`                       |
+| **API**- och **Mattermost**-block samt förfrågningar från **Kör egen JavaScript** | Avvisas, om inte den exakta värden står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Avvisas, om inte en administratör för en självhostad installation tillåter dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **Skicka e-post**, **IRC** och OAuth 2.0-token-URL:er             | Avvisas                                                                      | Avvisas i OneUptime Cloud. Tillåts på en självhostad installation, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`                       |
 | Slack, Microsoft Teams, Discord och Telegram                   | Avvisas                                                                      | Avvisas: vart och ett skickar bara till sin egen tjänsts adresser                                                                                 |
 
 Se [Åtkomst till privata nätverk](/docs/self-hosted/private-network-access) för hur en administratör för en självhostad installation öppnar för dem.
 
 ## AI-komponenter
 
-**Generate Text with AI** skickar en förfrågan till en LLM: projektets standard-LLM-leverantör, eller installationens globala leverantör när projektet inte har någon. Konfigurera leverantörer under **Projektinställningar → AI → LLM-leverantörer**, och lägg aldrig en leverantörs API-nyckel eller en egen slutpunkt i ett arbetsflöde.
+**Generera text med AI** skickar en förfrågan till en LLM: projektets standard-LLM-leverantör, eller installationens globala leverantör när projektet inte har någon. Konfigurera leverantörer under **Projektinställningar → AI → LLM-leverantörer**, och lägg aldrig en leverantörs API-nyckel eller en egen slutpunkt i ett arbetsflöde.
 
 Vad leverantören tar emot, och vad modellen kan göra med det:
 
-- **Bara det du lägger i blocket.** OneUptime skickar en fast säkerhetsinstruktion och sedan blockets **System Instructions**, **Prompt** och **Kontext**, med deras referenser ifyllda. **Kontext** kommer sist, efter en markör, och säkerhetsinstruktionen talar om för modellen att allt efter markören är opålitliga data, även text som ser ut som instruktioner.
+- **Bara det du lägger i blocket.** OneUptime skickar en fast säkerhetsinstruktion och sedan blockets **Systeminstruktioner**, **Prompt** och **Kontext**, med deras referenser ifyllda. **Kontext** kommer sist, efter en markör, och säkerhetsinstruktionen talar om för modellen att allt efter markören är opålitliga data, även text som ser ut som instruktioner.
 - **Inget annat.** Utlösarens data, arbetsflödets historik, andra blocks utdata, projektposter, telemetri och hemligheter bifogas aldrig. De lämnar bara OneUptime när du hänvisar till dem i någon av de tre inställningarna.
 - **Text, och inga verktyg.** Modellen kan inte fråga OneUptime, göra HTTP-förfrågningar eller ändra data. En leverantörs ytterligare parametrar släpper bara igenom en lista över tillåtna fält som enbart justerar genereringen: de kan inte ersätta meddelandena, lägga till verktyg, webbsökning eller andra datakällor, be om något annat än text eller om flera svar, strömma, låta leverantören behålla förfrågan eller höja blockets gräns för utdata. Fält som OneUptime inte känner till släpps.
 - **Modellen är din administratörs val.** Om genereringen måste hållas frånkopplad väljer du en modell som inte hämtar något på egen hand hos leverantören.
 
 Vad som loggas:
 
-- Körningens logg döljer blockets **System Instructions**, **Prompt**, **Kontext** och **Svar**. Senare block kan fortfarande använda dem under körningen, och ett block som du infogar något av dem i loggar det enligt sina egna regler, så att infoga ett är ett val att visa det.
-- Leverantören, modellen, antalet token, **LLM Log ID** och ett säkert felmeddelande förblir synliga, för drift och fakturering. En leverantörs råa fel hålls utanför alla loggar, eftersom en leverantör kan upprepa förfrågan i det.
+- Körningens logg döljer blockets **Systeminstruktioner**, **Prompt**, **Kontext** och **Svar**. Senare block kan fortfarande använda dem under körningen, och ett block som du infogar något av dem i loggar det enligt sina egna regler, så att infoga ett är ett val att visa det.
+- Leverantören, modellen, antalet token, **LLM-logg-ID** och ett säkert felmeddelande förblir synliga, för drift och fakturering. En leverantörs råa fel hålls utanför alla loggar, eftersom en leverantör kan upprepa förfrågan i det.
 - Varje anrop listas under **Projektinställningar → AI → AI-loggar** med leverantör, modell, status, token, kostnad och fakturering, utan prompten, svaret eller det råa felet.
 
 Vad blocket kräver, och vad det kostar:
@@ -151,9 +151,9 @@ Vad blocket kräver, och vad det kostar:
 
 | Gräns                                                         | Värde                                                                    |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** och **Kontext** tillsammans | 50 000 tecken                                                          |
+| **Systeminstruktioner**, **Prompt** och **Kontext** tillsammans | 50 000 tecken                                                          |
 | **Temperatur**                                               | Från `0` till `1`                                                        |
-| **Maximum Output Tokens**                                     | Från `1` till `4096`, `1024` som standard                                |
+| **Högsta antal utdatatokens**                                     | Från `1` till `4096`, `1024` som standard                                |
 | En förfrågan                                                  | Görs en gång, i högst 60 sekunder                                        |
 | Anrop samtidigt                                               | 3 per projekt. Fler tar **Fel**, och en senare körning kan försöka igen. |
 
@@ -220,24 +220,24 @@ Fönstret är rullande: varje körning som projektet registrerar, manuellt eller
 
 | Gräns                                                             | Standard       | Inställning vid självhosting    |
 | ----------------------------------------------------------------- | -------------- | ------------------------------- |
-| En körning, från starten eller från att den vaknar efter en **Sleep** | 2 minuter  | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Ett **Run Custom JavaScript**-block                               | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Ett **Sleep**-block                                               | Högst 30 dagar | —                               |
+| En körning, från starten eller från att den vaknar efter en **Paus** | 2 minuter  | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Ett **Kör egen JavaScript**-block                               | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Ett **Paus**-block                                               | Högst 30 dagar | —                               |
 
-Körmotorn kontrollerar tidsfristen före och efter varje block och markerar en körning som har dragit över tiden som **Tidsgränsen överskreds** så snart kontrollen återkommer. Den kan inte avbryta ett block mitt i, så block som väntar på nätverket har egna tidsgränser: en förfrågan från Generate Text with AI ger upp efter högst 60 sekunder, och en OAuth 2.0-tokenförfrågan efter 20. Väntan vid ett **Sleep**-block räknas inte mot en körnings tid: körningen läggs åt sidan och får 2 nya minuter när den vaknar.
+Körmotorn kontrollerar tidsfristen före och efter varje block och markerar en körning som har dragit över tiden som **Tidsgränsen överskreds** så snart kontrollen återkommer. Den kan inte avbryta ett block mitt i, så block som väntar på nätverket har egna tidsgränser: en förfrågan från Generate Text with AI ger upp efter högst 60 sekunder, och en OAuth 2.0-tokenförfrågan efter 20. Väntan vid ett **Paus**-block räknas inte mot en körnings tid: körningen läggs åt sidan och får 2 nya minuter när den vaknar.
 
 ## Gräns för att anropa andra arbetsflöden
 
-Komponenten **Execute Workflow** låter ett arbetsflöde starta ett annat. För att förhindra loopar där arbetsflöde A startar B, som startar A igen, avvisas en kedja av arbetsflöden som startar varandra när den skulle gå tillbaka till ett arbetsflöde som redan finns i den, eller gå djupare än 10 arbetsflöden. Blocket **Execute Workflow** tar då sin utgång **Fel**, och felet visar kedjan.
+Komponenten **Kör ett annat arbetsflöde** låter ett arbetsflöde starta ett annat. För att förhindra loopar där arbetsflöde A startar B, som startar A igen, avvisas en kedja av arbetsflöden som startar varandra när den skulle gå tillbaka till ett arbetsflöde som redan finns i den, eller gå djupare än 10 arbetsflöden. Blocket **Kör ett annat arbetsflöde** tar då sin utgång **Fel**, och felet visar kedjan.
 
-Om du verkligen behöver en lång kedja (som ett jobb som bearbetar ett element per körning) är det oftast enklare att loopa inne i ett enda arbetsflöde med **Run Custom JavaScript**.
+Om du verkligen behöver en lång kedja (som ett jobb som bearbetar ett element per körning) är det oftast enklare att loopa inne i ett enda arbetsflöde med **Kör egen JavaScript**.
 
 ## När arbetsflöden inte är rätt verktyg
 
 Några fall där du bör välja något annat:
 
 - **Tunga beräkningar eller stora datamängder** — arbetsflöden är gjorda för lätt sammanlänkningsarbete, inte sifferknäckning. Kör tungt arbete i din egen infrastruktur och låt ett arbetsflöde sätta i gång det.
-- **Långvarig aktiv beräkning** — en körning har 2 minuter som standard. För en passiv paus som ”gör A, vänta två timmar, gör B” använder du komponenten **Sleep**; den lägger körningen åt sidan och återupptar den senare utan att uppta en worker.
+- **Långvarig aktiv beräkning** — en körning har 2 minuter som standard. För en passiv paus som ”gör A, vänta två timmar, gör B” använder du komponenten **Paus**; den lägger körningen åt sidan och återupptar den senare utan att uppta en worker.
 - **Incidenthantering steg för steg med människor inblandade** — det är vad [Runbooks](/docs/runbooks/index) är till för. Arbetsflöden är till för automatisering utan tillsyn.
 
 ## Nästa steg

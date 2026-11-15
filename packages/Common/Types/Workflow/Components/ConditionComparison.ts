@@ -19,6 +19,7 @@ import {
   LegacyConditionOperator,
   resolveConditionOperator,
 } from "./ConditionEvaluation";
+import { translationKey } from "../../Translator";
 
 export enum ConditionComparisonId {
   EqualTo = "==",
@@ -70,91 +71,91 @@ export interface ConditionComparison {
 export const CONDITION_COMPARISONS: Array<ConditionComparison> = [
   {
     id: ConditionComparisonId.EqualTo,
-    label: "is equal to",
+    label: translationKey("is equal to"),
     operator: ConditionOperator.EqualTo,
     kind: ConditionComparisonKind.Equality,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.NotEqualTo,
-    label: "is not equal to",
+    label: translationKey("is not equal to"),
     operator: ConditionOperator.NotEqualTo,
     kind: ConditionComparisonKind.Equality,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.Contains,
-    label: "contains",
+    label: translationKey("contains"),
     operator: ConditionOperator.Contains,
     kind: ConditionComparisonKind.Text,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.DoesNotContain,
-    label: "does not contain",
+    label: translationKey("does not contain"),
     operator: ConditionOperator.DoesNotContain,
     kind: ConditionComparisonKind.Text,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.StartsWith,
-    label: "starts with",
+    label: translationKey("starts with"),
     operator: ConditionOperator.StartsWith,
     kind: ConditionComparisonKind.Text,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.EndsWith,
-    label: "ends with",
+    label: translationKey("ends with"),
     operator: ConditionOperator.EndsWith,
     kind: ConditionComparisonKind.Text,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.GreaterThan,
-    label: "is greater than",
+    label: translationKey("is greater than"),
     operator: ConditionOperator.GreaterThan,
     kind: ConditionComparisonKind.Order,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.GreaterThanOrEqualTo,
-    label: "is greater than or equal to",
+    label: translationKey("is greater than or equal to"),
     operator: ConditionOperator.GreaterThanOrEqualTo,
     kind: ConditionComparisonKind.Order,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.LessThan,
-    label: "is less than",
+    label: translationKey("is less than"),
     operator: ConditionOperator.LessThan,
     kind: ConditionComparisonKind.Order,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.LessThanOrEqualTo,
-    label: "is less than or equal to",
+    label: translationKey("is less than or equal to"),
     operator: ConditionOperator.LessThanOrEqualTo,
     kind: ConditionComparisonKind.Order,
     usesCompareWith: true,
   },
   {
     id: ConditionComparisonId.IsEmpty,
-    label: "is empty",
+    label: translationKey("is empty"),
     operator: ConditionOperator.IsEmpty,
     kind: ConditionComparisonKind.Presence,
     usesCompareWith: false,
   },
   {
     id: ConditionComparisonId.IsNotEmpty,
-    label: "is not empty",
+    label: translationKey("is not empty"),
     operator: ConditionOperator.IsNotEmpty,
     kind: ConditionComparisonKind.Presence,
     usesCompareWith: false,
   },
   {
     id: ConditionComparisonId.IsTrue,
-    label: "is true",
+    label: translationKey("is true"),
     operator: ConditionOperator.EqualTo,
     kind: ConditionComparisonKind.TrueOrFalse,
     usesCompareWith: false,
@@ -162,7 +163,7 @@ export const CONDITION_COMPARISONS: Array<ConditionComparison> = [
   },
   {
     id: ConditionComparisonId.IsFalse,
-    label: "is false",
+    label: translationKey("is false"),
     operator: ConditionOperator.EqualTo,
     kind: ConditionComparisonKind.TrueOrFalse,
     usesCompareWith: false,
@@ -185,7 +186,7 @@ export const CONDITION_COMPARISON_GROUPS: Array<ConditionComparisonGroup> = [
     ids: [ConditionComparisonId.EqualTo, ConditionComparisonId.NotEqualTo],
   },
   {
-    title: "Text",
+    title: translationKey("Text"),
     ids: [
       ConditionComparisonId.Contains,
       ConditionComparisonId.DoesNotContain,
@@ -194,7 +195,7 @@ export const CONDITION_COMPARISON_GROUPS: Array<ConditionComparisonGroup> = [
     ],
   },
   {
-    title: "Numbers",
+    title: translationKey("Numbers"),
     ids: [
       ConditionComparisonId.GreaterThan,
       ConditionComparisonId.GreaterThanOrEqualTo,
@@ -203,11 +204,11 @@ export const CONDITION_COMPARISON_GROUPS: Array<ConditionComparisonGroup> = [
     ],
   },
   {
-    title: "Empty or not",
+    title: translationKey("Empty or not"),
     ids: [ConditionComparisonId.IsEmpty, ConditionComparisonId.IsNotEmpty],
   },
   {
-    title: "True or false",
+    title: translationKey("True or false"),
     ids: [ConditionComparisonId.IsTrue, ConditionComparisonId.IsFalse],
   },
 ];
@@ -238,20 +239,24 @@ export interface ConditionCompareAsOption {
 export const CONDITION_COMPARE_AS_OPTIONS: Array<ConditionCompareAsOption> = [
   {
     type: ConditionValueType.Text,
-    label: "Text",
-    description:
+    label: translationKey("Text"),
+    description: translationKey(
       'Letter by letter, and capital letters count: "Error" is not "error".',
+    ),
   },
   {
     type: ConditionValueType.Number,
-    label: "Number",
-    description:
+    label: translationKey("Number"),
+    description: translationKey(
       "As numbers, so 10 is greater than 9. Text that is not a number counts as 0.",
+    ),
   },
   {
     type: ConditionValueType.Boolean,
-    label: "True / False",
-    description: "Only true counts as true. Anything else is false.",
+    label: translationKey("True / False"),
+    description: translationKey(
+      "Only true counts as true. Anything else is false.",
+    ),
   },
 ];
 

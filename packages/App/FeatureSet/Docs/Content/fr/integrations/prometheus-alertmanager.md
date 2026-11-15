@@ -193,11 +193,11 @@ Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de trava
 
 ### Vérifier que la notification se déclenche
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **If / Else** et reliez-y le point **Out** du déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparaison** sur **est égal à** et **Comparer avec** sur `firing`.
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **Si / Sinon** et reliez-y le point **Out** du déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparaison** sur **est égal à** et **Comparer avec** sur `firing`.
 
 ### Déclarer l'incident
 
-Ajoutez un bloc **Create One Incident** et reliez-y le côté **Oui** du bloc **If / Else**. Dans **Modèle d'incident**, choisissez un modèle qui fixe la gravité et les politiques d'astreinte à prévenir (voir [Modèles d'incident](/docs/incidents/settings#modèles-dincident)). Dans **JSON Object**, indiquez ce qui vient d'Alertmanager :
+Ajoutez un bloc **Create One Incident** et reliez-y le côté **Oui** du bloc **Si / Sinon**. Dans **Modèle d'incident**, choisissez un modèle qui fixe la gravité et les politiques d'astreinte à prévenir (voir [Modèles d'incident](/docs/incidents/settings#modèles-dincident)). Dans **Objet JSON**, indiquez ce qui vient d'Alertmanager :
 
 ```json
 {
@@ -206,14 +206,14 @@ Ajoutez un bloc **Create One Incident** et reliez-y le côté **Oui** du bloc **
 }
 ```
 
-Sans modèle, **JSON Object** doit aussi contenir `incidentSeverityId`, l'ID de l'une des gravités d'incident du projet.
+Sans modèle, **Objet JSON** doit aussi contenir `incidentSeverityId`, l'ID de l'une des gravités d'incident du projet.
 
 ### Activer le flux de travail
 
 Activez **Activé** en haut du **Constructeur**. Un flux de travail désactivé répond à Alertmanager par `400`.
 :::
 
-Une exécution traite une notification, elle déclare donc un seul incident, quel que soit le nombre d'alertes de la notification. Une notification `resolved` prend le côté **Non** du bloc **If / Else**, où rien n'est relié, l'exécution s'arrête donc là. Pour un incident par alerte, résolu au rétablissement, utilisez le moniteur.
+Une exécution traite une notification, elle déclare donc un seul incident, quel que soit le nombre d'alertes de la notification. Une notification `resolved` prend le côté **Non** du bloc **Si / Sinon**, où rien n'est relié, l'exécution s'arrête donc là. Pour un incident par alerte, résolu au rétablissement, utilisez le moniteur.
 
 ## Surveiller Alertmanager lui-même
 

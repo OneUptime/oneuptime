@@ -60,7 +60,7 @@ Appen visar aviseringar genom sin webbläsare, när du har registrerat webbläsa
 Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till exempel `Chrome on Linux`, eller ändra det, och klicka på **Registrera enhet** igen. När webbläsaren frågar om OneUptime får visa aviseringar väljer du **Tillåt**.
 
 ### Skicka ett test
-Klicka på **Send Test Notification** i dialogrutan **Browser Registered**. Ditt skrivbord visar den genom sin aviseringstjänst; visas ingenting, se [Felsökning](#felsökning).
+Klicka på **Skicka testavisering** i dialogrutan **Webbläsare registrerad**. Ditt skrivbord visar den genom sin aviseringstjänst; visas ingenting, se [Felsökning](#felsökning).
 :::
 
 En webbläsare kan inte ringa igenom skrivbordets Stör ej. Använd mobilappen med kritiska larm för larm som måste väcka dig: se [Android-installation](/docs/mobile-desktop-apps/android-installation#ring-igenom-tyst-läge).

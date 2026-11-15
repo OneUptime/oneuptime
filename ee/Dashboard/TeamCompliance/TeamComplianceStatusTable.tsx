@@ -8,7 +8,7 @@ import {
   filterMembers,
   getActiveRules,
   getMemberDisplayName,
-  getMemberFirstName,
+  getMemberFirstNameInSentence,
   getMemberIssueForRule,
   getNextRuleSquareIndex,
   getNoActiveRulesAdvice,
@@ -30,16 +30,19 @@ import type {
   TeamComplianceStatusJSON,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import {
+  composedValue,
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -87,21 +90,21 @@ const STATUS_FILTER_OPTIONS: Array<{
 }> = [
   {
     value: MemberStatusFilter.All,
-    label: "All",
+    label: translationKey("All"),
     count: (counts: MemberStatusCounts): number => {
       return counts.all;
     },
   },
   {
     value: MemberStatusFilter.NeedsAttention,
-    label: "Needs attention",
+    label: translationKey("Needs attention"),
     count: (counts: MemberStatusCounts): number => {
       return counts.needsAttention;
     },
   },
   {
     value: MemberStatusFilter.Compliant,
-    label: "Compliant",
+    label: translationKey("Compliant"),
     count: (counts: MemberStatusCounts): number => {
       return counts.compliant;
     },
@@ -127,9 +130,35 @@ interface MemberRuleResultsProps {
  * arrow keys, Home and End move between squares, and every square still opens
  * its tooltip on focus - the only place a passing square names its rule.
  */
+// How many more members the next page shows.
+const SHOW_MORE_MEMBERS: PluralTemplate = {
+  one: "Show {{count}} more",
+  other: "Show {{count}} more",
+};
+
+// A member's count of rules met, and the members a filter leaves shown.
+const RULES_MET: string = translationKey("{{passing}} of {{count}}");
+
+const FILTERED_MEMBERS: PluralTemplate = {
+  one: "{{shown}} of {{count}} member",
+  other: "{{shown}} of {{count}} members",
+};
+
+const MEMBERS_WORST_FIRST: PluralTemplate = {
+  one: "{{count}} member, worst first",
+  other: "{{count}} members, worst first",
+};
+
+// Why nobody is listed under the rules: none of the members is checked.
+const NONE_OF_THE_MEMBERS_CHECKED: PluralTemplate = {
+  one: "none of its {{count}} member is being checked",
+  other: "none of its {{count}} members are being checked",
+};
+
 const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
   props: MemberRuleResultsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const squareRefs: MutableRefObject<Array<HTMLSpanElement | null>> = useRef<
     Array<HTMLSpanElement | null>
@@ -168,7 +197,9 @@ const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
   return (
     <div className="flex items-center gap-2">
       <ul
-        aria-label={`Rule results for ${getMemberDisplayName(props.member)}`}
+        aria-label={translator.translateTemplate("Rule results for {{name}}", {
+          name: getMemberDisplayName(props.member, translator),
+        })}
         data-testid="compliance-member-rule-results"
         className="flex flex-wrap items-center gap-1"
       >
@@ -176,10 +207,16 @@ const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
           (rule: TeamComplianceRuleJSON, index: number): ReactElement => {
             const issue: TeamComplianceIssueJSON | undefined =
               getMemberIssueForRule(props.member, rule.settingId);
-            const ruleLabel: string = getRuleLabel(rule);
+            const ruleLabel: string = getRuleLabel(rule, translator);
+            // Why it is not met is the server's own sentence, as it came.
             const label: string = issue
-              ? `${ruleLabel}: not met. ${issue.reason}`
-              : `${ruleLabel}: met`;
+              ? translator.translateTemplate("{{rule}}: not met. {{reason}}", {
+                  rule: ruleLabel,
+                  reason: issue.reason,
+                })
+              : translator.translateTemplate("{{rule}}: met", {
+                  rule: ruleLabel,
+                });
             const isHighlighted: boolean =
               props.highlightedRuleId === rule.settingId;
 
@@ -192,7 +229,9 @@ const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
                         {ruleLabel}
                       </p>
                       <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
-                        {issue ? issue.reason : "Meets this rule."}
+                        {issue
+                          ? issue.reason
+                          : translator.translateText("Meets this rule.")}
                       </p>
                     </div>
                   }
@@ -233,7 +272,10 @@ const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
         )}
       </ul>
       <span className="whitespace-nowrap text-xs tabular-nums text-gray-500">
-        {`${passing} of ${count}`}
+        {translator.translateTemplate(RULES_MET, {
+          passing: translator.formatNumber(passing),
+          count: translator.formatNumber(count),
+        })}
       </span>
     </div>
   );
@@ -242,6 +284,7 @@ const MemberRuleResults: FunctionComponent<MemberRuleResultsProps> = (
 const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [search, setSearch] = useState<string>("");
   const [visibleCount, setVisibleCount] = useState<number>(MEMBER_PAGE_SIZE);
 
@@ -276,6 +319,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
 
     return getRuleTitle(
       rule || { ruleType: issue.ruleType, notificationChannels: [] },
+      translator,
     );
   };
 
@@ -289,7 +333,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
         >
           <Icon icon={IconProp.CheckCircle} className="h-3 w-3" />
-          Compliant
+          {translator.translateText("Compliant")}
         </span>
       );
     }
@@ -300,7 +344,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200"
       >
         <Icon icon={IconProp.Alert} className="h-3 w-3 text-red-500" />
-        Needs attention
+        {translator.translateText("Needs attention")}
       </span>
     );
   };
@@ -336,7 +380,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
               >
                 <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />
                 <span data-testid="compliance-member-fix-self">
-                  {fix.title}
+                  {translator.translateText(fix.title)}
                 </span>
                 <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
               </Link>
@@ -359,7 +403,9 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         className={FIX_LINK_CLASS_NAME}
       >
         <span data-testid="compliance-member-fix-link">
-          {`Open ${getMemberFirstName(member)}'s on-call setup`}
+          {translator.translateTemplate("Open {{name}}'s on-call setup", {
+            name: getMemberFirstNameInSentence(member),
+          })}
         </span>
         <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
       </Link>
@@ -404,7 +450,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         {member.nonCompliantRules.length > 0 ? (
           <div className="mt-2.5 pl-11">
             <ul
-              aria-label={`Why ${getMemberDisplayName(member)} needs attention`}
+              aria-label={translator.translateTemplate(
+                "Why {{name}} needs attention",
+                { name: getMemberDisplayName(member, translator) },
+              )}
               data-testid="compliance-member-issues"
               className="space-y-1"
             >
@@ -447,6 +496,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
   // People invited who have not accepted yet: not listed, and said so once.
   const invitedNote: string = getInvitedNote(
     props.status.invitedMemberCount || 0,
+    translator,
   );
 
   const getBody: () => ReactElement = (): ReactElement => {
@@ -481,9 +531,14 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
      */
     if (activeRules.length === 0) {
       const summary: ComplianceSummary = summarizeCompliance(props.status);
-      const nobody: string = `none of its ${members.length} ${
-        members.length === 1 ? "member is" : "members are"
-      } being checked`;
+      const nobody: (sentence: Translator) => string = (
+        sentence: Translator,
+      ): string => {
+        return sentence.translatePlural(
+          NONE_OF_THE_MEMBERS_CHECKED,
+          members.length,
+        );
+      };
 
       return (
         <div
@@ -492,8 +547,19 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         >
           <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
             {areAllRulesPaused(summary)
-              ? `Every rule on this team is paused, so ${nobody}. Turn a rule back on to see who meets it.`
-              : `No rule on this team can be checked right now, so ${nobody}. ${getNoActiveRulesAdvice(summary)}`}
+              ? translator.translateTemplate(
+                  "Every rule on this team is paused, so {{nobody}}. Turn a rule back on to see who meets it.",
+                  { nobody: composedValue(nobody) },
+                )
+              : translator.translateTemplate(
+                  "No rule on this team can be checked right now, so {{nobody}}. {{advice}}",
+                  {
+                    nobody: composedValue(nobody),
+                    advice: composedValue((sentence: Translator): string => {
+                      return getNoActiveRulesAdvice(summary, sentence);
+                    }),
+                  },
+                )}
           </p>
         </div>
       );
@@ -523,7 +589,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     return (
       <div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div role="group" aria-label="Filter members by status">
+          <div
+            role="group"
+            aria-label={translator.translateText("Filter members by status")}
+          >
             <FilterButtons
               options={STATUS_FILTER_OPTIONS.map(
                 (option: {
@@ -551,8 +620,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
             <input
               type="search"
               value={search}
-              aria-label="Search members by name or email"
-              placeholder="Search members"
+              aria-label={translator.translateText(
+                "Search members by name or email",
+              )}
+              placeholder={translator.translateText("Search members")}
               data-testid="compliance-members-search"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setSearch(event.target.value);
@@ -567,12 +638,14 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
             data-testid="compliance-members-rule-filter"
             className="mt-3 flex flex-wrap items-center gap-2"
           >
-            <span className="text-xs text-gray-500">Failing</span>
+            <span className="text-xs text-gray-500">
+              {translator.translateText("Failing")}
+            </span>
             <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 py-0.5 pl-2 pr-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
-              {getRuleLabel(failingRule)}
+              {getRuleLabel(failingRule, translator)}
               <button
                 type="button"
-                aria-label="Clear the rule filter"
+                aria-label={translator.translateText("Clear the rule filter")}
                 data-testid="compliance-members-rule-filter-clear"
                 onClick={props.onClearFailingRule}
                 className="rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -592,10 +665,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
             className="text-xs font-medium text-gray-500"
           >
             {isFiltered
-              ? `${filtered.length} of ${members.length} ${
-                  members.length === 1 ? "member" : "members"
-                }`
-              : `${members.length} ${members.length === 1 ? "member" : "members"}, worst first`}
+              ? translator.translatePlural(FILTERED_MEMBERS, members.length, {
+                  shown: translator.formatNumber(filtered.length),
+                })
+              : translator.translatePlural(MEMBERS_WORST_FIRST, members.length)}
           </p>
           {/*
            * What the squares mean, once, for the reader who has not hovered
@@ -614,7 +687,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
                   className="h-2.5 w-2.5 text-emerald-600"
                 />
               </span>
-              meets a rule
+              {translator.translateText("meets a rule")}
             </span>
             <span className="inline-flex items-center gap-1">
               <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-sm bg-red-50 ring-1 ring-inset ring-red-200">
@@ -623,7 +696,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
                   className="h-2.5 w-2.5 text-red-600"
                 />
               </span>
-              fails it
+              {translator.translateText("fails it")}
             </span>
           </div>
         </div>
@@ -636,8 +709,11 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
             <p className="text-sm text-gray-600">
               {failingRule &&
               props.statusFilter === MemberStatusFilter.Compliant
-                ? `Everyone failing ${getRuleLabel(failingRule)} needs attention, so none of them is compliant.`
-                : "No members match these filters."}
+                ? translator.translateTemplate(
+                    "Everyone failing {{rule}} needs attention, so none of them is compliant.",
+                    { rule: getRuleLabel(failingRule, translator) },
+                  )
+                : translator.translateText("No members match these filters.")}
             </p>
             <button
               type="button"
@@ -649,12 +725,12 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
               }}
               className="mt-2 rounded text-sm font-medium text-indigo-600 underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
-              Clear filters
+              {translator.translateText("Clear filters")}
             </button>
           </div>
         ) : (
           <ul
-            aria-label="Team members"
+            aria-label={translator.translateText("Team members")}
             data-testid="compliance-members-list"
             className="mt-3 divide-y divide-gray-100"
           >
@@ -676,19 +752,30 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         {remaining > 0 ? (
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3 border-t border-gray-100 pt-4">
             <span className="text-xs text-gray-500">
-              {`Showing ${shown.length} of ${filtered.length}`}
+              {translator.translateTemplate("Showing {{shown}} of {{total}}", {
+                shown: translator.formatNumber(shown.length),
+                total: translator.formatNumber(filtered.length),
+              })}
             </span>
-            <Button
-              title={`Show ${Math.min(remaining, MEMBER_PAGE_SIZE)} more`}
-              buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
-              dataTestId="compliance-members-show-more"
+            {/*
+             * Its words are a count worded here, so the button draws them
+             * as given: Button would look its title up a second time.
+             */}
+            <button
+              type="button"
+              data-testid="compliance-members-show-more"
               onClick={() => {
                 setVisibleCount((count: number): number => {
                   return count + MEMBER_PAGE_SIZE;
                 });
               }}
-            />
+              className="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              {translator.translatePlural(
+                SHOW_MORE_MEMBERS,
+                Math.min(remaining, MEMBER_PAGE_SIZE),
+              )}
+            </button>
           </div>
         ) : (
           <></>
@@ -700,14 +787,28 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
   return (
     <section
       id="compliance-members"
-      aria-label="Member compliance"
+      aria-label={translator.translateText("Member compliance")}
       data-testid="compliance-members"
     >
       <Card
         title="Members"
-        description={`How everyone on ${
-          props.status.teamName || "this team"
-        } measures up against the active rules, and what each of them still has to set up.`}
+        /*
+         * A sentence with the team's name in it, worded here: handed over
+         * as an element, so the card draws it as given.
+         */
+        description={
+          <>
+            {props.status.teamName
+              ? translator.translateTemplate(
+                  "How everyone on {{team}} measures up against the active rules, and what each of them still has to set up.",
+                  { team: props.status.teamName },
+                  { setsValuesApart: true },
+                )
+              : translator.translateText(
+                  "How everyone on this team measures up against the active rules, and what each of them still has to set up.",
+                )}
+          </>
+        }
       >
         {getBody()}
       </Card>

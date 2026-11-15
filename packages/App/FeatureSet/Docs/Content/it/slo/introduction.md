@@ -45,7 +45,7 @@ Ti serve un ruolo che possa creare SLO: Proprietario del progetto, Amministrator
 :::steps
 ### Aprire gli SLO
 
-Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo gruppo, accanto a monitor e incidenti. Fai clic su **Crea: Service Level Objective**.
+Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo gruppo, accanto a monitor e incidenti. Fai clic su **Crea: Obiettivo del livello di servizio**.
 
 ### Scegliere cosa misura
 
@@ -61,7 +61,7 @@ Inserisci un **Nome**, per esempio «API Availability», e un **Obiettivo (%)**:
 
 ### Salvare lo SLO
 
-Fai clic su **Crea: Service Level Objective**. OneUptime apre il nuovo SLO. La **Panoramica** di uno SLO di disponibilità dei monitor mostra **Choose what this SLO measures**, perché non ha ancora monitor.
+Fai clic su **Crea: Obiettivo del livello di servizio**. OneUptime apre il nuovo SLO. La **Panoramica** di uno SLO di disponibilità dei monitor mostra **Choose what this SLO measures**, perché non ha ancora monitor.
 
 ### Collegare i monitor
 
@@ -140,7 +140,7 @@ OneUptime assegna uno stato a ogni SLO valutato:
 | **A rischio** | Il budget rimanente è sceso alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
 | **Budget esaurito** | Il budget è stato speso tutto, o superato. |
 | **Configurato male** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. Uno SLO di richieste è configurato male se non ha servizi, se non ha una soglia di latenza, o finché i suoi servizi non hanno servito una richiesta nella sua finestra. |
-| **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione pianificata. Riprende da solo appena uno di essi torna a essere monitorato. |
+| **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione programmata. Riprende da solo appena uno di essi torna a essere monitorato. |
 
 Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **A rischio** o **Budget esaurito**: vedi [Budget di errore](/docs/slo/error-budget).
 
@@ -201,7 +201,7 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 
 | Scheda | Cosa cambi | Da sapere |
 | --- | --- | --- |
-| **Cosa misura** | **Cosa misura**, **Servizi** e **Soglia di latenza (ms)**, con **Modifica cosa misura**. | Dopo una modifica, uno SLO di richieste riconta le sue richieste dall'inizio. |
+| **Cosa misura** | **Cosa misura**, **Servizi**, **Soglia di latenza (ms)** e **Filtro delle richieste**, con **Modifica cosa misura**. | Dopo una modifica, uno SLO di richieste riconta le sue richieste dall'inizio. |
 | **Obiettivo** | **Obiettivo (%)** e **Soglia a rischio (%)**, con **Modifica l'obiettivo**. | Mostra l'inattività che l'obiettivo consente, per esempio «43 min 12 s di downtime per finestra di 30 giorni». |
 | **Periodo di conformità** | **Tipo di finestra**, **Finestra (giorni)** e **Fuso orario**, con **Modifica il periodo**. | Le regole del tasso di consumo mantengono le loro soglie quando cambia la finestra, quindi rivedile dopo. |
 | **Calcolo del downtime** | **Modalità multi-monitor** e **Stati del monitor per i tempi di inattività**, con **Modifica il calcolo del downtime**. | Solo per gli SLO di disponibilità dei monitor. Senza stati si contano tutti gli stati non operativi, compresi quelli aggiunti dopo. |

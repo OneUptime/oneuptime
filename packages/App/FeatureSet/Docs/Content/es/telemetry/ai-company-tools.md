@@ -139,7 +139,7 @@ Para Copilot, concede el consentimiento de administrador para los permisos de Gr
 :::
 
 :::details Alguien no puede ver las conversaciones
-**Quién puede leer las conversaciones** está en **Propietarios del proyecto y Administradores del proyecto**. Un propietario o administrador puede cambiarlo con **Editar** en la fila de la conexión.
+**Quién puede leer las conversaciones** está en **Propietarios del proyecto y Administradores del proyecto**. Un Propietario del proyecto o un Administrador del proyecto puede cambiarlo con **Editar** en la fila de la conexión.
 :::
 
 :::details Las conversaciones muestran quién preguntó, pero no las palabras

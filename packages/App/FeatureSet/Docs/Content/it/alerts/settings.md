@@ -123,7 +123,7 @@ Le **Regole del proprietario** aggiungono utenti e team proprietari ai nuovi avv
 
 ## Regole di privacy e di runbook
 
-Le **Regole di privacy** rendono privati i nuovi avvisi corrispondenti, prima che giri qualsiasi altra cosa: solo i loro proprietari e gli amministratori e proprietari del progetto possono vederli. Una regola ha due passaggi: **Corrispondenza**, gli avvisi che rende privati, poi **Nome**, già compilato come «Rendi privati gli avvisi». Vedere [Avvisi privati](/docs/alerts/index#avvisi-privati).
+Le **Regole di privacy** rendono privati i nuovi avvisi corrispondenti, prima che giri qualsiasi altra cosa: solo i loro proprietari e gli Amministratori del progetto e Proprietari del progetto possono vederli. Una regola ha due passaggi: **Corrispondenza**, gli avvisi che rende privati, poi **Nome**, già compilato come «Rendi privati gli avvisi». Vedere [Avvisi privati](/docs/alerts/index#avvisi-privati).
 
 Le **Regole di runbook** avviano un runbook quando un nuovo avviso corrisponde, a meno che l'avviso non sia stato creato risolto. Vedere [Regole di runbook](/docs/runbooks/rules).
 

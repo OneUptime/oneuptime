@@ -125,11 +125,11 @@ Grafana 傳送 `Content-Type: application/json`，監測器需要它才能讀取
 
 ### 檢查通知是否為觸發狀態
 
-點選 **新增元件**，新增一個 **If / Else** 區塊，並把觸發器的 **出站** 點連接到它。把 **要檢查的值** 設為 `{{local.components.webhook-1.returnValues.request-body.status}}`，**比較** 設為 **等於**，**比較對象** 設為 `firing`。
+點選 **新增元件**，新增一個 **如果 / 否則** 區塊，並把觸發器的 **出站** 點連接到它。把 **要檢查的值** 設為 `{{local.components.webhook-1.returnValues.request-body.status}}`，**比較** 設為 **等於**，**比較對象** 設為 `firing`。
 
 ### 宣告事件
 
-新增一個 **Create One Incident** 區塊，並把 **If / Else** 區塊的 **是** 一側連接到它。在 **事件範本** 中選擇一個設定了嚴重程度和要呼叫的待命策略的範本（請參閱 [事件範本](/docs/incidents/settings#事件範本)）。在 **JSON Object** 中設定來自 Grafana 的內容：
+新增一個 **Create One Incident** 區塊，並把 **如果 / 否則** 區塊的 **是** 一側連接到它。在 **事件範本** 中選擇一個設定了嚴重程度和要呼叫的待命策略的範本（請參閱 [事件範本](/docs/incidents/settings#事件範本)）。在 **JSON 物件** 中設定來自 Grafana 的內容：
 
 ```json
 {
@@ -138,14 +138,14 @@ Grafana 傳送 `Content-Type: application/json`，監測器需要它才能讀取
 }
 ```
 
-如果不使用範本，**JSON Object** 中還需要 `incidentSeverityId`，即專案中某個事件嚴重程度的 ID。
+如果不使用範本，**JSON 物件** 中還需要 `incidentSeverityId`，即專案中某個事件嚴重程度的 ID。
 
 ### 啟用工作流程
 
 在 **建構器** 頂部開啟 **已啟用**。處於關閉狀態的工作流程會以 `400` 回應 Grafana。
 :::
 
-一次執行處理一個通知，所以無論通知包含多少個警示，它都只宣告一個事件。`resolved` 的通知會走向 **If / Else** 區塊的 **否** 一側，那裡沒有連接任何東西，因此執行到此結束。要讓每個警示一個事件並在恢復時解決，請使用監測器。
+一次執行處理一個通知，所以無論通知包含多少個警示，它都只宣告一個事件。`resolved` 的通知會走向 **如果 / 否則** 區塊的 **否** 一側，那裡沒有連接任何東西，因此執行到此結束。要讓每個警示一個事件並在恢復時解決，請使用監測器。
 
 ## 疑難排解
 

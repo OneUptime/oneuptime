@@ -410,7 +410,7 @@ La pagina di ogni chiave, in **Impostazioni del progetto → Telemetria e APM �
 | **Abilitato** | Disattivalo per smettere subito di accettare i dati inviati con la chiave, senza eliminarla. |
 | **Scade il** | Dopo questa data la chiave viene rifiutata. Vuoto significa che non scade mai. |
 | **Requests Per Minute Limit** | Il numero massimo di richieste OTLP/HTTP al minuto accettate con la chiave, considerando tutti i client che la usano. Vuoto significa nessun limite su una chiave Server e 6.000 su una chiave Browser. |
-| **Last Used At** | Quando sono stati accettati per l'ultima volta dei dati con la chiave. Usalo per trovare le chiavi che puoi ruotare o eliminare senza rischi. |
+| **Ultimo utilizzo il** | Quando sono stati accettati per l'ultima volta dei dati con la chiave. Usalo per trovare le chiavi che puoi ruotare o eliminare senza rischi. |
 
 **Reimposta la chiave segreta** nella pagina della chiave sostituisce il segreto. Ogni applicazione e ogni collector che invia con quello vecchio viene rifiutato finché non lo aggiorni. Per le chiavi del browser, come ruotare una chiave in sicurezza e cosa significa ogni rifiuto, vedi [Chiavi di acquisizione](/docs/telemetry/ingestion-keys).
 

@@ -1,5 +1,10 @@
 import NtpLeapIndicator from "./NtpLeapIndicator";
 import NtpMonitorResponse from "./NtpMonitorResponse";
+import {
+  NTP_KISS_CODE_MEANINGS,
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "../../../Utils/Monitor/ProbeFailureCauses";
 
 // The NTP port. A step that names no port is checked here.
 export const DEFAULT_NTP_PORT: number = 123;
@@ -34,25 +39,11 @@ export const NTP_UNSYNCHRONIZED_STRATUM: number = 16;
 /*
  * The kiss codes of RFC 5905 (section 7.4) and RFC 8915, in the words an
  * operator acts on. A server sends one in the reference id of a stratum 0
- * reply - a "kiss-o'-death" - instead of the time.
+ * reply - a "kiss-o'-death" - instead of the time. Their words are keys,
+ * kept with the failure causes they are written into (ProbeFailureCauses).
  */
-const KISS_CODE_DESCRIPTIONS: Record<string, string> = {
-  ACST: "the association belongs to a unicast server",
-  AUTH: "server authentication failed",
-  AUTO: "the Autokey sequence failed",
-  BCST: "the association belongs to a broadcast server",
-  CRYP: "cryptographic authentication or identification failed",
-  DENY: "the server denies access to this probe",
-  DROP: "the server lost the association",
-  RSTR: "the server's access rules refuse this probe",
-  INIT: "the server has not synchronized its clock for the first time yet",
-  MCST: "the association belongs to a dynamically discovered server",
-  NKEY: "no authentication key was found for this probe",
-  NTSN: "the server refused the Network Time Security (NTS) cookie",
-  RATE: "the server is rate-limiting this probe and asks it to poll less often",
-  RMOT: "the association was altered by a remote host",
-  STEP: "the server's clock was just stepped and has not resynchronized yet",
-};
+const KISS_CODE_DESCRIPTIONS: Readonly<Record<string, string>> =
+  NTP_KISS_CODE_MEANINGS;
 
 export default class NtpMonitorUtil {
   /*
@@ -243,29 +234,43 @@ export default class NtpMonitorUtil {
       return "";
     }
 
+    /*
+     * Each sentence is written from the failure causes' table, word for word
+     * as it was written here by hand, so a summary reads it back in the
+     * reader's language (#8656).
+     */
     if (response.stratum === 0) {
       if (response.kissCode) {
-        return `The server answered with a kiss-o'-death (${response.kissCode}): ${NtpMonitorUtil.describeKissCode(response.kissCode)}.`;
+        return NtpMonitorUtil.isKnownKissCode(response.kissCode)
+          ? writeProbeFailureCause(ProbeFailureCause.NtpKissOfDeath, {
+              kissCode: response.kissCode,
+              meaning: KISS_CODE_DESCRIPTIONS[response.kissCode],
+            })
+          : writeProbeFailureCause(ProbeFailureCause.NtpUnknownKissCode, {
+              kissCode: response.kissCode,
+            });
       }
 
-      return "The server answered with stratum 0: it does not know its stratum, so it is not synchronized.";
+      return writeProbeFailureCause(ProbeFailureCause.NtpStratumZero);
     }
 
     if (!hasUsableTime) {
-      return "The server answered, but its reply carried no usable time.";
+      return writeProbeFailureCause(ProbeFailureCause.NtpNoUsableTime);
     }
 
     if (response.leapIndicator === NtpLeapIndicator.Unsynchronized) {
-      return "The server reports its clock as not synchronized (leap indicator 3, alarm).";
+      return writeProbeFailureCause(ProbeFailureCause.NtpLeapAlarm);
     }
 
     if (
       response.stratum !== undefined &&
       response.stratum > NTP_MAX_SYNCHRONIZED_STRATUM
     ) {
-      return `The server reports stratum ${response.stratum}: it is not synchronized to a time source.`;
+      return writeProbeFailureCause(ProbeFailureCause.NtpStratumTooHigh, {
+        stratum: response.stratum,
+      });
     }
 
-    return "The server is not synchronized.";
+    return writeProbeFailureCause(ProbeFailureCause.NtpNotSynchronized);
   }
 }

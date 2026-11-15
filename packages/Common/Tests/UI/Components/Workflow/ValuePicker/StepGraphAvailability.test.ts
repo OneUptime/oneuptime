@@ -220,6 +220,7 @@ describe("an API call's Error output", () => {
     expect(sources.sometimes?.["api-post-1"]).toEqual({
       branchStep: nodes[1]!.data,
       portTitle: "Success",
+      portId: "success",
     });
     expect(sources.sometimes?.["api-get-1"]).toBeUndefined();
   });

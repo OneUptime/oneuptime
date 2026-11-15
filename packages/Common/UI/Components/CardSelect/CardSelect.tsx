@@ -1426,7 +1426,12 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                   <span className="min-w-0 break-words">
                     {/*
                      * The words keep the dot after them on their line; the
-                     * choice may wrap onto the next, under them, whole.
+                     * choice may wrap onto the next, under them, whole. A
+                     * choice wider than a line by itself (German's
+                     * "Ausgewählt: Benutzerdefinierter JavaScript-Code" on
+                     * a phone) wraps between its words there, and is never
+                     * cut off: a phone shows no tooltip (#8380,
+                     * FoldedChoiceNamedWholeGuard).
                      */}
                     <span className="whitespace-nowrap">
                       <span
@@ -1455,11 +1460,12 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                           className="inline-block max-w-full font-medium text-gray-600"
                           data-testid="card-select-more-selection"
                         >
+                          {/*
+                           * Named as its row and the summary name it: a
+                           * product's name as written, never looked up.
+                           */}
                           {translator.translateTemplate("Selected: {{name}}", {
-                            name: getOptionText(
-                              selectedOption,
-                              selectedOption.title,
-                            ),
+                            name: getOptionTitle(selectedOption),
                           })}
                         </span>
                       </>

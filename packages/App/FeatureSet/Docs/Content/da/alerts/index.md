@@ -106,7 +106,7 @@ I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne ræ
 
 Et baggrundsjob giver advarslens ejere besked omkring et minut efter, at den er oprettet, alle de ejere, den har til den tid, og arbejdsgangsudløseren **On Create Alert** starter enhver arbejdsgang, der bygger på den.
 
-For at gøre personer og teams til advarslens ejere, når den oprettes, så denne besked når dem og ikke projektets ejere, giver du dem med ved oprettelsen: over API'et sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` med `POST /api/alert`; i en arbejdsgang vælger du dem under **Ejer-brugere** og **Ejer-teams** i **Create One Alert**; over MCP giver du `ownerUsers` og `ownerTeams` til `create_alert`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes. Ejere, som en separat anmodning tilføjer efter oprettelsen, hører kun om den, hvis de er tilføjet inden for det minut.
+For at gøre personer og teams til advarslens ejere, når den oprettes, så denne besked når dem og ikke Projektejere, giver du dem med ved oprettelsen: over API'et sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` med `POST /api/alert`; i en arbejdsgang vælger du dem under **Ejer-brugere** og **Ejer-teams** i **Create One Alert**; over MCP giver du `ownerUsers` og `ownerTeams` til `create_alert`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes. Ejere, som en separat anmodning tilføjer efter oprettelsen, hører kun om den, hvis de er tilføjet inden for det minut.
 
 ### Oprettet allerede bekræftet eller løst
 
@@ -152,7 +152,7 @@ Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, 
 
 ## Private advarsler
 
-En privat advarsel ses kun af dens ejere, det vil sige ejerbrugerne og medlemmerne af dens ejerteams, og af dit projekts administratorer og ejere. Ingen andre i projektet kan åbne den.
+En privat advarsel ses kun af dens ejere, det vil sige ejerbrugerne og medlemmerne af dens ejerteams, og af Projektadministratorer og Projektejere. Ingen andre i projektet kan åbne den.
 
 Gør en advarsel privat med **Privat advarsel** under **Flere felter** på oprettelsesformularen eller i en monitors kriterier, med **Advarsler → Regler → Privatlivsregler** eller senere på dens side **Indstillinger**, som spørger **Gør denne advarsel privat?**, før den skjuler advarslen. Er du ikke en af de personer, mister du også selv adgangen.
 
@@ -161,7 +161,7 @@ En episode, som en privat advarsel åbner, er ikke privat, så den viser aldrig 
 ## Hvem der hører om en advarsel
 
 - **Vagten.** Advarslens vagtpolitikker tilkalder deres personer, hver på den måde, de har sat det op under **Brugerindstillinger → Sådan når man mig** på fanen **Advarsler**. Svarer man på tilkaldelsen, bekræftes advarslen, og tilkaldelsen stopper.
-- **Dens ejere.** Via e-mail, medmindre de har valgt andre kanaler under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**: **Advarsel oprettet**, **Advarselstilstand ændret** og **Påmindelse om advarsel** er slået til som standard, og **Advarselsnote offentliggjort** og **Tilføjet som advarselsejer** er slået fra, indtil nogen slår dem til. En advarsel uden ejere giver i stedet projektets ejere besked. Hvis OneUptime stopper, mens den sender en notifikation, får de personer, den endnu ikke var nået til, den, når OneUptime er tilbage, et par minutter forsinket, og ingen får den to gange.
+- **Dens ejere.** Via e-mail, medmindre de har valgt andre kanaler under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**: **Advarsel oprettet**, **Advarselstilstand ændret** og **Påmindelse om advarsel** er slået til som standard, og **Advarselsnote offentliggjort** og **Tilføjet som advarselsejer** er slået fra, indtil nogen slår dem til. En advarsel uden ejere giver i stedet Projektejere besked. Hvis OneUptime stopper, mens den sender en notifikation, får de personer, den endnu ikke var nået til, den, når OneUptime er tilbage, et par minutter forsinket, og ingen får den to gange.
 - **Dine chatværktøjer.** **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Fejlfinding

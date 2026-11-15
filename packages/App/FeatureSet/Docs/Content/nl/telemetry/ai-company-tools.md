@@ -139,7 +139,7 @@ Verleen voor Copilot beheerderstoestemming voor de Graph-machtigingen van de app
 :::
 
 :::details Iemand kan de gesprekken niet zien
-**Wie gesprekken kan lezen** staat op **Projecteigenaren en Projectbeheerders**. Een eigenaar of beheerder kan dat wijzigen met **Bewerken** in de rij van de verbinding.
+**Wie gesprekken kan lezen** staat op **Projecteigenaren en Projectbeheerders**. Een Projecteigenaar of Projectbeheerder kan dat wijzigen met **Bewerken** in de rij van de verbinding.
 :::
 
 :::details De gesprekken tonen wie de vraag stelde, maar geen woorden

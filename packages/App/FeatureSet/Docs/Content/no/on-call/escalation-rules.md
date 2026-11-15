@@ -165,7 +165,7 @@ Et varsel som ikke sendes, sier hvorfor i personens **Vaktlogger** (Brukerinnsti
 - prosjektets saldo kunne ikke betale for det, og hvem som kan fylle på saldoen;
 - kanalen er slått av i prosjektet, og hvem som kan slå den på.
 
-Eierne av prosjektet får én e-post om det, til saldoen er fylt på eller kanalen er slått på igjen.
+Prosjekteierne får én e-post om det, til saldoen er fylt på eller kanalen er slått på igjen.
 
 Et varsel som ikke nådde OneUptimes varslingstjeneste, sier `Could not reach the Notification service to send this (ECONNREFUSED).`, med koden for nettverksfeilen i parentesen. Et varsel der sendingen aldri ble ferdig, for eksempel fordi en server startet på nytt under sendingen, sier `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sendingen likevel ferdig, erstatter resultatet den meldingen.
 

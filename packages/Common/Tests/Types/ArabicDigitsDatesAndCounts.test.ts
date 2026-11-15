@@ -180,9 +180,9 @@ describe("the dates Arabic writes", () => {
   });
 
   test.each<[number, string]>([
-    [-5 * 3600000, "قبل 5 ساعات"],
-    [-3 * 60000, "قبل 3 دقائق"],
-    [3 * 86400000 + 1000, "خلال 3 أيام"],
+    [-5 * 3600000, "قبل 5\u00A0ساعات"],
+    [-3 * 60000, "قبل 3\u00A0دقائق"],
+    [3 * 86400000 + 1000, "خلال 3\u00A0أيام"],
   ])("%i ms from now reads %s", (offset: number, text: string) => {
     expect(
       formatRelativeDate({
@@ -220,7 +220,7 @@ describe("the dates Arabic writes", () => {
         unitDisplay: "long",
         listStyle: "long",
       }),
-    ).toBe("3 دقائق");
+    ).toBe("3\u00A0دقائق");
   });
 
   test("Arabic's digits are 0 to 9, so no text is rewritten into others", () => {

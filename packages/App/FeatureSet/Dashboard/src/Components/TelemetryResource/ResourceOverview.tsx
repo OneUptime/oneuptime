@@ -1,4 +1,5 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -76,7 +77,12 @@ export interface ResourceOverviewTile {
    * locale has no words for, or one a page worded itself, reads as given).
    */
   title: string;
-  value: string;
+  /*
+   * The figure. A reading the resource has not reported is no value
+   * (undefined): the tile draws the figure's quiet dash, read out as "Not
+   * set" (EmptyFigure, #8264).
+   */
+  value?: string | undefined;
   /*
    * Words drawn in place of the value when there is no number to show and
    * the page can say what would give one ("Needs consumer traces"): an
@@ -551,7 +557,7 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
             </div>
           ) : (
             <div className="text-2xl font-semibold text-gray-900 leading-none">
-              {props.value}
+              {getFigure(props.value)}
             </div>
           )}
           {sublabel ? (

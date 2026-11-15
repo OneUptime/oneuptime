@@ -529,6 +529,7 @@ describe("the site's numbers over the range", () => {
 
 describe("the site's CPU time, as a reader says a duration", () => {
   test("under a minute it reads as the response time does", () => {
+    // Each figure held to its unit by a no-break space, as #8541 writes it.
     expect(formatAppServiceCpuTime(0.45)).toBe("450\u00A0ms");
     expect(formatAppServiceCpuTime(0.004)).toBe("4.0\u00A0ms");
     expect(formatAppServiceCpuTime(12.5)).toBe("12.50\u00A0s");

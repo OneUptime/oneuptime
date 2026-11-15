@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -1644,7 +1645,7 @@ const KubernetesClusterOverview: FunctionComponent<
           iconColor="emerald"
           value={
             availabilityPct === null
-              ? "—"
+              ? undefined
               : formatReaderFigure(availabilityPct, {
                   decimals: availabilityPct >= 99.95 ? 1 : 2,
                   isPercent: true,
@@ -1699,7 +1700,7 @@ const KubernetesClusterOverview: FunctionComponent<
           iconColor="sky"
           value={
             netTotal === null
-              ? "—"
+              ? undefined
               : ValueFormatter.formatValue(netTotal, "By/s", {
                   language: getDateDisplayLanguage(),
                 })
@@ -2423,7 +2424,9 @@ const KubernetesClusterOverview: FunctionComponent<
             isSummaryLoading || (attention === null && !attentionError) ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
             ) : !isHealthKnown ? (
-              <span className="text-2xl font-semibold text-gray-300">—</span>
+              <span className="text-2xl font-semibold">
+                <EmptyFigure />
+              </span>
             ) : (
               /*
                * The hero's words and colour: Health Unknown in grey while
@@ -2465,7 +2468,9 @@ const KubernetesClusterOverview: FunctionComponent<
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
             ) : summaryError ? (
-              <span className="text-2xl font-semibold text-gray-300">—</span>
+              <span className="text-2xl font-semibold">
+                <EmptyFigure />
+              </span>
             ) : (
               <span className="text-2xl font-semibold">
                 {translator.formatNumber(nodeCount)}
@@ -2497,7 +2502,9 @@ const KubernetesClusterOverview: FunctionComponent<
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
             ) : summaryError ? (
-              <span className="text-2xl font-semibold text-gray-300">—</span>
+              <span className="text-2xl font-semibold">
+                <EmptyFigure />
+              </span>
             ) : (
               <span className="text-2xl font-semibold">
                 {translator.formatNumber(podCount)}
@@ -2520,7 +2527,9 @@ const KubernetesClusterOverview: FunctionComponent<
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
             ) : summaryError ? (
-              <span className="text-2xl font-semibold text-gray-300">—</span>
+              <span className="text-2xl font-semibold">
+                <EmptyFigure />
+              </span>
             ) : (
               <span className="text-2xl font-semibold">
                 {translator.formatNumber(namespaceCount)}

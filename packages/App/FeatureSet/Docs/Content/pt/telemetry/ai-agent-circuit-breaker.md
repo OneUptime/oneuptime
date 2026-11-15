@@ -125,19 +125,19 @@ Abra **Produtos → Fluxos de trabalho** e clique em **Criar fluxo de trabalho**
 
 ### Adicione o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Alert** no painel **Adicionar gatilho**. Clique no gatilho: **Fields to pass on** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Alert** no painel **Adicionar gatilho**. Clique no gatilho: **Campos a repassar** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
 
 ### Verifique o título
 
-Clique em **Adicionar componente**, escolha **If / Else** e conecte a ele o ponto **Sucesso** do gatilho. Defina **Valor a verificar** como o título do alerta (clique em **{ }** e escolha-o), **Comparação** como **contém** e **Comparar com** como o começo que os títulos dos seus gatilhos têm em comum, como `LLM budget exceeded`.
+Clique em **Adicionar componente**, escolha **Se / Senão** e conecte a ele o ponto **Sucesso** do gatilho. Defina **Valor a verificar** como o título do alerta (clique em **{ }** e escolha-o), **Comparação** como **contém** e **Comparar com** como o começo que os títulos dos seus gatilhos têm em comum, como `LLM budget exceeded`.
 
 ### Chame o seu endpoint
 
-Adicione **API Post (JSON)** e conecte a ele o ponto **Sim** do **If / Else**. Defina a sua **URL** como o seu endpoint, como `https://agents.example.com/circuit-breaker`, e preencha os cabeçalhos e o corpo abaixo.
+Adicione **Chamada de API POST (JSON)** e conecte a ele o ponto **Sim** do **Se / Senão**. Defina a sua **URL** como o seu endpoint, como `https://agents.example.com/circuit-breaker`, e preencha os cabeçalhos e o corpo abaixo.
 
 ### Avise sobre uma falha
 
-Adicione **Send Message to Slack**, ou **Send Email**, e conecte a ele o ponto **Erro** do bloco de API. Um disjuntor que não consegue desarmar é o alerta que uma pessoa precisa ver.
+Adicione **Enviar mensagem ao Slack**, ou **Enviar e-mail**, e conecte a ele o ponto **Erro** do bloco de API. Um disjuntor que não consegue desarmar é o alerta que uma pessoa precisa ver.
 
 ### Ative-o
 
@@ -164,7 +164,7 @@ O seu **Corpo da Requisição**:
 }
 ```
 
-Para reagir a vários gatilhos, comece todos os títulos deles do mesmo jeito, ou encadeie mais blocos **If / Else** a partir do ponto **Não**. Veja [Criar um fluxo de trabalho](/docs/workflows/authoring) para a tela e [Variáveis](/docs/workflows/variables) para as referências `{{…}}`.
+Para reagir a vários gatilhos, comece todos os títulos deles do mesmo jeito, ou encadeie mais blocos **Se / Senão** a partir do ponto **Não**. Veja [Criar um fluxo de trabalho](/docs/workflows/authoring) para a tela e [Variáveis](/docs/workflows/variables) para as referências `{{…}}`.
 
 ## Teste o disjuntor
 
@@ -180,7 +180,7 @@ Para reagir a vários gatilhos, comece todos os títulos deles do mesmo jeito, o
 - Um orçamento conta o dia UTC, então a sua porcentagem volta a 0 à meia-noite UTC. Um alerta de orçamento pode então se resolver, e o próximo dia ruim abre um novo alerta que desarma o disjuntor de novo.
 - Um monitor mantém o alerta aberto enquanto os critérios são atendidos. Com **Resolver alerta automaticamente** ativado, o alerta se resolve quando deixam de ser, e a próxima ultrapassagem abre um novo alerta.
 - Rearmar é uma decisão de uma pessoa dos dois lados: resolva o alerta no OneUptime e rearme o disjuntor no seu executor.
-- Cada novo alerta do projeto inicia o fluxo de trabalho. É o **If / Else** que mantém os outros alertas longe do disjuntor: não o remova.
+- Cada novo alerta do projeto inicia o fluxo de trabalho. É o **Se / Senão** que mantém os outros alertas longe do disjuntor: não o remova.
 
 ## Solução de problemas
 
@@ -189,7 +189,7 @@ Confira se **Habilitado** está ativado no topo do **Construtor**: os fluxos de 
 :::
 
 :::details O fluxo de trabalho roda, mas sempre segue o ramo No
-O título está vazio ou não corresponde. Um campo que não está em **Fields to pass on** do gatilho chega vazio, então adicione o título ali. Depois compare o título do alerta com **Comparar com**: **contém** precisa encontrar exatamente esse texto nele.
+O título está vazio ou não corresponde. Um campo que não está em **Campos a repassar** do gatilho chega vazio, então adicione o título ali. Depois compare o título do alerta com **Comparar com**: **contém** precisa encontrar exatamente esse texto nele.
 :::
 
 :::details O seu endpoint responde 401
@@ -201,7 +201,7 @@ O **Intervalo de tempo** do monitor é menor que os 15 minutos entre dois pontos
 :::
 
 :::details A requisição nunca chega ao seu endpoint
-Abra a execução em **Fluxos de trabalho → Registros → Execuções** e a etapa **API Post (JSON)**: ela diz por que a requisição falhou. No OneUptime Cloud, o endpoint precisa ser acessível pela internet; uma instalação auto-hospedada recusa endereços de rede privados, a menos que um administrador os permita.
+Abra a execução em **Fluxos de trabalho → Registros → Execuções** e a etapa **Chamada de API POST (JSON)**: ela diz por que a requisição falhou. No OneUptime Cloud, o endpoint precisa ser acessível pela internet; uma instalação auto-hospedada recusa endereços de rede privados, a menos que um administrador os permita.
 :::
 
 ## Próximos passos

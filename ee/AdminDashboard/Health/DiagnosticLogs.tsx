@@ -16,6 +16,11 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { formatMillisecondsIn } from "./HealthUnits";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
@@ -63,13 +68,23 @@ const LogPanel: FunctionComponent<{
 const EmptyNote: FunctionComponent<{ text: string }> = (props: {
   text: string;
 }): ReactElement => {
-  return <div className="mt-3 text-sm italic text-gray-400">{props.text}</div>;
+  const translator: Translator = useTranslator();
+  return (
+    <div className="mt-3 text-sm italic text-gray-400">
+      {translator.translateText(props.text) || props.text}
+    </div>
+  );
 };
 
 const SectionNote: FunctionComponent<{ text: string }> = (props: {
   text: string;
 }): ReactElement => {
-  return <div className="mt-1 text-xs text-gray-500">{props.text}</div>;
+  const translator: Translator = useTranslator();
+  return (
+    <div className="mt-1 text-xs text-gray-500">
+      {translator.translateText(props.text) || props.text}
+    </div>
+  );
 };
 
 /*
@@ -83,6 +98,7 @@ const SectionNote: FunctionComponent<{ text: string }> = (props: {
  * at the foot of the card.
  */
 const DiagnosticLogs: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<HealthRequestError | null>(null);
@@ -169,7 +185,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
 
         <div>
           <div className="text-sm font-medium text-gray-700">
-            Error counters (system.errors)
+            {translator.translateText("Error counters (system.errors)")}
           </div>
           {errors.length === 0 ? (
             <EmptyNote text="No errors recorded." />
@@ -199,7 +215,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
 
         <div>
           <div className="text-sm font-medium text-gray-700">
-            Recent server log (system.text_log)
+            {translator.translateText("Recent server log (system.text_log)")}
           </div>
           {logEntries.length === 0 ? (
             <EmptyNote text="No recent warning/error log lines, or text_log is not enabled." />
@@ -227,7 +243,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
 
         <div>
           <div className="text-sm font-medium text-gray-700">
-            Failed queries (system.query_log)
+            {translator.translateText("Failed queries (system.query_log)")}
           </div>
           {failedQueries.length === 0 ? (
             <EmptyNote text="No recent failed queries." />
@@ -260,7 +276,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
         {crashes.length > 0 ? (
           <div>
             <div className="text-sm font-medium text-gray-700">
-              Crashes (system.crash_log)
+              {translator.translateText("Crashes (system.crash_log)")}
             </div>
             <LogPanel>
               {crashes.map((row: unknown, index: number): ReactElement => {
@@ -272,7 +288,9 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                       {String(rowObject["time"] || "")}
                     </span>{" "}
                     <span className="font-semibold text-red-400">
-                      signal {String(rowObject["signal"] || "")}
+                      {translator.translateTemplate("signal {{signal}}", {
+                        signal: String(rowObject["signal"] || ""),
+                      })}
                     </span>
                     {"\n"}
                     {String(rowObject["trace"] || "")}
@@ -298,7 +316,10 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
     if (!section["available"]) {
       return (
         <EmptyNote
-          text={String(section["note"] || "Postgres logs are not available.")}
+          text={
+            String(section["note"] || "") ||
+            translationKey("Postgres logs are not available.")
+          }
         />
       );
     }
@@ -308,7 +329,11 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
     return (
       <div>
         <SectionNote
-          text={`Tailing ${String(section["logFile"] || "log file")}.`}
+          text={translator.translateTemplate("Tailing {{file}}.", {
+            file:
+              String(section["logFile"] || "") ||
+              (translator.translateText("log file") as string),
+          })}
         />
         {logTail.length === 0 ? (
           <EmptyNote text="Log file is empty." />
@@ -344,7 +369,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
 
         <div>
           <div className="text-sm font-medium text-gray-700">
-            Slow commands (SLOWLOG)
+            {translator.translateText("Slow commands (SLOWLOG)")}
           </div>
           {slowlog.length === 0 ? (
             <EmptyNote text="No slow commands recorded." />
@@ -359,7 +384,10 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                       {String(rowObject["at"] || "")}
                     </span>{" "}
                     <span className="font-semibold text-amber-400">
-                      {String(rowObject["durationMs"] || "0")}ms
+                      {formatMillisecondsIn(
+                        rowObject["durationMs"] || 0,
+                        translator,
+                      )}
                     </span>{" "}
                     <span>{String(rowObject["command"] || "")}</span>
                   </div>
@@ -371,7 +399,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
 
         <div>
           <div className="text-sm font-medium text-gray-700">
-            Error counters (INFO errorstats)
+            {translator.translateText("Error counters (INFO errorstats)")}
           </div>
           {errorStats.length === 0 ? (
             <EmptyNote text="No error counters reported." />
@@ -396,7 +424,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
         {Object.keys(stats).length > 0 ? (
           <div>
             <div className="text-sm font-medium text-gray-700">
-              Counters (INFO stats)
+              {translator.translateText("Counters (INFO stats)")}
             </div>
             <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
               {Object.keys(stats).map(
@@ -479,9 +507,16 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
 
         {!hasLoaded && !isLoading ? (
           <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
-            Logs are loaded on demand. Click{" "}
-            <span className="font-medium text-gray-700">Load logs</span> to
-            fetch this instance&apos;s recent application and datastore logs.
+            <TranslatedSentence
+              template="Logs are loaded on demand. Click {{button}} to fetch this instance's recent application and datastore logs."
+              slots={{
+                button: (
+                  <span className="font-medium text-gray-700">
+                    {translator.translateText("Load logs")}
+                  </span>
+                ),
+              }}
+            />
           </div>
         ) : (
           <></>
