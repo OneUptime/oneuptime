@@ -25549,7 +25549,7 @@
   "Created from an AI insight that found an error-log spike. Opens an incident when this happens again:": "エラーログの急増を見つけた AI インサイトから作成されました。これが再び起きたときにインシデントを作成します:",
   "Created from an AI insight that found an exception spike. Opens an incident when this happens again:": "例外の急増を見つけた AI インサイトから作成されました。これが再び起きたときにインシデントを作成します:",
   "Created from an AI insight that found this metric drifting week over week. Opens an incident while it stays drifted:": "このメトリクスが週ごとにドリフトしていることを見つけた AI インサイトから作成されました。ドリフトが続いている間はインシデントを作成します:",
-  "Didn't get it?": "届きませんでしたか?",
+  "Didn't get it?": "届きませんでしたか？",
   "Enter the 6-digit code.": "6 桁のコードを入力してください。",
   "Error-log spike across the project": "プロジェクト全体のエラーログの急増",
   "Error-log spike in {{serviceName}}": "{{serviceName}} のエラーログの急増",
