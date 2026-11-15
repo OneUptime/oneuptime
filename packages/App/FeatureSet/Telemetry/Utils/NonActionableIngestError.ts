@@ -35,6 +35,13 @@ import {
  * warn, naming the probe that sent it and the probe it named
  * (ProcessProbeIngest), and the probe ingest route refuses the same result
  * with a 400 before it is ever queued.
+ *
+ * And so is a monitor test's result for a test that was not handed to the
+ * probe that sent it, or that no longer exists (MonitorTestNotHandedToProbe,
+ * issue #8539): the test was claimed by another probe after this probe's
+ * claim went stale, or it was deleted. The write is keyed on the test and
+ * the probe, and neither changes between attempts. ProcessProbeIngest logs
+ * the refusal once, at warn, naming the probe and the test.
  */
 export function isNonActionableIngestError(error: unknown): boolean {
   return (
@@ -48,6 +55,7 @@ export function isNonActionableIngestError(error: unknown): boolean {
         ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent ||
       error.message === ExceptionMessages.ProbeNotAssignedToMonitor ||
       error.message === PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE ||
-      error.message === REPORTING_PROBE_NOT_KNOWN_MESSAGE)
+      error.message === REPORTING_PROBE_NOT_KNOWN_MESSAGE ||
+      error.message === ExceptionMessages.MonitorTestNotHandedToProbe)
   );
 }

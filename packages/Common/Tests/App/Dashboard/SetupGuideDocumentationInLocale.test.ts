@@ -19,6 +19,7 @@ import {
   translateSetupGuidePiece,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideTranslation";
 import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "../../../Types/Dashboard/DashboardLanguage";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   DASHBOARD_LANGUAGES,
   isWordedInDashboardLocale,
@@ -134,11 +135,6 @@ function keysOf(content: SetupGuideContent): Array<string> {
   return keys;
 }
 
-// A text, read as a regular expression matching only itself.
-function asPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /*
  * The locale key a title is: itself, or - for a title the guide fills in
  * with translateTemplate, in the reader's language where it is drawn
@@ -159,7 +155,7 @@ function keyOf(text: string): string {
       }
       const pattern: string = key
         .split(/\{\{\s*[\w.]+\s*\}\}/)
-        .map(asPattern)
+        .map(escapeRegExp)
         .join(".+");
       return new RegExp(`^${pattern}$`).test(text);
     },

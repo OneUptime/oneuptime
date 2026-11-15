@@ -276,8 +276,19 @@ export async function processProbeFromQueue(
     );
 
     if (!isRecorded) {
+      /*
+       * Logged once, at warn, naming the probe and the test: the telemetry
+       * worker completes the job rather than retrying it (issue #8539,
+       * isNonActionableIngestError). No attempt changes the outcome - the
+       * test was re-claimed by another probe after its claim went stale, or
+       * it was deleted - so a retry only repeated this line and a stack.
+       */
       logger.warn(
         `Probe ${reportingProbeId.toString()} sent a result for monitor test ${testId.toString()}, which was not handed to it or no longer exists. Nothing was recorded.`,
+        {
+          probeId: reportingProbeId.toString(),
+          monitorTestId: testId.toString(),
+        } as LogAttributes,
       );
 
       throw new BadDataException(MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE);

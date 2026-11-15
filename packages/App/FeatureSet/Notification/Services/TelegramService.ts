@@ -1,4 +1,8 @@
 import {
+  getMessageIdStatusMessage,
+  TELEGRAM_MESSAGE_SENT_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
+import {
   TelegramTextDefaultCostInCents,
   getTelegramConfig,
   TelegramConfig,
@@ -420,8 +424,8 @@ export default class TelegramService {
 
       telegramLog.status = TelegramStatus.Sent;
       telegramLog.statusMessage = telegramMessageId
-        ? `Message ID: ${telegramMessageId}`
-        : "Telegram message sent successfully";
+        ? getMessageIdStatusMessage(telegramMessageId)
+        : TELEGRAM_MESSAGE_SENT_MESSAGE;
 
       if (shouldChargeForMessage && project && messageCostInUSDCents > 0) {
         telegramLog.telegramCostInUSDCents = messageCostInUSDCents;
@@ -479,7 +483,7 @@ export default class TelegramService {
         statusMessage:
           telegramLog.statusMessage ||
           (isSent
-            ? "Telegram message sent successfully"
+            ? TELEGRAM_MESSAGE_SENT_MESSAGE
             : "Failed to send Telegram message."),
       });
     }

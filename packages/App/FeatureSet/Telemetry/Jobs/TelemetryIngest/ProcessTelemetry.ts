@@ -639,9 +639,10 @@ if (DisableQueueWorkers) {
            * Certain BadDataException cases are expected / non-actionable and should not fail the job.
            * These include archived and disabled monitors (explicitly, or paused by a manual incident or a
            * maintenance event), missing monitors (e.g. secret key referencing a deleted monitor), a
-           * probe's result for a monitor that probe does not check, and a probe's result that names
-           * another probe or a job that names no probe (each logged once, at warn, where it is
-           * refused). Retrying provides no value and only creates noise.
+           * probe's result for a monitor that probe does not check, a probe's result that names
+           * another probe or a job that names no probe, and a monitor test result for a test the
+           * probe was not handed (each logged once, at warn, where it is refused). Retrying
+           * provides no value and only creates noise.
            */
           if (isNonActionableIngestError(error)) {
             return;

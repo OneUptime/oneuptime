@@ -1,5 +1,6 @@
 import MonitorService from "../../../../Server/Services/MonitorService";
 import IncomingRequestReceivedAtStore from "../../../../Server/Utils/Monitor/IncomingRequestReceivedAtStore";
+import IncomingRequestSecretActivity from "../../../../Server/Utils/Monitor/IncomingRequestSecretActivity";
 import IncomingRequestSecretGate, {
   IncomingRequestSecretEdgeDecision,
   IncomingRequestSecretWorkerDecision,
@@ -16,6 +17,7 @@ import MonitorSecretKeyCache, {
 } from "../../../../Server/Utils/Monitor/MonitorSecretKeyCache";
 import { REDACTED } from "../../../../Server/Utils/LogRedaction";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import { IncomingRequestSecretProblem } from "../../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   afterEach,
@@ -45,8 +47,14 @@ import {
  *     is one of the project's secrets is masked;
  *   - the secret a request was accepted with is stamped as used.
  *
- * The policy, the key cache, the arrival store and the monitor lookup are
- * stubs.
+ * And both tell the monitor whether its requests send a valid secret, while
+ * the project has one (IncomingRequestSecretActivity, issue #8498): the edge
+ * for a request it refuses - which never reaches the worker - and the worker
+ * for every request, so the senders to fix are known before the requirement
+ * is turned on.
+ *
+ * The policy, the key cache, the arrival store, the monitor lookup and the
+ * monitor's record are stubs.
  */
 
 jest.mock("../../../../Server/Utils/Logger");
@@ -75,6 +83,12 @@ const NOT_REQUIRED: IncomingRequestSecretPolicyValue = {
   secrets: [],
 };
 
+// A project with a secret that does not require one yet.
+const NOT_REQUIRED_YET: IncomingRequestSecretPolicyValue = {
+  isRequired: false,
+  secrets: REQUIRED.secrets,
+};
+
 let keptMonitor: MonitorOfSecretKey | null;
 let isTracked: boolean;
 let lookedUpMonitor: Monitor | null;
@@ -88,6 +102,9 @@ let isTrackedSpy: jest.SpiedFunction<
 let findOneBy: jest.SpiedFunction<typeof MonitorService.findOneBy>;
 let getPolicy: jest.SpiedFunction<typeof IncomingRequestSecretPolicy.getPolicy>;
 let recordUse: jest.SpiedFunction<typeof IncomingRequestSecretPolicy.recordUse>;
+let recordActivity: jest.SpiedFunction<
+  typeof IncomingRequestSecretActivity.record
+>;
 
 const makeMonitor: (flags?: Partial<Monitor>) => Monitor = (
   flags?: Partial<Monitor>,
@@ -140,7 +157,38 @@ beforeEach(() => {
   recordUse = jest
     .spyOn(IncomingRequestSecretPolicy, "recordUse")
     .mockResolvedValue(undefined);
+
+  recordActivity = jest
+    .spyOn(IncomingRequestSecretActivity, "record")
+    .mockResolvedValue(undefined);
 });
+
+// What the monitor was told, call by call.
+const recorded: () => Array<{
+  monitorId: string | undefined;
+  sentValidSecret: boolean;
+  problem: IncomingRequestSecretProblem | undefined;
+}> = (): Array<{
+  monitorId: string | undefined;
+  sentValidSecret: boolean;
+  problem: IncomingRequestSecretProblem | undefined;
+}> => {
+  return recordActivity.mock.calls.map(
+    (
+      call: Parameters<typeof IncomingRequestSecretActivity.record>,
+    ): {
+      monitorId: string | undefined;
+      sentValidSecret: boolean;
+      problem: IncomingRequestSecretProblem | undefined;
+    } => {
+      return {
+        monitorId: call[0].monitorId?.toString(),
+        sentValidSecret: call[0].sentValidSecret,
+        problem: call[0].problem,
+      };
+    },
+  );
+};
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -253,6 +301,64 @@ describe("decideAtEdge", () => {
     expect(getPolicy).not.toHaveBeenCalled();
   });
 
+  test("a refused request tells its monitor it had no secret: it never reaches the worker", async () => {
+    await decide([]);
+
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.NoSecret,
+      },
+    ]);
+  });
+
+  test("a refused request with a wrong secret tells its monitor so", async () => {
+    await decide([hash("an-old-secret-of-the-sender")]);
+
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.WrongSecret,
+      },
+    ]);
+  });
+
+  test("a request that counts is left for the worker to record", async () => {
+    await decide([hash(SECRET)]);
+
+    policy = NOT_REQUIRED_YET;
+    await decide([]);
+
+    expect(recordActivity).not.toHaveBeenCalled();
+  });
+
+  test("a refusal for a key it looked up is recorded on that monitor, paused or not", async () => {
+    keptMonitor = null;
+    isTracked = true;
+    lookedUpMonitor = makeMonitor({ disableActiveMonitoring: true });
+
+    await decide([]);
+
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.NoSecret,
+      },
+    ]);
+  });
+
+  test("a key it cannot place records nothing", async () => {
+    keptMonitor = null;
+    isTracked = false;
+
+    await decide([]);
+
+    expect(recordActivity).not.toHaveBeenCalled();
+  });
+
   test("a failure to decide refuses nothing and records nothing", async () => {
     getPolicy.mockRejectedValueOnce(new Error("Postgres is down"));
 
@@ -360,6 +466,153 @@ describe("decideInWorker", () => {
       authorization: `Bearer ${SECRET}`,
     });
     expect(recordUse).not.toHaveBeenCalled();
+  });
+
+  test("tells the monitor a refused request had no secret, or a wrong one", async () => {
+    await IncomingRequestSecretGate.decideInWorker({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      presentedSecretHashes: [],
+      requestHeaders: {},
+    });
+
+    await IncomingRequestSecretGate.decideInWorker({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      presentedSecretHashes: [hash("an-old-secret-of-the-sender")],
+      requestHeaders: {},
+    });
+
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.NoSecret,
+      },
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.WrongSecret,
+      },
+    ]);
+  });
+
+  test("tells the monitor an accepted request sent the secret", async () => {
+    await IncomingRequestSecretGate.decideInWorker({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      presentedSecretHashes: [hash(SECRET)],
+      requestHeaders: {},
+    });
+
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: true,
+        problem: undefined,
+      },
+    ]);
+  });
+
+  test("a project with no secret tells the monitor nothing: there is nothing to send", async () => {
+    policy = NOT_REQUIRED;
+
+    await IncomingRequestSecretGate.decideInWorker({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      presentedSecretHashes: [],
+      requestHeaders: {},
+    });
+
+    expect(recordActivity).not.toHaveBeenCalled();
+  });
+
+  test("before the project requires a secret, a request without one is kept as it was, and its monitor told", async () => {
+    policy = NOT_REQUIRED_YET;
+
+    const decision: IncomingRequestSecretWorkerDecision =
+      await IncomingRequestSecretGate.decideInWorker({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        presentedSecretHashes: [],
+        requestHeaders: { "user-agent": "acme-cron/1.4" },
+      });
+
+    expect(decision.isRefused).toBe(false);
+    expect(decision.verdict).toBe(IncomingRequestSecretVerdict.NotRequired);
+    expect(decision.requestHeaders).toEqual({ "user-agent": "acme-cron/1.4" });
+    expect(recordUse).not.toHaveBeenCalled();
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.NoSecret,
+      },
+    ]);
+  });
+
+  test("before the project requires a secret, a sender's own bearer token is kept for its criteria, and counted as a wrong secret, as the requirement would refuse it", async () => {
+    policy = NOT_REQUIRED_YET;
+
+    const decision: IncomingRequestSecretWorkerDecision =
+      await IncomingRequestSecretGate.decideInWorker({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        presentedSecretHashes: [],
+        requestHeaders: { authorization: "Bearer the-senders-own-token" },
+      });
+
+    expect(decision.isRefused).toBe(false);
+    expect(decision.requestHeaders).toEqual({
+      authorization: "Bearer the-senders-own-token",
+    });
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.WrongSecret,
+      },
+    ]);
+
+    // The same request, once the project requires a secret.
+    policy = REQUIRED;
+
+    const refused: IncomingRequestSecretWorkerDecision =
+      await IncomingRequestSecretGate.decideInWorker({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        presentedSecretHashes: [],
+        requestHeaders: { authorization: "Bearer the-senders-own-token" },
+      });
+
+    expect(refused.verdict).toBe(IncomingRequestSecretVerdict.NotRecognized);
+  });
+
+  test("before the project requires a secret, one of its secrets is stamped as used and masked, as it would be after", async () => {
+    policy = NOT_REQUIRED_YET;
+
+    const decision: IncomingRequestSecretWorkerDecision =
+      await IncomingRequestSecretGate.decideInWorker({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        presentedSecretHashes: [hash(SECRET)],
+        requestHeaders: { authorization: `Bearer ${SECRET}` },
+      });
+
+    expect(decision.isRefused).toBe(false);
+    expect(decision.verdict).toBe(IncomingRequestSecretVerdict.NotRequired);
+    expect(decision.requestHeaders).toEqual({
+      authorization: `Bearer ${REDACTED}`,
+    });
+    expect(JSON.stringify(decision)).not.toContain(SECRET);
+    expect(recordUse).toHaveBeenCalledWith(SECRET_ID);
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: true,
+        problem: undefined,
+      },
+    ]);
   });
 
   test("a failed read of the policy fails the job, so it is retried", async () => {
