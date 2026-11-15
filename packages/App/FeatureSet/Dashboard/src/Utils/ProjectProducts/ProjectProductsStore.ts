@@ -14,9 +14,10 @@ import {
   parseProjectProductsAnswer,
   toProjectProductsAnswerJSON,
 } from "Common/Types/Product/ProjectProductsAnswer";
-import CreatedRecords, {
-  CreatedRecord,
-} from "Common/UI/Utils/ModelAPI/CreatedRecords";
+import RecordChanges, {
+  RecordChange,
+  RecordChangeKind,
+} from "Common/UI/Utils/ModelAPI/RecordChanges";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   fetchProjectProducts,
@@ -37,15 +38,33 @@ import {
  * asked once: askers that arrive while the request is out share it, and an
  * answer is kept for REFRESH_AFTER_MS.
  *
- * What is in use changes while the page is open (#7465): the first monitor,
- * the first logs. So the answer follows it:
+ * What is in use changes while the page is open (#7465, #8204): the first
+ * monitor, the first logs, the last monitor deleted. So the answer follows
+ * it:
  *
- *   - a product's first record this page creates (CreatedRecords, from
+ *   - a product's first record this page creates (RecordChanges, from
  *     ModelAPI) marks it in use at once - Create Monitor, a guided setup,
  *     an import - and the next ask brings the server's word. An answer that
  *     may have been worked out before that create (asked before it, or
  *     within CREATE_SETTLE_MS after it, while other servers may still go by
- *     what they kept) keeps the mark;
+ *     what they kept) keeps the mark. A record a setup guide saw arrive -
+ *     the cluster an agent registered, the service that sent its first
+ *     traces (noteRecordFound) - marks its product the same way;
+ *   - a record of a product in use that this page deletes (RecordChanges,
+ *     from ModelAPI.deleteItem) has the store ask again DELETE_SETTLE_MS
+ *     later, by itself, once every server knows of the delete: with the
+ *     project's last monitor gone, Monitors says "Not set up" again. A
+ *     burst of deletes (a bulk delete) is one ask, after the last;
+ *   - a setup guide whose data has just arrived (ResourceConnectionWatch)
+ *     says which products it set up (expectProductsInUse): the server keeps
+ *     the first logs only once the telemetry writer has stored them, a few
+ *     seconds after the guide sees them sent, so the store asks at once and
+ *     every EXPECT_CHANGE_EVERY_MS until those products are in use, for
+ *     EXPECT_CHANGE_FOR_MS at most;
+ *   - another tab of this browser that gets a newer answer remembers it
+ *     (below), and this tab takes it from the browser's storage event as it
+ *     lands, asking nothing: a monitor made, or a project's last one
+ *     deleted, in one tab shows in every other at once;
  *   - an answer older than REFRESH_AFTER_MS is asked again when the person
  *     opens the products menu or the phone menu, moves to another page or
  *     comes back to the tab (load): a product set up elsewhere - its first
@@ -53,6 +72,9 @@ import {
  *     moments of being looked for, at one light request at most every
  *     REFRESH_AFTER_MS. The server reads what is in use again as soon as it
  *     changes (ProjectUsageCache), so the answer it gives is current.
+ *
+ * None of these asks on a page view: a page that only draws the products
+ * asks what it asked before, and nothing more while nothing changes.
  *
  * Until this page load's answer arrives, the last one is remembered in the
  * browser per project and stands in, so the bar's pins and the menu's
@@ -93,6 +115,25 @@ export const REFRESH_AFTER_MS: number = 15_000;
  */
 export const CREATE_SETTLE_MS: number = 5_000;
 
+/*
+ * How long after this page deletes a product's record the store asks again
+ * by itself: every server knows of the delete by then
+ * (CacheGenerations.SHARED_READ_TTL_MS), so the answer says whether it was
+ * the product's last. An answer asked before then is drawn, but the next
+ * look asks again all the same.
+ */
+export const DELETE_SETTLE_MS: number = 2_000;
+
+/*
+ * How long the store keeps asking for the products a setup guide set up,
+ * once its data arrived, and how often: the server keeps the first logs
+ * once the telemetry writer stored them (TelemetryFanInWriter's
+ * maxWaitMs, 5 seconds by default) and every server sees it within
+ * CacheGenerations.SHARED_READ_TTL_MS.
+ */
+export const EXPECT_CHANGE_FOR_MS: number = 15_000;
+export const EXPECT_CHANGE_EVERY_MS: number = 2_500;
+
 const rememberedKey: (projectId: string) => string = (
   projectId: string,
 ): string => {
@@ -103,15 +144,9 @@ const readRemembered: (projectId: string) => ProjectProductsAnswer | null = (
   projectId: string,
 ): ProjectProductsAnswer | null => {
   try {
-    const stored: string | null = window.localStorage.getItem(
-      rememberedKey(projectId),
+    return parseRemembered(
+      window.localStorage.getItem(rememberedKey(projectId)),
     );
-
-    if (!stored) {
-      return null;
-    }
-
-    return parseProjectProductsAnswer(JSON.parse(stored));
   } catch {
     return null;
   }
@@ -129,6 +164,49 @@ const remember: (projectId: string, answer: ProjectProductsAnswer) => void = (
   } catch {
     // Nothing remembered: the next page load asks before it knows.
   }
+};
+
+/*
+ * The project a remembered answer's key is for, or null for a key of
+ * something else.
+ */
+const projectOfRememberedKey: (key: string | null) => string | null = (
+  key: string | null,
+): string | null => {
+  if (!key || !key.startsWith(REMEMBERED_PROJECT_PRODUCTS_KEY_PREFIX)) {
+    return null;
+  }
+
+  return key.slice(REMEMBERED_PROJECT_PRODUCTS_KEY_PREFIX.length) || null;
+};
+
+const parseRemembered: (
+  stored: string | null,
+) => ProjectProductsAnswer | null = (
+  stored: string | null,
+): ProjectProductsAnswer | null => {
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    return parseProjectProductsAnswer(JSON.parse(stored));
+  } catch {
+    return null;
+  }
+};
+
+const isSameAnswer: (
+  first: ProjectProductsAnswer,
+  second: ProjectProductsAnswer,
+) => boolean = (
+  first: ProjectProductsAnswer,
+  second: ProjectProductsAnswer,
+): boolean => {
+  return (
+    JSON.stringify(toProjectProductsAnswerJSON(first)) ===
+    JSON.stringify(toProjectProductsAnswerJSON(second))
+  );
 };
 
 /*
@@ -177,10 +255,24 @@ interface ProjectEntry {
    */
   answeredAt: number | null;
   /*
-   * The products whose record this page created, and when: an answer worked
-   * out before then, or within CREATE_SETTLE_MS after, keeps them in use.
+   * The products whose record this page created (or a setup guide saw
+   * arrive), and when: an answer worked out before then, or within
+   * CREATE_SETTLE_MS after, keeps them in use.
    */
   created: Map<ProductKey, number>;
+  /*
+   * Until when an answer may not know of a record this page deleted
+   * (DELETE_SETTLE_MS after the last delete): one asked before then is not
+   * kept as current, and the store asks again then. 0 for none.
+   */
+  settlingUntil: number;
+  /*
+   * The products a setup guide said are about to be in use, and until when
+   * the store keeps asking for them (expectProductsInUse).
+   */
+  expected: { products: Set<ProductKey>; until: number } | null;
+  // The store's own next ask: a delete settling, a guide's products awaited.
+  followUp: ReturnType<typeof setTimeout> | null;
 }
 
 /*
@@ -227,6 +319,9 @@ const OUTSIDE_A_PROJECT: ProjectProductsState = Object.freeze({
 });
 
 type ProjectIdInput = ObjectID | string | null | undefined;
+
+// A record of a project's, as a create or delete announces it.
+export type RecordOfProject = Pick<RecordChange, "tableName" | "projectId">;
 
 const toProjectKey: (projectId: ProjectIdInput) => string = (
   projectId: ProjectIdInput,
@@ -293,23 +388,21 @@ export default class ProjectProducts {
   }
 
   /*
-   * This page created a record (CreatedRecords, from ModelAPI): a product's
+   * This page created a record (RecordChanges, from ModelAPI): a product's
    * main record (ProductOfTable) marks the product in use at once, rather
    * than "Not set up" until the server is asked again - and the next look
    * at the products asks it. An answer already on its way, or worked out
    * within CREATE_SETTLE_MS, keeps the mark (keepCreatedInUse). A project
    * nothing has drawn yet is left alone: its first ask reads the record.
    */
-  public static noteRecordCreated(record: CreatedRecord): void {
+  public static noteRecordCreated(record: RecordOfProject): void {
     const product: ProductKey | null = getProductOfTable(record.tableName);
 
     if (!product) {
       return;
     }
 
-    const key: string = toProjectKey(
-      record.projectId || ProjectUtil.getCurrentProjectId(),
-    );
+    const key: string = ProjectProducts.keyOfRecord(record);
     const entry: ProjectEntry | undefined = key
       ? ProjectProducts.entries.get(key)
       : undefined;
@@ -342,6 +435,169 @@ export default class ProjectProducts {
     ProjectProducts.emit();
   }
 
+  /*
+   * A setup guide saw a record arrive that someone else made - the cluster
+   * an agent registered, the service whose first traces named it
+   * (ResourceConnectionWatch): it is there, so its product is in use, as
+   * if this page had created it (noteRecordCreated).
+   */
+  public static noteRecordFound(record: RecordOfProject): void {
+    ProjectProducts.noteRecordCreated(record);
+  }
+
+  /*
+   * This page deleted a record (RecordChanges, from ModelAPI.deleteItem):
+   * a product's main record may have been its last, and only the server
+   * can say. So the store asks again by itself DELETE_SETTLE_MS after the
+   * last delete (once every server knows of it), and the next look asks
+   * too. A product not in use, or one this person may not read, is left
+   * alone, and so is a project nothing has drawn yet.
+   */
+  public static noteRecordDeleted(record: RecordOfProject): void {
+    const product: ProductKey | null = getProductOfTable(record.tableName);
+
+    if (!product) {
+      return;
+    }
+
+    const key: string = ProjectProducts.keyOfRecord(record);
+    const entry: ProjectEntry | undefined = key
+      ? ProjectProducts.entries.get(key)
+      : undefined;
+
+    if (!entry) {
+      return;
+    }
+
+    // A record this page created and deleted again keeps nothing in use.
+    entry.created.delete(product);
+
+    if (entry.state.answer.usage[product] !== ProductUsage.InUse) {
+      return;
+    }
+
+    entry.settlingUntil = Date.now() + DELETE_SETTLE_MS;
+    entry.answeredAt = null;
+    ProjectProducts.scheduleFollowUp(key, entry, entry.settlingUntil);
+  }
+
+  /*
+   * A setup guide's data has just arrived (ResourceConnectionWatch): the
+   * products it set up are about to be in use, but the server may not know
+   * yet - it keeps the first logs once the telemetry writer stored them, a
+   * few seconds after the guide sees them sent. So the store asks at once,
+   * and again every EXPECT_CHANGE_EVERY_MS until each of them is in use, or
+   * EXPECT_CHANGE_FOR_MS has passed. Products in use already, or that this
+   * person may not read, ask nothing; nor does a project nothing has drawn
+   * yet (its first ask reads them).
+   */
+  public static expectProductsInUse(data: {
+    projectId?: ProjectIdInput;
+    products: ReadonlyArray<ProductKey>;
+  }): void {
+    const key: string = toProjectKey(
+      data.projectId === undefined
+        ? ProjectUtil.getCurrentProjectId()
+        : data.projectId,
+    );
+    const entry: ProjectEntry | undefined = key
+      ? ProjectProducts.entries.get(key)
+      : undefined;
+
+    if (!entry) {
+      return;
+    }
+
+    const waiting: Array<ProductKey> = data.products.filter(
+      (product: ProductKey): boolean => {
+        const said: ProductUsage | undefined =
+          entry.state.answer.usage[product];
+
+        return said !== undefined && said !== ProductUsage.InUse;
+      },
+    );
+
+    if (waiting.length === 0) {
+      return;
+    }
+
+    const now: number = Date.now();
+    const products: Set<ProductKey> = new Set<ProductKey>(
+      entry.expected && now < entry.expected.until
+        ? entry.expected.products
+        : [],
+    );
+
+    for (const product of waiting) {
+      products.add(product);
+    }
+
+    entry.expected = { products: products, until: now + EXPECT_CHANGE_FOR_MS };
+    entry.answeredAt = null;
+
+    // A request already out: its answer decides when to ask next.
+    if (entry.request) {
+      return;
+    }
+
+    ProjectProducts.cancelFollowUp(entry);
+    ProjectProducts.ask(key, entry).catch(() => {
+      // The store keeps what it knew; the next ask tries again.
+    });
+  }
+
+  /*
+   * Another tab of this browser remembered an answer (the storage event,
+   * which every other tab of the same address hears): this tab takes it,
+   * asking nothing - a monitor made there, a project's last monitor deleted
+   * there, shows here at once. The products this tab created a record of
+   * keep their mark (keepCreatedInUse), and a tab still waiting for its own
+   * delete or a guide's products still asks when it meant to. Storage
+   * cleared has the next look ask. Anything else is let be: a key of
+   * something else, a project nothing here has drawn, a removed or
+   * unreadable answer.
+   */
+  public static noteRememberedElsewhere(data: {
+    key: string | null;
+    newValue: string | null;
+  }): void {
+    if (data.key === null) {
+      for (const entry of ProjectProducts.entries.values()) {
+        entry.answeredAt = null;
+      }
+
+      return;
+    }
+
+    const key: string | null = projectOfRememberedKey(data.key);
+    const entry: ProjectEntry | undefined = key
+      ? ProjectProducts.entries.get(key)
+      : undefined;
+
+    if (!key || !entry) {
+      return;
+    }
+
+    const answer: ProjectProductsAnswer | null = parseRemembered(
+      data.newValue,
+    );
+
+    if (!answer) {
+      return;
+    }
+
+    const now: number = Date.now();
+    const kept: ProjectProductsAnswer = keepCreatedInUse(entry, answer, now);
+
+    if (isSameAnswer(kept, entry.state.answer)) {
+      return;
+    }
+
+    entry.state = { ...entry.state, answer: kept };
+    ProjectProducts.planFollowUp(key, entry, now);
+    ProjectProducts.emit();
+  }
+
   // Asks again even after a fresh answer.
   public static refresh(projectId: ProjectIdInput): Promise<void> {
     const key: string = toProjectKey(projectId);
@@ -370,9 +626,10 @@ export default class ProjectProducts {
 
     entry.generation++;
     entry.request = null;
-    entry.answeredAt = now;
+    entry.answeredAt = now < entry.settlingUntil ? null : now;
     entry.state = { answer: kept, isFresh: true, error: null };
     remember(key, kept);
+    ProjectProducts.planFollowUp(key, entry, now);
     ProjectProducts.emit();
   }
 
@@ -445,7 +702,9 @@ export default class ProjectProducts {
 
   // Forgets every answer, remembered ones included.
   public static reset(): void {
-    for (const key of ProjectProducts.entries.keys()) {
+    for (const [key, entry] of ProjectProducts.entries.entries()) {
+      ProjectProducts.cancelFollowUp(entry);
+
       try {
         window.localStorage.removeItem(rememberedKey(key));
       } catch {
@@ -477,6 +736,9 @@ export default class ProjectProducts {
       generation: 0,
       answeredAt: null,
       created: new Map<ProductKey, number>(),
+      settlingUntil: 0,
+      expected: null,
+      followUp: null,
     };
 
     ProjectProducts.entries.set(key, entry);
@@ -519,19 +781,114 @@ export default class ProjectProducts {
           askedAt,
         );
 
-        entry.answeredAt = askedAt;
+        /*
+         * Asked before every server knew of a delete this page made: drawn,
+         * but not kept as current - the next look asks again, and so does
+         * the store itself (planFollowUp).
+         */
+        entry.answeredAt = askedAt < entry.settlingUntil ? null : askedAt;
         entry.state = { answer: kept, isFresh: true, error: null };
         remember(key, kept);
       } else {
         entry.state = { ...entry.state, error: error };
       }
 
+      ProjectProducts.planFollowUp(key, entry, askedAt);
       ProjectProducts.emit();
     })();
 
     entry.request = request;
 
     return request;
+  }
+
+  /*
+   * After an answer (or a failed ask): whether the store asks again by
+   * itself, and when. A delete this page made that the answer may not know
+   * of yet asks once every server does (settlingUntil); a guide's products
+   * not in use yet ask every EXPECT_CHANGE_EVERY_MS until they are, or
+   * until the guide's wait is over. Otherwise nothing more is asked.
+   */
+  private static planFollowUp(
+    key: string,
+    entry: ProjectEntry,
+    askedAt: number,
+  ): void {
+    const now: number = Date.now();
+
+    if (entry.expected) {
+      for (const product of Array.from(entry.expected.products)) {
+        const said: ProductUsage | undefined =
+          entry.state.answer.usage[product];
+
+        if (said === undefined || said === ProductUsage.InUse) {
+          entry.expected.products.delete(product);
+        }
+      }
+
+      if (entry.expected.products.size === 0 || now >= entry.expected.until) {
+        entry.expected = null;
+      }
+    }
+
+    let askAt: number | null =
+      askedAt < entry.settlingUntil ? entry.settlingUntil : null;
+
+    if (entry.expected) {
+      const nextLook: number = Math.min(
+        now + EXPECT_CHANGE_EVERY_MS,
+        entry.expected.until,
+      );
+
+      askAt = askAt === null ? nextLook : Math.min(askAt, nextLook);
+    }
+
+    if (askAt === null) {
+      ProjectProducts.cancelFollowUp(entry);
+      return;
+    }
+
+    ProjectProducts.scheduleFollowUp(key, entry, askAt);
+  }
+
+  /*
+   * The store's one next ask of the project, at `askAt`: it replaces any
+   * other. When it comes, a request already out stands for it (its answer
+   * plans what follows), and a project forgotten since asks nothing.
+   */
+  private static scheduleFollowUp(
+    key: string,
+    entry: ProjectEntry,
+    askAt: number,
+  ): void {
+    ProjectProducts.cancelFollowUp(entry);
+
+    entry.followUp = setTimeout(
+      (): void => {
+        entry.followUp = null;
+
+        if (ProjectProducts.entries.get(key) !== entry || entry.request) {
+          return;
+        }
+
+        ProjectProducts.ask(key, entry).catch(() => {
+          // The store keeps what it knew; the next ask tries again.
+        });
+      },
+      Math.max(0, askAt - Date.now()),
+    );
+  }
+
+  private static cancelFollowUp(entry: ProjectEntry): void {
+    if (entry.followUp) {
+      clearTimeout(entry.followUp);
+      entry.followUp = null;
+    }
+  }
+
+  // The project a record is of: the one it names, else the open one.
+  private static keyOfRecord(record: RecordOfProject): string {
+    return toProjectKey(record.projectId || ProjectUtil.getCurrentProjectId());
   }
 
   private static emit(): void {
@@ -541,7 +898,30 @@ export default class ProjectProducts {
   }
 }
 
-// Every record this page creates, for as long as the page lives.
-CreatedRecords.subscribe((record: CreatedRecord): void => {
-  ProjectProducts.noteRecordCreated(record);
+// Every record this page creates or deletes, for as long as the page lives.
+RecordChanges.subscribe((change: RecordChange): void => {
+  if (change.kind === RecordChangeKind.Deleted) {
+    ProjectProducts.noteRecordDeleted(change);
+    return;
+  }
+
+  ProjectProducts.noteRecordCreated(change);
 });
+
+/*
+ * Every answer another tab of this browser remembers (#8204). The storage
+ * event reaches every tab of the address but the one that wrote, and only
+ * when the value changed.
+ */
+try {
+  if (typeof window !== "undefined" && window.addEventListener) {
+    window.addEventListener("storage", (event: StorageEvent): void => {
+      ProjectProducts.noteRememberedElsewhere({
+        key: event.key,
+        newValue: event.newValue,
+      });
+    });
+  }
+} catch {
+  // No other tab is heard: each still asks on its next look.
+}
