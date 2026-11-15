@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   formatMilliseconds,
+  formatMillisecondsInEnglish,
   MILLISECONDS_TEMPLATE,
   roundMilliseconds,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Milliseconds";
@@ -224,5 +225,102 @@ describe("rounding (roundMilliseconds)", () => {
     expect(roundMilliseconds(0.04219, 3)).toBe(0.042);
     expect(roundMilliseconds(0.04219, 9)).toBe(0.042);
     expect(roundMilliseconds(12.6, -1)).toBe(13);
+  });
+});
+
+/*
+ * The options the rest of the Dashboard's durations needed (#7418): the
+ * decimals toFixed wrote, so English reads exactly as it did ("5.0 ms"),
+ * and a sign, for a breadcrumb's offset from the exception.
+ */
+const TENTH: { minimumFractionDigits: number; maximumFractionDigits: number } =
+  { minimumFractionDigits: 1, maximumFractionDigits: 1 };
+
+describe("the decimals toFixed wrote (minimumFractionDigits)", () => {
+  test("English keeps its trailing zeros, as toFixed wrote them", () => {
+    expect(formatMilliseconds(english, 5, TENTH)).toBe("5.0 ms");
+    expect(
+      formatMilliseconds(english, 2.3, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    ).toBe("2.30 ms");
+    expect(formatMilliseconds(english, 9.96, TENTH)).toBe("10.0 ms");
+    // A thousand or more takes its separator, as every duration does.
+    expect(formatMilliseconds(english, 1234.5, TENTH)).toBe("1,234.5 ms");
+  });
+
+  test("German, Arabic and Persian write the same figure their own way", () => {
+    expect(formatMilliseconds(german, 5, TENTH)).toBe("5,0 ms");
+    expect(withoutIsolateMarks(formatMilliseconds(arabic, 5, TENTH))).toBe(
+      `5.0 ${ARABIC_MILLISECONDS}`,
+    );
+    expect(withoutIsolateMarks(formatMilliseconds(persian, 5, TENTH))).toBe(
+      `۵٫۰ ${PERSIAN_MILLISECONDS}`,
+    );
+    expect(
+      withoutIsolateMarks(formatMilliseconds(persian, 1234.5, TENTH)),
+    ).toBe(`۱٬۲۳۴٫۵ ${PERSIAN_MILLISECONDS}`);
+  });
+
+  test("a maximum below the minimum is lifted to it, and three decimals at most", () => {
+    expect(
+      formatMilliseconds(english, 5, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 0,
+      }),
+    ).toBe("5.00 ms");
+    expect(formatMilliseconds(english, 5, { minimumFractionDigits: 9 })).toBe(
+      "5.000 ms",
+    );
+    // Left out, the maximum is formatNumber's own three.
+    expect(
+      formatMilliseconds(english, 1.23456, { minimumFractionDigits: 1 }),
+    ).toBe("1.235 ms");
+  });
+});
+
+describe("a signed offset (showsSign)", () => {
+  test("English: a minus before, a plus after, zero with a plus", () => {
+    expect(formatMilliseconds(english, -880, { showsSign: true })).toBe(
+      "-880 ms",
+    );
+    expect(formatMilliseconds(english, 880, { showsSign: true })).toBe(
+      "+880 ms",
+    );
+    expect(formatMilliseconds(english, 0, { showsSign: true })).toBe("+0 ms");
+    // Without it, a positive figure has no sign.
+    expect(formatMilliseconds(english, 880)).toBe("880 ms");
+  });
+
+  test("Persian and Arabic write the plus as they write their minus, marks and all", () => {
+    expect(
+      withoutIsolateMarks(
+        formatMilliseconds(persian, -880, { showsSign: true }),
+      ),
+    ).toBe(`\u{200E}\u{2212}۸۸۰ ${PERSIAN_MILLISECONDS}`);
+    expect(
+      withoutIsolateMarks(
+        formatMilliseconds(persian, 880, { showsSign: true }),
+      ),
+    ).toBe(`\u{200E}+۸۸۰ ${PERSIAN_MILLISECONDS}`);
+    expect(
+      withoutIsolateMarks(formatMilliseconds(arabic, 880, { showsSign: true })),
+    ).toBe(`\u{200E}+880 ${ARABIC_MILLISECONDS}`);
+    expect(formatMilliseconds(german, 880, { showsSign: true })).toBe(
+      "+880 ms",
+    );
+  });
+});
+
+describe("English on purpose (formatMillisecondsInEnglish)", () => {
+  test("a chart's axis and the PDF export: Latin figures and 'ms', whatever the page's language", () => {
+    expect(formatMillisecondsInEnglish(1234.5)).toBe("1,234.5 ms");
+    expect(formatMillisecondsInEnglish(5, TENTH)).toBe("5.0 ms");
+    expect(formatMillisecondsInEnglish(Number.NaN)).toBe("-");
+    // It is the English the Persian page's own helper does not write.
+    expect(formatMilliseconds(persian, 1234.5)).not.toBe(
+      formatMillisecondsInEnglish(1234.5),
+    );
   });
 });

@@ -3,7 +3,7 @@
 Server / VM モニターは、OneUptime のインフラストラクチャエージェント（`oneuptime-infrastructure-agent`）を通じて 1 台のマシンを監視します。このエージェントは小さなサービスで、30 秒ごとに CPU、メモリ、ディスク、負荷、ネットワーク、実行中のプロセスを OneUptime に報告します。このページでは、エージェントを Server / VM モニターに接続する方法、エージェントが報告する内容、そしてサーバーをオンラインまたはオフラインと判定する条件の書き方を説明します。
 
 > [!IMPORTANT]
-> **モニターを作成** では **Server / VM** を選べなくなりました。既存の Server / VM モニターは引き続き動作し、このページの内容はすべてそれらに当てはまります。新しいサーバーを監視するには、代わりに [ホストモニター](/docs/monitor/host-monitor) を作成してください。[ホスト OpenTelemetry Collector](/docs/telemetry/host-otel-collector) が送信するホストのメトリクスでアラートを出します。
+> **モニターを作成** では **サーバー / VM** を選べなくなりました。既存の Server / VM モニターは引き続き動作し、このページの内容はすべてそれらに当てはまります。新しいサーバーを監視するには、代わりに [ホストモニター](/docs/monitor/host-monitor) を作成してください。[ホスト OpenTelemetry Collector](/docs/telemetry/host-otel-collector) が送信するホストのメトリクスでアラートを出します。
 
 :::cards
 - [エージェントを接続する](#エージェントを接続する): インストールし、モニターのシークレットキーを渡して起動します。

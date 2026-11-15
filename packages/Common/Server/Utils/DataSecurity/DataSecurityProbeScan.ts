@@ -1,5 +1,8 @@
 import { isDataConfidence } from "../../../Types/DataSecurity/DataConfidence";
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreKind,
+  PROBE_SCANNABLE_DATA_STORE_KINDS,
+} from "../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../Types/JSON";
 import {
   ALL_CUSTOM_DATA_TYPE_VALIDATORS,
@@ -101,11 +104,9 @@ export function getDatabaseEngineOfKind(
   }
 }
 
-export const PROBE_SCANNABLE_KINDS: ReadonlyArray<DataStoreKind> = [
-  DataStoreKind.PostgreSql,
-  DataStoreKind.MySql,
-  DataStoreKind.SqlServer,
-];
+// The kinds a probe samples: one list, which a store's page reads too.
+export const PROBE_SCANNABLE_KINDS: ReadonlyArray<DataStoreKind> =
+  PROBE_SCANNABLE_DATA_STORE_KINDS;
 
 export interface DataSecurityProbeLimits {
   maxRowsPerTable: number;

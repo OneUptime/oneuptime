@@ -3,9 +3,11 @@ import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterConnectionTest from "Common/Models/DatabaseModels/VMwareVCenterConnectionTest";
 import {
   Translator,
+  translatableTerm,
   translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import VMwareCertificateFingerprint from "Common/Utils/VMware/VMwareCertificateFingerprint";
@@ -23,6 +25,16 @@ import {
   VMwareCollectionSummary,
   VMwarePresentedCertificate,
 } from "Common/Types/VMware/VMwareProbeCollection";
+import {
+  ClaimDue,
+  ClaimDueState,
+  readClaimDue,
+} from "Common/Utils/Probe/ClaimDueTime";
+import {
+  VMwareCollectionStop,
+  VMwareCollectionStopFacts,
+  getVMwareCollectionStop,
+} from "Common/Utils/VMware/VMwareCollectionStop";
 
 /*
  * What the Dashboard says about a vCenter a probe collects - which probes
@@ -298,17 +310,193 @@ export interface VMwareCollectionStatusView {
   isPending: boolean;
 }
 
-// How a probe-collected vCenter's collection stands, in words.
-export function getVMwareCollectionStatusView(
-  vcenter: Pick<
-    VMwareVCenter,
-    | "collectionStatus"
-    | "collectionErrorCode"
-    | "collectionError"
-    | "presentedCertificate"
+/*
+ * How long a vCenter can stay due before it is said that no probe has come
+ * for it. A probe asks every ten seconds, and a collection still running
+ * holds the next one back for at most its time budget of ten minutes, and
+ * its upload for five more. Past that, nothing is asking: the probe is
+ * offline, or too old.
+ */
+export const VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS: number = 20 * 60 * 1000;
+
+// The columns the stop and the next collection are read from, for a card's select.
+export type VMwareCollectionScheduleFacts = VMwareCollectionStopFacts &
+  Pick<VMwareVCenter, "nextCollectionAt">;
+
+/*
+ * When a probe collects this vCenter next, and whether that is a promise
+ * (Common/Utils/Probe/ClaimDueTime): the vCenter's nextCollectionAt only
+ * when nothing stops the claim handing it out (getVMwareCollectionStop). A
+ * vCenter nothing may collect is set aside a quarter of an hour at a time,
+ * so its nextCollectionAt keeps moving and promises nothing.
+ */
+export function getVMwareNextCollection(
+  vcenter: VMwareCollectionScheduleFacts,
+  now: Date,
+  isBillingEnabled: boolean,
+): ClaimDue<VMwareCollectionStop> {
+  return readClaimDue<VMwareCollectionStop>({
+    stop: getVMwareCollectionStop(vcenter, isBillingEnabled),
+    dueAt: vcenter.nextCollectionAt,
+    now: now,
+    overdueAfterInMs: VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS,
+  });
+}
+
+// What the card says for a vCenter no probe collects, and the one thing that fixes it.
+const STOP_WORDS: Record<
+  Exclude<
+    VMwareCollectionStop,
+    | VMwareCollectionStop.ProbeNotAllowed
+    | VMwareCollectionStop.ProbeDisconnected
   >,
+  { title: string; nextStep: string }
+> = {
+  [VMwareCollectionStop.NoPassword]: {
+    title: translationKey("No password is saved for this vCenter."),
+    nextStep: translationKey(
+      "Enter the vCenter user's password in Settings, and test the connection.",
+    ),
+  },
+  [VMwareCollectionStop.NoAddress]: {
+    title: translationKey("This vCenter has no address."),
+    nextStep: translationKey(
+      "Enter vCenter's address in Settings, and test the connection.",
+    ),
+  },
+  [VMwareCollectionStop.NoUserName]: {
+    title: translationKey("This vCenter has no user name."),
+    nextStep: translationKey(
+      "Enter the vCenter user's name in Settings, and test the connection.",
+    ),
+  },
+  [VMwareCollectionStop.NoProbe]: {
+    title: translationKey("No probe is set to collect this vCenter."),
+    nextStep: translationKey("Pick one of this project's probes in Settings."),
+  },
+};
+
+// Why no probe collects this vCenter, in words, or null when one will.
+function getVMwareStopView(
+  vcenter: VMwareCollectionStopFacts & Pick<VMwareVCenter, "collectionProbe">,
   translator: Translator,
+  isBillingEnabled: boolean,
+): VMwareCollectionStatusView | null {
+  const stop: VMwareCollectionStop | null = getVMwareCollectionStop(
+    vcenter,
+    isBillingEnabled,
+  );
+
+  if (!stop) {
+    return null;
+  }
+
+  let title: string;
+  let message: string | null = null;
+  let nextStep: string;
+
+  if (
+    stop === VMwareCollectionStop.ProbeNotAllowed ||
+    stop === VMwareCollectionStop.ProbeDisconnected
+  ) {
+    const advice: VMwareCollectionErrorAdvice =
+      VMwareCollectionErrorUtil.getAdvice(
+        stop === VMwareCollectionStop.ProbeNotAllowed
+          ? VMwareCollectionErrorCode.ProbeNotAllowed
+          : VMwareCollectionErrorCode.ProbeNotAvailable,
+      );
+
+    title = translator.translateText(advice.title) as string;
+    nextStep = translator.translateText(advice.nextStep) as string;
+
+    if (stop === VMwareCollectionStop.ProbeDisconnected) {
+      message = translator.translateTemplate(
+        "Nothing collects this vCenter while {{probe}} is disconnected.",
+        {
+          probe: vcenter.collectionProbe?.name || translatableTerm("its probe"),
+        },
+      );
+    }
+  } else {
+    title = translator.translateText(STOP_WORDS[stop].title) as string;
+    nextStep = translator.translateText(STOP_WORDS[stop].nextStep) as string;
+  }
+
+  return {
+    tone: VMwareCollectionTone.Failing,
+    label: translator.translateText("Not collecting") as string,
+    title: title,
+    message: message,
+    nextStep: nextStep,
+    certificate: null,
+    /*
+     * Nothing changes it but a write to the vCenter or its probe coming
+     * back, which the page reads again after: no need to keep asking.
+     */
+    isPending: false,
+  };
+}
+
+/*
+ * How a probe-collected vCenter's collection stands, in words. What stops
+ * the probes' claim handing it out comes first: a vCenter nothing may
+ * collect is set aside, never overdue, and its last report is not what it
+ * is doing now. Then a vCenter overdue: no probe has come for it, whatever
+ * it last reported.
+ */
+export function getVMwareCollectionStatusView(
+  vcenter: VMwareCollectionStopFacts &
+    Pick<
+      VMwareVCenter,
+      | "collectionStatus"
+      | "collectionErrorCode"
+      | "collectionError"
+      | "presentedCertificate"
+      | "nextCollectionAt"
+      | "collectionProbe"
+    >,
+  translator: Translator,
+  now: Date = new Date(),
+  isBillingEnabled: boolean = false,
 ): VMwareCollectionStatusView {
+  const stopView: VMwareCollectionStatusView | null = getVMwareStopView(
+    vcenter,
+    translator,
+    isBillingEnabled,
+  );
+
+  if (stopView) {
+    return stopView;
+  }
+
+  if (
+    readClaimDue<null>({
+      stop: null,
+      dueAt: vcenter.nextCollectionAt,
+      now: now,
+      overdueAfterInMs: VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS,
+    }).state === ClaimDueState.Overdue
+  ) {
+    const advice: VMwareCollectionErrorAdvice =
+      VMwareCollectionErrorUtil.getAdvice(
+        VMwareCollectionErrorCode.ProbeNotAvailable,
+      );
+
+    return {
+      tone: VMwareCollectionTone.Failing,
+      label: translator.translateText("Not collecting") as string,
+      title: translator.translateText(advice.title) as string,
+      message: translator.translateTemplate(
+        "This vCenter was due to be collected {{time}}, and no probe has come for it.",
+        { time: OneUptimeDate.fromNow(vcenter.nextCollectionAt as Date) },
+      ),
+      nextStep: translator.translateText(advice.nextStep) as string,
+      certificate: null,
+      // It says so until the probe is back, which nobody has to reload the page to see.
+      isPending: true,
+    };
+  }
+
   if (vcenter.collectionStatus === VMwareCollectionStatus.Succeeded) {
     return {
       tone: VMwareCollectionTone.Collecting,

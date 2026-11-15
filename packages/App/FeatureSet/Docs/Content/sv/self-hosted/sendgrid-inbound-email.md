@@ -2,7 +2,7 @@
 
 Med OneUptimes **Incoming Email Monitor** kan du skapa och lösa larm utifrån e-post som skickas till unika, monitorspecifika e-postadresser. Det är användbart för att integrera äldre system, larmverktyg eller vilken tjänst som helst som kan skicka e-post.
 
-Samma konfiguration låter också arbetsflöden ta emot e-post: ett arbetsflöde med utlösaren **Incoming Email** får en egen adress på samma domän, och varje e-postmeddelande till den startar arbetsflödet. Se [Utlösare](/docs/workflows/triggers#incoming-email).
+Samma konfiguration låter också arbetsflöden ta emot e-post: ett arbetsflöde med utlösaren **Inkommande e-post** får en egen adress på samma domän, och varje e-postmeddelande till den startar arbetsflödet. Se [Utlösare](/docs/workflows/triggers#incoming-email).
 
 Den här guiden förklarar hur du konfigurerar SendGrid Inbound Parse så att inkommande e-post vidarebefordras till din egeninstallerade OneUptime-instans. OneUptime Cloud behöver inget av detta: där fungerar adresserna direkt.
 
@@ -122,7 +122,7 @@ Tillämpa dem sedan: kör `npm run start` på Docker Compose, vilket återskapar
 
 [Skapa en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#skapa-en-monitor-för-inkommande-e-post). Dess sida **Översikt** visar adressen, till exempel `monitor-abc123def456@inbound.yourdomain.com`, och dess kriterier avgör vilka e-postmeddelanden som skapar ett larm och vilka som löser det.
 
-Arbetsflöden använder samma domän. Lägg till utlösaren **Incoming Email** i ett arbetsflöde och klicka på den: dess adress (`workflow-…@inbound.yourdomain.com`) står överst i dess inställningar. Tills variablerna för inkommande e-post ovan är satta säger utlösaren att servern inte är konfigurerad för att ta emot e-post.
+Arbetsflöden använder samma domän. Lägg till utlösaren **Inkommande e-post** i ett arbetsflöde och klicka på den: dess adress (`workflow-…@inbound.yourdomain.com`) står överst i dess inställningar. Tills variablerna för inkommande e-post ovan är satta säger utlösaren att servern inte är konfigurerad för att ta emot e-post.
 
 ### Skicka ett testmeddelande
 

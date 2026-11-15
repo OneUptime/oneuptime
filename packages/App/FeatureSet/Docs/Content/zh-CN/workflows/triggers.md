@@ -20,7 +20,7 @@
 | 点击按钮来运行工作流                           | **手动**                  |
 | 按循环计划运行                                 | **计划**                    |
 | 让另一个系统把数据送进来                       | **Webhook**                 |
-| 从一封邮件开始                                 | **Incoming Email**          |
+| 从一封邮件开始                                 | **传入邮件**          |
 | 处理 Huntress 的事件报告                       | **Huntress Incident Report** |
 | 对 OneUptime 中的事做出反应                    | **OneUptime 事件**          |
 

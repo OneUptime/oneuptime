@@ -80,6 +80,7 @@ import {
   DataStoreKind,
   DataStoreKindInfo,
   DataStoreProvider,
+  WORKER_CLAIMED_DATA_STORE_KINDS,
   getDataStoreKindInfo,
 } from "../../../Types/DataSecurity/DataStoreKind";
 import {
@@ -541,15 +542,8 @@ export default class DataSecurityRunner {
     limit: number,
   ): Promise<Array<{ projectId: ObjectID; dataStoreId: ObjectID }>> {
     const now: Date = OneUptimeDate.getCurrentDate();
-    const scannableKinds: Array<string> = [
-      DataStoreKind.AwsS3Bucket,
-      DataStoreKind.AzureStorageAccount,
-      DataStoreKind.GcpStorageBucket,
-      DataStoreKind.GcpBigQueryDataset,
-      DataStoreKind.PostgreSql,
-      DataStoreKind.MySql,
-      DataStoreKind.SqlServer,
-    ];
+    // One list, which a store's page reads too (its Next Content Scan).
+    const scannableKinds: Array<string> = [...WORKER_CLAIMED_DATA_STORE_KINDS];
     const stores: Array<DataStore> = await DataStoreService.findBy({
       query: {
         isArchived: false,

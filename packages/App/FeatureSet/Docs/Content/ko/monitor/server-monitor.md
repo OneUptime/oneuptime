@@ -3,7 +3,7 @@
 Server / VM 모니터는 OneUptime 인프라 에이전트(`oneuptime-infrastructure-agent`)를 통해 머신 한 대를 감시합니다. 이 에이전트는 30초마다 CPU, 메모리, 디스크, 부하, 네트워크, 실행 중인 프로세스를 OneUptime에 보고하는 작은 서비스입니다. 이 페이지에서는 에이전트를 Server / VM 모니터에 연결하는 방법, 에이전트가 보고하는 내용, 그리고 서버가 온라인인지 오프라인인지 판단하는 기준을 작성하는 방법을 설명합니다.
 
 > [!IMPORTANT]
-> **모니터 생성** 에서는 더 이상 **Server / VM** 을 선택할 수 없습니다. 이미 있는 Server / VM 모니터는 계속 작동하며, 이 페이지의 모든 내용이 적용됩니다. 새 서버를 감시하려면 대신 [호스트 모니터](/docs/monitor/host-monitor)를 만드세요. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)가 보내는 호스트 메트릭으로 알림을 보냅니다.
+> **모니터 생성** 에서는 더 이상 **서버 / VM** 을 선택할 수 없습니다. 이미 있는 Server / VM 모니터는 계속 작동하며, 이 페이지의 모든 내용이 적용됩니다. 새 서버를 감시하려면 대신 [호스트 모니터](/docs/monitor/host-monitor)를 만드세요. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)가 보내는 호스트 메트릭으로 알림을 보냅니다.
 
 :::cards
 - [에이전트 연결](#에이전트-연결): 설치하고, 모니터의 비밀 키를 전달한 뒤 시작합니다.

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9161
+    "keys": 52780,
+    "untranslated": 9029
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -49,6 +49,7 @@
     "Cache",
     "Canonical Sunbeam",
     "Celsius",
+    "Chrome, Safari, Firefox",
     "ClickHouse",
     "CloudKitty",
     "CloudWatch Metric Streams",
@@ -64,6 +65,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Data",
     "Datacenter",
@@ -259,6 +261,7 @@
     "ScheduledMaintenance",
     "Schema",
     "Server",
+    "Server / VM",
     "Service Mesh",
     "Session",
     "Session {{id}}",

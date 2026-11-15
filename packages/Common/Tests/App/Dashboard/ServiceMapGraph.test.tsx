@@ -1298,7 +1298,7 @@ describe("connections", () => {
       { target: { value: "latency" } },
     );
     expect(screen.getByTestId("map-edge-api->postgres")).toHaveTextContent(
-      "25ms",
+      "25 ms",
     );
   });
 
@@ -1762,7 +1762,7 @@ describe("keeping the map on screen (issue #4117)", () => {
       { target: { value: "latency" } },
     );
     expect(screen.getByTestId("map-edge-api->postgres")).toHaveTextContent(
-      "25ms",
+      "25 ms",
     );
 
     // ...but not one of these renders handed React Flow new cards.

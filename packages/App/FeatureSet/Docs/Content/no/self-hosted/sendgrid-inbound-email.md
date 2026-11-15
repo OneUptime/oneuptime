@@ -2,7 +2,7 @@
 
 OneUptimes **Incoming Email Monitor** lar deg opprette og løse varsler basert på e-poster som sendes til unike, monitorspesifikke e-postadresser. Det er nyttig for å integrere eldre systemer, varslingsverktøy eller enhver tjeneste som kan sende e-post.
 
-Det samme oppsettet lar også arbeidsflyter motta e-post: En arbeidsflyt med utløseren **Incoming Email** får sin egen adresse på det samme domenet, og hver e-post til den starter arbeidsflyten. Se [Utløsere](/docs/workflows/triggers#incoming-email).
+Det samme oppsettet lar også arbeidsflyter motta e-post: En arbeidsflyt med utløseren **Innkommende e-post** får sin egen adresse på det samme domenet, og hver e-post til den starter arbeidsflyten. Se [Utløsere](/docs/workflows/triggers#incoming-email).
 
 Denne veiledningen forklarer hvordan du setter opp SendGrid Inbound Parse til å videresende innkommende e-poster til din selvhostede OneUptime-instans. OneUptime Cloud trenger ingenting av dette: Der virker adressene med en gang.
 
@@ -122,7 +122,7 @@ Ta dem deretter i bruk: Kjør `npm run start` på Docker Compose, som gjenoppret
 
 [Opprett en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#opprett-en-monitor-for-innkommende-e-post). Siden **Oversikt** viser adressen, for eksempel `monitor-abc123def456@inbound.yourdomain.com`, og kriteriene avgjør hvilke e-poster som oppretter et varsel og hvilke som løser det.
 
-Arbeidsflyter bruker det samme domenet. Legg til utløseren **Incoming Email** i en arbeidsflyt og klikk på den: Adressen (`workflow-…@inbound.yourdomain.com`) står øverst i innstillingene. Til variablene for innkommende e-post ovenfor er satt, sier utløseren at serveren ikke er satt opp til å motta e-post.
+Arbeidsflyter bruker det samme domenet. Legg til utløseren **Innkommende e-post** i en arbeidsflyt og klikk på den: Adressen (`workflow-…@inbound.yourdomain.com`) står øverst i innstillingene. Til variablene for innkommende e-post ovenfor er satt, sier utløseren at serveren ikke er satt opp til å motta e-post.
 
 ### Send en test-e-post
 
