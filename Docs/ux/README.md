@@ -543,6 +543,13 @@ work out, starts from a default for everything else, and folds what most people 
   reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
   an Arabic or Persian page (#7224). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
+- **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
+  "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as
+  "Verfügbarkeit (24" over "Std.)" (#8043). Wherever the English writes a number beside a unit's
+  symbol ("{{minutes}} min", "{{percent}}%", "24h"), the space a translation puts after that number
+  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`). Write
+  the unit as its symbol after the number in the English, so the rule finds it. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
@@ -641,6 +648,14 @@ then `npm run i18n:validate` from the root.
   that belongs to the English, as written, stays next to its word: a field a search is typed with
   ("user:"), or a setting in a vendor's console. Enforced by
   [DashboardFrenchPunctuation](../../packages/App/Tests/Dashboard/DashboardFrenchPunctuation.test.ts).
+- **French keeps each mark on the line of its words.** A line may break at a plain space, and the
+  empty Archived Workflows page started a line with "»" (#8032). The locale files keep the plain
+  space their translators type, and OneUptime draws it as French typography writes it: a narrow
+  no-break space (U+202F) before ; ! and ?, a no-break space (U+00A0) before : and » and after «.
+  The Translator sets every sentence it fills, the server's messages too, and the docs set their
+  French pages (`Common/Types/NoBreakSpaces`). A frontend hands i18next its locales through
+  `withNoBreakSpacesInLocale`, so a string read with `t()` holds them as well. Enforced by
+  [FrenchNoBreakSpacesGuard](../../packages/Common/Tests/App/FrenchNoBreakSpacesGuard.test.ts).
 - **An option reads the same in a filter's menu and in its chip.** An option's label is either the
   product's words, a key looked up in the reader's language wherever the option is drawn, or a name
   marked `isUserContent` and drawn as written: a record's ("Network"), a value read from data, a
