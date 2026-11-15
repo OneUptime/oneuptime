@@ -54679,5 +54679,19 @@
   "The call was not answered: it rang out.": "На звонок не ответили: никто не взял трубку.",
   "The call was not answered: the line was busy, or the call was declined.": "На звонок не ответили: линия была занята, или звонок отклонили.",
   "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them.",
+  "@http.route:/checkout* -@http.route:/health": "@http.route:/checkout* -@http.route:/health",
+  "At least {{count}} requests": "Не менее {{count}} запросов",
+  "At least {{count}} requests_one": "Не менее {{count}} запроса",
+  "Every request of its services": "Все запросы его сервисов",
+  "Matching {{filter}}": "Фильтр: {{filter}}",
+  "Minimum Requests": "Минимум запросов",
+  "Minimum Requests must be a whole number of requests, 0 or more.": "Минимум запросов должен быть целым числом, от 0 и больше.",
+  "Only the requests that match this traces search count.": "Учитываются только запросы, подходящие под этот поиск трассировок.",
+  "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.": "Необязательно. Учитывать только запросы, подходящие под этот поиск трассировок по атрибутам и именам спанов, например -@http.route:/health. Если пусто, учитываются все запросы сервисов.",
+  "Request Filter": "Фильтр запросов",
+  "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "Пропускать это правило, пока в его длинном окне меньше запросов, чем указано, чтобы тихий час с одной ошибкой никого не поднимал по тревоге. Оставьте пустым, чтобы не задавать минимум.",
+  "The request filter can be at most {{max}} characters long.": "Фильтр запросов может содержать не более {{max}} символов.",
+  "The request filter can have at most {{max}} terms.": "Фильтр запросов может содержать не более {{max}} условий.",
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "Фильтр запросов принимает атрибуты спана и его имя, например @http.route:/checkout* или name:\"POST /checkout\". «{{text}}» — ни то ни другое."
 }

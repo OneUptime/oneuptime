@@ -912,6 +912,13 @@ export const SLO_FEED_UPDATE_COLUMNS: Array<SloFeedColumn> = [
     title: "Latency threshold",
     kind: SloFeedValueKind.Milliseconds,
   },
+  // Which of the services' requests count (#8444): a traces search.
+  {
+    column: "requestFilter",
+    title: "Request filter",
+    kind: SloFeedValueKind.LongText,
+    emptyText: mdText`every request`,
+  },
 ];
 
 export const SLO_FEED_IS_ENABLED_COLUMN: SloFeedColumn = {
@@ -1397,9 +1404,10 @@ export const SLO_BURN_RATE_RULE_FEED_COLUMNS: Array<SloFeedColumn> = [
     kind: SloFeedValueKind.Minutes,
     emptyText: mdText`_default_`,
   },
+  // A request SLO's rule's Minimum Requests, as the rule form names it (#8442).
   {
     column: "minimumSampleCount",
-    title: "Minimum sample count",
+    title: "Minimum requests",
     kind: SloFeedValueKind.Count,
   },
   {

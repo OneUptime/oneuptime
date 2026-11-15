@@ -54679,5 +54679,19 @@
   "The call was not answered: it rang out.": "A chamada não foi atendida: tocou até cair.",
   "The call was not answered: the line was busy, or the call was declined.": "A chamada não foi atendida: a linha estava ocupada ou a chamada foi recusada.",
   "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them.",
+  "@http.route:/checkout* -@http.route:/health": "@http.route:/checkout* -@http.route:/health",
+  "At least {{count}} requests": "Pelo menos {{count}} requisições",
+  "At least {{count}} requests_one": "Pelo menos {{count}} requisição",
+  "Every request of its services": "Todas as requisições dos seus serviços",
+  "Matching {{filter}}": "Que correspondem a {{filter}}",
+  "Minimum Requests": "Mínimo de requisições",
+  "Minimum Requests must be a whole number of requests, 0 or more.": "O mínimo de requisições deve ser um número inteiro de requisições, 0 ou mais.",
+  "Only the requests that match this traces search count.": "Só contam as requisições que correspondem a esta pesquisa de traços.",
+  "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.": "Opcional. Conta só as requisições que correspondem a esta pesquisa de traços por atributos e nomes de span, como -@http.route:/health. Vazio, conta todas as requisições dos serviços.",
+  "Request Filter": "Filtro de requisições",
+  "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "Ignora esta regra enquanto a janela longa tiver menos requisições do que isto, para que uma hora tranquila com uma só falha não acione ninguém. Deixe vazio para sem mínimo.",
+  "The request filter can be at most {{max}} characters long.": "O filtro de requisições pode ter no máximo {{max}} caracteres.",
+  "The request filter can have at most {{max}} terms.": "O filtro de requisições pode ter no máximo {{max}} termos.",
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "O filtro de requisições aceita atributos do span e o nome do span, como @http.route:/checkout* ou name:\"POST /checkout\". \"{{text}}\" não é nenhum dos dois."
 }

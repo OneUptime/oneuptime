@@ -54679,5 +54679,19 @@
   "The call was not answered: it rang out.": "La llamada no se contestó: sonó sin respuesta.",
   "The call was not answered: the line was busy, or the call was declined.": "La llamada no se contestó: la línea estaba ocupada o se rechazó la llamada.",
   "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them.",
+  "@http.route:/checkout* -@http.route:/health": "@http.route:/checkout* -@http.route:/health",
+  "At least {{count}} requests": "Al menos {{count}} solicitudes",
+  "At least {{count}} requests_one": "Al menos {{count}} solicitud",
+  "Every request of its services": "Todas las solicitudes de sus servicios",
+  "Matching {{filter}}": "Que coinciden con {{filter}}",
+  "Minimum Requests": "Mínimo de solicitudes",
+  "Minimum Requests must be a whole number of requests, 0 or more.": "El mínimo de solicitudes debe ser un número entero de solicitudes, 0 o más.",
+  "Only the requests that match this traces search count.": "Solo cuentan las solicitudes que coinciden con esta búsqueda de trazas.",
+  "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.": "Opcional. Cuenta solo las solicitudes que coinciden con esta búsqueda de trazas por atributos y nombres de span, como -@http.route:/health. Si se deja vacío, cuenta todas las solicitudes de los servicios.",
+  "Request Filter": "Filtro de solicitudes",
+  "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "Omite esta regla mientras su ventana larga tenga menos solicitudes que esto, para que una hora tranquila con un solo fallo no avise a nadie. Déjelo vacío para no tener mínimo.",
+  "The request filter can be at most {{max}} characters long.": "El filtro de solicitudes puede tener como máximo {{max}} caracteres.",
+  "The request filter can have at most {{max}} terms.": "El filtro de solicitudes puede tener como máximo {{max}} términos.",
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "El filtro de solicitudes admite atributos del span y su nombre, como @http.route:/checkout* o name:\"POST /checkout\". «{{text}}» no es ninguna de las dos cosas."
 }

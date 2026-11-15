@@ -136,6 +136,30 @@ describe("ToolResultSerializer.redact - personal data", () => {
     expect(out).not.toContain("alice@example.com");
   });
 
+  test.each([
+    ["-alice@example.com", "-[redacted-email]"],
+    ["a-b@example.com", "[redacted-email]"],
+    ["_svc+ci@example.co.uk", "[redacted-email]"],
+    ["first.last@sub.example.org", "[redacted-email]"],
+  ])(
+    "an address that starts or holds a sign is still removed: %s",
+    (line: string, expected: string) => {
+      expect(redactionOf(line)).toBe(expected);
+    },
+  );
+
+  /*
+   * A traces search excludes an attribute with "-@": a request SLO's
+   * filter (#8444) reaches the assistant as it was written.
+   */
+  test.each([
+    "-@http.route:/health",
+    "@http.route:/checkout* -@http.route:/health",
+    "-@http.request.method:[GET, HEAD] -@k8s.pod.name:canary*",
+  ])("a search's excluded attribute is not an address: %s", (line: string) => {
+    expect(redactionOf(line)).toBe(line);
+  });
+
   test("an IPv4 address is removed", () => {
     expect(redactionOf("from 203.0.113.42")).toContain("[redacted-ip]");
   });

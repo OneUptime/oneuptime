@@ -54679,5 +54679,19 @@
   "The call was not answered: it rang out.": "전화를 받지 않았습니다: 신호만 가다 끊겼습니다.",
   "The call was not answered: the line was busy, or the call was declined.": "전화를 받지 않았습니다: 통화 중이었거나 전화가 거절되었습니다.",
   "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them.",
+  "@http.route:/checkout* -@http.route:/health": "@http.route:/checkout* -@http.route:/health",
+  "At least {{count}} requests": "요청 {{count}}건 이상",
+  "At least {{count}} requests_one": "요청 {{count}}건 이상",
+  "Every request of its services": "서비스의 모든 요청",
+  "Matching {{filter}}": "필터: {{filter}}",
+  "Minimum Requests": "최소 요청 수",
+  "Minimum Requests must be a whole number of requests, 0 or more.": "최소 요청 수는 0 이상의 정수여야 합니다.",
+  "Only the requests that match this traces search count.": "이 트레이스 검색과 일치하는 요청만 집계합니다.",
+  "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.": "선택 사항입니다. 스팬 속성과 이름에 대한 이 트레이스 검색과 일치하는 요청만 집계합니다(예: -@http.route:/health). 비워 두면 서비스의 모든 요청을 집계합니다.",
+  "Request Filter": "요청 필터",
+  "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "긴 기간의 요청 수가 이 값보다 적은 동안에는 이 규칙을 건너뜁니다. 그래서 실패가 한 건뿐인 조용한 한 시간에는 아무도 호출되지 않습니다. 비워 두면 최소값이 없습니다.",
+  "The request filter can be at most {{max}} characters long.": "요청 필터는 최대 {{max}}자까지 입력할 수 있습니다.",
+  "The request filter can have at most {{max}} terms.": "요청 필터의 조건은 최대 {{max}}개입니다.",
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "요청 필터에는 스팬 속성과 스팬 이름을 사용합니다(예: @http.route:/checkout* 또는 name:\"POST /checkout\"). \"{{text}}\"은(는) 둘 다 아닙니다."
 }

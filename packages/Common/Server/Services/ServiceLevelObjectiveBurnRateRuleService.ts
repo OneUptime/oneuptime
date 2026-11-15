@@ -1881,9 +1881,13 @@ export class Service extends ProjectReferencesService<Model> {
     const minimumSampleCount: number =
       this.getRecordSettings().normalizeNumericInput(value);
 
-    if (!Number.isFinite(minimumSampleCount) || minimumSampleCount < 0) {
+    /*
+     * A count of requests, stored in an integer column: 2.5 is refused here
+     * with what to write, not by the database (#8442).
+     */
+    if (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 0) {
       throw new BadDataException(
-        "Minimum sample count must be a number greater than or equal to 0.",
+        "Minimum sample count must be a whole number greater than or equal to 0.",
       );
     }
 

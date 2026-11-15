@@ -114,6 +114,41 @@ export interface BurnRateRuleWindowsData {
   refireSuppressionMinutes?: number | undefined | null;
 }
 
+/*
+ * "At least 100 requests": a request SLO's rule that skips quiet windows
+ * (#8442), on the line under its windows. Null when it has no minimum, and
+ * for 0, which is no minimum either. Counted the reader's way.
+ */
+export const formatBurnRateRuleMinimumRequests: (
+  minimumSampleCount: number | string | undefined | null,
+  translator: Translator,
+) => string | null = (
+  minimumSampleCount: number | string | undefined | null,
+  translator: Translator,
+): string | null => {
+  if (
+    minimumSampleCount === undefined ||
+    minimumSampleCount === null ||
+    minimumSampleCount === ""
+  ) {
+    return null;
+  }
+
+  const count: number = Math.round(Number(minimumSampleCount));
+
+  if (!Number.isFinite(count) || count <= 0) {
+    return null;
+  }
+
+  return translator.translatePlural(
+    {
+      one: "At least {{count}} request",
+      other: "At least {{count}} requests",
+    },
+    count,
+  );
+};
+
 export interface BurnRateRuleWindowsText {
   // "60m / 5m": the long window, then the short one.
   windows: string;
