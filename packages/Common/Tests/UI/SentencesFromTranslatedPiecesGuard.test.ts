@@ -2303,7 +2303,7 @@ const PUT_BACK: ReadonlyArray<{
   {
     file: "packages/App/FeatureSet/Dashboard/src/Components/Topology/EdgeDetailPanel.tsx",
     fixed:
-      /\{translator\.translateTemplate\(TRACES_FOR_SERVICE, \{ name: fromName \}\)\}/,
+      /\{translator\.translateTemplate\(TRACES_FOR_SERVICE, \{\s*name: fromName,?\s*\}\)\}/,
     asItWas: '{translateString("Traces for") || ""} {fromName}',
   },
   {
