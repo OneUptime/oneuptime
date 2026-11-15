@@ -207,8 +207,18 @@ describe("ExecutePendingExecutions.executePendingNotificationLog", () => {
       .spyOn(UserOnCallLogService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
+    /*
+     * Something was sent for it before - its start's immediate rule - so
+     * with no rule left it is done. (One that never sent anything gets the
+     * start's no-rule handling instead, issues #8469 and #8470.)
+     */
     await executePendingNotificationLog(
-      makePendingLog({ triggeredByIncidentId: new ObjectID("inc1") }),
+      makePendingLog({
+        triggeredByIncidentId: new ObjectID("inc1"),
+        executedNotificationRules: {
+          rule1: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+        },
+      }),
       MEMBER,
     );
 

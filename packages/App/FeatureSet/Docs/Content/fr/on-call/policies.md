@@ -112,10 +112,10 @@ flowchart TB
 | --- | --- |
 | **En attente** | Une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées** fait attendre l'exécution jusqu'au début de ces heures : elle indique quand les alertes commencent, et n'alerte personne d'ici là. Elle se termine sans alerter si l'incident ou l'alerte est pris en compte ou résolu avant. Elle commence aussitôt à alerter si l'incident ou l'alerte change et correspond désormais à une règle d'astreinte qui alerte immédiatement. |
 | **Planifié**, **Démarrée** | L'exécution est en préparation. Une exécution encore là après 5 minutes n'a pas fini de démarrer : elle passe en **Exécution en cours** et alerte à partir de l'endroit où son démarrage s'est arrêté. Un appel direct ou un appel de test encore là est arrêté en **Erreur**. |
-| **Exécution en cours** | L'exécution alerte. OneUptime la fait avancer chaque minute. |
+| **Exécution en cours** | L'exécution alerte. OneUptime la fait avancer chaque minute. Une étape qui échoue un instant, par exemple parce que la base de données était injoignable, est retentée une minute plus tard, puis 2 et 4 minutes plus tard, puis toutes les 5 minutes. |
 | **Exécution terminée** | Quelqu'un a pris en compte, l'incident ou l'alerte a été résolu, chaque règle et chaque répétition ont été utilisées, ou la politique a été archivée. |
 | **Exécution terminée - personne n'a été notifié** | L'exécution a parcouru chaque règle sans alerter personne : en général un planning où personne n'est d'astreinte, ou un niveau sans intervenant. |
-| **Erreur** | L'exécution a échoué. **Voir le message de statut** indique pourquoi. |
+| **Erreur** | L'exécution a échoué : une étape a échoué d'une façon qu'un nouvel essai ne peut pas corriger, comme une règle d'escalade supprimée, ou a échoué 10 essais d'affilée, sur environ 37 minutes. **Voir le message de statut** indique pourquoi. |
 
 Vous trouvez les journaux d'exécution à trois endroits :
 
