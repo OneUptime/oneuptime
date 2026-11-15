@@ -214,7 +214,7 @@ CPU- och minnesserierna rapporteras också för varje gäst, på id:na `qemu/*` 
 | --- | --- | --- |
 | `pve_ha_state` | — | En serie per HA-tillstånd (`started`, `stopped`, `error`, …) för varje HA-resurs, 1 på dess aktuella tillstånd. Filtrera på etiketten `state` för att varna på ett tillstånd. |
 
-### Säkerhetskopiering
+### Säkerhetskopia
 
 Från exporterns insamlare `backup-info` på klusternivå. De rapporterar bara täckning av säkerhetskopierings-**jobb**:
 

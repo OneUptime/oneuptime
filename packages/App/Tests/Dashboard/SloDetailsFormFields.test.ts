@@ -18,6 +18,14 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 type SloField = ModelField<ServiceLevelObjective>;
 
 function columnOf(field: SloField): string {
+  /*
+   * A Metric SLO's metric is asked part by part (#8445): each part is a
+   * form-only field of its own key, editing a part of metricQueryConfig.
+   */
+  if (field.overrideFieldKey) {
+    return field.overrideFieldKey;
+  }
+
   const columns: Array<string> = Object.keys(
     field.field as unknown as Record<string, unknown>,
   );

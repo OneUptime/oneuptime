@@ -1023,6 +1023,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
         {showAdjustBalanceModal ? (
           <BasicFormModal
             title={t("pages.projectSubscription.adjustBalanceTitle")}
+            isTitleTranslated={true}
             description={t(
               "pages.projectSubscription.adjustBalanceDescription",
             )}
@@ -1137,6 +1138,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
           <BasicFormModal
             key={project?.paymentProviderPlanId || "no-plan"}
             title={t("pages.projectSubscription.changePlanTitle")}
+            isTitleTranslated={true}
             description={t("pages.projectSubscription.changePlanDescription")}
             modalWidth={ModalWidth.Medium}
             isSubmitting={isChangingPlan}
@@ -1216,6 +1218,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
           <BasicFormModal
             key={project?.trialEndsAt?.toString() || "no-trial"}
             title={t("pages.projectSubscription.extendTitle")}
+            isTitleTranslated={true}
             description={t("pages.projectSubscription.extendDescription")}
             isLoading={isExtending}
             submitButtonText={t("pages.projectSubscription.extendSubmitButton")}

@@ -156,9 +156,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "- **Silent-death offline detection** — a registered device stays in the inventory as offline when it stops reporting, instead of vanishing, even if it dies without a Last Will.":
     "- **조용한 장애의 오프라인 감지**: 등록된 디바이스는 보고를 멈추면 사라지지 않고 오프라인으로 인벤토리에 남습니다. Last Will 없이 멈춘 경우도 마찬가지입니다.",
   "Register an MQTT **Last Will** on `oneuptime/<fleet>/<device>/status` with payload `offline` — if the device dies, OneUptime publishes `iot_device_up = 0` on its behalf the moment the session drops, which trips the stock Device Offline alert template with no polling. Publish `online` to the same topic after connecting so the device shows as up again; the example in step 2 does both. Any reading the device publishes counts as up too, so a device that keeps sending readings stays up without publishing its status again. The status topic also accepts `1`/`0`, `true`/`false` and `up`/`down`.":
-    "`oneuptime/<fleet>/<device>/status`에 페이로드 `offline`으로 MQTT **Last Will**을 등록하세요. 디바이스가 멈추면 세션이 끊기는 순간 OneUptime이 디바이스를 대신해 `iot_device_up = 0`을 게시하고, 폴링 없이 기본 제공 Device Offline 알림 템플릿이 작동합니다. 연결한 뒤 같은 토픽에 `online`을 게시하면 디바이스가 다시 작동 중으로 표시됩니다. 2단계의 예는 둘 다 합니다. 디바이스가 게시하는 읽은 값도 작동 중으로 간주되므로, 읽은 값을 계속 보내는 디바이스는 상태를 다시 게시하지 않아도 작동 중으로 남습니다. 상태 토픽은 `1`/`0`, `true`/`false`, `up`/`down`도 받습니다.",
+    "`oneuptime/<fleet>/<device>/status`에 페이로드 `offline`으로 MQTT **Last Will**을 등록하세요. 디바이스가 멈추면 세션이 끊기는 순간 OneUptime이 디바이스를 대신해 `iot_device_up = 0`을 게시하고, 폴링 없이 기본 제공 Device Offline 경고 템플릿이 작동합니다. 연결한 뒤 같은 토픽에 `online`을 게시하면 디바이스가 다시 작동 중으로 표시됩니다. 2단계의 예는 둘 다 합니다. 디바이스가 게시하는 읽은 값도 작동 중으로 간주되므로, 읽은 값을 계속 보내는 디바이스는 상태를 다시 게시하지 않아도 작동 중으로 남습니다. 상태 토픽은 `1`/`0`, `true`/`false`, `up`/`down`도 받습니다.",
   "Keep the MQTT keepalive **under 5 minutes** on the WebSocket endpoint (client-library defaults of 60 s are fine) — idle WebSocket connections are closed after 300 seconds, which would fire the Last Will and a false offline alert.":
-    "WebSocket 엔드포인트에서는 MQTT keepalive를 **5분 미만**으로 유지하세요(클라이언트 라이브러리 기본값인 60초면 됩니다). 유휴 WebSocket 연결은 300초 후에 닫히며, 이때 Last Will과 잘못된 오프라인 알림이 발생합니다.",
+    "WebSocket 엔드포인트에서는 MQTT keepalive를 **5분 미만**으로 유지하세요(클라이언트 라이브러리 기본값인 60초면 됩니다). 유휴 WebSocket 연결은 300초 후에 닫히며, 이때 Last Will과 잘못된 오프라인 경고가 발생합니다.",
   "Publish under the fixed `oneuptime/` prefix. The fleet and device segments must not contain `/`, `+` or `#` or start with `$`, and are limited to 100 characters.":
     "고정 접두사 `oneuptime/` 아래에 게시하세요. 플릿과 디바이스 세그먼트에는 `/`, `+`, `#`를 넣거나 `$`로 시작할 수 없으며, 100자로 제한됩니다.",
   "| Topic | Payload |": "| 토픽 | 페이로드 |",
@@ -191,7 +191,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Publish `iot_device_info` (identity-only) or a `status` message for devices that have not yet reported readings, so they still show up in the inventory.":
     "2. 아직 읽은 값을 보고하지 않은 디바이스에는 `iot_device_info`(식별 정보만) 또는 `status` 메시지를 게시해 인벤토리에 나타나게 하세요.",
   "On the WebSocket endpoint, idle connections are closed after 300 seconds, which fires the Last Will and a false Device Offline alert. Keep the MQTT keepalive under 5 minutes — client-library defaults of 60 s are fine.":
-    "WebSocket 엔드포인트에서는 유휴 연결이 300초 후에 닫히며, 이때 Last Will과 잘못된 Device Offline 알림이 발생합니다. MQTT keepalive를 5분 미만으로 유지하세요. 클라이언트 라이브러리 기본값인 60초면 됩니다.",
+    "WebSocket 엔드포인트에서는 유휴 연결이 300초 후에 닫히며, 이때 Last Will과 잘못된 Device Offline 경고가 발생합니다. MQTT keepalive를 5분 미만으로 유지하세요. 클라이언트 라이브러리 기본값인 60초면 됩니다.",
   "Replace `sensor-001` with the device's id — OneUptime adds the device to the fleet **`fleet-1`** from the topic. The Last Will reports the device offline the moment its connection drops; devices that connect directly are better off with their own credential (both under Advanced).":
     "`sensor-001`을 디바이스의 id로 바꾸세요. OneUptime은 토픽에서 디바이스를 플릿 **`fleet-1`** 에 추가합니다. Last Will은 연결이 끊기는 순간 디바이스를 오프라인으로 보고합니다. 직접 연결하는 디바이스는 자체 자격 증명을 쓰는 편이 좋습니다(둘 다 고급에 있습니다).",
 };

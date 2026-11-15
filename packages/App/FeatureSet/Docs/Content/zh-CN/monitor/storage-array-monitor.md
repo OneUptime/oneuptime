@@ -118,8 +118,8 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 严重 | `purefa_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — Storage Array Agent 已停止、失去了通往 OneUptime 的路由或令牌被撤销，或者阵列不再响应它；再次收到数据时恢复 |
-| Critical Array Alert | Array Health | 严重 | `purefa_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的严重告警(组件故障、容量紧急、复制失败)。每个告警一个事件；告警关闭时恢复 |
-| Warning Array Alert | Array Health | 警告 | `purefa_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
+| Critical Array Alert | 阵列健康状况 | 严重 | `purefa_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的严重告警(组件故障、容量紧急、复制失败)。每个告警一个事件；告警关闭时恢复 |
+| Warning Array Alert | 阵列健康状况 | 警告 | `purefa_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
 | Capacity Above 80% | 容量 | 警告 | `purefa_array_space_utilization`，Max，过去 15 分钟 | > 80 — Pure 自己的第一个容量阈值；≤ 72 时恢复 |
 | Capacity Above 90% | 容量 | 严重 | `purefa_array_space_utilization`，Max，过去 5 分钟 | > 90 — 阵列即将拒绝写入；≤ 81 时恢复 |
 | High Read Latency | 性能 | 警告 | `purefa_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op`，Avg，过去 10 分钟 | > 5000 µs (5 ms) — FlashArray 的读取通常远低于 1 ms；≤ 4500 时恢复 |
@@ -135,8 +135,8 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 严重 | `purefb_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — 代理、其导出器或 FlashBlade 不再响应；再次收到数据时恢复 |
-| Critical Array Alert | Array Health | 严重 | `purefb_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的严重告警。每个告警一个事件；告警关闭时恢复 |
-| Warning Array Alert | Array Health | 警告 | `purefb_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
+| Critical Array Alert | 阵列健康状况 | 严重 | `purefb_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的严重告警。每个告警一个事件；告警关闭时恢复 |
+| Warning Array Alert | 阵列健康状况 | 警告 | `purefb_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
 | Capacity Above 80% | 容量 | 警告 | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 15 分钟 | > 80；≤ 72 时恢复 |
 | Capacity Above 90% | 容量 | 严重 | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 5 分钟 | > 90 — 写满时每个客户端的写入都会失败；≤ 81 时恢复 |
 | Hardware Component Unhealthy | 硬件 | 严重 | `purefb_hardware_health`，按 `name` 取 Min，过去 5 分钟 | < 1 — 某个刀片、交换模块、电源或风扇不健康(未使用的插槽报告 2)。每个组件一个事件；≥ 1 时恢复 |
@@ -157,14 +157,14 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 
 代理会发送阵列导出的所有内容；下面的序列是监视器表单提供的目录。每个值都是阵列自己计算的仪表值——延迟以每次操作的微秒计，吞吐量以每秒计——因此不需要计算速率。**过滤器** 是赋予序列该行所述含义的标签过滤器；表单会替你应用它。
 
-### Array Health
+### 阵列健康状况
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 阵列上每个未关闭的告警一个序列(值为 1)，带有标签 `severity`(`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type` 和 `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade 上每个未关闭的告警一个序列(值为 1)，带有标签 `severity`(`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary` 和 `kburl`(Pure 知识库文章) |
 
-### Capacity
+### 容量
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_array_space_bytes` | `type=array`、`space=empty` | FlashBlade | `bytes` | FlashBlade 未使用的容量 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | 整个 FlashBlade 的数据缩减 |
 
-### Performance
+### 性能
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有协议的每秒读取字节数 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有协议的每秒写入字节数 |
 
-### Volumes
+### 卷
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | 每个卷在数据缩减后占用的物理空间 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 每个卷的数据缩减比 |
 
-### Hosts
+### 主机
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec` | FlashArray | `ops/s` | 每台主机的每秒读操作数 |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec` | FlashArray | `ops/s` | 每台主机的每秒写操作数 |
 
-### Replication
+### 复制
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 每个 Pod 的复制流量，带有标签 `direction` 和 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 每个 ActiveCluster Pod 的镜像写平均延迟 |
 
-### Hardware
+### 硬件
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 每个以太网和光纤通道接口上的每秒错误数——持续出错通常意味着线缆、光模块或交换机端口有问题 |
 | `purefb_hardware_health` | — | FlashBlade | — | 每个硬件组件(刀片、交换模块、电源、风扇……)的健康状况：1 = 健康，2 = 未使用，0 = 不健康。按 `name` 取最小值 |
 
-### File Systems
+### 文件系统
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 每个文件系统占用的物理空间 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 每个文件系统预配大小中仍然空闲的比例，从 0 到 1——接近 0 时它即将用满配额 |
 
-### Buckets
+### 存储桶
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |

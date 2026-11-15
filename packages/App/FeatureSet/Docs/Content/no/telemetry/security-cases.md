@@ -218,7 +218,7 @@ OneUptime gir folk beskjed om fem ting på en sak. Ingen trenger å sette opp no
 
 ### Velg hva du får beskjed om
 
-Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
+Hver person velger selv, under **Brukerinnstillinger → Varslingsinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
 
 | Valg | Varsler om saker med |
 | --- | --- |
@@ -230,7 +230,7 @@ Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger →
 
 Valgene følger prosjektets saksprioriteter, under sine egne navn: dette er valgene i et nytt prosjekt.
 
-Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner saken i OneUptime On-Call-appen (1.7.0 eller nyere), der du kan godkjenne eller avvise et playbook-steg som venter, ta saken og lukke den. Lenken i det åpner saken i nettleseren.
+Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. En push-varsling åpner saken i OneUptime On-Call-appen (1.7.0 eller nyere), der du kan godkjenne eller avvise et playbook-steg som venter, ta saken og lukke den. Lenken i det åpner saken i nettleseren.
 
 ### Legg ut i Slack-, Microsoft Teams- og Mattermost-kanaler
 
@@ -440,7 +440,7 @@ Sjekk **Åpne en sak ved treff** i regelens steg **Ved treff**. En deteksjon om 
 :::
 
 :::details Ingen fikk beskjed om en sak
-Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og høyere**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Prosjekteier eller Prosjektadministrator), og at varslingen er slått på for dem under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**.
+Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og høyere**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Prosjekteier eller Prosjektadministrator), og at varslingen er slått på for dem under **Brukerinnstillinger → Varslingsinnstillinger → Sikkerhet**.
 :::
 
 :::details En sak viser ingen frist

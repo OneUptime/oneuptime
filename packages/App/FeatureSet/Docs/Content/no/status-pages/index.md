@@ -94,7 +94,7 @@ Når du har åpnet en statusside, er den egne venstremenyen delt inn i ti seksjo
 | **Ressurser** | Én skjerm **Ressurser** (gruppene til venstre, monitorene i den valgte gruppen til høyre). |
 | **Regler** | **Monitorregler**: regler som legger til hver monitor som samsvarer på siden, nå og senere. |
 | **Abonnenter** | **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnentsinnstillinger**. |
-| **Varsellogger** | **Varsellogger**: hva som er sendt til abonnentene. |
+| **Varslingslogger** | **Varslingslogger**: hva som er sendt til abonnentene. |
 | **Merkevare** | **Merkevare** (logo, tittel, favicon, lenker, bunntekst, farger og språk, på én side), **Egendefinerte domener**, **HTML, CSS og JavaScript**. |
 | **Sikkerhet** | **Tilgang** (hvem som kan se siden), **Private brukere**, **SSO**, **OIDC**, **SCIM**. |
 | **KI** | **MCP**. |
@@ -237,7 +237,7 @@ Hvis du heller vil hente dataene selv, bygger statussiden på offentlige lese-en
 Arkiver en statusside for å ta den offline uten å slette den. En arkivert statusside:
 
 - **Er offline.** URL-en, de egendefinerte domenene, det innebygde merket, det offentlige API-et og MCP-serveren svarer som om siden ikke fantes ("Status Page not found"), så en besøkende ikke kan skille en arkivert side fra en som aldri har eksistert. Dashbordets forhåndsvisningslenke slutter også å virke.
-- **Sender ingenting til abonnentene sine.** Ingen varsler om hendelser, episoder, vedlikehold eller kunngjøringer, ingen rapporter og ingen abonnementsbekreftelser. Ingen kan abonnere på den.
+- **Sender ingenting til abonnentene sine.** Ingen varslinger om hendelser, episoder, vedlikehold eller kunngjøringer, ingen rapporter og ingen abonnementsbekreftelser. Ingen kan abonnere på den.
 - **Forsvinner fra listen over statussider.** Du finner den under **Statussider → Avansert → Arkivert**.
 - **Beholder alt.** Ressursene, gruppene, merkevaren, domenene, de private brukerne og abonnentene beholdes, så når du fjerner den fra arkivet, kommer siden tilbake online akkurat slik den var.
 

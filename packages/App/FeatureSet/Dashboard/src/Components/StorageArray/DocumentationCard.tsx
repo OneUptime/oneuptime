@@ -41,7 +41,9 @@ const StorageArrayDocumentationCard: FunctionComponent<ComponentProps> = (
       optionsLabel="Which array are you connecting?"
       options={STORAGE_ARRAY_PLATFORMS}
       initialOption={getStorageArrayPlatformForSystem(props.storageSystem)}
-      keyStepDescription="The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getStorageArraySetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,

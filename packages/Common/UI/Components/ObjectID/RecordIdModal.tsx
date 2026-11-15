@@ -75,6 +75,7 @@ const RecordIdModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={title}
+      isTitleTranslated={true}
       onClose={props.onClose}
       closeButtonText="Close"
       submitButtonText={offersApiReference ? "Go to API Docs" : undefined}

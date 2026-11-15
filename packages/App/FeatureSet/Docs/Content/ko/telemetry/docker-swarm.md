@@ -25,7 +25,7 @@ flowchart TB
     poller -->|"공유 볼륨의<br/>JSON 줄"| collector["Collector"]
     files --> collector
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    oneuptime -->|"인시던트나 알림을<br/>조사"| ai["Docker Swarm AI 에이전트"]
+    oneuptime -->|"인시던트나 경고를<br/>조사"| ai["Docker Swarm AI 에이전트"]
     ai -->|"docker 명령"| api
 ```
 

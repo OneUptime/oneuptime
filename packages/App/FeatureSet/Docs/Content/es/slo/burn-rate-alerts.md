@@ -132,7 +132,7 @@ En **Regla**, escribe un **Nombre**, como «Fast burn». Una regla nueva está a
 
 ### Fijar la ventana de consumo
 
-En **Ventana de consumo**, fija el **Umbral de tasa de consumo** (por ejemplo `14.4`), la **Ventana larga (minutos)** y la **Ventana corta (minutos)**, y si quieres la **Supresión de nueva activación (minutos)**. La regla de un SLO de solicitudes admite además un **Mínimo de solicitudes**, por ejemplo `100`: la regla omite una ventana larga que tenga menos solicitudes que ese número.
+En **Ventana de consumo**, fija el **Umbral de tasa de consumo** (por ejemplo `14.4`), la **Ventana larga (minutos)** y la **Ventana corta (minutos)**, y si quieres la **Supresión de nueva activación (minutos)**. La regla de un SLO de solicitudes admite además un **Mínimo de solicitudes**, por ejemplo `100`: la regla omite una ventana larga que tenga menos solicitudes que ese número. La regla de un SLO de métrica admite del mismo modo un **Mínimo de eventos**, contado en eventos de su métrica.
 
 ### Elegir qué declara
 
@@ -152,6 +152,7 @@ OneUptime comprueba los números de una regla al guardarla:
 | **Ventana larga (minutos)** | Más larga que la ventana corta. |
 | **Supresión de nueva activación (minutos)** | 0 o más. Vacío significa la duración de la ventana larga. |
 | **Mínimo de solicitudes** | Un número entero, 0 o más. Vacío significa sin mínimo. |
+| **Mínimo de eventos** | Un número entero, 0 o más. Vacío significa sin mínimo. |
 
 Cada respuesta a **Cuando se dispara** abre algo. La API rechaza una regla que no crearía ninguna alerta ni declararía ningún incidente, porque se comprobaría en cada evaluación sin declarar nunca nada.
 

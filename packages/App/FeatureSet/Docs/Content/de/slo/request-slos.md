@@ -5,6 +5,7 @@ Ein Anfrage-SLO misst, was Ihre Nutzer von einem Dienst bekommen: den Anteil sei
 :::cards
 - [Ein Anfrage-SLO erstellen](#ein-anfrage-slo-erstellen): Die Dienste, eine Schwelle für die Latenz und ein Ziel.
 - [Nur einige Anfragen zählen](#nur-einige-anfragen-zählen): Ein einzelner Endpunkt oder jede Anfrage außer Health-Checks.
+- [SLOs aus einer Metrik](#slos-aus-einer-metrik): Ein Zähler oder ein Histogramm, für Dienste, die keine Traces senden.
 - [Wie Anfragen gezählt werden](#wie-anfragen-gezählt-werden): Welche Spans zählen, und wann.
 - [Release-Prüfungen](/docs/slo/release-checks): Ein Release zurückrollen, das das Fehlerbudget verbrennt.
 :::
@@ -76,6 +77,22 @@ Ein Anfrage-SLO zählt jede Anfrage seiner Dienste. Ein **Anfragefilter** zählt
 Jeder Begriff muss zutreffen, `@http.route:/checkout* -@http.route:/checkout/health` zählt also die Checkout-Anfragen ohne ihren Health-Check. Ein Begriff mit `@` ist ein Attribut des Spans der Anfrage, und `name:` ist der Name des Spans. Freitext und die anderen Felder des Explorers, etwa `status:` und `duration:`, sind hier keine Filter: Das SLO legt bereits fest, welche Anfragen schlecht oder langsam sind. Ein Filter umfasst bis zu 10 Begriffe in 500 Zeichen.
 
 Die **Übersicht** zeigt den Filter unter den Diensten des SLO, und die **Einstellungen** zeigen ihn unter **Messgröße**. Eine Änderung des Filters zählt die Anfragen des SLO noch einmal von vorn.
+
+## SLOs aus einer Metrik
+
+Wenn Ihre Dienste ihre Anfragen bereits als Metriken zählen oder keine Traces senden, messen Sie das SLO stattdessen aus einem Zähler oder einem Histogramm. Wählen Sie unter **Messgröße** die Option **Metrik** und die **Dienste**, die die Metrik senden, und füllen Sie dann im Schritt **Metrik** diese Felder aus:
+
+| Feld | Was Sie eingeben |
+| --- | --- |
+| **Metrik** | Der Name der Metrik, aus den Metriken Ihres Projekts ausgewählt oder eingegeben, etwa `http_requests_total` oder `http.server.request.duration`. |
+| **Gute Ereignisse** | **Ein Zähler, nach einer Bedingung** oder **Ein Histogramm, nach einem Wert**. |
+| **Gut, wenn** | Bei einem Zähler: die Ereignisse, die gut sind, als Suche in seinen Attributen, etwa `@http.response.status_code:<500`. |
+| **Gut bis einschließlich** | Bei einem Histogramm: der Wert, den eine gute Beobachtung nicht überschreitet, in der eigenen Einheit der Metrik, etwa `0.3` für 300 ms bei einem Histogramm in Sekunden. Verwenden Sie eine seiner Bucket-Grenzen. |
+| **Metrikfilter** | Optional: die Reihen, die zählen, etwa `-@http.route:/health`. |
+
+Als Ereignisse eines Zählers zählt, um wie viel er in jedem Schritt von 5 Minuten gewachsen ist, so wie `increase()` von Prometheus ihn liest: Ein Zähler, der neu startet, zählt wieder ab null, und sowohl kumulative als auch Delta-Zähler zählen. Die Ereignisse eines Histogramms sind seine Beobachtungen, und gut sind die in den Buckets bis einschließlich des Werts. Es zählen nur die eigenen Punkte der Metrik, und nur die aus den Diensten des SLO: Ein Gauge mit demselben Namen zählt nichts.
+
+Von da an funktioniert ein Metrik-SLO wie ein Anfrage-SLO, mit Fehlerbudget, Burn-Rate-Regeln und Release-Prüfungen in Ereignissen. Eine Änderung der Metrik zählt seine Ereignisse noch einmal von vorn.
 
 ## Wie Anfragen gezählt werden
 

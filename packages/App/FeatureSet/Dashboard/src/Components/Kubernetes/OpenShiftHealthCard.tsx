@@ -301,6 +301,7 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
                       { count: health.counts.total },
                     )
               }
+              isTitleTranslated={true}
               buttonStyle={ButtonStyleType.NORMAL}
               onClick={() => {
                 setIsShowingAll(!isShowingAll);

@@ -73,13 +73,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "**Uninstall:**": "**Avinstaller:**",
   "| Category | Data |": "| Kategori | Data |",
   "| **CPU Metrics** | Usage total, usage percentage, throttling time (per container) |":
-    "| **CPU-metrikker** | Totalt forbruk, forbruk i prosent, strupetid (per container) |",
+    "| **CPU-målinger** | Totalt forbruk, forbruk i prosent, strupetid (per container) |",
   "| **Memory Metrics** | Usage, limit, percentage, RSS, cache (per container) |":
-    "| **Minnemetrikker** | Forbruk, grense, prosent, RSS, hurtigbuffer (per container) |",
+    "| **Minnemålinger** | Forbruk, grense, prosent, RSS, hurtigbuffer (per container) |",
   "| **Network Metrics** | Bytes and packets received/transmitted (per container) |":
-    "| **Nettverksmetrikker** | Mottatte/sendte byte og pakker (per container) |",
+    "| **Nettverksmålinger** | Mottatte/sendte byte og pakker (per container) |",
   "| **Block I/O Metrics** | Read/write bytes and operations (per container) |":
-    "| **Blokk-I/O-metrikker** | Leste/skrevne byte og operasjoner (per container) |",
+    "| **Blokk-I/O-målinger** | Leste/skrevne byte og operasjoner (per container) |",
   "| **Container Info** | Uptime, restart count, process count |":
     "| **Containerinfo** | Oppetid, antall omstarter, antall prosesser |",
   "| **Container Logs** | stdout/stderr logs from all containers |":
@@ -108,7 +108,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then look for export errors in the agent's logs — `docker logs oneuptime-docker-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
     "Se deretter etter eksportfeil i agentens logger (`docker logs oneuptime-docker-agent 2>&1 | grep -i error`), og sørg for at ingestion-nøkkelen er gyldig og ikke har utløpt.",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using the `json-file` log driver.":
-    "Kommer det metrikker, men fanen **Logger** er tom eller viser bare agentens egne logger? Containerne dine bruker mest sannsynlig ikke loggdriveren `json-file`.",
+    "Kommer det målinger, men fanen **Logger** er tom eller viser bare agentens egne logger? Containerne dine bruker mest sannsynlig ikke loggdriveren `json-file`.",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `json-file`. Switch them (see **Collect logs from every container (json-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
     "Hvis trinn 1 viser `no files match the configured criteria`, eller trinn 3 ikke viser noen filer for containerne dine, bruker de ikke `json-file`. Bytt dem (se **Samle inn logger fra alle containere (loggdriver json-file)** under Avansert), og opprett deretter hver enkelt på nytt: en container beholder loggdriveren den ble opprettet med:",
   "A host's page shows the data whose host name is that host's identifier, which the agent takes from `DOCKER_HOST_NAME`. Change `DOCKER_HOST_NAME` after the host registered, and OneUptime registers a second host under the new name — the logs are on that one. Check the name the agent reports:":

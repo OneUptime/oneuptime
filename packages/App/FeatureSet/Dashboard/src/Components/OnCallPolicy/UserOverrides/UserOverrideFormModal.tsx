@@ -211,6 +211,7 @@ const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
   return (
     <ModelFormModal<OnCallDutyPolicyUserOverride>
       title={title}
+      isTitleTranslated={true}
       name="On-Call Policy > User Overrides"
       modelType={OnCallDutyPolicyUserOverride}
       modelIdToEdit={editTarget ? new ObjectID(editTarget.id) : undefined}

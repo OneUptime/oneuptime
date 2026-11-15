@@ -450,6 +450,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
     return (
       <ConfirmModal
         title={title}
+        isTitleTranslated={true}
         description={error}
         submitButtonText="Close"
         onSubmit={props.onClose}
@@ -467,6 +468,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
     return (
       <ConfirmModal
         title={title}
+        isTitleTranslated={true}
         description="Reading what the map already knows about this device..."
         submitButtonText="Cancel"
         onSubmit={props.onClose}
@@ -479,6 +481,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
       modelType={NetworkDevice}
       name="Add Unmanaged Neighbour To Monitoring"
       title={title}
+      isTitleTranslated={true}
       description={[draft.provenance, ...draft.warnings].join(" ")}
       submitButtonText="Add Device"
       modalWidth={ModalWidth.Medium}

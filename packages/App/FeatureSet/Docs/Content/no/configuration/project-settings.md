@@ -34,7 +34,7 @@ flowchart LR
 | **Grunnleggende** | **Prosjekt**, **Produkter**, **Etiketter** | [Prosjektets detaljer](#prosjektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videosamtaler** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videosamtaler](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Inntaksnøkler**, **Dataoppbevaring**, **Forbruk** | [Inntaksnøkler](/docs/telemetry/ingestion-keys), [Dataoppbevaring](/docs/telemetry/data-retention), [Telemetriforbruk](/docs/telemetry/usage) |
-| **Varsler** | **Varslingskanaler**, **Varsellogger**, **Mobilapper** | [Varsler](#varsler) |
+| **Varslinger** | **Varslingskanaler**, **Varslingslogger**, **Mobilapper** | [Varslinger](#varslinger) |
 | **KI** | **AI-funksjoner**, **LLM-leverandører**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-resultater**, **AI-logger**, **MCP-server** | [LLM-leverandører](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
 | **Avansert** | **Domener**, **API-nøkler**, **Funksjonsflagg**, **Importer fra et annet verktøy** | [Egne domener](/docs/status-pages/branding-and-domains#egendefinerte-domener), [API-nøkler](/docs/permissions/index#api-nøkler), [Funksjonsflagg](#funksjonsflagg), [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flytteveiledningene |
 | **Sikkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -92,12 +92,12 @@ I en liste vises etikettene til en post under hverandre; er det flere enn fire, 
 
 For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for å slette den. Alt som har etiketten, beholder den, og du kan fortsatt filtrere på den, men ingen kan legge den til på noe igjen: Hver etikettvelger utelater den, og API-et, Terraform og MCP avviser den. Dialogen viser reglene og tillatelsene som er satt opp til å bruke etiketten, og som fortsetter å bruke den til du endrer dem. Arkiverte etiketter vises for seg, i den sammenslåtte delen **Arkiverte etiketter**, der **Fjern fra arkivet** setter en tilbake. **Slett** viser først alt etiketten ville blitt fjernet fra, og tilbyr **Arkiver i stedet**.
 
-## Varsler
+## Varslinger
 
-**Prosjektinnstillinger → Varsler** inneholder hvordan prosjektet sender varsler:
+**Prosjektinnstillinger → Varslinger** inneholder hvordan prosjektet sender varslinger:
 
 - **Varslingskanaler**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
-- **Varsellogger**: hvert varsel prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**.
+- **Varslingslogger**: hver varsling prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**.
 - **Mobilapper**: hvor du får appene for iOS og Android. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
 
 ## Funksjonsflagg

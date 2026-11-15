@@ -51,6 +51,8 @@ export enum MetricExplorerUrlParam {
 export interface SerializedMetricQueryAlias {
   title?: string | undefined;
   description?: string | undefined;
+  // The description is the metric's own (MetricAliasData, #8572).
+  isMetricTypeDescription?: boolean | undefined;
   legend?: string | undefined;
   legendUnit?: string | undefined;
 }
@@ -834,6 +836,10 @@ export default class MetricExplorerUrl {
       data.description.trim() !== ""
     ) {
       alias.description = data.description;
+
+      if (data.isMetricTypeDescription === true) {
+        alias.isMetricTypeDescription = true;
+      }
     }
 
     if (typeof data.legend === "string" && data.legend.trim() !== "") {
@@ -865,6 +871,11 @@ export default class MetricExplorerUrl {
 
       if (typeof aliasRecord["description"] === "string") {
         alias.description = aliasRecord["description"] as string;
+
+        // Only a description the link carries can be the metric's own.
+        if (aliasRecord["isMetricTypeDescription"] === true) {
+          alias.isMetricTypeDescription = true;
+        }
       }
 
       if (typeof aliasRecord["legend"] === "string") {

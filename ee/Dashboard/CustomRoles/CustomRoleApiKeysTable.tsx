@@ -251,8 +251,7 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
     ? translator.translateTemplate("Give {{role}} to an API Key", {
         role: props.roleName,
       })
-    : translator.translateText("Give this role to an API key") ||
-      "Give this role to an API key";
+    : (translator.translateText("Give this role to an API key") as string);
 
   /*
    * A key's page, opened at its Custom Roles card: the card is in the key's
@@ -402,6 +401,7 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
       {isGiving ? (
         <ModelFormModal<ApiKeyCustomRole>
           title={giveTitle}
+          isTitleTranslated={true}
           name="Give a custom role to an API key"
           description={getGiveRoleToApiKeyDescription(translator, coverage)}
           modelType={ApiKeyCustomRole}

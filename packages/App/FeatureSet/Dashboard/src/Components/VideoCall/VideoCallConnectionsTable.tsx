@@ -345,8 +345,9 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
               ? translator.translateTemplate("Test {{name}}", {
                   name: testItem.name,
                 })
-              : "Test connection"
+              : (translator.translateText("Test connection") as string)
           }
+          isTitleTranslated={true}
           description="OneUptime starts a real test meeting with this connection's saved settings. If it works, the connection is ready to use."
           modalWidth={ModalWidth.Medium}
           closeButtonText="Close"

@@ -4,7 +4,7 @@
 
 :::cards
 - [모니터 만들기](#스토리지-어레이-모니터-만들기): 대시보드에서 여섯 단계.
-- [템플릿](#미리-만든-알림-템플릿): 미리 만든 경고 스무 개. 볼륨, 호스트, 구성 요소마다 인시던트 하나.
+- [템플릿](#미리-만든-경고-템플릿): 미리 만든 경고 스무 개. 볼륨, 호스트, 구성 요소마다 인시던트 하나.
 - [Pure 시리즈의 작동 방식](#pure-시리즈의-구조): 메트릭 이름 하나에 여러 수치.
 - [메트릭](#수집되는-메트릭): 모니터가 경고를 보낼 수 있는 모든 시리즈.
 :::
@@ -25,7 +25,7 @@ flowchart TB
     oneuptime -->|"첫 데이터"| registered["어레이 등록됨"]
     oneuptime --> monitor["스토리지 어레이 모니터"]
     monitor -->|"매분"| criteria{"기준 충족?"}
-    criteria -->|"예"| incident["인시던트 또는 알림"]
+    criteria -->|"예"| incident["인시던트 또는 경고"]
     criteria -->|"아니요"| online["모니터 온라인"]
 ```
 
@@ -53,7 +53,7 @@ flowchart TB
 
 새 모니터는 **경고 대상** 아래의 **Array Stopped Reporting** 에서 시작합니다. 다른 것을 감시하려면 다음 중 하나를 사용합니다.
 
-- **변경**: 다른 [템플릿](#미리-만든-알림-템플릿)을 고릅니다. 템플릿은 메트릭, 레이블 필터, 집계, 시간 범위, 임계값을 설정하고 아래의 기준을 자신의 기준으로 바꿉니다. **시간 범위** 는 나중에도 바꿀 수 있습니다.
+- **변경**: 다른 [템플릿](#미리-만든-경고-템플릿)을 고릅니다. 템플릿은 메트릭, 레이블 필터, 집계, 시간 범위, 임계값을 설정하고 아래의 기준을 자신의 기준으로 바꿉니다. **시간 범위** 는 나중에도 바꿀 수 있습니다.
 - **Custom Metric** (**추가 필드** 안): **Storage Array Metric** 에서 메트릭 하나를 고른 다음 **집계** 와 **시간 범위** 를 설정합니다. [필터](#모니터-설정)로 볼륨, 호스트, 파드, 구성 요소, 파일 시스템, 버킷 하나로 좁힙니다.
 - **고급** (**추가 필드** 안): **메트릭 선택** 에서 쿼리와 수식을 직접 만듭니다. 예를 들어 사용된 용량은 `purefa_array_space_bytes` 를 `space=capacity` 로 필터링한 값에서 같은 메트릭을 `space=empty` 로 필터링한 값을 뺀 것입니다. 객체의 레이블로 **그룹화 기준** 하면 각 객체를 따로 판단합니다.
 
@@ -107,7 +107,7 @@ Pure는 메트릭 이름 **하나** 에 여러 수치를 담고 레이블로 구
 
 모니터 필터와 그룹화 키에서 에이전트의 속성은 `resource.` 로 시작하지만(`resource.storage.array.name`, `resource.storage.system`), Pure 자체의 레이블은 그렇지 않습니다(`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 
-## 미리 만든 알림 템플릿
+## 미리 만든 경고 템플릿
 
 OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
 
@@ -118,8 +118,8 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 가용성 | 심각 | `purefa_info`, Count, 최근 10분 | 기간 내내 데이터 없음 — Storage Array Agent가 멈췄거나 OneUptime으로 가는 경로를 잃었거나 토큰이 취소됨, 또는 어레이가 에이전트에 더 이상 응답하지 않음. 데이터가 다시 들어오면 복구 |
-| Critical Array Alert | Array Health | 심각 | `purefa_alerts_open` 을 `severity=critical` 로 필터링, `summary` 별 Max, 최근 5분 | > 0 — 어레이에 열린 심각 알림이 있음(고장 난 구성 요소, 용량 비상, 복제 실패). 알림마다 인시던트 하나. 알림이 닫히면 복구 |
-| Warning Array Alert | Array Health | 경고 | `purefa_alerts_open` 을 `severity=warning` 으로 필터링, `summary` 별 Max, 최근 5분 | > 0 — 어레이에 열린 경고 알림이 있음. 알림마다 인시던트 하나. 알림이 닫히면 복구 |
+| Critical Array Alert | 어레이 상태 | 심각 | `purefa_alerts_open` 을 `severity=critical` 로 필터링, `summary` 별 Max, 최근 5분 | > 0 — 어레이에 열린 심각 수준 경고가 있음(고장 난 구성 요소, 용량 비상, 복제 실패). 경고마다 인시던트 하나. 경고가 닫히면 복구 |
+| Warning Array Alert | 어레이 상태 | 경고 | `purefa_alerts_open` 을 `severity=warning` 으로 필터링, `summary` 별 Max, 최근 5분 | > 0 — 어레이에 열린 경고 수준 경고가 있음. 경고마다 인시던트 하나. 경고가 닫히면 복구 |
 | Capacity Above 80% | 용량 | 경고 | `purefa_array_space_utilization`, Max, 최근 15분 | > 80 — Pure 자체의 첫 번째 용량 임계값. ≤ 72에서 복구 |
 | Capacity Above 90% | 용량 | 심각 | `purefa_array_space_utilization`, Max, 최근 5분 | > 90 — 어레이가 쓰기를 거부하기 직전. ≤ 81에서 복구 |
 | High Read Latency | 성능 | 경고 | `purefa_array_performance_latency_usec` 를 `dimension=usec_per_read_op` 로 필터링, Avg, 최근 10분 | > 5000 µs (5 ms) — FlashArray 읽기는 보통 1 ms보다 훨씬 짧음. ≤ 4500에서 복구 |
@@ -135,8 +135,8 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 가용성 | 심각 | `purefb_info`, Count, 최근 10분 | 기간 내내 데이터 없음 — 에이전트, 그 익스포터, 또는 FlashBlade가 응답을 멈춤. 데이터가 다시 들어오면 복구 |
-| Critical Array Alert | Array Health | 심각 | `purefb_alerts_open` 을 `severity=critical` 로 필터링, `summary` 별 Max, 최근 5분 | > 0 — FlashBlade에 열린 심각 알림이 있음. 알림마다 인시던트 하나. 알림이 닫히면 복구 |
-| Warning Array Alert | Array Health | 경고 | `purefb_alerts_open` 을 `severity=warning` 으로 필터링, `summary` 별 Max, 최근 5분 | > 0 — FlashBlade에 열린 경고 알림이 있음. 알림마다 인시던트 하나. 알림이 닫히면 복구 |
+| Critical Array Alert | 어레이 상태 | 심각 | `purefb_alerts_open` 을 `severity=critical` 로 필터링, `summary` 별 Max, 최근 5분 | > 0 — FlashBlade에 열린 심각 수준 경고가 있음. 경고마다 인시던트 하나. 경고가 닫히면 복구 |
+| Warning Array Alert | 어레이 상태 | 경고 | `purefb_alerts_open` 을 `severity=warning` 으로 필터링, `summary` 별 Max, 최근 5분 | > 0 — FlashBlade에 열린 경고 수준 경고가 있음. 경고마다 인시던트 하나. 경고가 닫히면 복구 |
 | Capacity Above 80% | 용량 | 경고 | `purefb_array_space_utilization` 을 `type=array` 로 필터링, Max, 최근 15분 | > 80. ≤ 72에서 복구 |
 | Capacity Above 90% | 용량 | 심각 | `purefb_array_space_utilization` 을 `type=array` 로 필터링, Max, 최근 5분 | > 90 — 가득 차면 모든 클라이언트의 쓰기가 실패함. ≤ 81에서 복구 |
 | Hardware Component Unhealthy | 하드웨어 | 심각 | `purefb_hardware_health`, `name` 별 Min, 최근 5분 | < 1 — 블레이드, 패브릭 모듈, 전원 공급 장치, 팬이 정상이 아님(사용하지 않는 슬롯은 2를 보고함). 구성 요소마다 인시던트 하나. ≥ 1에서 복구 |
@@ -146,7 +146,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 경고는 프로젝트에서 가장 심각한 인시던트 및 경고 심각도로 시작하며, 기준에서 바꿀 수 있습니다.
 
 - **Array Stopped Reporting** 템플릿은 플랫폼의 식별 시리즈(`purefa_info` 또는 `purefb_info`)를 셉니다. 에이전트가 수집하는 모든 엔드포인트가 수집할 때마다 이 시리즈를 내보냅니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
-- **열린 알림과 하드웨어 상태는 Max를 씁니다**. 경고가 열려 있거나 구성 요소가 그 상태에 있는 동안에만 존재하는 시리즈이므로, 상태가 5분 창 전체에서 보였을 때 임계값을 넘습니다.
+- **열린 경고와 하드웨어 상태는 Max를 씁니다**. 경고가 열려 있거나 구성 요소가 그 상태에 있는 동안에만 존재하는 시리즈이므로, 상태가 5분 창 전체에서 보였을 때 임계값을 넘습니다.
 - **객체별 템플릿은 모두 객체 자체의 레이블로 그룹화합니다**(`summary`, `component_name`, `host`, `local_pod`, `name`). 그래서 영향받은 객체마다 인시던트가 하나씩 발생하고, 인시던트에 그 객체의 이름이 들어갑니다.
 - **지연 시간 템플릿은 Avg를 씁니다**. 어레이 자체의 작업당 평균에 대한 Avg이며, 용량 템플릿은 어레이 자체의 사용률에 대한 **최대** 를 씁니다. 지연 시간은 마이크로초, 용량은 퍼센트로 고정되어 있습니다.
 - **Hardware Component Unhealthy는 구성 요소별 Min을 씁니다**. 상태는 정상일 때 1이고, 아닐 때 0으로 떨어집니다.
@@ -157,14 +157,14 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 
 에이전트는 어레이가 내보내는 모든 것을 보냅니다. 아래 시리즈는 모니터 양식이 제공하는 카탈로그입니다. 모든 값은 어레이가 직접 계산한 게이지이므로(지연 시간은 작업당 마이크로초, 처리량은 초당 값), 비율을 계산할 필요가 없습니다. **필터** 는 시리즈에 그 행이 말하는 의미를 주는 레이블 필터이며, 양식이 대신 적용합니다.
 
-### Array Health
+### 어레이 상태
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 어레이의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type`, `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary`, `kburl`(Pure 기술 자료 문서) |
 
-### Capacity
+### 용량
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_array_space_bytes` | `type=array`, `space=empty` | FlashBlade | `bytes` | FlashBlade의 사용하지 않는 용량 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | FlashBlade 전체의 데이터 감소 |
 
-### Performance
+### 성능
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | 모든 프로토콜의 초당 읽은 바이트 수 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | 모든 프로토콜의 초당 쓴 바이트 수 |
 
-### Volumes
+### 볼륨
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | 데이터 감소 후 각 볼륨이 쓰는 물리 공간 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 각 볼륨의 데이터 감소 비율 |
 
-### Hosts
+### 호스트
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec` | FlashArray | `ops/s` | 각 호스트의 초당 읽기 작업 수 |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec` | FlashArray | `ops/s` | 각 호스트의 초당 쓰기 작업 수 |
 
-### Replication
+### 복제
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 각 파드의 복제 트래픽. 레이블은 `direction` 과 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 각 ActiveCluster 파드의 미러링된 쓰기 평균 지연 시간 |
 
-### Hardware
+### 하드웨어
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 각 Ethernet 및 Fibre Channel 인터페이스의 초당 오류 수. 오류가 계속되면 대개 케이블, 광 모듈, 스위치 포트 불량입니다 |
 | `purefb_hardware_health` | — | FlashBlade | — | 각 하드웨어 구성 요소(블레이드, 패브릭 모듈, 전원 공급 장치, 팬, ...)의 상태: 1 = 정상, 2 = 사용 안 함, 0 = 비정상. `name` 별 최솟값을 쓰세요 |
 
-### File Systems
+### 파일 시스템
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 각 파일 시스템이 쓰는 물리 공간 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 각 파일 시스템의 프로비저닝된 크기 중 아직 비어 있는 비율(0에서 1). 0에 가까우면 할당량이 곧 가득 찹니다 |
 
-### Buckets
+### 버킷
 
 | 메트릭 | 필터 | 플랫폼 | 단위 | 설명 |
 | --- | --- | --- | --- | --- |

@@ -5,6 +5,7 @@ A request SLO measures what your users get from a service: the share of its requ
 :::cards
 - [Create a request SLO](#create-a-request-slo): The services, a threshold for latency, and a target.
 - [Count only some requests](#count-only-some-requests): One endpoint, or every request but health checks.
+- [SLOs from a metric](#slos-from-a-metric): A counter or a histogram, for services that send no traces.
 - [How requests are counted](#how-requests-are-counted): Which spans count, and when.
 - [Release Checks](/docs/slo/release-checks): Roll back a release that burns the error budget.
 :::
@@ -76,6 +77,22 @@ A request SLO counts every request of its services. A **Request Filter** counts 
 Every term must match, so `@http.route:/checkout* -@http.route:/checkout/health` counts the checkout requests except their health check. A term with `@` is an attribute of the request's span, and `name:` is the span's name. Free text and the explorer's other fields, such as `status:` and `duration:`, are not filters here: the SLO already decides which requests are bad or slow. A filter holds up to 10 terms in 500 characters.
 
 The **Overview** shows the filter under the SLO's services, and **Settings** shows it under **What It Measures**. Changing it counts the SLO's requests again from the start.
+
+## SLOs from a metric
+
+When your services already count their requests as metrics, or send no traces, measure the SLO from a counter or a histogram instead. Under **What It Measures**, pick **Metric** and the **Services** that send it, then on the **Metric** step:
+
+| Field | What to enter |
+| --- | --- |
+| **Metric** | The metric's name, picked from your project's metrics or typed, such as `http_requests_total` or `http.server.request.duration`. |
+| **Good Events** | **A counter, by a condition**, or **A histogram, by a value**. |
+| **Good When** | For a counter: the events that are good, as a search of its attributes, such as `@http.response.status_code:<500`. |
+| **Good At Or Under** | For a histogram: the value a good observation is at or under, in the metric's own unit, such as `0.3` for 300 ms of a histogram in seconds. Use one of its bucket boundaries. |
+| **Metric Filter** | Optional: the series that count, such as `-@http.route:/health`. |
+
+A counter's events are what it grew by in each 5-minute step, the way Prometheus' `increase()` reads one: a counter that restarts counts from zero again, and cumulative and delta counters both count. A histogram's events are its observations, and the good ones are those in the buckets at or under the value. Only the metric's own points count, from the SLO's services: a gauge of the same name counts nothing.
+
+From there a Metric SLO works like a request SLO, with its error budget, burn rate rules and release checks in events. Changing the metric counts its events again from the start.
 
 ## How requests are counted
 

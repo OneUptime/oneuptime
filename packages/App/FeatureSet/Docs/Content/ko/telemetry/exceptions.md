@@ -228,7 +228,7 @@ OneUptime AI는 하루(UTC)에 스스로 최대 5개의 pull request를 발견 �
 ## 다음 단계
 
 :::cards
-- [예외 모니터](/docs/monitor/exceptions-monitor): 예외가 급증하면 알림을 받습니다.
+- [예외 모니터](/docs/monitor/exceptions-monitor): 예외가 급증하면 경고를 받습니다.
 - [소스 맵](/docs/telemetry/source-maps): 브라우저 코드의 읽기 쉬운 스택 추적.
 - [코드](/docs/ai/ai-agent): AI가 코드를 고치고 pull request를 여는 방식.
 - [트레이스 탐색기](/docs/telemetry/traces-explorer): 예외가 일어난 요청을 봅니다.

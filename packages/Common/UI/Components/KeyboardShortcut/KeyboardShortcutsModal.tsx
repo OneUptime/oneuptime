@@ -26,6 +26,8 @@ export interface KeyboardShortcutGroup {
 export interface ComponentProps {
   groups: Array<KeyboardShortcutGroup>;
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description?: string | undefined;
   /**
    * The word between two chords of a sequence, e.g. "then". Passed in so the
@@ -65,6 +67,7 @@ const KeyboardShortcutsModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={props.description}
       modalWidth={props.modalWidth ?? ModalWidth.Large}
       closeButtonText={props.closeButtonText}

@@ -272,33 +272,14 @@ const countLinkMarkdown: (html: string) => number = (html: string): number => {
  * token after a backslash, or inside a code span the parser alone does not
  * read. The problems found, empty when there are none.
  */
-const problemsOf: (
+const problemsOf: (reading: Reading, heldLine: HeldLine) => Array<string> = (
   reading: Reading,
   heldLine: HeldLine,
-  isEveryLinkKept?: boolean,
-) => Array<string> = (
-  reading: Reading,
-  heldLine: HeldLine,
-  isEveryLinkKept: boolean = false,
 ): Array<string> => {
   const problems: Array<string> = [];
-  // With isEveryLinkKept, only that every link the parser alone reads is read, in order.
-  let found: number = 0;
-
-  for (const link of reading.heldLinks) {
-    if (
-      found < reading.expectedLinks.length &&
-      link === reading.expectedLinks[found]
-    ) {
-      found++;
-    }
-  }
 
   if (
-    isEveryLinkKept
-      ? found < reading.expectedLinks.length
-      : JSON.stringify(reading.heldLinks) !==
-        JSON.stringify(reading.expectedLinks)
+    JSON.stringify(reading.heldLinks) !== JSON.stringify(reading.expectedLinks)
   ) {
     problems.push(
       `links ${JSON.stringify(reading.heldLinks)}, alone ${JSON.stringify(reading.expectedLinks)}`,
@@ -959,13 +940,16 @@ describe("OverLongText - where the token for a link's text stands (#8238)", () =
   );
 
   test.each(PARSERS)(
-    "a label longer than a reference's - 999 characters - is not kept whole, read by %s",
+    "a label longer than a reference's - 999 characters - is not kept whole, read by %s: only its '[' stays in view, for its ']' to close (#8668)",
     (parser: OverLongTextParser) => {
       const label: string = `run ${"x ".repeat(500)}`;
       const line: string = `${FILLER}see [${label}]${END_PADDING}`;
+      const heldLine: HeldLine = holdBack(line, parser);
 
       expect(label.length).toBeGreaterThan(999);
-      expect(holdBack(line, parser).held).toHaveLength(1);
+      expect(heldLine.inView).toHaveLength(3);
+      expect(heldLine.inView[1]).toBe("[");
+      expect(heldLine.inView[2]).toBe(line.slice(middleEndOf(line)));
     },
   );
 
@@ -1027,11 +1011,9 @@ describe("OverLongText - where the token for a link's text stands (#8238)", () =
  *
  * A parser that reads no link where one is drawn - marked, for a text
  * with brackets nested two deep, or a code span of two backticks holding
- * a "]" - reads the brackets inside it as labels of their own: one that a
- * "]" in the middle closes can then read on, past the token, to the kept
- * end's "](", a link the parser alone does not read (#8668). So a
- * line is held to the links the parser reads alone, and no other, where
- * it reads every link drawn there - and else to every link it reads.
+ * a "]" - reads the brackets inside it as labels of their own, which
+ * brackets in the middle close: those stay in view (#8668), so such a
+ * line too links as the parser alone links it.
  */
 describe("OverLongText - links whose text crosses a cut at a place drawn at random (#8238)", () => {
   const ESCAPES: ReadonlyArray<string> = [
@@ -1060,28 +1042,12 @@ describe("OverLongText - links whose text crosses a cut at a place drawn at rand
     return word;
   };
 
-  /*
-   * A code span; with brackets in it only where `mayHoldBrackets`, and
-   * then, on lines marked reads (`isForMarked`), only between single
-   * backticks: marked pairs a link text's backticks one by one, so a "]"
-   * between two of each closes the text, and in nested brackets it reads
-   * a backtick as text, so a "]" in code there closes them.
-   */
-  const drawCode: (
+  // A code span, of one to three backticks, with brackets and backslashes in it.
+  const drawCode: (random: SeededRandom) => string = (
     random: SeededRandom,
-    mayHoldBrackets: boolean,
-    isForMarked: boolean,
-  ) => string = (
-    random: SeededRandom,
-    mayHoldBrackets: boolean,
-    isForMarked: boolean,
   ): string => {
     const run: string = "`".repeat(1 + random(3));
-    const hasBrackets: boolean =
-      mayHoldBrackets && (!isForMarked || run.length === 1);
-    const pieces: Array<string> = hasBrackets
-      ? [" ", "[", "]", "\\", drawWord(random)]
-      : [" ", "\\", drawWord(random)];
+    const pieces: Array<string> = [" ", "[", "]", "\\", drawWord(random)];
     let content: string = drawWord(random);
 
     for (let index: number = random(6); index > 0; index--) {
@@ -1122,7 +1088,7 @@ describe("OverLongText - links whose text crosses a cut at a place drawn at rand
     }
 
     if (draw < 77) {
-      return drawCode(random, depth === 0 || maxDepth > 1, maxDepth === 1);
+      return drawCode(random);
     }
 
     if (draw < 90) {
@@ -1390,11 +1356,7 @@ describe("OverLongText - links whose text crosses a cut at a place drawn at rand
     });
   };
 
-  /*
-   * The problems of every line read by `parser`: held to the links it
-   * reads alone, and no other, where it reads every link drawn - and else
-   * to every link it reads alone.
-   */
+  // The problems of every line read by `parser`.
   const failuresOf: (parser: OverLongTextParser) => Array<string> = (
     parser: OverLongTextParser,
   ): Array<string> => {
@@ -1403,11 +1365,7 @@ describe("OverLongText - links whose text crosses a cut at a place drawn at rand
     for (let index: number = 0; index < lines.length; index++) {
       const { reading, heldLine } = readings[index]![parser];
 
-      for (const problem of problemsOf(
-        reading,
-        heldLine,
-        !readsEveryLink(index, parser),
-      )) {
+      for (const problem of problemsOf(reading, heldLine)) {
         failures.push(`line ${index}: ${problem}`);
       }
     }
@@ -1415,18 +1373,19 @@ describe("OverLongText - links whose text crosses a cut at a place drawn at rand
     return failures;
   };
 
-  test("remark reads every link drawn; marked reads every one on most lines nested one deep", () => {
+  test("remark reads every link drawn; marked reads every one on many lines, and not on many others, whose brackets are labels of their own", () => {
     let markedReadsEvery: number = 0;
 
     for (let index: number = 0; index < lines.length; index++) {
       expect(readsEveryLink(index, "remark")).toBe(true);
 
-      if (index < LINES && readsEveryLink(index, "marked")) {
+      if (readsEveryLink(index, "marked")) {
         markedReadsEvery++;
       }
     }
 
-    expect(markedReadsEvery).toBeGreaterThan(LINES * 0.75);
+    expect(markedReadsEvery).toBeGreaterThan(lines.length * 0.1);
+    expect(markedReadsEvery).toBeLessThan(lines.length * 0.9);
   });
 
   test.each(PARSERS)(
@@ -1498,7 +1457,210 @@ describe("OverLongText - lines of brackets, backticks and backslashes at random 
   });
 });
 
-describe("OverLongText - lines of megabytes read in time in line with their length (#8238)", () => {
+/*
+ * ISSUE #8668: the brackets the middle holds paired with brackets in view.
+ * A "]" in the middle that closed a label of the kept start was held back,
+ * and that label read on, past the token, to a "](" in the kept end - a
+ * link across the whole middle that neither parser reads. A "[" the middle
+ * left open was held back, and the kept end's "]" closed a label of the
+ * kept start instead, so the kept end's "](" linked nothing. Now those
+ * brackets stay in view, and each parser pairs them as in the whole line.
+ */
+describe("OverLongText - brackets the middle leaves unmatched pair with brackets in view (#8668)", () => {
+  // A case whose name says "code span" or "escaped" has Markdown in the middle, shown as written.
+  const BRACKET_CASES: ReadonlyArray<[string, string]> = [
+    [
+      "a ']' in the middle closes a label of the kept start, with no link",
+      `see [a ${"b".repeat(1100)}] ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    ],
+    [
+      "two ']' in the middle close two labels of the kept start",
+      `see [a [b ${"c ".repeat(600)}] d ] ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    ],
+    [
+      "a ']' in the middle closes the inner of two labels: the outer reads on to the kept end's '](' as in the whole line",
+      `see [a [b ${"c ".repeat(600)}] d ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    ],
+    [
+      "a '[' the middle leaves open is closed by the kept end's ']', and the kept start's label by its '](')",
+      `see [a ${"x ".repeat(600)}${FILLER}[c ${"y ".repeat(600)}] then](/x) now`,
+    ],
+    [
+      "two '[' the middle leaves open, closed by the kept end",
+      `see [a ${"x ".repeat(600)}${FILLER}[c [d ${"y ".repeat(600)}] e] then](/x) now`,
+    ],
+    [
+      "a '[' the middle leaves open, which nothing in the kept end closes",
+      `see [a ${"x ".repeat(600)}${FILLER}[c ${"y ".repeat(600)} then](/x) now`,
+    ],
+    [
+      "both at once",
+      `see [a [b ${"c ".repeat(600)}] ${FILLER}[d ${"y ".repeat(600)}] then](/x) now`,
+    ],
+    [
+      "a ']' in a code span in the middle closes nothing",
+      `see [a ${"b ".repeat(600)}\`]\` ${FILLER} x](/x) now`,
+    ],
+    [
+      "an escaped ']' in the middle closes nothing",
+      `see [a ${"b ".repeat(600)}\\] ${FILLER} x](/x) now`,
+    ],
+    [
+      "a '[' in a code span in the middle opens nothing",
+      `see [a ${"x ".repeat(600)}${FILLER}\`[c\` ${"y ".repeat(600)}] then](/x) now`,
+    ],
+    [
+      "a '[' the middle leaves open that marked reads no label from - nested two deep",
+      `see ${FILLER}[o [a [b] c] d ${"y ".repeat(600)} e](/x) now`,
+    ],
+    [
+      "a ']' in a word the start's cut is inside of",
+      `see [a ${"b".repeat(1100)}]${"c".repeat(40)} ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    ],
+  ];
+
+  let readings: Array<
+    Record<OverLongTextParser, { reading: Reading; heldLine: HeldLine }>
+  > = [];
+
+  beforeAll(() => {
+    readings = readWithBothParsers(
+      BRACKET_CASES.map(([, text]: [string, string]): { text: string } => {
+        return { text: text };
+      }),
+    );
+  }, 300000);
+
+  test.each(
+    BRACKET_CASES.flatMap(
+      (
+        [name]: [string, string],
+        index: number,
+      ): Array<[string, OverLongTextParser, number]> => {
+        return PARSERS.map(
+          (
+            parser: OverLongTextParser,
+          ): [string, OverLongTextParser, number] => {
+            return [name, parser, index];
+          },
+        );
+      },
+    ),
+  )(
+    "%s, read by %s: links as the parser alone links the line - and, where the middle holds no Markdown, renders exactly as it does",
+    (name: string, parser: OverLongTextParser, index: number) => {
+      const { reading, heldLine } = readings[index]![parser];
+
+      expect(BRACKET_CASES[index]![1].length).toBeGreaterThan(
+        OVER_LONG_LINE_LENGTH,
+      );
+      expect(problemsOf(reading, heldLine)).toEqual([]);
+
+      if (!name.includes("code span") && !name.includes("escaped")) {
+        // A boolean, so a failure does not print hundreds of kilobytes.
+        expect(putBack(reading.heldHtml, heldLine.held) === reading.html).toBe(
+          true,
+        );
+      }
+    },
+  );
+
+  test.each(PARSERS)(
+    "read by %s, the ']' that closes the kept start's label stays in view, between two pieces of the middle",
+    (parser: OverLongTextParser) => {
+      const line: string = BRACKET_CASES[0]![1];
+      const closer: number = line.indexOf("]");
+      const heldLine: HeldLine = holdBack(line, parser);
+
+      expect(heldLine.inView.slice(0, 2)).toEqual([
+        line.slice(0, OVER_LONG_LINE_KEPT_LENGTH),
+        "]",
+      ]);
+      expect(heldLine.held[0]).toBe(
+        line.slice(OVER_LONG_LINE_KEPT_LENGTH, closer),
+      );
+    },
+  );
+
+  test.each(PARSERS)(
+    "read by %s, the '[' the kept end's ']' closes stays in view, between two pieces of the middle",
+    (parser: OverLongTextParser) => {
+      const line: string = BRACKET_CASES[3]![1];
+      const opener: number = line.indexOf("[c");
+      const heldLine: HeldLine = holdBack(line, parser);
+
+      expect(heldLine.inView).toHaveLength(3);
+      expect(heldLine.inView[1]).toBe("[");
+      expect(heldLine.held[1]!.startsWith("c y y")).toBe(true);
+      expect(heldLine.held[0]!.endsWith(line.slice(opener - 20, opener))).toBe(
+        true,
+      );
+    },
+  );
+
+  test("the '[' marked reads no label from stays held back for marked; remark keeps it, to close", () => {
+    const line: string = BRACKET_CASES[10]![1];
+
+    expect(holdBack(line, "marked").inView).toHaveLength(2);
+    expect(holdBack(line, "remark").inView[1]).toBe("[");
+  });
+
+  /*
+   * A bracket kept for nothing to pair with reads as the same text either
+   * way: these pin that only those that pair are kept.
+   */
+  test.each(PARSERS)(
+    "read by %s, a ']' after a link across the start closes nothing in view: it is held back with the middle",
+    (parser: OverLongTextParser) => {
+      const line: string = `[${RUNS}](/x) b ] ${FILLER}`;
+      const heldLine: HeldLine = holdBack(line, parser);
+
+      expect(heldLine.inView[1]).toBe("](");
+      expect(heldLine.inView).not.toContain("]");
+    },
+  );
+
+  test.each(PARSERS)(
+    "read by %s, a ']' after a reference kept whole across the start closes nothing in view: it is held back with the middle",
+    (parser: OverLongTextParser) => {
+      const line: string = `${"x ".repeat(400)}[${LABEL}] b ] ${FILLER}`;
+      const heldLine: HeldLine = holdBack(line, parser);
+
+      expect(heldLine.inView[0]!.endsWith(`[${LABEL}]`)).toBe(true);
+      expect(heldLine.inView).not.toContain("]");
+    },
+  );
+
+  test.each(PARSERS)(
+    "read by %s, a ']' in a code span of the kept end closes nothing: the '[' the middle leaves open is held back",
+    (parser: OverLongTextParser) => {
+      const line: string = `see ${FILLER}[c ${"y ".repeat(600)}\`]\` then now`;
+
+      expect(holdBack(line, parser).inView).not.toContain("[");
+    },
+  );
+
+  test.each(PARSERS)(
+    "read by %s, at most eight brackets stay in view at each end",
+    (parser: OverLongTextParser) => {
+      const line: string = `see ${"[a ".repeat(12)}${"b".repeat(1100)} ${"] ".repeat(12)}${FILLER}${"[c ".repeat(12)}${"y ".repeat(600)}${"] ".repeat(12)}](/x) now`;
+      const inView: Array<string> = holdBack(line, parser).inView;
+
+      expect(
+        inView.filter((piece: string): boolean => {
+          return piece === "]" || piece === "] ";
+        }).length,
+      ).toBeLessThanOrEqual(8);
+      expect(
+        inView.filter((piece: string): boolean => {
+          return piece === "[";
+        }).length,
+      ).toBeLessThanOrEqual(8);
+    },
+  );
+});
+
+describe("OverLongText - lines of megabytes read in time in line with their length (#8238, #8668)", () => {
   const MB: number = 1024 * 1024;
 
   const repeatTo: (unit: string, length: number) => string = (
@@ -1536,6 +1698,14 @@ describe("OverLongText - lines of megabytes read in time in line with their leng
     [
       "link texts across both cuts, with nested brackets, code and escapes",
       `[run [42 \`code ${repeatTo("run \\] [a] `b` ", 4 * MB)}\` x] y](/x/a) z [w`,
+    ],
+    [
+      "labels open in the kept start, and ']' after ']' in the middle",
+      `${"[a ".repeat(300)}${repeatTo("] b ", 4 * MB)}`,
+    ],
+    [
+      "'[' after '[' the middle leaves open, closed in the kept end",
+      `x ${repeatTo("[a ", 3000)}${repeatTo("b ", 4 * MB)}${"] ".repeat(300)}](/x)`,
     ],
   ];
 

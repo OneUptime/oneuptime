@@ -46,11 +46,11 @@ Nell'Admin Dashboard, andate in **Impostazioni → Telemetria → Budget di acqu
 
 ### Impostare i budget giornalieri
 
-Nella scheda **Budget giornalieri predefiniti**, fate clic su **Modifica budget giornalieri predefiniti**, inserite un numero di GB per ogni segnale da limitare, ad esempio **Log (GB al giorno)**, e fate clic su **Salva modifiche**. Lasciate vuoto un segnale per non avere limiti.
+Nella scheda **Budget giornalieri predefiniti**, fate clic su **Modifica budget giornalieri predefiniti**, inserite un numero di GB per ogni segnale da limitare, ad esempio **Registri (GB al giorno)**, e fate clic su **Salva modifiche**. Lasciate vuoto un segnale per non avere limiti.
 
 ### Impostare i limiti di frequenza, se vi servono
 
-Nella scheda **Limiti di frequenza predefiniti**, fate clic su **Modifica limiti di frequenza predefiniti** e inserite un numero di MB al secondo per un segnale, ad esempio **Log (MB al secondo)**. Un limite di frequenza impedisce a un singolo picco di esaurire in pochi minuti il budget di un giorno.
+Nella scheda **Limiti di frequenza predefiniti**, fate clic su **Modifica limiti di frequenza predefiniti** e inserite un numero di MB al secondo per un segnale, ad esempio **Registri (MB al secondo)**. Un limite di frequenza impedisce a un singolo picco di esaurire in pochi minuti il budget di un giorno.
 :::
 
 La scheda **Avviso e azzeramento** contiene la soglia di avviso e l'ora in cui si azzera il giorno di budget: vedete [L'avviso e l'azzeramento](#lavviso-e-lazzeramento).

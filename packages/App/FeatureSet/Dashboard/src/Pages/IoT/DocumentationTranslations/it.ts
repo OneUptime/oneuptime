@@ -24,7 +24,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The device inventory is keyed on the datapoint's `device.id`, not the resource's, so set it on each measurement as well as in `OTEL_RESOURCE_ATTRIBUTES`. Every recognized name is under **Metric conventions** in Advanced.":
     "L'inventario dei dispositivi è indicizzato sul `device.id` del punto dati, non su quello della risorsa, quindi impostalo su ogni misurazione oltre che in `OTEL_RESOURCE_ATTRIBUTES`. Tutti i nomi riconosciuti sono in **Convenzioni delle metriche**, in Avanzato.",
   "1. Confirm the device is exporting without errors — check the SDK's logs for export failures and HTTP `401` or `422` responses.":
-    "1. Verifica che il dispositivo esporti senza errori: controlla nei registri dell'SDK eventuali errori di esportazione e risposte HTTP `401` o `422`.",
+    "1. Verifica che il dispositivo esporti senza errori: controlla nei log dell'SDK eventuali errori di esportazione e risposte HTTP `401` o `422`.",
   "2. In the OneUptime dashboard, open the **IoT** section — your fleet should appear within a minute or so.":
     "2. Nella dashboard di OneUptime, apri la sezione **IoT**: la tua flotta dovrebbe comparire entro un minuto circa.",
   "3. Open the fleet's **Devices** tab — each `device.id` you sent should be listed with its latest battery, signal, temperature, CPU, memory, and up/down status.":
@@ -34,7 +34,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "There is no agent to install on the device. OneUptime maps your devices onto two concepts using OpenTelemetry attributes:":
     "Non c'è nessun agente da installare sul dispositivo. OneUptime associa i tuoi dispositivi a due concetti tramite attributi OpenTelemetry:",
   "- **Fleet** — a logical group of devices (for example `building-a-sensors` or `field-gateways`). The fleet is derived from the `iot.fleet.name` resource attribute and appears in OneUptime as the telemetry service `iot/<fleet>`. Set `service.name=iot/<fleet>` so logs and metrics line up under the same service.":
-    "- **Flotta**: un gruppo logico di dispositivi (per esempio `building-a-sensors` o `field-gateways`). La flotta deriva dall'attributo di risorsa `iot.fleet.name` e compare in OneUptime come servizio di telemetria `iot/<fleet>`. Imposta `service.name=iot/<fleet>` perché registri e metriche si allineino sotto lo stesso servizio.",
+    "- **Flotta**: un gruppo logico di dispositivi (per esempio `building-a-sensors` o `field-gateways`). La flotta deriva dall'attributo di risorsa `iot.fleet.name` e compare in OneUptime come servizio di telemetria `iot/<fleet>`. Imposta `service.name=iot/<fleet>` perché log e metriche si allineino sotto lo stesso servizio.",
   "- **Device** — an individual device within a fleet, identified by the `device.id` attribute on each datapoint. OneUptime builds and maintains a per-fleet device inventory keyed on `device.id`.":
     "- **Dispositivo**: un singolo dispositivo all'interno di una flotta, identificato dall'attributo `device.id` di ogni punto dati. OneUptime crea e mantiene un inventario dei dispositivi per flotta, indicizzato su `device.id`.",
   "The attributes OneUptime reads — the optional ones refine how each device is classified and scoped in monitors:":
@@ -109,9 +109,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "Already have `otelcol-contrib` on the gateway? Point it at the file:":
     "Hai già `otelcol-contrib` sul gateway? Puntalo al file:",
   "1. Confirm the gateway's collector is exporting without errors — check its logs for export failures and HTTP `401` or `422` responses (`docker logs -f otel-collector` when it runs in Docker).":
-    "1. Verifica che il collector del gateway esporti senza errori: controlla nei suoi registri eventuali errori di esportazione e risposte HTTP `401` o `422` (`docker logs -f otel-collector` quando gira in Docker).",
+    "1. Verifica che il collector del gateway esporti senza errori: controlla nei suoi log eventuali errori di esportazione e risposte HTTP `401` o `422` (`docker logs -f otel-collector` quando gira in Docker).",
   "- **`otlp`** receives from your devices over gRPC (`4317`) and HTTP (`4318`). Receive readings any other way the collector supports (an MQTT bridge, file logs, …) and forward them through the same pipeline.":
-    "- **`otlp`** riceve dai tuoi dispositivi via gRPC (`4317`) e HTTP (`4318`). Ricevi le letture in qualsiasi altro modo supportato dal collector (un bridge MQTT, registri su file, …) e inoltrale attraverso la stessa pipeline.",
+    "- **`otlp`** riceve dai tuoi dispositivi via gRPC (`4317`) e HTTP (`4318`). Ricevi le letture in qualsiasi altro modo supportato dal collector (un bridge MQTT, log su file, …) e inoltrale attraverso la stessa pipeline.",
   "- **`resource`** stamps every record with the fleet attributes. Set `iot.fleet.name` (and the matching `service.name=iot/<fleet>`) per gateway so each gateway's devices land in the right fleet.":
     "- **`resource`** applica a ogni record gli attributi della flotta. Imposta `iot.fleet.name` (e il corrispondente `service.name=iot/<fleet>`) per ogni gateway, così i dispositivi di ciascun gateway finiscono nella flotta giusta.",
   "- **`batch`** groups records before export so the gateway does not pay one HTTP round trip per reading.":
@@ -179,7 +179,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "1. Confirm the topic follows `oneuptime/<fleet>/<device>/…` exactly — the fleet segment of the topic is what creates the fleet.":
     "1. Verifica che il topic segua esattamente `oneuptime/<fleet>/<device>/…`: è il segmento di flotta del topic a creare la flotta.",
   "2. Publishes outside the topic contract, or with malformed payloads, are accepted and dropped (MQTT 3.1.1 has no per-message error reply). Compare yours with **MQTT topics and payloads** under Advanced; on a self-hosted instance the app's logs name the reason (`MQTT: dropped publish to …`).":
-    "2. Le pubblicazioni fuori dal contratto dei topic, o con payload malformati, vengono accettate e scartate (MQTT 3.1.1 non ha una risposta di errore per messaggio). Confronta le tue con **Topic e payload MQTT**, in Avanzato; su un'istanza self-hosted i registri dell'app indicano il motivo (`MQTT: dropped publish to …`).",
+    "2. Le pubblicazioni fuori dal contratto dei topic, o con payload malformati, vengono accettate e scartate (MQTT 3.1.1 non ha una risposta di errore per messaggio). Confronta le tue con **Topic e payload MQTT**, in Avanzato; su un'istanza self-hosted i log dell'app indicano il motivo (`MQTT: dropped publish to …`).",
   "OneUptime rejects bad credentials at CONNECT with return code 4. Check that:":
     "OneUptime rifiuta le credenziali errate al CONNECT con codice di ritorno 4. Controlla che:",
   "- the password is a valid ingestion key — or, for a registered device, the credential's secret, with its credential ID as the username;":

@@ -167,7 +167,11 @@ describe("the rest of the guide", () => {
       'import { buildTelegramSetupMarkdown } from "./TelegramSetupGuide";',
     );
     expect(page).toContain("/notification/telegram/webhook");
-    expect(page).toContain("<MarkdownViewer text={telegramSetupMarkdown} />");
+    // In the reader's language, laid out the way it reads (#8677).
+    expect(page).toContain("text={telegramSetupMarkdown}");
+    expect(page).toContain(
+      "readingDirection={getReadingDirection(translator.language)}",
+    );
     // One guide: the page no longer keeps a copy of its own.
     expect(page).not.toContain("### 3. Test end-to-end");
   });

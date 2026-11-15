@@ -360,6 +360,7 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
       {dialog === "approve" && (
         <ConfirmModal
           title={tx(PublicNoteApprovalCopy.approveTitle)}
+          isTitleTranslated={true}
           description={tx(
             !actions.isApprovalFinal
               ? PublicNoteApprovalCopy.approveStepDescription
@@ -387,6 +388,7 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
       {dialog === "reject" && (
         <BasicFormModal<JSONObject>
           title={tx(PublicNoteApprovalCopy.rejectTitle)}
+          isTitleTranslated={true}
           description={tx(PublicNoteApprovalCopy.rejectDescription)}
           submitButtonText={tx(PublicNoteApprovalCopy.reject)}
           submitButtonStyleType={ButtonStyleType.DANGER}
@@ -426,6 +428,7 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
       {dialog === "withdraw" && (
         <ConfirmModal
           title={tx(PublicNoteApprovalCopy.withdrawTitle)}
+          isTitleTranslated={true}
           description={tx(PublicNoteApprovalCopy.withdrawDescription)}
           submitButtonText={tx(PublicNoteApprovalCopy.withdrawEdit)}
           isLoading={isBusy}

@@ -1099,6 +1099,7 @@ const UserViewNotificationMethods: FunctionComponent<
                   "Add a notification method for this user",
                 )
           }
+          isTitleTranslated={true}
           description={translator.translateTemplate(
             "A verification code is sent to the address or number you enter. {{name}} has to enter that code; you cannot verify it for them.",
             { name: firstName },
@@ -1200,6 +1201,7 @@ const UserViewNotificationMethods: FunctionComponent<
               ),
             },
           )}
+          isTitleTranslated={true}
           description={getDeletionDescription()}
           submitButtonText="Remove"
           submitButtonType={ButtonStyleType.DANGER}

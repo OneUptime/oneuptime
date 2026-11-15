@@ -332,6 +332,7 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
             <div className="mt-6">
               <Button
                 title={t("subscribe.unsubscribe.confirmButton")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.DANGER}
                 isLoading={isSubmitting}
                 disabled={isSubmitting}

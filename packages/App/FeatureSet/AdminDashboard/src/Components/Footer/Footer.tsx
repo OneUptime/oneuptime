@@ -112,6 +112,7 @@ const DashboardFooter: () => JSX.Element = () => {
       {showAboutModal ? (
         <ConfirmModal
           title={t("footer.versionModalTitle")}
+          isTitleTranslated={true}
           description={
             versionInfo.error ? (
               <div className="text-sm text-red-600">{versionInfo.error}</div>

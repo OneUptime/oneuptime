@@ -492,7 +492,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Follow **Kubernetes → Documentation** for this cluster. Its pods, their logs and their nodes then reach the Kubernetes pages, and the OpenStack services among them are watched there.":
     "按照此集群的 **Kubernetes → 文档** 操作。之后它的 Pod、Pod 的日志和节点都会进入 Kubernetes 页面，其中的 OpenStack 服务也会在那里受到监控。",
   "To have those services' logs on this cloud's **Logs** page as well, each stack trace one record, name the cloud in the agent's values, with the namespaces its services run in:":
-    "若还想让这些服务的日志出现在此云的 **日志** 页面上，并让每条堆栈跟踪成为一条记录，请在代理的值中为云命名，并写上其服务运行所在的命名空间：",
+    "若还想让这些服务的日志出现在此云的 **日志** 页面上，并让每条堆栈追踪成为一条记录，请在代理的值中为云命名，并写上其服务运行所在的命名空间：",
   "Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.":
     "两者都写入服务自己的日志，总线上没有任何消费者。在 **安全事件 → 连接** 中打开 **在日志中查找安全事件** 后，OneUptime 就会从那里读取它们。Kubernetes 代理会从 Pod 的日志中读取这两者，并归入其值中所命名的云。",
   "A chart's `logging.conf` keeps the root logger at `WARNING`, and the log driver writes under a logger of its own, so without one for it nothing is written. A list in values replaces the chart's, so `keys` holds what the chart's has, plus this:":

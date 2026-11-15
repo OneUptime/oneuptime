@@ -35,7 +35,9 @@ const KubernetesDocumentationCard: FunctionComponent<ComponentProps> = (
       newKeyName={translationKey("Kubernetes key")}
       optionsLabel="Where is your cluster running?"
       options={KUBERNETES_PLATFORMS}
-      keyStepDescription="The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it."
+      keyStepDescription={translationKey(
+        "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getKubernetesSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,

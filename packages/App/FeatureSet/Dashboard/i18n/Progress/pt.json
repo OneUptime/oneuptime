@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8389
+    "keys": 55711,
+    "untranslated": 8190
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -161,6 +161,7 @@
     "Joules",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "Keystone",
     "Kibibytes",
     "Kilobits",

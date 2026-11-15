@@ -58,6 +58,7 @@ export const SubscribeToCalendarButton: FunctionComponent =
       <Fragment>
         <Button
           title={t("scheduledEvents.calendar.subscribe")}
+          isTitleTranslated={true}
           icon={IconProp.Calendar}
           buttonStyle={ButtonStyleType.NORMAL}
           dataTestId="maintenance-calendar-subscribe"
@@ -104,6 +105,7 @@ export const AddEventToCalendarButton: FunctionComponent<
     <Fragment>
       <Button
         title={t("scheduledEvents.calendar.addToCalendar")}
+        isTitleTranslated={true}
         icon={IconProp.Calendar}
         buttonStyle={ButtonStyleType.NORMAL}
         dataTestId="maintenance-calendar-add-event"

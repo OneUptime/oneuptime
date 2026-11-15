@@ -16,7 +16,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> En abonnert kalender er til **planlegging**. Kalenderapper henter feeder på nytt i sitt eget tempo — Google Kalender bare hver 8. til 24. time — så et bytte som gjøres en time før en vakt, når deg gjennom OneUptimes egne påminnelser, meldinger om ny tildeling og varsler, ikke gjennom kalenderen.
+> En abonnert kalender er til **planlegging**. Kalenderapper henter feeder på nytt i sitt eget tempo — Google Kalender bare hver 8. til 24. time — så et bytte som gjøres en time før en vakt, når deg gjennom OneUptimes egne påminnelser, meldinger om ny tildeling og varslinger, ikke gjennom kalenderen.
 
 ## Hva du får
 
@@ -119,7 +119,7 @@ Knappen **Google Kalender** åpner Googles side for å legge til via URL, `https
 
 Google henter feeden **fra Googles servere**, så OneUptime-serveren må kunne nås fra internett — OneUptime Cloud kan alltid det; se Feilsøking for en selvdriftet installasjon. Den første hentingen skjer vanligvis innen noen minutter etter at du abonnerer; deretter oppdaterer Google omtrent hver 8. til 24. time, noen ganger sjeldnere. Det finnes ingen oppdateringsknapp for abonnerte kalendere, og Google ignorerer oppdateringshintene i feeden. Statusen på kortet viser **Sist hentet … av Google Calendar** når Google har lest lenken.
 
-Kalenderens navn og tidssone leses **bare første gang du abonnerer**: gir du en vaktplan nytt navn senere, får ikke kalenderen nytt navn i Google — fjern den og legg den til igjen hvis navnet er viktig. Google forkaster påminnelser i kalenderfiler, så angi standardvarsler for den kalenderen i innstillingene til Google, eller enda bedre: bruk OneUptimes egne påminnelser. Google husker en adresse den ikke kunne lese: når du har rettet det som stoppet den, legger du til lenken igjen med `?nocache=1` bak (OneUptime ignorerer ukjente spørringsparametere, så selve feeden er uendret), eller genererer lenken på nytt. Google Kalender-appen på Android og iOS kan ikke abonnere via URL; legg til lenken på en datamaskin, så dukker den opp på telefonen.
+Kalenderens navn og tidssone leses **bare første gang du abonnerer**: gir du en vaktplan nytt navn senere, får ikke kalenderen nytt navn i Google — fjern den og legg den til igjen hvis navnet er viktig. Google forkaster påminnelser i kalenderfiler, så angi standardvarslinger for den kalenderen i innstillingene til Google, eller enda bedre: bruk OneUptimes egne påminnelser. Google husker en adresse den ikke kunne lese: når du har rettet det som stoppet den, legger du til lenken igjen med `?nocache=1` bak (OneUptime ignorerer ukjente spørringsparametere, så selve feeden er uendret), eller genererer lenken på nytt. Google Kalender-appen på Android og iOS kan ikke abonnere via URL; legg til lenken på en datamaskin, så dukker den opp på telefonen.
 @tab Outlook på nettet
 1. Åpne **Kalender** > **Legg til kalender** > **Abonner fra nettet**.
 2. Lim inn `https://`-lenken (**Kopier lenke** i OneUptime), gi kalenderen et navn og klikk på **Importer**.
@@ -186,7 +186,7 @@ Kalenderapper leverer ikke alarmer fra abonnerte feeder — Google forkaster dem
 :::steps
 1. Åpne **Brukerinnstillinger** > **Kalender** > **Kalenderfeed**.
 2. Velg på kortet **Påminn meg før vakter** hvor lang tid i forveien: **1 uke**, **1 dag**, **1 time**, **15 min** eller, med **Egendefinert**, en egen verdi mellom 15 minutter og 14 dager. Du kan velge flere samtidig.
-3. Velg hvordan påminnelser når deg under **Før vakten min starter** på **Brukerinnstillinger** > **Varselinnstillinger** (fanen Vakt). E-post og push er på som standard.
+3. Velg hvordan påminnelser når deg under **Før vakten min starter** på **Brukerinnstillinger** > **Varslingsinnstillinger** (fanen Vakt). E-post og push er på som standard.
 :::
 
 Hver påminnelse sendes én gang per vakt. Meldingen nevner vaktplanen, policyene den varsler gjennom, og starttidspunktet i din tidssone.

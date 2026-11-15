@@ -121,15 +121,18 @@ describe("event detail action configuration", () => {
       expect(source).not.toContain("PageLoader");
       expect(source).not.toContain("-ml-3");
 
-      // Acknowledge and resolve get their own modal wording and submit label.
+      /*
+       * Acknowledge and resolve get their own modal wording and submit
+       * label. The title is worded here and drawn as given (#8633).
+       */
       expect(source).toContain(
-        'modalTitle = translationKey("Acknowledge Episode")',
+        'modalTitle = translator.translateText("Acknowledge Episode") as string',
       );
       expect(source).toContain(
         'modalSubmitButtonText = translationKey("Acknowledge")',
       );
       expect(source).toContain(
-        'modalTitle = translationKey("Resolve Episode")',
+        'modalTitle = translator.translateText("Resolve Episode") as string',
       );
       expect(source).toContain(
         'modalSubmitButtonText = translationKey("Resolve")',

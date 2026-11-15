@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 1083
+    "keys": 55711,
+    "untranslated": 1044
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -134,6 +134,7 @@
     "K8s Deployment",
     "K8s Namespace",
     "K8s Pod",
+    "Key Manager",
     "Keystone",
     "Kolla-Ansible",
     "Kubernetes Deployment",

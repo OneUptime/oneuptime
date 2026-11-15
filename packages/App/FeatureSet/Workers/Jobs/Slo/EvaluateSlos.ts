@@ -98,9 +98,10 @@ import {
   formatRequestBudget,
   getEventErrorBudget,
   getSettledRequestStepEnd,
-  isRequestSliType,
+  isEventSliType,
 } from "Common/Utils/Slo/SloRequestSli";
 import { getSloRequestFilterError } from "Common/Utils/Slo/SloRequestFilter";
+import { getSloMetricQueryError } from "Common/Utils/Slo/SloMetricSli";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import SloMetricTypeUtil from "Common/Utils/Slo/SloMetricType";
 import SloUtil, {
@@ -405,12 +406,13 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
 
   /*
    * Measure, from whatever the SLO measures: its monitors' status timelines,
-   * or the requests its services served. Null when a guard (Misconfigured,
+   * or the events its services sent - the requests in their traces, or
+   * their metric's events (#8445). Null when a guard (Misconfigured,
    * Paused, no data) has already set the status and said why. Everything
    * after the measurement - status, error budget policy, history, metrics,
    * owners, burn rate rules - is the same for both.
    */
-  const evaluation: SloMeasuredEvaluation | null = isRequestSliType(slo.sliType)
+  const evaluation: SloMeasuredEvaluation | null = isEventSliType(slo.sliType)
     ? await measureRequestSlo({
         slo: slo,
         sloId: sloId,
@@ -871,12 +873,20 @@ async function measureRequestSlo(data: {
   const latencyThresholdInMilliseconds: number | null =
     readLatencyThresholdInMilliseconds(slo.latencyThresholdInMilliseconds);
 
+  const isMetricSlo: boolean = sliType === SliType.Metric;
+
   const misconfiguredReason: string | null = getRequestSloMisconfiguredReason({
     sliType: sliType,
     serviceCount: serviceIds.length,
     latencyThresholdInMilliseconds: latencyThresholdInMilliseconds,
     targetPercentage: targetPercentage,
-    requestFilterError: getSloRequestFilterError(slo.requestFilter),
+    // A request filter reads spans: a Metric SLO has none to read.
+    requestFilterError: isMetricSlo
+      ? null
+      : getSloRequestFilterError(slo.requestFilter),
+    metricQueryError: isMetricSlo
+      ? getSloMetricQueryError(slo.metricQueryConfig || null)
+      : null,
   });
 
   if (misconfiguredReason) {
@@ -937,7 +947,11 @@ async function measureRequestSlo(data: {
       serviceIds: serviceIds,
       latencyThresholdInMilliseconds: latencyThresholdInMilliseconds,
       // Which of the services' requests count (#8444).
-      requestFilter: slo.requestFilter,
+      requestFilter: isMetricSlo ? null : slo.requestFilter,
+      // A Metric SLO's metric, whose events it counts instead (#8445).
+      ...(isMetricSlo
+        ? { metricQueryConfig: slo.metricQueryConfig || null }
+        : {}),
     },
     now: now,
     neededFrom: OneUptimeDate.getLesserDate(
@@ -1003,8 +1017,9 @@ async function measureRequestSlo(data: {
       status: SloStatus.Misconfigured,
       now: now,
       isSloStillEvaluated: data.isSloStillEvaluated,
-      reason:
-        "The services this SLO measures have not served a request in its window yet. It is measured automatically once their traces reach OneUptime.",
+      reason: isMetricSlo
+        ? "The services this SLO measures have not sent an event of its metric in its window yet. It is measured automatically once the metric reaches OneUptime."
+        : "The services this SLO measures have not served a request in its window yet. It is measured automatically once their traces reach OneUptime.",
     });
     return null;
   }
@@ -1105,9 +1120,22 @@ function getRequestSloMisconfiguredReason(data: {
   targetPercentage: number;
   // What is wrong with the SLO's request filter, or null (#8444).
   requestFilterError?: string | null | undefined;
+  // What is wrong with a Metric SLO's metric, or null (#8445).
+  metricQueryError?: string | null | undefined;
 }): string | null {
   if (data.serviceCount === 0) {
-    return "No services are chosen for this SLO, so there are no requests to measure. Choose the services whose requests it measures.";
+    return data.sliType === SliType.Metric
+      ? "No services are chosen for this SLO, so there is no metric to measure. Choose the services whose metric it measures."
+      : "No services are chosen for this SLO, so there are no requests to measure. Choose the services whose requests it measures.";
+  }
+
+  /*
+   * The service refuses a metric it cannot count with, so this one was
+   * stored before a rule tightened, or straight into the database:
+   * counting nothing instead would read as no traffic.
+   */
+  if (data.metricQueryError) {
+    return `This SLO's metric cannot be counted: ${data.metricQueryError} Fix it in Settings, What It Measures.`;
   }
 
   /*
@@ -2303,7 +2331,7 @@ function getMisconfiguredGuardReason(data: {
   monitorCount: number;
 }): string {
   if (data.sliType !== SliType.MonitorUptime) {
-    return "This SLO's SLI type is not one OneUptime measures. Choose Monitor Uptime, Request Success or Request Latency.";
+    return "This SLO's SLI type is not one OneUptime measures. Choose Monitor Uptime, Request Success, Request Latency or Metric.";
   }
 
   if (data.monitorCount === 0) {

@@ -11,6 +11,7 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import OneUptimeDate, { Moment } from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import { JSONObject } from "Common/Types/JSON";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
@@ -395,6 +396,8 @@ interface RequestSloOverrides {
   eventAccumulationFingerprint?: string | undefined;
   monitors?: Array<Monitor> | undefined;
   requestFilter?: string | undefined;
+  // A Metric SLO's metric (#8445).
+  metricQueryConfig?: Record<string, unknown> | undefined;
 }
 
 // A rolling 30-day, 99.9% Request Success SLO over two services.
@@ -431,6 +434,10 @@ function makeRequestSlo(
 
   if (overrides.requestFilter !== undefined) {
     slo.requestFilter = overrides.requestFilter;
+  }
+
+  if (overrides.metricQueryConfig !== undefined) {
+    slo.metricQueryConfig = overrides.metricQueryConfig as JSONObject;
   }
 
   if (overrides.eventAccumulationFingerprint) {
@@ -484,6 +491,7 @@ interface MeasureArgs {
     serviceIds: Array<ObjectID>;
     latencyThresholdInMilliseconds?: number | null;
     requestFilter?: string | null;
+    metricQueryConfig?: JSONObject | null;
   };
   now: Date;
   neededFrom: Date;
@@ -1218,6 +1226,124 @@ describe("Slo:EvaluateSlos worker - request SLIs", () => {
 
       expect(alertService["create"]).not.toHaveBeenCalled();
       expect(burnRuleService["resolveOpenAlertsForRule"]).toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A Metric SLO (#8445) is measured as a request SLO is - the same
+   * counting plan, history, budget and burn rate rules - from its services'
+   * metric in place of their traces, so it takes the same path, with its
+   * metric handed to the counting and no request filter.
+   */
+  describe("a Metric SLO", () => {
+    const COUNTER: Record<string, unknown> = {
+      metricName: "http_requests_total",
+      kind: "Counter",
+      goodFilter: "@http.response.status_code:<500",
+    };
+
+    test("is counted from its metric, with its services, and no request filter", async () => {
+      sloService["getDueSlos"]!.mockResolvedValue([
+        makeRequestSlo({
+          sliType: SliType.Metric,
+          metricQueryConfig: COUNTER,
+          // Left from a request SLI it was before: spans only.
+          requestFilter: "@http.route:/checkout*",
+        }),
+      ]);
+      stubMeasurement({ window: { goodCount: 999, totalCount: 1000 } });
+
+      await runWorkerTick();
+
+      const args: MeasureArgs = measureArgs();
+
+      expect(args.config.sliType).toBe(SliType.Metric);
+      expect(args.config.metricQueryConfig).toEqual(COUNTER);
+      expect(args.config.requestFilter).toBeNull();
+      expect(args.config.serviceIds).toHaveLength(2);
+      // Measured: its status follows its budget, never a guard's.
+      expect(statusWrites()).not.toContain(SloStatus.Misconfigured);
+    });
+
+    test("its budget is in events: the state write carries them, never seconds", async () => {
+      sloService["getDueSlos"]!.mockResolvedValue([
+        makeRequestSlo({ sliType: SliType.Metric, metricQueryConfig: COUNTER }),
+      ]);
+      stubMeasurement({ window: { goodCount: 999, totalCount: 1000 } });
+
+      await runWorkerTick();
+
+      expect(stateUpdate()).toMatchObject({
+        goodEventCount: 999,
+        totalEventCount: 1000,
+      });
+      expect(stateUpdate()["errorBudgetRemainingSeconds"]).toBeFalsy();
+    });
+
+    test("no services: Misconfigured, saying there is no metric to measure", async () => {
+      sloService["getDueSlos"]!.mockResolvedValue([
+        makeRequestSlo({
+          sliType: SliType.Metric,
+          metricQueryConfig: COUNTER,
+          services: [],
+        }),
+      ]);
+
+      await runWorkerTick();
+
+      expect(counting.measure).not.toHaveBeenCalled();
+      expect(statusWrites()).toEqual([SloStatus.Misconfigured]);
+      expect(feedTexts().join(" ")).toContain(
+        "so there is no metric to measure",
+      );
+    });
+
+    test("a metric it cannot count: Misconfigured with what is wrong, and nothing is counted", async () => {
+      sloService["getDueSlos"]!.mockResolvedValue([
+        makeRequestSlo({
+          sliType: SliType.Metric,
+          metricQueryConfig: {
+            metricName: "http_requests_total",
+            kind: "Counter",
+          },
+        }),
+      ]);
+
+      await runWorkerTick();
+
+      expect(counting.measure).not.toHaveBeenCalled();
+      expect(statusWrites()).toEqual([SloStatus.Misconfigured]);
+      expect(feedTexts().join(" ")).toContain(
+        "This SLO's metric cannot be counted: Say which of the counter's events are good",
+      );
+    });
+
+    test("no metric at all: Misconfigured, saying to choose one", async () => {
+      sloService["getDueSlos"]!.mockResolvedValue([
+        makeRequestSlo({ sliType: SliType.Metric }),
+      ]);
+
+      await runWorkerTick();
+
+      expect(counting.measure).not.toHaveBeenCalled();
+      expect(feedTexts().join(" ")).toContain(
+        "Choose the metric this SLO counts",
+      );
+    });
+
+    test("no events in the window: Misconfigured, waiting for its metric rather than for traces", async () => {
+      sloService["getDueSlos"]!.mockResolvedValue([
+        makeRequestSlo({ sliType: SliType.Metric, metricQueryConfig: COUNTER }),
+      ]);
+      stubMeasurement({ window: { goodCount: 0, totalCount: 0 } });
+
+      await runWorkerTick();
+
+      expect(statusWrites()).toEqual([SloStatus.Misconfigured]);
+      expect(feedTexts().join(" ")).toContain(
+        "have not sent an event of its metric in its window yet",
+      );
+      expect(feedTexts().join(" ")).not.toContain("traces");
     });
   });
 

@@ -86,6 +86,7 @@ export default class MetricQueryFallbackUtil {
       metricAliasData: {
         title: alias?.title,
         description: alias?.description,
+        isMetricTypeDescription: alias?.isMetricTypeDescription,
         legend: alias?.legend,
         legendUnit: alias?.legendUnit,
         metricVariable:
