@@ -70,6 +70,11 @@ export const READ_BY_MORE: PluralTemplate = {
   one: "and {{count}} more",
   other: "and {{count}} more",
 };
+// The names and how many more, as one sentence: "A, B ほか 3 件" (#8076).
+export const READ_BY_NAMES_AND_MORE: PluralTemplate = {
+  one: "{{names}} and {{count}} more",
+  other: "{{names}} and {{count}} more",
+};
 export const READER_KIND_MONITOR: string = translationKey("Monitor");
 export const READER_KIND_HUNT: string = translationKey("Hunt");
 // When what reads it could not be read: the list still shows, without them.
