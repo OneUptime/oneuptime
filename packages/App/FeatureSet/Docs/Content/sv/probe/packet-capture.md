@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **En av projektets egna sonder.** Globala sonder bär andra projekts trafik, så de spelar aldrig in. Se [Anpassade sonder](/docs/probe/custom-probe) för att installera en egen sond.
 - **En sond från den här versionen eller senare.** Äldre sonder rapporterar inte vad de kan spela in på.
-- **Rätt behörigheter.** Att starta och stoppa en inspelning kräver **Start Packet Capture**, och att ladda ner en fil kräver **Download Packet Capture**. Projektägare och -administratörer har båda. Se [Behörigheter](#behörigheter).
+- **Rätt behörigheter.** Att starta och stoppa en inspelning kräver **Start Packet Capture**, och att ladda ner en fil kräver **Download Packet Capture**. Projektägare och Projektadministratörer har båda. Se [Behörigheter](#behörigheter).
 - **En speglad port, för trafik som inte når sonden.** En sond ser bara trafiken på sin egen värds gränssnitt. För att spela in trafik mellan andra enheter speglar du deras switchport (SPAN) till ett ledigt gränssnitt på sondens värd.
 
 ## Slå på paketinspelning

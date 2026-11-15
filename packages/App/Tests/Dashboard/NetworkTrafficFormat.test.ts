@@ -26,17 +26,17 @@ const ENGLISH: Translator = createTranslator(undefined, "en");
 describe("formatTrafficBytes", () => {
   test.each([
     [0, "0 B"],
-    [999, "999 B"],
-    [1000, "1.00 kB"],
-    [1234, "1.23 kB"],
-    [12_345, "12.3 kB"],
-    [123_456, "123 kB"],
-    [1_234_567, "1.23 MB"],
-    [5_000_000_000, "5.00 GB"],
-    [7_250_000_000_000, "7.25 TB"],
-    [3_000_000_000_000_000, "3.00 PB"],
+    [999, "999\u00A0B"],
+    [1000, "1.00\u00A0kB"],
+    [1234, "1.23\u00A0kB"],
+    [12_345, "12.3\u00A0kB"],
+    [123_456, "123\u00A0kB"],
+    [1_234_567, "1.23\u00A0MB"],
+    [5_000_000_000, "5.00\u00A0GB"],
+    [7_250_000_000_000, "7.25\u00A0TB"],
+    [3_000_000_000_000_000, "3.00\u00A0PB"],
     // Past the last unit it keeps counting in it.
-    [4_000_000_000_000_000_000, "4000 PB"],
+    [4_000_000_000_000_000_000, "4000\u00A0PB"],
   ])("%d bytes read %s", (octets: number, text: string) => {
     expect(formatTrafficBytes(octets)).toBe(text);
   });
@@ -65,13 +65,13 @@ describe("formatBitsPerSecond and getBitsPerSecond", () => {
 
   test.each([
     [0, "0 bps"],
-    [133.33, "133 bps"],
-    [1000, "1.00 kbps"],
-    [500_000, "500 kbps"],
-    [1_000_000, "1.00 Mbps"],
-    [12_345_678, "12.3 Mbps"],
-    [1_500_000_000, "1.50 Gbps"],
-    [40_000_000_000_000, "40.0 Tbps"],
+    [133.33, "133\u00A0bps"],
+    [1000, "1.00\u00A0kbps"],
+    [500_000, "500\u00A0kbps"],
+    [1_000_000, "1.00\u00A0Mbps"],
+    [12_345_678, "12.3\u00A0Mbps"],
+    [1_500_000_000, "1.50\u00A0Gbps"],
+    [40_000_000_000_000, "40.0\u00A0Tbps"],
   ])("%d bits a second read %s", (bitsPerSecond: number, text: string) => {
     expect(formatBitsPerSecond(bitsPerSecond)).toBe(text);
   });

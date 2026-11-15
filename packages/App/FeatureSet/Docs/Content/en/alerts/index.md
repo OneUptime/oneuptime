@@ -175,7 +175,7 @@ A criteria keeps one open alert at a time. Until that alert is resolved, the mon
 :::
 
 :::details A teammate can open an alert that I cannot find
-The alert is probably private. Ask a project admin to add you as an owner, or to turn **Private Alert** off on the alert's **Settings** page.
+The alert is probably private. Ask a Project Admin to add you as an owner, or to turn **Private Alert** off on the alert's **Settings** page.
 :::
 
 ## Next steps

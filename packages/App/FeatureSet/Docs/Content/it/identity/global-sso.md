@@ -1,6 +1,6 @@
 # SSO globale
 
-L'SSO globale permette a un **amministratore dell'istanza** OneUptime (master admin) di configurare **una sola volta**, a livello di istanza, un provider di identità SAML 2.0 o OpenID Connect (OIDC) e di collegarlo a qualsiasi progetto del server. Invece di far configurare a ogni proprietario di progetto il proprio provider di identità, un amministratore principale ne configura uno che serve l'intera istanza.
+L'SSO globale permette a un **amministratore dell'istanza** OneUptime (master admin) di configurare **una sola volta**, a livello di istanza, un provider di identità SAML 2.0 o OpenID Connect (OIDC) e di collegarlo a qualsiasi progetto del server. Invece di far configurare a ogni Proprietario del progetto il proprio provider di identità, un amministratore principale ne configura uno che serve l'intera istanza.
 
 > [!NOTE]
 > L'SSO globale, incluso l'interruttore "Require SSO for Login" valido per tutta l'istanza, fa parte di ogni edizione di OneUptime: ogni istanza self-hosted lo ha, Community Edition compresa, e non richiede licenza. È amministrazione dell'istanza, quindi non si applica a OneUptime Cloud. Consulta [Edizione Enterprise](/docs/self-hosted/enterprise) per vedere cosa include ogni edizione.
@@ -16,7 +16,7 @@ L'SSO globale permette a un **amministratore dell'istanza** OneUptime (master ad
 
 |                       | SSO di progetto                                        | SSO globale                                            |
 | --------------------- | ------------------------------------------------------ | ------------------------------------------------------ |
-| Configurato da        | Proprietario/amministratore del progetto (Impostazioni del progetto) | Amministratore principale dell'istanza (Admin Dashboard) |
+| Configurato da        | Proprietario del progetto o Amministratore del progetto (Impostazioni del progetto) | Amministratore principale dell'istanza (Admin Dashboard) |
 | Ambito                | Un singolo progetto                                    | L'intera istanza, collegabile a qualsiasi progetto     |
 | Risultato dell'accesso | Accesso a quel solo progetto                          | Accesso a ogni progetto che l'utente può raggiungere   |
 

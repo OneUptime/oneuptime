@@ -96,7 +96,7 @@ Em **Enviar uma chamada de teste**, clique em **Testar esta política**, escolha
 :::
 
 > [!NOTE]
-> SMS e chamadas telefônicas ficam desativados em um projeto novo. Um proprietário do projeto, um Administrador de cobrança ou alguém com Manage Billing os ativa no cartão **Canais de notificação**, em **Configurações do projeto → Notificações → Canais de notificação**.
+> SMS e chamadas telefônicas ficam desativados em um projeto novo. Um Proprietário do projeto, um Administrador de cobrança ou alguém com Manage Billing os ativa no cartão **Canais de notificação**, em **Configurações do projeto → Notificações → Canais de notificação**.
 
 Duas regras de plantão disparam a política: uma a cada novo incidente e outra a cada novo alerta. Para ver a primeira, abra **Incidentes** no menu **Produtos**, expanda **Regras** no menu lateral e escolha **Regras de Plantão**: ela corresponde a **Todos os incidentes**. Para disparar a política só em alguns incidentes, como os críticos, edite a regra ali, ou clique em **Criar: Incident On-Call Rule** para adicionar uma sua.
 

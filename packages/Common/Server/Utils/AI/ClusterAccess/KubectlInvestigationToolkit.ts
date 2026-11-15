@@ -40,6 +40,8 @@ import ToolOutputPager, {
   READ_TOOL_OUTPUT_TOOL_NAME,
 } from "../Chat/ToolOutputPager";
 
+import { AI_TOOLKIT_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, ToolCitation } from "../Toolbox/ReadTableWords";
 /*
  * The run-scoped, READ-ONLY kubectl toolkit for an investigation.
  *
@@ -263,7 +265,8 @@ export default class KubectlInvestigationToolkit {
           result: {
             dataForLlm: text,
             rowCount: ready.length,
-            citationLabel: "Clusters OneUptime AI can inspect",
+            // In the reader's language (#8511).
+            ...citationSentence(AI_TOOLKIT_CITATIONS.clustersAvailable),
             redactionCount: 0,
             isTruncated: false,
           },
@@ -538,7 +541,11 @@ export default class KubectlInvestigationToolkit {
       );
     }
 
-    const citationLabel: string = `${outcome.displayCommand} on cluster "${cluster.clusterName}"`;
+    // In the reader's language (#8511): the command and the cluster as named.
+    const citation: ToolCitation = citationSentence(
+      AI_TOOLKIT_CITATIONS.commandOnCluster,
+      { command: outcome.displayCommand, cluster: cluster.clusterName || "" },
+    );
 
     /*
      * The whole output came back (see maxOutputChars above). A long one is
@@ -546,7 +553,8 @@ export default class KubectlInvestigationToolkit {
      * read_tool_output — nothing is cut away.
      */
     const paged: PagedToolOutput = this.outputPager.paginate({
-      label: citationLabel,
+      label: citation.citationLabel,
+      words: citation.citationWords,
       text: outcome.output,
       continuationHint: KubectlInvestigationToolkit.describeStderrPosition(
         outcome.output,
@@ -565,7 +573,7 @@ export default class KubectlInvestigationToolkit {
       result: {
         dataForLlm: text,
         rowCount: outcome.succeeded ? 1 : 0,
-        citationLabel,
+        ...citation,
         redactionCount: outcome.redactionCount ?? 0,
         // Paged output is complete; only an output the agent cut is not.
         isTruncated:

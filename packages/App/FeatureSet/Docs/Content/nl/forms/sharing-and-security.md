@@ -98,7 +98,7 @@ De server moet antwoorden op poort 80, waar Let's Encrypt elk domein controleert
 
 ### Wie domeinen kan beheren
 
-Eigenaars en beheerders van het project, en iedereen met **Edit Form**, kunnen de domeinen van een formulier toevoegen, controleren, hun certificaten opnieuw laten uitgeven en ze verwijderen. Dat kunnen ook de rechten voor alleen de domeinen van een formulier, zoals **Edit Form Domain**: het [Formulieren – overzicht](/docs/forms/index#machtigingen) somt ze op. Iedereen die een formulier kan lezen, ziet zijn domeinen, hun **Status** en het record in **DNS-instelling**; voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld en zeggen ze welk recht nodig is. Een API-sleutel werkt net zo op `/form-domain`: `verify-cname`, `order-ssl` en `reissue-ssl` hebben **Edit Form Domain** of **Edit Form** nodig.
+Projecteigenaren en Projectbeheerders, en iedereen met **Edit Form**, kunnen de domeinen van een formulier toevoegen, controleren, hun certificaten opnieuw laten uitgeven en ze verwijderen. Dat kunnen ook de rechten voor alleen de domeinen van een formulier, zoals **Edit Form Domain**: het [Formulieren – overzicht](/docs/forms/index#machtigingen) somt ze op. Iedereen die een formulier kan lezen, ziet zijn domeinen, hun **Status** en het record in **DNS-instelling**; voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld en zeggen ze welk recht nodig is. Een API-sleutel werkt net zo op `/form-domain`: `verify-cname`, `order-ssl` en `reissue-ssl` hebben **Edit Form Domain** of **Edit Form** nodig.
 
 ## Wat een formulier beschermt
 

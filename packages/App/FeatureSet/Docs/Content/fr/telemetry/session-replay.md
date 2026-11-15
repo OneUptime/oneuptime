@@ -1064,7 +1064,7 @@ Sachez que la ligne de session expire avec ses images : les nombres d'erreurs, l
 
 ### Effacer des sessions
 
-Pour satisfaire une demande de suppression, déposez une demande d'effacement via l'API OneUptime — la ressource `/rum-session-erasure-request` ; il n'existe pas encore de formulaire dans le tableau de bord pour cela. Une demande exige `CreateRumSessionErasureRequest` (ou un propriétaire / administrateur du projet) et prend :
+Pour satisfaire une demande de suppression, déposez une demande d'effacement via l'API OneUptime — la ressource `/rum-session-erasure-request` ; il n'existe pas encore de formulaire dans le tableau de bord pour cela. Une demande exige `CreateRumSessionErasureRequest` (ou un Propriétaire du projet ou un Administrateur du projet) et prend :
 
 | Champ | Valeurs |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Comme le marquage atteint chaque service par lequel une requête du navigateur e
 
 ## Qui peut regarder un enregistrement
 
-Regarder un enregistrement est une autorisation distincte de celle de lister les sessions, et aucune des deux n'est accordée par le rôle Lecteur du projet. Les propriétaires et administrateurs du projet les ont toutes.
+Regarder un enregistrement est une autorisation distincte de celle de lister les sessions, et aucune des deux n'est accordée par le rôle Lecteur du projet. Les Propriétaires du projet et Administrateurs du projet les ont toutes.
 
 | Autorisation | Donne accès à |
 | --- | --- |

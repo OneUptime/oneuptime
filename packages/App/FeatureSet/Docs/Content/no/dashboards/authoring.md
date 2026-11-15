@@ -11,7 +11,7 @@ For å opprette et dashbord åpner du **Produkter → Dashbord** og klikker på 
 
 ## Før du begynner
 
-Prosjekteiere og -administratorer kan opprette og redigere alle dashbord. Alle andre trenger en teamtillatelse: `CreateDashboard` for å opprette dashbord og `EditDashboard` for å endre dem. Prosjektmedlemmer og seere kan lese dashbord uten noen av dem. Den som ikke kan redigere et dashbord, kan likevel åpne **⋯**-menyen, der **Rediger dashbord** er låst og forteller hvilken tillatelse som trengs.
+Prosjekteiere og Prosjektadministratorer kan opprette og redigere alle dashbord. Alle andre trenger en teamtillatelse: `CreateDashboard` for å opprette dashbord og `EditDashboard` for å endre dem. Prosjektmedlemmer og Lesere kan lese dashbord uten noen av dem. Den som ikke kan redigere et dashbord, kan likevel åpne **⋯**-menyen, der **Rediger dashbord** er låst og forteller hvilken tillatelse som trengs.
 
 ## Opprett dashbordet
 

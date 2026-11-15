@@ -133,7 +133,7 @@ Un statut dit combien de budget il reste, pas ce que votre équipe fait en cons�
 
 Quand un SLO passe **À risque** ou **Budget épuisé**, OneUptime notifie ses propriétaires :
 
-- Les propriétaires sont les utilisateurs et les membres des équipes de la page **Propriétaires** du SLO qui sont encore membres du projet. Un SLO sans propriétaires notifie à la place les propriétaires du projet.
+- Les propriétaires sont les utilisateurs et les membres des équipes de la page **Propriétaires** du SLO qui sont encore membres du projet. Un SLO sans propriétaires notifie à la place les Propriétaires du projet.
 - Chaque propriétaire reçoit un e-mail par défaut, et la notification sur chaque autre canal qu'il active pour **Statut du SLO modifié** dans **Paramètres utilisateur** → **Paramètres de notification** → **Surveillance**.
 - L'objet de l'e-mail nomme le statut et le SLO, par exemple `[SLO At Risk] API Availability`.
 

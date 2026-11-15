@@ -1,6 +1,6 @@
 # Company AI Tools
 
-See what your people ask the AI tools your company pays for, as conversations by person. Connect Claude Enterprise or Microsoft 365 Copilot with a credential that can only read, and OneUptime brings every new chat into **Conversations** every 15 minutes. Only project owners and admins can read them unless you choose otherwise.
+See what your people ask the AI tools your company pays for, as conversations by person. Connect Claude Enterprise or Microsoft 365 Copilot with a credential that can only read, and OneUptime brings every new chat into **Conversations** every 15 minutes. Only Project Owners and Project Admins can read them unless you choose otherwise.
 
 :::cards
 - [Tell your people first](#tell-your-people-first): Their chats are their own words.

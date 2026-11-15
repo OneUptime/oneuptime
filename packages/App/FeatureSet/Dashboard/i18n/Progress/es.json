@@ -677,6 +677,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{name}} (monitor: {{monitor}})",
     "{{rate}}/min",
     "{{rate}}/s",

@@ -291,7 +291,7 @@ export function normalizeOpenStackLifecycleOptions(
       size > MAX_OPENSTACK_LIFECYCLE_VOLUME_SIZE_IN_GIB
     ) {
       return {
-        error: `The lifecycle check's volume is 1 to ${MAX_OPENSTACK_LIFECYCLE_VOLUME_SIZE_IN_GIB} GiB, in whole GiB.`,
+        error: `The lifecycle check's volume is 1 to ${MAX_OPENSTACK_LIFECYCLE_VOLUME_SIZE_IN_GIB}\u00A0GiB, in whole GiB.`,
       };
     }
 

@@ -98,7 +98,7 @@ The server must answer on port 80, where Let's Encrypt checks each domain. An in
 
 ### Who can manage domains
 
-Project owners and admins, and anyone with **Edit Form**, can add a form's domains, check them, reissue their certificates and delete them. So can the permissions for a form's domains alone, such as **Edit Form Domain**: the [Forms Overview](/docs/forms/index#permissions) lists them. Everyone who can read a form sees its domains, their **Status** and the record in **DNS Setup**; for them **Check now** and **Reissue SSL** are locked, and say which permission they need. An API key works the same way on `/form-domain`: `verify-cname`, `order-ssl` and `reissue-ssl` need **Edit Form Domain** or **Edit Form**.
+Project Owners and Project Admins, and anyone with **Edit Form**, can add a form's domains, check them, reissue their certificates and delete them. So can the permissions for a form's domains alone, such as **Edit Form Domain**: the [Forms Overview](/docs/forms/index#permissions) lists them. Everyone who can read a form sees its domains, their **Status** and the record in **DNS Setup**; for them **Check now** and **Reissue SSL** are locked, and say which permission they need. An API key works the same way on `/form-domain`: `verify-cname`, `order-ssl` and `reissue-ssl` need **Edit Form Domain** or **Edit Form**.
 
 ## What protects a form
 

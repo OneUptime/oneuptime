@@ -30,7 +30,7 @@ sequenceDiagram
 ## Før du begynner
 
 - **Growth-planen, på OneUptime Cloud.** Den kreves for å opprette en sonde. En selvhostet installasjon har ingen plangrenser.
-- **Tillatelse til å opprette sonder.** Prosjekteiere, -administratorer og -medlemmer har den, og det har også alle andre der rollen tillater å opprette sonder.
+- **Tillatelse til å opprette sonder.** Prosjekteiere, Prosjektadministratorer og Prosjektmedlemmer har den, og det har også alle andre der rollen tillater å opprette sonder.
 - **En maskin i nettverket du vil overvåke.** Den trenger Docker, Docker Compose eller Kubernetes, en rute til tjenestene sonden skal sjekke, og utgående HTTPS til `ONEUPTIME_URL`.
 
 ## Installer en sonde
@@ -42,9 +42,9 @@ sequenceDiagram
 
 ### Kopier ID-en og nøkkelen
 
-Sonden trenger ID-en og nøkkelen sin for å koble til. For å kopiere dem åpner du sondens meny i tabellen **Egendefinerte sonder** og velger **Vis ID og nøkkel**. Alle som ser tabellen kan kopiere ID-en til en sonde; nøkkelen vises bare for prosjekteiere og -administratorer, som ser **Vis ID og nøkkel** der de andre ser **Vis ID**.
+Sonden trenger ID-en og nøkkelen sin for å koble til. For å kopiere dem åpner du sondens meny i tabellen **Egendefinerte sonder** og velger **Vis ID og nøkkel**. Alle som ser tabellen kan kopiere ID-en til en sonde; nøkkelen vises bare for Prosjekteiere og Prosjektadministratorer, som ser **Vis ID og nøkkel** der de andre ser **Vis ID**.
 
-Prosjekteiere og -administratorer kan også klikke på sonden: kortet **Set up your Custom Probe** på siden dens viser Docker-kommandoen med ID og nøkkel allerede fylt inn.
+Prosjekteiere og Prosjektadministratorer kan også klikke på sonden: kortet **Set up your Custom Probe** på siden dens viser Docker-kommandoen med ID og nøkkel allerede fylt inn.
 
 ### Kjør sonden
 

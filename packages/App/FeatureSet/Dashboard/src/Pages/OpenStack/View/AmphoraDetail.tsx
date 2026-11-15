@@ -205,8 +205,8 @@ const OpenStackCloudAmphoraDetail: FunctionComponent<
                     days === null
                       ? "—"
                       : days < 0
-                        ? `-${Math.ceil(-days)} d`
-                        : `${Math.floor(days)} d`
+                        ? `-${Math.ceil(-days)}\u00A0d`
+                        : `${Math.floor(days)}\u00A0d`
                   }
                   description="Days until its certificate ends. One lasts 30 days from when the amphora is built, and Octavia's housekeeping renews it with 14 left by default."
                 />

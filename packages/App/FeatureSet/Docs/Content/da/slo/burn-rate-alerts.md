@@ -235,7 +235,7 @@ For eksempel bliver titlen `{{ruleName}}: {{sloName}} is burning {{longWindowBur
 - **Tilføj SLO-ejere som ejere** tilføjer også SLO'ets ejere, dets ejerbrugere og medlemmerne af dets ejerteams, til alt, hvad reglen opretter. SLO'ets ejere hører allerede om selve SLO'ets statusændringer, så det kan give dem besked to gange. Det er slået fra som standard.
 - Hver ejer tilføjes én gang: en bruger, der allerede er ejer af advarslen eller hændelsen, for eksempel via projektets ejerregler, eller som er med i et tilføjet ejerteam, tilføjes ikke igen.
 - **Advarselsmærkater** og **Hændelsesetiketter** tilføjes til advarslen eller hændelsen, så filtre, ejerregler og beskedregler for arbejdsområdet kan matche dem.
-- En privat advarsel eller hændelse er kun synlig for sine ejere, projektets administratorer og projektets ejere.
+- En privat advarsel eller hændelse er kun synlig for sine ejere, Projektadministratorer og Projektejere.
 
 Etiketter, ejerteams og vagtpolitikker skal høre til SLO'ets projekt.
 

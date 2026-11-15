@@ -95,31 +95,17 @@ const PAGE: string =
   "**Project Settings > Notifications > Notification Channels**";
 
 /*
- * How each language names a project owner, the first of the people who may
- * turn a channel on: a project owner, a Billing Admin or someone with Manage
- * Billing. The permission keeps its English name, as the dashboard's
+ * How each language names a Project Owner, the first of the people who may
+ * turn a channel on: a Project Owner, a Billing Admin or someone with Manage
+ * Billing - as its Dashboard draws the role (#8493). The permission keeps its English name, as the dashboard's
  * permission picker shows it; the Billing Admin role reads as each
  * language's Dashboard names it (billingAdmin).
  */
-const PROJECT_OWNER: Record<string, string> = {
-  en: "project owner",
-  da: "projektejer",
-  de: "Projekteigentümer",
-  es: "propietario del proyecto",
-  fa: "مالک پروژه",
-  fr: "propriétaire du projet",
-  hi: "प्रोजेक्ट का मालिक",
-  it: "proprietario del progetto",
-  ja: "プロジェクトのオーナー",
-  ko: "프로젝트 소유자",
-  nl: "projecteigenaar",
-  no: "prosjekteier",
-  pt: "proprietário do projeto",
-  ru: "владелец проекта",
-  sv: "projektägare",
-  "zh-CN": "项目所有者",
-  "zh-TW": "專案擁有者",
-};
+const PROJECT_OWNER: Record<string, string> = Object.fromEntries(
+  LANGUAGES.map((lang: string): [string, string] => {
+    return [lang, writtenPermissionTitle(lang, "Project Owner")];
+  }),
+);
 
 // The Billing Admin role, bold, as a language's Dashboard names it.
 function billingAdmin(lang: string): string {
@@ -263,7 +249,7 @@ describe("Escalation Rules", () => {
       "Until a channel is on, nobody in the project can add a method on it.",
     );
     expect(page).toContain(
-      `Only a project owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the ${CARD} card on ${PAGE} — a project admin cannot.`,
+      `Only a Project Owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the ${CARD} card on ${PAGE} — a Project Admin cannot.`,
     );
     expect(page).toContain(
       "Everyone else is told exactly who can, wherever a channel is off",
@@ -276,7 +262,7 @@ describe("Status page subscribers", () => {
 
   test("the SMS line names the project switch and who can turn it on", () => {
     expect(page).toContain(
-      `Turning it on also needs **SMS** switched on for the project, in the ${CARD} card on ${PAGE}, which a project owner, a **Billing Admin** or someone with **Manage Billing** can do.`,
+      `Turning it on also needs **SMS** switched on for the project, in the ${CARD} card on ${PAGE}, which a Project Owner, a **Billing Admin** or someone with **Manage Billing** can do.`,
     );
   });
 });
@@ -286,7 +272,7 @@ describe("Incoming Call Policy", () => {
 
   test("says incoming call numbers need SMS on, and who can turn it on", () => {
     expect(page).toContain(
-      `Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the ${CARD} card on ${PAGE}.`,
+      `Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A Project Owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the ${CARD} card on ${PAGE}.`,
     );
   });
 });
@@ -296,7 +282,7 @@ describe("Twilio SMS and Voice Integration", () => {
 
   test("says SMS and phone calls start off, and who turns them on, next to the Twilio config", () => {
     expect(page).toContain(
-      `**SMS** and **Phone Calls** start off in every project, and until they are on nobody in the project can add a phone number for them. A project owner, a **Billing Admin** or someone with **Manage Billing** turns them on in the ${CARD} card on the same page.`,
+      `**SMS** and **Phone Calls** start off in every project, and until they are on nobody in the project can add a phone number for them. A Project Owner, a **Billing Admin** or someone with **Manage Billing** turns them on in the ${CARD} card on the same page.`,
     );
   });
 

@@ -103,13 +103,13 @@ describe("the 14 upgrade notes", () => {
 
   test("the LLM provider guide says who changes the Base URL", () => {
     expect(squash(read("ai/llm-provider.md"))).toContain(
-      "Only project owners and admins can change a provider's **Base URL**, because its API Key and Additional Parameters are sent to that address; the other members who may edit a provider can change everything else.",
+      "Only Project Owners and Project Admins can change a provider's **Base URL**, because its API Key and Additional Parameters are sent to that address; the other members who may edit a provider can change everything else.",
     );
   });
 
   test("the custom probe guide says where to copy a probe's ID and key, and who sees the key", () => {
     expect(squash(read("probe/custom-probe.md"))).toContain(
-      "To copy them, open the probe's menu in the **Custom Probes** table and pick **Show ID and Key**. Everyone who can see the table can copy a probe's ID; its key is shown only to project owners and admins, who see **Show ID and Key** where the others see **Show ID**.",
+      "To copy them, open the probe's menu in the **Custom Probes** table and pick **Show ID and Key**. Everyone who can see the table can copy a probe's ID; its key is shown only to Project Owners and Project Admins, who see **Show ID and Key** where the others see **Show ID**.",
     );
   });
 

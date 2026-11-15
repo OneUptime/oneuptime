@@ -235,7 +235,7 @@ For eksempel blir tittelen `{{ruleName}}: {{sloName}} is burning {{longWindowBur
 - **Legg til SLO-eiere som eiere** legger også til eierne av SLO-et, eierbrukerne og medlemmene av eierteamene, på alt regelen oppretter. Eierne av SLO-et får allerede høre om statusendringene til selve SLO-et, så dette kan gi dem beskjed to ganger. Det er slått av som standard.
 - Hver eier legges til én gang: en bruker som allerede er eier av varselet eller hendelsen, for eksempel via prosjektets eierregler, eller som er med i et eierteam som er lagt til, legges ikke til på nytt.
 - **Varseletiketter** og **Hendelsesetiketter** legges til på varselet eller hendelsen, så filtre, eierregler og varslingsregler for arbeidsområdet kan treffe dem.
-- Et privat varsel eller en privat hendelse er bare synlig for eierne, prosjektadministratorene og prosjekteierne.
+- Et privat varsel eller en privat hendelse er bare synlig for eierne, Prosjektadministratorene og Prosjekteierne.
 
 Etiketter, eierteam og vaktpolicyer må høre til prosjektet til SLO-et.
 

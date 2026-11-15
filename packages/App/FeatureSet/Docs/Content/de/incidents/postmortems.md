@@ -209,7 +209,7 @@ Die beiden KI-Aktionen erfordern, dass KI für das Projekt eingeschaltet ist, un
 
 **Vorfälle → Maßnahmen** listet die Maßnahmen aller Postmortems im ganzen Projekt auf, die am frühesten fälligen zuerst, jeweils mit Vorfall, Eigentümer, Fälligkeitsdatum und Status. Filtern Sie die Liste nach **Status**, **Eigentümer** und **Fälligkeitsdatum**; **Anzeigen** in einer Zeile öffnet die Seite **Postmortem** des Vorfalls.
 
-Maßnahmen zu lesen erfordert dasselbe, wie den Vorfall zu lesen. Sie hinzuzufügen, zu ändern und zu löschen erfordert die Rolle Projektinhaber, Projektadministrator, Projektmitglied, Vorfall-Administrator oder Vorfall-Mitglied oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Postmortem-Maßnahmen. Die Maßnahmen eines privaten Vorfalls sind wie der Vorfall selbst nur für seine Eigentümer-Benutzer, die Mitglieder seiner Eigentümer-Teams, Projektadmins und Projekteigentümer sichtbar.
+Maßnahmen zu lesen erfordert dasselbe, wie den Vorfall zu lesen. Sie hinzuzufügen, zu ändern und zu löschen erfordert die Rolle Projektinhaber, Projektadministrator, Projektmitglied, Vorfall-Administrator oder Vorfall-Mitglied oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Postmortem-Maßnahmen. Die Maßnahmen eines privaten Vorfalls sind wie der Vorfall selbst nur für seine Eigentümer-Benutzer, die Mitglieder seiner Eigentümer-Teams, Projektadministratoren und Projektinhaber sichtbar.
 
 ## Postmortems von Episoden
 

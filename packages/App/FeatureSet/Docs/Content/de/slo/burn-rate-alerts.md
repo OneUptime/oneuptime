@@ -235,7 +235,7 @@ Zum Beispiel wird aus dem Titel `{{ruleName}}: {{sloName}} is burning {{longWind
 - **SLO-Eigentümer als Eigentümer hinzufügen** fügt außerdem die Eigentümer des SLO, seine Eigentümer-Benutzer und die Mitglieder seiner Eigentümer-Teams, zu allem hinzu, was die Regel erzeugt. SLO-Eigentümer erfahren schon von den Statusänderungen des SLO selbst, das kann sie also doppelt benachrichtigen. Standardmäßig ist es ausgeschaltet.
 - Jeder Eigentümer wird einmal hinzugefügt: Ein Benutzer, dem die Warnung oder der Vorfall schon gehört, etwa über die Eigentümerregeln des Projekts, oder der in einem hinzugefügten Eigentümer-Team ist, wird nicht noch einmal hinzugefügt.
 - **Warnungsbeschriftungen** und **Vorfall-Beschriftungen** werden der Warnung oder dem Vorfall hinzugefügt, damit Filter, Eigentümerregeln und Regeln für Workspace-Benachrichtigungen darauf passen können.
-- Eine private Warnung oder ein privater Vorfall ist nur für die Eigentümer, Projektadministratoren und Projekteigentümer sichtbar.
+- Eine private Warnung oder ein privater Vorfall ist nur für die Eigentümer, Projektadministratoren und Projektinhaber sichtbar.
 
 Beschriftungen, Eigentümer-Teams und Bereitschaftsrichtlinien müssen zum Projekt des SLO gehören.
 

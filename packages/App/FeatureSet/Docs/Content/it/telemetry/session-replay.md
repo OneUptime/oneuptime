@@ -1064,7 +1064,7 @@ Tieni presente che la riga della sessione scade con la sua registrazione: i cont
 
 ### Cancellare le sessioni
 
-Per soddisfare una richiesta di eliminazione, presenta una richiesta di cancellazione tramite l'API di OneUptime — la risorsa `/rum-session-erasure-request`; non c'è ancora un modulo nella dashboard per farlo. Una richiesta richiede `CreateRumSessionErasureRequest` (o un proprietario / amministratore del progetto) e accetta:
+Per soddisfare una richiesta di eliminazione, presenta una richiesta di cancellazione tramite l'API di OneUptime — la risorsa `/rum-session-erasure-request`; non c'è ancora un modulo nella dashboard per farlo. Una richiesta richiede `CreateRumSessionErasureRequest` (o un Proprietario del progetto o un Amministratore del progetto) e accetta:
 
 | Campo | Valori |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Poiché la marcatura raggiunge ogni servizio attraversato da una richiesta del b
 
 ## Chi può guardare una registrazione
 
-Guardare una registrazione è un'autorizzazione separata da quella di elencare le sessioni, e nessuna delle due è concessa dal ruolo Visualizzatore dell'intero progetto. I proprietari e gli amministratori del progetto le hanno tutte.
+Guardare una registrazione è un'autorizzazione separata da quella di elencare le sessioni, e nessuna delle due è concessa dal ruolo Visualizzatore dell'intero progetto. I Proprietari del progetto e gli Amministratori del progetto le hanno tutte.
 
 | Autorizzazione | Sblocca |
 | --- | --- |
