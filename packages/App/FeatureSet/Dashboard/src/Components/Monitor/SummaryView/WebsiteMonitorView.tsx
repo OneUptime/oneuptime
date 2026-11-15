@@ -64,21 +64,19 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
         <SummaryFact
           isWide={true}
           title="URL"
-          value={
-            props.probeMonitorResponse.monitorDestination?.toString() || "-"
-          }
+          value={props.probeMonitorResponse.monitorDestination?.toString()}
         />
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Response Status Code"
-          value={props.probeMonitorResponse?.responseCode?.toString() || "-"}
+          value={props.probeMonitorResponse?.responseCode?.toString()}
         />
         <SummaryFact
           title="Response Time (in ms)"
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -88,7 +86,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
       </SummaryFacts>

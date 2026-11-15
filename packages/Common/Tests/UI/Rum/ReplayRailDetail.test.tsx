@@ -1074,6 +1074,87 @@ describe("ReplayRailDetail recording pauses", () => {
     expect(detail).not.toHaveTextContent("NaN");
     expect(detail).not.toHaveTextContent("undefined");
   });
+
+  /*
+   * Issue #7498: the page's own pause (OneUptimeReplay.pause()). Somebody
+   * may have used the page all along, on a part it does not record, so
+   * neither end may say nobody touched it or that input came back.
+   */
+  it("says the page paused recording, and that the visitor's input does not resume it", () => {
+    renderDetail(
+      fromTimelineEvent(
+        {
+          id: "rec:4:9",
+          kind: "idle-pause",
+          chunkIndex: 4,
+          offsetMs: 330_000,
+          idlePauseEdge: "paused",
+          idleSinceUnixMs: START_UNIX_MS + 330_000,
+          pausedAtUnixMs: START_UNIX_MS + 330_000,
+          pauseReason: "page",
+        },
+        { startTimeUnixMs: START_UNIX_MS },
+      ),
+    );
+
+    const detail: HTMLElement = screen.getByTestId("rail-detail");
+
+    expect(detail).toHaveTextContent(
+      "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.",
+    );
+    expect(detail).not.toHaveTextContent("Nobody touched the page");
+    expect(detail).not.toHaveTextContent("next input");
+  });
+
+  it("says the page resumed recording after how long, on a fresh snapshot, and that playback skips the pause", () => {
+    renderDetail(
+      fromTimelineEvent(
+        {
+          id: "rec:5:0",
+          kind: "idle-pause",
+          chunkIndex: 5,
+          offsetMs: 1_710_000,
+          idlePauseEdge: "resumed",
+          pausedAtUnixMs: START_UNIX_MS + 330_000,
+          resumedAtUnixMs: START_UNIX_MS + 1_710_000,
+          pausedAtOffsetMs: 330_000,
+          pauseReason: "page",
+        },
+        { startTimeUnixMs: START_UNIX_MS },
+      ),
+    );
+
+    const detail: HTMLElement = screen.getByTestId("rail-detail");
+
+    expect(detail).toHaveTextContent(
+      "The page resumed recording here after 23m, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+    );
+    expect(detail).not.toHaveTextContent("Input came back");
+  });
+
+  it("says the page resumed recording without a length when the stamps were missing", () => {
+    renderDetail(
+      fromTimelineEvent(
+        {
+          id: "rec:5:0",
+          kind: "idle-pause",
+          chunkIndex: 5,
+          offsetMs: 1_710_000,
+          idlePauseEdge: "resumed",
+          pauseReason: "page",
+        },
+        { startTimeUnixMs: START_UNIX_MS },
+      ),
+    );
+
+    const detail: HTMLElement = screen.getByTestId("rail-detail");
+
+    expect(detail).toHaveTextContent(
+      "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+    );
+    expect(detail).not.toHaveTextContent("NaN");
+    expect(detail).not.toHaveTextContent("after");
+  });
 });
 
 describe("ReplayRailDetail performance wording", () => {

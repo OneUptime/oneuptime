@@ -196,12 +196,12 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "cronjob_cpu",
-      title: "Pod CPU Utilization",
+      title: translator.translateText("Pod CPU Utilization"),
       description: translator.translateTemplate(
         "CPU utilization for pods in cronjob {{cronJobName}}",
         { cronJobName: cronJobName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -228,12 +228,12 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "cronjob_memory",
-      title: "Pod Memory Usage",
+      title: translator.translateText("Pod Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for pods in cronjob {{cronJobName}}",
         { cronJobName: cronJobName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {

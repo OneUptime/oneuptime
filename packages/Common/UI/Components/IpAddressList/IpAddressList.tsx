@@ -3,6 +3,7 @@ import Icon from "../Icon/Icon";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 export interface ComponentProps {
   text: string;
@@ -146,7 +147,7 @@ const IpAddressList: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const ipString: string = props.text || "";
   if (!ipString) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const seen: Set<string> = new Set<string>();
@@ -165,7 +166,7 @@ const IpAddressList: FunctionComponent<ComponentProps> = (
   }
 
   if (ips.length === 0) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const grouped: Map<Category, Array<string>> = new Map<

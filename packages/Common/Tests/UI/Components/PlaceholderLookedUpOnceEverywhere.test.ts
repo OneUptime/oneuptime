@@ -3,6 +3,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  BREADCRUMB_TITLE,
   ENGLISH_SAID_TRANSLATED_MESSAGE,
   FLAG_NOT_READ_MESSAGE,
   LOOKED_UP_TWICE_MESSAGE,
@@ -243,6 +244,9 @@ describe("every placeholder written for such a control", () => {
       ["a form field's placeholder", true, true],
       ["a form field's placeholder", true, true],
       ["a form field's placeholder", true, true],
+      // Its trail's two crumbs, its own keyed words too (#8075).
+      [BREADCRUMB_TITLE, true, true],
+      [BREADCRUMB_TITLE, true, true],
     ]);
 
     // Of every page and component: none is missed for want of reading it.
@@ -935,6 +939,300 @@ describe("the guard's rules, for an aria label, a title, a menu's items and a de
         "<Tab title>",
         '{t("navbar.userSettings")}',
         `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+    ]);
+  });
+});
+
+/*
+ * #8075: THE ADMIN DASHBOARD'S BREADCRUMBS, AND THE PRODUCTS MENU'S ITEMS.
+ *
+ * The Admin Dashboard words its crumbs itself (t("breadcrumbs.settings")),
+ * and so do the status pages (t("nav.overview")): Breadcrumbs, the browser
+ * tab and the phone's menu looked each one up again. Each now says
+ * isTitleTranslated (Link). And the products menu looks up an item's
+ * description and category unless the item says they are translated
+ * (MoreMenuItem.isDescriptionTranslated, isCategoryTranslated), as the
+ * Dashboard's 47 products now do; the Admin Dashboard hands its in English.
+ */
+describe("every breadcrumb and every products menu item's words written for a page (#8075)", () => {
+  const ADMIN: string = "App/FeatureSet/AdminDashboard/";
+  const STATUS_PAGE: string = "App/FeatureSet/StatusPage/";
+  const DASHBOARD_NAV: string =
+    "App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx";
+  const ADMIN_NAV: string =
+    "App/FeatureSet/AdminDashboard/src/Components/NavBar/NavBar.tsx";
+
+  const crumbsIn: (prefix: string) => Array<PlaceholderSite> = (
+    prefix: string,
+  ): Array<PlaceholderSite> => {
+    return checkout.sites.filter((site: PlaceholderSite): boolean => {
+      return (
+        site.where.startsWith(prefix) && site.handedTo === BREADCRUMB_TITLE
+      );
+    });
+  };
+
+  test("finds the Admin Dashboard's 123 keyed crumbs, every one said to be translated", () => {
+    const keyed: Array<PlaceholderSite> = crumbsIn(ADMIN).filter(
+      (site: PlaceholderSite): boolean => {
+        return site.isLookedUp;
+      },
+    );
+
+    expect(keyed.length).toBeGreaterThanOrEqual(123);
+    expect(
+      keyed.every((site: PlaceholderSite): boolean => {
+        return site.isSaidTranslated;
+      }),
+    ).toBe(true);
+    // Settings > Telegram's trail, crumb by crumb.
+    expect(
+      sitesIn(
+        "App/FeatureSet/AdminDashboard/src/Pages/Settings/Telegram/Index.tsx",
+      )
+        .filter((site: PlaceholderSite): boolean => {
+          return site.handedTo === BREADCRUMB_TITLE;
+        })
+        .map((site: PlaceholderSite) => {
+          return [site.isLookedUp, site.isSaidTranslated];
+        }),
+    ).toEqual([
+      [true, true],
+      [true, true],
+      [true, true],
+    ]);
+    // A trail written as a constant, typed Array<Link>, is read too.
+    expect(
+      sitesIn(
+        "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Support.tsx",
+      ).filter((site: PlaceholderSite): boolean => {
+        return site.handedTo === BREADCRUMB_TITLE && site.isSaidTranslated;
+      }).length,
+    ).toBeGreaterThanOrEqual(4);
+  });
+
+  test("finds the status pages' keyed crumbs, every one said to be translated", () => {
+    const keyed: Array<PlaceholderSite> = crumbsIn(STATUS_PAGE);
+
+    expect(keyed.length).toBeGreaterThanOrEqual(27);
+    expect(
+      keyed.every((site: PlaceholderSite): boolean => {
+        return site.isLookedUp && site.isSaidTranslated;
+      }),
+    ).toBe(true);
+  });
+
+  test("finds the products menu's descriptions and categories: the Dashboard's said translated, the Admin Dashboard's English", () => {
+    for (const prop of ["description", "category"]) {
+      const dashboard: Array<PlaceholderSite> = sitesIn(DASHBOARD_NAV).filter(
+        (site: PlaceholderSite): boolean => {
+          return site.handedTo === `a MoreMenuItem's ${prop}`;
+        },
+      );
+      const admin: Array<PlaceholderSite> = sitesIn(ADMIN_NAV).filter(
+        (site: PlaceholderSite): boolean => {
+          return site.handedTo === `a MoreMenuItem's ${prop}`;
+        },
+      );
+
+      expect(dashboard.length).toBeGreaterThanOrEqual(47);
+      expect(
+        dashboard.every((site: PlaceholderSite): boolean => {
+          return site.isLookedUp && site.isSaidTranslated;
+        }),
+      ).toBe(true);
+      // Users, Projects, Feedback ... under Management, Monitoring ...
+      expect(admin.length).toBeGreaterThanOrEqual(7);
+      expect(
+        admin.every((site: PlaceholderSite): boolean => {
+          return !site.isLookedUp && !site.isSaidTranslated;
+        }),
+      ).toBe(true);
+    }
+  });
+});
+
+/*
+ * The crumb rules, on a page written for them: a trail written in the
+ * element, one through a constant, one a page inside hands up, a record's
+ * name, and an array that is no trail. And a menu whose items' type offers
+ * isDescriptionTranslated and isCategoryTranslated.
+ */
+describe("the guard's rules, for a page's crumbs and a menu item's description and category (#8075)", () => {
+  let packages: string;
+  let fixture: PlaceholderScanResult;
+
+  const COMPONENTS: string = path.join("Common", "UI", "Components");
+
+  const PAGE: string = path.join(
+    "App",
+    "FeatureSet",
+    "AdminDashboard",
+    "src",
+    "Pages",
+    "Crumbs.tsx",
+  );
+
+  // Each text on a line of its own.
+  const PAGE_LINES: Array<string> = [
+    'import React from "react";',
+    'import Page, { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";',
+    'import Menu, { MenuItem } from "Common/UI/Components/Menu/Menu";',
+    'import Link from "Common/Types/Link";',
+    "const Crumbs = (props) => {",
+    "  const { t } = useTranslation();",
+    '  const toolsCategory: string = t("navbar.categories.tools");',
+    "  const breadcrumbLinks: Array<Link> = [",
+    '    { title: t("breadcrumbs.projects"), to: home },',
+    '    { title: t("breadcrumbs.project"), isTitleTranslated: true, to: home },',
+    "  ];",
+    "  const trail: Array<Link> = [",
+    '    { title: translator.translateText("Hunts"), to: home },',
+    "  ];",
+    "  const notATrail = [",
+    '    { title: t("pages.notACrumb") },',
+    "  ];",
+    "  usePageBreadcrumbLinks(props.isReady ? trail : null);",
+    "  const items: Array<MenuItem> = [",
+    '    { title: "Users", description: t("navbar.usersDescription"),',
+    "      category: toolsCategory },",
+    '    { title: "Teams", description: "Every team.", category: "Management" },',
+    '    { title: "Logs", description: t("navbar.logsDescription"), isDescriptionTranslated: true,',
+    "      category: toolsCategory, isCategoryTranslated: true },",
+    '    { title: "Traces", description: "Every trace.", isDescriptionTranslated: true, category: "Tools" },',
+    "  ];",
+    "  return (",
+    "    <Page",
+    '      title="Crumbs"',
+    "      breadcrumbLinks={[",
+    '        { title: t("breadcrumbs.adminDashboard"), to: home },',
+    '        { title: t("breadcrumbs.settings"), isTitleTranslated: true, to: home },',
+    '        { title: "Settings", to: home },',
+    '        { title: "Global Probes", isTitleTranslated: true, to: home },',
+    "        { title: props.projectName, isRecordName: true, to: home },",
+    "      ]}",
+    "    >",
+    '      <Page title="Inner" breadcrumbLinks={breadcrumbLinks}>',
+    "        <Menu items={items} />",
+    "      </Page>",
+    "    </Page>",
+    "  );",
+    "};",
+    "export default Crumbs;",
+  ];
+
+  const at: (code: string) => string = (code: string): string => {
+    return placeOf(PAGE, PAGE_LINES, code);
+  };
+
+  beforeAll(() => {
+    packages = fs.mkdtempSync(path.join(os.tmpdir(), "crumb-lookup-scan-"));
+
+    writeFixture(packages, path.join(COMPONENTS, "Menu", "Menu.tsx"), [
+      'import React from "react";',
+      "export interface MenuItem {",
+      "  title: string;",
+      "  description: string;",
+      "  isDescriptionTranslated?: boolean;",
+      "  category?: string;",
+      "  isCategoryTranslated?: boolean;",
+      "}",
+      "const Menu = (props) => {",
+      "  const { translateString } = useTranslateValue();",
+      "  return (",
+      "    <ul>",
+      "      {props.items.map((item) => {",
+      "        return <li>{translateString(item.description)}</li>;",
+      "      })}",
+      "    </ul>",
+      "  );",
+      "};",
+      "export default Menu;",
+    ]);
+
+    writeFixture(packages, PAGE, PAGE_LINES);
+
+    fixture = scanPlaceholders(packages);
+  });
+
+  afterAll(() => {
+    fs.rmSync(packages, { recursive: true, force: true });
+  });
+
+  test("reads every crumb of a trail, and nothing that is no trail or a record's name", () => {
+    const crumbs: Array<string> = fixture.sites
+      .filter((site: PlaceholderSite): boolean => {
+        return site.handedTo === BREADCRUMB_TITLE;
+      })
+      .map((site: PlaceholderSite): string => {
+        return site.where;
+      });
+
+    expect(crumbs).toEqual([
+      at('"breadcrumbs.projects"'),
+      at('"breadcrumbs.project"'),
+      at('translateText("Hunts")'),
+      at('"breadcrumbs.adminDashboard"'),
+      at('"breadcrumbs.settings"'),
+      at('{ title: "Settings", to: home }'),
+      at('"Global Probes"'),
+    ]);
+    expect(crumbs).not.toContain(at('"pages.notACrumb"'));
+    expect(crumbs).not.toContain(at("props.projectName"));
+  });
+
+  test("fails on each crumb looked up twice or English said to be translated, and on each such menu word", () => {
+    expect(
+      fixture.problems.map((problem: PlaceholderProblem) => {
+        return [problem.where, problem.handedTo, problem.code, problem.message];
+      }),
+    ).toEqual([
+      // Through a constant handed to the page.
+      [
+        at('"breadcrumbs.projects"'),
+        BREADCRUMB_TITLE,
+        't("breadcrumbs.projects")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      // Through a constant a page inside hands up.
+      [
+        at('translateText("Hunts")'),
+        BREADCRUMB_TITLE,
+        'translator.translateText("Hunts")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"navbar.usersDescription"'),
+        "a MenuItem's description",
+        't("navbar.usersDescription")',
+        `${LOOKED_UP_TWICE_MESSAGE}isDescriptionTranslated`,
+      ],
+      // A constant the page built with a lookup.
+      [
+        at("      category: toolsCategory },"),
+        "a MenuItem's category",
+        "toolsCategory",
+        `${LOOKED_UP_TWICE_MESSAGE}isCategoryTranslated`,
+      ],
+      [
+        at('"Every trace."'),
+        "a MenuItem's description",
+        '"Every trace."',
+        `${ENGLISH_SAID_TRANSLATED_MESSAGE}isDescriptionTranslated`,
+      ],
+      // In the element.
+      [
+        at('"breadcrumbs.adminDashboard"'),
+        BREADCRUMB_TITLE,
+        't("breadcrumbs.adminDashboard")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"Global Probes"'),
+        BREADCRUMB_TITLE,
+        '"Global Probes"',
+        `${ENGLISH_SAID_TRANSLATED_MESSAGE}isTitleTranslated`,
       ],
     ]);
   });

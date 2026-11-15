@@ -20,6 +20,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ACCESS_OPTIONS: Array<DropdownOption> = DATA_ASSET_ACCESS_KINDS.map(
   (kind: DataAssetAccessKind): DropdownOption => {
@@ -88,7 +89,7 @@ const TableServicesPage: FunctionComponent<
             },
             getElement: (usage: DataAssetUsage): ReactElement => {
               if (!usage.serviceId) {
-                return <span>{usage.serviceName || "-"}</span>;
+                return <span>{usage.serviceName || <TableEmptyValue />}</span>;
               }
 
               return (
@@ -99,7 +100,7 @@ const TableServicesPage: FunctionComponent<
                   )}
                   className="font-medium text-gray-900 hover:underline"
                 >
-                  <span>{usage.serviceName || "-"}</span>
+                  <span>{usage.serviceName || <TableEmptyValue />}</span>
                   {usage.isAiApp ? (
                     <span className="ml-2 inline-block rounded bg-purple-50 px-1.5 py-0.5 text-xs font-normal text-purple-700">
                       {translator.translateText("AI app")}
@@ -137,7 +138,9 @@ const TableServicesPage: FunctionComponent<
             getElement: (usage: DataAssetUsage): ReactElement => {
               return (
                 <span className="font-mono text-xs text-gray-700">
-                  {(usage.operations || []).join(", ") || "-"}
+                  {(usage.operations || []).join(", ") || (
+                    <TableEmptyValue isSmall={true} />
+                  )}
                 </span>
               );
             },
@@ -153,7 +156,9 @@ const TableServicesPage: FunctionComponent<
             getElement: (usage: DataAssetUsage): ReactElement => {
               return (
                 <span className="font-mono text-xs text-gray-700">
-                  {(usage.endpoints || []).slice(0, 3).join(", ") || "-"}
+                  {(usage.endpoints || []).slice(0, 3).join(", ") || (
+                    <TableEmptyValue isSmall={true} />
+                  )}
                 </span>
               );
             },
@@ -206,11 +211,13 @@ const TableServicesPage: FunctionComponent<
             getElement: (usage: DataAssetUsage): ReactElement => {
               return (
                 <span className="whitespace-nowrap text-sm text-gray-700">
-                  {usage.lastSeenAt
-                    ? OneUptimeDate.fromNow(
-                        OneUptimeDate.fromString(usage.lastSeenAt),
-                      )
-                    : "-"}
+                  {usage.lastSeenAt ? (
+                    OneUptimeDate.fromNow(
+                      OneUptimeDate.fromString(usage.lastSeenAt),
+                    )
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               );
             },

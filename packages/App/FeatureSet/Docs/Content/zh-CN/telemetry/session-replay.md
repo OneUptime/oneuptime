@@ -260,7 +260,7 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 | 方法 | 作用 |
 | --- | --- |
 | `identify(userRef, traits?)` | 把最终用户关联到会话 — 关联到其中的每个页面和选项卡，从会话开始算起（参见 [识别你的用户](#识别你的用户) ）。 `traits` 是一个值为字符串、数字或布尔值的对象（≤ 20 个键，键 ≤ 40 个字符，值 ≤ 200 个字符），在 _Mask all text_ 下会被遮盖，并且只有在 **捕获最终用户身份** 开启时才会上传。为同一个用户再次调用，会在下一个分块中重新发送身份（以及新的特征，如果有）；指定另一个用户则会结束当前会话，并为该用户开始一个新会话。 |
-| `track(name, properties?)` | 在时间线上记录一个业务事件（ `"checkout_failed"` ）。 `name` ≤ 64 个字符，≤ 20 个属性键，值的限制与特征相同。每个 15 秒的分块最多 50 个；超出部分会让该分块携带一个带有数量的“events dropped”标记。开启产品分析事件后，它也是应用程序的 [产品分析](/docs/rum/product-analytics#发送事件和指标) 页面所统计的事件，来自每个会话，无论是否录制。 |
+| `track(name, properties?)` | 在时间线上记录一个业务事件（ `"checkout_failed"` ）。 `name` ≤ 64 个字符，≤ 20 个属性键，值的限制与特征相同。在 _Mask all text_ 下，属性值会像特征一样被遮盖，而名称和键按原样发送；在该模式下需要读取的值请放进标签（ `setTags()` ），标签从不遮盖，所以不要在其中放个人数据。每个 15 秒的分块最多 50 个；超出部分会让该分块携带一个带有数量的“events dropped”标记。开启产品分析事件后，它也是应用程序的 [产品分析](/docs/rum/product-analytics#发送事件和指标) 页面所统计的事件，来自每个会话，无论是否录制。 |
 | `metric(name, value, attributes?)` | 把你的页面测量的数值（ `"cart.value"` 、 `42.5` ）作为应用程序某个指标的数据点发送，可附带可选属性，其限制与 `track()` 的属性相同。需要开启产品分析事件；参见 [产品分析](/docs/rum/product-analytics#发送事件和指标) 。 |
 | `setTags(tags)` / `addTag(key, value)` | 会话级标签（ `{ build: "1.4.2", experiment: "new-checkout" }` ），≤ 20 个标签，键 ≤ 32 个字符，值 ≤ 128 个字符。可以在会话列表中用 `tag:key=value` 搜索，并显示在会话详情中。 `setTags` 会 **替换** 整个映射，因此第二次调用 `setTags({ experiment })` 会去掉第一次设置的 `build` 标签； `addTag` 只设置一个键，其余保持不变。请在一次 `setTags` 调用中构建映射，或在得知每个值时使用 `addTag` 。 |
 | `captureSession(reason?)` | 在 _On error or frustration_ 下，强制这个会话从其滚动缓冲区开始上传；在 _Always_ 下，它不会改变上传，但 `reason` （≤ 80 个字符）仍会被标记在时间线上。在你自己的“报告问题”按钮中使用它。 |

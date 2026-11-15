@@ -32,10 +32,13 @@ import {
 import {
   SERVER_EMAIL_COPY,
   ServerEmail,
+  canGetInvitationLinks,
   cannotSendEmail,
   useServerEmail,
 } from "../../../Utils/ServerEmail";
-import InvitationLinkModal from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import InvitationLinkModal, {
+  getInvitationLinkRowAction,
+} from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -229,6 +232,13 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
         deleteButtonText="Remove Member"
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         actionButtons={[
+          // A pending member's invitation link, for a master admin (#7168).
+          getInvitationLinkRowAction<TeamMember>({
+            isAvailable: canGetInvitationLinks(serverEmail),
+            onOpen: (teamMemberId: ObjectID) => {
+              setInvitationLinkFor(teamMemberId);
+            },
+          }),
           {
             title: "Leave Team",
             buttonStyleType: ButtonStyleType.OUTLINE,

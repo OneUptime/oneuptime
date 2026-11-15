@@ -24,6 +24,7 @@ import React, {
   useState,
 } from "react";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const asArray: (value: unknown) => JSONArray = (value: unknown): JSONArray => {
   return (value || []) as JSONArray;
@@ -373,10 +374,12 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
                           {formatNumber(table["shardNum"])}
                         </td>
                         <td className="py-2 px-4 text-sm text-gray-600 font-mono whitespace-nowrap">
-                          {String(table["host"] || "—")}
+                          {String(table["host"] || "") || <TableEmptyValue />}
                         </td>
                         <td className="py-2 px-4 text-sm text-gray-900 font-mono whitespace-nowrap">
-                          {String(table["tableName"] || "—")}
+                          {String(table["tableName"] || "") || (
+                            <TableEmptyValue />
+                          )}
                         </td>
                         <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
                           {bytesToReadable(table["sizeInBytes"])}

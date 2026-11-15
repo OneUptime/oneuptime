@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-O endereço é verificado por sondas em várias regiões, então ele precisa estar acessível pela internet. O plano Free comporta 10 monitores ativos.
+O endereço é verificado por sondas em várias regiões, então ele precisa estar acessível pela internet, e um incidente só é aberto quando todas o encontram fora do ar. O plano Free comporta 10 monitores ativos. Eles são cobrados conforme o uso, então o projeto precisa antes de uma forma de pagamento: sem ela, a primeira etapa avisa, com **Adicionar método de pagamento**.
 @tab Auto-hospedado
-O endereço é verificado pela própria sonda do seu servidor, então precisa estar acessível a partir dali. Para receber e-mails, o servidor precisa conseguir enviar e-mail: o administrador principal dele configura isso em `/admin/setup`, como mostra o [Guia de auto-hospedagem](/docs/installation/self-hosting-guide). O administrador principal não se torna proprietário do que cria, então, para receber os e-mails, ele se adiciona na página **Proprietários** do monitor.
+O endereço é verificado pela própria sonda do seu servidor, então precisa estar acessível a partir dali. Para receber e-mails, o servidor precisa conseguir enviar e-mail: o administrador principal dele configura isso em `/admin/setup`, como mostra o [Guia de auto-hospedagem](/docs/installation/self-hosting-guide).
 :::
 
 ## Passos

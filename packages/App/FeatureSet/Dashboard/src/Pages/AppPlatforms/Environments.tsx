@@ -54,6 +54,7 @@ import {
   getEnvironmentsCloudAccountFacet,
 } from "../../Components/AppPlatforms/AppPlatformsAccountFacet";
 import { fetchEnvironmentCloudAccountOptions } from "../../Components/AppPlatforms/AppPlatformsAccountOptions";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Options for the Platform filter. The label carries the raw cloud.platform
@@ -306,7 +307,7 @@ const AppPlatformEnvironments: FunctionComponent<
                     to={route}
                     className="break-words text-sm font-medium text-gray-900 hover:underline"
                   >
-                    {name || "—"}
+                    {name || <TableEmptyValue />}
                   </AppLink>
                 </div>
               );
@@ -364,11 +365,7 @@ const AppPlatformEnvironments: FunctionComponent<
                         : "Disconnected"
                   }
                   color={isConnected ? Green : isWaiting ? Gray500 : Red}
-                  tooltip={
-                    isWaiting
-                      ? translator.translateText("Waiting for its first data")
-                      : undefined
-                  }
+                  tooltip={isWaiting ? "Waiting for its first data" : undefined}
                 />
               );
             },

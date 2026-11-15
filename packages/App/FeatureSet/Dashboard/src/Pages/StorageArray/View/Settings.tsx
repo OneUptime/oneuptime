@@ -11,6 +11,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 const StorageArraySettings: FunctionComponent<
   PageComponentProps
@@ -44,9 +45,11 @@ const StorageArraySettings: FunctionComponent<
             getElement: (item: StorageArray): ReactElement => {
               return (
                 <span>
-                  {item.storageSystem
-                    ? StorageSystemUtil.getDisplayName(item.storageSystem)
-                    : "—"}
+                  {item.storageSystem ? (
+                    StorageSystemUtil.getDisplayName(item.storageSystem)
+                  ) : (
+                    <EmptyValue />
+                  )}
                 </span>
               );
             },

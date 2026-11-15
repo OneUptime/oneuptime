@@ -23,6 +23,7 @@ import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const LATE_TABLES: PluralTemplate = {
   one: "{{count}} table late",
@@ -185,11 +186,13 @@ const DataObservabilityDataProductsPage: FunctionComponent<
             getElement: (product: DataProduct): ReactElement => {
               return (
                 <span className="whitespace-nowrap text-sm text-gray-700">
-                  {product.dataAsOf
-                    ? OneUptimeDate.fromNow(
-                        OneUptimeDate.fromString(product.dataAsOf),
-                      )
-                    : "-"}
+                  {product.dataAsOf ? (
+                    OneUptimeDate.fromNow(
+                      OneUptimeDate.fromString(product.dataAsOf),
+                    )
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               );
             },
@@ -202,7 +205,7 @@ const DataObservabilityDataProductsPage: FunctionComponent<
             getElement: (product: DataProduct): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {product.ownerTeam?.name || "-"}
+                  {product.ownerTeam?.name || <TableEmptyValue />}
                 </span>
               );
             },

@@ -435,7 +435,9 @@ describe("the resource round's question", () => {
       resource: readyResource(AiResourceType.Host),
       mode: "FullAuto",
     });
-    expect(automatic).toContain('Host "web-1"');
+    expect(automatic).toContain(
+      'A signal has been declared on host "web-1" and',
+    );
     expect(automatic).toContain("systemctl");
     expect(automatic).toContain(
       "a riskier fix never runs without a human's one-click approval",

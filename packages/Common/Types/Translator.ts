@@ -245,10 +245,49 @@ const getBaseLanguage: (language: string | undefined) => string = (
 
 /*
  * Languages that capitalize every noun, so a name keeps its capital in the
- * middle of a sentence. Languages without letter case (Japanese, Chinese,
- * Korean, Hindi, Persian) are unaffected by lower-casing either way.
+ * middle of a sentence.
  */
-const LANGUAGES_THAT_CAPITALIZE_NOUNS: Array<string> = ["de", "lb"];
+const LANGUAGES_THAT_CAPITALIZE_NOUNS: ReadonlyArray<string> = ["de", "lb"];
+
+/*
+ * Languages whose own script has no letter case: Arabic, Persian, Hindi,
+ * Japanese, Korean and Chinese, the product's, and Hebrew, Urdu and Thai.
+ * Their words have no capital to lower, but their translations carry Latin
+ * words - "Kubernetes Pod", "Namespace", "Deployment", "AWS" - and write each
+ * one with the capital the translator chose for that sentence: Japanese
+ * writes "Pod" 408 times to once. Lowering those would write a Japanese
+ * reader "このKubernetes podには" (#7951), so a term in one of these
+ * languages is left as its translation writes it, as it is in German. The
+ * capitals of a label in English, a Latin-script language or Russian are
+ * title case, and a sentence there still lowers them.
+ */
+const LANGUAGES_WITHOUT_LETTER_CASE: ReadonlyArray<string> = [
+  "ar", // Arabic
+  "fa", // Persian
+  "he", // Hebrew
+  "hi", // Hindi
+  "ja", // Japanese
+  "ko", // Korean
+  "th", // Thai
+  "ur", // Urdu
+  "zh", // Chinese
+];
+
+/*
+ * Whether a term keeps the case its translation writes in the middle of a
+ * sentence in `language`: in a language that capitalizes every noun, and in
+ * one whose script has no letter case.
+ */
+const keepsTermsAsWritten: (language: string | undefined) => boolean = (
+  language: string | undefined,
+): boolean => {
+  const base: string = getBaseLanguage(language);
+
+  return (
+    LANGUAGES_THAT_CAPITALIZE_NOUNS.includes(base) ||
+    LANGUAGES_WITHOUT_LETTER_CASE.includes(base)
+  );
+};
 
 /*
  * Proper nouns that keep their capital wherever they appear. Acronyms
@@ -337,8 +376,9 @@ const keepsItsCase: (part: string) => boolean = (part: string): boolean => {
 /*
  * A label as it is written in the middle of a sentence in `language`:
  * "On-Call Duty Policies" -> "on-call duty policies", "API Keys" -> "API
- * keys", "Kubernetes Clusters" -> "Kubernetes clusters"; unchanged in German.
- * Runs of spaces collapse and the ends are trimmed.
+ * keys", "Kubernetes Clusters" -> "Kubernetes clusters"; unchanged in German
+ * and in a language whose script has no letter case ("Kubernetes Pod" in
+ * Japanese). Runs of spaces collapse and the ends are trimmed.
  */
 export const toSentenceTerm: (text: string, language?: string) => string = (
   text: string,
@@ -346,7 +386,7 @@ export const toSentenceTerm: (text: string, language?: string) => string = (
 ): string => {
   const words: Array<string> = text.trim().split(/\s+/).filter(Boolean);
 
-  if (LANGUAGES_THAT_CAPITALIZE_NOUNS.includes(getBaseLanguage(language))) {
+  if (keepsTermsAsWritten(language)) {
     return words.join(" ");
   }
 
@@ -1265,8 +1305,10 @@ export const createTranslator: (
 
     /*
      * Cased the reader's way, translated or not: a German noun spelled as in
-     * English ("Labels", "Monitor") keeps its capital in a German sentence.
-     * An English sentence never comes here - it is filled by fillTemplate.
+     * English ("Labels", "Monitor") keeps its capital in a German sentence,
+     * and so does Japanese's "Kubernetes Pod", which its file writes as
+     * English does. An English sentence never comes here - it is filled by
+     * fillTemplate.
      */
     return toSentenceTerm(translated, activeLanguage);
   };

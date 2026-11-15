@@ -1937,6 +1937,19 @@ export default class OneUptimeDate {
     return moment(date).add(days, "days").toDate();
   }
 
+  /*
+   * `days` days as a length of time: days x 24 hours, the same in every
+   * zone. For a range such as "the last 7 days" of a read, which is a span
+   * of time rather than calendar days somewhere. addRemoveDays without a
+   * zone steps the server's calendar, so on a server outside UTC a week
+   * that crosses a clock change comes out an hour short or long (issue
+   * #7623).
+   */
+  public static addRemoveDurationInDays(date: Date, days: number): Date {
+    date = this.fromString(date);
+    return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+  }
+
   public static addRemoveHours(date: Date, hours: number): Date {
     date = this.fromString(date);
     return moment(date).add(hours, "hours").toDate();
@@ -2313,6 +2326,20 @@ export default class OneUptimeDate {
     return new Date(
       Math.floor(instant.getTime() / millisecondsInAMinute) *
         millisecondsInAMinute,
+    );
+  }
+
+  /*
+   * The last millisecond of the minute `date` falls in: 11:15:59.999 for
+   * anything from 11:15:00.000 on, as getEndOfDay is a day's 23:59:59.999.
+   * With getStartOfMinute, the whole minute a field shows (11:15), so a
+   * filter on "11:15" holds a row stamped 11:15:42 (#7719).
+   */
+  public static getEndOfMinute(date: Date | string): Date {
+    const millisecondsInAMinute: number = 60 * 1000;
+
+    return new Date(
+      this.getStartOfMinute(date).getTime() + millisecondsInAMinute - 1,
     );
   }
 

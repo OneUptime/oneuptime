@@ -123,6 +123,32 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
+/*
+ * The action items under the card have their own suite
+ * (PostmortemActionItems.test): here, that the page draws them under the
+ * card with the incident and the note it shows.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Postmortem/ActionItems/PostmortemActionItems",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: {
+        incidentId: { toString: () => string };
+        postmortemNote?: string | null | undefined;
+      }): ReactElement => {
+        return (
+          <div
+            data-testid="postmortem-action-items-stub"
+            data-incident={props.incidentId.toString()}
+            data-note={props.postmortemNote || ""}
+          />
+        );
+      },
+    };
+  },
+);
+
 // The AI dialog has its own tests; here it hands the page what AI wrote.
 jest.mock("../../../UI/Components/AI/GenerateFromAIModal", () => {
   return {
@@ -553,6 +579,29 @@ function publishedAtInput(): HTMLInputElement | null {
     'input[type="datetime-local"]',
   );
 }
+
+describe("the action items", () => {
+  test("are drawn under the card, for the incident, with the note the card shows", async () => {
+    stored = {
+      ...UNPUBLISHED,
+      note: "## Action Items\n- [ ] Alert on pool usage",
+    };
+
+    await renderPage();
+
+    const stub: HTMLElement = await screen.findByTestId(
+      "postmortem-action-items-stub",
+    );
+
+    expect(stub).toHaveAttribute("data-incident", INCIDENT_ID);
+    await waitFor(() => {
+      expect(stub).toHaveAttribute(
+        "data-note",
+        "## Action Items\n- [ ] Alert on pool usage",
+      );
+    });
+  });
+});
 
 describe("Apply Template", () => {
   test("is not offered when the project has no postmortem templates", async () => {

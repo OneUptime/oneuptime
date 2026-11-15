@@ -7,6 +7,7 @@ import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/Resizab
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   interfaces: Array<SnmpInterface>;
@@ -210,9 +211,11 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
                     {formatBitsPerSecond(snmpInterface.outBitsPerSecond)}
                   </td>
                   <td className="pr-4 py-1">
-                    {snmpInterface.utilizationPercent !== undefined
-                      ? `${snmpInterface.utilizationPercent}%`
-                      : "-"}
+                    {snmpInterface.utilizationPercent !== undefined ? (
+                      `${snmpInterface.utilizationPercent}%`
+                    ) : (
+                      <TableEmptyValue />
+                    )}
                   </td>
                   <td className="py-1">
                     {snmpInterface.errorsPerSecond !== undefined ? (
@@ -226,7 +229,7 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
                         {snmpInterface.errorsPerSecond}
                       </span>
                     ) : (
-                      "-"
+                      <TableEmptyValue />
                     )}
                   </td>
                 </tr>

@@ -22,6 +22,7 @@ import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface PushLogsTableProps {
   query?: Query<BaseModel>;
@@ -56,7 +57,7 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       hideOnMobile: true,
       getElement: (item: PushNotificationLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;

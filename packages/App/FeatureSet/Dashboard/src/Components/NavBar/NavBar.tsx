@@ -6,14 +6,14 @@ import {
   setProductPinned,
 } from "../../Utils/ProjectProducts/ProductPinActions";
 import { getItemProduct } from "../../Utils/ProjectProducts/ProductsMenu";
+import { loadQuietly } from "../../Utils/ProjectProducts/UseProjectProducts";
 import { HiddenProductsMenuNote } from "./HiddenProductsMenuNote";
 import URL from "Common/Types/API/URL";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { canPinAnotherProduct } from "Common/Types/Product/ProductPins";
 import NavBar, { MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { PhoneMenuHelp, PhoneMenuSearch } from "./PhoneMenuEntries";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,7 +38,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
-  const translator: Translator = useTranslator();
 
   /*
    * The nav/products catalog is shared with the command palette via this hook
@@ -117,10 +116,12 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       isMoreMenuRecentLabelTranslated={true}
       /*
        * The products the project hides (#6814): one row at the foot of the
-       * menu, found by Search, with a word on why they are there.
+       * menu, found by Search, with a word on why they are there. Its
+       * title goes over in English, as its pinned label does, and the menu
+       * looks it up once, as it does a category's (#8075).
        */
       moreMenuHiddenItems={menu.hidden}
-      moreMenuHiddenTitle={translator.translateText(HIDDEN_PRODUCTS_TITLE)}
+      moreMenuHiddenTitle={HIDDEN_PRODUCTS_TITLE}
       moreMenuHiddenFooter={(closeMenu: () => void): ReactElement => {
         return (
           <HiddenProductsMenuNote
@@ -133,6 +134,13 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       pinnedLabel={PINNED_PRODUCTS_LABEL}
       onTogglePin={togglePin}
       canPinMore={canPinAnotherProduct(products.answer.pinned)}
+      /*
+       * Its "Not set up" marks as they are now, as the menu is read: asked
+       * again once the answer is older than REFRESH_AFTER_MS (#7465).
+       */
+      onMenuOpen={() => {
+        loadQuietly();
+      }}
       /*
        * Cmd/Ctrl+K belongs to the command palette on the dashboard — the
        * products menu stays reachable via its button and the palette itself.

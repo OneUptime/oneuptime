@@ -2320,15 +2320,18 @@ export default class RemediationCommandToolkit {
     };
   }
 
-  // 'Docker host "web-1"' for a ResourceCommand step, from its snapshot.
+  /*
+   * 'Docker host "web-1"', 'host "db"' for a ResourceCommand step, from its
+   * snapshot: always said mid-sentence ("Executed on host "db": ..."), so its
+   * kind is a sentence's noun, as a kubectl step's 'cluster "prod"' is
+   * (#8133).
+   */
   private describeCommandResource(command: AiRemediationCommand): string {
-    const info: AiResourceTypeInfo | null = isAiResourceType(
-      command.resourceType,
-    )
-      ? AI_RESOURCE_TYPE_INFO[command.resourceType]
-      : null;
+    const noun: string = isAiResourceType(command.resourceType)
+      ? describeResourceNoun(command.resourceType)
+      : "resource";
 
-    return `${info ? info.displayName : "resource"} "${
+    return `${noun} "${
       command.resourceNameSnapshot || command.resourceId || "(unknown)"
     }"`;
   }
@@ -4351,7 +4354,7 @@ export default class RemediationCommandToolkit {
 
     if (policy.tier === ResourceCommandTier.Denied) {
       return {
-        errorText: `Denied by the ${info.displayName} command policy: ${policy.reason}. This command can never run, even with human approval — take a different approach.`,
+        errorText: `Denied by the ${describeResourceNoun(resource.resourceType)} command policy: ${policy.reason}. This command can never run, even with human approval — take a different approach.`,
       };
     }
 
@@ -4377,7 +4380,7 @@ export default class RemediationCommandToolkit {
 
       if (rollbackPolicy.tier === ResourceCommandTier.Denied) {
         return {
-          errorText: `The rollbackCommand is denied by the ${info.displayName} command policy: ${rollbackPolicy.reason}. Provide a safe rollback or omit it.`,
+          errorText: `The rollbackCommand is denied by the ${describeResourceNoun(resource.resourceType)} command policy: ${rollbackPolicy.reason}. Provide a safe rollback or omit it.`,
         };
       }
 

@@ -189,6 +189,7 @@ const ReportItem: FunctionComponent<{
         )}
         <Pill
           text={getToolImportOutcomeLabel(translator, item.outcome)}
+          isUserContent={true}
           color={OUTCOME_COLORS[item.outcome]}
           size={PillSize.Small}
         />
@@ -694,6 +695,7 @@ const ToolImportReport: FunctionComponent<ComponentProps> = (
                     TOOL_IMPORT_OUTCOME_COUNTS[outcome],
                     counts[outcome],
                   )}
+                  isUserContent={true}
                   color={OUTCOME_COLORS[outcome]}
                   size={PillSize.Normal}
                 />

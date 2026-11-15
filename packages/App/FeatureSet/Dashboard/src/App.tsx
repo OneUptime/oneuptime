@@ -1,6 +1,9 @@
 import AskAiPanel from "./Components/AIChat/AskAiPanel";
 import ServerProductGate from "./Components/ServerProducts/ServerProductGate";
-import { useIsProductOffOnServer } from "./Utils/ProjectProducts/UseProjectProducts";
+import {
+  useIsProductOffOnServer,
+  useProjectProductsKeptUpToDate,
+} from "./Utils/ProjectProducts/UseProjectProducts";
 import ProductKey from "Common/Types/Product/ProductKey";
 import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
@@ -319,6 +322,12 @@ const App: () => JSX.Element = () => {
   const isAskAiOffOnServer: boolean = useIsProductOffOnServer(
     ProductKey.AIChat,
   );
+
+  /*
+   * The products menu's "Not set up" marks follow what the project uses as
+   * the person moves between pages and comes back to the tab (#7465).
+   */
+  useProjectProductsKeptUpToDate(location.pathname);
 
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);

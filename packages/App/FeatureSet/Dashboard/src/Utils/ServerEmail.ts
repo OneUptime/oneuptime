@@ -55,6 +55,7 @@ export const SERVER_EMAIL_COPY: {
   invitationLinkRegisteredDescription: string;
   invitationLinkFailed: string;
   done: string;
+  getInvitationLink: string;
 } = {
   createMonitorDescription: translationKey(
     "Pick what to monitor and give it a name. When something goes wrong, OneUptime opens an incident or alert. This server cannot send email yet, so nobody is emailed: ask your server's admin to set up email.",
@@ -81,6 +82,8 @@ export const SERVER_EMAIL_COPY: {
     INVITATION_LINK_COPY.registeredDescription,
   invitationLinkFailed: INVITATION_LINK_COPY.failed,
   done: INVITATION_LINK_COPY.done,
+  // A pending person's row action, which opens the invitation link's dialog.
+  getInvitationLink: INVITATION_LINK_COPY.getLink,
 };
 
 export interface ServerEmail {
@@ -104,4 +107,16 @@ export const cannotSendEmail: (serverEmail: ServerEmail) => boolean = (
   serverEmail: ServerEmail,
 ): boolean => {
   return serverEmail.canSendEmail === false;
+};
+
+/*
+ * Whether a pending person's row offers Get Invitation Link (#7168): to a
+ * master admin, on a server known not to send email, where nobody was
+ * emailed the link. The server hands it to master admins only, whatever a
+ * page shows.
+ */
+export const canGetInvitationLinks: (serverEmail: ServerEmail) => boolean = (
+  serverEmail: ServerEmail,
+): boolean => {
+  return cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin;
 };

@@ -34,6 +34,7 @@ import {
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * Curated MetricView presets sharing one time-range state — the storage
@@ -337,11 +338,14 @@ const StorageArrayInsights: FunctionComponent<
               </div>
             }
             description={section.description}
-            queryConfigs={getInsightsQueries({
-              section: section,
-              arrayName: arrayName,
-              storageSystem: storageArray.storageSystem,
-            })}
+            queryConfigs={chartWordsInReadersLanguage(
+              getInsightsQueries({
+                section: section,
+                arrayName: arrayName,
+                storageSystem: storageArray.storageSystem,
+              }),
+              translator,
+            )}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
             startAndEndDate={startAndEndDate}

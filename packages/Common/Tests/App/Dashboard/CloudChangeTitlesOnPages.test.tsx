@@ -108,6 +108,7 @@ import {
   CloudHealthSource,
   CloudHealthTitleFacts,
 } from "../../../Utils/Telemetry/CloudChangeTitle";
+import { quietDashTextIn } from "../../Helpers/QuietDash";
 
 /*
  * A cloud change's title, in the reader's language, wherever a change is
@@ -448,13 +449,14 @@ describe("a change's title as the Changes list draws it", () => {
     expect(values(title)).toHaveLength(0);
     cleanup();
 
-    // Neither a title nor a kind: the list's dash.
+    // Neither a title nor a kind: the list's quiet dash.
     const untitled: ChangeEvent = new ChangeEvent();
     untitled.attributes = {
       [ChangeEventAttribute.Source]: ChangeEventSource.Api,
     };
     title = await drawTitle("de", untitled);
-    expect(title.textContent).toBe("—");
+    // The quiet dash every empty cell is, "Not set" in German (#7603).
+    expect(title.textContent).toBe(quietDashTextIn("Nicht festgelegt"));
   });
 });
 

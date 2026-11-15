@@ -30,7 +30,7 @@
 
 每份指南中 **谁做了什么** 所启用的内容，是在 DevStack 上记录的，而不是在这些工具中的任何一个上。每种工具在哪里启用它，则读自该工具的源码或文档。
 
-除此之外，整条路径还在一个运行中的 OneUptime 上运行过，它以 Docker Compose 的方式启动，而且是在真实的 DevStack 上而非这些工具中的任何一个上。按其文档中的命令安装的代理，从第一批数据起就注册了这个云，每个实例、卷和 Hypervisor 都有一行，状态就是云本身给出的状态。在真正停止 `nova-compute` 后，它的那一行变为宕机，来自 Compute Service Down 模板的监控器在约 12 分钟后打开了一个指明该主机的事件，并在服务重新启动后一分钟内将其解决。某个项目的探测器通过仪表板自己的路由连接了同一个云并读回了它的各行，一次带签名的启动在各服务间产生的 114 个 span 也通过追踪配置到达了。
+除此之外，整条路径还在一个运行中的 OneUptime 上运行过，它以 Docker Compose 的方式启动，而且是在真实的 DevStack 上而非这些工具中的任何一个上。按其文档中的命令安装的代理，从第一批数据起就注册了这个云，每个实例、卷和 Hypervisor 都有一行，状态就是云本身给出的状态。在真正停止 `nova-compute` 后，它的那一行变为宕机，来自 Compute Service Down 模板的监视器在约 12 分钟后打开了一个指明该主机的事件，并在服务重新启动后一分钟内将其解决。某个项目的探测器通过仪表板自己的路由连接了同一个云并读回了它的各行，一次带签名的启动在各服务间产生的 114 个 span 也通过追踪配置到达了。
 
 另外，真实代理在 DevStack 上发送的内容，以及 Kolla-Ansible 的 Alertmanager 发出的内容都被记录下来，然后发送到运行中的 OneUptime：触发的 webhook 在正确的云上、且只在该云上打开了一个事件，再次发送同一个 webhook 没有打开任何新事件，而已解决的 webhook 则解决了该事件。
 
@@ -39,13 +39,13 @@
 任何带有 Alertmanager 的工具今天就可以拥有事件：触发的告警会变成事件，从第一个小时起就具备值班和状态页，并在告警解除时自动解决。无需安装任何东西，并且这与本页的其他所有内容并行工作。
 
 :::steps
-### 创建监控器
+### 创建监视器
 
-按 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用监视器接收告警) 的说明创建一个 Incoming Request 监控器，并复制它的 **Heartbeat URL**。这就是下面每种工具的接收器中的 `<secret key>` 地址。
+按 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用监视器接收告警) 的说明创建一个 Incoming Request 监视器，并复制它的 **Heartbeat URL**。这就是下面每种工具的接收器中的 `<secret key>` 地址。
 
 ### 将它关联到云
 
-打开监控器的 **概览 → 已关联资源**，添加该 OpenStack 云。之后每个事件都出现在该云的 **事件** 页面上：Incoming Request 监控器自身的设置不指明任何云，因此每个云的 Alertmanager 都需要一个专属的监控器。该云在其首批数据到达后才会出现在列表中，所以请在完成下面的步骤之后再做这一步，或先在 **OpenStack → 所有云** 下添加该云。
+打开监视器的 **概览 → 已关联资源**，添加该 OpenStack 云。之后每个事件都出现在该云的 **事件** 页面上：Incoming Request 监视器自身的设置不指明任何云，因此每个云的 Alertmanager 都需要一个专属的监视器。该云在其首批数据到达后才会出现在列表中，所以请在完成下面的步骤之后再做这一步，或先在 **OpenStack → 所有云** 下添加该云。
 :::
 
 Alertmanager（Kolla-Ansible 所固定的版本）已被记录下按这个确切的格式发送请求，它发出的内容在运行中的 OneUptime 上打开了一个事件，并由它自己的 `resolved` 状态解决。

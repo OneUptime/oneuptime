@@ -15,7 +15,11 @@ import VerificationEmailResendToken, {
   VerificationEmailResendTokenClaims,
 } from "../Utils/VerificationEmailResendToken";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { AccountsRoute } from "Common/ServiceRoute";
+import {
+  AccountsRoute,
+  AdminDashboardRoute,
+  DashboardRoute,
+} from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
@@ -832,6 +836,11 @@ router.post(
 
         didClaimInvitedAccount = true;
 
+        /*
+         * The account's first password: UserService ends any session and
+         * link it had, as for every new password, but sends no "Password
+         * Changed." email - nothing was changed (#7472).
+         */
         savedUser = await UserService.updateOneByIdAndFetch({
           id: alreadySavedUser.id!,
           data: {
@@ -920,12 +929,53 @@ router.post(
       let welcomeEmailVerificationToken: ObjectID | null = null;
 
       /*
+       * A new account that is ready now - self-hosted, where the address is
+       * verified at sign-up and the person goes straight in - is welcomed
+       * with what is true for it: the account is ready, a button to open
+       * it, and help from the server's own admin, not OneUptime's support
+       * (#7988). There is nothing to verify, so no verification token is
+       * made. A claimed invitation gets neither email (below).
+       */
+      if (!didClaimInvitedAccount && !isEmailVerificationRequired) {
+        MailService.sendMail({
+          toEmail: partialUser.email as Email,
+          subject: `Welcome to ${ProductBrandingText.getProductName()}. Your account is ready.`,
+          isSubjectLiteral: true,
+          templateType: EmailTemplateType.SignupAccountReadyEmail,
+          vars: {
+            dashboardLink: new URL(
+              httpProtocol,
+              host,
+              new Route(DashboardRoute.toString()),
+            ).toString(),
+            homeUrl: new URL(httpProtocol, host).toString(),
+            // The first account on a server is its master admin.
+            ...(savedUser?.isMasterAdmin
+              ? {
+                  isMasterAdmin: "true",
+                  adminDashboardLink: new URL(
+                    httpProtocol,
+                    host,
+                    new Route(AdminDashboardRoute.toString()),
+                  ).toString(),
+                }
+              : {}),
+          },
+        }).catch((err: Error) => {
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+        });
+      }
+
+      /*
+       * OneUptime Cloud: the welcome asks the new account to verify its
+       * address, which it must before it gets in.
+       *
        * Skipped when this signup claimed an invitation: the registration token
        * it spent was itself an emailed secret, so the address is already
        * verified and a "please verify your email" mail would be asking for a
        * proof that has just been given.
        */
-      if (!didClaimInvitedAccount) {
+      if (!didClaimInvitedAccount && isEmailVerificationRequired) {
         const generatedToken: ObjectID = ObjectID.generate();
         welcomeEmailVerificationToken = generatedToken;
 

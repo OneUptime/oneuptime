@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9332
+    "keys": 52351,
+    "untranslated": 9311
   },
   "sameAsEnglish": [
     " is",
@@ -70,6 +70,8 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "CPU per container",
+    "CPU per pod",
     "Cache",
     "Canada (+1)",
     "Canonical Sunbeam",
@@ -233,6 +235,7 @@
     "Item",
     "Items",
     "Japan (+81)",
+    "Jitter",
     "Jitter (in ms)",
     "Journeys",
     "Kelvin",
@@ -286,6 +289,7 @@
     "Mons",
     "Mons in quorum",
     "MySQL",
+    "Nameserver",
     "Nav",
     "Node",
     "Nodes online",
@@ -362,6 +366,7 @@
     "Query",
     "Query {{number}}",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -377,6 +382,7 @@
     "RegionOne",
     "Repository",
     "Reserved Instances",
+    "Resolver",
     "Resource",
     "Rollbacks",
     "Root",
@@ -806,6 +812,7 @@
     "{{minutes}} min",
     "{{monitorName}} is offline",
     "{{name}} (monitor: {{monitor}})",
+    "{{rate}}/min",
     "{{size}} in {{duration}}",
     "{{subject}} is {{values}}.",
     "{{subject}} is {{value}}.",

@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme, type Theme } from "../theme";
 import { elevation, radius, spacing } from "../theme/tokens";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
+import { formatShortDateTime } from "../utils/date";
 import AppText from "./AppText";
 import EmptyState from "./EmptyState";
 import IconBadge from "./IconBadge";
@@ -291,17 +292,14 @@ function formatDate(dateVal?: unknown): string {
   if (str === "--") {
     return "--";
   }
+  /*
+   * "Nov 5, 5:14 AM" on a 12-hour phone, "5. Nov., 05:14" on a 24-hour one:
+   * the clock every other time in the app is written on (utils/date). Asked
+   * for a two-digit hour on its own, the tile read "Nov 5, 05:14 AM"
+   * (issue #7650).
+   */
   try {
-    const d: Date = new Date(str);
-    if (isNaN(d.getTime())) {
-      return str;
-    }
-    return d.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatShortDateTime(str) ?? str;
   } catch {
     return str;
   }

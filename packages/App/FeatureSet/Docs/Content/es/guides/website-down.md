@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-La dirección se comprueba desde sondas de varias regiones, así que debe ser accesible desde internet. El plan Free admite 10 monitores activos.
+La dirección se comprueba desde sondas de varias regiones, así que debe ser accesible desde internet, y solo se abre un incidente cuando todas la encuentran caída. El plan Free admite 10 monitores activos. Se cobran según su uso, así que el proyecto necesita antes un método de pago: sin él, el primer paso lo indica, con **Añadir método de pago**.
 @tab Autoalojado
-La dirección se comprueba desde la propia sonda de tu servidor, así que debe ser accesible desde ahí. Para recibir correos, el servidor debe poder enviarlos: su administrador principal lo configura en `/admin/setup`, como muestra la [Guía de autoalojamiento](/docs/installation/self-hosting-guide). El administrador principal no pasa a ser propietario de lo que crea, así que, para recibir los correos, se añade a sí mismo en la página **Propietarios** del monitor.
+La dirección se comprueba desde la propia sonda de tu servidor, así que debe ser accesible desde ahí. Para recibir correos, el servidor debe poder enviarlos: su administrador principal lo configura en `/admin/setup`, como muestra la [Guía de autoalojamiento](/docs/installation/self-hosting-guide).
 :::
 
 ## Pasos

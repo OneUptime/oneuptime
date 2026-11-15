@@ -36,6 +36,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -479,11 +480,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         <div>
           <SiteHeroTileTitle title="Site Type" />
           <div className="mt-1.5 text-sm text-gray-900">
-            {data.site ? (
-              getNetworkSiteTypeName(data.site)
-            ) : (
-              <span className="text-gray-400">—</span>
-            )}
+            {data.site ? getNetworkSiteTypeName(data.site) : <EmptyValue />}
           </div>
         </div>
       </div>

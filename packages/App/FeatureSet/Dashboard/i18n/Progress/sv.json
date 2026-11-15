@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9304
+    "keys": 52351,
+    "untranslated": 9278
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -44,6 +44,8 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "CPU per container",
+    "CPU per pod",
     "Cache",
     "Canonical Sunbeam",
     "Celsius",
@@ -136,6 +138,7 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Jitter",
     "Kelvin",
     "Keystone",
     "Kilohertz",
@@ -220,6 +223,7 @@
     "Pull requests",
     "Push",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -230,6 +234,7 @@
     "RegionOne",
     "Relation",
     "Reserved Instances",
+    "Resolver",
     "Revision",
     "Revision {{revision}}",
     "Risk",
@@ -462,6 +467,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{percent}} full",
+    "{{rate}}/min",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

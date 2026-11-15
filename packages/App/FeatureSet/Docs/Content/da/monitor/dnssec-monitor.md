@@ -130,11 +130,11 @@ Standardkriterierne holder ikke selv øje med signaturudløb eller navneserverko
 ## Fejlfinding
 
 :::details Kæden rapporteres som brudt, men zonen validerer med `dig`
-En af resolverne i **Resolvere** returnerede ikke AD-flaget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver Checks**, i **Overvågningstestresultat** og i hver kontrols resumé, viser hver resolvers svar og fejl. Fjern de resolvere, sonden ikke kan nå, og angiv kun validerende resolvere.
+En af resolverne i **Resolvere** returnerede ikke AD-flaget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-tjek**, i **Overvågningstestresultat** og i hver kontrols resumé, viser hver resolvers svar og fejl. Fjern de resolvere, sonden ikke kan nå, og angiv kun validerende resolvere.
 :::
 
 :::details Navneservere rapporteres som inkonsistente lige efter en ændring
-Sekundære servere kan halte efter den primære et stykke tid, efter at zonen er ændret. Tabellen **Nameserver Consistency** i kontrollens resumé viser hver navneservers SOA-serienummer. Hvis én bliver ved med at halte, er den sekundære server holdt op med at modtage overførsler. Hvis hver navneserver viser en fejl, er sonden måske forhindret i at spørge dem direkte: slå **Kontroller navneserverkonsistens** fra.
+Sekundære servere kan halte efter den primære et stykke tid, efter at zonen er ændret. Tabellen **Navneservernes konsistens** i kontrollens resumé viser hver navneservers SOA-serienummer. Hvis én bliver ved med at halte, er den sekundære server holdt op med at modtage overførsler. Hvis hver navneserver viser en fejl, er sonden måske forhindret i at spørge dem direkte: slå **Kontroller navneserverkonsistens** fra.
 :::
 
 :::details Kontrollen rapporterer en timeout

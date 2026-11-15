@@ -24,6 +24,7 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerSwarmServiceListComponent;
@@ -227,7 +228,7 @@ function renderServiceRow(r: DockerSwarmResource): ReactElement {
         {detailLink}
       </ResourceListNameCell>
       <td className="px-3 py-2 text-xs text-gray-500 capitalize">
-        {(r.serviceMode as string) || "—"}
+        {(r.serviceMode as string) || <TableEmptyValue isSmall={true} />}
       </td>
       <td className="px-3 py-2 text-xs text-gray-500">{formatReplicas(r)}</td>
       <td className="px-3 py-2">

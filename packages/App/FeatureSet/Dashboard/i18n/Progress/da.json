@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9310
+    "keys": 52351,
+    "untranslated": 9252
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -164,6 +164,7 @@
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
+    "Jitter",
     "Job",
     "Kelvin",
     "Keystone",
@@ -268,6 +269,7 @@
     "Pull requests",
     "Push",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -278,6 +280,7 @@
     "RegionOne",
     "Relation",
     "Reserved Instances",
+    "Resolver",
     "Revision",
     "Revision {{revision}}",
     "Rollbacks",
@@ -594,6 +597,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{online}}/{{count}} node online",
+    "{{rate}}/min",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

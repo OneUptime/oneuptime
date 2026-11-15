@@ -32,6 +32,7 @@ import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
 import InvitationLinkModal, {
   INVITATION_LINK_COPY,
+  getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import React, {
   Fragment,
@@ -41,6 +42,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ProjectUsers: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -53,7 +55,8 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
   /*
    * A server that cannot send email sends no invitation (#6825): the dialog
    * says so, and once the invitation is made this master admin is handed
-   * the link to send - then goes on to the person's page.
+   * the link to send - then goes on to the person's page. A pending row's
+   * Get Invitation Link reads it again, and stays on the list (#7168).
    */
   const cannotSendEmail: boolean = useServerCanSendEmail() === false;
   const [invitationLinkFor, setInvitationLinkFor] = useState<{
@@ -113,16 +116,19 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.projects"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECTS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.project"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_VIEW] as Route,
             { modelId: projectId },
@@ -130,6 +136,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectUsers"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_USERS] as Route,
             { modelId: projectId },
@@ -152,6 +159,17 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
           isEditable={false}
           isCreateable={false}
           isViewable={true}
+          actionButtons={[
+            getInvitationLinkRowAction<TeamMember>({
+              isAvailable: cannotSendEmail,
+              onOpen: (teamMemberId: ObjectID) => {
+                setInvitationLinkFor({
+                  teamMemberId: teamMemberId,
+                  userPage: null,
+                });
+              },
+            }),
+          ]}
           onFilterApplied={(isApplied: boolean) => {
             setIsFilterApplied(isApplied);
           }}
@@ -304,7 +322,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               type: FieldType.Element,
               getElement: (item: TeamMember): ReactElement => {
                 if (!item.user) {
-                  return <p>-</p>;
+                  return <TableEmptyValue />;
                 }
                 const name: string =
                   item.user.name?.toString() ||
@@ -332,9 +350,11 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               type: FieldType.Element,
               getElement: (item: TeamMember): ReactElement => {
                 if (!item.team) {
-                  return <p>-</p>;
+                  return <TableEmptyValue />;
                 }
-                return <p>{item.team.name?.toString() || "-"}</p>;
+                return (
+                  <p>{item.team.name?.toString() || <TableEmptyValue />}</p>
+                );
               },
             },
             {

@@ -82,6 +82,8 @@ const DASHBOARD_SENTENCES: Array<string> = [
   SERVER_EMAIL_COPY.invitationLinkDescription,
   SERVER_EMAIL_COPY.invitationLinkRegisteredDescription,
   SERVER_EMAIL_COPY.invitationLinkFailed,
+  // A pending person's row action, which opens the link's dialog (#7168).
+  SERVER_EMAIL_COPY.getInvitationLink,
   SERVER_EMAIL_NOT_SET_UP_MESSAGE,
 ];
 

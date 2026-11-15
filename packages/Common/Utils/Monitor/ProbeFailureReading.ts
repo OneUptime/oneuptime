@@ -2,9 +2,14 @@ import { RequestFailedPhase } from "../../Types/Probe/RequestFailedDetails";
 import {
   fillTemplate,
   PluralTemplate,
+  SentenceOptions,
   translationKey,
   Translator,
 } from "../../Types/Translator";
+import {
+  getRequestFailureDescriptionText,
+  readRequestFailureDescription,
+} from "./RequestFailureDescriptions";
 
 /*
  * WHY A PROBE'S CHECK FAILED, READ IN THE READER'S LANGUAGE.
@@ -138,6 +143,44 @@ export const getProbeFailureCauseText: (data: {
     PROBE_TIMEOUT_FAILURE_CAUSE,
     triedCount,
   );
+};
+
+// A text drawn on the page and nothing else (SentenceOptions).
+const ON_THE_PAGE: SentenceOptions = { setsValuesApart: true };
+
+/*
+ * Any message of the probe's as a monitor summary draws it on the page:
+ * OneUptime's own sentences in the reader's language - the timeout
+ * sentence (getProbeFailureCauseText), and what a failed request means
+ * (Error Details, RequestFailureDescriptions), with the message that came
+ * with it kept as written and set apart from the reader's words - and any
+ * other message as written, trimmed.
+ *
+ * Only for a text drawn on the page and nothing else: the isolate's marks
+ * round a message kept as written are characters.
+ */
+export const getProbeMessageText: (data: {
+  translator: Translator;
+  message: string | null | undefined;
+}) => string = (data: {
+  translator: Translator;
+  message: string | null | undefined;
+}): string => {
+  const text: string =
+    typeof data.message === "string" ? data.message.trim() : "";
+
+  if (readRequestFailureDescription(text)) {
+    return getRequestFailureDescriptionText({
+      translator: data.translator,
+      description: text,
+      options: ON_THE_PAGE,
+    });
+  }
+
+  return getProbeFailureCauseText({
+    translator: data.translator,
+    failureCause: text,
+  });
 };
 
 /*

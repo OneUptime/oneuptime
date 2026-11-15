@@ -125,8 +125,10 @@ const INCIDENT_ID: string = "e0000000-0000-4000-8000-0000000000f1";
 const TEMPLATE_OWNER_ID: string = "f0000000-0000-4000-8000-0000000000a1";
 const DECLARING_USER_ID: string = "f0000000-0000-4000-8000-0000000000c1";
 
-// The one column of the incident table the job reads, by incident id.
+// The column of the incident table the job reads, by incident id.
 let isOwnerNotified: Map<string, boolean>;
+// And when its hold began, while it is held (createdNotificationHeldAt).
+let heldSince: Map<string, Date | null>;
 // The incident's owner users, as their rows are written.
 let ownerUserIds: Array<string>;
 let templateOwners: Array<IncidentTemplateOwnerUser>;
@@ -167,9 +169,10 @@ function templateOwner(userId: string): IncidentTemplateOwnerUser {
 }
 
 /*
- * The incidents the job takes on a run: exactly those whose flag is false -
- * the column's default, for an incident written without it (see the job's
- * query, pinned below).
+ * The incidents the job takes on a run once they were created a minute ago:
+ * exactly those whose flag is false - the column's default, for an incident
+ * written without it - and those held too long, which none here is (see the
+ * job's read, pinned below).
  */
 function incidentsTheJobWouldTake(): Array<string> {
   return Array.from(isOwnerNotified.entries())
@@ -206,6 +209,7 @@ function submit(): Promise<PublicFormSubmissionResult> {
 
 beforeEach(() => {
   isOwnerNotified = new Map<string, boolean>();
+  heldSince = new Map<string, Date | null>();
   ownerUserIds = [];
   templateOwners = [templateOwner(TEMPLATE_OWNER_ID)];
   workspaceStarted = false;
@@ -317,22 +321,67 @@ beforeEach(() => {
       INCIDENT_ID,
       incident.isOwnerNotifiedOfResourceCreation === true,
     );
+    heldSince.set(
+      INCIDENT_ID,
+      incident.createdNotificationHeldAt instanceof Date
+        ? new Date(incident.createdNotificationHeldAt.getTime())
+        : null,
+    );
 
     return await service.onCreateSuccess(onCreate, incident);
   }) as never);
 
-  // The job's mark, and the chain's release of it, on the same row.
+  // No plain update writes the flag: the release is a compare-and-set.
   jest.spyOn(IncidentService, "updateOneById").mockImplementation((async (
     updateBy: UpdateByID<Incident>,
   ): Promise<void> => {
-    const notified: unknown = (updateBy.data as JSONObject)[
-      "isOwnerNotifiedOfResourceCreation"
-    ];
-
-    if (typeof notified === "boolean") {
-      isOwnerNotified.set(updateBy.id.toString(), notified);
+    if ("isOwnerNotifiedOfResourceCreation" in (updateBy.data as JSONObject)) {
+      throw new Error("The flag is written by a compare-and-set.");
     }
   }) as never);
+
+  /*
+   * The chain's release of the hold, on the same row: written only while
+   * the row holds what the release expects, as the database writes it.
+   */
+  jest
+    .spyOn(IncidentService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockImplementation((async (input: {
+      id: ObjectID;
+      data: JSONObject;
+      expectedData: JSONObject;
+    }): Promise<boolean> => {
+      const id: string = input.id.toString();
+      const stored: Record<string, unknown> = {
+        isOwnerNotifiedOfResourceCreation: isOwnerNotified.get(id),
+        createdNotificationHeldAt: heldSince.get(id) || null,
+      };
+
+      const isAsExpected: boolean = Object.entries(input.expectedData).every(
+        ([column, expected]: [string, unknown]): boolean => {
+          const value: unknown = stored[column];
+
+          return value instanceof Date && expected instanceof Date
+            ? value.getTime() === expected.getTime()
+            : value === expected;
+        },
+      );
+
+      if (!isOwnerNotified.has(id) || !isAsExpected) {
+        return false;
+      }
+
+      isOwnerNotified.set(
+        id,
+        input.data["isOwnerNotifiedOfResourceCreation"] === true,
+      );
+      heldSince.set(
+        id,
+        (input.data["createdNotificationHeldAt"] as Date | null) || null,
+      );
+
+      return true;
+    }) as never);
 
   // The chain, with the incident's Slack / Microsoft Teams step held open.
   jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation((() => {
@@ -481,7 +530,11 @@ describe("the Incident Created notification of an incident reported through a fo
     expect(ownerRulesApplied).toBe(true);
     expect(ownerUserIds).toEqual([]);
     expect(incidentsTheJobWouldTake()).toEqual([INCIDENT_ID]);
-    expect(IncidentService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(
+      IncidentService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    // Let go: its hold is over.
+    expect(heldSince.get(INCIDENT_ID)).toBeNull();
   });
 
   /*
@@ -506,6 +559,7 @@ describe("the Incident Created notification of an incident reported through a fo
       CreatedNotificationHold,
       "hold",
     );
+    const before: number = Date.now();
 
     const onCreate: OnCreate<Incident> = await (
       IncidentService as unknown as { onBeforeCreate: OnBeforeCreate }
@@ -538,6 +592,14 @@ describe("the Incident Created notification of an incident reported through a fo
     expect(onCreate.createBy.data.isOwnerNotifiedOfResourceCreation).toBe(true);
     expect(held).toHaveBeenCalledTimes(1);
     expect(held.mock.calls[0]![0]).toBe(onCreate.createBy);
+
+    // When the hold began is written with it, so a hold nobody lets go ends by itself (#7571).
+    const heldAt: Date | undefined =
+      onCreate.createBy.data.createdNotificationHeldAt;
+
+    expect(heldAt).toBeInstanceOf(Date);
+    expect(heldAt!.getTime()).toBeGreaterThanOrEqual(before);
+    expect(heldAt!.getTime()).toBeLessThanOrEqual(Date.now());
   });
 
   /*
@@ -560,6 +622,8 @@ describe("the Incident Created notification of an incident reported through a fo
     incident.incidentSeverityId = new ObjectID(FORM_SEVERITY_ID);
     incident.createdIncidentTemplateId = TEMPLATE_ID;
     incident.isOwnerNotifiedOfResourceCreation = true;
+    // A hold of its caller's own, which would have the job take it once old enough: never written.
+    incident.createdNotificationHeldAt = new Date("2026-11-01T00:00:00.000Z");
 
     await IncidentService.create({
       data: incident,
@@ -579,23 +643,42 @@ describe("the Incident Created notification of an incident reported through a fo
 
     expect(held).not.toHaveBeenCalled();
     expect(incidentsTheJobWouldTake()).toEqual([]);
-    expect(IncidentService.updateOneById).not.toHaveBeenCalled();
+    expect(heldSince.get(INCIDENT_ID)).toBeNull();
+    expect(
+      IncidentService.compareAndSetColumnsByIdWithoutHooks,
+    ).not.toHaveBeenCalled();
   });
 
-  // What the hold relies on: the job takes exactly the incidents not marked.
-  test("the job takes every incident not marked as notified, and nothing else", () => {
-    const job: string = fs
-      .readFileSync(
-        path.join(
-          __dirname,
-          "../../../../App/FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotification.ts",
-        ),
-        "utf8",
-      )
-      .replace(/\s+/g, " ");
+  /*
+   * What the hold relies on: the job takes the incidents not marked - a
+   * minute after their create - and the holds that ran out, nothing else
+   * (IncidentService.findCreatedNotificationsDue), each only as it read it
+   * (takeCreatedNotification).
+   */
+  test("the job takes every incident not marked as notified, and the holds that ran out, each as it read it", () => {
+    const read: (file: string) => string = (file: string): string => {
+      return fs
+        .readFileSync(path.join(__dirname, file), "utf8")
+        .replace(/\s+/g, " ");
+    };
+
+    const job: string = read(
+      "../../../../App/FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotification.ts",
+    );
+    const service: string = read("../../../Server/Services/IncidentService.ts");
 
     expect(job).toContain(
-      "IncidentService.findAllBy({ query: { isOwnerNotifiedOfResourceCreation: false, },",
+      "await IncidentService.findCreatedNotificationsDue({ now: OneUptimeDate.getCurrentDate(),",
+    );
+    expect(job).toContain(
+      "await IncidentService.takeCreatedNotification(incident); if (!isTaken) { continue; }",
+    );
+    expect(job).not.toContain("IncidentService.findAllBy(");
+    expect(service).toContain(
+      "query: { isOwnerNotifiedOfResourceCreation: false, createdAt: QueryHelper.lessThanEqualTo(due.createdBefore), },",
+    );
+    expect(service).toContain(
+      "query: { createdNotificationHeldAt: QueryHelper.lessThanEqualTo(due.heldBefore), },",
     );
   });
 });

@@ -172,7 +172,7 @@ function describePerson(person: WhoIsToldPerson): string {
     .map(getOnCallPageChannelName)
     .join(", ");
   const fallback: string = person.isFallback
-    ? " (their verified methods, as no rule of theirs covers this severity)"
+    ? " (what the fallback picks of their verified methods, as no rule of theirs covers this severity)"
     : "";
 
   return `${person.name}${through}: by ${channels}${fallback}`;

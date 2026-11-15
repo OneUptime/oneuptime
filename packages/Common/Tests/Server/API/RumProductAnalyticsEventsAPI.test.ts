@@ -188,6 +188,30 @@ const PRICING_PAGE: JSONObject = {
 };
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 
+/* Each route, and the read service call it hands its range to. */
+const RANGE_READERS: Array<[string, string]> = [
+  [PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE, "listEventNames"],
+  [PRODUCT_ANALYTICS_EVENT_TREND_ROUTE, "getEventTrend"],
+  [PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE, "getEventBreakdown"],
+  [PRODUCT_ANALYTICS_EVENT_PROPERTIES_ROUTE, "getEventProperties"],
+  [PRODUCT_ANALYTICS_FUNNEL_ROUTE, "getFunnel"],
+  [PRODUCT_ANALYTICS_RETENTION_ROUTE, "getRetention"],
+];
+
+/*
+ * Ends whose week before holds a clock change, each with the start
+ * 7 x 24 hours before it (issue #7623): Australia/Lord_Howe moves its
+ * clocks by half an hour on 2026-04-05 and 2026-10-04, Europe/London by an
+ * hour on 2026-03-29 and 2026-10-25. RumProductAnalyticsEventsAPIOnLordHowe
+ * runs this file on Lord Howe Island's clock.
+ */
+const WEEKS_ACROSS_A_CLOCK_CHANGE: Array<[string, string]> = [
+  ["2026-04-08T02:00:00.000Z", "2026-04-01T02:00:00.000Z"],
+  ["2026-10-06T23:59:59.999Z", "2026-09-29T23:59:59.999Z"],
+  ["2026-03-31T00:00:00.000Z", "2026-03-24T00:00:00.000Z"],
+  ["2026-10-28T09:15:00.000Z", "2026-10-21T09:15:00.000Z"],
+];
+
 /* The smallest body each route takes, beside rumApplicationId. */
 function minimalBody(uri: string): JSONObject {
   if (uri === PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE) {
@@ -864,6 +888,72 @@ describe("Product analytics event API", () => {
           expect(result.thrownToNext).toBeInstanceOf(BadDataException);
           expect(querySpy).not.toHaveBeenCalled();
         }
+      },
+    );
+
+    test.each(RANGE_READERS)(
+      "%s (%s) reads the last 7 x 24 hours by default, to the millisecond",
+      async (uri: string, method: string) => {
+        const reader: jest.SpyInstance = jest.spyOn(
+          RumProductAnalyticsEventReadService,
+          method as "getFunnel",
+        );
+
+        const before: number = Date.now();
+        const result: CallResult = await callAsOwner(uri, minimalBody(uri));
+        const after: number = Date.now();
+
+        expect(result.thrownToNext).toBeUndefined();
+
+        const argument: Record<string, unknown> = argumentOf(reader);
+        const endTime: Date = argument["endTime"] as Date;
+
+        expect(endTime.getTime()).toBeGreaterThanOrEqual(before);
+        expect(endTime.getTime()).toBeLessThanOrEqual(after);
+        expect(
+          endTime.getTime() - (argument["startTime"] as Date).getTime(),
+        ).toBe(7 * DAY_MS);
+      },
+    );
+
+    /*
+     * Issue #7623: a week with a clock change inside it is still
+     * 7 x 24 hours long, in whatever zone the server runs in.
+     */
+    test.each(
+      RANGE_READERS.flatMap(
+        (reader: [string, string]): Array<[string, string, string, string]> => {
+          return WEEKS_ACROSS_A_CLOCK_CHANGE.map(
+            (week: [string, string]): [string, string, string, string] => {
+              return [reader[0], reader[1], week[0], week[1]];
+            },
+          );
+        },
+      ),
+    )(
+      "%s (%s) reaches back exactly 7 x 24 hours from %s, to %s",
+      async (
+        uri: string,
+        method: string,
+        endTime: string,
+        startTime: string,
+      ) => {
+        const reader: jest.SpyInstance = jest.spyOn(
+          RumProductAnalyticsEventReadService,
+          method as "getFunnel",
+        );
+
+        const result: CallResult = await callAsOwner(uri, {
+          ...minimalBody(uri),
+          endTime: endTime,
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+
+        const argument: Record<string, unknown> = argumentOf(reader);
+
+        expect((argument["startTime"] as Date).toISOString()).toBe(startTime);
+        expect((argument["endTime"] as Date).toISOString()).toBe(endTime);
       },
     );
 

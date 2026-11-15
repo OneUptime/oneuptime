@@ -33,6 +33,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { isAIAccessibleOnCurrentPlan } from "../AI/AIPlanGate";
 import EventName from "../../Utils/EventName";
+import { getAskAiReaderTimezone } from "./AskAiReaderTimezone";
 import WorkflowChangesSeen from "./WorkflowChangedByAi";
 import {
   getSetupApprovedEvent,
@@ -885,6 +886,8 @@ export function useAiChat(options: {
               content: content,
               permissionMode: permissionModeRef.current,
               language: languageRef.current,
+              // A chart over days cuts them at the reader's midnight (#7922).
+              ...getAskAiReaderTimezone(),
               ...(activeConversationIdRef.current
                 ? { conversationId: activeConversationIdRef.current }
                 : {}),
@@ -1022,6 +1025,8 @@ export function useAiChat(options: {
               decisions: decisions,
               // What an approved setup action writes its records in (#7247).
               language: languageRef.current,
+              // The zone the charts of the resumed answer cut days in (#7922).
+              ...getAskAiReaderTimezone(),
             },
             headers: ModelAPI.getCommonHeaders(),
           });

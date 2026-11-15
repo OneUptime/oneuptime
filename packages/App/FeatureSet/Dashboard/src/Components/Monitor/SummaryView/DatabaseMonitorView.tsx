@@ -269,7 +269,7 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
   return (
     <SummaryView dataTestId="database-monitor-summary">
       <SummaryFacts>
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(isOnline ? "Online" : "Offline")}
@@ -279,7 +279,7 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -289,15 +289,11 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
         {/* An engine's version string runs long: the row is its own. */}
-        <SummaryFact
-          isWide={true}
-          title="Engine"
-          value={engineDescription || "-"}
-        />
+        <SummaryFact isWide={true} title="Engine" value={engineDescription} />
         <SummaryFact title="Collection" value={collectionSummary} />
         <SummaryFact
           title="Metric Groups Collected"

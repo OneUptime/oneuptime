@@ -398,7 +398,7 @@ const DataStoreInside: FunctionComponent<
               return (
                 <div className="min-w-0 space-y-1">
                   <div className="whitespace-normal text-sm font-medium text-gray-900">
-                    {translator.translateText(name) || "—"}
+                    {translator.translateText(name) || <TableEmptyValue />}
                   </div>
                   <div className="flex flex-wrap items-center gap-1">
                     {item.sensitivity ? (
@@ -425,6 +425,7 @@ const DataStoreInside: FunctionComponent<
                               item.confidence,
                           },
                         )}
+                        isUserContent={true}
                         color={Gray500}
                       />
                     ) : (
@@ -491,7 +492,7 @@ const DataStoreInside: FunctionComponent<
               return (
                 <div className="min-w-0">
                   <div className="font-mono text-sm text-gray-800 [overflow-wrap:anywhere]">
-                    {item.location || "—"}
+                    {item.location || <TableEmptyValue />}
                   </div>
                   {item.locationKind ? (
                     <div className="text-xs text-gray-500">

@@ -26,6 +26,8 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONObject } from "../../../../Types/JSON";
+import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import { marked, Tokens, Token } from "marked";
 import { describe, expect, test } from "@jest/globals";
 
@@ -769,6 +771,155 @@ describe("Breaching Samples - attributes", () => {
     expect(html).toMatch(
       /<code[^>]*>\*\*bold\*\* \[x\]\(https:\/\/evil\.example\) &lt;⁠img src=x onerror=&quot;alert\(1\)&quot;&gt;<\/code>/,
     );
+  });
+});
+
+/*
+ * Issue #8026: a series grouped by an attribute named like what every
+ * object inherits (constructor, toString, valueOf). The list keeps the
+ * first value of each key with a read of the labels it has gathered, a
+ * plain object: a plain read found the inherited method there, so the
+ * group-by value was never printed - the one line that says which series
+ * breached left it out. A sample that lacks a key another sample has was
+ * read the same way, and would have printed the method's source text. A
+ * label named __proto__ (#8025) was not written at all.
+ */
+describe("Breaching Samples - a series grouped by an attribute named like what every object inherits (issue #8026)", () => {
+  // A sample's attributes as ClickHouse's JSON answer carries them.
+  const own: (record: JSONObject) => JSONObject = (
+    record: JSONObject,
+  ): JSONObject => {
+    return JSON.parse(JSON.stringify(record)) as JSONObject;
+  };
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "prints the value of %s lifted out of the nested attributes, under each sample",
+    (name: string) => {
+      const markdown: string = section(
+        makeContext({
+          unit: null,
+          groupBy: [name],
+          breachingSamples: [
+            {
+              value: 1,
+              timestamp: at(28),
+              attributes: own({
+                attributes: { [name]: "web", "resource.host.arch": "amd64" },
+              }),
+            },
+            {
+              value: 2,
+              timestamp: at(29),
+              attributes: own({
+                attributes: { "resource.host.arch": "arm64", [name]: "api" },
+              }),
+            },
+          ],
+        }),
+      );
+
+      expect(markdown).toContain(
+        [
+          "1. `2026-08-14T10:28:00.000Z` — **1**",
+          `   - \`${name}\`: \`web\``,
+          "2. `2026-08-14T10:29:00.000Z` — **2**",
+          `   - \`${name}\`: \`api\``,
+        ].join("\n"),
+      );
+      expect(markdown).not.toContain("resource.host.arch");
+      expect(markdown).not.toContain("native code");
+      expect(markdown).not.toContain("[object Object]");
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "prints a top-level attribute named %s",
+    (name: string) => {
+      const markdown: string = section(
+        makeContext({
+          unit: null,
+          groupBy: [name],
+          breachingSamples: [
+            {
+              value: 1,
+              timestamp: at(28),
+              attributes: own({ [name]: "web", zone: "z1" }),
+            },
+          ],
+        }),
+      );
+
+      expect(markdown).toContain(
+        [
+          "1. `2026-08-14T10:28:00.000Z` — **1**",
+          `   - \`${name}\`: \`web\``,
+          "   - `zone`: `z1`",
+        ].join("\n"),
+      );
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a sample without %s prints nothing for it, beside a sample that has it",
+    (name: string) => {
+      const markdown: string = section(
+        makeContext({
+          unit: null,
+          groupBy: [name],
+          breachingSamples: [
+            {
+              value: 1,
+              timestamp: at(28),
+              attributes: own({ [name]: "web", zone: "z1" }),
+            },
+            {
+              value: 2,
+              timestamp: at(29),
+              attributes: own({ zone: "z2" }),
+            },
+          ],
+        }),
+      );
+
+      expect(markdown).toContain(
+        [
+          "1. `2026-08-14T10:28:00.000Z` — **1**",
+          `   - \`${name}\`: \`web\``,
+          "   - `zone`: `z1`",
+          "2. `2026-08-14T10:29:00.000Z` — **2**",
+          "   - `zone`: `z2`",
+        ].join("\n"),
+      );
+      expect(markdown).not.toContain("native code");
+      expect(markdown).not.toContain("[object Object]");
+    },
+  );
+
+  test("of a key both at the top level and in the nested attributes, the first value seen is printed, as for any key", () => {
+    for (const name of [...INHERITED_PROPERTY_NAMES, "host.name"]) {
+      const markdown: string = section(
+        makeContext({
+          unit: null,
+          groupBy: [name],
+          breachingSamples: [
+            {
+              value: 1,
+              timestamp: at(28),
+              attributes: own({
+                [name]: "top",
+                attributes: { [name]: "nested" },
+              }),
+            },
+          ],
+        }),
+      );
+
+      expect({
+        name,
+        line: markdown.includes(`   - \`${name}\`: \`top\``),
+      }).toEqual({ name, line: true });
+      expect(markdown).not.toContain("nested");
+    }
   });
 });
 

@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Sonder i flere regioner tjekker adressen, så den skal kunne nås fra internettet. Free-planen har plads til 10 aktive monitorer.
+Sonder i flere regioner tjekker adressen, så den skal kunne nås fra internettet, og der åbnes kun en hændelse, når de alle finder den nede. Free-planen har plads til 10 aktive monitorer. De faktureres efter forbrug, så projektet skal først have en betalingsmetode: uden en siger det første trin det, med **Tilføj betalingsmetode**.
 @tab Selvhostet
-Adressen tjekkes fra din servers egen sonde, så den skal kunne nås derfra. For at du kan få e-mails, skal serveren kunne sende dem: dens masteradministrator sætter det op på `/admin/setup`, som [Selv-hosting-guide](/docs/installation/self-hosting-guide) viser. Masteradministratoren bliver ikke ejer af det, vedkommende opretter, så vedkommende tilføjer sig selv på monitorens side **Ejere** for at få e-mails.
+Adressen tjekkes fra din servers egen sonde, så den skal kunne nås derfra. For at du kan få e-mails, skal serveren kunne sende dem: dens masteradministrator sætter det op på `/admin/setup`, som [Selv-hosting-guide](/docs/installation/self-hosting-guide) viser.
 :::
 
 ## Trin

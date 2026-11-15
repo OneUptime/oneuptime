@@ -6,8 +6,9 @@ import {
   fireEvent,
   within,
 } from "@testing-library/react-native";
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import MonitorSummaryView from "./MonitorSummaryView";
+import { formatShortDateTime } from "../utils/date";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
 import { radius, spacing } from "../theme/tokens";
@@ -1106,5 +1107,90 @@ describe("Metric tiles", () => {
     expect(
       flatStyle(within(rows[0]!).getByText("https://api.example.com")).color,
     ).toBe(darkColors.textPrimary);
+  });
+});
+
+/*
+ * The last check's time is written on the phone's clock, as every other time
+ * in the app (utils/date): it asked Intl for a two-digit hour on its own and
+ * read "Nov 5, 05:14 AM" on a 12-hour phone (#7650). The instant is 05:14 on
+ * the phone's own wall clock; Intl's report of the clock is replaced.
+ */
+describe("The time of the last check", () => {
+  const LOCAL_MORNING: string = new Date(2026, 10, 5, 5, 14).toISOString();
+  const LOCAL_AFTERNOON: string = new Date(2026, 10, 5, 17, 14).toISOString();
+  const TIME_OF_DAY: RegExp = /(\d{1,2})[:.](\d{2})/;
+
+  const onAPhoneThatReads: (twelveHour: boolean) => void = (
+    twelveHour: boolean,
+  ): void => {
+    const resolvedOptions: () => Intl.ResolvedDateTimeFormatOptions =
+      Intl.DateTimeFormat.prototype.resolvedOptions;
+
+    jest
+      .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+      .mockImplementation(function (
+        this: Intl.DateTimeFormat,
+      ): Intl.ResolvedDateTimeFormatOptions {
+        return { ...resolvedOptions.call(this), hour12: twelveHour };
+      });
+  };
+
+  const monitoredAtText: () => string = (): string => {
+    const written: string | null = formatShortDateTime(LOCAL_MORNING);
+
+    expect(written).not.toBeNull();
+
+    return written as string;
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a 12-hour phone reads 5:14, with no zero", async () => {
+    onAPhoneThatReads(true);
+
+    await renderSummary("Website", [
+      probeWith({ ...ONLINE_WEBSITE, monitoredAt: LOCAL_MORNING }),
+    ]);
+
+    const written: string = monitoredAtText();
+
+    expect(screen.getByText(written)).toBeTruthy();
+    expect(TIME_OF_DAY.exec(written)?.[1]).toBe("5");
+    expect(written).not.toContain("2026");
+  });
+
+  test("a 24-hour phone reads 05:14 and 17:14, the zero kept", async () => {
+    onAPhoneThatReads(false);
+
+    await renderSummary("Website", [
+      probeWith({ ...ONLINE_WEBSITE, monitoredAt: LOCAL_MORNING }),
+    ]);
+
+    const written: string = monitoredAtText();
+
+    expect(screen.getByText(written)).toBeTruthy();
+    expect(TIME_OF_DAY.exec(written)?.[1]).toBe("05");
+    expect(
+      TIME_OF_DAY.exec(formatShortDateTime(LOCAL_AFTERNOON) || "")?.[1],
+    ).toBe("17");
+  });
+
+  test("a typed date from the API is written the same way", async () => {
+    onAPhoneThatReads(true);
+
+    await renderSummary("Website", [
+      probeWith({
+        ...ONLINE_WEBSITE,
+        monitoredAt: {
+          _type: "DateTime",
+          value: LOCAL_MORNING,
+        } as unknown as string,
+      }),
+    ]);
+
+    expect(screen.getByText(monitoredAtText())).toBeTruthy();
   });
 });
