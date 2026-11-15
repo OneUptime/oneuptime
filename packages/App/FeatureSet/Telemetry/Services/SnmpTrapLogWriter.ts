@@ -22,6 +22,7 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import logger from "Common/Server/Utils/Logger";
+import lookupTable from "Common/Utils/LookupTable";
 
 /*
  * Persists SNMP traps as device-attributed rows in the telemetry Log table
@@ -36,15 +37,20 @@ import logger from "Common/Server/Utils/Logger";
 
 const DEFAULT_SERVICE_NAME: string = "network-devices";
 
-// Standard trap OIDs → readable names for the log body.
-const WELL_KNOWN_TRAPS: Dictionary<string> = {
+/*
+ * Standard trap OIDs → readable names for the log body. Read by the OID a
+ * probe reports, so a Map (lookupTable): a plain object answered an OID
+ * written as "constructor" or "toString" with a function, which went into
+ * the row's snmpTrap.name and its body as the function's source.
+ */
+const WELL_KNOWN_TRAPS: ReadonlyMap<string, string> = lookupTable<string>({
   "1.3.6.1.6.3.1.1.5.1": "coldStart",
   "1.3.6.1.6.3.1.1.5.2": "warmStart",
   "1.3.6.1.6.3.1.1.5.3": "linkDown",
   "1.3.6.1.6.3.1.1.5.4": "linkUp",
   "1.3.6.1.6.3.1.1.5.5": "authenticationFailure",
   "1.3.6.1.6.3.1.1.5.6": "egpNeighborLoss",
-};
+});
 
 export default class SnmpTrapLogWriter {
   /*
@@ -212,7 +218,7 @@ export default class SnmpTrapLogWriter {
       "probe.id": data.probeId.toString(),
     };
 
-    const trapName: string | undefined = WELL_KNOWN_TRAPS[snmpTrap.trapOid];
+    const trapName: string | undefined = WELL_KNOWN_TRAPS.get(snmpTrap.trapOid);
     if (trapName) {
       attributes["snmpTrap.name"] = trapName;
     }
