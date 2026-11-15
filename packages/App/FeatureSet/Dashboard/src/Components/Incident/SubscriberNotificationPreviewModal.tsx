@@ -37,6 +37,7 @@ import {
   describePreviewStatusPage,
   describeTemplateChoice,
 } from "./SubscriberNotificationPreviewText";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * 'Preview notification': the email each status page's subscribers would get,
@@ -205,7 +206,11 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
           <p className="font-medium">
             {translate(SubscriberNotificationPreviewCopy.loadError)}
           </p>
-          {preview.error ? <p className="mt-0.5">{preview.error}</p> : null}
+          {preview.error ? (
+            <p className="mt-0.5">
+              <ErrorInSentence message={preview.error} showWhereToLook={true} />
+            </p>
+          ) : null}
         </div>
       );
     }
@@ -338,7 +343,12 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
                 <p className="font-medium">
                   {translate(SubscriberNotificationPreviewCopy.sendTestError)}
                 </p>
-                <p className="mt-0.5">{sendTest.error}</p>
+                <p className="mt-0.5">
+                  <ErrorInSentence
+                    message={sendTest.error}
+                    showWhereToLook={true}
+                  />
+                </p>
               </div>
             ) : null}
 

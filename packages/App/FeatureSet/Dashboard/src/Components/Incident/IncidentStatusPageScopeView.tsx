@@ -16,6 +16,7 @@ import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import IncidentStatusPageScopeCopy from "./IncidentStatusPageScopeCopy";
 import { TranslatedScopeNotice } from "./IncidentStatusPageScopeNotices";
 import { isScopedToDeletedStatusPages } from "./IncidentStatusPageScopeForm";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * An incident's status page scope, read only: the status pages it is limited
@@ -114,7 +115,9 @@ const IncidentStatusPageScopeView: FunctionComponent<ComponentProps> = (
   if (error) {
     return (
       <div data-testid="incident-status-page-scope" data-state="error">
-        <p className="text-sm text-gray-500">{error}</p>
+        <p className="text-sm text-gray-500">
+          <ErrorInSentence message={error} showWhereToLook={true} />
+        </p>
       </div>
     );
   }

@@ -17,6 +17,7 @@ import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const DETECTION_RULE_AI_DRAFT_TEST_ID: string =
   "detection-rule-ai-draft";
@@ -192,7 +193,7 @@ const DetectionRuleAiDraft: FunctionComponent<ComponentProps> = (
           className="break-words text-sm text-red-600"
           data-testid="detection-rule-ai-draft-error"
         >
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

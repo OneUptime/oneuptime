@@ -71,6 +71,7 @@ import {
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 
@@ -1414,10 +1415,15 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           />
         </svg>
         <p className="text-sm text-gray-400">
-          {error ||
-            translator.translateText(
-              "No data available for the selected query",
-            )}
+          <ErrorInSentence
+            message={
+              error ||
+              translator.translateText(
+                "No data available for the selected query",
+              )
+            }
+            showWhereToLook={true}
+          />
         </p>
       </div>
     );

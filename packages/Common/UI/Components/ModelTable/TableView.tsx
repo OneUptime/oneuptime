@@ -32,6 +32,7 @@ import Sort from "../../../Types/BaseDatabase/Sort";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import { getReaderNumberLocale } from "../../../Types/DateLanguage";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 export interface ComponentProps<T extends GenericObject> {
   tableId: string;
@@ -345,7 +346,9 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
       if (loadError) {
         elements.push(
           <MoreMenuSection title="Saved Views" key={"saved-views-error"}>
-            <div className="px-3 pb-2 text-sm text-red-600">{loadError}</div>
+            <div className="px-3 pb-2 text-sm text-red-600">
+              <ErrorInSentence message={loadError} showWhereToLook={true} />
+            </div>
           </MoreMenuSection>,
         );
       }

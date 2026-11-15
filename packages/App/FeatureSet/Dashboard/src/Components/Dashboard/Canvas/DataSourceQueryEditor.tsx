@@ -35,6 +35,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "../Components/DashboardWidgetFallbackWords";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 // Each query card's header: its label, and its Remove at the other end.
 export const DATA_SOURCE_QUERY_CARD_HEADER_TEST_ID: string =
@@ -342,7 +343,11 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
         defaultCollapsed={false}
       >
         <div>
-          {loadError && <p className="text-xs text-red-700">{loadError}</p>}
+          {loadError && (
+            <p className="text-xs text-red-700">
+              <ErrorInSentence message={loadError} showWhereToLook={true} />
+            </p>
+          )}
           {!loadError && dataSources.length === 0 && (
             <p className="text-xs text-gray-400">
               {translator.translateText(

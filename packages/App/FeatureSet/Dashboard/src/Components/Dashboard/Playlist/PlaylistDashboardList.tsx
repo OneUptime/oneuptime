@@ -21,6 +21,7 @@ import {
   getPlaylistListedDashboards,
 } from "./PlaylistDashboards";
 import { readPlaylistDashboards } from "./PlaylistRead";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A playlist's dashboards on its page (issue #5235), in the order they are
@@ -102,7 +103,7 @@ const PlaylistDashboardList: FunctionComponent<ComponentProps> = (
   if (error) {
     return (
       <p className="text-sm text-red-600" role="alert">
-        {error}
+        <ErrorInSentence message={error} showWhereToLook={true} />
       </p>
     );
   }

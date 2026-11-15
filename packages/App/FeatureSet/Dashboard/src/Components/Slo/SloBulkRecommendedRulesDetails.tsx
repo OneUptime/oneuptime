@@ -2,7 +2,10 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import { getInlineSeparator } from "Common/Types/Translator";
 import ObjectID from "Common/Types/ObjectID";
 import { BulkActionConfirmControls } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { isUnexplainedErrorMessage } from "Common/UI/Components/ErrorMessage/ErrorExplanation";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import { sayErrorMessage } from "Common/UI/Utils/ErrorInSentence";
 import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import API from "Common/UI/Utils/API/API";
 import {
@@ -170,9 +173,16 @@ const SloBulkRecommendedRulesDetails: FunctionComponent<ComponentProps> = (
             SLO_BULK_RECOMMENDED_RULES_CHECK_FAILED}
         </p>
         <p className="text-gray-600">
-          <IsolatedText
-            text={translator.translateText(answer.message) || answer.message}
-          />
+          {/*
+           * An error nobody explained says why and what to do next in the
+           * reader's language, with its reference (#7537); any other
+           * message reads the way its words are written.
+           */}
+          {isUnexplainedErrorMessage(answer.message) ? (
+            <ErrorInSentence message={answer.message} showWhereToLook={true} />
+          ) : (
+            <IsolatedText text={sayErrorMessage(answer.message, translator)} />
+          )}
         </p>
       </div>
     );

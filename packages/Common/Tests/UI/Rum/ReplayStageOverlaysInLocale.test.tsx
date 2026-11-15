@@ -56,6 +56,7 @@ import {
   ReplayIdleBand,
   derivePhase,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngineTypes";
+import { formatReplayDurationInLanguage } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimelineMath";
 
 /*
  * The stage's overlays in the reader's language (#6369). The error card,
@@ -72,6 +73,23 @@ const MARKING: Translator = createTranslator((text: string): string => {
 }, "de");
 
 const DURATION_MS: number = 252000;
+
+/*
+ * The lengths in a sentence, in the sentence's language (#7318): "1 Min.,
+ * 12 Sek." in German, where the English "1m 12s" stood in a German
+ * sentence before.
+ */
+const SKIPPED: string = formatReplayDurationInLanguage(72000, MARKING);
+const GAP: string = formatReplayDurationInLanguage(18000, MARKING);
+const PLAYED: string = formatReplayDurationInLanguage(DURATION_MS, MARKING);
+
+describe("the lengths these sentences hold", () => {
+  it("are German's own, not the English short form", () => {
+    expect(SKIPPED).toBe("1 Min., 12 Sek.");
+    expect(GAP).toBe("18 Sek.");
+    expect(PLAYED).toBe("4 Min., 12 Sek.");
+  });
+});
 
 // What is left of an element's text once every marked lookup is taken out.
 function unmarkedText(element: HTMLElement): string {
@@ -166,24 +184,26 @@ afterEach((): void => {
 describe("the band describers, given a translator", () => {
   it("look each sentence up whole, with the duration in place", () => {
     expect(describeIdleSkip(band("idle"), MARKING)).toBe(
-      "⟦Skipped 1m 12s idle⟧",
+      `⟦Skipped ${SKIPPED} idle⟧`,
     );
     expect(describeIdleSkip(band("background-tab"), MARKING)).toBe(
-      "⟦Skipped 1m 12s in the background⟧",
+      `⟦Skipped ${SKIPPED} in the background⟧`,
     );
     expect(describeIdleSkip(band("paused"), MARKING)).toBe(
-      "⟦Skipped 1m 12s: recording paused while the page was idle⟧",
+      `⟦Skipped ${SKIPPED}: recording paused while the page was idle⟧`,
     );
     expect(describeIdleBandChip(band("background-tab"), MARKING)).toBe(
-      "⟦Tab was in the background for 1m 12s⟧",
+      `⟦Tab was in the background for ${SKIPPED}⟧`,
     );
     expect(describeIdleBandChip(band("paused"), MARKING)).toBe(
-      "⟦Recording paused · 1m 12s⟧",
+      `⟦Recording paused · ${SKIPPED}⟧`,
     );
-    expect(describeIdleBandChip(band("idle"), MARKING)).toBe("⟦Idle 1m 12s⟧");
+    expect(describeIdleBandChip(band("idle"), MARKING)).toBe(
+      `⟦Idle ${SKIPPED}⟧`,
+    );
     expect(
       describeIdleBandChip({ ...band("idle"), fidelity: "coarse" }, MARKING),
-    ).toBe("⟦Idle 1m 12s (approx.)⟧");
+    ).toBe(`⟦Idle ${SKIPPED} (approx.)⟧`);
   });
 
   it("write the English word for word without one", () => {
@@ -324,7 +344,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
     });
 
     expect(screen.getByTestId("replay-overlay-gap")).toHaveTextContent(
-      "⟦Skipped 18s - the recorder never delivered this stretch⟧",
+      `⟦Skipped ${GAP} - the recorder never delivered this stretch⟧`,
     );
 
     unmount();
@@ -337,7 +357,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
     });
 
     expect(screen.getByTestId("replay-overlay-idle-skip")).toHaveTextContent(
-      "⟦Skipped 1m 12s: recording paused while the page was idle⟧",
+      `⟦Skipped ${SKIPPED}: recording paused while the page was idle⟧`,
     );
   });
 
@@ -379,7 +399,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
     const ended: HTMLElement = screen.getByTestId("replay-overlay-ended");
 
     expect(ended).toHaveTextContent("⟦Replay ended⟧");
-    expect(ended).toHaveTextContent("⟦4m 12s of footage played out.⟧");
+    expect(ended).toHaveTextContent(`⟦${PLAYED} of footage played out.⟧`);
     expect(screen.getByTestId("replay-watch-again")).toHaveTextContent(
       "⟦Watch again⟧",
     );
@@ -453,7 +473,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
 
     const chip: HTMLElement = screen.getByTestId("replay-paused-chip");
 
-    expect(chip).toHaveTextContent("⟦Recording paused · 1m 12s⟧");
+    expect(chip).toHaveTextContent(`⟦Recording paused · ${SKIPPED}⟧`);
     expect(chip).toHaveTextContent("⟦skip >⟧");
     expect(chip).toHaveAttribute(
       "title",

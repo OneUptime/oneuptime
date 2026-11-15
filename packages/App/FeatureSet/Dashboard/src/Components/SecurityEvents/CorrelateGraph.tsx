@@ -107,6 +107,7 @@ import {
   CorrelateResultStats,
 } from "./CorrelateResultSummary";
 import SecurityEventDetail from "./SecurityEventDetail";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Entity-neighborhood graph over security events: the applied filter in the
@@ -1865,7 +1866,9 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
               )
             }
           >
-            <p>{error}</p>
+            <p>
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </p>
           </AlertBanner>
         </div>
       );
@@ -1889,7 +1892,9 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
               />
             }
           >
-            <p>{error}</p>
+            <p>
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </p>
           </AlertBanner>
         </div>
       );

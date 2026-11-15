@@ -21,7 +21,11 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import ValueFormatter, { FormattedValue } from "Common/Utils/ValueFormatter";
+import ValueFormatter, {
+  FormattedValue,
+  ValueFormatterOptions,
+} from "Common/Utils/ValueFormatter";
+import { getValueFormatterOptionsForReader } from "Common/UI/Components/Charts/Utils/UnitNames";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
 import {
   getValueContentBox,
@@ -1247,14 +1251,17 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   /*
    * In the reader's language (#7094): "73,40 %" in German, "۷۳٫۴۰٪" in
-   * Persian, as the SLO tiles write theirs.
+   * Persian, as the SLO tiles write theirs; a big number in the reader's
+   * own scale (#7518): "1,2 Mio.", "۱٫۲ هزار", "120万", where English's K
+   * and M stood after their digits.
    */
-  const language: string = translator.language;
+  const formatterOptions: ValueFormatterOptions =
+    getValueFormatterOptionsForReader(translator, metricName);
 
   const displayParts: FormattedValue = ValueFormatter.formatValueCompact(
     displayValue,
     rawUnit,
-    { metricName, language },
+    formatterOptions,
   );
 
   /*
@@ -1266,10 +1273,11 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
    * by the value row's truncate.
    */
   const sizingParts: FormattedValue = hoveredPoint
-    ? ValueFormatter.formatValueCompact(aggregatedValue, rawUnit, {
-        metricName,
-        language,
-      })
+    ? ValueFormatter.formatValueCompact(
+        aggregatedValue,
+        rawUnit,
+        formatterOptions,
+      )
     : displayParts;
 
   /*
@@ -1371,7 +1379,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     const parts: FormattedValue = ValueFormatter.formatValueCompact(
       value,
       rawUnit,
-      { metricName, language },
+      formatterOptions,
     );
 
     return props.hideUnit ? parts.value : parts.formatted;

@@ -43,6 +43,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "../Components/DashboardWidgetFallbackWords";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 type ModelTypeOf<T extends BaseModel> = { new (): T };
 
@@ -495,7 +496,7 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
   if (error) {
     return (
       <div className="text-xs text-red-600 py-2 px-3 border border-red-200 rounded-md bg-red-50">
-        {error}
+        <ErrorInSentence message={error} showWhereToLook={true} />
       </div>
     );
   }

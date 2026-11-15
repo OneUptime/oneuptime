@@ -21,6 +21,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import React, { FunctionComponent, ReactElement } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   runbookId: ObjectID;
@@ -93,7 +94,7 @@ const RunbookTurnedOffBanner: FunctionComponent<ComponentProps> = (
             role="alert"
             data-testid={RUNBOOK_TURN_ON_ERROR_TEST_ID}
           >
-            {turnOn.error}
+            <ErrorInSentence message={turnOn.error} showWhereToLook={true} />
           </p>
         ) : (
           <></>

@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -86,7 +87,12 @@ const InvestigationNotice: FunctionComponent<ComponentProps> = (
       </div>
       <div className="min-w-0 flex-1">
         <p className="break-words text-sm font-medium text-gray-900">
-          {translator.translateText(props.title)}
+          {/*
+           * The sentence in the reader's language; an error nobody
+           * explained, as API.getFriendlyMessage writes it, says why and
+           * what to do next there, with its reference (#7537).
+           */}
+          <ErrorInSentence message={props.title} showWhereToLook={true} />
         </p>
         {props.children ? (
           <p className="mt-1 break-words text-sm leading-6 text-gray-600">
