@@ -725,6 +725,98 @@ describe("ProductAnalyticsEvents: breakdown and segment", () => {
   });
 });
 
+/*
+ * #8196: a page is stored as the browser escapes it ("/caf%C3%A9"), and the
+ * Events page drew it so - "Viewed /caf%C3%A9" - where User Flows draws the
+ * same page "/café". It reads as it does there; what is asked for, linked
+ * and narrowed by keeps the stored spelling.
+ */
+describe("ProductAnalyticsEvents: a page with letters beyond ASCII", () => {
+  const CAFE: string = "/caf%C3%A9";
+
+  function cafeNames(): JSONObject {
+    return names({
+      events: [
+        { kind: "page", name: CAFE, events: 400, users: 200, lastSeenAt: 1 },
+        {
+          kind: "custom",
+          name: "Signed up",
+          events: 120,
+          users: 100,
+          lastSeenAt: 1,
+        },
+      ],
+    });
+  }
+
+  function pageBreakdown(data?: JSONObject): JSONObject {
+    const asked: JSONObject = (data?.["breakdown"] as JSONObject) || {};
+
+    if (asked["field"] !== "page") {
+      return breakdown(data);
+    }
+
+    return {
+      field: "page",
+      key: "",
+      rows: [
+        { value: CAFE, events: 90, users: 70 },
+        { value: "/a%2Fb", events: 30, users: 30 },
+      ],
+      hasMore: false,
+      totalEvents: 120,
+      totalUsers: 100,
+    };
+  }
+
+  it("lists a page view as the page reads, and opens it in the spelling it was stored in", async () => {
+    mockReads({ names: cafeNames() });
+
+    renderPage();
+
+    expect(await waitForRows("product-analytics-event-list-bars", 2)).toEqual([
+      "Viewed /café | 400 | 200",
+      "Signed up | 120 | 100",
+    ]);
+
+    selectRow("product-analytics-event-list-bars", "Viewed /café");
+
+    await waitFor(() => {
+      expect(lastRequestTo("event-trend")["event"]).toEqual({
+        kind: "page",
+        name: CAFE,
+      });
+    });
+    expect(searchParams().get("event")).toBe(`page:${CAFE}`);
+    expect(document.body).not.toHaveTextContent("caf%C3%A9");
+  });
+
+  it("breaks down by page as the pages read, and narrows the segment by the stored page", async () => {
+    mockReads({ names: cafeNames(), breakdown: pageBreakdown });
+
+    renderPage();
+
+    await waitForRows("product-analytics-event-breakdown-bars", 2);
+    await chooseOption("Break down by", "Page");
+
+    expect(
+      await waitForRows("product-analytics-event-breakdown-bars", 2),
+    ).toEqual(["/café | 90 | 70 | 75%", "/a%2Fb | 30 | 30 | 25%"]);
+
+    selectRow("product-analytics-event-breakdown-bars", "/café");
+
+    const cafe: JSONObject = { field: "page", key: "", value: CAFE };
+
+    await waitFor(() => {
+      expect(lastRequestTo("event-trend")["filters"]).toEqual([cafe]);
+    });
+    expect(JSON.parse(searchParams().get("segment")!)).toEqual([cafe]);
+    expect(
+      screen.getByTestId("product-analytics-event-segment-filter"),
+    ).toHaveTextContent("Page is /café");
+  });
+});
+
 describe("ProductAnalyticsEvents: all events", () => {
   it("lists every event, the most frequent first, the open one marked; a row opens its event", async () => {
     mockReads({ names: names({ hasMore: true }) });
