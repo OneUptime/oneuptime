@@ -23,7 +23,7 @@ Ogni minuto, OneUptime interroga ogni connessione abilitata il cui intervallo di
 
 ## Prima di iniziare
 
-- In OneUptime, il ruolo Project Owner, Project Admin o Security Admin. I ruoli Security Member e Security Viewer vedono le connessioni e la cronologia delle loro esecuzioni, ma non possono modificarle.
+- In OneUptime, il ruolo Proprietario del progetto, Amministratore del progetto o Amministratore della sicurezza. I ruoli Membro della sicurezza e Visualizzatore della sicurezza vedono le connessioni e la cronologia delle loro esecuzioni, ma non possono modificarle.
 - Un super amministratore di Google Workspace, per consentire la delega a livello di dominio, e un amministratore che l'account di servizio impersona, con il privilegio Reports. Un super amministratore ce l'ha.
 - Un progetto Google Cloud in cui puoi creare un account di servizio e attivare la Admin SDK API.
 - Per l'attività di Drive, un'edizione con il log di audit di Drive, come Business Standard, Business Plus, Enterprise o Education.

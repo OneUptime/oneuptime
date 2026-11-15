@@ -98,7 +98,7 @@ Sempre que uma regra muda um SLO, o **Feed** do SLO registra quais regras fizera
 | Executar uma regra de rótulos | **Edit SLO Label Rule** e **Edit Service Level Objective** |
 | Executar uma regra de proprietários | **Edit SLO Owner Rule**, **Edit Service Level Objective**, **Create SLO User Owner** e **Create SLO Team Owner** |
 
-Essas permissões ficam no grupo SLO de uma função, e as funções Project Owner e Project Admin têm todas elas. Uma execução muda cada SLO do projeto, então uma permissão limitada a alguns rótulos, ou aos SLOs dos quais você é proprietário, não basta para executar uma regra.
+Essas permissões ficam no grupo SLO de uma função, e as funções Proprietário do projeto e Administrador do projeto têm todas elas. Uma execução muda cada SLO do projeto, então uma permissão limitada a alguns rótulos, ou aos SLOs dos quais você é proprietário, não basta para executar uma regra.
 
 ## Próximos passos
 

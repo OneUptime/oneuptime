@@ -58,7 +58,7 @@ Para iniciar una a mano:
 3. Se abre la página de la ejecución.
 :::
 
-Iniciar una ejecución requiere Project Owner, Project Admin, Project Member, Runbook Admin o Runbook Member, o el permiso **Create Runbook Execution**. Runbook Viewer y Viewer ven **Ejecutar ahora** bloqueado, con el motivo. Consulta [Permisos](/docs/runbooks/configuration#permisos).
+Iniciar una ejecución requiere Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de runbooks o Miembro de runbooks, o el permiso **Create Runbook Execution**. Visor de runbooks y Visor ven **Ejecutar ahora** bloqueado, con el motivo. Consulta [Permisos](/docs/runbooks/configuration#permisos).
 
 ## La vista de ejecución
 
@@ -128,7 +128,7 @@ Una ejecución es un registro único e inmutable. Para volver a ejecutar el runb
 ## Solución de problemas
 
 :::details Ejecutar ahora está bloqueado
-Tu rol lee runbooks pero no los ejecuta: el botón dice «No tienes permiso para iniciar ejecuciones de runbooks en este proyecto.» Pide Runbook Member o el permiso **Create Runbook Execution**.
+Tu rol lee runbooks pero no los ejecuta: el botón dice «No tienes permiso para iniciar ejecuciones de runbooks en este proyecto.» Pide el rol Miembro de runbooks o el permiso **Create Runbook Execution**.
 :::
 
 :::details Iniciar una ejecución falla con "Runbook is disabled" o "Runbook has no steps to run"

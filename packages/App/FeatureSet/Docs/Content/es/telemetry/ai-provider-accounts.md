@@ -25,7 +25,7 @@ El uso de una cuenta es lo que se le facturó, día a día. No contiene conversa
 
 ## Antes de empezar
 
-- El rol Project Owner o Project Admin. Solo ellos pueden conectar, cambiar o quitar una cuenta; todos los que leen la telemetría del proyecto ven las conexiones y el uso.
+- El rol Propietario del proyecto o Administrador del proyecto. Solo ellos pueden conectar, cambiar o quitar una cuenta; todos los que leen la telemetría del proyecto ven las conexiones y el uso.
 - Una credencial de la cuenta, de alguien que la administre. La sección de cada proveedor, más abajo, dice cuál y dónde se crea.
 - Nada que instalar: OneUptime llama a la API del proveedor desde sus propios servidores.
 

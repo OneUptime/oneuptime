@@ -58,7 +58,7 @@ Pour en lancer une à la main :
 3. La page d'exécution s'ouvre.
 :::
 
-Lancer une exécution demande Project Owner, Project Admin, Project Member, Runbook Admin ou Runbook Member, ou l'autorisation **Create Runbook Execution**. Runbook Viewer et Viewer voient **Exécuter maintenant** verrouillé, avec la raison. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
+Lancer une exécution demande Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des runbooks ou Membre des runbooks, ou l'autorisation **Create Runbook Execution**. Lecteur des runbooks et Lecteur voient **Exécuter maintenant** verrouillé, avec la raison. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
 
 ## La vue d'exécution
 
@@ -128,7 +128,7 @@ Une exécution est un enregistrement unique et immuable. Pour relancer le runboo
 ## Dépannage
 
 :::details Run Now est verrouillé
-Votre rôle lit les runbooks mais ne les exécute pas : le bouton indique « Vous n'avez pas l'autorisation de lancer des exécutions de runbook dans ce projet. » Demandez Runbook Member, ou l'autorisation **Create Runbook Execution**.
+Votre rôle lit les runbooks mais ne les exécute pas : le bouton indique « Vous n'avez pas l'autorisation de lancer des exécutions de runbook dans ce projet. » Demandez le rôle Membre des runbooks, ou l'autorisation **Create Runbook Execution**.
 :::
 
 :::details Le lancement échoue avec "Runbook is disabled" ou "Runbook has no steps to run"

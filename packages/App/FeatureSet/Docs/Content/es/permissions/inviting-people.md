@@ -26,7 +26,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Un rol que pueda invitar.** Project Owner, Project Admin o un rol con el permiso **Invite New Members**. Solo puede invitar a personas a un equipo cuyos permisos usted mismo tenga, porque una invitación les da el acceso del equipo.
+- **Un rol que pueda invitar.** Propietario del proyecto, Administrador del proyecto o un rol con el permiso **Invite New Members**. Solo puede invitar a personas a un equipo cuyos permisos usted mismo tenga, porque una invitación les da el acceso del equipo.
 - **En OneUptime Cloud, espacio en su plan.** Cada persona del proyecto es un asiento en su factura desde el momento en que se la invita. El plan Free tiene espacio para una persona. Consulte [Facturación y uso](/docs/configuration/billing#su-plan-y-sus-asientos).
 - **Sin SCIM Push Groups.** Mientras su proveedor de identidad gestione los equipos del proyecto mediante SCIM Push Groups, las personas se invitan y se quitan allí, no en OneUptime.
 
@@ -47,7 +47,7 @@ Escriba su dirección en **Correo electrónico**. Si ninguna cuenta de OneUptime
 
 ### Elegir su equipo
 
-**Equipo** empieza en el equipo de miembros del proyecto: el equipo que tiene Project Member para todo el proyecto, o si no, el llamado Members. Elija otro equipo para darle más acceso, o menos. **Equipo** queda vacío cuando el proyecto no tiene ese equipo, o cuando usted no podría invitar a nadie a él.
+**Equipo** empieza en el equipo de miembros del proyecto: el equipo que tiene Miembro del proyecto para todo el proyecto, o si no, el llamado Members. Elija otro equipo para darle más acceso, o menos. **Equipo** queda vacío cuando el proyecto no tiene ese equipo, o cuando usted no podría invitar a nadie a él.
 
 ### Enviar la invitación
 
@@ -86,7 +86,7 @@ Filtre la lista por **Usuario**, **Estado** o **Equipo**. Haga clic en una fila 
 | --- | --- |
 | **Perfil** | Su nombre, su dirección de correo, su foto y su ID de usuario. |
 | **Equipos** | Los equipos de los que forma parte. Añada o quite un equipo aquí. |
-| **Preparación**, **Métodos de notificación**, **Cómo contactarme** | Si se le puede avisar de una guardia, y cómo. Lo ven los Project Owners, los Project Admins, la propia persona y quien pueda leer las reglas de notificación de los demás. Consulte [Preparación e informes](/docs/on-call/readiness). |
+| **Preparación**, **Métodos de notificación**, **Cómo contactarme** | Si se le puede avisar de una guardia, y cómo. Lo ven los Propietarios del proyecto, los Administradores del proyecto, la propia persona y quien pueda leer las reglas de notificación de los demás. Consulte [Preparación e informes](/docs/on-call/readiness). |
 | **Campos personalizados** | Los campos personalizados del proyecto para personas, si los tiene. |
 | **Eliminar del proyecto** | Sacarla del proyecto. |
 

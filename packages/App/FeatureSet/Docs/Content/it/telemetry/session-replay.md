@@ -1092,7 +1092,7 @@ Poiché la marcatura raggiunge ogni servizio attraversato da una richiesta del b
 
 ## Chi può guardare una registrazione
 
-Guardare una registrazione è un'autorizzazione separata da quella di elencare le sessioni, e nessuna delle due è concessa dal ruolo Viewer dell'intero progetto. I proprietari e gli amministratori del progetto le hanno tutte.
+Guardare una registrazione è un'autorizzazione separata da quella di elencare le sessioni, e nessuna delle due è concessa dal ruolo Visualizzatore dell'intero progetto. I proprietari e gli amministratori del progetto le hanno tutte.
 
 | Autorizzazione | Sblocca |
 | --- | --- |

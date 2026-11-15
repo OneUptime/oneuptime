@@ -33,13 +33,13 @@ Ouvrez **Produits → Événements de sécurité → Dossiers de sécurité → 
 
 ## Avant de commencer
 
-Les droits sur les dossiers et les playbooks dépendent des trois rôles de sécurité. Project Owner et Project Admin peuvent tout faire.
+Les droits sur les dossiers et les playbooks dépendent des trois rôles de sécurité. Propriétaire du projet et Administrateur du projet peuvent tout faire.
 
 | Rôle | Ce qu'il peut faire |
 | --- | --- |
-| Security Admin | Tout, y compris supprimer des dossiers, retirer des preuves et configurer des playbooks |
-| Security Member | Ouvrir, assigner, modifier et fermer des dossiers, écrire des notes, traiter des tâches, ajouter des preuves, exécuter des playbooks et approuver ou rejeter leurs étapes |
-| Security Viewer | Lire les dossiers, les détections, les notes, les tâches, les preuves, les playbooks et leurs exécutions |
+| Administrateur de la sécurité | Tout, y compris supprimer des dossiers, retirer des preuves et configurer des playbooks |
+| Membre de la sécurité | Ouvrir, assigner, modifier et fermer des dossiers, écrire des notes, traiter des tâches, ajouter des preuves, exécuter des playbooks et approuver ou rejeter leurs étapes |
+| Lecteur de la sécurité | Lire les dossiers, les détections, les notes, les tâches, les preuves, les playbooks et leurs exécutions |
 
 Chacune de ces actions peut aussi être accordée isolément, de la création d'un dossier à l'approbation des étapes d'un playbook ; voir [Référence des autorisations](/docs/permissions/reference).
 
@@ -105,7 +105,7 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **Signaux connectés** : les hôtes, clusters, services et membres que le dossier nomme, tels que OneUptime les connaît, et ce qui se passait sur chacun autour de ses détections : leurs journaux, traces et métriques, ce qui est ouvert sur eux et ce qui a changé. Voir [Signaux connectés](/docs/telemetry/security-connected-signals).
-- **Preuves** : les fichiers, les liens et les événements de sécurité conservés sur le dossier, chacun avec qui l'a ajouté et quand. Le bouton **Ajouter un fichier** téléverse un fichier de 10 Mo au plus et enregistre le SHA-256 de ce qui a été téléversé, pour que quiconque le télécharge plus tard puisse vérifier que c'est bien ce qui a été conservé ; le bouton **Ajouter un lien** renvoie vers des preuves conservées ailleurs. Seul un Security Admin peut retirer une preuve, et la **Chronologie** du dossier indique ce qui a été ajouté et retiré. Un événement de sécurité y est conservé tel qu'il était, avec **Ajouter au dossier** sur **Événements** ou sur la page d'une [chasse](/docs/telemetry/security-events#chasses), et **Voir l'événement** l'ouvre. L'étape **Preserve the evidence** d'un playbook y conserve aussi les événements derrière les détections du dossier.
+- **Preuves** : les fichiers, les liens et les événements de sécurité conservés sur le dossier, chacun avec qui l'a ajouté et quand. Le bouton **Ajouter un fichier** téléverse un fichier de 10 Mo au plus et enregistre le SHA-256 de ce qui a été téléversé, pour que quiconque le télécharge plus tard puisse vérifier que c'est bien ce qui a été conservé ; le bouton **Ajouter un lien** renvoie vers des preuves conservées ailleurs. Seul un Administrateur de la sécurité peut retirer une preuve, et la **Chronologie** du dossier indique ce qui a été ajouté et retiré. Un événement de sécurité y est conservé tel qu'il était, avec **Ajouter au dossier** sur **Événements** ou sur la page d'une [chasse](/docs/telemetry/security-events#chasses), et **Voir l'événement** l'ouvre. L'étape **Preserve the evidence** d'un playbook y conserve aussi les événements derrière les détections du dossier.
 - **Tâches** : ce qu'il faut faire sur le dossier, qui s'en charge et si c'est fait. Ajoutez une tâche en une ligne, confiez-la à quelqu'un et cochez-la quand elle est faite. La personne à qui elle est confiée est prévenue, sauf si elle l'a prise elle-même, et le menu indique combien de tâches sont ouvertes à côté de **Tâches**. L'étape **Ajouter des tâches** d'un playbook ajoute aussi des tâches, en laissant de côté celles que le dossier a déjà.
 - **Playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Playbooks**.
 - **Notes privées** : ce que l'équipe a écrit sur le dossier. Le menu **Modèles** de l'éditeur insère l'un des modèles de notes du projet dans une note.
@@ -195,7 +195,7 @@ Trois autres paramètres rendent les dossiers propres à votre projet, sous **Pr
 - **Modèles de notes** : du texte prêt à l'emploi pour les notes que votre équipe rédige dossier après dossier, comme une liste de contrôle du confinement ou une passation à l'équipe suivante. Dans les **Notes privées** d'un dossier, le menu **Modèles** de l'éditeur en place un dans la note, à modifier avant de la publier, et **Gérer les modèles** ouvre la liste.
 - **Numérotation** : le texte placé devant les numéros de dossier, `CASE-` dans `CASE-42` sauf si vous choisissez le vôtre, et le numéro que reçoit le prochain dossier. Vous venez d'un autre outil ? Commencez après son dernier numéro de dossier, pour qu'un numéro ne désigne jamais deux dossiers. Un nouveau préfixe ou un nouveau début ne s'applique qu'aux nouveaux dossiers, et un début doit être supérieur au plus grand numéro utilisé jusqu'ici.
 
-Un Security Admin gère les champs personnalisés et les modèles de notes, et un Security Member remplit les champs d'un dossier ; sur OneUptime Cloud, ils nécessitent le forfait Growth ou supérieur. La numérotation est définie par un Project Owner ou un Project Admin, comme pour les incidents et les alertes.
+Un Administrateur de la sécurité gère les champs personnalisés et les modèles de notes, et un Membre de la sécurité remplit les champs d'un dossier ; sur OneUptime Cloud, ils nécessitent le forfait Growth ou supérieur. La numérotation est définie par un Propriétaire du projet ou un Administrateur du projet, comme pour les incidents et les alertes.
 
 ## Notifications
 
@@ -209,7 +209,7 @@ OneUptime prévient les personnes concernées de cinq choses sur un dossier. Per
 | Objectif de réponse d'un dossier de sécurité | Les personnes qui s'occupent du dossier : la personne à qui il est attribué et les membres de son équipe. Quand personne ne s'en occupe, les personnes prévenues des nouveaux dossiers de sa priorité | Par e-mail et par push |
 | Tâche d'un dossier de sécurité qui m'est attribuée | La personne à qui une tâche du dossier est confiée, sauf si elle l'a prise elle-même | Par e-mail et par push |
 
-- Seules les personnes qui peuvent voir le dossier en sont prévenues : Project Owner, Project Admin, et les rôles Security Admin, Security Member et Security Viewer. Un rôle limité à certaines étiquettes n'est prévenu que des dossiers qui portent ces étiquettes.
+- Seules les personnes qui peuvent voir le dossier en sont prévenues : Propriétaire du projet, Administrateur du projet, et les rôles Administrateur de la sécurité, Membre de la sécurité et Lecteur de la sécurité. Un rôle limité à certaines étiquettes n'est prévenu que des dossiers qui portent ces étiquettes.
 - Personne n'est prévenu de ce qu'il a fait lui-même : la personne qui ouvre un dossier à la main, l'attribue ou lance une exécution n'en reçoit pas de notification.
 - Chaque personne n'est prévenue qu'une fois d'un dossier. Un dossier qui s'ouvre en Medium puis monte à Critique atteint, quand il monte, les personnes qui ont choisi Élevé et Critique ou Critique uniquement, mais pas de nouveau celles qui ont choisi Moyen et au-dessus, déjà prévenues à son ouverture.
 - L'attaque de test lancée avec **Envoyer une attaque de test** ouvre un dossier qui ne prévient personne.
@@ -310,7 +310,7 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 
 Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune une fois la précédente terminée. Chaque étape peut aussi :
 
-- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les huit étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage. **Run a runbook**, **Post a status page announcement** et les deux étapes de magasin de données commencent avec ce réglage activé, car elles exécutent des commandes sur vos systèmes, s'adressent à vos clients ou modifient les paramètres d'un cloud ; la personne qui ajoute l'étape peut le désactiver.
+- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les huit étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Administrateur de la sécurité désactive ce réglage. **Run a runbook**, **Post a status page announcement** et les deux étapes de magasin de données commencent avec ce réglage activé, car elles exécutent des commandes sur vos systèmes, s'adressent à vos clients ou modifient les paramètres d'un cloud ; la personne qui ajoute l'étape peut le désactiver.
 - **Exécuter cette étape** : **Toujours**, ou seulement après des résultats d'étapes précédentes, par exemple quand **Vérifier les entités dans le renseignement sur les menaces** trouve une entité connue comme malveillante ; voir [Bifurquer selon le résultat d'une étape](#bifurquer-selon-le-résultat-dune-étape).
 - **Continuer en cas d'échec** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution. Ce réglage se trouve sous **Plus de champs**, avec **Exécuter cette étape**.
 
@@ -365,11 +365,11 @@ Les deux étapes de magasin de données agissent sur les magasins de données su
 
 #### Entités protégées
 
-**Entités protégées**, sous **Playbooks** dans le menu, liste les utilisateurs et les hôtes qu'aucun playbook ne confine, comme les comptes d'accès d'urgence, les contrôleurs de domaine et les passerelles VPN. Une valeur correspond quelle que soit sa casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` protège tous les comptes de service. Une étape signale un utilisateur ou un hôte protégé comme protégé et n'y touche pas. Ce sont les Security Admins qui gèrent la liste.
+**Entités protégées**, sous **Playbooks** dans le menu, liste les utilisateurs et les hôtes qu'aucun playbook ne confine, comme les comptes d'accès d'urgence, les contrôleurs de domaine et les passerelles VPN. Une valeur correspond quelle que soit sa casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` protège tous les comptes de service. Une étape signale un utilisateur ou un hôte protégé comme protégé et n'y touche pas. Ce sont les Administrateurs de la sécurité qui gèrent la liste.
 
 #### Approbation
 
-Les huit étapes qui coupent l'accès à quelqu'un attendent une approbation. Seul un Security Admin peut désactiver **Approbation requise** pour l'une d'elles, et OneUptime enregistre qui l'a fait. L'approbation liste sous **Agir sur** les utilisateurs ou hôtes sur lesquels l'étape agirait, tous cochés : décochez ceux qu'elle doit épargner. Ceux qui sont protégés ne sont pas proposés. La personne qui a lancé une exécution ne peut pas en approuver les étapes : quelqu'un d'autre le fait, mais elle peut toujours les rejeter.
+Les huit étapes qui coupent l'accès à quelqu'un attendent une approbation. Seul un Administrateur de la sécurité peut désactiver **Approbation requise** pour l'une d'elles, et OneUptime enregistre qui l'a fait. L'approbation liste sous **Agir sur** les utilisateurs ou hôtes sur lesquels l'étape agirait, tous cochés : décochez ceux qu'elle doit épargner. Ceux qui sont protégés ne sont pas proposés. La personne qui a lancé une exécution ne peut pas en approuver les étapes : quelqu'un d'autre le fait, mais elle peut toujours les rejeter.
 
 #### Annulation
 
@@ -440,7 +440,7 @@ Vérifiez **Ouvrir un dossier en cas de correspondance** à l'étape **En cas de
 :::
 
 :::details Personne n'a été prévenu d'un dossier
-Consultez la **Chronologie** du dossier, qui indique qui a été notifié. Une notification **Nouveau dossier de sécurité** va aux personnes dont la priorité choisie est atteinte par le dossier : un dossier Medium ne prévient donc personne qui ait gardé le choix par défaut, **Élevé et au-dessus**. Vérifiez que les personnes qui devraient être prévenues peuvent voir les dossiers de sécurité (avec un rôle de sécurité, ou comme Project Owner ou Project Admin), et que la notification est activée pour elles dans **Paramètres utilisateur → Paramètres de notification → Sécurité**.
+Consultez la **Chronologie** du dossier, qui indique qui a été notifié. Une notification **Nouveau dossier de sécurité** va aux personnes dont la priorité choisie est atteinte par le dossier : un dossier Medium ne prévient donc personne qui ait gardé le choix par défaut, **Élevé et au-dessus**. Vérifiez que les personnes qui devraient être prévenues peuvent voir les dossiers de sécurité (avec un rôle de sécurité, ou comme Propriétaire du projet ou Administrateur du projet), et que la notification est activée pour elles dans **Paramètres utilisateur → Paramètres de notification → Sécurité**.
 :::
 
 :::details Un dossier n'affiche aucune échéance

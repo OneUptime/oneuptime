@@ -96,7 +96,7 @@ In **Invia una chiamata di test**, fai clic su **Testa questa policy**, scegli u
 :::
 
 > [!NOTE]
-> SMS e chiamate sono disattivati in un nuovo progetto. Un proprietario del progetto, un Billing Admin o chi ha Manage Billing li attiva nella scheda **Canali di notifica**, in **Impostazioni del progetto → Notifiche → Canali di notifica**.
+> SMS e chiamate sono disattivati in un nuovo progetto. Un proprietario del progetto, un Amministratore della fatturazione o chi ha Manage Billing li attiva nella scheda **Canali di notifica**, in **Impostazioni del progetto → Notifiche → Canali di notifica**.
 
 Due regole di reperibilità attivano la policy: una per ogni nuovo incidente e una per ogni nuovo avviso. Per vedere la prima, apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**: corrisponde a **Tutti gli incidenti**. Per attivare la policy solo per alcuni incidenti, come quelli critici, modifica lì la regola, oppure fai clic su **Crea: Incident On-Call Rule** per aggiungerne una tua.
 

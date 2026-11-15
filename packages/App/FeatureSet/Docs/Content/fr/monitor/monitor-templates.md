@@ -27,7 +27,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un rôle qui peut créer des modèles** : Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec l'autorisation Create Monitor Template. Modifier un modèle demande les mêmes rôles, ou l'autorisation Edit Monitor Template.
+- **Un rôle qui peut créer des modèles** : Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor Template. Modifier un modèle demande les mêmes rôles, ou l'autorisation Edit Monitor Template.
 - **L'autorisation de mettre à jour les moniteurs liés.** Une synchronisation écrit dans chaque moniteur lié en votre nom, et ignore les moniteurs que vos autorisations ne couvrent pas.
 
 ## Créer un modèle

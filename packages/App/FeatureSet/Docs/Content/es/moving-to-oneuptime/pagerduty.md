@@ -25,7 +25,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Un proyecto de OneUptime y el derecho a crear lo que traes.** Los propietarios y administradores del proyecto pueden traerlo todo. Otros roles también pueden ejecutar una importación y traer los tipos de registros que pueden crear. Lo demás se muestra como no traído, con el motivo.
+- **Un proyecto de OneUptime y el derecho a crear lo que traes.** Los Propietarios del proyecto y los Administradores del proyecto pueden traerlo todo. Otros roles también pueden ejecutar una importación y traer los tipos de registros que pueden crear. Lo demás se muestra como no traído, con el motivo.
 - **Una clave de API REST de PagerDuty de solo lectura.** Los administradores y propietarios de la cuenta de PagerDuty pueden crearla. La importación nunca escribe en PagerDuty, así que a la clave le basta con acceso de lectura.
 - **Tu región de PagerDuty.** Si inicias sesión en una dirección que termina en `eu.pagerduty.com`, tu cuenta está en Europa. Si no, está en Estados Unidos.
 
@@ -77,7 +77,7 @@ Una importación crea como máximo 2.000 registros: como máximo 500 personas, 2
 
 En OneUptime Cloud, los registros que tu plan no incluye se muestran como no traídos, con el plan que necesitan.
 
-Una vista previa se guarda un día. Solo la persona que leyó la cuenta puede marcar elementos e iniciarla. Los propietarios y administradores del proyecto ven el progreso y el informe de cada importación.
+Una vista previa se guarda un día. Solo la persona que leyó la cuenta puede marcar elementos e iniciarla. Los Propietarios del proyecto y los Administradores del proyecto ven el progreso y el informe de cada importación.
 
 ## Completa el cambio
 

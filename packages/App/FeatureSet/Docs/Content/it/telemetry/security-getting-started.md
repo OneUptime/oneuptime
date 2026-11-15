@@ -11,7 +11,7 @@ OneUptime trova le minacce nei dati che hai già - i tuoi log, gli strumenti di 
 
 ## Prima di iniziare
 
-Configurare la sicurezza richiede il ruolo Project Owner, Project Admin o Security Admin. I ruoli Security Member e Security Viewer leggono ciò che viene trovato; vedi [Ruoli](/docs/permissions/reference#ruoli).
+Configurare la sicurezza richiede il ruolo Proprietario del progetto, Amministratore del progetto o Amministratore della sicurezza. I ruoli Membro della sicurezza e Visualizzatore della sicurezza leggono ciò che viene trovato; vedi [Ruoli](/docs/permissions/reference#ruoli).
 
 ## Configurarlo
 
@@ -84,7 +84,7 @@ Se il tuo team lavora già in un SIEM, OneUptime invia lì anche ciò che trova.
 ## Risoluzione dei problemi
 
 :::details Turn on recommended è disattivato
-Il tuo ruolo non può aggiungere regole di rilevamento, playbook o l'origine dei log. Chiedi a un Project Owner, a un Project Admin o a un Security Admin, oppure fatti assegnare da loro il ruolo Security Admin.
+Il tuo ruolo non può aggiungere regole di rilevamento, playbook o l'origine dei log. Chiedi a un Proprietario del progetto, a un Amministratore del progetto o a un Amministratore della sicurezza, oppure fatti assegnare da loro il ruolo Amministratore della sicurezza.
 :::
 
 :::details Turn on recommended non è riuscito ad attivare tutto

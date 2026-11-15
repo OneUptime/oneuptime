@@ -31,7 +31,7 @@ Los filtros de descarte y las reglas de depuración de registros se aplican por 
 ## Antes de empezar
 
 - **Registros o spans que llegan.** Consulte [OpenTelemetry](/docs/telemetry/open-telemetry).
-- **Un rol que cambie los ajustes de telemetría.** Project Owner o Project Admin, o un rol personalizado con el permiso de lo que cambie, como Create Log Drop Filter o Create Trace Scrub Rule. Los roles de Telemetry pueden ver los filtros y las reglas, pero no cambiarlos.
+- **Un rol que cambie los ajustes de telemetría.** Propietario del proyecto o Administrador del proyecto, o un rol personalizado con el permiso de lo que cambie, como Create Log Drop Filter o Create Trace Scrub Rule. Los roles de Telemetry pueden ver los filtros y las reglas, pero no cambiarlos.
 
 ## Descartar o muestrear entradas
 

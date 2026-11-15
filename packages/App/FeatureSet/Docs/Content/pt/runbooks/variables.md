@@ -33,7 +33,7 @@ Um nome é usado uma única vez, sem diferenciar maiúsculas de minúsculas, ent
 
 ## Antes de começar
 
-- **Uma função que gerencia variáveis.** Project Owner e Project Admin, ou a permissão **Create Runbook Variable**. Runbook Admin lê as variáveis, para escolhê-las nas etapas que escreve, mas não as altera.
+- **Uma função que gerencia variáveis.** Proprietário do projeto e Administrador do projeto, ou a permissão **Create Runbook Variable**. Administrador de runbooks lê as variáveis, para escolhê-las nas etapas que escreve, mas não as altera.
 - **Um plano que as inclua.** No OneUptime Cloud, as variáveis de runbook precisam do plano **Growth** ou superior.
 
 ## Criar uma variável
