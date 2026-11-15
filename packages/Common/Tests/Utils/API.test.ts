@@ -15,6 +15,7 @@ import RequestFailedDetails, {
   RequestFailedPhase,
 } from "../../Types/Probe/RequestFailedDetails";
 import API from "../../Utils/API";
+import RequestFailedDetailsUtil from "../../Utils/RequestFailedDetailsUtil";
 import { HTTPResponseBodyBudget } from "../../Utils/HTTPResponseBodyReader";
 import { expect, jest } from "@jest/globals";
 import axios, {
@@ -497,7 +498,7 @@ describe("API.getFriendlyErrorMessage", () => {
   });
 });
 
-describe("API.getRequestFailedDetails", () => {
+describe("RequestFailedDetailsUtil.getRequestFailedDetails", () => {
   test.each([
     { code: "ETIMEDOUT", failedPhase: RequestFailedPhase.RequestTimeout },
     { code: "ESOCKETTIMEDOUT", failedPhase: RequestFailedPhase.RequestTimeout },
@@ -508,7 +509,8 @@ describe("API.getRequestFailedDetails", () => {
       const error: NodeJS.ErrnoException = new Error("The operation failed.");
       error.code = scenario.code;
 
-      const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+      const details: RequestFailedDetails =
+        RequestFailedDetailsUtil.getRequestFailedDetails(error);
 
       expect(details.errorCode).toBe(scenario.code);
       expect(details.failedPhase).toBe(scenario.failedPhase);
@@ -529,7 +531,8 @@ describe("API.getRequestFailedDetails", () => {
         { code: scenario.code },
       );
 
-      const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+      const details: RequestFailedDetails =
+        RequestFailedDetailsUtil.getRequestFailedDetails(error);
 
       expect(details.errorCode).toBeUndefined();
       expect(details.failedPhase).toBe(RequestFailedPhase.Unknown);

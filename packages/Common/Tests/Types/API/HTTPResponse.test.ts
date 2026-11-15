@@ -1,5 +1,8 @@
-import HTTPResponse from "../../../Types/API/HTTPResponse";
+import HTTPResponse, { isListEnvelope } from "../../../Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
+import ProductType from "../../../Types/MeteredPlan/ProductType";
+import ObjectID from "../../../Types/ObjectID";
+import { TelemetryProjectUsagePage } from "../../../Types/Telemetry/TelemetryUsage";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -216,6 +219,252 @@ describe("HTTPResponse", () => {
       );
 
       expect(response.isCountCapped).toBeUndefined();
+    });
+  });
+
+  /*
+   * A list envelope is the server's answer to a list read (ListData): the
+   * rows in a `data` array, with count, skip and limit beside them. Any
+   * other object is an endpoint's own answer and reaches the page as the
+   * server sent it - also one that says count, skip and limit about rows
+   * it keeps under another name. Admin Dashboard > Telemetry Usage's page
+   * of projects is one (issue #7794): it was taken for an envelope with no
+   * rows, every load failed with "array is not iterable", and the table of
+   * projects never showed.
+   */
+  describe("an answer that only looks like a list envelope", () => {
+    const usagePage: TelemetryProjectUsagePage = {
+      startDay: "2026-10-17",
+      endDay: "2026-11-15",
+      isCostIncluded: true,
+      total: { dataIngestedInGB: 12.5, totalCostInUSD: 1.25 },
+      byProduct: {
+        [ProductType.Logs]: { dataIngestedInGB: 10, totalCostInUSD: 1 },
+        [ProductType.Traces]: { dataIngestedInGB: 2.5, totalCostInUSD: 0.25 },
+      },
+      projects: [
+        {
+          projectId: "11111111-1111-4111-8111-111111111111",
+          projectName: "Checkout",
+          byProduct: {
+            [ProductType.Logs]: { dataIngestedInGB: 10, totalCostInUSD: 1 },
+          },
+          total: { dataIngestedInGB: 10, totalCostInUSD: 1 },
+        },
+        {
+          projectId: "22222222-2222-4222-8222-222222222222",
+          projectName: "Payments",
+          byProduct: {
+            [ProductType.Traces]: {
+              dataIngestedInGB: 2.5,
+              totalCostInUSD: 0.25,
+            },
+          },
+          total: { dataIngestedInGB: 2.5, totalCostInUSD: 0.25 },
+        },
+      ],
+      count: 2,
+      skip: 0,
+      limit: 25,
+    };
+
+    it("keeps Telemetry Usage's page of projects whole, its rows under projects", () => {
+      const body: JSONObject = JSON.parse(JSON.stringify(usagePage));
+
+      const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+        200,
+        body,
+        {},
+      );
+
+      expect(response.data).toEqual(usagePage);
+      expect(response.jsonData).toEqual(usagePage);
+      expect(
+        (response.data as unknown as TelemetryProjectUsagePage).projects,
+      ).toHaveLength(2);
+    });
+
+    it("keeps a page with no projects whole too", () => {
+      const emptyPage: TelemetryProjectUsagePage = {
+        ...usagePage,
+        isCostIncluded: false,
+        total: { dataIngestedInGB: 0 },
+        byProduct: {},
+        projects: [],
+        count: 0,
+      };
+
+      const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+        200,
+        JSON.parse(JSON.stringify(emptyPage)),
+        {},
+      );
+
+      expect(response.data).toEqual(emptyPage);
+    });
+
+    it("keeps an object that says count, skip and limit and holds no rows at all", () => {
+      const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+        200,
+        { count: 3, skip: 0, limit: 10 },
+        {},
+      );
+
+      expect(response.data).toEqual({ count: 3, skip: 0, limit: 10 });
+    });
+
+    it("keeps an object whose data is not a list: an object, text, a number, true or null", () => {
+      for (const data of [
+        { rows: [{ id: "a" }] },
+        "a,b",
+        7,
+        true,
+        null,
+      ] as Array<JSONObject[string]>) {
+        const body: JSONObject = { data: data, count: 1, skip: 0, limit: 10 };
+
+        const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+          200,
+          body,
+          {},
+        );
+
+        expect(response.data).toEqual(body);
+      }
+    });
+
+    it("reads no list paging off such an answer", () => {
+      const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+        200,
+        {
+          ...(JSON.parse(JSON.stringify(usagePage)) as JSONObject),
+          hasMore: true,
+          isCountCapped: true,
+        },
+        {},
+      );
+
+      // The page says its own count, skip and limit; the envelope's stay unset.
+      expect(response.count).toBe(0);
+      expect(response.skip).toBe(0);
+      expect(response.limit).toBe(0);
+      expect(response.hasMore).toBeUndefined();
+      expect(response.isCountCapped).toBeUndefined();
+      expect(response.data["count"]).toBe(2);
+      expect(response.data["limit"]).toBe(25);
+    });
+
+    it("reads the values such an answer carries as any other object's", () => {
+      const projectId: ObjectID = new ObjectID(
+        "33333333-3333-4333-8333-333333333333",
+      );
+
+      const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+        200,
+        {
+          items: [{ projectId: projectId.toJSON() }],
+          owner: projectId.toJSON(),
+          count: 1,
+          skip: 0,
+          limit: 10,
+        },
+        {},
+      );
+
+      expect(response.data["owner"]).toBeInstanceOf(ObjectID);
+      expect((response.data["owner"] as ObjectID).toString()).toBe(
+        projectId.toString(),
+      );
+      expect(
+        (response.data["items"] as Array<JSONObject>)[0]!["projectId"],
+      ).toBeInstanceOf(ObjectID);
+    });
+  });
+
+  describe("isListEnvelope", () => {
+    it("is a list read's answer: rows in a data array, with count, skip and limit", () => {
+      expect(
+        isListEnvelope({ data: [{ id: "a" }], count: 1, skip: 0, limit: 10 }),
+      ).toBe(true);
+      expect(isListEnvelope({ data: [], count: 0, skip: 0, limit: 10 })).toBe(
+        true,
+      );
+      expect(
+        isListEnvelope({
+          data: [],
+          count: 10000,
+          skip: 0,
+          limit: 10,
+          hasMore: true,
+          isCountCapped: true,
+        }),
+      ).toBe(true);
+    });
+
+    it("is not an answer whose rows are under another name, or are missing", () => {
+      expect(
+        isListEnvelope({ projects: [], count: 0, skip: 0, limit: 25 }),
+      ).toBe(false);
+      expect(isListEnvelope({ count: 0, skip: 0, limit: 25 })).toBe(false);
+      expect(
+        isListEnvelope({ data: { rows: [] }, count: 0, skip: 0, limit: 25 }),
+      ).toBe(false);
+      expect(isListEnvelope({ data: null, count: 0, skip: 0, limit: 25 })).toBe(
+        false,
+      );
+    });
+
+    it("is not rows that lack any of count, skip and limit", () => {
+      expect(isListEnvelope({ data: [], skip: 0, limit: 10 })).toBe(false);
+      expect(isListEnvelope({ data: [], count: 0, limit: 10 })).toBe(false);
+      expect(isListEnvelope({ data: [], count: 0, skip: 0 })).toBe(false);
+    });
+
+    it("is not a list, text, a number or nothing", () => {
+      expect(isListEnvelope([{ data: [], count: 0, skip: 0, limit: 0 }])).toBe(
+        false,
+      );
+      expect(isListEnvelope("data")).toBe(false);
+      expect(isListEnvelope(3)).toBe(false);
+      expect(isListEnvelope(null)).toBe(false);
+      expect(isListEnvelope(undefined)).toBe(false);
+    });
+  });
+
+  describe("a list envelope", () => {
+    it("with no rows is an empty list, its paging read", () => {
+      const response: HTTPResponse<Array<JSONObject>> = new HTTPResponse(
+        200,
+        { data: [], count: 0, skip: 50, limit: 25 },
+        {},
+      );
+
+      expect(response.data).toEqual([]);
+      expect(response.count).toBe(0);
+      expect(response.skip).toBe(50);
+      expect(response.limit).toBe(25);
+    });
+
+    it("reads each row's values, as the server's list reads send them", () => {
+      const projectId: ObjectID = new ObjectID(
+        "44444444-4444-4444-8444-444444444444",
+      );
+
+      const response: HTTPResponse<Array<JSONObject>> = new HTTPResponse(
+        200,
+        {
+          data: [{ _id: projectId.toJSON(), name: "Checkout" }],
+          count: 1,
+          skip: 0,
+          limit: 10,
+        },
+        {},
+      );
+
+      expect(response.data).toHaveLength(1);
+      expect(response.data[0]!["_id"]).toBeInstanceOf(ObjectID);
+      expect(response.data[0]!["name"]).toBe("Checkout");
+      expect(response.count).toBe(1);
     });
   });
 });

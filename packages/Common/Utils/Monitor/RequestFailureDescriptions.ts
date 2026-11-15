@@ -17,7 +17,7 @@ import {
  * The probe keeps storing the same English - a root cause, a log line or
  * an "Error contains" criterion may compare it - so every explanation is
  * written from this one table, word for word as it was written before
- * (writeRequestFailureDescription), by API.getRequestFailedDetails (the
+ * (writeRequestFailureDescription), by RequestFailedDetailsUtil.getRequestFailedDetails (the
  * Website and API checks) and by the Port and NTP checks. The summaries
  * and the root cause read it back here, only on an exact match against
  * the table (readRequestFailureDescription), and draw it in the reader's
@@ -36,7 +36,7 @@ import {
  */
 
 export enum RequestFailureDescription {
-  // API.getRequestFailedDetails: the Website and API checks' request.
+  // RequestFailedDetailsUtil.getRequestFailedDetails: the Website and API checks' request.
   InvalidTarget = "InvalidTarget",
   TargetUnreachable = "TargetUnreachable",
   ProbeCouldNotConnect = "ProbeCouldNotConnect",
