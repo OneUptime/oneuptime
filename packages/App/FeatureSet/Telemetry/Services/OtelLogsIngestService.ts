@@ -26,7 +26,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import LogEventName from "Common/Types/Log/LogEventName";
 import LlmLogEventsUtil from "Common/Utils/Telemetry/LlmLogEvents";
-import LogSeverity from "Common/Types/Log/LogSeverity";
+import LogSeverity, { LogSeverityNumber } from "Common/Types/Log/LogSeverity";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -196,6 +196,37 @@ const MAX_OTLP_SEVERITY_NUMBER: number = 24;
 
 // Plain decimal digits only: no sign, fraction, exponent, hex or padding.
 const NUMERIC_SEVERITY_STRING: RegExp = /^[0-9]+$/;
+
+/*
+ * The level names OTLP defines for severityText, with the optional 1-4 suffix
+ * of the numbered variants (WARN2, ERROR4). The base name is the first of its
+ * four numbers, so INFO is 9 and INFO2 is 10.
+ */
+const SEVERITY_TEXT_PATTERN: RegExp =
+  /^(trace|debug|info|warn|error|fatal)([1-4])?$/;
+
+const SEVERITY_BY_TEXT_NAME: ReadonlyMap<string, LogSeverity> = new Map([
+  ["trace", LogSeverity.Trace],
+  ["debug", LogSeverity.Debug],
+  ["info", LogSeverity.Information],
+  ["warn", LogSeverity.Warning],
+  ["error", LogSeverity.Error],
+  ["fatal", LogSeverity.Fatal],
+]);
+
+/*
+ * Other spellings senders use for severityText. The syslog ones follow the
+ * Collector's syslog parser: crit is ERROR2, alert is ERROR3, emerg is FATAL.
+ */
+const SEVERITY_NUMBER_BY_TEXT_ALIAS: ReadonlyMap<string, number> = new Map([
+  ["information", LogSeverityNumber[LogSeverity.Information]!],
+  ["warning", LogSeverityNumber[LogSeverity.Warning]!],
+  ["err", LogSeverityNumber[LogSeverity.Error]!],
+  ["crit", LogSeverityNumber[LogSeverity.Error]! + 1],
+  ["critical", LogSeverityNumber[LogSeverity.Error]! + 1],
+  ["alert", LogSeverityNumber[LogSeverity.Error]! + 2],
+  ["emerg", LogSeverityNumber[LogSeverity.Fatal]!],
+]);
 
 class LogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -894,6 +925,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   let logSeverityNumber: number = this.normalizeSeverityNumber(
                     log["severityNumber"],
                   );
+
+                  // A record may set only the text; the number wins when both are set.
+                  if (logSeverityNumber === 0) {
+                    logSeverityNumber = this.severityNumberFromText(
+                      log["severityText"],
+                    );
+                  }
 
                   let body: string = "";
                   try {
@@ -1992,6 +2030,41 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     }
 
     return parsed;
+  }
+
+  /*
+   * OTLP makes severityNumber and severityText both optional, so a record may
+   * carry its level as text only: a Node.js emit({ severityText: "INFO" }), a
+   * log shipper that maps a level field to severityText. Reads the text
+   * case-insensitively, for the OTLP names (INFO, WARN2, ...) and the common
+   * other spellings (SEVERITY_NUMBER_BY_TEXT_ALIAS).
+   *
+   * Always returns an integer in 0..24, and 0 (UNSPECIFIED) for anything it
+   * does not know, so the stored number agrees with the severityText that
+   * getSeverityText derives from it.
+   */
+  public static severityNumberFromText(severityText: unknown): number {
+    if (typeof severityText !== "string") {
+      return 0;
+    }
+
+    const name: string = severityText.trim().toLowerCase();
+    const alias: number | undefined = SEVERITY_NUMBER_BY_TEXT_ALIAS.get(name);
+
+    if (alias !== undefined) {
+      return alias;
+    }
+
+    const match: RegExpMatchArray | null = SEVERITY_TEXT_PATTERN.exec(name);
+    const severity: LogSeverity | undefined = match
+      ? SEVERITY_BY_TEXT_NAME.get(match[1]!)
+      : undefined;
+
+    if (!match || !severity) {
+      return 0;
+    }
+
+    return LogSeverityNumber[severity]! + (match[2] ? Number(match[2]) - 1 : 0);
   }
 
   /*

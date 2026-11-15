@@ -856,6 +856,146 @@ describe("OTLP log severity wire-format round trip (GH#3978)", () => {
     });
   });
 
+  describe("a record that carries its level only as severityText", () => {
+    /*
+     * OTLP makes severityNumber and severityText both optional. A Node.js
+     * emit({ severityText: "INFO" }) or a log shipper that maps a level field
+     * to severityText sends the text alone; ingest used to read only the
+     * number and stored such a record as Unspecified, which no Error filter or
+     * error alert ever matched.
+     */
+    async function ingestJsonRecord(record: JSONObject): Promise<void> {
+      await ingestDecodedBody(
+        await decodeJob(
+          await postOverHttp(
+            Buffer.from(JSON.stringify(otlpJsonRequest([record])), "utf-8"),
+            "application/json",
+          ),
+        ),
+      );
+    }
+
+    test.each([
+      ["TRACE", 1, LogSeverity.Trace],
+      ["DEBUG3", 7, LogSeverity.Debug],
+      ["INFO", 9, LogSeverity.Information],
+      ["information", 9, LogSeverity.Information],
+      ["WARN2", 14, LogSeverity.Warning],
+      ["warning", 13, LogSeverity.Warning],
+      [" Warn ", 13, LogSeverity.Warning],
+      ["ERROR", 17, LogSeverity.Error],
+      ["error", 17, LogSeverity.Error],
+      ["err", 17, LogSeverity.Error],
+      ["crit", 18, LogSeverity.Error],
+      ["critical", 18, LogSeverity.Error],
+      ["alert", 19, LogSeverity.Error],
+      ["FATAL4", 24, LogSeverity.Fatal],
+      ["emerg", 21, LogSeverity.Fatal],
+    ])(
+      'severityText "%s" alone is stored as %i / %s',
+      async (
+        severityText: string,
+        severityNumber: number,
+        text: LogSeverity,
+      ) => {
+        await ingestJsonRecord({
+          ...logRecord(undefined, severityNumber),
+          severityText,
+        });
+
+        expectStoredSeverity({
+          severityNumber,
+          text,
+          bodyScanned: severityNumber >= 17,
+          bodySeverity: severityNumber,
+        });
+      },
+    );
+
+    test("the number wins when both are set, even if the text disagrees", async () => {
+      await ingestJsonRecord({ ...logRecord(9), severityText: "ERROR" });
+
+      expectStoredSeverity({
+        severityNumber: 9,
+        text: LogSeverity.Information,
+        bodyScanned: false,
+        bodySeverity: 9,
+      });
+    });
+
+    test("an explicit severityNumber 0 falls back to the text", async () => {
+      await ingestJsonRecord({ ...logRecord(0, 17), severityText: "ERROR" });
+
+      expectStoredSeverity({
+        severityNumber: 17,
+        text: LogSeverity.Error,
+        bodyScanned: true,
+        bodySeverity: 17,
+      });
+    });
+
+    test("a number alone and no level at all are unchanged", async () => {
+      await ingestJsonRecord(logRecord(13));
+      expectStoredSeverity({
+        severityNumber: 13,
+        text: LogSeverity.Warning,
+        bodyScanned: false,
+        bodySeverity: 13,
+      });
+
+      logRows = [];
+      exceptionRows = [];
+      exceptionUpserts = [];
+      mockEnqueuedJobs.length = 0;
+
+      await ingestJsonRecord(logRecord(undefined, 21));
+      expectStoredSeverity({
+        severityNumber: 0,
+        text: LogSeverity.Unspecified,
+        bodyScanned: false,
+        bodySeverity: 21,
+      });
+    });
+
+    test.each([
+      ["an unknown level", "verbose"],
+      ["an empty string", ""],
+      ["only spaces", "   "],
+      ["a suffix past 4", "ERROR5"],
+      ["a suffix of 0", "ERROR0"],
+      ["two words", "very error"],
+      ["a number", 17],
+      ["null", null],
+      ["an object", { value: "ERROR" }],
+      ["an Object.prototype key", "constructor"],
+    ])(
+      "severityText that is %s stays Unspecified, never NaN, and not scanned",
+      async (_label: string, severityText: unknown) => {
+        await ingestJsonRecord({
+          ...logRecord(undefined, 21),
+          severityText: severityText as string,
+        });
+
+        expectStoredSeverity({
+          severityNumber: 0,
+          text: LogSeverity.Unspecified,
+          bodyScanned: false,
+          bodySeverity: 21,
+        });
+      },
+    );
+
+    test("severityNumberFromText always returns an integer in 0..24", () => {
+      for (const input of [undefined, null, NaN, 5, {}, [], "", "ERROR", "x"]) {
+        const result: number =
+          OtelLogsIngestService.severityNumberFromText(input);
+        expect(Number.isInteger(result)).toBe(true);
+        expect(result).toBeGreaterThanOrEqual(0);
+        expect(result).toBeLessThanOrEqual(24);
+      }
+    });
+  });
+
   test("a mixed batch over gRPC keeps each record's own severity", async () => {
     // One request carrying all 25 values: each record is normalized alone.
     const body: JSONObject = await ROUTES[2]!.decode(
