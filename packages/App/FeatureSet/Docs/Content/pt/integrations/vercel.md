@@ -40,7 +40,7 @@ No painel da Vercel, abra **Integrations**, depois **Browse Marketplace**, e enc
 
 ### Escolher um plano
 
-Escolha **Grátis**, **Growth** ou **Scale**. Os planos são os do próprio OneUptime, com os preços de [oneuptime.com/pricing](https://oneuptime.com/pricing).
+Escolha **Free**, **Growth** ou **Scale**. Os planos são os do próprio OneUptime, com os preços de [oneuptime.com/pricing](https://oneuptime.com/pricing).
 
 ### Dar um nome ao recurso e escolher as configurações dele
 
@@ -148,7 +148,7 @@ Se já existe uma conta do OneUptime com esse endereço de e-mail, é nela que v
 
 | | Como funciona |
 | --- | --- |
-| Planos | **Grátis**, **Growth** e **Scale**, com os preços de oneuptime.com: o preço do plano por usuário, monitores ativos a $1 por monitor por mês, e telemetria por GB. |
+| Planos | **Free**, **Growth** e **Scale**, com os preços de oneuptime.com: o preço do plano por usuário, monitores ativos a $1 por monitor por mês, e telemetria por GB. |
 | Onde você paga | Na sua fatura da Vercel, uma vez por mês, para cada recurso. A Vercel mostra no recurso o uso do mês até agora, atualizado a cada hora. |
 | Períodos de teste | Nenhuma cobrança enquanto durar o período de teste do plano: nem pelos usuários, nem pelos monitores, nem pela telemetria. |
 | Mudar de plano | Na Vercel, no recurso, ou no OneUptime em **Configurações do projeto → Cobrança e faturas → Cobrança**. A mudança feita em um dos lugares vale para os dois. |

@@ -42,7 +42,7 @@ Prüfen Sie Regelnamen, Status, Beschriftungen und Bedingungen. Ein großer Stap
 
 ### Importieren
 
-Wählen Sie die Import-Schaltfläche, die die Regeln zählt (zum Beispiel **Import 2 rules**), und lassen Sie das Fenster geöffnet, bis die Ergebnisse erscheinen.
+Wählen Sie die Import-Schaltfläche, die die Regeln zählt (zum Beispiel **2 Regeln importieren**), und lassen Sie das Fenster geöffnet, bis die Ergebnisse erscheinen.
 :::
 
 Importe fügen neue Regeln hinzu und behalten vorhandene, daher legt ein erneuter Import derselben Datei eine weitere Kopie an. Für jede Regel gelten die üblichen Berechtigungen zum Anlegen und die Validierung auf dem Server.

@@ -23,6 +23,7 @@ import PermissionGate, {
 } from "../../../UI/Utils/PermissionGate";
 import UserUtil from "../../../UI/Utils/User";
 import { AlertsToAcknowledge } from "../../../Utils/Incident/IncidentFromAlerts";
+import { Translator, createTranslator } from "../../../Types/Translator";
 
 /*
  * The wording and the permission gate of the "acknowledge the alerts" box on
@@ -33,6 +34,9 @@ import { AlertsToAcknowledge } from "../../../Utils/Incident/IncidentFromAlerts"
  * the alert's own page: create a state timeline row. Acknowledging takes no
  * permission to edit the alert.
  */
+
+// No locale at all: every sentence in English, as en.json words it.
+const ENGLISH: Translator = createTranslator(undefined, "en");
 
 const TIMELINE_CREATE_REASON: string =
   "You do not have permission to acknowledge this alert. You need this permission: Create Alert State Timeline.";
@@ -66,34 +70,34 @@ const toAcknowledge: ToAcknowledgeFunction = (
 describe("AcknowledgeAlertsOnDeclare", () => {
   describe("getAcknowledgeAlertsTitle", () => {
     test("names the one alert when it is the only alert", () => {
-      expect(getAcknowledgeAlertsTitle(toAcknowledge(1), 1)).toBe(
+      expect(getAcknowledgeAlertsTitle(toAcknowledge(1), 1, ENGLISH)).toBe(
         "Acknowledge this alert to stop its escalation",
       );
     });
 
     test("says 'the 1 alert that is not acknowledged yet' when others are acknowledged", () => {
-      expect(getAcknowledgeAlertsTitle(toAcknowledge(1, 2), 3)).toBe(
+      expect(getAcknowledgeAlertsTitle(toAcknowledge(1, 2), 3, ENGLISH)).toBe(
         "Acknowledge the 1 alert that is not acknowledged yet, to stop its escalation",
       );
     });
 
     test("names every alert when none is acknowledged yet", () => {
-      expect(getAcknowledgeAlertsTitle(toAcknowledge(3), 3)).toBe(
+      expect(getAcknowledgeAlertsTitle(toAcknowledge(3), 3, ENGLISH)).toBe(
         "Acknowledge these 3 alerts to stop their escalation",
       );
     });
 
     test("names only the alerts not acknowledged yet when some are", () => {
-      expect(getAcknowledgeAlertsTitle(toAcknowledge(2, 3), 5)).toBe(
+      expect(getAcknowledgeAlertsTitle(toAcknowledge(2, 3), 5, ENGLISH)).toBe(
         "Acknowledge the 2 alerts that are not acknowledged yet, to stop their escalation",
       );
     });
 
     test("treats more alerts to acknowledge than alerts listed as every alert", () => {
-      expect(getAcknowledgeAlertsTitle(toAcknowledge(2), 1)).toBe(
+      expect(getAcknowledgeAlertsTitle(toAcknowledge(2), 1, ENGLISH)).toBe(
         "Acknowledge these 2 alerts to stop their escalation",
       );
-      expect(getAcknowledgeAlertsTitle(toAcknowledge(1), 0)).toBe(
+      expect(getAcknowledgeAlertsTitle(toAcknowledge(1), 0, ENGLISH)).toBe(
         "Acknowledge this alert to stop its escalation",
       );
     });
@@ -101,20 +105,24 @@ describe("AcknowledgeAlertsOnDeclare", () => {
 
   describe("getAcknowledgeAlertsDescription", () => {
     test("uses the singular wording for one alert", () => {
-      expect(getAcknowledgeAlertsDescription(toAcknowledge(1), undefined)).toBe(
-        SINGULAR_DESCRIPTION,
-      );
+      expect(
+        getAcknowledgeAlertsDescription(toAcknowledge(1), undefined, ENGLISH),
+      ).toBe(SINGULAR_DESCRIPTION);
     });
 
     test("uses the plural wording for several alerts", () => {
-      expect(getAcknowledgeAlertsDescription(toAcknowledge(4), undefined)).toBe(
-        PLURAL_DESCRIPTION,
-      );
+      expect(
+        getAcknowledgeAlertsDescription(toAcknowledge(4), undefined, ENGLISH),
+      ).toBe(PLURAL_DESCRIPTION);
     });
 
     test("says one alert is left as it is", () => {
       expect(
-        getAcknowledgeAlertsDescription(toAcknowledge(2, 1), undefined),
+        getAcknowledgeAlertsDescription(
+          toAcknowledge(2, 1),
+          undefined,
+          ENGLISH,
+        ),
       ).toBe(
         `${PLURAL_DESCRIPTION} 1 alert is already acknowledged or resolved and is left as it is.`,
       );
@@ -122,7 +130,11 @@ describe("AcknowledgeAlertsOnDeclare", () => {
 
     test("says how many alerts are left as they are", () => {
       expect(
-        getAcknowledgeAlertsDescription(toAcknowledge(1, 3), undefined),
+        getAcknowledgeAlertsDescription(
+          toAcknowledge(1, 3),
+          undefined,
+          ENGLISH,
+        ),
       ).toBe(
         `${SINGULAR_DESCRIPTION} 3 alerts are already acknowledged or resolved and are left as they are.`,
       );
@@ -132,6 +144,7 @@ describe("AcknowledgeAlertsOnDeclare", () => {
       const description: string = getAcknowledgeAlertsDescription(
         toAcknowledge(2, 0),
         undefined,
+        ENGLISH,
       );
 
       expect(description).toBe(PLURAL_DESCRIPTION);
@@ -143,6 +156,7 @@ describe("AcknowledgeAlertsOnDeclare", () => {
         getAcknowledgeAlertsDescription(
           toAcknowledge(1, 2),
           TIMELINE_CREATE_REASON,
+          ENGLISH,
         ),
       ).toBe(
         `${SINGULAR_DESCRIPTION} 2 alerts are already acknowledged or resolved and are left as they are. ${TIMELINE_CREATE_REASON}`,
@@ -151,38 +165,39 @@ describe("AcknowledgeAlertsOnDeclare", () => {
         getAcknowledgeAlertsDescription(
           toAcknowledge(1),
           TIMELINE_CREATE_REASON,
+          ENGLISH,
         ),
       ).toBe(`${SINGULAR_DESCRIPTION} ${TIMELINE_CREATE_REASON}`);
     });
 
     test("ignores an empty reason", () => {
-      expect(getAcknowledgeAlertsDescription(toAcknowledge(3), "")).toBe(
-        PLURAL_DESCRIPTION,
-      );
+      expect(
+        getAcknowledgeAlertsDescription(toAcknowledge(3), "", ENGLISH),
+      ).toBe(PLURAL_DESCRIPTION);
     });
   });
 
   describe("getAlertsKeepEscalatingNote", () => {
     test("the only alert", () => {
-      expect(getAlertsKeepEscalatingNote(toAcknowledge(1), 1)).toBe(
+      expect(getAlertsKeepEscalatingNote(toAcknowledge(1), 1, ENGLISH)).toBe(
         "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.",
       );
     });
 
     test("every one of several alerts", () => {
-      expect(getAlertsKeepEscalatingNote(toAcknowledge(3), 3)).toBe(
+      expect(getAlertsKeepEscalatingNote(toAcknowledge(3), 3, ENGLISH)).toBe(
         "Declaring the incident does not acknowledge these alerts: they keep escalating until they are acknowledged.",
       );
     });
 
     test("the one alert of several that is not acknowledged yet", () => {
-      expect(getAlertsKeepEscalatingNote(toAcknowledge(1, 2), 3)).toBe(
+      expect(getAlertsKeepEscalatingNote(toAcknowledge(1, 2), 3, ENGLISH)).toBe(
         "Declaring the incident does not acknowledge the alert that is not acknowledged yet: it keeps escalating until it is acknowledged.",
       );
     });
 
     test("the alerts of several that are not acknowledged yet", () => {
-      expect(getAlertsKeepEscalatingNote(toAcknowledge(2, 2), 4)).toBe(
+      expect(getAlertsKeepEscalatingNote(toAcknowledge(2, 2), 4, ENGLISH)).toBe(
         "Declaring the incident does not acknowledge the 2 alerts that are not acknowledged yet: they keep escalating until they are acknowledged.",
       );
     });
@@ -285,6 +300,8 @@ describe("AcknowledgeAlertsOnDeclare", () => {
       expect(calls[0]![2]).toEqual({
         verb: "acknowledge",
         singularName: "alert",
+        // Its first sentence whole, a key of its own: no locale words "acknowledge" alone.
+        sentence: "You do not have permission to acknowledge this alert.",
       });
     });
 

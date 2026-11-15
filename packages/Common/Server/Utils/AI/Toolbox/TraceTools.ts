@@ -26,6 +26,13 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_TELEMETRY_TABLE_LINES,
+  AI_READ_TELEMETRY_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure, windowValues } from "./ReadTableWords";
 
 const TRACE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -202,7 +209,12 @@ export const QueryTracesTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Trace analytics by ${groupBy} (${metric}), ${startTime.toISOString()} – ${endTime.toISOString()}`,
+      // In the reader's language and time (issues #7979, #7980).
+      ...citationSentence(AI_READ_CITATIONS.traceAnalytics, {
+        groupBy,
+        metric,
+        ...windowValues(startTime, endTime),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.Traces,
       },
@@ -211,8 +223,16 @@ export const QueryTracesTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Trace analytics by ${groupBy}`,
-              description: `Ranked by ${metric} · ${startTime.toISOString()} – ${endTime.toISOString()}`,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_TITLES.traceAnalytics,
+                  { groupBy },
+                ),
+                description: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_LINES.rankedBy,
+                  { metric, ...windowValues(startTime, endTime) },
+                ),
+              },
               columns: [
                 { key: groupBy, title: groupBy, type: "text" },
                 {
@@ -438,7 +458,12 @@ export const GetTraceTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Trace ${traceId} (${spans.length}${isSpanLimitHit ? "+" : ""} spans)`,
+      ...citationSentence(
+        isSpanLimitHit
+          ? AI_READ_CITATIONS.traceWithMoreSpans
+          : AI_READ_CITATIONS.trace,
+        { traceId, count: countFigure(spans.length) },
+      ),
       citationTarget: {
         type: AIChatCitationTargetType.TraceView,
         params: { traceId: traceId },

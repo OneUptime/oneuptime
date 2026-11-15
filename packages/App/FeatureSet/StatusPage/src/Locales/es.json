@@ -471,5 +471,7 @@
     "note": "Nota",
     "tip": "Consejo",
     "warning": "Advertencia"
-  }
+  },
+  "No options available": "No hay opciones disponibles",
+  "No matches found": "No se encontraron coincidencias"
 }
