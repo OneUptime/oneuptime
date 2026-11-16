@@ -33,6 +33,7 @@ import {
 } from "../../../Types/Workflow/RunRecord";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import PrivateRecordReadFilter from "../Permission/PrivateRecordReadFilter";
 import Select from "../../Types/Database/Select";
 import Sort from "../../Types/Database/Sort";
 
@@ -228,10 +229,19 @@ export default class RunRecordSearch {
       );
     }
 
-    const query: Dictionary<unknown> = {
-      ...data.query,
-      [tenantColumn]: data.request.projectId,
-    };
+    /*
+     * Only what a run can act on: no private incident, alert or episode,
+     * nor anything of one, which a workflow does not act on (#8914,
+     * Types/Workflow/WorkflowPrivateRecords) - so the panel never offers a
+     * record its run would stop on.
+     */
+    const query: Dictionary<unknown> = PrivateRecordReadFilter.keepToNotPrivate(
+      {
+        ...data.query,
+        [tenantColumn]: data.request.projectId,
+      } as Dictionary<unknown>,
+      data.request.service.modelType as { new (): BaseModel },
+    );
 
     const select: Dictionary<boolean> = {
       _id: true,

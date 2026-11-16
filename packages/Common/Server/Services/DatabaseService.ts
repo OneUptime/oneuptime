@@ -6129,6 +6129,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       /*
+       * A workflow does not start on a private incident, alert or episode,
+       * nor on anything of one (#8914): its steps see no private record
+       * (shouldBypassRecordPrivacy), and the event itself hands the run
+       * what an update changed. See isAboutPrivateRecord.
+       */
+      if (await this.isAboutPrivateRecord(id)) {
+        return;
+      }
+
+      /*
        * An update the record's own create makes, before the create has
        * announced the record: On Create or Update hears the create, once,
        * and not these (RecordsBeingCreated). Said beside the event's data,
@@ -6170,6 +6180,90 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         } as LogAttributes);
       });
     }
+  }
+
+  /*
+   * The columns of this table's rows naming the private records they are,
+   * or are a part of (PrivateRecordPermission.getPrivateRecordColumns): none
+   * for a table that has nothing to do with one.
+   */
+  public getPrivateRecordColumns(): Array<PrivateRecordColumn> {
+    return PrivateRecordPermission.getPrivateRecordColumns(this.modelType);
+  }
+
+  /*
+   * Whether the record `id` of this table is a private incident, alert or
+   * episode, a part of one (a note, a state change, an owner), or names one
+   * (a page about it, a runbook run linked to it): read as OneUptime, the
+   * record's deleted row included - an On Delete event's record is gone.
+   * A workflow does not start on such a record (#8914): a step acts as a
+   * Project Admin but is never lent the sight of private records, and an On
+   * Update event hands the run the values the update wrote. A record that
+   * cannot be read at all hands on nothing but its id, and is let through.
+   */
+  public async isAboutPrivateRecord(id: ObjectID): Promise<boolean> {
+    const columns: Array<PrivateRecordColumn> = this.getPrivateRecordColumns();
+
+    if (columns.length === 0) {
+      return false;
+    }
+
+    const select: Dictionary<boolean> = { _id: true };
+
+    for (const column of columns) {
+      select[column.isRecord ? "isPrivate" : column.column] = true;
+    }
+
+    const rows: Array<TBaseModel> = await this._findBy(
+      {
+        query: { _id: id.toString() } as Query<TBaseModel>,
+        select: select as Select<TBaseModel>,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true, ignoreHooks: true },
+      },
+      true,
+    );
+
+    const row: TBaseModel | undefined = rows[0];
+
+    if (!row) {
+      return false;
+    }
+
+    for (const column of columns) {
+      if (column.isRecord) {
+        if ((row as unknown as { isPrivate?: unknown }).isPrivate === true) {
+          return true;
+        }
+
+        continue;
+      }
+
+      const recordId: unknown = row.getValue(column.column);
+
+      if (!recordId || !ObjectID.isValidUUID(recordId.toString())) {
+        continue;
+      }
+
+      const privateRecords: Array<BaseModel> =
+        await DatabaseService.getParentReader(column.recordModelType).findBy({
+          query: {
+            _id: recordId.toString(),
+            isPrivate: true,
+          } as Query<BaseModel>,
+          select: { _id: true } as Select<BaseModel>,
+          skip: 0,
+          limit: 1,
+          props: { isRoot: true },
+        });
+
+      if (privateRecords.length > 0) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**

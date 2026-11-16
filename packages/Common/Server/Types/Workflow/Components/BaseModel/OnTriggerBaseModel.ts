@@ -40,6 +40,7 @@ import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
 import { describeRefusal } from "./LogComponentError";
+import { getWorkflowPrivateRecordRefusal } from "../../../../../Types/Workflow/WorkflowPrivateRecords";
 
 export default class OnTriggerBaseModel<
   TBaseModel extends BaseModel,
@@ -121,6 +122,30 @@ export default class OnTriggerBaseModel<
 
     if (args["_id"]) {
       data["_id"] = args["_id"];
+    }
+
+    /*
+     * Never on a private incident, alert or episode, nor on anything of one
+     * (#8914): a step sees no private record, and what the event hands the
+     * run - an update's new values - is the record's. The event is not
+     * posted for one (DatabaseService.onTriggerWorkflow); a run started by
+     * hand, or a record made private while its event waited, stops here,
+     * before any of it is handed on.
+     */
+    if (
+      data["_id"] &&
+      ObjectID.isValidUUID(data["_id"].toString()) &&
+      (await this.service!.isAboutPrivateRecord(
+        new ObjectID(data["_id"].toString()),
+      ))
+    ) {
+      const refusal: string = getWorkflowPrivateRecordRefusal(
+        this.service!.getModel().singularName || "record",
+      );
+
+      options.log(refusal);
+
+      throw new BadDataException(refusal);
     }
 
     const miscData: JSONObject = (data?.["miscData"] as JSONObject) || {};
@@ -224,11 +249,21 @@ export default class OnTriggerBaseModel<
     }
 
     if (!model) {
-      options.log("Model not found with id " + data["_id"].toString());
+      /*
+       * A record of a kind that can be private, or a part of one, the step
+       * does not find: in the same words as one that is private, so the run
+       * log never tells the two apart (see the check at the top).
+       */
+      const notFound: string =
+        this.service!.getPrivateRecordColumns().length > 0
+          ? getWorkflowPrivateRecordRefusal(
+              this.service!.getModel().singularName || "record",
+            )
+          : "Model not found with id " + data["_id"].toString();
 
-      throw new BadDataException(
-        ("Model not found with id " + data["_id"].toString()) as string,
-      );
+      options.log(notFound);
+
+      throw new BadDataException(notFound);
     }
 
     return {
