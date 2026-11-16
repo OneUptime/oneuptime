@@ -56341,5 +56341,9 @@
   "Escalation Rule Name": "升级规则名称",
   "Escalation Rule Order": "升级规则顺序",
   "Level {{order}} (deleted)": "级别 {{order}}（已删除）",
-  "Level {{order}}: {{name}} (deleted)": "级别 {{order}}：{{name}}（已删除）"
+  "Level {{order}}: {{name}} (deleted)": "级别 {{order}}：{{name}}（已删除）",
+  "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "每个间隔内所有节点上应用占用的内存之和，单位为字节。不包括应用需要内存时系统可释放的文件缓存。",
+  "in use, no allocatable memory reported": "使用中，未报告可分配内存",
+  "{{used}} of {{allocatable}} allocatable": "{{used}} / {{allocatable}} 可分配",
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "所有节点上应用占用的内存占可分配内存（Pod 可使用的内存）的比例，不含文件缓存。取所选范围最后 5 分钟的平均值（范围超过 12 小时或没有近期数据时，通常取整个范围）。未报告时不显示进度条。"
 }

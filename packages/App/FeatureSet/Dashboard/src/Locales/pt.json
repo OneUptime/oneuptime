@@ -56341,5 +56341,9 @@
   "Escalation Rule Name": "Nome da regra de escalonamento",
   "Escalation Rule Order": "Ordem da regra de escalonamento",
   "Level {{order}} (deleted)": "Nível {{order}} (eliminado)",
-  "Level {{order}}: {{name}} (deleted)": "Nível {{order}}: {{name}} (eliminado)"
+  "Level {{order}}: {{name}} (deleted)": "Nível {{order}}: {{name}} (eliminado)",
+  "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "Memória ocupada pelos apps em todos os nós, somada, em cada intervalo, em bytes. O cache de arquivos que o sistema pode liberar quando os apps precisam da memória não entra na conta.",
+  "in use, no allocatable memory reported": "em uso, nenhuma memória alocável informada",
+  "{{used}} of {{allocatable}} allocatable": "{{used}} de {{allocatable}} alocáveis",
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Memória ocupada pelos apps em todos os nós como parcela da memória alocável (a que os pods podem usar), sem o cache de arquivos. Em média nos últimos 5 minutos do período selecionado (muitas vezes o período inteiro em períodos de mais de 12 horas ou sem dados recentes). Sem barra se não for informada."
 }

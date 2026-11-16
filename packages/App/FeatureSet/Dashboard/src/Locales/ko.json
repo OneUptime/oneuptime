@@ -56341,5 +56341,9 @@
   "Escalation Rule Name": "에스컬레이션 규칙 이름",
   "Escalation Rule Order": "에스컬레이션 규칙 순서",
   "Level {{order}} (deleted)": "{{order}}단계 (삭제됨)",
-  "Level {{order}}: {{name}} (deleted)": "{{order}}단계: {{name}} (삭제됨)"
+  "Level {{order}}: {{name}} (deleted)": "{{order}}단계: {{name}} (삭제됨)",
+  "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "각 구간에서 모든 노드의 앱이 차지한 메모리를 합한 값으로, 단위는 바이트입니다. 앱이 메모리를 필요로 할 때 시스템이 해제할 수 있는 파일 캐시는 제외합니다.",
+  "in use, no allocatable memory reported": "사용 중, 보고된 할당 가능 메모리 없음",
+  "{{used}} of {{allocatable}} allocatable": "할당 가능 {{allocatable}} 중 {{used}}",
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "모든 노드에서 앱이 차지한 메모리를 할당 가능 메모리(파드가 사용할 수 있는 메모리) 대비 비율로 나타낸 값입니다(파일 캐시 제외). 선택한 범위의 마지막 5분 평균입니다(12시간이 넘는 범위이거나 최근 데이터가 없으면 대개 범위 전체). 보고되지 않으면 막대를 표시하지 않습니다."
 }

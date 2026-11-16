@@ -56341,5 +56341,9 @@
   "Escalation Rule Name": "نام قاعده تشدید",
   "Escalation Rule Order": "ترتیب قاعده تشدید",
   "Level {{order}} (deleted)": "سطح {{order}} (حذف‌شده)",
-  "Level {{order}}: {{name}} (deleted)": "سطح {{order}}: {{name}} (حذف‌شده)"
+  "Level {{order}}: {{name}} (deleted)": "سطح {{order}}: {{name}} (حذف‌شده)",
+  "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "حافظه‌ای که برنامه‌ها در همه گره‌ها اشغال کرده‌اند، جمع‌شده، در هر بازه، به بایت. حافظه نهان فایلی که سیستم می‌تواند هنگام نیاز برنامه‌ها به حافظه آزاد کند حساب نمی‌شود.",
+  "in use, no allocatable memory reported": "در حال استفاده، حافظه تخصیص‌پذیری گزارش نشده",
+  "{{used}} of {{allocatable}} allocatable": "{{used}} از {{allocatable}} تخصیص‌پذیر",
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "حافظه‌ای که برنامه‌ها در همه گره‌ها اشغال کرده‌اند، به‌صورت سهمی از حافظه تخصیص‌پذیر (حافظه‌ای که پادها می‌توانند استفاده کنند)، بدون حافظه نهان فایل. میانگین ۵ دقیقه آخر بازه انتخاب‌شده (در بازه‌های بیش از ۱۲ ساعت یا بدون داده تازه، اغلب کل بازه). اگر گزارش نشود، نواری نیست."
 }
