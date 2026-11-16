@@ -1090,6 +1090,115 @@ describe("CodeRepositoryRunnerChoice", () => {
       ).toBe(false);
     });
 
+    /*
+     * On OneUptime Cloud a repository not on GitHub needs one of the
+     * project's own Runners (GlobalRunnerRepositoryTokens): a global Runner
+     * online does nothing for a project of only such repositories.
+     */
+    describe("on OneUptime Cloud", () => {
+      let savedBilling: string | undefined;
+
+      function hostedAt(type: CodeRepositoryType): CodeRepository {
+        const row: CodeRepository = repository();
+        row.repositoryHostedAt = type;
+        return row;
+      }
+
+      beforeEach(() => {
+        savedBilling = process.env["BILLING_ENABLED"];
+        process.env["BILLING_ENABLED"] = "true";
+        jest
+          .spyOn(CodeRepositoryService, "countBy")
+          .mockResolvedValue(new PositiveNumber(0));
+      });
+
+      afterEach(() => {
+        if (savedBilling === undefined) {
+          delete process.env["BILLING_ENABLED"];
+        } else {
+          process.env["BILLING_ENABLED"] = savedBilling;
+        }
+      });
+
+      test("a global Runner online does not count for a project whose every repository is not on GitHub", async () => {
+        jest
+          .spyOn(CodeRepositoryService, "findBy")
+          .mockResolvedValue([
+            hostedAt(CodeRepositoryType.GitLab),
+            hostedAt(CodeRepositoryType.Forgejo),
+            hostedAt(CodeRepositoryType.Git),
+          ]);
+
+        expect(
+          await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+            PROJECT_ID,
+          ),
+        ).toBe(false);
+      });
+
+      test("it counts once one repository is on GitHub, and for a project with no repository yet", async () => {
+        const find: jest.SpyInstance = jest
+          .spyOn(CodeRepositoryService, "findBy")
+          .mockResolvedValue([
+            hostedAt(CodeRepositoryType.GitLab),
+            hostedAt(CodeRepositoryType.GitHub),
+          ]);
+
+        expect(
+          await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+            PROJECT_ID,
+          ),
+        ).toBe(true);
+
+        find.mockResolvedValue([]);
+
+        expect(
+          await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+            PROJECT_ID,
+          ),
+        ).toBe(true);
+      });
+
+      test("the repositories' hosts are read to decide it", async () => {
+        const find: jest.SpyInstance = jest
+          .spyOn(CodeRepositoryService, "findBy")
+          .mockResolvedValue([]);
+
+        await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+          PROJECT_ID,
+        );
+
+        expect(
+          (find.mock.calls[0]![0] as { select: Record<string, unknown> })
+            .select,
+        ).toMatchObject({ repositoryHostedAt: true });
+      });
+    });
+
+    test("off OneUptime Cloud, a global Runner online counts for repositories of every host", async () => {
+      const saved: string | undefined = process.env["BILLING_ENABLED"];
+      delete process.env["BILLING_ENABLED"];
+
+      try {
+        const row: CodeRepository = repository();
+        row.repositoryHostedAt = CodeRepositoryType.GitLab;
+        jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([row]);
+        jest
+          .spyOn(CodeRepositoryService, "countBy")
+          .mockResolvedValue(new PositiveNumber(0));
+
+        expect(
+          await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+            PROJECT_ID,
+          ),
+        ).toBe(true);
+      } finally {
+        if (saved !== undefined) {
+          process.env["BILLING_ENABLED"] = saved;
+        }
+      }
+    });
+
     test("global Runners online that take no code fixes do not count", async () => {
       jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
       jest

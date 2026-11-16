@@ -421,14 +421,6 @@ export default class CodeRepositoryRunnerChoice {
       return true;
     }
 
-    if (
-      (await GlobalRunnerChoice.doesProjectUseGlobalRunners(projectId)) &&
-      (await RunnerService.getGlobalRunnerCodeFixAvailability()) ===
-        GlobalRunnerCodeFixAvailability.Online
-    ) {
-      return true;
-    }
-
     const picked: Array<CodeRepository> = await CodeRepositoryService.findBy({
       query: {
         projectId: projectId,
@@ -436,11 +428,36 @@ export default class CodeRepositoryRunnerChoice {
       select: {
         _id: true,
         runnerId: true,
+        repositoryHostedAt: true,
       },
       limit: 100,
       skip: 0,
       props: { isRoot: true },
     });
+
+    /*
+     * A global Runner counts for a project with no repository yet, or one
+     * a global Runner may work in: on OneUptime Cloud, a repository not on
+     * GitHub needs one of the project's own Runners
+     * (GlobalRunnerRepositoryTokens), so a project of only such
+     * repositories gets nothing done by a global Runner online.
+     */
+    const mayUseGlobalRunners: boolean =
+      picked.length === 0 ||
+      picked.some((repository: CodeRepository): boolean => {
+        return !GlobalRunnerRepositoryTokens.isRepositoryKeptOff(
+          repository.repositoryHostedAt,
+        );
+      });
+
+    if (
+      mayUseGlobalRunners &&
+      (await GlobalRunnerChoice.doesProjectUseGlobalRunners(projectId)) &&
+      (await RunnerService.getGlobalRunnerCodeFixAvailability()) ===
+        GlobalRunnerCodeFixAvailability.Online
+    ) {
+      return true;
+    }
 
     const runnerIds: Array<string> = Array.from(
       new Set<string>(
