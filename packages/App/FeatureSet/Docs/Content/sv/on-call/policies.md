@@ -57,6 +57,8 @@ En policy som flera regler lägger till körs en gång. En allvarlighetsgrad kö
 - **Användaråsidosättningar** täcker upp för personer bara i den här policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 - **Inställningar** har **Exportera Jourpolicy** och kortet som arkiverar policyn.
 
+**Vad som utlöser den här policyn**, på **Översikt**, listar jourreglerna, monitorerna vars kriterier utlöser policyn, mallarna och andra regler som utlöser den, och arbetsflödena som gör det, var och en med en länk. En avstängd regel visar **Av**. När inget utlöser policyn säger kortet det: den larmar ingen förrän något utlöser den. När du tar bort eller arkiverar policyn sägs samma sak först. Det du inte får öppna räknas men namnges inte.
+
 ## Upprepa en policy
 
 När den sista nivåns väntetid går ut utan att någon har bekräftat slutar en policy, om den inte upprepas. För att välja öppnar du policyns sida **Eskaleringsregler** och klickar på **Redigera** på kortet **Upprepningspolicy** under reglerna. **Redigera upprepningspolicy** frågar **Om ingen bekräftar efter den sista nivån**:

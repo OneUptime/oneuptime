@@ -57,6 +57,8 @@ Abre una política desde la lista. Su menú lateral contiene todo lo relativo a 
 - **Sustituciones de usuarios** cubre a personas solo en esta política. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 - **Ajustes** tiene **Exportar Política de guardia** y la tarjeta que archiva la política.
 
+**Qué activa esta política**, en la **Vista general**, lista las reglas de guardia, los monitores cuyos criterios activan la política, las plantillas y otras reglas que la activan, y los flujos de trabajo que lo hacen, cada uno con un enlace. Una regla desactivada dice **Desactivado**. Si nada activa la política, la tarjeta lo dice: no avisa a nadie hasta que algo la activa. Eliminar o archivar la política lo dice primero. Lo que no puedes abrir se cuenta, pero no se nombra.
+
 ## Repetir una política
 
 Cuando la espera del último nivel termina sin que nadie lo reconozca, una política se detiene, salvo que se repita. Para elegirlo, abre la página **Reglas de escalado** de la política y haz clic en **Editar** en la tarjeta **Política de repetición** bajo las reglas. **Editar repetición de la política** pregunta **Si nadie lo reconoce después del último nivel**:

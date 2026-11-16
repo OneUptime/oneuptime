@@ -57,6 +57,8 @@ Open een beleid vanuit de lijst. Het zijmenu ervan bevat alles over het beleid:
 - **Gebruikersoverschrijvingen** vervangt personen alleen in dit beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 - **Instellingen** bevat **Bereikbaarheidsbeleid exporteren** en de kaart die het beleid archiveert.
 
+**Wat dit beleid activeert**, op het **Overzicht**, toont de bereikbaarheidsregels, de monitoren waarvan de criteria het beleid activeren, de sjablonen en andere regels die het activeren, en de workflows die dat doen, elk met een link. Een uitgeschakelde regel toont **Uit**. Activeert niets het beleid, dan zegt de kaart het: het roept niemand op totdat iets het activeert. Het beleid verwijderen of archiveren zegt eerst hetzelfde. Wat u niet mag openen, wordt geteld maar niet genoemd.
+
 ## Een beleid herhalen
 
 Loopt de wachttijd van het laatste niveau af zonder dat iemand bevestigt, dan stopt een beleid, tenzij het zich herhaalt. Open om dat te kiezen de pagina **Escalatieregels** van het beleid en klik op **Bewerken** op de kaart **Herhaalbeleid** onder de regels. **Herhaalbeleid bewerken** vraagt **Als niemand bevestigt na het laatste niveau**:

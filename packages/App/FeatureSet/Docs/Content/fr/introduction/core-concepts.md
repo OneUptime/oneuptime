@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Abonnés"]
 ```
 
+La page de chaque enregistrement dit aussi ce qui l'utilise. La carte **Utilisé par** d'un moniteur liste les pages de statut qui l'affichent, ses groupes de moniteurs, les SLOs qui le mesurent, la maintenance à venir qui le mentionne, les moniteurs qui dépendent de lui, les règles et modèles qui le mentionnent, et les flux de travail et tableaux de bord qui l'utilisent. Ce que vous ne pouvez pas ouvrir est compté, pas nommé. Supprimer ou archiver un enregistrement le dit d'abord, sur ses propres pages et dans les listes.
+
 ## Projets et personnes
 
 Un **projet** contient tout : moniteurs, incidents, politiques d'astreinte, pages de statut, télémétrie et paramètres. La plupart des entreprises en ont besoin d'un seul, certaines en tiennent un par environnement ou par activité. Rien de ce que vous créez dans un projet n'est visible dans un autre.

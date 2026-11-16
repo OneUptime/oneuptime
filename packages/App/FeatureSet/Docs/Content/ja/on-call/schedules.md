@@ -101,6 +101,8 @@ flowchart TB
 
 API では、ユーザーオーバーライド（ `/api/on-call-duty-policy-user-override` ）を `routeAlertsToUserId` なしで作成すると、 `overrideUserId` の人が `startsAt` から `endsAt` までスキップされます。
 
+スケジュールの**概要**には**使用元**カードがあります。エスカレーションルールでオンコール中の人を呼び出すオンコールポリシーが、そのルールとともに表示されます。どのポリシーも呼び出さない場合はそう表示され、オンコールポリシーへのリンクが示されます。スケジュールをページまたは一覧から削除するときは、どのポリシーがこのスケジュールで呼び出すかが先に表示されます。開く権限のないポリシーは件数だけが示され、名前は表示されません。
+
 ## API または Terraform でスケジュールを作成する
 
 オンコールスケジュールは `/api/on-call-duty-policy-schedule` リソースです。そのレイヤーとレイヤー内の人は `/api/on-call-duty-schedule-layer` と `/api/on-call-duty-schedule-layer-user` リソースです。

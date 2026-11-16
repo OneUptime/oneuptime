@@ -101,6 +101,8 @@ Fravær som legges til på denne måten, gjelder for alle vaktpolicyer, så det 
 
 Via API-et hopper en brukeroverstyring (`/api/on-call-duty-policy-user-override`) som opprettes uten `routeAlertsToUserId`, over personen i `overrideUserId` fra `startsAt` til `endsAt`.
 
+**Oversikt** for en vaktplan har kortet **Brukes av**: vaktpolicyene der eskaleringsreglene varsler den som har vakt, med reglene som gjør det. Gjør ingen det, sier kortet det og lenker til vaktpolicyene. Når du sletter vaktplanen, på siden dens eller fra listen, sies det først hvilke policyer som varsler via den. Policyer du ikke kan åpne, telles, men navngis ikke.
+
 ## Opprett vaktplaner med API-et eller Terraform
 
 Vaktplaner er ressursen `/api/on-call-duty-policy-schedule`; lagene deres og personene i dem er ressursene `/api/on-call-duty-schedule-layer` og `/api/on-call-duty-schedule-layer-user`.

@@ -101,6 +101,8 @@ Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer, s
 
 Via API:et hoppar en användaråsidosättning (`/api/on-call-duty-policy-user-override`) som skapas utan `routeAlertsToUserId` över personen i `overrideUserId` från `startsAt` till `endsAt`.
 
+Ett schemas **Översikt** har kortet **Används av**: jourpolicyerna vars eskaleringsregler larmar den som har jour, med reglerna som gör det. Gör ingen det säger kortet det och länkar till jourpolicyerna. När du tar bort schemat, på dess sida eller från listan, sägs först vilka policyer som larmar via det. Policyer du inte får öppna räknas men namnges inte.
+
 ## Skapa scheman med API:et eller Terraform
 
 Jourscheman är resursen `/api/on-call-duty-policy-schedule`; deras lager och personerna i dem är resurserna `/api/on-call-duty-schedule-layer` och `/api/on-call-duty-schedule-layer-user`.

@@ -57,6 +57,8 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 - **Brugertilsidesættelser** dækker kun for folk i denne politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 - **Indstillinger** har **Eksportér Vagtpolitik** og kortet, der arkiverer politikken.
 
+**Hvad der udløser denne politik**, på **Oversigt**, viser vagtreglerne, de monitorer, hvis kriterier udløser politikken, de skabeloner og andre regler, der udløser den, og de arbejdsgange, der gør det, hver med et link. En regel, der er slået fra, viser **Fra**. Når intet udløser politikken, siger kortet det: den tilkalder ingen, før noget udløser den. Når du sletter eller arkiverer politikken, siges det samme først. Det, du ikke må åbne, tælles, men nævnes ikke.
+
 ## Gentag en politik
 
 Når det sidste niveaus ventetid er gået, uden at nogen har kvitteret, stopper en politik, medmindre den gentages. For at vælge skal du åbne politikkens side **Eskaleringsregler** og klikke på **Rediger** på kortet **Gentagelsespolitik** under reglerne. **Rediger gentagelsespolitik** spørger **Hvis ingen bekræfter efter det sidste niveau**:

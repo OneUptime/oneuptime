@@ -57,6 +57,8 @@ Eine Richtlinie, die mehrere Regeln hinzufügen, läuft einmal. Ein Schweregrad 
 - **Benutzerüberschreibungen** vertritt Personen nur in dieser Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 - **Einstellungen** enthält **Bereitschaftsrichtlinie exportieren** und die Karte, die die Richtlinie archiviert.
 
+**Wodurch diese Richtlinie ausgelöst wird**, auf der **Übersicht**, listet die Bereitschaftsregeln, die Monitore, deren Kriterien die Richtlinie auslösen, die Vorlagen und anderen Regeln, die sie auslösen, und die Arbeitsabläufe, die das tun, jeweils mit einem Link. Eine ausgeschaltete Regel zeigt **Aus**. Löst nichts die Richtlinie aus, sagt die Karte es: Sie alarmiert niemanden, bis etwas sie auslöst. Wer die Richtlinie löscht oder archiviert, sieht dasselbe zuerst. Was Sie nicht öffnen dürfen, wird gezählt, aber nicht genannt.
+
 ## Eine Richtlinie wiederholen
 
 Läuft die Wartezeit der letzten Stufe ab, ohne dass jemand bestätigt, hört eine Richtlinie auf, es sei denn, sie wiederholt sich. Um das festzulegen, öffnen Sie die Seite **Eskalationsregeln** der Richtlinie und klicken auf der Karte **Wiederholungsrichtlinie** unter den Regeln auf **Bearbeiten**. **Wiederholungsrichtlinie bearbeiten** fragt **Wenn nach der letzten Stufe niemand bestätigt**:

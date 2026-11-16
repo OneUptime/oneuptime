@@ -103,6 +103,8 @@ Rollen du väljer blir teamets första behörighet, för alla resurser i projekt
 
 Var du hittar det: öppna ett team under **Team** för att nå **Medlemmar** och **Behörigheter**; dess anpassade roller och **Blockera behörigheter** finns under **Fler inställningar** längst ned på sidan Behörigheter, vars hopfällda rubrik visar hur många av varje teamet har.
 
+Ett teams sida har kortet **Används av**: jourpolicyerna vars eskaleringsregler larmar teamet, och allt teamet äger, från monitorer och statussidor till SLO:er, instrumentpaneler, infrastruktur och incidenter. När du tar bort ett team, på dess sida eller från listan, sägs detta först: dess policyer slutar larma dess medlemmar, och det äger dem inte längre. Det du inte får öppna räknas men namnges inte.
+
 ## Behörigheter
 
 En behörighet är en enskild förmåga. Det finns två sätt att dela ut dem, och båda finns på teamets flik **Behörigheter**.

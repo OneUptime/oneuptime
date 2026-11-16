@@ -71,6 +71,8 @@ Neben seinem Namen zeigt die **Übersicht** eines Dienstes, ob seine Telemetrie 
 
 Eigentümer zählen auch über die Seite hinaus: Eine Rolle mit dem Bereich Owned liest die Telemetrie der Dienste, die Ihnen oder Ihren Teams gehören. Siehe [Telemetrie](/docs/permissions/index#telemetrie).
 
+Die **Übersicht** eines Dienstes hat eine Karte **Verwendet von**: die Monitore, die den Dienst überwachen, und die SLOs, die sie messen. Wer den Dienst archiviert oder löscht, auf seinen Seiten oder aus der Liste, sieht sie zuerst. Was Sie nicht öffnen dürfen, wird gezählt, aber nicht genannt.
+
 ## Einen Dienst ändern
 
 :::steps

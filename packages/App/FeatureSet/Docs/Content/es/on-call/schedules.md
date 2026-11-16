@@ -101,6 +101,8 @@ Una ausencia añadida así se aplica a todas las políticas de guardia, por lo q
 
 Con la API, una sustitución de usuario (`/api/on-call-duty-policy-user-override`) creada sin `routeAlertsToUserId` omite a la persona de `overrideUserId` desde `startsAt` hasta `endsAt`.
 
+La **Vista general** de una programación tiene una tarjeta **Usado por**: las políticas de guardia cuyas reglas de escalado avisan a quien está de guardia, con las reglas que lo hacen. Si ninguna lo hace, lo dice y enlaza a las políticas de guardia. Eliminar la programación, en su página o desde la lista, dice primero qué políticas avisan a través de ella. Las políticas que no puedes abrir se cuentan, pero no se nombran.
+
 ## Crear programaciones con la API o Terraform
 
 Las programaciones de guardia son el recurso `/api/on-call-duty-policy-schedule`; sus capas y las personas que contienen son los recursos `/api/on-call-duty-schedule-layer` y `/api/on-call-duty-schedule-layer-user`.

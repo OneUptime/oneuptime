@@ -57,6 +57,8 @@ Ouvrez une politique depuis la liste. Son menu latéral contient tout ce qui la 
 - **Remplacements d'utilisateur** remplace des personnes dans cette seule politique. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
 - **Paramètres** contient **Exporter : Politique d'astreinte** et la carte qui archive la politique.
 
+**Ce qui déclenche cette politique**, sur la **Vue d'ensemble**, liste les règles d'astreinte, les moniteurs dont les critères déclenchent la politique, les modèles et autres règles qui la déclenchent, et les flux de travail qui le font, chacun avec un lien. Une règle désactivée indique **Désactivé**. Quand rien ne déclenche la politique, la carte le dit : elle n'appelle personne tant que rien ne la déclenche. Supprimer ou archiver la politique le dit d'abord. Ce que vous ne pouvez pas ouvrir est compté, pas nommé.
+
 ## Répéter une politique
 
 Quand l'attente du dernier niveau se termine sans que personne ne prenne en compte, une politique s'arrête, sauf si elle se répète. Pour choisir, ouvrez la page **Règles d'escalade** de la politique et cliquez sur **Modifier** sur la carte **Politique de répétition** sous les règles. **Modifier la politique de répétition** demande **Si personne ne prend en compte après le dernier niveau** :

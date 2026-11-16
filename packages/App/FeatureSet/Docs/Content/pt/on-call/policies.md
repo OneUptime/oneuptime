@@ -57,6 +57,8 @@ Abra uma política a partir da lista. O menu lateral dela reúne tudo sobre ela:
 - **Substituições de usuário** cobre pessoas só nesta política. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 - **Configurações** tem **Exportar: Política de plantão** e o cartão que arquiva a política.
 
+**O que aciona esta política**, na **Visão geral**, lista as regras de plantão, os monitores cujos critérios acionam a política, os modelos e outras regras que a acionam, e os fluxos de trabalho que fazem isso, cada um com um link. Uma regra desativada mostra **Desativado**. Quando nada aciona a política, o cartão diz isso: ela não aciona ninguém até que algo a acione. Excluir ou arquivar a política diz o mesmo primeiro. O que você não pode abrir é contado, não nomeado.
+
 ## Repetir uma política
 
 Quando a espera do último nível acaba sem que ninguém confirme, uma política para, a menos que se repita. Para escolher, abra a página **Regras de escalonamento** da política e clique em **Editar** no cartão **Política de Repetição** abaixo das regras. **Editar política de repetição** pergunta **Se ninguém confirmar depois do último nível**:

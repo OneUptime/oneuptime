@@ -71,6 +71,8 @@ Accanto al suo nome, la **Panoramica** di un servizio indica se la sua telemetri
 
 I proprietari contano anche oltre la pagina: un ruolo con ambito Owned legge la telemetria dei servizi che appartengono a voi o ai vostri team. Vedere [Telemetria](/docs/permissions/index#telemetria).
 
+La **Panoramica** di un servizio ha una scheda **Usato da**: i monitor che osservano il servizio e gli SLO che li misurano. Archiviare o eliminare il servizio, dalle sue pagine o dall'elenco, li dice prima. Ciò che non puoi aprire viene contato, non nominato.
+
 ## Modificare un servizio
 
 :::steps

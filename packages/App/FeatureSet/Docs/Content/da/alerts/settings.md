@@ -80,7 +80,7 @@ Med to eller flere betingelser vælger du **Alle skal matche**, hvor hver skal h
 :::steps
 ### Vælg advarslerne
 
-Klik på **Opret Alert On-Call Rule**. Under **Match** matcher **Alle advarsler**, som en ny regel starter på, hver ny advarsel. For at indsnævre reglen vælger du **Kun advarsler, der opfylder betingelserne** og tilføjer de betingelser, en advarsel skal opfylde.
+Klik på **Opret Vagtregel for advarsler**. Under **Match** matcher **Alle advarsler**, som en ny regel starter på, hver ny advarsel. For at indsnævre reglen vælger du **Kun advarsler, der opfylder betingelserne** og tilføjer de betingelser, en advarsel skal opfylde.
 
 ### Vælg politikkerne
 

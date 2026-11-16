@@ -101,6 +101,8 @@ So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie und braucht d
 
 Über die API überspringt eine Benutzervertretung (`/api/on-call-duty-policy-user-override`), die ohne `routeAlertsToUserId` angelegt wird, die Person in `overrideUserId` von `startsAt` bis `endsAt`.
 
+Die **Übersicht** eines Plans hat eine Karte **Verwendet von**: die Bereitschaftsrichtlinien, deren Eskalationsregeln alarmieren, wer gerade Bereitschaft hat, mit den Regeln, die das tun. Tut das keine, sagt die Karte es und verlinkt zu den Bereitschaftsrichtlinien. Wer den Plan löscht, auf seiner Seite oder aus der Liste, sieht zuerst, welche Richtlinien über ihn alarmieren. Richtlinien, die Sie nicht öffnen dürfen, werden gezählt, aber nicht genannt.
+
 ## Pläne mit der API oder Terraform anlegen
 
 Bereitschaftspläne sind die Ressource `/api/on-call-duty-policy-schedule`; ihre Ebenen und die Personen darin sind die Ressourcen `/api/on-call-duty-schedule-layer` und `/api/on-call-duty-schedule-layer-user`.

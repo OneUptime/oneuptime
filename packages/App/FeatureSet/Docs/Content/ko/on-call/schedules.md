@@ -101,6 +101,8 @@ flowchart TB
 
 API에서는 사용자 재정의( `/api/on-call-duty-policy-user-override` )를 `routeAlertsToUserId` 없이 만들면 `overrideUserId` 의 사람을 `startsAt` 부터 `endsAt` 까지 건너뜁니다.
 
+스케줄의 **개요**에는 **사용처** 카드가 있습니다. 에스컬레이션 규칙으로 온콜 중인 사람을 호출하는 온콜 정책이 해당 규칙과 함께 표시됩니다. 호출하는 정책이 없으면 그렇게 표시되고 온콜 정책으로 연결됩니다. 스케줄을 페이지나 목록에서 삭제할 때는 어떤 정책이 이 스케줄로 호출하는지 먼저 표시됩니다. 열 수 없는 정책은 개수만 표시되고 이름은 표시되지 않습니다.
+
 ## API 또는 Terraform으로 스케줄 만들기
 
 온콜 스케줄은 `/api/on-call-duty-policy-schedule` 리소스이고, 레이어와 레이어의 사람은 `/api/on-call-duty-schedule-layer` 및 `/api/on-call-duty-schedule-layer-user` 리소스입니다.
