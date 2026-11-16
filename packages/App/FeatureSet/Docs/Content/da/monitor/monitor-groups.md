@@ -96,6 +96,8 @@ Hver søjle i oppetidsgrafen, her og på en statusside, viser, hvor længe grupp
 
 Listen **Monitorgrupper** kan filtrere grupper efter ejer og etiket, sætte etiketter og ejere på mange grupper på én gang og eksportere eller importere grupper som JSON.
 
+**Oversigt** har også et kort **Bruges af**: de statussider, der viser gruppen, og de SLOs, der måler dens monitorer. Når ingen statusside viser den, siger kortet det og linker til statussiderne. Når du sletter gruppen, på dens side eller fra listen, siges det først, hvilke statussider der viser den.
+
 ## Slå overvågning fra for en hel gruppe
 
 Kortet **Overvågning** på en gruppes **Oversigt** slår overvågning fra, eller til igen, for alle monitorer i gruppen på én gang.

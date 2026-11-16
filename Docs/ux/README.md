@@ -1118,7 +1118,8 @@ then `npm run i18n:validate` from the root.
 ## Asking people
 
 People who are lost leave quietly, so the product asks them, in five seconds, what was hard
-(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback).
+(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback), and what a
+person writes in Give Feedback also reaches whoever can answer it.
 
 - **Ask at most one question a week, once per question, and never while something is down.** A
   question OneUptime asks goes through `ProductFeedback.ask` (`Common/UI/Utils/ProductFeedback`),
@@ -1133,8 +1134,17 @@ People who are lost leave quietly, so the product asks them, in five seconds, wh
   not, so the product asks none. Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
 - **An answer carries the page as a route with no ids, and the version, and nothing else.** No
-  person, no project, no address. Say where it goes where it is given: to the server's admins on a
-  self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  person, no project, no address: the row kept names nobody. Say where it goes where it is given: to
+  the server's admins on a self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Give Feedback is a message, and reaches someone who can answer it.** The person writes to a team
+  and wants a reply, so the server emails it with their name and email address, their project, the
+  page and the version, copying them, and a reply goes to them (#8893): to the OneUptime team
+  (support@oneuptime.com) on Cloud, and to the server's Admin Notification Email on a self-hosted
+  server, never to OneUptime. A self-hosted server with none emails nothing, and the answer names
+  nobody. The dialog says to whom and with what before anything is sent, names the page as its
+  breadcrumbs do ("SLOs", never the route it sends, "/dashboard/:projectId/slos"), and once sent says
+  only what the server did: "A copy is on its way to you@example.com". Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
 - **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
   and posts what made them hesitate, guess or go back on the epic #6802:

@@ -46,7 +46,11 @@ export const SECRET_COLUMNS_WRITTEN_FROM_PASSWORD_FIELDS: Array<SecretColumns> =
       columns: ["password", "apiToken"],
     },
     {
-      // User Settings > Notification Methods > Webhooks (not encrypted).
+      /*
+       * User Settings > Notification Methods > Webhooks: stored as written
+       * then, and encrypted since #8989 by EncryptProjectCredentials, which
+       * runs after this and encrypts what this unwraps.
+       */
       service: UserWebhookService as unknown as DatabaseService<BaseModel>,
       columns: ["secret"],
     },

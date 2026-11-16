@@ -57,6 +57,8 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 - **Brugertilsidesættelser** dækker kun for folk i denne politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 - **Indstillinger** har **Eksportér Vagtpolitik** og kortet, der arkiverer politikken.
 
+**Hvad der udløser denne politik**, på **Oversigt**, viser vagtreglerne, de monitorer, hvis kriterier udløser politikken, de skabeloner og andre regler, der udløser den, og de arbejdsgange, der gør det, hver med et link. En regel, der er slået fra, viser **Fra**. Når intet udløser politikken, siger kortet det: den tilkalder ingen, før noget udløser den. Når du sletter eller arkiverer politikken, siges det samme først. Det, du ikke må åbne, tælles, men nævnes ikke.
+
 ## Gentag en politik
 
 Når det sidste niveaus ventetid er gået, uden at nogen har kvitteret, stopper en politik, medmindre den gentages. For at vælge skal du åbne politikkens side **Eskaleringsregler** og klikke på **Rediger** på kortet **Gentagelsespolitik** under reglerne. **Rediger gentagelsespolitik** spørger **Hvis ingen bekræfter efter det sidste niveau**:
@@ -93,7 +95,7 @@ Ingen går glip af et tilkald ved kun at blive tilkaldt én gang. Det ene tilkal
 
 Nogle tilkald fortsætter, efter den er bekræftet, indtil nogen, de har tilkaldt, svarer, eller den er løst: et nyt tilkald, et tilkald til observatører, et tilkald, som nogen har sendt til personer fra Slack eller Microsoft Teams, og en politik, der er startet manuelt.
 
-En politik, der er startet manuelt, er en, der er startet med **Udfør vagtpolitik** eller af et tilkald fra Slack eller Microsoft Teams, der nævner den. Den tilkalder niveau for niveau som enhver kørsel, med opkald og gentagne push-notifikationer, og at en anden bekræfter hændelsen, stopper den ikke: sådan tilkalder du endnu et team til en hændelse, som nogen allerede arbejder på. Den, den har tilkaldt, svarer fra sit tilkalds besked, et opkald eller en sms, eller ved selv at bekræfte hændelsen; når hændelsen er bekræftet, tilbyder hændelsens side vedkommende **Bekræft igen**. **Eskalér** sender den videre til næste niveau. På en hændelse, advarsel eller episode, der er løst, startes intet, og du får at vide hvorfor. Dens notifikationer siger, hvem der startede hvilken politik, og indeholder den besked, der blev sendt med et tilkald fra Slack eller Microsoft Teams.
+En politik, der er startet manuelt, er en, der er startet med **Udfør vagtpolitik** eller af et tilkald fra Slack eller Microsoft Teams, der nævner den. Den tilkalder niveau for niveau som enhver kørsel, med opkald og gentagne push-notifikationer, og at en anden bekræfter hændelsen, stopper den ikke: sådan tilkalder du endnu et team til en hændelse, som nogen allerede arbejder på. Den, den har tilkaldt, svarer fra sit tilkalds besked, et opkald eller en sms, eller ved selv at bekræfte hændelsen; når hændelsen er bekræftet, tilbyder hændelsens side vedkommende **Bekræft igen**. **Eskalér** sender den videre til næste niveau. På en hændelse, advarsel eller episode, der er løst, startes intet, og du får at vide hvorfor: dashboardet slår **Udfør vagtpolitik** fra og viser årsagen. Dens notifikationer siger, hvem der startede hvilken politik, og indeholder den besked, der blev sendt med et tilkald fra Slack eller Microsoft Teams.
 
 ## Udførelseslogs
 

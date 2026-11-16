@@ -15,8 +15,8 @@ import {
 /*
  * EncryptColumnInPlace encrypts the values a column held before it was kept
  * encrypted at rest - the private keys of custom domains' uploaded
- * certificates, of Let's Encrypt certificates and of the Greenlock store -
- * for the data migrations that encrypt them. Pinned here, against a table
+ * certificates and of Let's Encrypt certificates - for the data migrations
+ * that encrypt them. Pinned here, against a table
  * kept in memory that answers the SQL the way Postgres would:
  *
  *   1. it reads a page at a time, in _id order, only the values that are set

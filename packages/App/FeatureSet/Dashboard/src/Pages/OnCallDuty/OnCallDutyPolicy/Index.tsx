@@ -14,6 +14,25 @@ import OverviewCustomFields from "../../../Components/CustomFields/OverviewCusto
 import OnCallDutyPolicyFeedElement from "../../../Components/OnCallPolicy/OnCallDutyPolicyFeed";
 import OnCallPolicySummary from "../../../Components/OnCallPolicy/OnCallPolicySummary";
 import ResponderReadinessCard from "../../../Components/OnCallPolicy/Readiness/ResponderReadinessCard";
+import SetupHealthRecordFindings from "../../../Components/SetupHealth/SetupHealthRecordFindings";
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import {
+  SetupHealthCheck,
+  SetupHealthRecordKind,
+} from "Common/Types/SetupHealth/SetupHealth";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+
+/*
+ * What the policy's own cards say already, so Setup Health's line at the
+ * top leaves it out: the summary says it has no escalation rules, and which
+ * levels reach nobody right now; What runs this policy (#7758) says when
+ * nothing runs it, and marks Off a rule that would but is switched off.
+ */
+export const POLICY_PAGE_SAYS: ReadonlyArray<SetupHealthCheck> = [
+  SetupHealthCheck.PolicyHasNoEscalationRules,
+  SetupHealthCheck.PolicyReachesNobody,
+  SetupHealthCheck.PolicyNotRun,
+];
 
 const OnCallDutyPolicyView: FunctionComponent<
   PageComponentProps
@@ -22,6 +41,17 @@ const OnCallDutyPolicyView: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Setup Health's findings about this policy (#7297), less what this
+       * page's own cards say (POLICY_PAGE_SAYS): that nothing runs it is
+       * What runs this policy's to say, below.
+       */}
+      <SetupHealthRecordFindings
+        recordKind={SetupHealthRecordKind.OnCallDutyPolicy}
+        recordId={modelId}
+        saidByThisPage={POLICY_PAGE_SAYS}
+      />
+
       {/* OnCallDutyPolicy View  */}
       <CardModelDetail<OnCallDutyPolicy>
         name="On-Call Policy > On-Call Policy Details"
@@ -117,6 +147,16 @@ const OnCallDutyPolicyView: FunctionComponent<
        * that page lands.
        */}
       <ResponderReadinessCard onCallDutyPolicyId={modelId} />
+
+      {/*
+       * What runs it (#7758): the summary says who is paged, this says
+       * when - the on-call rules, monitors and templates that page the
+       * policy - and says so plainly when nothing does yet.
+       */}
+      <UsedByCard
+        recordKind={UsedByRecordKind.OnCallPolicy}
+        recordId={modelId}
+      />
 
       <OnCallDutyPolicyFeedElement onCallDutyPolicyId={modelId} />
     </Fragment>

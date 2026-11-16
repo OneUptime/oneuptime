@@ -742,6 +742,24 @@ describe("vendored browser assets", () => {
       }
     });
 
+    /*
+     * Each build leaves a file in the directory it builds into, so that a
+     * later build knows the directory as its own (#7568). It sits beside
+     * the entry, and is never served.
+     */
+    test("never serves the file a build leaves in its directory", async () => {
+      const marker: string = ".oneuptime-mermaid-build";
+
+      expect(fs.existsSync(path.join(MermaidBuildPath, marker))).toBe(true);
+
+      const asset: AssetResponse = await getAsset(
+        `${VendorAssetsRoute}/mermaid/${marker}`,
+      );
+
+      expect(asset.status).toBe(404);
+      expect(asset.text).not.toBe(INDEX_PAGE);
+    });
+
     test("answers a repeat request with 304 when the browser has it", async () => {
       const first: AssetResponse = await getAsset(MermaidEntryUrl);
 

@@ -790,6 +790,142 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     );
   });
 
+  /*
+   * Issue #8863: the entry before each state change was read on its own.
+   * Two state changes of one incident on a page are now read for with two
+   * reads - the entry before the first, and the incident's entries in
+   * between - and each email says what one read of its own would have.
+   */
+  test("two state changes of one incident on a page: each one's previous state, read with the page, is what a read of its own found", async () => {
+    const identifiedAt: Date = new Date("2026-08-18T08:00:00.000Z");
+    const acknowledgedAt: Date = new Date("2026-08-18T09:00:00.000Z");
+    const resolvedAt: Date = new Date("2026-08-18T09:30:00.000Z");
+
+    const acknowledged: IncidentStateTimeline = makeTimeline({
+      id: TIMELINE_1_ID,
+      incidentId: INCIDENT_1_ID,
+      startsAt: acknowledgedAt,
+    });
+    acknowledged.incidentStateId = new ObjectID("state-acknowledged");
+    const resolved: IncidentStateTimeline = makeTimeline({
+      id: TIMELINE_2_ID,
+      incidentId: INCIDENT_1_ID,
+      startsAt: resolvedAt,
+    });
+    resolved.incidentStateId = new ObjectID("state-resolved");
+
+    const identified: IncidentStateTimeline = new IncidentStateTimeline();
+    identified.id = new ObjectID("timeline-0");
+    identified.incidentId = INCIDENT_1_ID;
+    identified.incidentStateId = new ObjectID("state-identified");
+    identified.startsAt = identifiedAt;
+    identified.createdAt = identifiedAt;
+
+    const wholeTimeline: Array<IncidentStateTimeline> = [
+      identified,
+      acknowledged,
+      resolved,
+    ];
+
+    due([acknowledged, resolved]);
+    stubIncidents([
+      makeIncident({
+        id: INCIDENT_1_ID,
+        description: "**Database** is unreachable",
+        severityName: "Critical",
+      }),
+    ]);
+    incidentService.findOwners.mockResolvedValue([makeUser(USER_1_ID)]);
+
+    jest.spyOn(QueryHelper, "lessThan").mockImplementation((value: unknown) => {
+      return { lessThan: value } as never;
+    });
+    jest
+      .spyOn(QueryHelper, "inBetween")
+      .mockImplementation((from: unknown, to: unknown) => {
+        return { inBetween: [from, to] } as never;
+      });
+
+    // The page, or the incident's entries in between.
+    timelineService.findBy.mockImplementation(
+      async (data: { query: Record<string, unknown> }) => {
+        if (data.query["incidentId"]) {
+          const [from, to] = (
+            data.query["startsAt"] as { inBetween: [Date, Date] }
+          ).inBetween;
+
+          return wholeTimeline.filter((each: IncidentStateTimeline) => {
+            return (
+              each.startsAt!.getTime() >= from.getTime() &&
+              each.startsAt!.getTime() <= to.getTime()
+            );
+          });
+        }
+
+        return dueTimelines.filter((timeline: IncidentStateTimeline) => {
+          return !takenTimelineIds.has(timeline.id!.toString());
+        });
+      },
+    );
+    // The entry before one, newest first.
+    timelineService.findOneBy.mockImplementation(
+      async (data: { query: Record<string, unknown> }) => {
+        const before: Date = (data.query["startsAt"] as { lessThan: Date })
+          .lessThan;
+
+        return (
+          wholeTimeline
+            .filter((each: IncidentStateTimeline) => {
+              return each.startsAt!.getTime() < before.getTime();
+            })
+            .sort((a: IncidentStateTimeline, b: IncidentStateTimeline) => {
+              return b.startsAt!.getTime() - a.startsAt!.getTime();
+            })[0] || null
+        );
+      },
+    );
+
+    const STATE_NAMES: Record<string, string> = {
+      "state-identified": "Identified",
+      "state-acknowledged": "Acknowledged",
+    };
+    stateService.findOneById.mockImplementation(
+      async (data: { id: ObjectID }) => {
+        const state: IncidentState = new IncidentState();
+        state.name = STATE_NAMES[data.id.toString()] || "Unknown";
+        return state;
+      },
+    );
+
+    await runWorkerTick();
+
+    const calls: Array<SendNotificationArgs> = sendCalls();
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0]!.emailEnvelope.vars!["previousStateDurationText"]).toBe(
+      `Was Identified for ${OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+        OneUptimeDate.getDifferenceInSeconds(acknowledgedAt, identifiedAt),
+      )}`,
+    );
+    expect(calls[1]!.emailEnvelope.vars!["previousStateDurationText"]).toBe(
+      `Was Acknowledged for ${OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+        OneUptimeDate.getDifferenceInSeconds(resolvedAt, acknowledgedAt),
+      )}`,
+    );
+
+    // Two reads for both, where there was one each: the one before, and those in between.
+    expect(timelineService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(
+      timelineService.findBy.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return Boolean(
+            (call[0] as { query: Record<string, unknown> }).query["incidentId"],
+          );
+        },
+      ),
+    ).toHaveLength(1);
+  });
+
   test("a row whose incident no longer exists is taken without telling anyone - so no run reads it again - and does not block later rows", async () => {
     due([
       makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID }),

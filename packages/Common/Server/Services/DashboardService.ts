@@ -189,14 +189,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The dashboards whose stored layout names a record: a widget's
-   * filter holds the record's id, so the layout's text holds it (Used
-   * By). A search of the stored text, which reads no layout into a
-   * board (DashboardStoredConfigReaders).
+   * The dashboards whose stored layout names a record, or any of several
+   * (a list's selection): a widget's filter holds the record's id, so the
+   * layout's text holds it (Used By). A search of the stored text, which
+   * reads no layout into a board (DashboardStoredConfigReaders).
    */
-  public getQueryForLayoutsNaming(recordId: ObjectID): Query<Model> {
+  public getQueryForLayoutsNaming(
+    recordIds: ObjectID | Array<ObjectID>,
+  ): Query<Model> {
+    const ids: Array<ObjectID> = Array.isArray(recordIds)
+      ? recordIds
+      : [recordIds];
+
     return {
-      dashboardViewConfig: QueryHelper.textContainsAnyOf([recordId.toString()]),
+      dashboardViewConfig: QueryHelper.textContainsAnyOf(
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ),
     };
   }
 

@@ -149,6 +149,37 @@ describe("the exact undo of a cloud change", () => {
     expect(bypass.rollbackCommand).toBe(`cloud scale-in ${ECS} --count 2`);
   });
 
+  /*
+   * Where the project asks two people to approve a riskier fix (#6421), an
+   * unattended change's riskier undo would run unattended too: it is no
+   * rollback even where approvals are bypassed. A safe undo still is.
+   */
+  test("with the two-approvals rule on, a riskier undo is no rollback, even where approvals are bypassed", () => {
+    const output: string = `${formatCloudReplacedValue({ count: "2" })}\nECS service web: 2 → 4`;
+    const held: AiRemediationCommand = ran(
+      `cloud scale-out ${ECS} --count 4`,
+      output,
+    );
+    const safe: AiRemediationCommand = ran(
+      `cloud stop-instance ${EC2}`,
+      `${formatCloudReplacedValue({ state: "running" })}\nstopped`,
+    );
+
+    RemediationCommandToolkit.applyCloudUndo({
+      command: held,
+      resource: status(ResourceAiRemediationMode.BypassApproval),
+      isTwoApprovalsRuleOn: true,
+    });
+    RemediationCommandToolkit.applyCloudUndo({
+      command: safe,
+      resource: status(ResourceAiRemediationMode.BypassApproval),
+      isTwoApprovalsRuleOn: true,
+    });
+
+    expect(held.rollbackCommand).toBeUndefined();
+    expect(safe.rollbackCommand).toBe(`cloud start-instance ${EC2}`);
+  });
+
   test("an undo a person always approves is never a rollback, whatever the mode", () => {
     // start-instance is undone by stop-instance, which always asks a person.
     const command: AiRemediationCommand = ran(

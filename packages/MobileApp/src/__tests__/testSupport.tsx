@@ -198,6 +198,46 @@ export function makeMonitor(overrides: Partial<MonitorItem> = {}): MonitorItem {
   };
 }
 
+/*
+ * A monitor as a server with Monitor.firstMeasuredAt sends it before
+ * anything has checked it (#8961): a Website created a minute before `now`
+ * (the current time unless a test names one) on a five-minute interval,
+ * every flag the row rule reads off, still in the operational status every
+ * monitor starts in, and firstMeasuredAt empty.
+ */
+export function makeNeverCheckedMonitor(
+  overrides: Partial<MonitorItem> = {},
+  options: { createdAgoMs?: number; now?: number } = {},
+): MonitorItem {
+  const now: number = options.now ?? Date.now();
+  const createdAgoMs: number = options.createdAgoMs ?? 60 * 1000;
+
+  return makeMonitor({
+    _id: "monitor-new",
+    name: "new-api.example.com",
+    monitorType: "Website",
+    isArchived: false,
+    disableActiveMonitoring: false,
+    disableActiveMonitoringBecauseOfManualIncident: false,
+    disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+    isNoProbeEnabledOnThisMonitor: false,
+    isAllProbesDisconnectedFromThisMonitor: false,
+    firstMeasuredAt: null,
+    createdAt: new Date(now - createdAgoMs).toISOString(),
+    monitoringInterval: "*/5 * * * *",
+    currentMonitorStatus: {
+      ...makeNamedEntityWithColor({
+        _id: "monitor-status-operational",
+        name: "Operational",
+        color: makeColor({ r: 34, g: 197, b: 94 }),
+      }),
+      isOperationalState: true,
+      isOfflineState: false,
+    },
+    ...overrides,
+  });
+}
+
 export function makeMonitorStatus(
   overrides: Partial<MonitorStatusItem> = {},
 ): MonitorStatusItem {

@@ -45,9 +45,12 @@ import { getJestSpyOn } from "../../Spy";
  *
  * Each provider shows only its own step, and a config is saved with
  * nothing the form hid once its provider was picked. An existing config
- * opens as it is, and saving it untouched sends what it holds. Send Test
- * Email stays the row's own button, with the signed-in person's address to
- * start from.
+ * opens as it is - but its credentials, which are write-only (#8989), are
+ * never loaded: each starts blank, says blank keeps the stored one, and is
+ * not sent unless typed in. A credential the config never had - a client
+ * secret once it is switched to OAuth, a key once it is switched to that
+ * provider - is asked for as on a new config. Send Test Email stays the
+ * row's own button, with the signed-in person's address to start from.
  */
 
 jest.setTimeout(60000);
@@ -58,6 +61,7 @@ const SIGNED_IN_EMAIL: string = "maintainer@example.com";
 let mode: "create" | "edit" = "create";
 let stored: JSONObject = {};
 let capturedModels: Array<Record<string, unknown>> = [];
+let capturedSelects: Array<Record<string, unknown>> = [];
 let tableProps: Array<Record<string, unknown>> = [];
 
 /*
@@ -120,9 +124,21 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       getItem: async (data: {
         modelType: { new (): Record<string, unknown> };
+        select?: Record<string, unknown>;
       }): Promise<unknown> => {
+        capturedSelects.push(data.select || {});
+
+        // The API answers what was asked for, and nothing else.
+        const answered: Record<string, unknown> = { _id: CONFIG_ID };
+
+        for (const [key, value] of Object.entries(stored)) {
+          if (!data.select || data.select[key]) {
+            answered[key] = value;
+          }
+        }
+
         const item: Record<string, unknown> = new data.modelType();
-        Object.assign(item, { _id: CONFIG_ID, ...stored });
+        Object.assign(item, answered);
         return item;
       },
       getList: async (): Promise<{
@@ -153,8 +169,19 @@ jest.mock("../../../UI/Utils/Permission", () => {
       getAllPermissions: (): Array<Permission> => {
         return [Permission.ProjectOwner, Permission.User, Permission.Public];
       },
-      getProjectPermissions: (): null => {
-        return null;
+      getProjectPermissions: (): {
+        permissions: Array<Record<string, unknown>>;
+      } => {
+        return {
+          permissions: [
+            {
+              _type: "UserPermission",
+              permission: Permission.ProjectOwner,
+              labelIds: [],
+              isBlockPermission: false,
+            },
+          ],
+        };
       },
       getGlobalPermissions: (): { globalPermissions: Array<Permission> } => {
         return {
@@ -296,6 +323,21 @@ const PROVIDER_KEYS: Array<string> = [
   "resendApiKey",
 ];
 
+// Every credential of a config: write-only, never loaded by an edit.
+const CREDENTIAL_KEYS: Array<string> = [
+  "password",
+  "clientSecret",
+  "amazonSesSecretAccessKey",
+  "sendgridApiKey",
+  "mailgunApiKey",
+  "postmarkServerToken",
+  "resendApiKey",
+];
+
+// What a write-only field says on an edit, and holds until typed in.
+const KEEP_HINT: string = "Leave blank to keep the stored value.";
+const UNCHANGED: string = "Unchanged";
+
 const SMTP_SUMMARY: string =
   "Mail is sent over SMTP, signing in with the username and password. TLS is required.";
 
@@ -311,6 +353,33 @@ function input(key: string): HTMLInputElement | HTMLTextAreaElement {
 
 function queryInput(key: string): HTMLElement | null {
   return within(dialog()).queryByPlaceholderText(PLACEHOLDER[key]!);
+}
+
+// The one write-only field on the step on screen, drawn blank.
+function credentialInput(): HTMLInputElement | HTMLTextAreaElement {
+  return within(dialog()).getByPlaceholderText(UNCHANGED) as
+    | HTMLInputElement
+    | HTMLTextAreaElement;
+}
+
+async function typeCredential(value: string): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.change(credentialInput(), { target: { value } });
+  });
+}
+
+// An edit asked for none of the config's credentials.
+function expectNoCredentialAskedFor(): void {
+  expect(capturedSelects.length).toBeGreaterThan(0);
+
+  for (const select of capturedSelects) {
+    for (const key of CREDENTIAL_KEYS) {
+      expect({ key, asked: Boolean(select[key]) }).toEqual({
+        key,
+        asked: false,
+      });
+    }
+  }
 }
 
 async function settle(): Promise<void> {
@@ -475,6 +544,7 @@ beforeEach(() => {
   mode = "create";
   stored = {};
   capturedModels = [];
+  capturedSelects = [];
   tableProps = [];
 });
 
@@ -1040,7 +1110,7 @@ describe("creating a project's mail server", () => {
 });
 
 describe("editing a project's mail server", () => {
-  test("opens an SMTP config as it is, and saves it untouched exactly as stored", async () => {
+  test("opens an SMTP config as it is but its password, and saves it untouched: the stored password is kept", async () => {
     mode = "edit";
     stored = {
       name: "Company SMTP",
@@ -1077,6 +1147,14 @@ describe("editing a project's mail server", () => {
     // Its own port, never the 587 a new config starts on.
     expect(input("port").value).toBe("2525");
 
+    // The password is never read back: blank, and blank keeps the stored one.
+    expectNoCredentialAskedFor();
+    expect(queryInput("password")).toBeNull();
+    expect(credentialInput().value).toBe("");
+    expect(
+      within(dialog()).getByText(KEEP_HINT, { exact: false }),
+    ).toBeVisible();
+
     expect(
       within(dialog()).getByTestId("collapsible-section-summary"),
     ).toHaveTextContent(
@@ -1108,7 +1186,8 @@ describe("editing a project's mail server", () => {
       hostname: "smtp.example.com",
       port: "2525",
       username: "relay-user",
-      password: "relay-password",
+      // Not sent: the server keeps the stored one.
+      password: undefined,
       secure: false,
       authType: SMTPAuthenticationType.UsernamePassword,
       oauthProviderType: null,
@@ -1117,7 +1196,7 @@ describe("editing a project's mail server", () => {
     });
   });
 
-  test("opens a Microsoft Graph config on its OAuth step, and saves it without a port", async () => {
+  test("opens a Microsoft Graph config on its OAuth step, and saves it without a port, its client secret kept", async () => {
     mode = "edit";
     stored = {
       name: "Microsoft 365",
@@ -1153,6 +1232,13 @@ describe("editing a project's mail server", () => {
     expect(queryInput("hostname")).toBeNull();
     expect(queryInput("port")).toBeNull();
 
+    expectNoCredentialAskedFor();
+    expect(queryInput("clientSecret")).toBeNull();
+    expect(credentialInput().value).toBe("");
+    expect(
+      within(dialog()).getByText(KEEP_HINT, { exact: false }),
+    ).toBeVisible();
+
     await saveFromTheLastStep();
 
     const model: Record<string, unknown> = await saved();
@@ -1169,12 +1255,12 @@ describe("editing a project's mail server", () => {
       port: null,
       hostname: null,
       clientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
-      clientSecret: "graph-client-secret",
+      clientSecret: undefined,
       scope: "https://graph.microsoft.com/.default",
     });
   });
 
-  test("opens an Amazon SES config with its key, and saves it untouched", async () => {
+  test("opens an Amazon SES config with its access key ID, and saves it untouched, its secret kept", async () => {
     mode = "edit";
     stored = {
       name: "Amazon SES",
@@ -1197,6 +1283,10 @@ describe("editing a project's mail server", () => {
     expect(input("amazonSesAccessKeyId").value).toBe("AKIAIOSFODNN7EXAMPLE");
     expect(input("amazonSesRegion").value).toBe("eu-west-1");
 
+    expectNoCredentialAskedFor();
+    expect(queryInput("amazonSesSecretAccessKey")).toBeNull();
+    expect(credentialInput().value).toBe("");
+
     await saveFromTheLastStep();
 
     const model: Record<string, unknown> = await saved();
@@ -1209,8 +1299,182 @@ describe("editing a project's mail server", () => {
     }).toEqual({
       transportType: MailTransportType.AmazonSES,
       amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
-      amazonSesSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+      amazonSesSecretAccessKey: undefined,
       amazonSesRegion: "eu-west-1",
+    });
+  });
+
+  test("a password typed in replaces the stored one", async () => {
+    mode = "edit";
+    stored = {
+      name: "Company SMTP",
+      transportType: MailTransportType.SMTP,
+      hostname: "smtp.example.com",
+      port: 587,
+      username: "relay-user",
+      password: "relay-password",
+      secure: true,
+      authType: SMTPAuthenticationType.UsernamePassword,
+      fromEmail: "alerts@example.com",
+      fromName: "Example Alerts",
+    };
+
+    await renderPage();
+    await openStep("Server");
+    await typeCredential("a rotated password");
+    await saveFromTheLastStep();
+
+    expect((await saved())["password"]).toBe("a rotated password");
+  });
+
+  test("a config switched to OAuth asks for the client secret it never had, and saves the one typed", async () => {
+    mode = "edit";
+    stored = {
+      name: "Company SMTP",
+      transportType: MailTransportType.SMTP,
+      hostname: "smtp.office365.com",
+      port: 587,
+      username: "alerts@example.com",
+      password: "relay-password",
+      secure: true,
+      authType: SMTPAuthenticationType.UsernamePassword,
+      fromEmail: "alerts@example.com",
+      fromName: "Example Alerts",
+    };
+
+    await renderPage();
+    await openStep("Server");
+    await openAdvanced();
+    await pick("OAuth");
+
+    expect(stepTitles()).toEqual(["Provider", "Server", "OAuth", "Sender"]);
+
+    await openStep("OAuth");
+
+    // Nothing stored to keep: asked for as on a new config, never "Unchanged".
+    expect(within(dialog()).queryByPlaceholderText(UNCHANGED)).toBeNull();
+    expect(input("clientSecret").value).toBe("");
+    expect(
+      within(dialog()).queryByText(KEEP_HINT, { exact: false }),
+    ).toBeNull();
+
+    await type("clientId", "0f0e0d0c-0b0a-4000-8000-000000000001");
+    await type(
+      "tokenUrl",
+      "https://login.microsoftonline.com/tenant-id/oauth2/v2.0/token",
+    );
+    await type("scope", "https://outlook.office365.com/.default");
+
+    // Without the secret, nothing is saved.
+    await clickWayOn();
+    expect(activeStep()).toContain("OAuth");
+    expect(
+      within(dialog()).getByText("OAuth Client Secret is required."),
+    ).toBeVisible();
+    expect(capturedModels).toEqual([]);
+
+    await type("clientSecret", "the client secret");
+    await saveFromTheLastStep();
+
+    const model: Record<string, unknown> = await saved();
+
+    expect({
+      authType: model["authType"],
+      clientSecret: model["clientSecret"],
+      password: model["password"],
+    }).toEqual({
+      authType: SMTPAuthenticationType.OAuth,
+      clientSecret: "the client secret",
+      // Left alone: the server keeps what is stored.
+      password: undefined,
+    });
+  });
+
+  test("a config switched to SendGrid asks for its key, and saves the one typed", async () => {
+    mode = "edit";
+    stored = {
+      name: "Company SMTP",
+      transportType: MailTransportType.SMTP,
+      hostname: "smtp.example.com",
+      port: 587,
+      username: "relay-user",
+      password: "relay-password",
+      secure: true,
+      authType: SMTPAuthenticationType.UsernamePassword,
+      fromEmail: "alerts@example.com",
+      fromName: "Example Alerts",
+    };
+
+    await renderPage();
+    await pickProvider(MailTransportType.SendGrid);
+
+    expect(stepTitles()).toEqual(["Provider", "SendGrid", "Sender"]);
+
+    await openStep("SendGrid");
+
+    // Nothing stored to keep: asked for as on a new config.
+    expect(within(dialog()).queryByPlaceholderText(UNCHANGED)).toBeNull();
+    expect(input("sendgridApiKey").value).toBe("");
+
+    await clickWayOn();
+    expect(activeStep()).toContain("SendGrid");
+    expect(within(dialog()).getByText("API Key is required.")).toBeVisible();
+    expect(capturedModels).toEqual([]);
+
+    await type("sendgridApiKey", "SG.a-new-key");
+    await saveFromTheLastStep();
+
+    const model: Record<string, unknown> = await saved();
+
+    expect({
+      transportType: model["transportType"],
+      sendgridApiKey: model["sendgridApiKey"],
+    }).toEqual({
+      transportType: MailTransportType.SendGrid,
+      sendgridApiKey: "SG.a-new-key",
+    });
+  });
+
+  test("an OAuth config keeps its client secret when Edit leaves it blank", async () => {
+    mode = "edit";
+    stored = {
+      name: "Microsoft 365 SMTP",
+      transportType: MailTransportType.SMTP,
+      hostname: "smtp.office365.com",
+      port: 587,
+      username: "alerts@example.com",
+      secure: true,
+      authType: SMTPAuthenticationType.OAuth,
+      oauthProviderType: OAuthProviderType.ClientCredentials,
+      clientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
+      clientSecret: "stored client secret",
+      tokenUrl: "https://login.microsoftonline.com/tenant-id/oauth2/v2.0/token",
+      scope: "https://outlook.office365.com/.default",
+      fromEmail: "alerts@example.com",
+      fromName: "Example Alerts",
+    };
+
+    await renderPage();
+    await openStep("OAuth");
+
+    expectNoCredentialAskedFor();
+    expect(credentialInput().value).toBe("");
+    expect(
+      within(dialog()).getByText(KEEP_HINT, { exact: false }),
+    ).toBeVisible();
+
+    await saveFromTheLastStep();
+
+    const model: Record<string, unknown> = await saved();
+
+    expect({
+      authType: model["authType"],
+      clientId: model["clientId"],
+      clientSecret: model["clientSecret"],
+    }).toEqual({
+      authType: SMTPAuthenticationType.OAuth,
+      clientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
+      clientSecret: undefined,
     });
   });
 });

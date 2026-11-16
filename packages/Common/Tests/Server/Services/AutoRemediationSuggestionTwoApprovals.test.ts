@@ -11,14 +11,19 @@ import ObjectID from "../../../Types/ObjectID";
  * THE TWO WRITES OF A RISKIER FIX'S TWO APPROVALS (#6148's follow-up),
  * each one conditional UPDATE whose WHERE says what makes it right:
  *
- *  - the first approval: the fix still waits (Suggested) and nobody approved
- *    it first yet - so of two first approvals at once exactly one is
- *    recorded; the status is not touched, nothing runs;
- *  - the second approval: the claim Suggested -> Approved, and the first
- *    approval is the one the approver was shown, and someone else's - so
- *    neither a first approval that moved nor the first approver's own
- *    second press can run the fix. A press by the first approver is
- *    refused before any query.
+ *  - the first approval: the fix still waits (Suggested), on the version
+ *    the approval's checks read, and no first approval of this very fix is
+ *    recorded (none, or one given to what the fix no longer runs) - so of
+ *    two first approvals at once exactly one is recorded; what it approved
+ *    (the plan's fingerprint) is recorded with it; the status is not
+ *    touched, nothing runs;
+ *  - the second approval: the claim Suggested -> Approved on the version
+ *    read, and the first approval is the one the approver was shown, given
+ *    to this very fix, and someone else's - so neither a first approval
+ *    that moved, nor one given to another plan, nor the first approver's
+ *    own second press can run the fix. A press by the first approver is
+ *    refused before any query;
+ *  - a lone approval's claim is held to the version read too.
  *
  * The query builder is recorded, not run: what each write sends is pinned.
  */
@@ -92,18 +97,24 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// The version the approval's checks read, and the fix's fingerprint then.
+const VERSION: number = 7;
+const PLAN: string = "0123456789abcdef";
+
 describe("attemptFirstApproval", () => {
-  test("records who, when and where, only while the fix waits and nobody approved it first", async () => {
+  test("records who, when, where and what it approved, only on the version read, while the fix waits and has no first approval of this very fix", async () => {
     const recorded: RecordedUpdate = mockUpdateQueryBuilder(1);
     const at: Date = new Date("2026-11-06T09:00:00.000Z");
 
     const changed: number =
       await AutoRemediationSuggestionService.attemptFirstApproval({
         suggestionId: SUGGESTION_ID,
+        atVersion: VERSION,
         set: {
           firstApprovedByUserId: MAYA,
           firstApprovedAt: at,
           firstApprovedFrom: AutoRemediationApprovalSource.Dashboard,
+          firstApprovedPlanFingerprint: PLAN,
         },
       });
 
@@ -112,6 +123,7 @@ describe("attemptFirstApproval", () => {
       firstApprovedByUserId: MAYA,
       firstApprovedAt: at,
       firstApprovedFrom: AutoRemediationApprovalSource.Dashboard,
+      firstApprovedPlanFingerprint: PLAN,
     });
     // Nothing runs on a first approval: its status is not written.
     expect(recorded.set).not.toHaveProperty("status");
@@ -121,7 +133,12 @@ describe("attemptFirstApproval", () => {
         clause: '"status" = :status',
         parameters: { status: AutoRemediationSuggestionStatus.Suggested },
       },
-      { clause: '"firstApprovedByUserId" IS NULL' },
+      { clause: '"version" = :version', parameters: { version: VERSION } },
+      {
+        clause:
+          '("firstApprovedByUserId" IS NULL OR "firstApprovedPlanFingerprint" IS DISTINCT FROM :planFingerprint)',
+        parameters: { planFingerprint: PLAN },
+      },
       { clause: '"deletedAt" IS NULL' },
     ]);
   });
@@ -132,10 +149,12 @@ describe("attemptFirstApproval", () => {
     expect(
       await AutoRemediationSuggestionService.attemptFirstApproval({
         suggestionId: SUGGESTION_ID,
+        atVersion: VERSION,
         set: {
           firstApprovedByUserId: SAM,
           firstApprovedAt: new Date(),
           firstApprovedFrom: AutoRemediationApprovalSource.MicrosoftTeams,
+          firstApprovedPlanFingerprint: PLAN,
         },
       }),
     ).toBe(0);
@@ -143,13 +162,15 @@ describe("attemptFirstApproval", () => {
 });
 
 describe("attemptSecondApproval", () => {
-  test("claims the fix only while it waits, its first approval is the one shown, and is someone else's", async () => {
+  test("claims the fix only on the version read, while it waits, its first approval is the one shown, given to this very fix, and someone else's", async () => {
     const recorded: RecordedUpdate = mockUpdateQueryBuilder(1);
 
     const changed: number =
       await AutoRemediationSuggestionService.attemptSecondApproval({
         suggestionId: SUGGESTION_ID,
+        atVersion: VERSION,
         firstApprovedByUserId: MAYA,
+        firstApprovedPlanFingerprint: PLAN,
         set: approvalSet(SAM),
       });
 
@@ -161,9 +182,14 @@ describe("attemptSecondApproval", () => {
         clause: '"status" = :fromStatus',
         parameters: { fromStatus: AutoRemediationSuggestionStatus.Suggested },
       },
+      { clause: '"version" = :version', parameters: { version: VERSION } },
       {
         clause: '"firstApprovedByUserId" = :firstApprovedByUserId',
         parameters: { firstApprovedByUserId: MAYA },
+      },
+      {
+        clause: '"firstApprovedPlanFingerprint" = :planFingerprint',
+        parameters: { planFingerprint: PLAN },
       },
       {
         clause: '"firstApprovedByUserId" <> :approverId',
@@ -173,19 +199,28 @@ describe("attemptSecondApproval", () => {
     ]);
   });
 
-  test("the first approver's own second press is refused before any query, whatever the case of the ids", async () => {
-    const recorded: RecordedUpdate = mockUpdateQueryBuilder(1);
+  test.each([
+    ["the same id", MAYA],
+    ["the same id in capitals", MAYA.toUpperCase()],
+    ["the same id with spaces around it", `  ${MAYA} `],
+  ])(
+    "the first approver's own second press (%s) is refused before any query",
+    async (_case: string, approver: string) => {
+      const recorded: RecordedUpdate = mockUpdateQueryBuilder(1);
 
-    expect(
-      await AutoRemediationSuggestionService.attemptSecondApproval({
-        suggestionId: SUGGESTION_ID,
-        firstApprovedByUserId: MAYA,
-        set: approvalSet(MAYA.toUpperCase()),
-      }),
-    ).toBe(0);
-    expect(recorded.executed).toBe(0);
-    expect(clauses(recorded)).toEqual([]);
-  });
+      expect(
+        await AutoRemediationSuggestionService.attemptSecondApproval({
+          suggestionId: SUGGESTION_ID,
+          atVersion: VERSION,
+          firstApprovedByUserId: MAYA,
+          firstApprovedPlanFingerprint: PLAN,
+          set: approvalSet(approver),
+        }),
+      ).toBe(0);
+      expect(recorded.executed).toBe(0);
+      expect(clauses(recorded)).toEqual([]);
+    },
+  );
 
   test("an approval that names nobody is refused before any query", async () => {
     const recorded: RecordedUpdate = mockUpdateQueryBuilder(1);
@@ -195,8 +230,25 @@ describe("attemptSecondApproval", () => {
     expect(
       await AutoRemediationSuggestionService.attemptSecondApproval({
         suggestionId: SUGGESTION_ID,
+        atVersion: VERSION,
         firstApprovedByUserId: MAYA,
+        firstApprovedPlanFingerprint: PLAN,
         set,
+      }),
+    ).toBe(0);
+    expect(recorded.executed).toBe(0);
+  });
+
+  test("a second approval that names no plan the first approved is refused before any query", async () => {
+    const recorded: RecordedUpdate = mockUpdateQueryBuilder(1);
+
+    expect(
+      await AutoRemediationSuggestionService.attemptSecondApproval({
+        suggestionId: SUGGESTION_ID,
+        atVersion: VERSION,
+        firstApprovedByUserId: MAYA,
+        firstApprovedPlanFingerprint: "",
+        set: approvalSet(SAM),
       }),
     ).toBe(0);
     expect(recorded.executed).toBe(0);
@@ -208,9 +260,50 @@ describe("attemptSecondApproval", () => {
     expect(
       await AutoRemediationSuggestionService.attemptSecondApproval({
         suggestionId: SUGGESTION_ID,
+        atVersion: VERSION,
         firstApprovedByUserId: MAYA,
+        firstApprovedPlanFingerprint: PLAN,
         set: approvalSet(SAM),
       }),
     ).toBe(0);
+  });
+});
+
+describe("attemptStatusTransition", () => {
+  test("an approval's claim lands only on the version its checks read", async () => {
+    const recorded: RecordedUpdate = mockUpdateQueryBuilder(1);
+
+    await AutoRemediationSuggestionService.attemptStatusTransition({
+      suggestionId: SUGGESTION_ID,
+      fromStatus: AutoRemediationSuggestionStatus.Suggested,
+      atVersion: VERSION,
+      set: approvalSet(SAM),
+    });
+
+    expect(recorded.wheres).toEqual([
+      { clause: '"_id" = :id', parameters: { id: SUGGESTION_ID.toString() } },
+      {
+        clause: '"status" = :fromStatus',
+        parameters: { fromStatus: AutoRemediationSuggestionStatus.Suggested },
+      },
+      { clause: '"deletedAt" IS NULL' },
+      { clause: '"version" = :version', parameters: { version: VERSION } },
+    ]);
+  });
+
+  test("a transition that names no version is held to its status alone, as before", async () => {
+    const recorded: RecordedUpdate = mockUpdateQueryBuilder(1);
+
+    await AutoRemediationSuggestionService.attemptStatusTransition({
+      suggestionId: SUGGESTION_ID,
+      fromStatus: AutoRemediationSuggestionStatus.Approved,
+      set: { status: AutoRemediationSuggestionStatus.Suggested },
+    });
+
+    expect(clauses(recorded)).toEqual([
+      '"_id" = :id',
+      '"status" = :fromStatus',
+      '"deletedAt" IS NULL',
+    ]);
   });
 });

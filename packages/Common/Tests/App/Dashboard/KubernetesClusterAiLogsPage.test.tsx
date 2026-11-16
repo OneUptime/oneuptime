@@ -498,6 +498,7 @@ describe("parseKubernetesAiLogs", () => {
         incidentId: INCIDENT_ID,
         alertId: null,
         approvedAt: null,
+        firstApprovedAt: null,
       },
       {
         id: SECOND_FIX_ID,
@@ -509,6 +510,7 @@ describe("parseKubernetesAiLogs", () => {
         incidentId: null,
         alertId: ALERT_ID,
         approvedAt: null,
+        firstApprovedAt: null,
       },
     ]);
   });
@@ -714,6 +716,44 @@ describe("status words", () => {
     expect(getFixStatusLook(AutoRemediationSuggestionStatus.Dismissed)).toEqual(
       { label: "Dismissed", color: Gray500 },
     );
+  });
+
+  /*
+   * A fix that waits for the second of the two approvals a riskier fix
+   * needs says what it waits for (#6422), not "Waiting for approval".
+   */
+  test("a fix approved once that still waits says it waits for a second approval", () => {
+    expect(
+      getFixStatusLook(
+        AutoRemediationSuggestionStatus.Suggested,
+        "2026-09-22T09:06:00.000Z",
+      ),
+    ).toEqual({ label: "Waiting for a second approval", color: Yellow500 });
+    // Negative controls: nobody approved it yet, or it no longer waits.
+    expect(
+      getFixStatusLook(AutoRemediationSuggestionStatus.Suggested, null),
+    ).toEqual({ label: "Waiting for approval", color: Yellow500 });
+    expect(
+      getFixStatusLook(
+        AutoRemediationSuggestionStatus.Approved,
+        "2026-09-22T09:06:00.000Z",
+      ).label,
+    ).toBe("Applied after approval");
+  });
+
+  test("reads when a fix that still waits was approved first", () => {
+    const parsed: KubernetesAiLogs | null = parseKubernetesAiLogs({
+      investigations: [],
+      fixes: [
+        {
+          id: FIX_ID,
+          status: AutoRemediationSuggestionStatus.Suggested,
+          firstApprovedAt: "2026-09-22T09:06:00.000Z",
+        },
+      ],
+    });
+
+    expect(parsed!.fixes[0]!.firstApprovedAt).toBe("2026-09-22T09:06:00.000Z");
   });
 
   test("a status a newer server added shows as it is, in a neutral pill", () => {
@@ -1067,6 +1107,29 @@ describe("AI Logs page", () => {
       within(row).getByText("No reason was recorded."),
     ).toBeInTheDocument();
     expect(within(row).queryByRole("link")).toBeNull();
+  });
+
+  test("a fix approved once that waits for its second approval says so", async () => {
+    serve(
+      ok({
+        investigations: [],
+        fixes: [
+          { ...waitingFix(), firstApprovedAt: "2026-09-22T09:06:00.000Z" },
+          { ...waitingFix(), id: SECOND_FIX_ID },
+        ],
+      }),
+    );
+    openLogsPage();
+    await findText("Fixes");
+
+    const rows: Array<HTMLElement> = fixRows();
+    expect(
+      within(rows[0]!).getByText("Waiting for a second approval"),
+    ).toBeInTheDocument();
+    // Nobody approved the other one yet.
+    expect(
+      within(rows[1]!).getByText("Waiting for approval"),
+    ).toBeInTheDocument();
   });
 
   test("shows no KPI tiles: the command counts the route returns are not rendered", async () => {

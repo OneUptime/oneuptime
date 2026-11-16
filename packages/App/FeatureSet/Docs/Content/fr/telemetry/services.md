@@ -71,6 +71,8 @@ Le menu latéral d'un service compte cinq sections :
 
 Les propriétaires comptent au-delà de la page : un rôle dont la portée est Owned lit la télémétrie des services qui vous appartiennent, à vous ou à vos équipes. Voir [Télémétrie](/docs/permissions/index#télémétrie).
 
+La **Vue d'ensemble** d'un service a une carte **Utilisé par** : les moniteurs qui surveillent le service, et les SLOs qui les mesurent. Archiver ou supprimer le service, sur ses pages ou depuis la liste, les dit d'abord. Ce que vous ne pouvez pas ouvrir est compté, pas nommé.
+
 ## Modifier un service
 
 :::steps

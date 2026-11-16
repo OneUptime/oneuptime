@@ -19,6 +19,7 @@ import {
   getLayerName,
 } from "Common/Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import ScheduleLayerChanges from "Common/Server/Utils/OnCall/ScheduleLayerChanges";
 import {
   menuSections,
   sectionByTitle,
@@ -550,6 +551,23 @@ describe("the On-Call Schedules docs page", () => {
       expect(ROTATION_EXAMPLE).toContain(
         `"intervalCount": ${getDefaultLayerRotation().intervalCount.toNumber()}`,
       );
+    });
+
+    /*
+     * A change written row by row through the API is told once its writes
+     * are quiet (#7813): the page says how long, as the server waits it.
+     */
+    it("says a change made through the API is told once, after the quiet period the server waits", () => {
+      const api: string = pageSections[3]!.body;
+
+      expect(api).toContain(
+        "is told as one change: who is on call is worked out once the layers have had no change for half a minute",
+      );
+      expect(api).toContain("hears it once, not once for each layer or person");
+      expect(api).toContain(
+        "Pages go to whoever the layers put on call as soon as each change is saved.",
+      );
+      expect(ScheduleLayerChanges.QUIET_PERIOD_IN_SECONDS).toBe(30);
     });
   });
 

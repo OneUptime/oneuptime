@@ -230,7 +230,10 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
     return created.id!;
   }
 
-  // An SMTP config, its password stored as written (that column is not encrypted).
+  /*
+   * An SMTP config, its password stored as written: a row the encryption
+   * of #8989 has not reached yet.
+   */
   async function createSmtpConfig(): Promise<ObjectID> {
     const id: ObjectID = ObjectID.generate();
     await database.query(
@@ -410,7 +413,8 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
     const { rows, error } = await list({
       query: {},
       select: { name: true },
-      sort: { twilioAuthToken: "Ascending" },
+      // As a client sends it: the API takes ASC or DESC.
+      sort: { twilioAuthToken: "ASC" },
     });
     expect(error).toBeUndefined();
     /*

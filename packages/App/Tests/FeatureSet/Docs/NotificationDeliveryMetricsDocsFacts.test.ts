@@ -50,7 +50,10 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
-import { getOnCallAcknowledgementTimeoutDueAt } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import {
+  getOnCallAcknowledgementTimeoutDueAt,
+  getOnCallPageAgainDueAt,
+} from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { getOnCallPolicyRunPagingDueAt } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -1337,7 +1340,7 @@ describe("how a page is timed", () => {
       "For a page held by its on-call rule or by OneUptime AI, when its hold ran out, or when it started if that was sooner.",
     );
     expect(pageStarted).toContain(
-      "For a page again, when its acknowledgement timeout ran out.",
+      "For a page again, when its acknowledgement timeout ran out, or when its policy was last changed if that came later: a timeout cut so short that it had already run out is timed from the cut.",
     );
     expect(pageStarted).toContain(
       "So a worker that got to either late shows in the time.",
@@ -1364,6 +1367,25 @@ describe("how a page is timed", () => {
         minutes: 30,
       }),
     ).toEqual(holdRanOut);
+    /*
+     * Issue #6847: its policy changed later than that - a timeout cut so
+     * short it had run out already - when it was changed. One changed
+     * before, as a timeout never changed: when it ran out.
+     */
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: new Date("2026-11-11T08:30:00.000Z"),
+        minutes: 10,
+        policyChangedAt: new Date("2026-11-11T08:50:00.000Z"),
+      }),
+    ).toEqual(new Date("2026-11-11T08:50:00.000Z"));
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: new Date("2026-11-11T08:30:00.000Z"),
+        minutes: 30,
+        policyChangedAt: new Date("2026-11-10T08:00:00.000Z"),
+      }),
+    ).toEqual(holdRanOut);
 
     // Outside a record's creation, a page started with when it was due.
     expect(OnCallPageTiming.startPage({ dueAt: holdRanOut })).toEqual({
@@ -1379,12 +1401,18 @@ describe("how a page is timed", () => {
     ).toContain(
       "dueAt: getOnCallPolicyRunPagingDueAt({ pagingStartsAt: run.pagingStartsAt, now: data.now, }),",
     );
-    expect(
-      readCommonSource(
-        "Server/Utils/OnCall/OnCallAcknowledgementTimeout.ts",
-      ).replace(WHITESPACE_RUN, " "),
-    ).toContain(
-      "dueAt: getOnCallAcknowledgementTimeoutDueAt({ startedAt: startedAt, minutes: minutes, }),",
+    const pageAgainWorker: string = readCommonSource(
+      "Server/Utils/OnCall/OnCallAcknowledgementTimeout.ts",
+    ).replace(WHITESPACE_RUN, " ");
+
+    // Read once, with the minutes the worker decides by and the policy's change...
+    expect(pageAgainWorker).toContain(
+      "const pageAgainDueAt: Date = getOnCallPageAgainDueAt({ startedAt: startedAt, minutes: minutes, policyChangedAt: run.onCallDutyPolicy.updatedAt, });",
+    );
+    // ...and handed to the page again and to what is kept in flight for it.
+    expect(pageAgainWorker.split("dueAt: pageAgainDueAt,").length - 1).toBe(2);
+    expect(pageAgainWorker).not.toContain(
+      "dueAt: getOnCallAcknowledgementTimeoutDueAt(",
     );
 
     // Neither is in send lag: their notifications are due as the page starts.
@@ -1908,6 +1936,7 @@ describe("the objectives", () => {
   const objectives: Array<string> = [
     "### On-call SMS reach Twilio",
     "### Pages go out within 30 seconds",
+    "### Pages started later go out within 2 minutes",
     "### Notifications sent later go out within 90 seconds",
     "### On-call SMS reach the phone",
   ];
@@ -1949,13 +1978,26 @@ describe("the objectives", () => {
     });
   });
 
-  it("are the four the page's opening promises, each under its own heading", () => {
+  it("are the five the page's opening promises, each under its own heading", () => {
     for (const heading of objectives) {
       expect(PAGE.split("\n")).toContain(heading);
     }
 
+    expect(
+      PAGE.split("\n").filter((line: string): boolean => {
+        return (
+          line.startsWith("### ") &&
+          PAGE.indexOf(line) > PAGE.indexOf("## SLOs to start from") &&
+          PAGE.indexOf(line) < PAGE.indexOf("## Troubleshooting") &&
+          line !== "### Build one in the metrics explorer"
+        );
+      }),
+    ).toEqual(objectives);
     expect(section("## SLOs to start from")).toContain(
-      "Four objectives most installations can promise",
+      "Five objectives most installations can promise",
+    );
+    expect(PAGE).toContain(
+      "- [SLOs to start from](#slos-to-start-from): Five objectives, query by query.",
     );
   });
 
@@ -2030,6 +2072,11 @@ describe("the objectives", () => {
         30000,
       ],
       [
+        "### Pages started later go out within 2 minutes",
+        "notification.time_to_send",
+        120000,
+      ],
+      [
         "### Notifications sent later go out within 90 seconds",
         "notification.send.lag",
         90000,
@@ -2045,6 +2092,84 @@ describe("the objectives", () => {
 
     expect(section("### Histogram buckets")).toContain(
       "a P95 of `notification.time_to_send` at or below 30000",
+    );
+  });
+
+  /*
+   * Issue #6847: a page a once-a-minute worker starts when it comes due - a
+   * held page, a page again - is timed from when it was due (page_started),
+   * and left out of the 30-second objective. Its own objective reads only
+   * those, at the first edge of time to send past the minute such a worker
+   * waits between its runs: a worker on time keeps it, one that fell behind
+   * does not.
+   */
+  it("read the pages started later alone, at the first bucket edge past the minute their workers wait", () => {
+    const later: string = "### Pages started later go out within 2 minutes";
+    const row: Array<string> = onlyTable(later)[0] as Array<string>;
+    const triggered: Array<string> = onlyTable(
+      "### Pages go out within 30 seconds",
+    )[0] as Array<string>;
+
+    // Every page is in one of the two: timed from its trigger, or started later.
+    expect(codeIn(triggered[3] as string)).toEqual([
+      `notification.page.start != ${OnCallPageStart.PageStarted}`,
+    ]);
+    expect(codeIn(row[3] as string)).toEqual([
+      `notification.page.start = ${OnCallPageStart.PageStarted}`,
+    ]);
+    expect(codeIn(row[1] as string)).toEqual(["notification.time_to_send"]);
+    expect((row[2] as string).replace(/\*\*/g, "")).toBe(
+      MetricsAggregationType.P95,
+    );
+
+    // The edge: the first of time to send past a worker's minute.
+    const firstEdgePastAMinute: number | undefined = (
+      instrument("notification.time_to_send").buckets || []
+    ).find((edge: number): boolean => {
+      return edge > 60 * 1000;
+    });
+
+    expect(firstEdgePastAMinute).toBe(120000);
+    expect(section(later)).toContain(
+      `The objective holds while \`a\` stays at or below ${firstEdgePastAMinute}.`,
+    );
+    expect(section(later)).toContain(
+      "95% of the pages started later reach their provider within 2 minutes of being due",
+    );
+    expect(section(later)).toContain(
+      "A held page or a page again waits for the next run of a worker that runs once a minute, so up to a minute of its time is spent on that wait, and a worker that fell behind adds more.",
+    );
+
+    // The workers that start them: held runs, and pages again, once a minute each.
+    for (const job of [
+      "FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+      "FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/PageAgainAfterAcknowledgementTimeout.ts",
+    ]) {
+      const source: string = readAppSource(job);
+      const schedule: string | undefined = source.match(
+        /RunCron\(\s*"[^"]+",\s*\{\s*schedule:\s*([^,]+),/,
+      )?.[1];
+
+      expect({ job, schedule: schedule?.trim() }).toEqual({
+        job,
+        schedule: expect.stringMatching(/EVERY_MINUTE$/),
+      });
+    }
+
+    expect(
+      readAppSource(
+        "FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+      ),
+    ).toContain("OnCallDutyPolicyExecutionLogService.startWaitingRun(");
+    expect(
+      readAppSource(
+        "FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/PageAgainAfterAcknowledgementTimeout.ts",
+      ),
+    ).toContain("await OnCallAcknowledgementTimeout.run();");
+
+    // The 30-second objective says where they went.
+    expect(section("### Pages go out within 30 seconds")).toContain(
+      "so they are left out: the next objective covers them.",
     );
   });
 

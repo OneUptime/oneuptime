@@ -103,6 +103,8 @@ Il ruolo che scegliete diventa la prima autorizzazione del team, per tutte le ri
 
 Dove trovarlo: aprite un team da **Team** per raggiungere **Membri** e **Autorizzazioni**; i suoi ruoli personalizzati e **Blocca autorizzazioni** si trovano sotto **Altre impostazioni** in fondo alla pagina Autorizzazioni, la cui intestazione chiusa mostra quanti ne ha il team per ciascuno.
 
+La pagina di un team ha una scheda **Usato da**: le policy di reperibilità le cui regole di escalation chiamano il team, e tutto ciò che il team possiede, dai monitor e dalle pagine di stato agli SLO, alle dashboard, all'infrastruttura e agli incidenti. Eliminare un team, dalla sua pagina o dall'elenco, lo dice prima: le sue policy smettono di chiamare i suoi membri e non ne è più proprietario. Ciò che non puoi aprire viene contato, non nominato.
+
 ## Autorizzazioni
 
 Un'autorizzazione è una singola capacità. Ci sono due modi di assegnarle, ed entrambi si trovano nella scheda **Autorizzazioni** del team.

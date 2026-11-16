@@ -5,6 +5,8 @@ import ResolvedRecordRetention, {
   RETENTION_BATCH_SIZE,
   RETENTION_COUNT_TIMEOUT_MS,
   RETENTION_COUNT_UP_TO,
+  RETENTION_CURSOR_CACHE_NAMESPACE,
+  RETENTION_CURSOR_EXPIRES_IN_DAYS,
   RETENTION_PROJECTS_PER_PAGE,
   RETENTION_TIME_BUDGET_MS,
   ResolvedRecordRetentionResult,
@@ -18,8 +20,10 @@ import ResolvedRecordRetention, {
   buildProjectsReachedByMaximumStatement,
   getRetentionCutoff,
 } from "../../../../Server/Utils/Retention/ResolvedRecordRetention";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
+import JobDeadline from "../../../../Server/Utils/JobDeadline";
 import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
 import AlertService from "../../../../Server/Services/AlertService";
 import AlertStateService from "../../../../Server/Services/AlertStateService";
@@ -164,6 +168,47 @@ LIMIT $2`),
     expect(statement.sql).toContain("LIMIT $3");
     expect(statement.params).toEqual([30, after, 100]);
     expect(statement.sql).not.toContain(after);
+  });
+
+  // #8896: the wrap-around leg of a run, from the first project up to where the last run stopped.
+  test("a read up to a project includes it, the id a parameter", () => {
+    const through: string = uuid(42, "b6903000");
+    const statement: ResolvedRecordRetentionStatement =
+      buildDueProjectsStatement({
+        kind: ResolvedRecordKind.Incident,
+        throughProjectId: through,
+        limit: 100,
+      });
+
+    expect(words(statement.sql)).toBe(
+      words(`SELECT p."_id"::text AS "projectId", p."incidentRetentionInDays" AS "retentionInDays", p."keepIncidentsWithCompletedPostmortem" AS "keepCompletedPostmortems", p."keepIncidentsInPostmortemStatusIds" AS "keptPostmortemStatusIds"
+FROM "Project" p
+WHERE p."deletedAt" IS NULL
+  AND p."incidentRetentionInDays" >= $1
+  AND p."_id" <= $2::uuid
+ORDER BY p."_id" ASC
+LIMIT $3`),
+    );
+    expect(statement.params).toEqual([30, through, 100]);
+    expect(statement.sql).not.toContain(through);
+  });
+
+  test("a later page of that read starts after the last project read and still stops at the project", () => {
+    const after: string = uuid(7, "b6903000");
+    const through: string = uuid(42, "b6903000");
+    const statement: ResolvedRecordRetentionStatement =
+      buildDueProjectsStatement({
+        kind: ResolvedRecordKind.Alert,
+        afterProjectId: after,
+        throughProjectId: through,
+        limit: 100,
+        maximumInDays: 90,
+      });
+
+    expect(statement.sql).toContain(`p."_id" > $1::uuid`);
+    expect(statement.sql).toContain(`p."_id" <= $2::uuid`);
+    expect(statement.sql).toContain("LIMIT $3");
+    expect(statement.params).toEqual([after, through, 100]);
   });
 
   test("a project at 0 - Never - is never due: the floor is the shortest choice", () => {
@@ -474,6 +519,9 @@ interface FakeProjectRow {
 // Where a page of projects says which id it starts after: its parameter's number.
 const AFTER_PARAM: RegExp = /p\."_id" > \$(\d+)::uuid/;
 
+// And the id it reads up to, that one included, when it has one.
+const THROUGH_PARAM: RegExp = /p\."_id" <= \$(\d+)::uuid/;
+
 class FakeRetentionDatabase {
   public projectRows: Array<FakeProjectRow> = [];
   // A project's records due, in the order a read finds them.
@@ -505,10 +553,18 @@ class FakeRetentionDatabase {
       const after: string | undefined = afterParam
         ? (params[Number(afterParam[1]) - 1] as string)
         : undefined;
+      // And ends at the id it reads up to, if it names one.
+      const throughParam: RegExpExecArray | null = THROUGH_PARAM.exec(sql);
+      const through: string | undefined = throughParam
+        ? (params[Number(throughParam[1]) - 1] as string)
+        : undefined;
 
       return this.projectRows
         .filter((row: FakeProjectRow): boolean => {
-          return !after || String(row.projectId) > after;
+          return (
+            (!after || String(row.projectId) > after) &&
+            (!through || String(row.projectId) <= through)
+          );
         })
         .sort((a: FakeProjectRow, b: FakeProjectRow): number => {
           return String(a.projectId).localeCompare(String(b.projectId));
@@ -609,6 +665,8 @@ type Seams = Pick<
   | "runQuery"
   | "runCountQuery"
   | "now"
+  | "readCursor"
+  | "saveCursor"
   | "getServerLimits"
   | "getResolvedStateIds"
   | "getCompletedPostmortemStatusIds"
@@ -621,6 +679,8 @@ const ORIGINAL_SEAMS: Seams = {
   runQuery: ResolvedRecordRetention.runQuery,
   runCountQuery: ResolvedRecordRetention.runCountQuery,
   now: ResolvedRecordRetention.now,
+  readCursor: ResolvedRecordRetention.readCursor,
+  saveCursor: ResolvedRecordRetention.saveCursor,
   getServerLimits: ResolvedRecordRetention.getServerLimits,
   getResolvedStateIds: ResolvedRecordRetention.getResolvedStateIds,
   getCompletedPostmortemStatusIds:
@@ -632,6 +692,9 @@ const ORIGINAL_SEAMS: Seams = {
 
 let database: FakeRetentionDatabase;
 let clock: number;
+// Where each kind's last run stopped, as the cache keeps it, and every write.
+let cursors: Map<ResolvedRecordKind, string>;
+let cursorWrites: Array<{ kind: ResolvedRecordKind; projectId: string }>;
 // The server's limits the fakes answer with, and every kind they were read for.
 let serverLimits: ResolvedRecordRetentionServerLimits;
 let limitReads: Array<ResolvedRecordKind>;
@@ -657,6 +720,18 @@ function installFakes(): void {
   };
   ResolvedRecordRetention.now = (): Date => {
     return new Date(clock);
+  };
+  ResolvedRecordRetention.readCursor = async (
+    kind: ResolvedRecordKind,
+  ): Promise<string | undefined> => {
+    return cursors.get(kind);
+  };
+  ResolvedRecordRetention.saveCursor = async (
+    kind: ResolvedRecordKind,
+    projectId: string,
+  ): Promise<void> => {
+    cursorWrites.push({ kind, projectId });
+    cursors.set(kind, projectId);
   };
   ResolvedRecordRetention.getServerLimits = async (
     kind: ResolvedRecordKind,
@@ -725,6 +800,8 @@ function restoreSeams(): void {
 beforeEach(() => {
   database = new FakeRetentionDatabase();
   clock = NOW.getTime();
+  cursors = new Map();
+  cursorWrites = [];
   serverLimits = { maximumInDays: undefined, defaultInDays: 0 };
   limitReads = [];
   countAnswer = [{ count: 0 }];
@@ -1290,7 +1367,7 @@ describe("run: every project, as far as the time budget goes", () => {
     expect(database.statementsReading(`FROM "Project" p`)).toHaveLength(3);
   });
 
-  test("one project's failure is logged, counted and tried again next run; the rest go on", async () => {
+  test("one project's failure is logged, counted and tried again on its next turn; the rest go on", async () => {
     database.projectRows = [
       projectRow(1, 90),
       projectRow(2, 90),
@@ -1312,7 +1389,7 @@ describe("run: every project, as far as the time budget goes", () => {
       isCutShort: false,
     });
     expect(errorLog).toHaveBeenCalledWith(
-      `Alert retention: deleting the resolved alerts project ${uuid(2, "b6903000")} no longer keeps failed. It is tried again next run.`,
+      `Alert retention: deleting the resolved alerts project ${uuid(2, "b6903000")} no longer keeps failed. It is tried again on its next turn.`,
     );
   });
 
@@ -1369,6 +1446,437 @@ describe("run: every project, as far as the time budget goes", () => {
       isCutShort: false,
     });
     expect(database.statements).toHaveLength(1);
+  });
+});
+
+/*
+ * WHERE A RUN STARTS (issue #8896): after the last project the last run
+ * started, wrapping around to the first, so a run that is always cut short
+ * - a server maximum makes every live project due - still reaches every
+ * project in turn. It used to start from the first project every hour.
+ */
+describe("run: it starts where the last run stopped, and wraps around", () => {
+  const project: (n: number) => string = (n: number): string => {
+    return uuid(n, "b6903000");
+  };
+
+  const numberOf: (projectId: string) => number = (
+    projectId: string,
+  ): number => {
+    return parseInt(projectId.slice(-12), 16);
+  };
+
+  function projects(count: number): Array<FakeProjectRow> {
+    return Array.from(
+      { length: count },
+      (_v: unknown, index: number): FakeProjectRow => {
+        return projectRow(index + 1, 90);
+      },
+    );
+  }
+
+  // Each project's work takes a minute: the clock moves as its states are read.
+  function aMinuteAProject(): void {
+    const resolvedStates: typeof ResolvedRecordRetention.getResolvedStateIds =
+      ResolvedRecordRetention.getResolvedStateIds;
+    ResolvedRecordRetention.getResolvedStateIds = async (data: {
+      kind: ResolvedRecordKind;
+      projectId: ObjectID;
+    }): Promise<Array<ObjectID>> => {
+      clock += 60 * 1000;
+      return await resolvedStates(data);
+    };
+  }
+
+  // The projects worked on, by number, in order, from the `from`th on.
+  function workedOn(from: number = 0): Array<number> {
+    return stateReads.slice(from).map((read: { projectId: string }): number => {
+      return numberOf(read.projectId);
+    });
+  }
+
+  // Two projects a run, at a minute each.
+  const TWO_PROJECTS_MS: number = 90 * 1000;
+
+  test("a run cut short is carried on by the next, after the last project it started", async () => {
+    database.projectRows = projects(5);
+    aMinuteAProject();
+
+    const first: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({
+        kind: ResolvedRecordKind.Incident,
+        timeBudgetMs: TWO_PROJECTS_MS,
+      });
+
+    expect(workedOn()).toEqual([1, 2]);
+    expect(first.projects).toBe(2);
+    expect(first.isCutShort).toBe(true);
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(2));
+
+    const second: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({
+        kind: ResolvedRecordKind.Incident,
+        timeBudgetMs: TWO_PROJECTS_MS,
+      });
+
+    expect(workedOn(2)).toEqual([3, 4]);
+    expect(second.isCutShort).toBe(true);
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(4));
+
+    // The third reaches the last project, wraps around, and goes on from the first.
+    await ResolvedRecordRetention.run({
+      kind: ResolvedRecordKind.Incident,
+      timeBudgetMs: TWO_PROJECTS_MS,
+    });
+
+    expect(workedOn(4)).toEqual([5, 1]);
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(1));
+  });
+
+  test("a full pass reads the projects after the place kept, then wraps around to the first and reads up to it: each project once", async () => {
+    database.projectRows = projects(5);
+    cursors.set(ResolvedRecordKind.Incident, project(3));
+
+    const summary: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident });
+
+    expect(workedOn()).toEqual([4, 5, 1, 2, 3]);
+    expect(summary).toEqual({
+      projects: 5,
+      failedProjects: 0,
+      records: 0,
+      episodes: 0,
+      isCutShort: false,
+    });
+    // The next run starts after the last project this one started.
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(3));
+
+    const reads: Array<ResolvedRecordRetentionStatement> =
+      database.statementsReading(`FROM "Project" p`);
+
+    expect(reads).toHaveLength(2);
+    expect(reads[0]!.sql).toContain(`p."_id" > $2::uuid`);
+    expect(reads[0]!.sql).not.toContain(`p."_id" <=`);
+    expect(reads[1]!.sql).toContain(`p."_id" <= $2::uuid`);
+    expect(reads[1]!.sql).not.toContain(`p."_id" >`);
+    for (const read of reads) {
+      expect(read.params).toEqual([
+        MIN_RESOLVED_RECORD_RETENTION_IN_DAYS,
+        project(3),
+        RETENTION_PROJECTS_PER_PAGE,
+      ]);
+      expect(read.sql).not.toContain(project(3));
+    }
+  });
+
+  test("each leg of the pass is read a page at a time", async () => {
+    database.projectRows = projects(RETENTION_PROJECTS_PER_PAGE * 2 + 10);
+    cursors.set(ResolvedRecordKind.Alert, project(RETENTION_PROJECTS_PER_PAGE));
+
+    const summary: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Alert });
+
+    expect(summary.projects).toBe(RETENTION_PROJECTS_PER_PAGE * 2 + 10);
+    expect(new Set(workedOn()).size).toBe(RETENTION_PROJECTS_PER_PAGE * 2 + 10);
+    expect(workedOn()[0]).toBe(RETENTION_PROJECTS_PER_PAGE + 1);
+    expect(workedOn()[workedOn().length - 1]).toBe(RETENTION_PROJECTS_PER_PAGE);
+    // After the place: two pages (one full, one not); up to it: one full and one empty.
+    expect(database.statementsReading(`FROM "Project" p`)).toHaveLength(4);
+  });
+
+  test("with no place kept - the first run, or the cache lost it - it starts from the first project, and does not wrap", async () => {
+    database.projectRows = projects(4);
+
+    await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident });
+
+    expect(workedOn()).toEqual([1, 2, 3, 4]);
+
+    const reads: Array<ResolvedRecordRetentionStatement> =
+      database.statementsReading(`FROM "Project" p`);
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.sql).not.toContain(`p."_id" >`);
+    expect(reads[0]!.sql).not.toContain(`p."_id" <=`);
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(4));
+  });
+
+  test("a place lost between runs starts the next run over, from the first project", async () => {
+    database.projectRows = projects(4);
+    aMinuteAProject();
+
+    await ResolvedRecordRetention.run({
+      kind: ResolvedRecordKind.Incident,
+      timeBudgetMs: TWO_PROJECTS_MS,
+    });
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(2));
+
+    // The cache was flushed.
+    cursors.clear();
+
+    await ResolvedRecordRetention.run({
+      kind: ResolvedRecordKind.Incident,
+      timeBudgetMs: TWO_PROJECTS_MS,
+    });
+
+    expect(workedOn(2)).toEqual([1, 2]);
+  });
+
+  /*
+   * The starvation the issue is about: a run that has time for two projects
+   * reached projects 1 and 2 every hour, and never the rest.
+   */
+  test("every project gets its turn, however often runs are cut short, and none a second before all had one", async () => {
+    database.projectRows = projects(7);
+    aMinuteAProject();
+
+    for (let run: number = 0; run < 7; run++) {
+      await ResolvedRecordRetention.run({
+        kind: ResolvedRecordKind.Incident,
+        timeBudgetMs: TWO_PROJECTS_MS,
+      });
+    }
+
+    expect(workedOn()).toEqual([1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  test("a project whose purge fails does not hold up the ones after it", async () => {
+    database.projectRows = projects(3);
+    database.failingProjects.add(project(1));
+    aMinuteAProject();
+
+    // One project a run.
+    for (let run: number = 0; run < 4; run++) {
+      await ResolvedRecordRetention.run({
+        kind: ResolvedRecordKind.Alert,
+        timeBudgetMs: 30 * 1000,
+      });
+    }
+
+    expect(workedOn()).toEqual([1, 2, 3, 1]);
+  });
+
+  test("a project whose purge takes a whole run is not started first again: the others get their turn before it", async () => {
+    database.projectRows = projects(3);
+    // Project 1 turned retention on with years of incidents.
+    database.dueRecords.set(
+      project(1),
+      ids(RETENTION_BATCH_SIZE * MAX_RETENTION_BATCHES_PER_PROJECT, "e6903000"),
+    );
+    database.dueRecords.set(project(2), ids(1, "e6903001"));
+    database.dueRecords.set(project(3), ids(1, "e6903002"));
+
+    // Each batch of records takes a minute.
+    const deleteRecords: typeof ResolvedRecordRetention.deleteRecords =
+      ResolvedRecordRetention.deleteRecords;
+    ResolvedRecordRetention.deleteRecords = async (
+      data: Parameters<typeof ResolvedRecordRetention.deleteRecords>[0],
+    ): Promise<number> => {
+      clock += 60 * 1000;
+      return await deleteRecords(data);
+    };
+
+    const first: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({
+        kind: ResolvedRecordKind.Incident,
+        timeBudgetMs: 5 * 60 * 1000,
+      });
+
+    // Project 1 spent the run: five batches, and the rest of it waits.
+    expect(workedOn()).toEqual([1]);
+    expect(first.records).toBe(RETENTION_BATCH_SIZE * 5);
+    expect(first.isCutShort).toBe(true);
+
+    const second: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({
+        kind: ResolvedRecordKind.Incident,
+        timeBudgetMs: 5 * 60 * 1000,
+      });
+
+    // Projects 2 and 3 first, then project 1 again with what time is left.
+    expect(workedOn(1)).toEqual([2, 3, 1]);
+    expect(database.dueRecords.get(project(2))).toEqual([]);
+    expect(database.dueRecords.get(project(3))).toEqual([]);
+    expect(second.records).toBe(1 + 1 + RETENTION_BATCH_SIZE * 3);
+  });
+
+  test("a deadline that passes stops it before its next project, and the next run starts where it stopped", async () => {
+    database.projectRows = projects(4);
+    const deadline: JobDeadline = new JobDeadline();
+
+    const resolvedStates: typeof ResolvedRecordRetention.getResolvedStateIds =
+      ResolvedRecordRetention.getResolvedStateIds;
+    ResolvedRecordRetention.getResolvedStateIds = async (data: {
+      kind: ResolvedRecordKind;
+      projectId: ObjectID;
+    }): Promise<Array<ObjectID>> => {
+      if (data.projectId.toString() === project(2)) {
+        deadline.end(new Error("The run lost its lock."));
+      }
+
+      return await resolvedStates(data);
+    };
+
+    const summary: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({
+        kind: ResolvedRecordKind.Incident,
+        deadline: deadline,
+      });
+
+    expect(workedOn()).toEqual([1, 2]);
+    expect(summary.isCutShort).toBe(true);
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(2));
+
+    await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident });
+
+    expect(workedOn(2)).toEqual([3, 4, 1, 2]);
+  });
+
+  test("a deadline that has passed already starts nothing, and keeps the place where it was", async () => {
+    database.projectRows = projects(3);
+    cursors.set(ResolvedRecordKind.Incident, project(2));
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end(new Error("The job ran out of time."));
+
+    const summary: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({
+        kind: ResolvedRecordKind.Incident,
+        deadline: deadline,
+      });
+
+    expect(workedOn()).toEqual([]);
+    expect(summary).toEqual({
+      projects: 0,
+      failedProjects: 0,
+      records: 0,
+      episodes: 0,
+      isCutShort: true,
+    });
+    expect(cursorWrites).toEqual([]);
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(2));
+  });
+
+  test("a run that fails part way is carried on after the last project it started, not from the first", async () => {
+    database.projectRows = projects(RETENTION_PROJECTS_PER_PAGE + 3);
+
+    // The second page cannot be read: the database went away.
+    const answer: typeof database.answer = database.answer.bind(database);
+    let failSecondPage: boolean = true;
+    database.answer = (
+      sql: string,
+      params: Array<unknown>,
+    ): Array<Record<string, unknown>> => {
+      if (
+        failSecondPage &&
+        sql.includes(`FROM "Project" p`) &&
+        params.includes(project(RETENTION_PROJECTS_PER_PAGE))
+      ) {
+        failSecondPage = false;
+        throw new Error("Connection terminated unexpectedly");
+      }
+
+      return answer(sql, params);
+    };
+
+    await expect(
+      ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident }),
+    ).rejects.toThrow("Connection terminated unexpectedly");
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(
+      project(RETENTION_PROJECTS_PER_PAGE),
+    );
+
+    await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident });
+
+    expect(workedOn(RETENTION_PROJECTS_PER_PAGE).slice(0, 3)).toEqual([
+      RETENTION_PROJECTS_PER_PAGE + 1,
+      RETENTION_PROJECTS_PER_PAGE + 2,
+      RETENTION_PROJECTS_PER_PAGE + 3,
+    ]);
+  });
+
+  test("the place is kept as each project starts, before its purge", async () => {
+    database.projectRows = projects(3);
+    const readsWhenKept: Array<number> = [];
+
+    ResolvedRecordRetention.saveCursor = async (
+      kind: ResolvedRecordKind,
+      projectId: string,
+    ): Promise<void> => {
+      readsWhenKept.push(stateReads.length);
+      cursors.set(kind, projectId);
+    };
+
+    await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident });
+
+    // Project n's place is kept before its states are read: n - 1 reads before.
+    expect(readsWhenKept).toEqual([0, 1, 2]);
+  });
+
+  test("a place past the last project wraps around to the first at once", async () => {
+    database.projectRows = projects(3);
+    cursors.set(ResolvedRecordKind.Alert, project(99));
+
+    await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Alert });
+
+    expect(workedOn()).toEqual([1, 2, 3]);
+    expect(cursors.get(ResolvedRecordKind.Alert)).toBe(project(3));
+  });
+
+  test("a project at the place itself is the last of the pass", async () => {
+    database.projectRows = projects(3);
+    cursors.set(ResolvedRecordKind.Alert, project(1));
+
+    await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Alert });
+
+    expect(workedOn()).toEqual([2, 3, 1]);
+  });
+
+  test("incidents and alerts each keep their own place", async () => {
+    database.projectRows = projects(4);
+    cursors.set(ResolvedRecordKind.Alert, project(3));
+    aMinuteAProject();
+
+    await ResolvedRecordRetention.run({
+      kind: ResolvedRecordKind.Incident,
+      timeBudgetMs: TWO_PROJECTS_MS,
+    });
+
+    expect(workedOn()).toEqual([1, 2]);
+    expect(cursors.get(ResolvedRecordKind.Incident)).toBe(project(2));
+    expect(cursors.get(ResolvedRecordKind.Alert)).toBe(project(3));
+    expect(
+      cursorWrites.every((write: { kind: ResolvedRecordKind }): boolean => {
+        return write.kind === ResolvedRecordKind.Incident;
+      }),
+    ).toBe(true);
+
+    await ResolvedRecordRetention.run({
+      kind: ResolvedRecordKind.Alert,
+      timeBudgetMs: TWO_PROJECTS_MS,
+    });
+
+    expect(workedOn(2)).toEqual([4, 1]);
+  });
+
+  test("under the server's maximum the wrap reads every live project up to the place, Never included", async () => {
+    serverLimits = { maximumInDays: 365, defaultInDays: 0 };
+    database.projectRows = [
+      projectRow(1, 0),
+      projectRow(2, 90),
+      projectRow(3, 0),
+    ];
+    cursors.set(ResolvedRecordKind.Incident, project(2));
+
+    await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident });
+
+    expect(workedOn()).toEqual([3, 1, 2]);
+
+    const reads: Array<ResolvedRecordRetentionStatement> =
+      database.statementsReading(`FROM "Project" p`);
+
+    // No floor under a maximum: the place is the first parameter.
+    expect(reads[0]!.sql).toContain(`p."_id" > $1::uuid`);
+    expect(reads[1]!.sql).toContain(`p."_id" <= $1::uuid`);
+    expect(reads[1]!.params).toEqual([project(2), RETENTION_PROJECTS_PER_PAGE]);
   });
 });
 
@@ -1614,6 +2122,118 @@ describe("the seams' own work: the services they call", () => {
 
     expect(now).toBeGreaterThanOrEqual(before);
     expect(now).toBeLessThanOrEqual(Date.now());
+  });
+
+  test.each(KINDS)(
+    "%s: where the last run stopped is read from the cache, under the kind",
+    async (kind: ResolvedRecordKind) => {
+      const getString: SpyInstance<typeof GlobalCache.getString> = jest
+        .spyOn(GlobalCache, "getString")
+        .mockResolvedValue(PROJECT_ID as never);
+
+      expect(await ResolvedRecordRetention.readCursor(kind)).toBe(PROJECT_ID);
+      expect(getString).toHaveBeenCalledWith(
+        RETENTION_CURSOR_CACHE_NAMESPACE,
+        kind,
+      );
+    },
+  );
+
+  test.each([
+    ["nothing kept", null],
+    ["an empty value", ""],
+    ["a value that is no project's id", "1 OR 1=1"],
+  ])(
+    "%s is no place: the run starts from the first project",
+    async (_name: string, value: string | null) => {
+      jest.spyOn(GlobalCache, "getString").mockResolvedValue(value as never);
+
+      expect(
+        await ResolvedRecordRetention.readCursor(ResolvedRecordKind.Incident),
+      ).toBeUndefined();
+    },
+  );
+
+  test("a cache that cannot be read is no place, and no failure", async () => {
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+
+    await expect(
+      ResolvedRecordRetention.readCursor(ResolvedRecordKind.Alert),
+    ).resolves.toBeUndefined();
+    expect(errorLog).not.toHaveBeenCalled();
+  });
+
+  test("the place is kept in the cache under the kind, for 30 days", async () => {
+    const setString: SpyInstance<typeof GlobalCache.setString> = jest
+      .spyOn(GlobalCache, "setString")
+      .mockResolvedValue(undefined as never);
+
+    await ResolvedRecordRetention.saveCursor(
+      ResolvedRecordKind.Alert,
+      PROJECT_ID,
+    );
+
+    expect(RETENTION_CURSOR_EXPIRES_IN_DAYS).toBe(30);
+    expect(setString).toHaveBeenCalledWith(
+      RETENTION_CURSOR_CACHE_NAMESPACE,
+      ResolvedRecordKind.Alert,
+      PROJECT_ID,
+      { expiresInSeconds: 30 * 24 * 60 * 60 },
+    );
+  });
+
+  test("a cache that cannot keep the place is no failure: the run goes on", async () => {
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+
+    await expect(
+      ResolvedRecordRetention.saveCursor(
+        ResolvedRecordKind.Incident,
+        PROJECT_ID,
+      ),
+    ).resolves.toBeUndefined();
+    expect(errorLog).not.toHaveBeenCalled();
+  });
+
+  test("incidents and alerts are kept apart in the cache: each reads back its own", async () => {
+    const cache: Map<string, string> = new Map();
+
+    jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+      namespace: string,
+      key: string,
+      value: string,
+    ): Promise<void> => {
+      cache.set(`${namespace}-${key}`, value);
+    }) as never);
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ): Promise<string | null> => {
+      return cache.get(`${namespace}-${key}`) || null;
+    }) as never);
+
+    await ResolvedRecordRetention.saveCursor(
+      ResolvedRecordKind.Incident,
+      uuid(1, "b6903000"),
+    );
+    await ResolvedRecordRetention.saveCursor(
+      ResolvedRecordKind.Alert,
+      uuid(2, "b6903000"),
+    );
+
+    expect(
+      await ResolvedRecordRetention.readCursor(ResolvedRecordKind.Incident),
+    ).toBe(uuid(1, "b6903000"));
+    expect(
+      await ResolvedRecordRetention.readCursor(ResolvedRecordKind.Alert),
+    ).toBe(uuid(2, "b6903000"));
+    expect(Array.from(cache.keys()).sort()).toEqual([
+      "resolved-record-retention-cursor-Alert",
+      "resolved-record-retention-cursor-Incident",
+    ]);
   });
 });
 

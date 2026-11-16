@@ -632,3 +632,64 @@ describe("Admin Dashboard > Feedback: no table draws an empty cell for a row wit
     },
   );
 });
+
+/*
+ * WHAT AN ANSWER WAS ABOUT, IN THE ADMIN'S LANGUAGE (#8893).
+ *
+ * The page looks each question's name up by the answer's kind and topic -
+ * a guided setup by its name, what Give feedback was about - so no lookup
+ * of its own named them, and they read English in every language. Its
+ * locales now word them as the Dashboard does.
+ */
+describe("Admin Dashboard > Feedback in German", () => {
+  async function renderInGerman(): Promise<void> {
+    const instance: i18n = createInstance();
+
+    await instance.init({
+      lng: "de",
+      fallbackLng: "en",
+      resources: {
+        en: { translation: readLocale("en") },
+        de: { translation: readLocale("de") },
+      },
+      interpolation: { escapeValue: false },
+    });
+
+    render(
+      <I18nextProvider i18n={instance}>
+        <FeedbackPage />
+      </I18nextProvider>,
+    );
+  }
+
+  test("names each question and its kind in German, Give feedback's kind too", async () => {
+    const german: Record<string, unknown> = readLocale("de");
+
+    serve([SETUP_ANSWER, { ...GENERAL_ANSWER, topic: "broken" }]);
+
+    await renderInGerman();
+    await waitForRows(SUMMARY_TABLE, 2);
+
+    const [setup, general] = rowsOf(SUMMARY_TABLE) as [
+      Array<string>,
+      Array<string>,
+    ];
+
+    for (const english of [
+      "Know when my website or API is down",
+      "Guided setup",
+      "Something's broken",
+      "Give feedback",
+    ]) {
+      expect(typeof german[english]).toBe("string");
+      expect(german[english]).not.toBe(english);
+    }
+
+    expect(setup[0]).toContain(german["Know when my website or API is down"]);
+    expect(setup[0]).toContain(german["Guided setup"]);
+    expect(setup[0]).not.toContain("Know when my website or API is down");
+    expect(general[0]).toContain(german["Something's broken"]);
+    expect(general[0]).toContain(german["Give feedback"]);
+    expect(general[0]).not.toContain("Something's broken");
+  });
+});

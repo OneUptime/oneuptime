@@ -75,18 +75,21 @@ import RecommendationType from "../../../Types/Recommendation/RecommendationType
 import {
   SETUP_HEALTH_WORDS,
   SetupHealthAnswer,
+  SetupHealthCertificateReason,
   SetupHealthCheck,
   SetupHealthEventKind,
   SETUP_HEALTH_LEVEL_ORDER,
   SetupHealthFinding,
   SetupHealthFix,
   SetupHealthLevel,
+  SetupHealthReadable,
   SetupHealthRecord,
   SetupHealthRecordKind,
   SetupHealthResponderReason,
   SetupHealthScheduleReason,
   getSetupHealthCounts,
   makeSetupHealthFinding,
+  redactSetupHealthFindings,
 } from "../../../Types/SetupHealth/SetupHealth";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WhoIsToldServerChannel } from "../../../Types/Monitor/WhoIsTold";
@@ -120,8 +123,30 @@ const ANA: string = "68125555-0000-4000-8000-0000000000c1";
 const SCHEDULE: string = "68125555-0000-4000-8000-0000000000d1";
 const STATUS_PAGE: string = "68125555-0000-4000-8000-0000000000e1";
 const DISMISSAL: string = "68125555-0000-4000-8000-0000000000f1";
+const INGESTION_KEY: string = "68125555-0000-4000-8000-0000000000f2";
+const DOMAIN: string = "68125555-0000-4000-8000-0000000000e2";
 
 const translator: Translator = getGlobalTranslator();
+
+const DASHBOARD_LANGUAGES_BUT_ENGLISH: Array<string> = [
+  "de",
+  "fr",
+  "es",
+  "it",
+  "pt",
+  "nl",
+  "da",
+  "no",
+  "sv",
+  "ru",
+  "ja",
+  "ko",
+  "zh-CN",
+  "zh-TW",
+  "hi",
+  "fa",
+  "ar",
+];
 
 function monitorFinding(index: number): SetupHealthFinding {
   return makeSetupHealthFinding({
@@ -272,6 +297,81 @@ describe("a finding, in the reader's words, with where to fix it", () => {
     );
   });
 
+  test("a custom domain's certificate and an unused ingestion key, in every Dashboard language, the names as written (#7294, #7295)", () => {
+    const findings: Array<SetupHealthFinding> = [
+      ...Object.values(SetupHealthCertificateReason).map(
+        (reason: SetupHealthCertificateReason): SetupHealthFinding => {
+          return makeSetupHealthFinding({
+            check: SetupHealthCheck.StatusPageDomainCertificateFailed,
+            level: SetupHealthLevel.WorthFixing,
+            reason: reason,
+            record: {
+              kind: SetupHealthRecordKind.StatusPageDomain,
+              id: DOMAIN,
+              name: "status.acme.com",
+            },
+            related: [
+              {
+                kind: SetupHealthRecordKind.StatusPage,
+                id: STATUS_PAGE,
+                name: "Acme Status",
+              },
+            ],
+            fix: SetupHealthFix.StatusPageDomains,
+            fixRecordId: STATUS_PAGE,
+            words: SETUP_HEALTH_WORDS.statusPageDomainCertificateFailed[reason],
+            values: { domain: "status.acme.com", statusPage: "Acme Status" },
+          });
+        },
+      ),
+      makeSetupHealthFinding({
+        check: SetupHealthCheck.IngestionKeyNeverUsed,
+        level: SetupHealthLevel.Suggestion,
+        record: {
+          kind: SetupHealthRecordKind.TelemetryIngestionKey,
+          id: INGESTION_KEY,
+          name: "Production collector",
+        },
+        fix: SetupHealthFix.TelemetryIngestionKey,
+        fixRecordId: INGESTION_KEY,
+        words: SETUP_HEALTH_WORDS.ingestionKeyNeverUsed,
+        values: { key: "Production collector" },
+      }),
+    ];
+
+    for (const finding of findings) {
+      expect(getSetupHealthSentence(finding, translator)).toBe(
+        finding.sentence,
+      );
+
+      for (const language of DASHBOARD_LANGUAGES_BUT_ENGLISH) {
+        const sentence: string = getSetupHealthSentence(
+          finding,
+          dashboardTranslator(language),
+        );
+
+        expect({ language, translated: sentence !== finding.sentence }).toEqual(
+          { language, translated: true },
+        );
+
+        for (const name of Object.values(finding.values)) {
+          expect(sentence).toContain(name);
+        }
+      }
+    }
+
+    expect(
+      getSetupHealthFixLink({ finding: findings[2]!, translator: translator })!
+        .text,
+    ).toBe("Open Ingestion Key");
+    expect(
+      getSetupHealthFixLink({
+        finding: findings[2]!,
+        translator: dashboardTranslator("de"),
+      })!.text,
+    ).not.toBe("Open Ingestion Key");
+  });
+
   test("a person with no name is someone, in the reader's words", () => {
     const nameless: SetupHealthFinding = makeSetupHealthFinding({
       check: SetupHealthCheck.ResponderCannotBePaged,
@@ -333,6 +433,12 @@ describe("a finding, in the reader's words, with where to fix it", () => {
       STATUS_PAGE,
     ],
     [SetupHealthFix.ProjectOwners, PageMap.TEAMS, ""],
+    // #7295: the key's own page, with when it was last used and Delete.
+    [
+      SetupHealthFix.TelemetryIngestionKey,
+      PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+      INGESTION_KEY,
+    ],
   ])(
     "%s opens %s",
     (fix: SetupHealthFix, pageMap: PageMap, recordId: string) => {
@@ -651,6 +757,10 @@ describe("how a finding looks: its icon, its names and the records it reaches", 
       PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
     ],
     [SetupHealthRecordKind.StatusPage, PageMap.STATUS_PAGE_VIEW],
+    [
+      SetupHealthRecordKind.TelemetryIngestionKey,
+      PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+    ],
   ])(
     "a %s a finding reaches opens %s",
     (kind: SetupHealthRecordKind, pageMap: PageMap) => {
@@ -1116,6 +1226,67 @@ describe("SetupHealthView", () => {
 
     // A finding that reaches nothing else says nothing of it.
     expect(screen.getAllByTestId("setup-health-related")).toHaveLength(1);
+  });
+
+  /*
+   * #7296: a record the reader may not see is never named. The server
+   * leaves it out of what a finding reaches (redactSetupHealthFindings),
+   * and a finding left with nothing to name draws no Affects line.
+   */
+  test("the records a finding reaches that the reader may not see are never named, nor is the line drawn for none", async () => {
+    const monitors: Array<SetupHealthRecord> = [1, 2, 3].map(
+      (index: number): SetupHealthRecord => {
+        return monitorFinding(index).record;
+      },
+    );
+    const readable: SetupHealthReadable = {
+      monitorIds: new Set<string>([monitors[1]!.id]),
+      policyIds: new Set<string>([PRIMARY]),
+      scheduleIds: new Set<string>(),
+      statusPageIds: new Set<string>(),
+      ingestionKeyIds: new Set<string>(),
+      canReadResponders: false,
+    };
+    const asSeen: (seenBy: SetupHealthReadable) => SetupHealthFinding = (
+      seenBy: SetupHealthReadable,
+    ): SetupHealthFinding => {
+      return redactSetupHealthFindings(
+        [{ ...POLICY_FINDING, related: monitors }],
+        seenBy,
+      )[0]!;
+    };
+
+    getAnswer.mockResolvedValue(answer([asSeen(readable)]));
+    renderView();
+
+    const related: HTMLElement = await screen.findByTestId(
+      "setup-health-related",
+    );
+
+    expect(
+      within(related)
+        .getAllByTestId("setup-health-related-record")
+        .map((record: HTMLElement): string | null => {
+          return record.textContent;
+        }),
+    ).toEqual(["Monitor 2"]);
+    expect(related).not.toHaveTextContent("Monitor 1");
+    expect(related).not.toHaveTextContent("Monitor 3");
+    expect(
+      within(related).queryByTestId("setup-health-related-more"),
+    ).toBeNull();
+
+    cleanup();
+    getAnswer.mockResolvedValue(
+      answer([asSeen({ ...readable, monitorIds: new Set<string>() })]),
+    );
+    renderView();
+
+    expect(await screen.findByTestId("setup-health-finding")).toHaveTextContent(
+      POLICY_FINDING.sentence,
+    );
+    expect(screen.queryByTestId("setup-health-related")).toBeNull();
+    expect(screen.queryByText("Monitor 1")).toBeNull();
   });
 
   test("after a failed read, Try again reads it again", async () => {

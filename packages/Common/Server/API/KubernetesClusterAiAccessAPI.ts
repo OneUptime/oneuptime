@@ -47,6 +47,7 @@ import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
+import { getWaitingFirstApprovedAt } from "../../Types/AutoRemediation/RemediationApprovals";
 import Incident from "../../Models/DatabaseModels/Incident";
 import KubernetesAiAgent from "../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
@@ -1332,6 +1333,8 @@ const LOG_FIX_SELECT: Record<string, boolean> = {
   suggestionType: true,
   createdAt: true,
   approvedAt: true,
+  // A fix that waits for its second approval says so (getWaitingFirstApprovedAt).
+  firstApprovedAt: true,
   incidentId: true,
   alertId: true,
 };
@@ -1417,6 +1420,7 @@ async function getLogFixes(data: {
           : undefined,
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
+        firstApprovedAt: toIsoString(getWaitingFirstApprovedAt(suggestion)),
         incidentId: suggestion.incidentId?.toString(),
         alertId: suggestion.alertId?.toString(),
       };

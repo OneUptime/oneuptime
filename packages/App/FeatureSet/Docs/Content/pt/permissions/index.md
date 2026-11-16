@@ -103,6 +103,8 @@ A função que você escolher se torna a primeira permissão da equipe, para tod
 
 Onde encontrar: abra uma equipe em **Equipes** para chegar a **Membros** e **Permissões**; as funções personalizadas dela e **Bloquear permissões** ficam em **Mais configurações**, no fim da página Permissões, cujo cabeçalho recolhido mostra quantas de cada a equipe tem.
 
+A página de uma equipe tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam a equipe, e tudo o que a equipe possui, de monitores e páginas de status a SLOs, painéis, infraestrutura e incidentes. Excluir uma equipe, em sua página ou pela lista, diz isso primeiro: suas políticas deixam de acionar seus membros, e ela deixa de possuí-los. O que você não pode abrir é contado, não nomeado.
+
 ## Permissões
 
 Uma permissão é uma capacidade única. Há duas formas de distribuí-las, e as duas ficam na aba **Permissões** da equipe.

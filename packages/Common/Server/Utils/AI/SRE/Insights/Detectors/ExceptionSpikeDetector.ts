@@ -1,14 +1,10 @@
 import ObjectID from "../../../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../../../Types/Date";
 import SortOrder from "../../../../../../Types/BaseDatabase/SortOrder";
-import InBetween from "../../../../../../Types/BaseDatabase/InBetween";
-import PositiveNumber from "../../../../../../Types/PositiveNumber";
 import { JSONObject } from "../../../../../../Types/JSON";
-import Includes from "../../../../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../../../../Types/BaseDatabase/IncludesNone";
 import { NON_ACTIONABLE_ERROR_CLASSES } from "../../../../../../Types/Telemetry/ErrorClass";
 import { getOccurrenceFingerprintQuery } from "../../../../../../Types/Telemetry/ExceptionGroupFingerprints";
-import { LIMIT_PER_PROJECT } from "../../../../../../Types/Database/LimitMax";
 import AIInsightType from "../../../../../../Types/AI/AIInsightType";
 import AIInsightSeverity from "../../../../../../Types/AI/AIInsightSeverity";
 import TelemetryException from "../../../../../../Models/DatabaseModels/TelemetryException";
@@ -37,11 +33,12 @@ import {
  * ago) whose recent hourly occurrence rate blew past its own 24-hour
  * baseline, including the dormant-awakening case (an old exception that was
  * quiet all day suddenly firing). Candidates come cheap from Postgres
- * (group table); the actual rates come from two ClickHouse counts per
- * candidate (fingerprint bloom index + time range — the exception-monitor
- * count idiom), over its own occurrences and those of the exceptions merged
- * into it, which count on it. Deterministic — no LLM anywhere in this
- * detector.
+ * (group table); the actual rates come from ClickHouse counts in the two
+ * windows (fingerprint bloom index + time range — the exception-monitor
+ * count idiom), over each candidate's own occurrences and those of the
+ * exceptions merged into it, which count on it - every candidate's in one
+ * statement, counted by fingerprint and summed per candidate.
+ * Deterministic — no LLM anywhere in this detector.
  *
  * A finding also says where in the application's own code the exception
  * was raised (ExceptionOwnCode), read for the spiking ones only: the
@@ -77,9 +74,11 @@ export const EXCEPTION_SPIKE_MIN_MULTIPLIER: number = 5;
 export const EXCEPTION_SPIKE_HIGH_SEVERITY_MULTIPLIER: number = 10;
 
 /*
- * Candidate cap per scan tick: two ClickHouse counts per candidate, so 25
- * candidates = 50 bounded point queries. Sorted by lifetime occurrence
- * count so the perennial heavy hitters are always inspected first.
+ * Candidate cap per scan tick: the candidates' occurrences are counted in
+ * one bounded statement, by their fingerprints (it was two counts a
+ * candidate, 50 statements for 25), so the cap bounds that statement's IN
+ * list. Sorted by lifetime occurrence count so the perennial heavy hitters
+ * are always inspected first.
  */
 export const EXCEPTION_SPIKE_CANDIDATE_LIMIT: number = 25;
 
@@ -196,9 +195,9 @@ export default class ExceptionSpikeDetector implements InsightDetector {
       /*
        * Muted fault domains never file an insight. A spike in rejected
        * logins or malformed input is a traffic story, not a code defect —
-       * and each candidate costs two ClickHouse counts before it can even
-       * be dropped, so excluding them here saves the scan as well as the
-       * LLM budget. Mirrors the Issues list scope.
+       * and each candidate's occurrences are counted before it can even be
+       * dropped, so excluding them here saves the scan as well as the LLM
+       * budget. Mirrors the Issues list scope.
        */
       errorClass: new IncludesNone([...NON_ACTIONABLE_ERROR_CLASSES]),
     };
@@ -251,62 +250,89 @@ export default class ExceptionSpikeDetector implements InsightDetector {
         }),
     });
 
+    // Each candidate's group fingerprints: what its occurrences carry.
+    const counted: Array<{
+      exception: TelemetryException;
+      fingerprints: Array<string>;
+    }> = [];
+
     for (const exception of exceptions) {
       if (!exception.id || !exception.fingerprint) {
         continue;
       }
 
-      const fingerprint: string | Includes = getOccurrenceFingerprintQuery(
-        groupFingerprints.get(exception.id.toString().toLowerCase()) || [
-          exception.fingerprint,
-        ],
-      );
+      counted.push({
+        exception,
+        fingerprints: Array.from(
+          new Set<string>(
+            groupFingerprints.get(exception.id.toString().toLowerCase()) || [
+              exception.fingerprint,
+            ],
+          ),
+        ),
+      });
+    }
 
-      /*
-       * Two bounded ClickHouse counts (fingerprint bloom + time range —
-       * the MonitorTelemetryMonitor.monitorException idiom). Occurrence
-       * `time` is client-reported, so both windows use the same clock and
-       * skew cancels out within the comparison.
-       */
-      const recentCount: PositiveNumber =
-        await ExceptionInstanceService.countBy({
+    /*
+     * Every candidate's occurrences in the spike window and in the baseline
+     * window, counted by fingerprint in ONE bounded ClickHouse statement
+     * (fingerprint bloom + time range - the
+     * MonitorTelemetryMonitor.monitorException idiom): what two counts a
+     * candidate - its group's fingerprints in each window, both ends in -
+     * counted, summed per candidate below. Occurrence `time` is
+     * client-reported, so both windows use the same clock and skew cancels
+     * out within the comparison.
+     */
+    const countsByFingerprint: Map<string, Array<number>> = counted.length > 0
+      ? await ExceptionInstanceService.countPerValueInWindows({
           query: {
             projectId: context.projectId,
-            fingerprint,
-            time: new InBetween(recentWindowStart, context.now),
+            fingerprint: getOccurrenceFingerprintQuery(
+              Array.from(
+                new Set<string>(
+                  counted.flatMap(
+                    (candidate: { fingerprints: Array<string> }) => {
+                      return candidate.fingerprints;
+                    },
+                  ),
+                ),
+              ),
+            ),
           } as never,
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
+          valueColumnName: "fingerprint",
+          timeColumnName: "time",
+          windows: [
+            { startsAt: recentWindowStart, endsAt: context.now },
+            { startsAt: priorWindowStart, endsAt: recentWindowStart },
+          ],
           props: { isRoot: true },
-        });
+        })
+      : new Map<string, Array<number>>();
 
-      const priorCount: PositiveNumber = await ExceptionInstanceService.countBy(
-        {
-          query: {
-            projectId: context.projectId,
-            fingerprint,
-            time: new InBetween(priorWindowStart, recentWindowStart),
-          } as never,
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: { isRoot: true },
-        },
-      );
+    for (const candidate of counted) {
+      let recentCount: number = 0;
+      let priorCount: number = 0;
+
+      for (const fingerprint of candidate.fingerprints) {
+        const counts: Array<number> = countsByFingerprint.get(fingerprint) || [
+          0, 0,
+        ];
+
+        recentCount += counts[0] || 0;
+        priorCount += counts[1] || 0;
+      }
 
       const decision: ExceptionSpikeDecision =
-        ExceptionSpikeDetector.evaluateSpike(
-          recentCount.toNumber(),
-          priorCount.toNumber(),
-        );
+        ExceptionSpikeDetector.evaluateSpike(recentCount, priorCount);
 
       if (!decision.isSpike) {
         continue;
       }
 
       spikes.push({
-        exception,
-        recentCount: recentCount.toNumber(),
-        priorCount: priorCount.toNumber(),
+        exception: candidate.exception,
+        recentCount,
+        priorCount,
         decision,
       });
     }

@@ -196,6 +196,8 @@ La **Vista general** responde a «¿estamos dentro del presupuesto?», de arriba
 
 Cuando el SLO está en un nivel de su política de presupuesto de errores, la **Vista general** también muestra ese nivel y lo que el equipo acordó hacer en él: consulta [Política de presupuesto de errores](/docs/slo/error-budget-policy).
 
+La tarjeta **Usado por** lista las reglas de tasa de consumo y los niveles de la política de presupuesto de errores que actúan sobre el SLO, y los paneles que lo muestran. Archivar o eliminar el SLO los dice primero: sus reglas y niveles se van con él.
+
 ### Ajustes
 
 La página **Ajustes** reúne cómo mide un SLO, una tarjeta para cada cosa:

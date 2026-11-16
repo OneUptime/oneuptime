@@ -58,3 +58,13 @@ export const getWatchedColumns: GetWatchedColumnsFunction = (data: {
 
   return watched;
 };
+
+/*
+ * Said beside updatedFields by an update OneUptime makes for its own
+ * bookkeeping - a reminder that a record is still open, moved on to the
+ * next (issue #9019): it reaches only the workflows whose Fields to watch
+ * name a field it changed. A workflow that watches no fields hears every
+ * update people, integrations and rules make, and not these: an On Update
+ * workflow that watched nothing ran at every reminder.
+ */
+export const HEARD_ONLY_WHERE_WATCHED_KEY: string = "heardOnlyWhereWatched";

@@ -109,6 +109,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
       getIncidentLinkInDashboard: jest.fn(),
       getIncidentIdentifiedDate: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       isIncidentResolved: jest.fn(),
       isIncidentAcknowledged: jest.fn(),
     },
@@ -425,15 +427,17 @@ function timeline(): IncidentStateTimeline {
   return record;
 }
 
-async function takeOrStop(): Promise<void> {
-  if (world.takeStops) {
-    world.takeStops = false;
-    world.stoppedAt.push("take");
-    await NEVER;
+/*
+ * A reminder's move (OwnerReminderBacklog, #9019): sending it - the next
+ * one later, counted - is the take, one compare-and-set only the first run
+ * to make it wins; taking the reminders away is not.
+ */
+async function reminderMove(data: { data: JSONObject }): Promise<boolean> {
+  if (data.data["nextReminderNotificationAt"] === null) {
+    return true;
   }
 
-  world.isTaken = true;
-  world.takes++;
+  return await compareAndSetTake();
 }
 
 /*
@@ -528,16 +532,17 @@ const CASES: Array<JobCase> = [
     kind: OwnerNotificationKind.IncidentReminder,
     eventIdIsTheIncident: true,
     arrange: (): void => {
-      asMock(IncidentService.findAllBy).mockImplementation(async () => {
+      // Due a page at a time until a run moves it on (#9019).
+      asMock(IncidentService.findBy).mockImplementation(async () => {
         return world.isTaken ? [] : [incident()];
       });
-      asMock(IncidentService.updateOneById).mockImplementation(
-        async (data: { data: JSONObject }) => {
-          if (data.data["nextReminderNotificationAt"] !== null) {
-            await takeOrStop();
-          }
-        },
-      );
+      // Its affected resources.
+      asMock(IncidentService.findAllBy).mockImplementation(async () => {
+        return [incident()];
+      });
+      asMock(
+        IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(reminderMove);
       asMock(IncidentReminderRuleService.findMatchingRule).mockResolvedValue({
         reminderIntervalInMinutes: 30,
       });
@@ -651,23 +656,26 @@ const CASES: Array<JobCase> = [
     kind: OwnerNotificationKind.StatusPageOwnerAdded,
     eventIdIsTheIncident: false,
     arrange: (): void => {
-      asMock(StatusPageOwnerTeamService.findAllBy).mockImplementation(
-        async () => {
-          return world.isTaken
-            ? []
-            : [
-                plain({
-                  id: world.eventId,
-                  statusPageId: world.incidentId,
-                  teamId: ObjectID.generate(),
-                }),
-              ];
-        },
-      );
-      asMock(StatusPageOwnerTeamService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
-      asMock(StatusPageOwnerUserService.findAllBy).mockResolvedValue([]);
+      /*
+       * Read a page at a time with the status page's other owner rows, and
+       * taken by one compare-and-set that one run alone wins (#8862).
+       */
+      const teamId: ObjectID = ObjectID.generate();
+      asMock(StatusPageOwnerTeamService.findBy).mockImplementation(async () => {
+        return world.isTaken
+          ? []
+          : [
+              plain({
+                id: world.eventId,
+                statusPageId: world.incidentId,
+                teamId: teamId,
+              }),
+            ];
+      });
+      asMock(
+        StatusPageOwnerTeamService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
+      asMock(StatusPageOwnerUserService.findBy).mockResolvedValue([]);
       asMock(TeamMemberService.getUsersInTeams).mockImplementation(async () => {
         return world.owners;
       });
@@ -676,6 +684,8 @@ const CASES: Array<JobCase> = [
           return data.users;
         },
       );
+      // Read with the page's other status pages, or on its own.
+      asMock(StatusPageService.findBy).mockResolvedValue([]);
       asMock(StatusPageService.findOneById).mockImplementation(async () => {
         return plain({
           id: world.incidentId,

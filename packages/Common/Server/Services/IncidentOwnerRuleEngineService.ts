@@ -25,8 +25,8 @@ import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import OwnerRuleAssignment, {
@@ -129,22 +129,18 @@ class IncidentOwnerRuleEngineServiceClass
 
   /*
    * The project's enabled rules, as every evaluation of a new incident reads
-   * them - the create and the declare form's preview alike.
+   * them - the create and the declare form's preview alike. Kept until any
+   * of the project's rules changes (RuleSetCache).
    */
   @CaptureSpan()
   public async getEnabledRules(
     projectId: ObjectID,
   ): Promise<Array<IncidentOwnerRule>> {
     const rules: Array<IncidentOwnerRule> =
-      await IncidentOwnerRuleService.findBy({
-        query: {
-          projectId: projectId,
-          isEnabled: true,
-        },
-        props: { isRoot: true },
+      await RuleSetCache.findEnabledRules<IncidentOwnerRule>({
+        service: IncidentOwnerRuleService,
+        projectId: projectId,
         select: this.ruleSelect,
-        limit: MAX_RULES_EVALUATED_PER_PROJECT,
-        skip: 0,
       });
 
     logIfRuleReadWasTruncated({

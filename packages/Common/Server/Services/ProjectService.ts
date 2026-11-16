@@ -204,6 +204,7 @@ import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
 import IncomingRequestSecretPolicy from "../Utils/Monitor/IncomingRequestSecretPolicy";
 import IncomingRequestSecretService, {
+  NO_COVERING_INCOMING_REQUEST_SECRET_MESSAGE,
   NO_INCOMING_REQUEST_SECRET_TO_REQUIRE_MESSAGE,
 } from "./IncomingRequestSecretService";
 import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngestionBudgetSettings";
@@ -1790,7 +1791,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * project's Incoming Request monitors that sends none of its incoming
    * request secrets. Turned on with no secret, it would refuse every request
    * at once - every heartbeat monitor going offline together - so it turns on
-   * only once the project has a secret for its senders to send.
+   * only once the project has a secret for its senders to send, and one that
+   * covers some monitor (a secret limited to monitors or labels, issue #8501,
+   * may name none).
    */
   /*
    * The postmortem statuses that keep an incident from the incident
@@ -1869,6 +1872,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
         throw new BadDataException(
           NO_INCOMING_REQUEST_SECRET_TO_REQUIRE_MESSAGE,
         );
+      }
+
+      /*
+       * Secrets limited to some monitors (issue #8501) that name none cover
+       * nothing: requiring one then refuses every request just the same.
+       */
+      const coveringCount: number =
+        await IncomingRequestSecretService.countCoveringSecretsOfProject(
+          project.id,
+        );
+
+      if (coveringCount < 1) {
+        throw new BadDataException(NO_COVERING_INCOMING_REQUEST_SECRET_MESSAGE);
       }
     }
   }

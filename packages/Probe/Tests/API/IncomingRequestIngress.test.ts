@@ -23,11 +23,19 @@ import {
   ExpressRequest,
   ExpressResponse,
   ExpressUrlEncoded,
+  OneUptimeRequest,
 } from "Common/Server/Utils/Express";
+import IncomingRequestSignature from "Common/Server/Utils/Monitor/IncomingRequestSignature";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Headers from "Common/Types/API/Headers";
+import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  INCOMING_REQUEST_SIGNATURE_FORMATS,
+  IncomingRequestSignatureFormat,
+  IncomingRequestSignatureScheme,
+} from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
@@ -119,6 +127,8 @@ type CallIngressFunction = (data?: {
   params?: Record<string, string>;
   headers?: Record<string, string | Array<string> | undefined>;
   body?: unknown;
+  // The bytes the listener kept of a signed request's body, as it parsed it.
+  rawBodyBytes?: Buffer;
 }) => Promise<{ captured: CapturedResponse; nextError: unknown }>;
 
 const callIngress: CallIngressFunction = async (data?: {
@@ -127,6 +137,7 @@ const callIngress: CallIngressFunction = async (data?: {
   params?: Record<string, string>;
   headers?: Record<string, string | Array<string> | undefined>;
   body?: unknown;
+  rawBodyBytes?: Buffer;
 }): Promise<{ captured: CapturedResponse; nextError: unknown }> => {
   const captured: CapturedResponse = { body: null, statusCode: null };
   let nextError: unknown = undefined;
@@ -167,6 +178,7 @@ const callIngress: CallIngressFunction = async (data?: {
       params: data?.params ?? { secretkey: "super-secret-key" },
       headers: data?.headers ?? {},
       body: data && "body" in data ? data.body : { hello: "world" },
+      rawBodyBytes: data?.rawBodyBytes,
       query: {},
     },
     res,
@@ -531,6 +543,96 @@ describe("the body it passes on", () => {
     await flush();
 
     expect(String(readForward(spy)["method"])).toMatch(/get/i);
+  });
+});
+
+/*
+ * A signed request's body is passed on as the bytes that came (#8500): its
+ * signature was made over them, and the JSON or form the listener parsed,
+ * sent on re-encoded, would no longer match it.
+ */
+describe("a signed request's body", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const SPACED_JSON: Buffer = Buffer.from('{ "status" : "ok" }', "utf8");
+
+  test.each(
+    INCOMING_REQUEST_SIGNATURE_FORMATS.map(
+      (format: IncomingRequestSignatureFormat): [string] => {
+        return [format.header];
+      },
+    ),
+  )(
+    "signed in %s, is forwarded as the bytes that came, not as the listener parsed them",
+    async (header: string) => {
+      const spy: ApiFetchSpy = mockForwardSucceeds();
+
+      await callIngress({
+        headers: { [header.toLowerCase()]: "a signature" },
+        body: { status: "ok" },
+        rawBodyBytes: SPACED_JSON,
+      });
+      await flush();
+
+      expect(readForward(spy)["data"]).toBe(SPACED_JSON);
+    },
+  );
+
+  test("is the text that came, for a text body", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const bytes: Buffer = Buffer.from("backup finished", "utf8");
+
+    await callIngress({
+      headers: { "x-oneuptime-signature": "a signature" },
+      body: bytes,
+    });
+    await flush();
+
+    expect(readForward(spy)["data"]).toBe(bytes);
+  });
+
+  test("is no body at all when the request came without one, never {}", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await callIngress({
+      method: "get",
+      headers: { "x-hub-signature-256": "a signature" },
+      body: undefined,
+    });
+    await flush();
+
+    const data: unknown = readForward(spy)["data"];
+
+    expect(Buffer.isBuffer(data)).toBe(true);
+    expect((data as Buffer).length).toBe(0);
+  });
+
+  test("is still the JSON the listener parsed for a request sending a secret, not a signature", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await callIngress({
+      headers: { "x-oneuptime-secret": "one-of-the-project-secrets" },
+      body: { status: "ok" },
+      rawBodyBytes: SPACED_JSON,
+    });
+    await flush();
+
+    expect(readForward(spy)["data"]).toEqual({ status: "ok" });
+  });
+
+  test("is still the JSON the listener parsed when the signature header is empty", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await callIngress({
+      headers: { "x-oneuptime-signature": "" },
+      body: { status: "ok" },
+      rawBodyBytes: SPACED_JSON,
+    });
+    await flush();
+
+    expect(readForward(spy)["data"]).toEqual({ status: "ok" });
   });
 });
 
@@ -981,6 +1083,115 @@ describe("the listener, over HTTP", () => {
     },
   );
 
+  /*
+   * A signed request's body reaches OneUptime as the bytes that came
+   * (#8500), whatever its type: the listener keeps them as it parses.
+   */
+  type ForwardedBytesFunction = (spy: ApiFetchSpy) => Promise<string>;
+
+  const forwardedBytes: ForwardedBytesFunction = async (
+    spy: ApiFetchSpy,
+  ): Promise<string> => {
+    const data: unknown = (await forwarded(spy))["data"];
+
+    expect(Buffer.isBuffer(data)).toBe(true);
+
+    return (data as Buffer).toString("latin1");
+  };
+
+  test("forwards a signed JSON body as the bytes that came, spacing and all", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const body: string = '{ "status" : "healthy",\n  "emoji": "\\u2705" }';
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OneUptime-Signature": `t=1,v1=${"0".repeat(64)}`,
+      },
+      body: body,
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(await forwardedBytes(spy)).toBe(body);
+  });
+
+  test("forwards a signed form body as the bytes that came, in their order", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const body: string = "token=abc&team_id=T1&text=hello%20world&a=1";
+
+    await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Slack-Signature": `v0=${"0".repeat(64)}`,
+        "X-Slack-Request-Timestamp": "1",
+      },
+      body: body,
+    });
+
+    expect(await forwardedBytes(spy)).toBe(body);
+  });
+
+  test("inflates a signed gzip JSON body, and forwards the bytes it held without Content-Encoding", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const body: string = '{\n  "id": "evt_1",\n  "type": "invoice.paid"\n}';
+
+    await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Encoding": "gzip",
+        "Stripe-Signature": `t=1,v1=${"0".repeat(64)}`,
+      },
+      body: zlib.gzipSync(body),
+    });
+
+    const forward: Record<string, unknown> = await forwarded(spy);
+    const headerNames: Array<string> = Object.keys(
+      forward["headers"] as Headers,
+    ).map((name: string): string => {
+      return name.toLowerCase();
+    });
+
+    expect((forward["data"] as Buffer).toString("utf8")).toBe(body);
+    expect(headerNames).not.toContain("content-encoding");
+  });
+
+  test("reads a signed body of a type it would otherwise leave empty, and forwards its bytes", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const body: Buffer = Buffer.from([0, 1, 2, 254, 255]);
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Hub-Signature-256": `sha256=${"0".repeat(64)}`,
+      },
+      body: body,
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(Buffer.from(await forwardedBytes(spy), "latin1").equals(body)).toBe(
+      true,
+    );
+  });
+
+  test("still forwards the JSON it parsed for a request that sends a secret instead", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OneUptime-Secret": "one-of-the-project-secrets",
+      },
+      body: '{ "status" : "healthy" }',
+    });
+
+    expect((await forwarded(spy))["data"]).toEqual({ status: "healthy" });
+  });
+
   test("forwards a HEAD request as a GET", async () => {
     const spy: ApiFetchSpy = mockForwardSucceeds();
 
@@ -1212,4 +1423,286 @@ describe("a request relayed through the probe, as OneUptime reads it", () => {
       expect(await readThroughProbe(request)).toEqual(expected);
     },
   );
+});
+
+/*
+ * A signed request relayed through the probe is checked by OneUptime as it
+ * would have been sent directly (#8500). The endpoint below reads a body as
+ * StartServer and the incoming request route do - the JSON and form parsers
+ * keeping the text that came, then the route's text and signed body readers
+ * - and checks the signature with the project's secret, as the ingest
+ * endpoint does.
+ */
+describe("a signed request relayed through the probe, as OneUptime checks it", () => {
+  const SECRET: string = "a-project-secret-the-sender-signs-with";
+  const SECRET_ID: string = "the-project-secret";
+  const NOW_SECONDS: number = 1_800_000_000;
+
+  let listener: http.Server;
+  let listenerPort: number = 0;
+  let oneUptime: http.Server;
+  let oneUptimePort: number = 0;
+
+  interface Sent {
+    headers: Record<string, string>;
+    body: Buffer | string;
+  }
+
+  type PostFunction = (
+    port: number,
+    path: string,
+    request: Sent,
+  ) => Promise<string>;
+
+  const post: PostFunction = (
+    port: number,
+    path: string,
+    request: Sent,
+  ): Promise<string> => {
+    return new Promise(
+      (resolve: (body: string) => void, reject: (err: Error) => void) => {
+        const outgoing: http.ClientRequest = http.request(
+          {
+            host: "127.0.0.1",
+            port: port,
+            method: "POST",
+            path: path,
+            headers: request.headers,
+          },
+          (response: http.IncomingMessage) => {
+            const chunks: Array<Buffer> = [];
+            response.on("data", (chunk: Buffer) => {
+              chunks.push(chunk);
+            });
+            response.on("end", () => {
+              resolve(Buffer.concat(chunks).toString("utf8"));
+            });
+          },
+        );
+        outgoing.on("error", reject);
+        outgoing.write(request.body);
+        outgoing.end();
+      },
+    );
+  };
+
+  // Which secret OneUptime finds made the request's signature, or null.
+  type CheckFunction = (request: Sent) => Promise<string | null>;
+
+  const checkDirectly: CheckFunction = async (
+    request: Sent,
+  ): Promise<string | null> => {
+    return (
+      JSON.parse(
+        await post(oneUptimePort, "/incoming-request/key", request),
+      ) as {
+        matched: string | null;
+      }
+    ).matched;
+  };
+
+  const checkThroughProbe: CheckFunction = async (
+    request: Sent,
+  ): Promise<string | null> => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await post(listenerPort, "/heartbeat/key", request);
+
+    for (let i: number = 0; i < 200 && spy.mock.calls.length === 0; i++) {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 5);
+      });
+    }
+
+    const forward: Record<string, unknown> = readForward(spy);
+    const data: unknown = forward["data"];
+
+    jest.restoreAllMocks();
+
+    // As the forward sends it: bytes as they are, JSON stringified.
+    return await checkDirectly({
+      headers: forward["headers"] as Record<string, string>,
+      body: Buffer.isBuffer(data) ? data : JSON.stringify(data),
+    });
+  };
+
+  // A request as its sender makes it: the body, signed with the secret.
+  type SignedFunction = (data: {
+    scheme: IncomingRequestSignatureScheme;
+    contentType: string;
+    body: Buffer | string;
+    signedBody?: Buffer | string;
+  }) => Sent;
+
+  const signed: SignedFunction = (data: {
+    scheme: IncomingRequestSignatureScheme;
+    contentType: string;
+    body: Buffer | string;
+    signedBody?: Buffer | string;
+  }): Sent => {
+    const format: IncomingRequestSignatureFormat =
+      IncomingRequestSignature.formatOf(data.scheme);
+    const headers: Record<string, string> = {
+      "content-type": data.contentType,
+      [format.header]: IncomingRequestSignature.sign({
+        scheme: data.scheme,
+        secret: SECRET,
+        body: data.signedBody ?? data.body,
+        timestampSeconds: NOW_SECONDS,
+      }),
+    };
+
+    if (format.timestampHeader) {
+      headers[format.timestampHeader] = String(NOW_SECONDS);
+    }
+
+    return { headers: headers, body: data.body };
+  };
+
+  beforeAll(async () => {
+    listener = createIngressApp().listen(0, "127.0.0.1");
+    await new Promise((resolve: (value: unknown) => void) => {
+      listener.once("listening", resolve);
+    });
+    listenerPort = (listener.address() as AddressInfo).port;
+
+    const keepText: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      buf: Buffer,
+    ) => void = (
+      req: ExpressRequest,
+      _res: ExpressResponse,
+      buf: Buffer,
+    ): void => {
+      (req as OneUptimeRequest).rawBody = buf.toString();
+    };
+
+    const app: ExpressApplication = createExpressApp();
+    app.use(ExpressJson({ limit: "50mb", verify: keepText }));
+    app.use(
+      ExpressUrlEncoded({ extended: true, limit: "50mb", verify: keepText }),
+    );
+    app.post(
+      "/incoming-request/:secretkey",
+      WebhookRequestBody.getReader("50mb"),
+      WebhookRequestBody.getSignedBodyReader(
+        "50mb",
+        (req: ExpressRequest): boolean => {
+          return (
+            IncomingRequestSignature.readPresentedSignatures(
+              req.headers as Dictionary<string | Array<string> | undefined>,
+            ).length > 0
+          );
+        },
+      ),
+      (req: ExpressRequest, res: ExpressResponse) => {
+        res.json({
+          matched:
+            IncomingRequestSignature.verify({
+              signatures: IncomingRequestSignature.readPresentedSignatures(
+                req.headers as Dictionary<string | Array<string> | undefined>,
+              ),
+              body: IncomingRequestSignature.getSignedBodyOf(
+                req as OneUptimeRequest,
+              ),
+              secrets: [{ secretId: SECRET_ID, value: SECRET }],
+              now: new Date(NOW_SECONDS * 1000),
+            }).matchedSecretId ?? null,
+        });
+      },
+    );
+
+    oneUptime = app.listen(0, "127.0.0.1");
+    await new Promise((resolve: (value: unknown) => void) => {
+      oneUptime.once("listening", resolve);
+    });
+    oneUptimePort = (oneUptime.address() as AddressInfo).port;
+  });
+
+  afterAll(async () => {
+    jest.restoreAllMocks();
+    await new Promise((resolve: (value: unknown) => void) => {
+      listener.close(resolve);
+    });
+    await new Promise((resolve: (value: unknown) => void) => {
+      oneUptime.close(resolve);
+    });
+  });
+
+  test.each([
+    [
+      "JSON from your own code, with its own spacing",
+      IncomingRequestSignatureScheme.OneUptime,
+      "application/json",
+      '{ "status" : "healthy",\n  "version": "1.2.3" }',
+    ],
+    [
+      "a GitHub delivery as JSON, with an escaped character",
+      IncomingRequestSignatureScheme.GitHub,
+      "application/json",
+      '{"zen":"Keep it logically awesome.","emoji":"\\u2705","hook_id":1}',
+    ],
+    [
+      "a GitHub delivery as a form",
+      IncomingRequestSignatureScheme.GitHub,
+      "application/x-www-form-urlencoded",
+      "payload=%7B%22zen%22%3A%22Keep%20it%20logically%20awesome.%22%7D",
+    ],
+    [
+      "a Slack slash command",
+      IncomingRequestSignatureScheme.Slack,
+      "application/x-www-form-urlencoded",
+      "token=gIkuvaNzQIHg97ATvDxqgjtO&team_id=T0001&text=94070",
+    ],
+    [
+      "a Stripe event, as Stripe indents it",
+      IncomingRequestSignatureScheme.Stripe,
+      "application/json; charset=utf-8",
+      '{\n  "id": "evt_1",\n  "type": "invoice.paid"\n}',
+    ],
+    [
+      "JSON sent as text/plain, as Amazon SNS sends it",
+      IncomingRequestSignatureScheme.OneUptime,
+      "text/plain; charset=UTF-8",
+      '{"Type": "Notification", "Message": "ALARM"}',
+    ],
+    [
+      "a body of a type the monitor gets empty",
+      IncomingRequestSignatureScheme.OneUptime,
+      "application/octet-stream",
+      Buffer.from([0, 1, 2, 254, 255]),
+    ],
+    [
+      "an empty body",
+      IncomingRequestSignatureScheme.OneUptime,
+      "application/json",
+      "",
+    ],
+  ])(
+    "%s is accepted through the probe as it is when sent directly",
+    async (
+      _label: string,
+      scheme: IncomingRequestSignatureScheme,
+      contentType: string,
+      body: Buffer | string,
+    ) => {
+      const request: Sent = signed({ scheme, contentType, body });
+
+      expect(await checkDirectly(request)).toBe(SECRET_ID);
+      expect(await checkThroughProbe(request)).toBe(SECRET_ID);
+    },
+  );
+
+  test("a signature over another body is refused through the probe, as it is directly", async () => {
+    const request: Sent = signed({
+      scheme: IncomingRequestSignatureScheme.OneUptime,
+      contentType: "application/json",
+      body: '{"status":"offline"}',
+      signedBody: '{"status":"healthy"}',
+    });
+
+    expect(await checkDirectly(request)).toBeNull();
+    expect(await checkThroughProbe(request)).toBeNull();
+  });
 });

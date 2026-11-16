@@ -41,13 +41,20 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * The second sweep has no gate of its own: each service declares its
  * retention window in its constructor, most of them inside
  * `if (IsBillingEnabled)` (OneUptime Cloud only), some for every install
- * (sessions, test runs, OAuth grants).
+ * (sessions, test runs, OAuth grants). It used to delete 10,000 rows a
+ * statement (LIMIT_MAX) until a statement deleted nothing, with no time
+ * budget and the default five-minute limit (issue #8894): now it walks the
+ * tables as the first sweep does (OlderRowsPurge, TablePurgeWalk) - 1000
+ * rows a statement, a time budget, one batch for each table left once it is
+ * spent, the job's deadline, a time limit above the budget, and one log
+ * line when something happened.
  *
  * These tests pin all of that through the job's own handlers - with the
- * real purge, over fake services - so the deletion is not proposed again,
+ * real purges, over fake services - so the deletion is not proposed again,
  * and so a future edit cannot quietly drop one of the two registrations.
- * SoftDeletedRowsPurge's own suite covers the purge's parts, and its
- * Postgres suite the statements against a migrated database.
+ * SoftDeletedRowsPurge's and OlderRowsPurge's own suites cover the purges'
+ * parts, and their Postgres suites the statements against a migrated
+ * database.
  */
 
 type CronHandler = (deadline?: unknown) => Promise<void>;
@@ -145,6 +152,10 @@ import DatabaseService from "Common/Server/Services/DatabaseService";
 import NetworkEndpointService from "Common/Server/Services/NetworkEndpointService";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
+import OlderRowsPurge, {
+  OLDER_ROWS_PURGE_BATCH_SIZE,
+  OLDER_ROWS_PURGE_TIME_BUDGET_MS,
+} from "Common/Server/Utils/Retention/OlderRowsPurge";
 import SoftDeletedRowsPurge, {
   SOFT_DELETED_ROWS_PURGE_BATCH_SIZE,
   SOFT_DELETED_ROWS_PURGE_TIME_BUDGET_MS,
@@ -164,10 +175,11 @@ const DAY_MS: number = 24 * 60 * MINUTE_MS;
 // Calls a fake's "endless" backlog answers, far more than any run makes.
 const MAX_ENDLESS_CALLS: number = 1000;
 
-// The purge's clock, pinned per test (SoftDeletedRowsPurge.now).
+// The purges' clock, pinned per test (SoftDeletedRowsPurge.now, OlderRowsPurge.now).
 const START: Date = new Date("2026-11-16T03:00:00.000Z");
 let clock: Date = START;
 const realNow: () => Date = SoftDeletedRowsPurge.now;
+const realOlderRowsNow: () => Date = OlderRowsPurge.now;
 
 type FakeService = DatabaseService<never> & { hardDeleteBy: jest.Mock };
 
@@ -321,11 +333,15 @@ beforeEach(() => {
   SoftDeletedRowsPurge.now = (): Date => {
     return clock;
   };
+  OlderRowsPurge.now = (): Date => {
+    return clock;
+  };
   jest.clearAllMocks();
 });
 
 afterEach(() => {
   SoftDeletedRowsPurge.now = realNow;
+  OlderRowsPurge.now = realOlderRowsNow;
   jest.restoreAllMocks();
 });
 
@@ -391,6 +407,16 @@ describe("both sweeps are registered", () => {
     expect(timeoutInMS!).toBeGreaterThan(
       SOFT_DELETED_ROWS_PURGE_TIME_BUDGET_MS,
     );
+  });
+
+  // #8894: it ran with the default five-minute limit, less than a backlog took.
+  test("the retention sweep's time limit is its budget and ten minutes more", () => {
+    const timeoutInMS: number | undefined =
+      mockCapturedJobs[RETENTION_SWEEP]!.options.timeoutInMS;
+
+    expect(OLDER_ROWS_PURGE_TIME_BUDGET_MS).toBe(20 * MINUTE_MS);
+    expect(timeoutInMS).toBe(OLDER_ROWS_PURGE_TIME_BUDGET_MS + 10 * MINUTE_MS);
+    expect(timeoutInMS!).toBeGreaterThan(OLDER_ROWS_PURGE_TIME_BUDGET_MS);
   });
 });
 
@@ -852,6 +878,8 @@ describe("how much the soft-delete purge does in a run", () => {
 
 describe("the per-model retention sweep", () => {
   test("deletes by the column and window the service declared", async () => {
+    OlderRowsPurge.now = realOlderRowsNow;
+
     const service: FakeService = fakeService({
       modelType: asModel(WhatsAppLog),
       retentionColumn: "createdAt",
@@ -864,7 +892,255 @@ describe("the per-model retention sweep", () => {
     const query: Record<string, unknown> = firstQuery(service);
 
     expect(Object.keys(query)).toEqual(["createdAt"]);
+    expect(sqlOf(query["createdAt"])).toMatch(/^\(col < :\w+\)$/);
     expect(daysAgo(boundDate(query["createdAt"]))).toBe(3);
+  });
+
+  test("the cut-off is exactly the service's window before the run's clock, on every batch", async () => {
+    const service: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "refreshTokenExpiresAt",
+      retentionDays: 30,
+      deletedPerCall: [10, 10, 0],
+      minutesPerCall: 1,
+    });
+    mockServices.push(service);
+
+    await runSweep(RETENTION_SWEEP);
+
+    expect(service.hardDeleteBy).toHaveBeenCalledTimes(3);
+
+    for (const [index, startedAt] of [
+      START,
+      new Date(START.getTime() + MINUTE_MS),
+      new Date(START.getTime() + 2 * MINUTE_MS),
+    ].entries()) {
+      expect(
+        boundDate(callOf(service, index).query["refreshTokenExpiresAt"]),
+      ).toEqual(new Date(startedAt.getTime() - 30 * DAY_MS));
+    }
+  });
+
+  test("it deletes as root, from the first row due", async () => {
+    const service: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+    });
+    mockServices.push(service);
+
+    await runSweep(RETENTION_SWEEP);
+
+    expect(callOf(service).props.isRoot).toBe(true);
+    expect(callOf(service).skip).toBe(0);
+  });
+
+  /*
+   * #8894: a statement deletes 1000 rows at most, not LIMIT_MAX (10,000):
+   * on a big table one DELETE and its cascades held locks for long.
+   */
+  test("each batch takes 1000 rows at most, not LIMIT_MAX", async () => {
+    const service: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+      deletedPerCall: [1000, 1000, 0],
+    });
+    mockServices.push(service);
+
+    await runSweep(RETENTION_SWEEP);
+
+    expect(OLDER_ROWS_PURGE_BATCH_SIZE).toBe(1000);
+    expect(OLDER_ROWS_PURGE_BATCH_SIZE).toBeLessThan(LIMIT_MAX);
+
+    for (let index: number = 0; index < 3; index++) {
+      expect(callOf(service, index).limit).toBe(1000);
+      expect(callOf(service, index).skip).toBe(0);
+    }
+  });
+
+  test("each batch is handed a request of its own", async () => {
+    const service: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+      deletedPerCall: [3, 0],
+    });
+    mockServices.push(service);
+
+    await runSweep(RETENTION_SWEEP);
+
+    expect(callOf(service, 0)).not.toBe(callOf(service, 1));
+    expect(callOf(service, 0).query).not.toBe(callOf(service, 1).query);
+  });
+
+  /*
+   * The time budget: a backlog that never ends stops once 20 minutes are
+   * spent, and every table after it still gets one batch. The old loop ran
+   * a backlog to its end - past the job's time limit - and the tables after
+   * it waited, every day.
+   */
+  test("a run stops draining once its budget is spent, and each table left still gets one batch", async () => {
+    const backlog: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+      isEndless: true,
+      minutesPerCall: 1,
+    });
+    const secondBacklog: FakeService = fakeService({
+      modelType: asModel(AlertLabelRule),
+      retentionColumn: "createdAt",
+      retentionDays: 3 * 365,
+      isEndless: true,
+      minutesPerCall: 1,
+    });
+    const empty: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+    });
+    mockServices.push(backlog, secondBacklog, empty);
+
+    await runSweep(RETENTION_SWEEP);
+
+    expect(backlog.hardDeleteBy).toHaveBeenCalledTimes(
+      OLDER_ROWS_PURGE_TIME_BUDGET_MS / MINUTE_MS,
+    );
+    expect(secondBacklog.hardDeleteBy).toHaveBeenCalledTimes(1);
+    expect(empty.hardDeleteBy).toHaveBeenCalledTimes(1);
+
+    expect(infoLogs()).toEqual([
+      `Retention: deleted ${21 * 1000} rows for good that were older than their table keeps them (WhatsAppLog: 20000, AlertLabelRule: 1000); the rest wait for the next run.`,
+    ]);
+  });
+
+  test("within its budget, a run drains every table, and says how much went from which", async () => {
+    const first: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+      deletedPerCall: [1000, 1000, 1000, 0],
+      minutesPerCall: 1,
+    });
+    const second: FakeService = fakeService({
+      modelType: asModel(AlertLabelRule),
+      retentionColumn: "createdAt",
+      retentionDays: 1095,
+      deletedPerCall: [1000, 500, 0],
+      minutesPerCall: 1,
+    });
+    mockServices.push(first, second);
+
+    await runSweep(RETENTION_SWEEP);
+
+    expect(first.hardDeleteBy).toHaveBeenCalledTimes(4);
+    expect(second.hardDeleteBy).toHaveBeenCalledTimes(3);
+    expect(infoLogs()).toEqual([
+      "Retention: deleted 4500 rows for good that were older than their table keeps them (WhatsAppLog: 3000, AlertLabelRule: 1500).",
+    ]);
+  });
+
+  // The deadline RunCron hands the job: its time limit, or a lost lock.
+  test("a deadline that has passed stops the run before its first batch", async () => {
+    const service: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+      deletedPerCall: [1000, 0],
+    });
+    mockServices.push(service);
+
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end(new Error("The run lost its lock."));
+
+    await runSweep(RETENTION_SWEEP, deadline);
+
+    expect(service.hardDeleteBy).not.toHaveBeenCalled();
+    expect(infoLogs()).toEqual([
+      "Retention: deleted 0 rows for good that were older than their table keeps them; the rest wait for the next run.",
+    ]);
+  });
+
+  test("a deadline that passes mid-run stops it after the batch in flight", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+
+    const first: FakeService = fakeService({
+      modelType: asModel(WhatsAppLog),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+      isEndless: true,
+      onCall: (call: number): void => {
+        if (call === 2) {
+          deadline.end(new Error("The job ran out of time."));
+        }
+      },
+    });
+    const second: FakeService = fakeService({
+      modelType: asModel(AlertLabelRule),
+      retentionColumn: "createdAt",
+      retentionDays: 3,
+      deletedPerCall: [10, 0],
+    });
+    mockServices.push(first, second);
+
+    await runSweep(RETENTION_SWEEP, deadline);
+
+    expect(first.hardDeleteBy).toHaveBeenCalledTimes(2);
+    expect(second.hardDeleteBy).not.toHaveBeenCalled();
+  });
+
+  test("a run that had nothing to delete logs nothing", async () => {
+    mockServices.push(
+      fakeService({
+        modelType: asModel(WhatsAppLog),
+        retentionColumn: "createdAt",
+        retentionDays: 3,
+      }),
+      fakeService({ modelType: asModel(AlertLabelRule) }),
+    );
+
+    await runSweep(RETENTION_SWEEP);
+
+    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("a purge that throws is logged, never thrown at the queue", async () => {
+    jest
+      .spyOn(OlderRowsPurge, "run")
+      .mockRejectedValue(new Error("Postgres is down"));
+
+    await expect(runSweep(RETENTION_SWEEP)).resolves.toBeUndefined();
+
+    expect(errorLogs()[0]).toBe(
+      "Retention: deleting the rows older than their table keeps them failed.",
+    );
+    expect((errorLogs()[1] as Error).message).toBe("Postgres is down");
+  });
+
+  test("it hands the purge the services and its deadline", async () => {
+    const run: jest.SpyInstance = jest
+      .spyOn(OlderRowsPurge, "run")
+      .mockResolvedValue({
+        tables: 0,
+        purged: 0,
+        purgedTables: [],
+        failedTables: 0,
+        isCutShort: false,
+      });
+    const deadline: JobDeadline = new JobDeadline();
+
+    await runSweep(RETENTION_SWEEP, deadline);
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run.mock.calls[0]![0]).toEqual({
+      services: mockServices,
+      deadline: deadline,
+    });
+    expect((run.mock.calls[0]![0] as { services: unknown }).services).toBe(
+      mockServices,
+    );
   });
 
   /*
@@ -909,7 +1185,7 @@ describe("the per-model retention sweep", () => {
     expect(service.hardDeleteBy).toHaveBeenCalledTimes(3);
   });
 
-  test("one failing service does not abort the rest of the pass", async () => {
+  test("one failing service is logged and does not abort the rest of the pass", async () => {
     const failing: FakeService = fakeService({
       modelType: asModel(AlertLabelRule),
       retentionColumn: "createdAt",
@@ -920,11 +1196,19 @@ describe("the per-model retention sweep", () => {
       modelType: asModel(WhatsAppLog),
       retentionColumn: "createdAt",
       retentionDays: 3,
+      deletedPerCall: [4, 0],
     });
     mockServices.push(failing, healthy);
 
     await expect(runSweep(RETENTION_SWEEP)).resolves.toBeUndefined();
-    expect(healthy.hardDeleteBy).toHaveBeenCalled();
+    expect(healthy.hardDeleteBy).toHaveBeenCalledTimes(2);
+    expect(errorLogs()[0]).toBe(
+      "Retention: deleting the AlertLabelRule rows older than 30 days failed. They are tried again next run.",
+    );
+    expect((errorLogs()[1] as Error).message).toBe("boom");
+    expect(infoLogs()).toEqual([
+      "Retention: deleted 4 rows for good that were older than their table keeps them (WhatsAppLog: 4); 1 tables failed and are tried again next run.",
+    ]);
   });
 
   /*
@@ -1027,5 +1311,29 @@ describe("nothing else purges soft-deleted rows", () => {
 
     expect(job).toContain("SoftDeletedRowsPurge.run({");
     expect(job).not.toMatch(QUERY_BY_DELETED_AT);
+  });
+
+  /*
+   * #8894: the retention sweep's own loop - LIMIT_MAX a statement, until a
+   * statement deleted nothing - is gone; the purge by age is the one place
+   * that deletes by a service's window, in batches, within a budget.
+   */
+  test("the job deletes by age through the bounded purge, and has no batch loop of its own", () => {
+    const job: string = fs.readFileSync(
+      path.join(
+        appRoot,
+        "FeatureSet",
+        "Workers",
+        "Jobs",
+        "HardDelete",
+        "HardDeleteItemsInDatabase.ts",
+      ),
+      "utf8",
+    );
+
+    expect(job).toContain("OlderRowsPurge.run({");
+    expect(job).not.toContain("LIMIT_MAX");
+    expect(job).not.toContain("hardDeleteBy(");
+    expect(job).not.toMatch(/\bwhile\s*\(/);
   });
 });

@@ -1,0 +1,39 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title=title }}
+
+{{!--
+  Give Feedback (issue #8893): what a person wrote to the team that reads
+  it - the OneUptime team on OneUptime Cloud, a self-hosted server's admins
+  at its Admin Notification Email - sent by the server
+  (Common/Server/Utils/ProductFeedback/GiveFeedbackEmail.ts). The person is
+  copied on it (Cc) and a reply goes to them (Reply-To), so the same email
+  reads right in both inboxes.
+
+  Every value below but this file's own words is the person's or their
+  project's: each row is plainText, which Handlebars escapes. messageHtml is
+  what they wrote with its line breaks kept: GiveFeedbackEmail
+  (getGiveFeedbackMessageHtml) escapes every line and adds nothing but the
+  <br/> between them. preheader - what it is about, who wrote and their
+  project, for the inbox's preview line - is read by the Start partial
+  above, which escapes it.
+--}}
+
+{{> InfoBlock plainInfo="Sent with Give Feedback. The person who wrote it is copied on this email, and a reply goes to them."}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="What it is about" plainText=category }}
+{{> DetailBoxField title="What they wrote" blockText=messageHtml }}
+{{> DetailBoxField title="Name" plainText=personName }}
+{{> DetailBoxField title="Email" plainText=personEmail }}
+{{> DetailBoxField title="Project" plainText=projectName }}
+{{> DetailBoxField title="Project ID" plainText=projectId }}
+{{> DetailBoxField title="Page" plainText=page }}
+{{> DetailBoxField title="Version" plainText=version }}
+{{> DetailBoxEnd this }}
+
+{{> Footer this}}
+
+{{> End this}}

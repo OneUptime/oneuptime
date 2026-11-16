@@ -57,6 +57,8 @@ En policy som flera regler lägger till körs en gång. En allvarlighetsgrad kö
 - **Användaråsidosättningar** täcker upp för personer bara i den här policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 - **Inställningar** har **Exportera Jourpolicy** och kortet som arkiverar policyn.
 
+**Vad som utlöser den här policyn**, på **Översikt**, listar jourreglerna, monitorerna vars kriterier utlöser policyn, mallarna och andra regler som utlöser den, och arbetsflödena som gör det, var och en med en länk. En avstängd regel visar **Av**. När inget utlöser policyn säger kortet det: den larmar ingen förrän något utlöser den. När du tar bort eller arkiverar policyn sägs samma sak först. Det du inte får öppna räknas men namnges inte.
+
 ## Upprepa en policy
 
 När den sista nivåns väntetid går ut utan att någon har bekräftat slutar en policy, om den inte upprepas. För att välja öppnar du policyns sida **Eskaleringsregler** och klickar på **Redigera** på kortet **Upprepningspolicy** under reglerna. **Redigera upprepningspolicy** frågar **Om ingen bekräftar efter den sista nivån**:
@@ -93,7 +95,7 @@ Ingen går miste om ett larm för att hen bara larmas en gång. Personens larm k
 
 Vissa larm fortsätter efter bekräftelsen, tills någon de har larmat svarar eller den är löst: ett nytt larm, ett larm till observatörer, ett larm som någon har skickat till personer från Slack eller Microsoft Teams, och en policy som har startats manuellt.
 
-En policy som har startats manuellt är en som startats med **Kör jourpolicy**, eller av ett larm från Slack eller Microsoft Teams som nämner den. Den larmar nivå för nivå som varje körning, med samtal och upprepade push-aviseringar, och att någon annan bekräftar incidenten stoppar den inte: så larmar du ytterligare ett team till en incident som någon redan arbetar med. Den som den har larmat svarar från meddelandet i sitt larm, ett samtal eller ett sms, eller genom att själv bekräfta incidenten; när incidenten är bekräftad erbjuder incidentens sida personen **Bekräfta igen**. **Eskalera** skickar den vidare till nästa nivå. På en incident, ett larm eller en episod som är löst startas ingenting, och du får veta varför. Dess aviseringar säger vem som startade vilken policy, och har med meddelandet som skickades med ett larm från Slack eller Microsoft Teams.
+En policy som har startats manuellt är en som startats med **Kör jourpolicy**, eller av ett larm från Slack eller Microsoft Teams som nämner den. Den larmar nivå för nivå som varje körning, med samtal och upprepade push-aviseringar, och att någon annan bekräftar incidenten stoppar den inte: så larmar du ytterligare ett team till en incident som någon redan arbetar med. Den som den har larmat svarar från meddelandet i sitt larm, ett samtal eller ett sms, eller genom att själv bekräfta incidenten; när incidenten är bekräftad erbjuder incidentens sida personen **Bekräfta igen**. **Eskalera** skickar den vidare till nästa nivå. På en incident, ett larm eller en episod som är löst startas ingenting, och du får veta varför: instrumentpanelen stänger av **Kör jourpolicy** och visar skälet. Dess aviseringar säger vem som startade vilken policy, och har med meddelandet som skickades med ett larm från Slack eller Microsoft Teams.
 
 ## Exekveringsloggar
 

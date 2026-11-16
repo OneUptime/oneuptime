@@ -57,6 +57,8 @@ Open a policy from the list. Its side menu holds everything about it:
 - **User Overrides** covers people on this policy only. See [User Overrides](/docs/on-call/user-overrides).
 - **Settings** has **Export On-Call Policy** and the card that archives the policy.
 
+**What runs this policy**, on the **Overview**, lists the on-call rules, the monitors whose criteria page the policy, the templates and other rules that page it, and the workflows that do, each with a link. A rule that is switched off says **Off**. When nothing runs the policy, the card says so: it pages nobody until something does. Deleting or archiving the policy says the same first. What you may not open is counted, not named.
+
 ## Repeat a policy
 
 When the last level's wait runs out with nobody acknowledging, a policy stops, unless it repeats. To choose, open the policy's **Escalation Rules** page and click **Edit** on the **Repeat Policy** card below the rules. **Edit Repeat Policy** asks **If nobody acknowledges after the last level**:
@@ -93,7 +95,7 @@ Nobody misses a page for being paged once. Their page can end without their answ
 
 Some pages go on after it is acknowledged, until somebody they paged answers or it is resolved: a page again, a page to observers, a page someone sent to people from Slack or Microsoft Teams, and a policy started by hand.
 
-A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it. It pages level by level as any run does, calls and repeated pushes included, and somebody else acknowledging the incident does not stop it: that is how you page another team into an incident somebody is already on. Whoever it paged answers from their page's message, a call or a text, or by acknowledging the incident themselves; once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.
+A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it. It pages level by level as any run does, calls and repeated pushes included, and somebody else acknowledging the incident does not stop it: that is how you page another team into an incident somebody is already on. Whoever it paged answers from their page's message, a call or a text, or by acknowledging the incident themselves; once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why: the dashboard turns **Execute On-Call Policy** off and shows the reason. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.
 
 ## Execution logs
 

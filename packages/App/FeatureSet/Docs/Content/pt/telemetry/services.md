@@ -71,6 +71,8 @@ Ao lado do nome, a **Visão geral** de um serviço mostra se a telemetria dele e
 
 Os proprietários importam além da página: uma função cujo escopo é Owned lê a telemetria dos serviços que pertencem a você ou às suas equipes. Veja [Telemetria](/docs/permissions/index#telemetria).
 
+A **Visão geral** de um serviço tem um cartão **Usado por**: os monitores que observam o serviço e os SLOs que os medem. Arquivar ou excluir o serviço, em suas páginas ou pela lista, diz isso primeiro. O que você não pode abrir é contado, não nomeado.
+
 ## Alterar um serviço
 
 :::steps

@@ -7,6 +7,7 @@ import {
   ExpressResponse,
   ExpressUrlEncoded,
   NextFunction,
+  OneUptimeRequest,
   RequestHandler,
 } from "../../../Server/Utils/Express";
 import WebhookRequestBody, {
@@ -204,10 +205,15 @@ function serve(reader: RequestHandler): {
         "/incoming-request/:secretkey",
         reader,
         (req: ExpressRequest, res: ExpressResponse) => {
+          const rawBodyBytes: Buffer | undefined = (req as OneUptimeRequest)
+            .rawBodyBytes;
+
           res.json({
             body: Buffer.isBuffer(req.body)
               ? { bytes: req.body.toString("base64") }
               : req.body,
+            // The bytes kept to check a signature over, when any were.
+            rawBodyBytes: rawBodyBytes ? rawBodyBytes.toString("base64") : null,
           });
         },
       );
@@ -474,5 +480,119 @@ describe("the raw reader a relay reads with, over HTTP", () => {
     });
 
     expect(answer.body["body"]).toEqual({});
+  });
+});
+
+/*
+ * The bytes of a signed body no parser reads (issue #8500): read only to
+ * check the signature over, and only for a request that carries one - the
+ * route still gets the body empty, as before.
+ */
+describe("the signed body reader, behind the parsers OneUptime runs, over HTTP", () => {
+  const isSigned: (req: ExpressRequest) => boolean = (
+    req: ExpressRequest,
+  ): boolean => {
+    return Boolean(req.headers["x-signature-for-the-test"]);
+  };
+
+  const textReader: RequestHandler = WebhookRequestBody.getReader("4kb");
+  const signedReader: RequestHandler = WebhookRequestBody.getSignedBodyReader(
+    "4kb",
+    isSigned,
+  );
+
+  const app: ReturnType<typeof serve> = serve(
+    (req: ExpressRequest, res: ExpressResponse, next: NextFunction): void => {
+      textReader(req, res, (): void => {
+        signedReader(req, res, next);
+      });
+    },
+  );
+
+  beforeAll(app.start);
+  afterAll(app.stop);
+
+  test("a signed body of another type is read as its bytes, and the route still gets it empty", async () => {
+    const bytes: Buffer = Buffer.from([0, 1, 2, 250, 251, 252]);
+
+    const answer: Answer = await app.send({
+      headers: {
+        "content-type": "application/octet-stream",
+        "x-signature-for-the-test": "yes",
+      },
+      body: bytes,
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(answer.body["body"]).toEqual({});
+    expect(answer.body["rawBodyBytes"]).toBe(bytes.toString("base64"));
+  });
+
+  test("an unsigned body of another type is not read at all", async () => {
+    const answer: Answer = await app.send({
+      headers: { "content-type": "application/octet-stream" },
+      body: "backup failed",
+    });
+
+    expect(answer.body["body"]).toEqual({});
+    expect(answer.body["rawBodyBytes"]).toBeNull();
+  });
+
+  test("a signed JSON body is left to the JSON parser that read it", async () => {
+    const answer: Answer = await app.send({
+      headers: {
+        "content-type": "application/json",
+        "x-signature-for-the-test": "yes",
+      },
+      body: '{"status":"up"}',
+    });
+
+    expect(answer.body["body"]).toEqual({ status: "up" });
+    expect(answer.body["rawBodyBytes"]).toBeNull();
+  });
+
+  // A signature is made over a text's bytes before its charset is decoded.
+  test("a text's bytes are kept as they came, in the charset it names", async () => {
+    const latin1: Buffer = Buffer.from(
+      "Sicherung fehlgeschlagen: café",
+      "latin1",
+    );
+
+    const answer: Answer = await app.send({
+      headers: { "content-type": "text/plain; charset=iso-8859-1" },
+      body: latin1,
+    });
+
+    expect(answer.body["body"]).toBe("Sicherung fehlgeschlagen: café");
+    expect(answer.body["rawBodyBytes"]).toBe(latin1.toString("base64"));
+  });
+
+  test("a signed text is read once, by the text reader, its bytes kept", async () => {
+    const answer: Answer = await app.send({
+      headers: {
+        "content-type": "text/plain",
+        "x-signature-for-the-test": "yes",
+      },
+      body: "backup failed: error 42",
+    });
+
+    expect(answer.body["body"]).toBe("backup failed: error 42");
+    expect(answer.body["rawBodyBytes"]).toBe(
+      Buffer.from("backup failed: error 42").toString("base64"),
+    );
+  });
+
+  test("a signed body over the limit is not refused: its signature is checked over nothing", async () => {
+    const answer: Answer = await app.send({
+      headers: {
+        "content-type": "application/octet-stream",
+        "x-signature-for-the-test": "yes",
+      },
+      body: "x".repeat(8192),
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(answer.body["body"]).toEqual({});
+    expect(answer.body["rawBodyBytes"]).toBeNull();
   });
 });

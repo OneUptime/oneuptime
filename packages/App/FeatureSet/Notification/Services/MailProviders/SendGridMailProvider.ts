@@ -10,6 +10,10 @@ import SendgridMail, {
   MailService,
 } from "@sendgrid/mail";
 import EmailMessage from "Common/Types/Email/EmailMessage";
+import {
+  getCcAddresses,
+  getReplyToAddress,
+} from "Common/Types/Email/EmailRecipients";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
@@ -125,8 +129,14 @@ export default class SendGridMailProvider {
      */
     const text: string = EmailPlainText.fromHtml(html);
 
+    // Who is copied and where a reply goes (EmailRecipients, #8893).
+    const ccAddresses: Array<string> = getCcAddresses(mail);
+    const replyToAddress: string | null = getReplyToAddress(mail);
+
     return {
       to: mail.toEmail.toString(),
+      ...(ccAddresses.length > 0 ? { cc: ccAddresses } : {}),
+      ...(replyToAddress ? { replyTo: replyToAddress } : {}),
       from: `${
         config.fromName || ProductBrandingText.getProductName()
       } <${config.fromEmail.toString()}>`,

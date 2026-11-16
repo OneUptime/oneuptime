@@ -14,6 +14,9 @@ import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import ProjectReferencesService from "./ProjectReferencesService";
 import AlertCustomField from "../../Models/DatabaseModels/AlertCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
+import AlertCustomFieldService from "./AlertCustomFieldService";
+import { CustomFieldDefinition } from "../../Types/CustomField/CustomFieldDefinition";
+import CustomFieldFeedChange from "../Utils/CustomField/CustomFieldFeedChange";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertStateService from "./AlertStateService";
@@ -205,12 +208,19 @@ interface AlertUpdateCarryForward {
    * EventFieldChange). Empty when the update writes none of them.
    */
   valuesBeforeUpdate?: Dictionary<EventValuesBeforeUpdate> | undefined;
+  /*
+   * The custom field values each alert held before the update (null: none),
+   * keyed by alert id, read only when the update writes them, so its feed
+   * item names the fields that really changed (CustomFieldFeedChange).
+   */
+  customFieldsBeforeUpdate?: Dictionary<JSONObject | null> | undefined;
 }
 
 // What the one read before an update holds, keyed by alert id.
 interface AlertStoredValues {
   severityIdsBeforeUpdate: Dictionary<string | null>;
   valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate>;
+  customFieldsBeforeUpdate: Dictionary<JSONObject | null>;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -443,6 +453,14 @@ export class Service extends ProjectReferencesService<Model> {
     return { findBy, carryForward: null };
   }
 
+  /*
+   * The read hook keeps a private alert to its owners, by its private
+   * switch (its owners are rows of their own). See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return ["isPrivate"];
+  }
+
   @CaptureSpan()
   public override async countBy(
     countBy: CountBy<Model>,
@@ -525,6 +543,7 @@ export class Service extends ProjectReferencesService<Model> {
       monitorChanges: monitorChanges,
       severityIdsBeforeUpdate: storedValues.severityIdsBeforeUpdate,
       valuesBeforeUpdate: storedValues.valuesBeforeUpdate,
+      customFieldsBeforeUpdate: storedValues.customFieldsBeforeUpdate,
     };
 
     return { updateBy, carryForward: carryForward };
@@ -546,7 +565,12 @@ export class Service extends ProjectReferencesService<Model> {
    *   Send reminders switch the update writes. The "Alert updated" feed item
    *   records each one that really changed, and a labels change or the
    *   switch flipped matches the reminder rule again, which starts the
-   *   reminder interval over (EventFieldChange).
+   *   reminder interval over (EventFieldChange);
+   * - the custom field values, when the update writes them: the feed item
+   *   names each field whose value really changed, as an incident's does
+   *   (CustomFieldFeedChange, issue #7937). The bag compared is the one the
+   *   update stores, the fields mapped from the alert's monitor folded in
+   *   (applyMappingsToUpdate, above).
    */
   private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -554,6 +578,7 @@ export class Service extends ProjectReferencesService<Model> {
     const storedValues: AlertStoredValues = {
       severityIdsBeforeUpdate: {},
       valuesBeforeUpdate: {},
+      customFieldsBeforeUpdate: {},
     };
 
     const writtenSeverityId: ObjectID | null = RelationIdUtil.readConsistent(
@@ -568,7 +593,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
 
-    if (!writtenSeverityId && !isFieldWritten) {
+    const isCustomFieldsWritten: boolean =
+      updateBy.data.customFields !== undefined;
+
+    if (!writtenSeverityId && !isFieldWritten && !isCustomFieldsWritten) {
       return storedValues;
     }
 
@@ -582,6 +610,11 @@ export class Service extends ProjectReferencesService<Model> {
             }
           : {}),
         ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
+        ...(isCustomFieldsWritten
+          ? {
+              customFields: true,
+            }
+          : {}),
       },
     });
 
@@ -605,9 +638,68 @@ export class Service extends ProjectReferencesService<Model> {
             fields: fieldsWritten,
           });
       }
+
+      if (isCustomFieldsWritten) {
+        storedValues.customFieldsBeforeUpdate[alertId] =
+          (alert.customFields as JSONObject | undefined) || null;
+      }
     }
 
     return storedValues;
+  }
+
+  /*
+   * The "Alert updated" feed item's lines for the custom fields an update
+   * changed (CustomFieldFeedChange), in the order the Custom Fields card
+   * lists them (as it reads them: no order of their own): against the bag
+   * the alert held before the write, read when the update wrote one. Empty
+   * when it wrote none, or changed none - or when the bag before it was not
+   * read (an alert the read before the write did not see), so nothing is
+   * said that may not be so.
+   */
+  private async getCustomFieldsFeedMarkdown(data: {
+    projectId: ObjectID;
+    written: unknown;
+    before: JSONObject | null | undefined;
+  }): Promise<MarkdownText> {
+    if (data.written === undefined || data.before === undefined) {
+      return FeedMarkdown.empty();
+    }
+
+    const definitions: Array<CustomFieldDefinition> = (
+      await AlertCustomFieldService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          name: true,
+          customFieldType: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      })
+    )
+      .filter((definition: AlertCustomField): boolean => {
+        return typeof definition.name === "string";
+      })
+      .map((definition: AlertCustomField): CustomFieldDefinition => {
+        return {
+          name: definition.name as string,
+          customFieldType: definition.customFieldType,
+        };
+      });
+
+    return CustomFieldFeedChange.getFeedMarkdown({
+      changes: CustomFieldFeedChange.getChanges({
+        written: data.written,
+        before: data.before,
+        definitions: definitions,
+      }),
+      definitions: definitions,
+    });
   }
 
   /*
@@ -2396,6 +2488,15 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
       (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
         ?.valuesBeforeUpdate || {};
 
+    const customFieldsBeforeUpdate: Dictionary<JSONObject | null> =
+      (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
+        ?.customFieldsBeforeUpdate || {};
+
+    // The custom fields the update stores: the same bag for every alert.
+    const writtenCustomFields: unknown = (
+      onUpdate.updateBy.data as unknown as Record<string, unknown>
+    )["customFields"];
+
     for (const itemId of updatedItemIds) {
       /*
        * Every alert metric and measurement point is stamped with the alert's
@@ -2511,21 +2612,41 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
           monitorChanges[alertId.toString()];
 
         /*
+         * The custom field values the alert held before the update, when the
+         * update wrote them and the read before it saw this alert: what its
+         * feed item compares the bag the update stored with.
+         */
+        const customFieldsBefore: JSONObject | null | undefined =
+          writtenCustomFields !== undefined &&
+          Object.prototype.hasOwnProperty.call(
+            customFieldsBeforeUpdate,
+            alertId.toString(),
+          )
+            ? customFieldsBeforeUpdate[alertId.toString()]
+            : undefined;
+
+        /*
          * Nothing below follows from this update for this alert: it changed
-         * no text, label or reminders switch, no severity and no monitor,
-         * and linked it to nothing OneUptime AI can fix - it wrote the
-         * alert's state, say, which the alert's own timeline records. No
-         * feed entry, no reminder, investigation or on-call rule to match
-         * again and no fix to try again, so the alert is not read for one.
-         * Every state change comes here (StateChangeFollowOn), and a bulk
-         * Resolve of thousands of alerts used to read each one again for
-         * nothing.
+         * no text, label or reminders switch, no severity, no monitor and no
+         * custom field, and linked it to nothing OneUptime AI can fix - it
+         * wrote the alert's state, say, which the alert's own timeline
+         * records. No feed entry, no reminder, investigation or on-call rule
+         * to match again and no fix to try again, so the alert is not read
+         * for one. Every state change comes here (StateChangeFollowOn), and
+         * a bulk Resolve of thousands of alerts used to read each one again
+         * for nothing.
          */
         if (
           !isSeverityChanged &&
           !monitorChange &&
           !writesRemediationLinks &&
-          !EventFieldChange.isAnySet(fieldChanges)
+          !EventFieldChange.isAnySet(fieldChanges) &&
+          (customFieldsBefore === undefined ||
+            CustomFieldFeedChange.getChanges({
+              written: writtenCustomFields,
+              before: customFieldsBefore,
+              definitions: [],
+            }).length === 0)
         ) {
           continue;
         }
@@ -2606,6 +2727,28 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
           feedInfoInMarkdown += fieldsMarkdown.toString();
           shouldAddAlertFeed = true;
           updateKinds.push(NotificationRuleUpdateKind.Edits);
+        }
+
+        /*
+         * The custom fields whose value the update really changed - set
+         * from the Custom Fields card, a workflow or the API - each with
+         * its new value, so the feed and the alert's channels hear of it,
+         * as an incident's do (issue #7937). Writing back the bag the alert
+         * holds adds none. A box of its own on a rule's Updates step: an
+         * edit of the custom fields alone is CustomFields, and one that
+         * changed the title with them is an edit too.
+         */
+        const customFieldsMarkdown: MarkdownText =
+          await this.getCustomFieldsFeedMarkdown({
+            projectId: projectId,
+            written: writtenCustomFields,
+            before: customFieldsBefore,
+          });
+
+        if (!customFieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += customFieldsMarkdown.toString();
+          shouldAddAlertFeed = true;
+          updateKinds.push(NotificationRuleUpdateKind.CustomFields);
         }
 
         if (isSeverityChanged && writtenAlertSeverityId) {

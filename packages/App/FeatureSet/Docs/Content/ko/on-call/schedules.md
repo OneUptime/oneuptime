@@ -101,6 +101,8 @@ flowchart TB
 
 API에서는 사용자 재정의( `/api/on-call-duty-policy-user-override` )를 `routeAlertsToUserId` 없이 만들면 `overrideUserId` 의 사람을 `startsAt` 부터 `endsAt` 까지 건너뜁니다.
 
+스케줄의 **개요**에는 **사용처** 카드가 있습니다. 에스컬레이션 규칙으로 온콜 중인 사람을 호출하는 온콜 정책이 해당 규칙과 함께 표시됩니다. 호출하는 정책이 없으면 그렇게 표시되고 온콜 정책으로 연결됩니다. 스케줄을 페이지나 목록에서 삭제할 때는 어떤 정책이 이 스케줄로 호출하는지 먼저 표시됩니다. 열 수 없는 정책은 개수만 표시되고 이름은 표시되지 않습니다.
+
 ## API 또는 Terraform으로 스케줄 만들기
 
 온콜 스케줄은 `/api/on-call-duty-policy-schedule` 리소스이고, 레이어와 레이어의 사람은 `/api/on-call-duty-schedule-layer` 및 `/api/on-call-duty-schedule-layer-user` 리소스입니다.
@@ -108,6 +110,7 @@ API에서는 사용자 재정의( `/api/on-call-duty-policy-user-override` )를 
 - `miscDataProps` 에 `firstLayerUsers` (교대하는 순서대로 나열한 사용자 ID 목록)를 넣어 스케줄을 만들면, 대시보드와 같이 첫 번째 레이어가 생깁니다. 지금부터 24시간 온콜인 **Layer 1** 입니다. `firstLayerRotation` 은 1회 담당 기간을 `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` 와 같은 로테이션으로 지정하며, 없으면 1주입니다. 모든 사용자가 프로젝트 구성원이어야 하고 호출자가 레이어를 만들 수 있어야 하며, 그렇지 않으면 스케줄이 만들어지지 않습니다.
 - 이것들 없이 만든 스케줄에는 이전처럼 레이어가 없으며, Terraform의 스케줄 리소스는 이것들을 보내지 않습니다.
 - `rotation` 없이 만든 레이어는 늘 그래 왔듯이 매일 인계합니다.
+- API 또는 Terraform으로 스케줄의 레이어와 레이어의 사람을 바꾸면 하나의 변경으로 알립니다. 누가 당번인지는 레이어가 30초 동안 바뀌지 않은 뒤에 계산되므로, 당번이 되거나 당번에서 빠지거나 다음 차례인 사람은 기록된 레이어나 사람마다가 아니라 한 번만 알림을 받습니다. 호출은 각 변경이 저장되는 즉시 레이어가 당번으로 정한 사람에게 갑니다.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

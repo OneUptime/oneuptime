@@ -124,6 +124,14 @@ import {
   SCRUB_MAX_NESTED_VALUES_PER_RECORD,
   SCRUB_MAX_VALUE_DEPTH,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
+import { MAX_JSON_TEXTS_INSIDE_STRINGS } from "Common/Utils/Telemetry/ScrubJsonText";
+import SyslogAttribute from "Common/Types/Syslog/SyslogAttribute";
+import {
+  ParsedSyslogMessage,
+  parseSyslogMessage,
+  syslogStructuredDataAttributeKey,
+} from "Common/Utils/Syslog/SyslogMessageParser";
+import SyslogRawCopies from "Common/Utils/Syslog/SyslogRawCopies";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
@@ -2658,8 +2666,95 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
       notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
     });
+    // Issue #8993: so in JSON held in a string, an attribute's.
+    expect(
+      JSON.parse(
+        scrubbedAttributes(
+          { "request.body": body } as JSONObject,
+          LogScrubPatternType.SensitiveKeys,
+        )["request.body"] as string,
+      ),
+    ).toEqual({
+      user: { password: "[REDACTED]" },
+      deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
+      notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+    });
     expect(page).toContain(
-      "In a log body, only the part past these bounds is read as text: the rest of the body is still read key by key.",
+      "In a log body, and in JSON held in a string, only the part past these bounds is read as text: the rest is still read key by key.",
+    );
+  });
+
+  // Issue #8993: the keys of a JSON text held in a string.
+  it("reads JSON held in a string, as deep as the page says, and changes nothing but the hidden values", () => {
+    const requestBody: string =
+      '{ "user": "jane", "password": "hunter2", "id": 12345678901234567890 }';
+
+    expect(
+      scrubbedAttributes(
+        { "http.request.body": requestBody } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["http.request.body"],
+    ).toBe(requestBody.replace('"hunter2"', '"[REDACTED]"'));
+
+    // A Fluentd record's log line inside a log body.
+    const record: string = JSON.stringify({
+      log: '{"level":"info","password":"hunter2"}',
+      stream: "stdout",
+    });
+
+    expect(
+      scrubbedBody(record, [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ]),
+    ).toBe(record.replace('\\"hunter2\\"', '\\"[REDACTED]\\"'));
+
+    // As deep as the page says, and deeper read as text.
+    let chain: string = '{"password":"hunter2","user":"jane"}';
+
+    for (
+      let level: number = 0;
+      level < MAX_JSON_TEXTS_INSIDE_STRINGS;
+      level++
+    ) {
+      chain = JSON.stringify({ payload: chain });
+    }
+
+    let read: unknown = JSON.parse(
+      scrubbedAttributes(
+        { chain: chain } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["chain"] as string,
+    );
+
+    for (
+      let level: number = 0;
+      level < MAX_JSON_TEXTS_INSIDE_STRINGS;
+      level++
+    ) {
+      read = JSON.parse((read as Record<string, string>)["payload"]!);
+    }
+
+    expect(read).toEqual({ password: "[REDACTED]", user: "jane" });
+
+    const deeper: string = JSON.stringify({ payload: chain });
+
+    expect(
+      scrubbedAttributes(
+        { chain: deeper } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["chain"],
+    ).not.toContain("hunter2");
+
+    // A text that only looks like JSON is left as it is.
+    expect(
+      scrubbedAttributes(
+        { note: "{token}" } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      ),
+    ).toEqual({ note: "{token}" });
+
+    expect(page).toContain(
+      `- **JSON held in a string is read too.** A text that is JSON of its own, such as an attribute \`http.request.body\` holding \`{"password":"hunter2"}\`, or a Fluentd record's \`log\` line inside a log body, is read as JSON, up to ${MAX_JSON_TEXTS_INSIDE_STRINGS} levels of JSON one inside another, and deeper as text. A **Sensitive Attribute Keys** rule hides the values under the keys in it that look secret, and nothing else: its numbers, spaces and other texts stay as your application wrote them. A text that only looks like JSON, such as \`{token}\`, is left as it is.`,
     );
   });
 
@@ -2677,6 +2772,131 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     ).toContain("return await LogScrubRuleService.loadScrubRules(projectId);");
     expect(page).toContain(
       "**Session replays are scrubbed too.** Log scrub rules also run over session replay recordings, behind the masking the recorder does in the browser.",
+    );
+  });
+
+  // Issue #9039: a syslog line's raw copies.
+  it("puts a syslog line's raw copies together again from what the rules left of its parts", () => {
+    const httpIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/SyslogIngestService.ts",
+    );
+    const probeIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
+    );
+
+    // Both ways keep the structured data; syslog posted over HTTP, the line.
+    expect(httpIngest).toContain("[SyslogAttribute.Raw]: parsed.raw,");
+    expect(httpIngest).toContain(
+      "attributes[SyslogAttribute.StructuredRaw] = parsed.structuredDataRaw;",
+    );
+    expect(probeIngest).toContain(
+      "attributes[SyslogAttribute.StructuredRaw] = read.structuredDataRaw;",
+    );
+    expect(probeIngest).not.toContain("SyslogAttribute.Raw]");
+
+    // Both scrub through SyslogRawCopies, before a pipeline reads the copies.
+    for (const source of [httpIngest, probeIngest]) {
+      const scrubbed: number = source.indexOf("SyslogRawCopies.scrubLog(");
+
+      expect(scrubbed).toBeGreaterThan(-1);
+      expect(scrubbed).toBeLessThan(
+        source.indexOf("LogPipelineService.processLog("),
+      );
+    }
+
+    // A line's row as syslog posted over HTTP builds it, after the rules.
+    const scrubbedRow: (
+      line: string,
+      rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
+    ) => JSONObject = (
+      line: string,
+      rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
+    ): JSONObject => {
+      const parsed: ParsedSyslogMessage = parseSyslogMessage(
+        line,
+      ) as ParsedSyslogMessage;
+      const attributes: JSONObject = {
+        [SyslogAttribute.Raw]: parsed.raw,
+        [SyslogAttribute.Hostname]: parsed.hostname!,
+        [SyslogAttribute.AppName]: parsed.appName!,
+        [SyslogAttribute.StructuredRaw]: parsed.structuredDataRaw!,
+      };
+
+      for (const [sdId, params] of Object.entries(
+        parsed.structuredData || {},
+      )) {
+        for (const [name, value] of Object.entries(params)) {
+          attributes[syslogStructuredDataAttributeKey(sdId, name)] = value;
+        }
+      }
+
+      return SyslogRawCopies.scrubLog({
+        logRow: { body: parsed.message, attributes: attributes },
+        line: parsed,
+        scrub: (row: JSONObject): JSONObject => {
+          return LogScrubRuleService.scrubLog(row, rules as never);
+        },
+      });
+    };
+    const header: string =
+      "<165>1 2026-11-16T10:11:12.003Z web-01 checkout - -";
+    const rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      scrubRule(
+        LogScrubPatternType.Email,
+        LogScrubAction.Redact,
+        LogScrubField.Body,
+      ),
+    ];
+
+    // What the keys rule hid in a parameter, and the Body Only rule in the message.
+    const secret: JSONObject = scrubbedRow(
+      `${header} [auth@1 password="hunter2"] mail from jane@example.com`,
+      rules,
+    );
+    const secretAttributes: JSONObject = secret["attributes"] as JSONObject;
+
+    expect(secretAttributes["syslog.structured.auth_1.password"]).toBe(
+      "[REDACTED]",
+    );
+    expect(secretAttributes[SyslogAttribute.StructuredRaw]).toBe(
+      '[auth@1 password="[REDACTED\\]"]',
+    );
+    expect(secretAttributes[SyslogAttribute.Raw]).toBe(
+      `${header} [auth@1 password="[REDACTED\\]"] mail from [REDACTED]`,
+    );
+
+    // Then read as the attributes they are: an Attributes Only rule's address.
+    const read: JSONObject = scrubbedRow(
+      `${header} [auth@1 password="hunter2"] mail from jane@example.com`,
+      [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+        scrubRule(
+          LogScrubPatternType.Email,
+          LogScrubAction.Redact,
+          LogScrubField.Attributes,
+        ),
+      ],
+    );
+
+    expect(read["body"]).toBe("mail from jane@example.com");
+    expect((read["attributes"] as JSONObject)[SyslogAttribute.Raw]).toBe(
+      `${header} [auth@1 password="[REDACTED\\]"] mail from [REDACTED]`,
+    );
+
+    // Nothing for the rules to change: the copies as the line arrived.
+    const quiet: string = `${header} [meta seq="9" note="a \\"b\\" \\] c"] all quiet`;
+    const quietAttributes: JSONObject = scrubbedRow(quiet, rules)[
+      "attributes"
+    ] as JSONObject;
+
+    expect(quietAttributes[SyslogAttribute.Raw]).toBe(quiet);
+    expect(quietAttributes[SyslogAttribute.StructuredRaw]).toBe(
+      '[meta seq="9" note="a \\"b\\" \\] c"]',
+    );
+
+    expect(page).toContain(
+      "- **A syslog line's raw copies hide what the rules hid in its parts.** Syslog keeps an RFC 5424 line's structured data as it arrived in `syslog.structured.raw`, and syslog sent over HTTP keeps the whole line in `syslog.raw`. Each copy is put together again from what the rules left of the header's fields, each structured-data parameter and the message, and the rules then read it as they read any attribute. So a password a **Sensitive Attribute Keys** rule hides in `syslog.structured.auth_1.password`, or an address a **Body Only** rule hides in the message, is hidden in the copies too, written as RFC 5424 writes a value: `password=\"[REDACTED\\]\"`. A line the rules change nothing in keeps its copies as it arrived.",
     );
   });
 

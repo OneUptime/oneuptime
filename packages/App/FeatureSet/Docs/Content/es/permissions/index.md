@@ -103,6 +103,8 @@ El rol que elija pasa a ser el primer permiso del equipo, para todos los recurso
 
 Dónde encontrarlo: abra un equipo desde **Equipos** para llegar a **Miembros** y **Permisos**; sus roles personalizados y **Bloquear permisos** están en **Más ajustes**, al final de la página Permisos, cuyo encabezado plegado muestra cuántos de cada uno tiene el equipo.
 
+La página de un equipo tiene una tarjeta **Usado por**: las políticas de guardia cuyas reglas de escalado avisan al equipo, y todo lo que posee, desde monitores y páginas de estado hasta SLO, paneles, infraestructura e incidentes. Eliminar un equipo, en su página o desde la lista, lo dice primero: sus políticas dejan de avisar a sus miembros y deja de poseerlos. Lo que no puedes abrir se cuenta, pero no se nombra.
+
 ## Permisos
 
 Un permiso es una capacidad concreta. Hay dos formas de repartirlos, y ambas están en la pestaña **Permisos** del equipo.

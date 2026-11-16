@@ -57,6 +57,8 @@ Abre una política desde la lista. Su menú lateral contiene todo lo relativo a 
 - **Sustituciones de usuarios** cubre a personas solo en esta política. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 - **Ajustes** tiene **Exportar Política de guardia** y la tarjeta que archiva la política.
 
+**Qué activa esta política**, en la **Vista general**, lista las reglas de guardia, los monitores cuyos criterios activan la política, las plantillas y otras reglas que la activan, y los flujos de trabajo que lo hacen, cada uno con un enlace. Una regla desactivada dice **Desactivado**. Si nada activa la política, la tarjeta lo dice: no avisa a nadie hasta que algo la activa. Eliminar o archivar la política lo dice primero. Lo que no puedes abrir se cuenta, pero no se nombra.
+
 ## Repetir una política
 
 Cuando la espera del último nivel termina sin que nadie lo reconozca, una política se detiene, salvo que se repita. Para elegirlo, abre la página **Reglas de escalado** de la política y haz clic en **Editar** en la tarjeta **Política de repetición** bajo las reglas. **Editar repetición de la política** pregunta **Si nadie lo reconoce después del último nivel**:
@@ -93,7 +95,7 @@ Nadie se pierde un aviso por recibir uno solo. Ese único aviso puede terminar s
 
 Algunos avisos siguen después del reconocimiento, hasta que responde alguien a quien avisaron o se resuelve: un nuevo aviso, un aviso a observadores, un aviso que alguien envió a personas desde Slack o Microsoft Teams y una política iniciada a mano.
 
-Una política iniciada a mano es la que se inicia con **Ejecutar política de guardia**, o con un aviso desde Slack o Microsoft Teams que la nombra. Avisa nivel por nivel como cualquier ejecución, con llamadas y notificaciones push repetidas incluidas, y que otra persona reconozca el incidente no la detiene: así se avisa a otro equipo para un incidente del que ya se ocupa alguien. Quien recibió su aviso responde desde el mensaje del aviso, una llamada o un SMS, o reconociendo el incidente en persona; cuando el incidente ya está reconocido, su página le ofrece **Reconocer de nuevo**. **Escalar** la pasa al siguiente nivel. En un incidente, una alerta o un episodio resuelto no se inicia nada, y se te explica por qué. Sus notificaciones dicen quién inició qué política e incluyen el mensaje enviado con un aviso desde Slack o Microsoft Teams.
+Una política iniciada a mano es la que se inicia con **Ejecutar política de guardia**, o con un aviso desde Slack o Microsoft Teams que la nombra. Avisa nivel por nivel como cualquier ejecución, con llamadas y notificaciones push repetidas incluidas, y que otra persona reconozca el incidente no la detiene: así se avisa a otro equipo para un incidente del que ya se ocupa alguien. Quien recibió su aviso responde desde el mensaje del aviso, una llamada o un SMS, o reconociendo el incidente en persona; cuando el incidente ya está reconocido, su página le ofrece **Reconocer de nuevo**. **Escalar** la pasa al siguiente nivel. En un incidente, una alerta o un episodio resuelto no se inicia nada, y se te explica por qué: el panel desactiva **Ejecutar política de guardia** y muestra el motivo. Sus notificaciones dicen quién inició qué política e incluyen el mensaje enviado con un aviso desde Slack o Microsoft Teams.
 
 ## Registros de ejecución
 
