@@ -167,6 +167,7 @@
     "Completion",
     "Compliance",
     "Container",
+    "Container Apps",
     "Container {{container}}: {{reason}}",
     "Container {{id}}",
     "Container: {{name}}",

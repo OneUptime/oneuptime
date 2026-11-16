@@ -55932,5 +55932,9 @@
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skriveidentitet for sig, og agentens egen identitet beholder kun læsningen.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skriverolle for sig, som agenten påtager sig for hver ændring med en politik kun for den ændring.",
   "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skrivekonto for sig, og agentens egen tjenestekonto beholder kun læsningen.",
-  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} foretager sine ændringer med den identitet, den læser med"
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} foretager sine ændringer med den identitet, den læser med",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "Agenten kører på én lille, altid aktiv VM i dit abonnement: omkring {{usd}} US$ om måneden til listepriser, faktureret af din cloududbyder.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "Én Container App med én replika, der altid kører: omkring {{usd}} US$ om måneden.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "Én Standard_B1s-VM i sit eget netværk, der ikke lukker noget ind: omkring {{usd}} US$ om måneden. Til et abonnement, der ikke kan bruge Container Apps."
 }

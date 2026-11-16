@@ -55932,5 +55932,9 @@
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "セットアップ コマンドをもう一度実行してください。変更は専用の書き込み ID に移り、エージェント自身の ID には読み取りだけが残ります。",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "セットアップ コマンドをもう一度実行してください。変更は専用の書き込みロールに移り、エージェントは変更ごとに、その変更だけを許可するポリシー付きでこのロールを引き受けます。",
   "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "セットアップ コマンドをもう一度実行してください。変更は専用の書き込みアカウントに移り、エージェント自身のサービスアカウントには読み取りだけが残ります。",
-  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} は、読み取りに使う ID で変更を行っています"
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} は、読み取りに使う ID で変更を行っています",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "サブスクリプション内で常時稼働する小さな VM 1 台で実行します。標準料金で月額約 ${{usd}} かかり、ご利用のクラウドから請求されます。",
+  "One Container App with one replica always on: about ${{usd}} a month.": "レプリカ 1 つを常時稼働させる Container App 1 つ: 月額約 ${{usd}}。",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "外部からの接続を一切受け付けない専用ネットワーク内の Standard_B1s VM 1 台: 月額約 ${{usd}}。Container Apps を使えないサブスクリプション向けです。"
 }

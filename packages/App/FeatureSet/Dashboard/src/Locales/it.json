@@ -55932,5 +55932,9 @@
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Esegui di nuovo il comando di configurazione. Sposta le modifiche su un'identità di scrittura dedicata, e l'identità dell'agente resta solo con la lettura.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Esegui di nuovo il comando di configurazione. Sposta le modifiche su un ruolo di scrittura dedicato, che l'agente assume per ogni modifica con una policy valida solo per quella modifica.",
   "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Esegui di nuovo il comando di configurazione. Sposta le modifiche su un account di scrittura dedicato, e l'account di servizio dell'agente resta solo con la lettura.",
-  "The {{agent}} makes its changes as the identity it reads with": "L'{{agent}} apporta le modifiche con l'identità con cui legge"
+  "The {{agent}} makes its changes as the identity it reads with": "L'{{agent}} apporta le modifiche con l'identità con cui legge",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "Viene eseguito su una piccola VM sempre attiva nella tua sottoscrizione: circa ${{usd}} al mese a prezzi di listino, fatturati dal tuo cloud.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "Una Container App con una replica sempre attiva: circa ${{usd}} al mese.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "Una VM Standard_B1s in una rete tutta sua che non lascia entrare nulla: circa ${{usd}} al mese. Per una sottoscrizione che non può usare Container Apps."
 }

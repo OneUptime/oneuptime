@@ -252,6 +252,14 @@ export const RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV: string =
  */
 export const RESOURCE_AI_GCP_HOST_ENV: string = "ONEUPTIME_AI_GCP_HOST";
 
+/*
+ * Azure only: where the agent runs, as its setup command started it
+ * (AzureCloudAiAgentHost). The VM's start script sets virtual-machine; a
+ * Container App says so itself (CONTAINER_APP_NAME). Reported with the
+ * posture (details.azureHost), so Change keeps the agent where it is.
+ */
+export const RESOURCE_AI_AZURE_HOST_ENV: string = "ONEUPTIME_AI_AZURE_HOST";
+
 // The tag a team may require on every resource AI changes.
 export const CLOUD_AI_DEFAULT_REQUIRED_TAG: string = "oneuptime-ai=allow";
 

@@ -12,6 +12,8 @@ import {
   CloudAiAgentElsewhereTexts,
   CloudAiAgentProtectedTargetsProblem,
   CloudAiAgentSetupChoices,
+  AZURE_HOST_DESCRIPTIONS,
+  AZURE_HOST_TITLES,
   GCP_HOST_DESCRIPTIONS,
   GCP_HOST_TITLES,
   getCloudAiAgentElsewhereValues,
@@ -108,6 +110,9 @@ import {
   ResourceAiAccessStatus,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
+  AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+  AZURE_CLOUD_AI_AGENT_HOSTS,
+  AzureCloudAiAgentHost,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
   GcpCloudAiAgentHost,
@@ -631,11 +636,16 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   const cost: CloudAiAgentCostEstimate = estimateCloudAiAgentMonthlyCost(
     props.provider,
     choices.gcpHost,
+    choices.azureHost,
   );
   // Google Cloud's agent on a VM of its own: the cost is the VM's.
   const isGcpVm: boolean =
     props.provider === CloudProvider.GCP &&
     choices.gcpHost === "compute-engine";
+  // Azure's on a VM of its own, likewise.
+  const isAzureVm: boolean =
+    props.provider === CloudProvider.Azure &&
+    choices.azureHost === "virtual-machine";
   const everyChange: Array<string> = getCloudAiAgentChangeOperations(
     props.provider,
   );
@@ -745,6 +755,18 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
             title: translationKey("Runs on"),
             isSet: choices.gcpHost !== GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
             value: GCP_HOST_TITLES[choices.gcpHost],
+            translateValue: true,
+          },
+        ]
+      : []),
+    // What runs an Azure agent, named once it is not the default.
+    ...(props.provider === CloudProvider.Azure
+      ? [
+          {
+            key: "host",
+            title: translationKey("Runs on"),
+            isSet: choices.azureHost !== AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+            value: AZURE_HOST_TITLES[choices.azureHost],
             translateValue: true,
           },
         ]
@@ -997,16 +1019,21 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   "It runs on one small always-on VM in your project: about ${{usd}} a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
                   { usd: String(cost.usd) },
                 )
-              : props.provider === CloudProvider.GCP
-                ? // Google Cloud names it a project, as the VM's line does.
-                  translator.translateTemplate(
-                    "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
+              : isAzureVm
+                ? translator.translateTemplate(
+                    "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.",
                     { usd: String(cost.usd) },
                   )
-                : translator.translateTemplate(
-                    "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
-                    { usd: String(cost.usd) },
-                  )}
+                : props.provider === CloudProvider.GCP
+                  ? // Google Cloud names it a project, as the VM's line does.
+                    translator.translateTemplate(
+                      "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
+                      { usd: String(cost.usd) },
+                    )
+                  : translator.translateTemplate(
+                      "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
+                      { usd: String(cost.usd) },
+                    )}
           </p>
         </div>
       ),
@@ -1082,6 +1109,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   props.provider,
                   choices.gcpHost,
                   props.accountId,
+                  choices.azureHost,
                 )}
               />
             </div>
@@ -1271,6 +1299,64 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                                 usd: String(
                                   estimateCloudAiAgentMonthlyCost(
                                     CloudProvider.GCP,
+                                    host,
+                                  ).usd,
+                                ),
+                              },
+                            )}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  },
+                )}
+              </fieldset>
+            ) : (
+              <></>
+            )}
+
+            {props.provider === CloudProvider.Azure ? (
+              <fieldset
+                className="space-y-2"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-azure-host`}
+              >
+                <legend className="text-sm font-medium text-gray-900">
+                  {translator.translateText(
+                    translationKey("Where the agent runs"),
+                  )}
+                </legend>
+                {AZURE_CLOUD_AI_AGENT_HOSTS.map(
+                  (host: AzureCloudAiAgentHost): ReactElement => {
+                    return (
+                      <label
+                        key={host}
+                        className="flex items-start gap-2 text-sm text-gray-800"
+                      >
+                        <input
+                          type="radio"
+                          name={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-azure-host`}
+                          value={host}
+                          checked={choices.azureHost === host}
+                          className="mt-0.5 h-4 w-4 flex-shrink-0 border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
+                          data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-host-${host}`}
+                          onChange={() => {
+                            update({ azureHost: host });
+                          }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-medium text-gray-900">
+                            {translator.translateText(
+                              AZURE_HOST_TITLES[host],
+                            ) || AZURE_HOST_TITLES[host]}
+                          </span>
+                          <span className="block text-xs text-gray-500">
+                            {translator.translateTemplate(
+                              AZURE_HOST_DESCRIPTIONS[host],
+                              {
+                                usd: String(
+                                  estimateCloudAiAgentMonthlyCost(
+                                    CloudProvider.Azure,
+                                    undefined,
                                     host,
                                   ).usd,
                                 ),

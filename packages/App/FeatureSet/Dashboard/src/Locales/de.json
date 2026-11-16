@@ -55932,5 +55932,9 @@
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Führe den Einrichtungsbefehl erneut aus. Er verlegt die Änderungen auf eine eigene Schreibidentität, und die eigene Identität des Agenten behält nur das Lesen.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Führe den Einrichtungsbefehl erneut aus. Er verlegt die Änderungen auf eine eigene Schreibrolle, die der Agent für jede Änderung mit einer Richtlinie nur für diese Änderung übernimmt.",
   "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Führe den Einrichtungsbefehl erneut aus. Er verlegt die Änderungen auf ein eigenes Schreibkonto, und das eigene Dienstkonto des Agenten behält nur das Lesen.",
-  "The {{agent}} makes its changes as the identity it reads with": "Der {{agent}} nimmt seine Änderungen mit der Identität vor, mit der er liest"
+  "The {{agent}} makes its changes as the identity it reads with": "Der {{agent}} nimmt seine Änderungen mit der Identität vor, mit der er liest",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "Dafür läuft eine kleine, ständig aktive VM in Ihrem Abonnement: etwa {{usd}} $ pro Monat zu Listenpreisen, abgerechnet über Ihre Cloud.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "Eine Container App mit einem ständig laufenden Replikat: etwa {{usd}} $ pro Monat.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "Eine Standard_B1s-VM in einem eigenen Netzwerk, das keine eingehenden Verbindungen zulässt: etwa {{usd}} $ pro Monat. Für ein Abonnement, das Container Apps nicht nutzen kann."
 }

@@ -55932,5 +55932,9 @@
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "설정 명령을 다시 실행하세요. 변경은 전용 쓰기 ID로 옮겨지고, 에이전트 자체 ID에는 읽기만 남습니다.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "설정 명령을 다시 실행하세요. 변경은 전용 쓰기 역할로 옮겨지고, 에이전트는 변경마다 그 변경만 허용하는 정책으로 이 역할을 맡습니다.",
   "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "설정 명령을 다시 실행하세요. 변경은 전용 쓰기 계정으로 옮겨지고, 에이전트 자체 서비스 계정에는 읽기만 남습니다.",
-  "The {{agent}} makes its changes as the identity it reads with": "{{agent}}는 읽기에 쓰는 ID로 변경을 합니다"
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}}는 읽기에 쓰는 ID로 변경을 합니다",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "구독에서 상시 실행되는 작은 VM 1대에서 실행됩니다. 비용은 정가 기준 월 약 ${{usd}}로, 사용 중인 클라우드에서 청구됩니다.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "복제본 1개가 항상 실행되는 Container App 1개: 월 약 ${{usd}}.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "외부에서 아무것도 들어올 수 없는 전용 네트워크의 Standard_B1s VM 1대: 월 약 ${{usd}}. Container Apps를 사용할 수 없는 구독용입니다."
 }
