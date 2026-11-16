@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Abonnenten"]
 ```
 
+Die Seite jedes Datensatzes sagt auch, was ihn verwendet. Die Karte **Verwendet von** eines Monitors listet die Statusseiten, die ihn zeigen, seine Monitor-Gruppen, die SLOs, die ihn messen, anstehende Wartungen, die ihn nennen, die Monitore, die von ihm abhängen, die Regeln und Vorlagen, die ihn nennen, und die Arbeitsabläufe und Dashboards, die ihn verwenden. Was Sie nicht öffnen dürfen, wird gezählt, aber nicht genannt. Wer einen Datensatz löscht oder archiviert, sieht dasselbe zuerst, auf seinen eigenen Seiten und in den Listen.
+
 ## Projekte und Personen
 
 Ein **Projekt** enthält alles: Monitore, Vorfälle, Bereitschaftsrichtlinien, Statusseiten, Telemetrie und Einstellungen. Die meisten Unternehmen brauchen eines, manche führen eines pro Umgebung oder Geschäftsbereich. Nichts, was Sie in einem Projekt anlegen, ist in einem anderen sichtbar.

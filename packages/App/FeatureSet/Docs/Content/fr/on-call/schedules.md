@@ -101,6 +101,8 @@ Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte, si b
 
 Avec l'API, un remplacement d'utilisateur (`/api/on-call-duty-policy-user-override`) créé sans `routeAlertsToUserId` fait passer son tour à la personne de `overrideUserId` de `startsAt` à `endsAt`.
 
+La **Vue d'ensemble** d'un planning a une carte **Utilisé par** : les politiques d'astreinte dont les règles d'escalade appellent la personne d'astreinte, avec les règles qui le font. Quand aucune ne le fait, elle le dit et renvoie aux politiques d'astreinte. Supprimer le planning, sur sa page ou depuis la liste, dit d'abord quelles politiques appellent via lui. Les politiques que vous ne pouvez pas ouvrir sont comptées, pas nommées.
+
 ## Créer des plannings avec l'API ou Terraform
 
 Les plannings d'astreinte sont la ressource `/api/on-call-duty-policy-schedule` ; leurs couches et les personnes qui les composent sont les ressources `/api/on-call-duty-schedule-layer` et `/api/on-call-duty-schedule-layer-user`.

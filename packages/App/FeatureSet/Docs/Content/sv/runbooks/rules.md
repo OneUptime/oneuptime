@@ -49,7 +49,7 @@ Du ser alla körningar, startade av en regel eller inte, under **Runbooks → K�
 :::steps
 ### Öppna Runbook-regler
 
-I **Incidenter**, **Larm** eller **Schemalagt underhåll** öppnar du **Regler → Runbook-regler** och klickar på **Skapa Runbook Rule**.
+I **Incidenter**, **Larm** eller **Schemalagt underhåll** öppnar du **Regler → Runbook-regler** och klickar på **Skapa Runbook-regel**.
 
 ### Lägg till villkor
 
@@ -57,7 +57,7 @@ Under **Matcha** börjar **Gäller för** på varje ny händelse av det här sla
 
 ### Välj runbooks
 
-Under **Runbooks** väljer du ett eller flera **Runbooks att starta**. Regelns **Namn** följer dem, till exempel "Starta Database failover", tills du skriver ett eget, och en **Beskrivning** väntar under **Fler fält**. Klicka på **Skapa Runbook Rule**. Regeln är aktiv så snart den har skapats och visas i listan med statusen **Aktiverad**.
+Under **Runbooks** väljer du ett eller flera **Runbooks att starta**. Regelns **Namn** följer dem, till exempel "Starta Database failover", tills du skriver ett eget, och en **Beskrivning** väntar under **Fler fält**. Klicka på **Skapa Runbook-regel**. Regeln är aktiv så snart den har skapats och visas i listan med statusen **Aktiverad**.
 :::
 
 ## Hur en regel är uppbyggd

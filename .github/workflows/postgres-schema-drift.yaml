@@ -4054,6 +4054,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ArchivableValuesPostgres.test.ts --forceExit
 
+      # #7436: what uses a record (the Used by card, and what Delete and
+      # Archive say first), run by Postgres through the real services: every
+      # relation of every kind counts exactly the rows that refer to the
+      # record in its project, a reader limited to a label or blocked from
+      # one is told how many more there are without their names, a selection
+      # is counted once, and a record 5,000 rows refer to takes two counts
+      # and one page of three.
+      - name: Test what uses a record on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_USED_BY_TESTS: "true"
+          USED_BY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          USED_BY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          USED_BY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UsedByPostgres.test.ts --forceExit
+
       # Postmortem statuses (Incidents > Postmortems), on migrated Postgres:
       # the two migrations on a copy of the incidents table that already
       # holds incidents (the column added without a rewrite, the indexes and

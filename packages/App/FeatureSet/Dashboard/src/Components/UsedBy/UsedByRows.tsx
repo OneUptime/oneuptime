@@ -1,10 +1,13 @@
 import {
+  ROW_IS_OFF,
   SEE_ALL,
   getUsedByHiddenNote,
   getUsedByRelationTitle,
+  getUsedByRowKindName,
   getUsedByRowName,
   getUsedByRowRoute,
 } from "./UsedByWords";
+import Route from "Common/Types/API/Route";
 import {
   UsedByGroup,
   UsedByRelation,
@@ -12,6 +15,7 @@ import {
   UsedByRowKind,
   UsedBySummary,
   getUsedByGroupsInUse,
+  getUsedByRowKindOfRow,
 } from "Common/Types/UsedBy/UsedBy";
 import Link from "Common/UI/Components/Link/Link";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -20,10 +24,35 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The rows of "Used by": each a link to the record that refers, by its
- * name as its own page shows it, with how it refers under it when the
- * server says (a policy's escalation rules). A name is the project's own
- * words, in whatever script it was typed: it reads in its own direction.
+ * name as its own page shows it, with a quiet line under it of what more
+ * the server says - the kind of record a family's row is ("Incident
+ * On-Call Rule"), "Off" for a rule switched off or a monitor not checked,
+ * and how it refers (a policy's escalation rules). A name is the project's
+ * own words, in whatever script it was typed: it reads in its own
+ * direction. A kind with no page of its own is its name, not a link.
  */
+
+// The quiet line under a row's name: its kind, Off, its detail.
+export function getUsedByRowFacts(
+  row: UsedByRow,
+  translator: Translator,
+): Array<string> {
+  const facts: Array<string> = [];
+
+  if (row.rowKind) {
+    facts.push(getUsedByRowKindName(row.rowKind, translator));
+  }
+
+  if (row.isOff) {
+    facts.push(translator.translateText(ROW_IS_OFF) || ROW_IS_OFF);
+  }
+
+  if (row.detail) {
+    facts.push(row.detail);
+  }
+
+  return facts;
+}
 
 export const UsedByRowList: FunctionComponent<{
   rows: Array<UsedByRow>;
@@ -43,25 +72,50 @@ export const UsedByRowList: FunctionComponent<{
   return (
     <ul className="space-y-1.5" data-testid={props.testId}>
       {props.rows.map((row: UsedByRow): ReactElement => {
+        const route: Route | null = getUsedByRowRoute(
+          getUsedByRowKindOfRow(row, props.rowKind),
+          row.id,
+          row.linkId,
+        );
+        const name: ReactElement = (
+          <span dir="auto">{getUsedByRowName(row, translator)}</span>
+        );
+        const facts: Array<string> = getUsedByRowFacts(row, translator);
+
         return (
           <li
-            key={row.id}
+            key={`${row.rowKind || props.rowKind}-${row.id}`}
             className="min-w-0 [overflow-wrap:anywhere]"
             data-testid="used-by-row"
+            data-row-kind={getUsedByRowKindOfRow(row, props.rowKind)}
           >
-            <Link
-              to={getUsedByRowRoute(props.rowKind, row.id)}
-              className="text-sm text-gray-900 hover:underline"
-            >
-              <span dir="auto">{getUsedByRowName(row, translator)}</span>
-            </Link>
-            {row.detail ? (
+            {route ? (
+              <Link
+                to={route}
+                className="text-sm text-gray-900 hover:underline"
+              >
+                {name}
+              </Link>
+            ) : (
+              <span
+                className="text-sm text-gray-900"
+                data-testid="used-by-row-name"
+              >
+                {name}
+              </span>
+            )}
+            {facts.length > 0 ? (
+              /*
+               * The line keeps the page's side, under its name: only its
+               * words read in their own direction. On the paragraph, a
+               * rule named in Latin letters put the line on the left of a
+               * Persian page, its name on the right.
+               */
               <p
                 className="text-xs text-gray-500"
-                dir="auto"
                 data-testid="used-by-row-detail"
               >
-                {row.detail}
+                <span dir="auto">{facts.join(" · ")}</span>
               </p>
             ) : (
               <></>

@@ -49,7 +49,7 @@ Puoi vedere ogni esecuzione, avviata da una regola o no, in **Runbook → Esecuz
 :::steps
 ### Apri le regole di runbook
 
-In **Incidenti**, **Avvisi** o **Manutenzione programmata**, apri **Regole → Regole di runbook** e fai clic su **Crea: Runbook Rule**.
+In **Incidenti**, **Avvisi** o **Manutenzione programmata**, apri **Regole → Regole di runbook** e fai clic su **Crea: Regola del runbook**.
 
 ### Aggiungi le condizioni
 
@@ -57,7 +57,7 @@ In **Corrispondenza**, **Si applica a** parte da ogni nuovo evento di questo tip
 
 ### Scegli i runbook
 
-In **Runbook**, scegli uno o più **Runbook da avviare**. Il **Nome** della regola li segue, come «Avvia Database failover», finché non ne digiti uno tuo, e una **Descrizione** attende sotto **Altri campi**. Fai clic su **Crea: Runbook Rule**. La regola è attiva appena creata e compare nell'elenco con lo stato **Abilitato**.
+In **Runbook**, scegli uno o più **Runbook da avviare**. Il **Nome** della regola li segue, come «Avvia Database failover», finché non ne digiti uno tuo, e una **Descrizione** attende sotto **Altri campi**. Fai clic su **Crea: Regola del runbook**. La regola è attiva appena creata e compare nell'elenco con lo stato **Abilitato**.
 :::
 
 ## Anatomia di una regola

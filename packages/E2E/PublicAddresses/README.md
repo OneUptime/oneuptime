@@ -53,6 +53,12 @@ The suite (`PublicAddresses.spec.ts`) checks in Chromium what jsdom cannot:
   is not ready saying what is missing first; at a phone's width, in the dark
   theme and in German.
 
+`ShowingNow.spec.ts` checks the status page Overview's **Showing now** card in a
+used state (`?usedBy=used`, #7438): its open incidents by number, newest first,
+one more the member may not see counted and never named, and the maintenance
+coming up, each a link to its own page - at 1280 and 390 pixels, light and
+dark, in German and in Persian right to left.
+
 `Fixture/Fixture.js` records every list read on
 `window.__fixture.listRequests`, every API read on `window.__fixture.apiGets`,
 and every read it does not model on `window.__fixture.unmodelled` (the suite
@@ -83,6 +89,6 @@ Then open
 (states: live, dns, issuing, unordered, failed, expired, uploaded, renewal),
 `?access=signin|password`, `?share=private|link|password`, `?enabled=0`,
 `?role=viewer|noread`, `?fail=domains|certs`, `?delay=<ms>`, `?cname=0`,
-`?lang=de|ja|fa` or `?theme=dark`; on the Custom Domains page,
+`?usedBy=used`, `?lang=de|ja|fa` or `?theme=dark`; on the Custom Domains page,
 `?projectdomain=verified|unverified`, `?txt=found`,
 `?dns=found|wrong|proxied|missing` and `?readiness=ready|notready|nocert`.

@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Prenumeranter"]
 ```
 
+Varje posts sida säger också vad som använder den. En monitors kort **Används av** listar statussidorna som visar den, dess monitorgrupper, SLO:erna som mäter den, kommande underhåll som nämner den, monitorerna som är beroende av den, reglerna och mallarna som nämner den, och arbetsflödena och instrumentpanelerna som använder den. Det du inte får öppna räknas men namnges inte. När du tar bort eller arkiverar en post sägs samma sak först, på dess egna sidor och i listorna.
+
 ## Projekt och personer
 
 Ett **projekt** rymmer allt: monitorer, incidenter, jourpolicyer, statussidor, telemetri och inställningar. De flesta företag behöver ett, och vissa har ett per miljö eller affärsområde. Inget som du skapar i ett projekt syns i ett annat.

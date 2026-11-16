@@ -101,6 +101,8 @@ Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraa
 
 Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 
+Het **Overzicht** van een schema heeft een kaart **Gebruikt door**: de bereikbaarheidsbeleidsregels waarvan de escalatieregels oproepen wie er bereikbaar is, met de regels die dat doen. Doet geen enkel dat, dan zegt de kaart het en linkt naar het bereikbaarheidsbeleid. Het schema verwijderen, op zijn pagina of vanuit de lijst, zegt eerst welk beleid via het schema oproept. Beleid dat u niet mag openen, wordt geteld maar niet genoemd.
+
 ## Schema's maken met de API of Terraform
 
 Bereikbaarheidsschema's zijn de resource `/api/on-call-duty-policy-schedule`; hun lagen en de mensen daarin zijn de resources `/api/on-call-duty-schedule-layer` en `/api/on-call-duty-schedule-layer-user`.

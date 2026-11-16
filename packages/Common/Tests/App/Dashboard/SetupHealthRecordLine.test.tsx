@@ -448,24 +448,30 @@ describe("the pages that draw it", () => {
     return fs.readFileSync(path.join(DASHBOARD_SRC, file), "utf8");
   }
 
-  test("an on-call policy's Overview, leaving out what its summary says", () => {
+  test("an on-call policy's Overview, leaving out what its summary and What runs this policy say", () => {
     const page: string = source("Pages/OnCallDuty/OnCallDutyPolicy/Index.tsx");
     const summary: string = source(
       "Components/OnCallPolicy/OnCallPolicySummary.tsx",
     );
+    const usedByWords: string = source("Components/UsedBy/UsedByWords.ts");
 
     expect(page).toContain(
       "recordKind={SetupHealthRecordKind.OnCallDutyPolicy}",
     );
     expect(page).toContain("saidByThisPage={POLICY_PAGE_SAYS}");
     expect(page).toMatch(
-      /POLICY_PAGE_SAYS[^=]*=\s*\[\s*SetupHealthCheck\.PolicyHasNoEscalationRules,\s*SetupHealthCheck\.PolicyReachesNobody,\s*\]/,
+      /POLICY_PAGE_SAYS[^=]*=\s*\[\s*SetupHealthCheck\.PolicyHasNoEscalationRules,\s*SetupHealthCheck\.PolicyReachesNobody,\s*SetupHealthCheck\.PolicyNotRun,\s*\]/,
     );
     // What the summary says in their stead.
     expect(summary).toContain(
       "This policy has no escalation rules yet, so triggering it will not page anyone.",
     );
     expect(summary).toContain("with no one on call right now");
+    // And What runs this policy (#7758), on the same page.
+    expect(page).toContain("recordKind={UsedByRecordKind.OnCallPolicy}");
+    expect(usedByWords).toContain(
+      "No on-call rule, monitor or template pages it, so it pages nobody.",
+    );
     // The line comes first: before the policy's details.
     expect(page.indexOf("<SetupHealthRecordFindings")).toBeLessThan(
       page.indexOf("<CardModelDetail"),
