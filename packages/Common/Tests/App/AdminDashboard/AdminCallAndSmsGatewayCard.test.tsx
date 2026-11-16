@@ -16,6 +16,7 @@ import React, { ReactElement, ReactNode } from "react";
 import { I18nextProvider } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 
 /*
  * ADMIN DASHBOARD > SETTINGS > CALL AND SMS: THE "SMS AND CALL PROVIDER"
@@ -31,6 +32,20 @@ import { getJestSpyOn } from "../../Spy";
  * through it. Send Test asks the server to try the gateway as saved and
  * shows what it answered, delivered or not.
  */
+
+/*
+ * Reads the Call and SMS page makes that these tests leave unanswered: the
+ * server's setup checklist, for the "Test SMS and calls" card
+ * (useServerSetupChecklist), and the Twilio account the environment
+ * variables set (useServerTwilioEnvironment), which the page takes as none
+ * when it cannot read it: the saved account's card is drawn, as these tests
+ * expect. Refused at once, as the network refused them, and taken as reads
+ * the page could not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/global-config/setup-checklist",
+  "/global-config/twilio-environment",
+]);
 
 jest.setTimeout(60000);
 
