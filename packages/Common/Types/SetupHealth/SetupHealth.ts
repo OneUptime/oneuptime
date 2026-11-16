@@ -95,9 +95,11 @@ export enum SetupHealthCheck {
   MonitorOffForLong = "monitor_off_for_long",
   StatusPageShowsNoMonitor = "status_page_shows_no_monitor",
   StatusPageDomainNotVerified = "status_page_domain_not_verified",
+  StatusPageDomainCertificateFailed = "status_page_domain_certificate_failed",
   OneOwner = "one_owner",
   WorkspaceNotUsed = "workspace_not_used",
   TelemetryNotWatched = "telemetry_not_watched",
+  IngestionKeyNeverUsed = "ingestion_key_never_used",
 }
 
 /*
@@ -120,8 +122,10 @@ export const SETUP_HEALTH_CHECK_ORDER: ReadonlyArray<SetupHealthCheck> = [
   SetupHealthCheck.MonitorNotChecked,
   SetupHealthCheck.StatusPageShowsNoMonitor,
   SetupHealthCheck.StatusPageDomainNotVerified,
+  SetupHealthCheck.StatusPageDomainCertificateFailed,
   SetupHealthCheck.MonitorOffForLong,
   SetupHealthCheck.TelemetryNotWatched,
+  SetupHealthCheck.IngestionKeyNeverUsed,
   SetupHealthCheck.WorkspaceNotUsed,
   SetupHealthCheck.OneOwner,
 ];
@@ -137,6 +141,7 @@ export enum SetupHealthRecordKind {
   User = "User",
   StatusPage = "StatusPage",
   StatusPageDomain = "StatusPageDomain",
+  TelemetryIngestionKey = "TelemetryIngestionKey",
   Project = "Project",
 }
 
@@ -167,6 +172,8 @@ export enum SetupHealthFix {
   StatusPageDomains = "StatusPageDomains",
   ProjectOwners = "ProjectOwners",
   WorkspaceNotificationRules = "WorkspaceNotificationRules",
+  // The ingestion key's own page: when it was last used, and Delete.
+  TelemetryIngestionKey = "TelemetryIngestionKey",
 }
 
 // Why a responder can't be paged (ResponderCannotBePaged's reasons), worst first.
@@ -199,6 +206,17 @@ export enum SetupHealthScheduleReason {
 export enum SetupHealthMonitorReason {
   NoProbe = "no_probe",
   ProbesDisconnected = "probes_disconnected",
+}
+
+/*
+ * Why a custom domain is not served over HTTPS
+ * (StatusPageDomainCertificateFailed's reasons): the states of the Custom
+ * Domains page's Status column that say a certificate failed -
+ * "Could not issue a free certificate yet" and "Certificate expired".
+ */
+export enum SetupHealthCertificateReason {
+  NotIssued = "not_issued",
+  Expired = "expired",
 }
 
 // Which records an incident or an alert has the on-call rules of.
@@ -278,9 +296,13 @@ export const SETUP_HEALTH_WORDS: Readonly<{
   monitorOffForLong: string;
   statusPageShowsNoMonitor: string;
   statusPageDomainNotVerified: string;
+  statusPageDomainCertificateFailed: Readonly<
+    Record<SetupHealthCertificateReason, string>
+  >;
   oneOwner: string;
   workspaceNotUsed: string;
   telemetryNotWatched: string;
+  ingestionKeyNeverUsed: string;
 }> = {
   monitorTellsNobody: translationKey(
     "{{monitor}} tells nobody when it goes down: none of its criteria changes its status or opens an incident or an alert.",
@@ -373,6 +395,14 @@ export const SETUP_HEALTH_WORDS: Readonly<{
   statusPageDomainNotVerified: translationKey(
     "{{domain}} doesn't open status page {{statusPage}} yet: its CNAME record isn't verified.",
   ),
+  statusPageDomainCertificateFailed: {
+    [SetupHealthCertificateReason.NotIssued]: translationKey(
+      "{{domain}} doesn't open status page {{statusPage}} over HTTPS yet: its free SSL certificate couldn't be issued.",
+    ),
+    [SetupHealthCertificateReason.Expired]: translationKey(
+      "{{domain}} doesn't open status page {{statusPage}} over HTTPS: its SSL certificate expired and couldn't be renewed.",
+    ),
+  },
   oneOwner: translationKey(
     "This project has only one owner. Make a second person an owner, so somebody can always manage it.",
   ),
@@ -381,6 +411,9 @@ export const SETUP_HEALTH_WORDS: Readonly<{
   ),
   telemetryNotWatched: translationKey(
     "Telemetry arrives in this project, but no monitor alerts on it.",
+  ),
+  ingestionKeyNeverUsed: translationKey(
+    "No data has arrived with ingestion key {{key}} since it was created.",
   ),
 };
 
@@ -392,6 +425,37 @@ export const DOMAIN_VERIFICATION_GRACE_IN_MS: number = 60 * 60 * 1000;
 
 // A monitor turned off for longer than this is said to be off for long.
 export const MONITOR_OFF_FOR_LONG_IN_DAYS: number = 30;
+
+/*
+ * An ingestion key nothing has sent with for this long after it was made is
+ * said to be unused: a collector or an SDK is usually pointed at a new key
+ * within days.
+ */
+export const INGESTION_KEY_UNUSED_AFTER_IN_DAYS: number = 7;
+
+/*
+ * WHEN AN INGESTION KEY'S USE STARTED BEING RECORDED
+ * (TelemetryIngestionKey.lastUsedAt, stamped by every ingest path through
+ * Server/Utils/Telemetry/TelemetryIngestionKeyLastUsed). An empty stamp means
+ * "never used" only for a key made after its path stamped:
+ *
+ *   - over HTTP since 2026-09-03 (6b69e402973): OTLP over HTTP, Fluent,
+ *     syslog, session replay and every other surface of TelemetryIngest;
+ *   - over OTLP gRPC since 2026-11-14 (#7887) and MQTT since 2026-11-15
+ *     (#8020): until then, a key the OpenTelemetry Collector's default
+ *     exporter used read "never used" however much it sent.
+ *
+ * So a key made after every path stamped is unused when its stamp is empty.
+ * One made between the two dates is unused only in a project that has never
+ * received logs, metrics, traces, exceptions or profiles - the data gRPC and
+ * MQTT carry - since everything else it could have sent came over HTTP. One
+ * made before is never said to be unused: it may have worked for years.
+ */
+export const INGESTION_KEY_USE_RECORDED_SINCE: string =
+  "2026-11-16T00:00:00.000Z";
+
+export const INGESTION_KEY_HTTP_USE_RECORDED_SINCE: string =
+  "2026-09-04T00:00:00.000Z";
 
 // How far ahead a schedule's gaps are looked for.
 export const SCHEDULE_GAP_LOOKAHEAD_IN_DAYS: number = 7;
@@ -435,6 +499,8 @@ export interface SetupHealthFacts {
   // The chat workspaces the project has connected.
   workspaces: Array<SetupHealthWorkspaceFact>;
   telemetry: SetupHealthTelemetryFact | null;
+  // The project's telemetry ingestion keys.
+  ingestionKeys: Array<SetupHealthIngestionKeyFact>;
 }
 
 export interface SetupHealthResponderFact {
@@ -491,6 +557,35 @@ export interface SetupHealthDomainFact {
   isCnameVerified: boolean;
   // When it was added, as an ISO date.
   createdAt: string | null;
+  // Served with a certificate its owner uploaded: there is none to issue.
+  isCustomCertificate?: boolean | undefined;
+  /*
+   * Where its free certificate stands, as the Custom Domains page's Status
+   * column reads it (CertificateOrder.getCertificateStates): read only for
+   * a verified domain with no uploaded certificate, on an installation that
+   * issues free certificates. Undefined or null when not read.
+   */
+  certificate?: SetupHealthDomainCertificateFact | null | undefined;
+}
+
+export interface SetupHealthDomainCertificateFact {
+  // When its certificate expires, as an ISO date; null while it has none.
+  expiresAt: string | null;
+  // Its last order failed, and no order since has succeeded.
+  hasOrderFailed: boolean;
+}
+
+export interface SetupHealthIngestionKeyFact {
+  id: string;
+  name: string;
+  // When it was made, as an ISO date.
+  createdAt: string | null;
+  // When data last arrived with it, as an ISO date; null when never recorded.
+  lastUsedAt: string | null;
+  // Switched off by hand: it is refused, so nothing can arrive with it.
+  isDisabled: boolean;
+  // When it stops working, as an ISO date; null when never.
+  expiresAt: string | null;
 }
 
 export interface SetupHealthOwnersFact {
@@ -1207,6 +1302,99 @@ export function getStatusPageDomainFindings(
 }
 
 /*
+ * Why a verified domain's free certificate does not serve it, or null when
+ * it does or may yet: expired, or never issued because its last order
+ * failed - the Custom Domains page's "Certificate expired" and "Could not
+ * issue a free certificate yet". An order is placed within minutes of the
+ * CNAME record being verified and is usually live within 15, so a domain
+ * added within the hour is not yet said to have failed. A certificate still
+ * being issued, with no failed order, is not a failure.
+ */
+export function getDomainCertificateReason(
+  domain: SetupHealthDomainFact,
+  now: number,
+): SetupHealthCertificateReason | null {
+  const certificate: SetupHealthDomainCertificateFact | null | undefined =
+    domain.certificate;
+
+  if (!domain.isCnameVerified || domain.isCustomCertificate || !certificate) {
+    return null;
+  }
+
+  if (certificate.expiresAt) {
+    const expiresAt: number = new Date(certificate.expiresAt).getTime();
+
+    return !Number.isNaN(expiresAt) && expiresAt <= now
+      ? SetupHealthCertificateReason.Expired
+      : null;
+  }
+
+  if (!certificate.hasOrderFailed) {
+    return null;
+  }
+
+  const createdAt: number = domain.createdAt
+    ? new Date(domain.createdAt).getTime()
+    : Number.NaN;
+
+  return Number.isNaN(createdAt) ||
+    now - createdAt > DOMAIN_VERIFICATION_GRACE_IN_MS
+    ? SetupHealthCertificateReason.NotIssued
+    : null;
+}
+
+/*
+ * A status page's custom domain whose CNAME record is verified, but whose
+ * free certificate does not serve it: the page does not open on it over
+ * HTTPS. A domain served with a certificate its owner uploaded has none to
+ * issue.
+ */
+export function getStatusPageDomainCertificateFindings(
+  facts: SetupHealthFacts,
+): Array<SetupHealthFinding> {
+  const now: number = new Date(facts.now).getTime();
+  const findings: Array<SetupHealthFinding> = [];
+
+  for (const domain of facts.statusPageDomains) {
+    const reason: SetupHealthCertificateReason | null =
+      getDomainCertificateReason(domain, now);
+
+    if (!reason) {
+      continue;
+    }
+
+    findings.push(
+      makeSetupHealthFinding({
+        check: SetupHealthCheck.StatusPageDomainCertificateFailed,
+        level: SetupHealthLevel.WorthFixing,
+        record: {
+          kind: SetupHealthRecordKind.StatusPageDomain,
+          id: domain.id,
+          name: domain.fullDomain,
+        },
+        reason: reason,
+        related: [
+          {
+            kind: SetupHealthRecordKind.StatusPage,
+            id: domain.statusPageId,
+            name: domain.statusPageName,
+          },
+        ],
+        fix: SetupHealthFix.StatusPageDomains,
+        fixRecordId: domain.statusPageId,
+        words: SETUP_HEALTH_WORDS.statusPageDomainCertificateFailed[reason],
+        values: {
+          domain: domain.fullDomain,
+          statusPage: domain.statusPageName,
+        },
+      }),
+    );
+  }
+
+  return findings;
+}
+
+/*
  * A project with more than one person and only one owner: nobody else can
  * manage its billing, members and settings while they are away.
  */
@@ -1277,6 +1465,91 @@ export function getTelemetryFindings(
   ];
 }
 
+/*
+ * Whether nothing has ever arrived with an ingestion key, as far as its
+ * recorded use can say (INGESTION_KEY_USE_RECORDED_SINCE): a key that is
+ * on and has not expired, made more than a week ago, with no use recorded
+ * since it was made.
+ */
+export function isIngestionKeyNeverUsed(data: {
+  key: SetupHealthIngestionKeyFact;
+  now: number;
+  // The project has never received logs, metrics, traces, exceptions or profiles.
+  receivesNoTelemetry: boolean;
+}): boolean {
+  const key: SetupHealthIngestionKeyFact = data.key;
+
+  if (key.isDisabled || key.lastUsedAt) {
+    return false;
+  }
+
+  const expiresAt: number = key.expiresAt
+    ? new Date(key.expiresAt).getTime()
+    : Number.NaN;
+
+  if (!Number.isNaN(expiresAt) && expiresAt <= data.now) {
+    return false;
+  }
+
+  const createdAt: number = key.createdAt
+    ? new Date(key.createdAt).getTime()
+    : Number.NaN;
+
+  if (
+    Number.isNaN(createdAt) ||
+    data.now - createdAt <= INGESTION_KEY_UNUSED_AFTER_IN_DAYS * DAY_IN_MS
+  ) {
+    return false;
+  }
+
+  if (createdAt >= new Date(INGESTION_KEY_USE_RECORDED_SINCE).getTime()) {
+    return true;
+  }
+
+  return (
+    data.receivesNoTelemetry &&
+    createdAt >= new Date(INGESTION_KEY_HTTP_USE_RECORDED_SINCE).getTime()
+  );
+}
+
+/*
+ * An ingestion key nothing has ever sent with: a collector or an SDK that
+ * was never pointed at it, or a key nobody needs. A suggestion: its page
+ * says when it was last used, and deletes it.
+ */
+export function getIngestionKeyFindings(
+  facts: SetupHealthFacts,
+): Array<SetupHealthFinding> {
+  const now: number = new Date(facts.now).getTime();
+  // Unknown when the milestones could not be read: then only the stamp decides.
+  const receivesNoTelemetry: boolean =
+    facts.telemetry !== null && !facts.telemetry.receivesTelemetry;
+
+  return facts.ingestionKeys
+    .filter((key: SetupHealthIngestionKeyFact): boolean => {
+      return isIngestionKeyNeverUsed({
+        key: key,
+        now: now,
+        receivesNoTelemetry: receivesNoTelemetry,
+      });
+    })
+    .map((key: SetupHealthIngestionKeyFact): SetupHealthFinding => {
+      return makeSetupHealthFinding({
+        check: SetupHealthCheck.IngestionKeyNeverUsed,
+        level: SetupHealthLevel.Suggestion,
+        record: {
+          kind: SetupHealthRecordKind.TelemetryIngestionKey,
+          id: key.id,
+          name: key.name,
+        },
+        fix: SetupHealthFix.TelemetryIngestionKey,
+        fixRecordId: key.id,
+        words: SETUP_HEALTH_WORDS.ingestionKeyNeverUsed,
+        values: { key: key.name },
+      });
+    });
+}
+
 // The rules, each a function of the facts.
 export const SETUP_HEALTH_RULES: ReadonlyArray<
   (facts: SetupHealthFacts) => Array<SetupHealthFinding>
@@ -1297,9 +1570,11 @@ export const SETUP_HEALTH_RULES: ReadonlyArray<
   getMonitorOffForLongFindings,
   getStatusPageFindings,
   getStatusPageDomainFindings,
+  getStatusPageDomainCertificateFindings,
   getOwnerFindings,
   getWorkspaceFindings,
   getTelemetryFindings,
+  getIngestionKeyFindings,
 ];
 
 function addRelated(
@@ -1521,16 +1796,17 @@ export interface SetupHealthSummary {
 
 /*
  * THE FINDINGS ONE PERSON MAY SEE. A finding is shown only when its record
- * may be read: a monitor, policy, schedule or status page by its id; a
- * domain by its status page; a person through the on-call policies (as
- * Readiness is); the project's own findings to every member. What it
- * concerns is cut to what may be read too.
+ * may be read: a monitor, policy, schedule, status page or ingestion key by
+ * its id; a domain by its status page; a person through the on-call
+ * policies (as Readiness is); the project's own findings to every member.
+ * What it concerns is cut to what may be read too.
  */
 export interface SetupHealthReadable {
   monitorIds: ReadonlySet<string>;
   policyIds: ReadonlySet<string>;
   scheduleIds: ReadonlySet<string>;
   statusPageIds: ReadonlySet<string>;
+  ingestionKeyIds: ReadonlySet<string>;
   // The caller may read the project's on-call policies (and so Readiness).
   canReadResponders: boolean;
 }
@@ -1548,6 +1824,8 @@ function isRecordReadable(
       return readable.scheduleIds.has(record.id);
     case SetupHealthRecordKind.StatusPage:
       return readable.statusPageIds.has(record.id);
+    case SetupHealthRecordKind.TelemetryIngestionKey:
+      return readable.ingestionKeyIds.has(record.id);
     case SetupHealthRecordKind.User:
       return readable.canReadResponders;
     case SetupHealthRecordKind.StatusPageDomain:
@@ -1592,6 +1870,67 @@ export function redactSetupHealthFindings(
         ),
       };
     });
+}
+
+/*
+ * A RECORD'S OWN FINDINGS (#7297): what its page says at the top, beside
+ * what the page itself shows. The findings about the record, and for a
+ * status page those about its custom domains as well - a domain has no
+ * overview of its own, and opens the status page.
+ */
+export const SETUP_HEALTH_RECORD_KINDS_WITH_A_PAGE: ReadonlyArray<SetupHealthRecordKind> =
+  [
+    SetupHealthRecordKind.Monitor,
+    SetupHealthRecordKind.OnCallDutyPolicy,
+    SetupHealthRecordKind.OnCallDutyPolicySchedule,
+    SetupHealthRecordKind.StatusPage,
+    SetupHealthRecordKind.TelemetryIngestionKey,
+  ];
+
+export function isSetupHealthRecordKindWithAPage(
+  kind: string,
+): kind is SetupHealthRecordKind {
+  return SETUP_HEALTH_RECORD_KINDS_WITH_A_PAGE.includes(
+    kind as SetupHealthRecordKind,
+  );
+}
+
+export function doesSetupHealthFindingConcernRecord(
+  finding: SetupHealthFinding,
+  record: Pick<SetupHealthRecord, "kind" | "id">,
+): boolean {
+  if (finding.record.kind === record.kind && finding.record.id === record.id) {
+    return true;
+  }
+
+  return (
+    record.kind === SetupHealthRecordKind.StatusPage &&
+    finding.record.kind === SetupHealthRecordKind.StatusPageDomain &&
+    finding.related.some((related: SetupHealthRecord): boolean => {
+      return (
+        related.kind === SetupHealthRecordKind.StatusPage &&
+        related.id === record.id
+      );
+    })
+  );
+}
+
+export function getSetupHealthFindingsForRecord(
+  findings: ReadonlyArray<SetupHealthFinding>,
+  record: Pick<SetupHealthRecord, "kind" | "id">,
+): Array<SetupHealthFinding> {
+  return findings.filter((finding: SetupHealthFinding): boolean => {
+    return doesSetupHealthFindingConcernRecord(finding, record);
+  });
+}
+
+/*
+ * What one record's page is handed (GET /api/setup-health/record): its open
+ * findings the person may see, worst first - never a dismissed one.
+ */
+export interface SetupHealthRecordAnswer {
+  findings: Array<SetupHealthFinding>;
+  checkedAt: string;
 }
 
 /*
