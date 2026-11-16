@@ -707,7 +707,14 @@ work out, starts from a default for everything else, and folds what most people 
   built in code (#8695): "Rescan Interval must be at least 15 minutes.", "Every 6 hours", a guide's
   "the last 10 minutes", and a word chosen by its count (`` `${n} ${n === 1 ? "hour" : "hours"}` ``).
   A sentence looked up whole by its English keeps its plain spaces in the code, so the key still
-  matches, and the page holds the English it draws (`withDurationWordsHeld`). Enforced by
+  matches, and the page holds the English it draws (`withDurationWordsHeld`). A duration's word
+  is a unit to the Translator too (#8770): wherever the English writes a number and a space before
+  one ("Every {{count}} minutes", "between 15 minutes and 14 days"), each language's wording holds
+  the figure to whatever word it names the unit with ("Alle 5 Minuten"), and so does a page's
+  English (a translator made with `drawsOnPage`, as the front ends' are). English that may become a
+  record's text - the server's, or a translator no page made - holds a unit's symbol only, so what
+  is stored still matches what reads it back by its English; a sentence that becomes a value - the
+  name a form fills in - is written with plain spaces (`withPlainSpaces`). Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
   [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and

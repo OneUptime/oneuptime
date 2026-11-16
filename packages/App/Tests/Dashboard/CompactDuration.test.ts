@@ -14,13 +14,15 @@ import path from "path";
  */
 describe("formatCompactDurationInMinutes", () => {
   test("English keeps the overview's own text, word for word", () => {
-    expect(formatCompactDurationInMinutes(51, "en")).toBe("51 min");
-    expect(formatCompactDurationInMinutes(264, "en")).toBe("4 h 24 min");
-    expect(formatCompactDurationInMinutes(240, "en-GB")).toBe("4 h");
-    expect(formatCompactDurationInMinutes(24 * 60 * 3 + 300, "en")).toBe(
-      "3 d 5 h",
+    expect(formatCompactDurationInMinutes(51, "en")).toBe("51\u00A0min");
+    expect(formatCompactDurationInMinutes(264, "en")).toBe(
+      "4\u00A0h 24\u00A0min",
     );
-    expect(formatCompactDurationInMinutes(51, undefined)).toBe("51 min");
+    expect(formatCompactDurationInMinutes(240, "en-GB")).toBe("4\u00A0h");
+    expect(formatCompactDurationInMinutes(24 * 60 * 3 + 300, "en")).toBe(
+      "3\u00A0d 5\u00A0h",
+    );
+    expect(formatCompactDurationInMinutes(51, undefined)).toBe("51\u00A0min");
   });
 
   test("no value is a dash in every language", () => {

@@ -77,6 +77,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 
 const STATUS_PAGE_ID: string = "7c7c7c7c-0000-4000-8000-0000000000cc";
 
@@ -215,7 +216,12 @@ function offered(): Array<string> {
 async function pick(label: string): Promise<void> {
   fireEvent.keyDown(box(), { key: "ArrowDown", code: "ArrowDown" });
 
-  const option: HTMLElement = screen.getByRole("option", { name: label });
+  // An option's name holds a duration's figure to its word (#8770).
+  const option: HTMLElement = screen.getByRole("option", {
+    name: (name: string): boolean => {
+      return withPlainSpaces(name) === label;
+    },
+  });
 
   fireEvent.mouseDown(option);
   fireEvent.click(option);
@@ -274,7 +280,7 @@ describe("the Reader Sessions card", () => {
     stored = 12;
     await renderCard();
 
-    expect(shown()).toBe("12 hours");
+    expect(shown()).toBe("12\u00A0hours");
     expect(description()).toBe(StatusPageSessionLengthCopy.limitDescription);
   });
 
@@ -284,14 +290,14 @@ describe("the Reader Sessions card", () => {
     expect(offered()).toEqual([
       "No limit",
       "1 hour",
-      "4 hours",
-      "8 hours",
-      "12 hours",
+      "4\u00A0hours",
+      "8\u00A0hours",
+      "12\u00A0hours",
       "1 day",
-      "3 days",
-      "7 days",
-      "14 days",
-      "30 days",
+      "3\u00A0days",
+      "7\u00A0days",
+      "14\u00A0days",
+      "30\u00A0days",
     ]);
     expect(offered()).toHaveLength(
       PRIVATE_USER_SESSION_LENGTH_CHOICES_IN_HOURS.length + 1,
@@ -302,19 +308,19 @@ describe("the Reader Sessions card", () => {
     stored = 36;
     await renderCard();
 
-    expect(shown()).toBe("36 hours");
+    expect(shown()).toBe("36\u00A0hours");
     expect(offered()).toEqual([
       "No limit",
       "1 hour",
-      "4 hours",
-      "8 hours",
-      "12 hours",
+      "4\u00A0hours",
+      "8\u00A0hours",
+      "12\u00A0hours",
       "1 day",
-      "36 hours",
-      "3 days",
-      "7 days",
-      "14 days",
-      "30 days",
+      "36\u00A0hours",
+      "3\u00A0days",
+      "7\u00A0days",
+      "14\u00A0days",
+      "30\u00A0days",
     ]);
   });
 
@@ -326,7 +332,7 @@ describe("the Reader Sessions card", () => {
     expect(
       (updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
     ).toBe(STATUS_PAGE_ID);
-    expect(shown()).toBe("8 hours");
+    expect(shown()).toBe("8\u00A0hours");
     expect(description()).toBe(StatusPageSessionLengthCopy.limitDescription);
 
     await waitFor(() => {
@@ -367,7 +373,7 @@ describe("the Reader Sessions card", () => {
     await pick("1 day");
     await flush();
 
-    expect(shown()).toBe("12 hours");
+    expect(shown()).toBe("12\u00A0hours");
     expect(
       screen.getByTestId(`${STATUS_PAGE_SESSION_LENGTH_SETTING_TEST_ID}-error`),
     ).toHaveTextContent("Please upgrade your plan to Scale");

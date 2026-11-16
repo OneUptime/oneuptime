@@ -294,8 +294,11 @@ export const withFrenchSpacingInHtml: (html: string) => string = (
  * NUMBERS AND THEIR UNITS.
  *
  * The units English writes beside a number, as their symbols: a share, a
- * time, a size, a rate, a signal, a temperature. A word ("5 minutes", "3
- * days") is no unit here: a line may break before it as before any word.
+ * time, a size, a rate, a signal, a temperature. A duration's word ("5
+ * minutes", "3 days") is held to its number too, after its one space
+ * (ENGLISH_DURATION_WORDS, #8770): "Alle 5 Minuten" broke as "Alle 5" over
+ * "Minuten". Any other word ("5 hosts") is no unit: a line may break before
+ * it as before any word.
  */
 const ENGLISH_UNITS: ReadonlyArray<string> = [
   "%",
@@ -359,14 +362,83 @@ const UNIT_PATTERN: string = [...ENGLISH_UNITS]
   .join("|");
 
 /*
+ * A DURATION'S UNIT IN A WORD.
+ *
+ * English names a duration's unit in a word: moment's "5 hours ago", a
+ * friendly duration's "1 min 47 secs", a table's "10 days, 23 hours", a
+ * sentence's "Every {{count}} minutes". A line could end with "5" and start
+ * the next with "hours ago" (#8669), or with "Alle 5" over "Minuten"
+ * (#8770), as one could in what Intl writes before #8456. Each number
+ * written right before a duration's word is held to it with a no-break
+ * space: in English OneUptime writes itself (withDurationWordsHeld), and in
+ * every wording of a sentence whose English writes one, whatever word the
+ * language names the unit with (withNumbersKeptWithUnits). A number before
+ * any other word ("5 hosts", "3 errors") is not, nor a duration's word with
+ * no number before it ("a few seconds ago", "an hour ago").
+ */
+export const ENGLISH_DURATION_WORDS: ReadonlyArray<string> = [
+  "second",
+  "seconds",
+  "sec",
+  "secs",
+  "minute",
+  "minutes",
+  "min",
+  "mins",
+  "hour",
+  "hours",
+  "hr",
+  "hrs",
+  "day",
+  "days",
+  "week",
+  "weeks",
+  "month",
+  "months",
+  "year",
+  "years",
+];
+
+// The duration's words, the longest first: "minutes" before "minute".
+const DURATION_WORD_PATTERN: string = [...ENGLISH_DURATION_WORDS]
+  .sort((a: string, b: string): number => {
+    return b.length - a.length;
+  })
+  .join("|");
+
+// A {{placeholder}}, or written digits that are no part of a longer name.
+const ENGLISH_NUMBER: string =
+  "(?:\\{\\{\\s*([\\w.]+)\\s*\\}\\}|(?<![\\p{L}\\p{N}_.,])(\\p{Nd}+(?:[.,]\\p{Nd}+)*))";
+
+/*
  * A number beside a unit in an English text: a {{placeholder}} or written
- * digits, then a unit, joined or after one space, and not the start of a
- * longer word ("{{count}} more", "{{count}} days").
+ * digits, then a unit's symbol, joined or after one space, and not the
+ * start of a longer word ("{{count}} more", "{{count}} days").
  */
 const ENGLISH_NUMBER_WITH_UNIT: RegExp = new RegExp(
-  `(?:\\{\\{\\s*([\\w.]+)\\s*\\}\\}|(?<![\\p{L}\\p{N}_.,])(\\p{Nd}+(?:[.,]\\p{Nd}+)*))[ ]?(?:${UNIT_PATTERN})(?![\\p{L}\\p{N}_])`,
+  `${ENGLISH_NUMBER}[ ]?(?:${UNIT_PATTERN})(?![\\p{L}\\p{N}_])`,
   "gu",
 );
+
+/*
+ * The same, or a duration's word after one space ("{{count}} minutes",
+ * "15 days"), and not the start of a longer word ("{{count}} dashboards",
+ * "{{count}} daily").
+ */
+const ENGLISH_NUMBER_WITH_UNIT_OR_DURATION: RegExp = new RegExp(
+  `${ENGLISH_NUMBER}(?:[ ]?(?:${UNIT_PATTERN})|[ ](?:${DURATION_WORD_PATTERN}))(?![\\p{L}\\p{N}_])`,
+  "gu",
+);
+
+/*
+ * How a text is set: a wording a page draws holds a duration's figure to
+ * its word too (#8770); a text that may become a value - English OneUptime
+ * writes into a record, a root cause, a status message it reads back by its
+ * English - holds a unit's symbol only, as it did before.
+ */
+export interface NumbersKeptOptions {
+  durationWords?: boolean | undefined;
+}
 
 // A placeholder, then the spaces after it, before more words.
 const PLACEHOLDER_BEFORE_SPACES: RegExp = new RegExp(
@@ -472,7 +544,7 @@ interface NumbersWithUnits {
   digits: Set<string>;
 }
 
-// The numbers an English text writes beside a unit, remembered per text.
+// The numbers an English text writes beside a unit, remembered per text and way.
 const MOST_REMEMBERED_TEXTS: number = 5000;
 
 const numbersWithUnitsOf: Map<string, NumbersWithUnits | null> = new Map<
@@ -486,15 +558,20 @@ const HAS_A_NUMBER: RegExp = /\}\}|\p{Nd}/u;
  * The numbers `english` writes beside a unit: the placeholders by name,
  * written numbers by their digits. Null when it writes none.
  */
-const findNumbersWithUnits: (english: string) => NumbersWithUnits | null = (
+const findNumbersWithUnits: (
   english: string,
+  durationWords: boolean,
+) => NumbersWithUnits | null = (
+  english: string,
+  durationWords: boolean,
 ): NumbersWithUnits | null => {
   if (!english || !HAS_A_NUMBER.test(english)) {
     return null;
   }
 
+  const cacheKey: string = `${durationWords ? "d" : "u"}|${english}`;
   const remembered: NumbersWithUnits | null | undefined =
-    numbersWithUnitsOf.get(english);
+    numbersWithUnitsOf.get(cacheKey);
 
   if (remembered !== undefined) {
     return remembered;
@@ -503,7 +580,11 @@ const findNumbersWithUnits: (english: string) => NumbersWithUnits | null = (
   const placeholders: Set<string> = new Set<string>();
   const digits: Set<string> = new Set<string>();
 
-  for (const match of english.matchAll(ENGLISH_NUMBER_WITH_UNIT)) {
+  for (const match of english.matchAll(
+    durationWords
+      ? ENGLISH_NUMBER_WITH_UNIT_OR_DURATION
+      : ENGLISH_NUMBER_WITH_UNIT,
+  )) {
     if (match[1]) {
       placeholders.add(match[1]);
     } else if (match[2]) {
@@ -518,7 +599,7 @@ const findNumbersWithUnits: (english: string) => NumbersWithUnits | null = (
     numbersWithUnitsOf.clear();
   }
 
-  numbersWithUnitsOf.set(english, found);
+  numbersWithUnitsOf.set(cacheKey, found);
 
   return found;
 };
@@ -529,17 +610,27 @@ const findNumbersWithUnits: (english: string) => NumbersWithUnits | null = (
  * unit: "Verfügbarkeit ({{hours}} Std.)" for "Uptime ({{hours}}h)",
  * "Letzte 24 Std." for "Last 24h". A number is found by its placeholder,
  * or by its digits in whichever digits the language writes. Code in
- * backticks and HTML tags are left as written.
+ * backticks and HTML tags are left as written. With durationWords, a
+ * number before a duration's word too: "Alle {{count}} Minuten" for "Every
+ * {{count}} minutes" (#8770).
  */
 export const withNumbersKeptWithUnits: (
   words: string,
   english: string,
-) => string = (words: string, english: string): string => {
+  options?: NumbersKeptOptions,
+) => string = (
+  words: string,
+  english: string,
+  options?: NumbersKeptOptions,
+): string => {
   if (!words || !HAS_A_BREAKING_SPACE.test(words)) {
     return words;
   }
 
-  const numbers: NumbersWithUnits | null = findNumbersWithUnits(english);
+  const numbers: NumbersWithUnits | null = findNumbersWithUnits(
+    english,
+    Boolean(options?.durationWords),
+  );
 
   if (!numbers) {
     return words;
@@ -594,42 +685,7 @@ const withUnitsOfTwoWordsHeld: (words: string) => string = (
   );
 };
 
-/*
- * ENGLISH THAT NAMES A DURATION'S UNIT IN A WORD.
- *
- * Some English OneUptime writes itself, in words, not through Intl or a
- * translated sentence: moment's "5 hours ago" and "in 3 days", a friendly
- * duration's "1 min 47 secs", a table's "10 days, 23 hours", a fallback's
- * "2 minutes ago". A line could end with "5" and start the next with
- * "hours ago" (#8669), as one could in what Intl writes before #8456. Each
- * number written right before a duration's word is held to it with a
- * no-break space. A number before any other word ("5 hosts", "3 errors")
- * is not, nor a duration's word with no number before it ("a few seconds
- * ago", "an hour ago").
- */
-export const ENGLISH_DURATION_WORDS: ReadonlyArray<string> = [
-  "second",
-  "seconds",
-  "sec",
-  "secs",
-  "minute",
-  "minutes",
-  "min",
-  "mins",
-  "hour",
-  "hours",
-  "hr",
-  "hrs",
-  "day",
-  "days",
-  "week",
-  "weeks",
-  "month",
-  "months",
-  "year",
-  "years",
-];
-
+// English OneUptime writes itself: the space after a number, before a duration's word.
 const SPACES_BEFORE_A_DURATION_WORD: RegExp = new RegExp(
   `(?<=\\p{Nd})${BREAKING_SPACES}(?=(?:${ENGLISH_DURATION_WORDS.join("|")})(?![\\p{L}\\p{M}\\p{N}_]))`,
   "gu",
@@ -647,9 +703,27 @@ export const withDurationWordsHeld: (text: string) => string = (
 };
 
 /*
+ * `text` with the spaces this module holds a line with - the no-break
+ * space and French's narrow one - written as plain spaces: for a sentence
+ * that becomes a value, not a line a page draws (#8770). A rule's name the
+ * form fills in ("Remind every 15 minutes until resolved") is stored and
+ * searched; held, it would be another name than the one somebody typed or
+ * saved before, and a search for "15 minutes" would not find it.
+ */
+const HELD_SPACES: RegExp = /[\u00A0\u202F]/g;
+
+export const withPlainSpaces: (text: string) => string = (
+  text: string,
+): string => {
+  return text ? text.replace(HELD_SPACES, " ") : text;
+};
+
+/*
  * `words`, a wording of `english` in `language`, as the language sets a
- * line: each number with its unit, and French's marks with the words
- * before and after them.
+ * line: each number with its unit, a duration's word too (#8770), and
+ * French's marks with the words before and after them. A wording is what a
+ * page or a message draws in the reader's language; what OneUptime stores
+ * and reads back is its English.
  */
 export const withNoBreakSpaces: (
   words: string,
@@ -660,7 +734,9 @@ export const withNoBreakSpaces: (
   english: string,
   language: string | null | undefined,
 ): string => {
-  const kept: string = withNumbersKeptWithUnits(words, english);
+  const kept: string = withNumbersKeptWithUnits(words, english, {
+    durationWords: true,
+  });
 
   return setsPunctuationApart(language) ? withFrenchSpacing(kept) : kept;
 };

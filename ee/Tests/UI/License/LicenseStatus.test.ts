@@ -728,7 +728,7 @@ describe("the status in the reader's language", () => {
       "de",
     );
 
-    expect(status.title).toBe("Testphase der Enterprise Edition: noch 10 Tage");
+    expect(status.title).toBe("Testphase der Enterprise Edition: noch 10\u00A0Tage");
     expect(status.description).toContain("2. März 2027");
     expect(status.description).not.toContain("Mar 2027");
     expect(status.description).not.toContain("3/2/2027");
@@ -760,7 +760,7 @@ describe("the status in the reader's language", () => {
     ).title;
 
     expect(title).toBe(
-      `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}۱۰ روز مانده${POP_DIRECTIONAL_ISOLATE}`,
+      `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}۱۰\u00A0روز مانده${POP_DIRECTIONAL_ISOLATE}`,
     );
   });
 
@@ -826,7 +826,7 @@ describe("the status in the reader's language", () => {
     expect(status.description).toContain(
       "Продлите лицензию в OneUptime, затем обновите её здесь.",
     );
-    expect(status.description).toContain("осталось 10 дн.");
+    expect(status.description).toContain("осталось 10\u00A0дн.");
   });
 
   it.each(["de", "fa", "ar", "ru"])(

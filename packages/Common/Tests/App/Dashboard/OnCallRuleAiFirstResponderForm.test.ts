@@ -163,18 +163,18 @@ describe("the hold time field", () => {
         whenToPage: OnCallRuleWhenToPage.AfterOneUptimeAI,
         aiHoldTimeInMinutes: 5,
       }),
-    ).toBe("5 minutes");
+    ).toBe("5\u00A0minutes");
     expect(
       getAiHoldTimeFoldedValue({
         whenToPage: OnCallRuleWhenToPage.AfterOneUptimeAI,
         aiHoldTimeInMinutes: 1,
       }),
-    ).toBe("1 minute");
+    ).toBe("1\u00A0minute");
     expect(
       getAiHoldTimeFoldedValue({
         whenToPage: OnCallRuleWhenToPage.AfterOneUptimeAI,
       }),
-    ).toBe("10 minutes");
+    ).toBe("10\u00A0minutes");
     expect(
       getAiHoldTimeFoldedValue({ whenToPage: OnCallRuleWhenToPage.RightAway }),
     ).toBeNull();

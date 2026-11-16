@@ -230,7 +230,7 @@ describe("a schedule in a sentence", () => {
         choice({ repeat: RunbookScheduleRepeat.Minutes, every: 5 }),
         false,
       ),
-    ).toBe("Läuft alle 5 Minuten");
+    ).toBe("Läuft alle 5\u00A0Minuten");
   });
 });
 

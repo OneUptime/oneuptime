@@ -425,7 +425,7 @@ describe("in a CSV export", () => {
       );
 
     expect(lines[0]).toBe("Ends At,Duration");
-    expect(lines[1]).toBe(",2\u00A0mins 54\u00A0secs");
+    expect(lines[1]).toBe(",2\u00A0mins 54 secs");
     expect(lines[2]).toBe(
       `${TableColumnsToCsv.escapeCsvValue(finishedEnd)},3${NO_BREAK_SPACE}mins 46${NO_BREAK_SPACE}secs`,
     );

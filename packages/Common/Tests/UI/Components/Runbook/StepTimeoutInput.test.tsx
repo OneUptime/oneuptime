@@ -164,7 +164,7 @@ describe("StepTimeoutInput", () => {
     const help: HTMLElement = screen.getByText(
       /Leave blank to use the default/i,
     );
-    expect(help.textContent).toContain("30 seconds");
+    expect(help.textContent).toContain("30\u00A0seconds");
     expect(help.textContent).toContain("1–3600");
   });
 

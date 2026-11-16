@@ -876,10 +876,10 @@ describe("a license's status and seats in words", () => {
     ).toBe("Expires today");
     expect(
       getLicenseStatusText({ state: "expiring-soon", daysUntilExpiry: 1 }),
-    ).toBe("Expires in 1 day");
+    ).toBe("Expires in 1\u00A0day");
     expect(
       getLicenseStatusText({ state: "expiring-soon", daysUntilExpiry: 8 }),
-    ).toBe("Expires in 8 days");
+    ).toBe("Expires in 8\u00A0days");
     expect(
       getLicenseStatusText({ state: "active", daysUntilExpiry: 300 }),
     ).toBe("Active");

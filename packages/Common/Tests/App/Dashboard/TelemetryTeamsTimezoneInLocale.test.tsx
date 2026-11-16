@@ -2,7 +2,10 @@
  * @timezone UTC
  */
 import "@testing-library/jest-dom";
-import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
+import {
+  NO_BREAK_SPACE,
+  withNumbersKeptWithUnits,
+} from "../../../Types/NoBreakSpaces";
 import {
   afterEach,
   beforeAll,
@@ -76,9 +79,15 @@ function worded(
     translated: true,
   });
 
-  return Object.keys(values).reduce((sentence: string, name: string) => {
-    return sentence.split(`{{${name}}}`).join(values[name] as string);
-  }, text as string);
+  // As the page's Translator sets it: a duration's figure held (#8770).
+  return Object.keys(values).reduce(
+    (sentence: string, name: string) => {
+      return sentence.split(`{{${name}}}`).join(values[name] as string);
+    },
+    withNumbersKeptWithUnits(text as string, key.replace(/_one$/, ""), {
+      durationWords: true,
+    }),
+  );
 }
 
 function translatorFor(

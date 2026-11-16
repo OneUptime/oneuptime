@@ -378,7 +378,7 @@ describe("buildErrorPatternFindings", () => {
 
     expect(findings[0]?.severity).toBe("critical");
     expect(findings[0]?.text).toContain("Deploy: checkout-api v412");
-    expect(findings[0]?.text).toContain("4 minutes before");
+    expect(findings[0]?.text).toContain("4\u00A0minutes before");
   });
 
   test("reports a deploy far from the onset as context, not as a lead", () => {

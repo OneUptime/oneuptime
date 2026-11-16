@@ -345,10 +345,10 @@ describe("a call's model", () => {
 
 describe("how long a call took", () => {
   test.each([
-    [850_000_000, "850 ms"],
-    [2_300_000_000, "2.3 s"],
-    [42_000_000_000, "42 s"],
-    [999_600_000, "1.0 s"],
+    [850_000_000, "850\u00A0ms"],
+    [2_300_000_000, "2.3\u00A0s"],
+    [42_000_000_000, "42\u00A0s"],
+    [999_600_000, "1.0\u00A0s"],
   ])("%d ns reads %s", async (nanos: number, text: string) => {
     await renderTable();
 
@@ -451,7 +451,7 @@ describe("an empty Calls list says why", () => {
       "AI calls come from your apps",
     );
     expect(emptyDescription()).toBe(
-      "Your connected provider account reports usage and cost by day, never a call or a conversation. None of your apps has sent an AI call in the past 7 days.",
+      "Your connected provider account reports usage and cost by day, never a call or a conversation. None of your apps has sent an AI call in the past 7\u00A0days.",
     );
 
     const actions: Array<CapturedAction> =

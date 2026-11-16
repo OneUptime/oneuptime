@@ -294,10 +294,12 @@ const marked: (words: Array<CriteriaWords>) => Array<CriteriaWords> = (
   /*
    * A criteria with no words (Manual's blank one) asks for none. A marked
    * sentence is a wording of its own, so it keeps each number with its unit
-   * (NoBreakSpaces): "1000 ms" holds together.
+   * (NoBreakSpaces): "1000 ms" holds together, and "14 days" (#8770).
    */
   const mark: (text: string) => string = (text: string): string => {
-    return text ? `«${withNumbersKeptWithUnits(text, text)}»` : text;
+    return text
+      ? `«${withNumbersKeptWithUnits(text, text, { durationWords: true })}»`
+      : text;
   };
   const markOpened: (opened: OpenedWords) => OpenedWords = (
     opened: OpenedWords,
@@ -566,7 +568,7 @@ describe("a new monitor's default criteria, written for a reader", () => {
     );
 
     expect(ssl[1]!.description).toBe(
-      `此条件检查 Acme Checkout 的 SSL 证书是否有效但在 ${MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS} 天内到期`,
+      `此条件检查 Acme Checkout 的 SSL 证书是否有效但在 ${MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS}\u00A0天内到期`,
     );
 
     const probeStatus: Array<CriteriaWords> = wordsOfSteps(

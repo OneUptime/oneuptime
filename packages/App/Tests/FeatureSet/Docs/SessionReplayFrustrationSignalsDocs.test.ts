@@ -62,6 +62,7 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 
 /*
  * The Session Replay page's "Frustration signals" section (issue #6443),
@@ -229,7 +230,10 @@ describe("Session Replay docs: frustration signals, in every language", (): void
           const row: Array<string> = rows[HEADER_ROWS + index] || [];
 
           expect(row[0]).toBe(boldLabel(language, BUILT_IN_SIGNAL_TITLES[key]));
-          expect(row[1]).toBe(describeBuiltInSignal(key, DEFAULTS, translator));
+          // The card holds a duration's figure to its word (#8770); the docs' table writes a space.
+          expect(row[1]).toBe(
+            withPlainSpaces(describeBuiltInSignal(key, DEFAULTS, translator)),
+          );
         },
       );
     });

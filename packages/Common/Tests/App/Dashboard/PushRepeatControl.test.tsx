@@ -83,11 +83,11 @@ const SAVE_FAILED: string = "Could not change how often this push repeats.";
 const ARIA_LABEL_ENDING: string =
   ". Change how often this push repeats until acknowledged.";
 
-// The pill's words for a rule that repeats every `minutes`.
+// The pill's words for a rule that repeats every `minutes`, its figure held (#8770).
 function repeatsEvery(minutes: number): string {
   return minutes === 1
     ? "Repeats every minute"
-    : `Repeats every ${minutes} minutes`;
+    : `Repeats every ${minutes}\u00A0minutes`;
 }
 
 // The menu's and the create form's words for an interval.
@@ -307,7 +307,7 @@ describe("PushRepeatControl - what it shows", () => {
 
     render(<PushRepeatControl repeatEveryMinutes={2} isEditable={false} />);
 
-    expect(pill().textContent).toBe("Repeats every 2 minutes");
+    expect(pill().textContent).toBe("Repeats every 2\u00A0minutes");
   });
 
   test("a rule that does not repeat says so", () => {
@@ -1083,7 +1083,7 @@ describe("PushRepeatControl - in the reader's language", () => {
       <PushRepeatControl repeatEveryMinutes={5} isEditable={false} />,
     );
 
-    expect(pill().textContent).toBe("Wiederholt alle 5 Minuten");
+    expect(pill().textContent).toBe("Wiederholt alle 5\u00A0Minuten");
 
     rerender(<PushRepeatControl repeatEveryMinutes={1} isEditable={false} />);
 
@@ -1129,7 +1129,7 @@ describe("PushRepeatControl - in the reader's language", () => {
 
     expect(pill()).toHaveAttribute(
       "aria-label",
-      "Wiederholt alle 5 Minuten. Ändern, wie oft dieser Push bis zur Bestätigung wiederholt wird.",
+      "Wiederholt alle 5\u00A0Minuten. Ändern, wie oft dieser Push bis zur Bestätigung wiederholt wird.",
     );
   });
 
@@ -1145,7 +1145,7 @@ describe("PushRepeatControl - in the reader's language", () => {
 
     renderEditable(5, jest.fn<ChangeHandler>());
 
-    expect(pill().textContent).toBe("Wiederholt alle 5 Minuten");
+    expect(pill().textContent).toBe("Wiederholt alle 5\u00A0Minuten");
     expect(pill()).toHaveAttribute(
       "aria-label",
       `${repeatsEvery(5)}${ARIA_LABEL_ENDING}`,

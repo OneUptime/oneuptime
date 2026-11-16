@@ -36,6 +36,10 @@ import AlertRetentionSettings from "../../../../App/FeatureSet/Dashboard/src/Pag
 import IncidentRetentionSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentRetentionSettings";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  withNumbersKeptWithUnits,
+  withPlainSpaces,
+} from "../../../Types/NoBreakSpaces";
 
 /*
  * DATA RETENTION FOR RESOLVED INCIDENTS AND ALERTS, RENDERED (issue #6903).
@@ -163,8 +167,11 @@ async function openPick(): Promise<void> {
 async function pick(optionText: string): Promise<void> {
   await openPick();
 
+  // An option's name holds a duration's figure to its word (#8770).
   const option: HTMLElement = await screen.findByRole("option", {
-    name: optionText,
+    name: (name: string): boolean => {
+      return withPlainSpaces(name) === optionText;
+    },
   });
 
   await act(async () => {
@@ -298,13 +305,13 @@ describe("Resolved Incidents", () => {
 
     expect(options).toEqual([
       "Never",
-      "30 days",
-      "60 days",
-      "90 days",
-      "180 days",
-      "1 year",
-      "2 years",
-      "3 years",
+      "30\u00A0days",
+      "60\u00A0days",
+      "90\u00A0days",
+      "180\u00A0days",
+      "1\u00A0year",
+      "2\u00A0years",
+      "3\u00A0years",
     ]);
   });
 
@@ -335,7 +342,7 @@ describe("Resolved Incidents", () => {
         ),
       ).toHaveTextContent("Saved");
     });
-    expect(picked()).toBe("90 days");
+    expect(picked()).toBe("90\u00A0days");
     expect(description()).toBe(
       "Checked every hour, counting from when each incident was resolved. Status pages stop showing deleted incidents, and they can't be brought back.",
     );
@@ -375,7 +382,7 @@ describe("Resolved Incidents", () => {
 
     await renderCard();
 
-    expect(picked()).toBe("1 year");
+    expect(picked()).toBe("1\u00A0year");
 
     await pick("30 days");
 
@@ -397,7 +404,7 @@ describe("Resolved Incidents", () => {
 
     expect(dialog()).toBeNull();
     expect(savedData()).toEqual({ incidentRetentionInDays: 1095 });
-    expect(picked()).toBe("3 years");
+    expect(picked()).toBe("3\u00A0years");
   });
 
   test("Never saves at once, and the postmortem switch goes with the length", async () => {
@@ -435,7 +442,7 @@ describe("Resolved Incidents", () => {
         ),
       ).toHaveTextContent("You may not change this project's settings.");
     });
-    expect(picked()).toBe("90 days");
+    expect(picked()).toBe("90\u00A0days");
   });
 
   test.each([
@@ -455,7 +462,7 @@ describe("Resolved Incidents", () => {
       ).getByRole("combobox", { hidden: true });
 
       expect(locked).toBeDisabled();
-      expect(picked()).toBe("90 days");
+      expect(picked()).toBe("90\u00A0days");
       expect(postmortemSwitch()).toHaveAttribute("aria-disabled", "true");
       expect(updateSpy).not.toHaveBeenCalled();
     },
@@ -616,7 +623,7 @@ describe("Resolved Alerts", () => {
         select: { alertRetentionInDays: true },
       }),
     );
-    expect(picked()).toBe("60 days");
+    expect(picked()).toBe("60\u00A0days");
     expect(screen.getByText("Resolved Alerts")).toBeInTheDocument();
     expect(description()).toBe(
       "Checked every hour, counting from when each alert was resolved. Deleted alerts can't be brought back.",
@@ -668,13 +675,21 @@ describe("in the reader's language", () => {
 
     expect(options[0]).toBe(GERMAN["Never"]);
     expect(options[1]).toBe(
-      GERMAN["{{count}} days"]!.replace("{{count}}", "30"),
+      withNumbersKeptWithUnits(GERMAN["{{count}} days"]!, "{{count}} days", {
+        durationWords: true,
+      }).replace("{{count}}", "30"),
     );
     expect(options[5]).toBe(
-      GERMAN["{{count}} years_one"]!.replace("{{count}}", "1"),
+      withNumbersKeptWithUnits(
+        GERMAN["{{count}} years_one"]!,
+        "{{count}} years",
+        { durationWords: true },
+      ).replace("{{count}}", "1"),
     );
     expect(options[6]).toBe(
-      GERMAN["{{count}} years"]!.replace("{{count}}", "2"),
+      withNumbersKeptWithUnits(GERMAN["{{count}} years"]!, "{{count}} years", {
+        durationWords: true,
+      }).replace("{{count}}", "2"),
     );
 
     await act(async () => {

@@ -393,8 +393,8 @@ describe("StatusPageReportText.getPeriodTexts in English", () => {
 describe("StatusPageReportText.getPeriodTexts in a reader's language", () => {
   test("German names the period, and writes its dates, in German", () => {
     expect(textsIn("de", rolling(30))).toEqual({
-      periodName: "die letzten 30 Tage",
-      reportDates: "30 Tage (2. Juli 2026 – 1. Aug. 2026)",
+      periodName: "die letzten 30\u00A0Tage",
+      reportDates: "30\u00A0Tage (2. Juli 2026 – 1. Aug. 2026)",
     });
     expect(textsIn("de", rolling(1)).periodName).toBe("den letzten Tag");
     expect(textsIn("de", calendar(EventInterval.Month))).toEqual({
@@ -422,15 +422,21 @@ describe("StatusPageReportText.getPeriodTexts in a reader's language", () => {
    */
   test("Russian names a count of its 'one' form, and every other, by its count", () => {
     expect(textsIn("ru", rolling(1)).periodName).toBe("последние сутки");
-    expect(textsIn("ru", rolling(21)).periodName).toBe("последние 21 сутки");
-    expect(textsIn("ru", rolling(22)).periodName).toBe("последние 22 суток");
-    expect(textsIn("ru", rolling(30)).periodName).toBe("последние 30 суток");
+    expect(textsIn("ru", rolling(21)).periodName).toBe(
+      "последние 21\u00A0сутки",
+    );
+    expect(textsIn("ru", rolling(22)).periodName).toBe(
+      "последние 22\u00A0суток",
+    );
+    expect(textsIn("ru", rolling(30)).periodName).toBe(
+      "последние 30\u00A0суток",
+    );
   });
 
   test("Persian writes the period in its own digits", () => {
     const texts: StatusPageReportPeriodTexts = textsIn("fa", rolling(30));
 
-    expect(withoutIsolateMarks(texts.periodName)).toBe("۳۰ روز گذشته");
+    expect(withoutIsolateMarks(texts.periodName)).toBe("۳۰\u00A0روز گذشته");
     expect(withoutIsolateMarks(texts.reportDates)).not.toMatch(
       LATIN_DIGIT_REGEX,
     );

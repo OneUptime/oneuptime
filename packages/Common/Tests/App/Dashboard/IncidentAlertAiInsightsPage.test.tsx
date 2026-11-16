@@ -1009,7 +1009,7 @@ describe.each(
           }),
         ).toEqual([
           [
-            "2 investigations failed or timed out in the last 30 days.Open AI Logs",
+            "2 investigations failed or timed out in the last 30\u00A0days.Open AI Logs",
             `Open AI Logs → ${logsHref}`,
           ],
           [

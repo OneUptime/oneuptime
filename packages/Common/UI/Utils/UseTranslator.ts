@@ -16,7 +16,10 @@ import useTranslateValue, { UseTranslateValueResult } from "./Translation";
 const useTranslator: () => Translator = (): Translator => {
   const translation: Partial<UseTranslateValueResult> = useTranslateValue();
 
-  return createTranslator(translation.translateString, translation.language);
+  // A page's translator: its English holds a duration's figure too (#8770).
+  return createTranslator(translation.translateString, translation.language, {
+    drawsOnPage: true,
+  });
 };
 
 export default useTranslator;

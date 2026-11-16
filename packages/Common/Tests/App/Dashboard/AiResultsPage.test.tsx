@@ -523,7 +523,7 @@ describe("the cards", () => {
     // The bars, as one picture, are told to a screen reader by that line.
     expect(within(pages).getByRole("img")).toHaveAttribute(
       "aria-label",
-      "Last 4 weeks: 10 of 15. The 4 weeks before: 6 of 14.",
+      "Last 4\u00A0weeks: 10 of 15. The 4\u00A0weeks before: 6 of 14.",
     );
     expect(
       screen.getAllByTestId("ai-results-recent-weeks").map(textOf),

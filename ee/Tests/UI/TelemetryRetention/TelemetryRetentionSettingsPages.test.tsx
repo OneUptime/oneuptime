@@ -1383,7 +1383,7 @@ describe.each(RESOURCES)(
       await waitFor(
         () => {
           expect(foldChips(fold)).toEqual([
-            "Telemetry Data Retention: 45 days",
+            "Telemetry Data Retention: 45\u00A0days",
             // Logs and their errors, traces and their errors, metrics, profiles.
             "Retention by Telemetry Type: 6",
           ]);

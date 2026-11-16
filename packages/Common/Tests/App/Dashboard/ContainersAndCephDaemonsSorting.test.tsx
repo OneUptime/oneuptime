@@ -627,8 +627,8 @@ describe.each(CONTAINER_LISTS)(
         "cache",
       ]);
       expect(visibleCells("Status")).toEqual([
-        "Restart loop5 restarts in 15 minutes",
-        "Running2 restarts in 15 minutes",
+        "Restart loop5 restarts in 15\u00A0minutes",
+        "Running2 restarts in 15\u00A0minutes",
         "Running",
         "Running",
         "Running",

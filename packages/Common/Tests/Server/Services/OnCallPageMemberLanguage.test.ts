@@ -612,7 +612,7 @@ describe("a delivery writes each channel in the language of the person it pages"
       "HANDLUNG ERFORDERLICH: Vorfall INC-42 noch nicht behoben - Checkout is down",
     );
     expect(delivered.email.vars["pageAgainInfo"]).toBe(
-      "Dieser Vorfall im Projekt Acme ist 30 Minuten nach der Bestätigung noch immer nicht behoben.",
+      "Dieser Vorfall im Projekt Acme ist 30\u00A0Minuten nach der Bestätigung noch immer nicht behoben.",
     );
     expect(delivered.sms.message).toContain(
       "Vorfall INC-42 (Sev 1) im Projekt Acme ist noch nicht behoben: Checkout is down.",
@@ -621,7 +621,7 @@ describe("a delivery writes each channel in the language of the person it pages"
       "Vorfall INC-42 noch nicht behoben: Checkout is down",
     );
     expect(delivered.telegram).toContain(
-      "Sie erhalten diese Nachricht, weil das Problem 30 Minuten nach der Bestätigung noch immer nicht behoben ist.",
+      "Sie erhalten diese Nachricht, weil das Problem 30\u00A0Minuten nach der Bestätigung noch immer nicht behoben ist.",
     );
     // The call says so in English, as a call always has.
     expect(sayMessages(delivered.call)[1]).toBe(

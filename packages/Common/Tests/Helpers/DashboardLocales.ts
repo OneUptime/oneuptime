@@ -123,15 +123,22 @@ function readShippedDashboardLocale(language: string): Record<string, string> {
   return shipped;
 }
 
-// A translator reading `language`'s file, as useTranslator does in the Dashboard.
+/*
+ * A translator reading `language`'s file, as useTranslator does in the
+ * Dashboard: a page's, its English holding a duration's figure too (#8770).
+ */
 export function dashboardTranslator(language: string): Translator {
   const words: Record<string, string> = readShippedDashboardLocale(language);
 
-  return createTranslator((text: string): string | undefined => {
-    return Object.prototype.hasOwnProperty.call(words, text)
-      ? words[text]
-      : undefined;
-  }, language);
+  return createTranslator(
+    (text: string): string | undefined => {
+      return Object.prototype.hasOwnProperty.call(words, text)
+        ? words[text]
+        : undefined;
+    },
+    language,
+    { drawsOnPage: true },
+  );
 }
 
 const sameAsEnglishCache: Map<string, ReadonlyArray<string>> = new Map<

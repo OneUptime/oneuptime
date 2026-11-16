@@ -659,13 +659,13 @@ describe("the words in every language", () => {
       "Noch weniger als eine Minute",
     );
     expect(getBulkTimeLeftText(60 * 1000, translator)).toBe(
-      "Noch etwa 1 Minute",
+      "Noch etwa 1\u00A0Minute",
     );
     expect(getBulkTimeLeftText(12 * 60 * 1000, translator)).toBe(
-      "Noch etwa 12 Minuten",
+      "Noch etwa 12\u00A0Minuten",
     );
     expect(getBulkTimeLeftText(3 * 60 * 60 * 1000, translator)).toBe(
-      "Noch etwa 3 Stunden",
+      "Noch etwa 3\u00A0Stunden",
     );
   });
 });

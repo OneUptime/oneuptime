@@ -294,7 +294,7 @@ describe("EvaluationSentence", () => {
           translatablePluralSentence(forms, 7, { label: "CPU" }),
           german,
         ),
-      ).toBe("CPU in den letzten 7 Minuten");
+      ).toBe("CPU in den letzten 7\u00A0Minuten");
     });
 
     test("a time is written where it is read, in the reader's language", () => {

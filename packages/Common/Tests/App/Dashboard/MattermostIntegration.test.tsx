@@ -676,7 +676,7 @@ describe("Mattermost connected, your account not yet", () => {
 
     await waitFor(() => {
       expect(cardIn("mattermost-your-account").description).toBe(
-        "OneUptime sent a link to @alice in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.",
+        "OneUptime sent a link to @alice in Mattermost. Open it in this browser to finish connecting. It works once, for 15\u00A0minutes.",
       );
     });
   });

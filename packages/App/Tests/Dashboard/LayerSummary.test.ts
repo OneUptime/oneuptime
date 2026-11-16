@@ -61,13 +61,13 @@ describe("LayerSummary.summarizeRotation", () => {
 
   test("plural for count > 1", () => {
     expect(summarizeRotation(rotation(EventInterval.Day, 2))).toBe(
-      "Rotates every 2 days",
+      "Rotates every 2\u00A0days",
     );
     expect(summarizeRotation(rotation(EventInterval.Hour, 3))).toBe(
-      "Rotates every 3 hours",
+      "Rotates every 3\u00A0hours",
     );
     expect(summarizeRotation(rotation(EventInterval.Week, 4))).toBe(
-      "Rotates every 4 weeks",
+      "Rotates every 4\u00A0weeks",
     );
   });
 

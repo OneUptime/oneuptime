@@ -64,6 +64,7 @@ import {
   describeWorkingHours,
 } from "../../Components/OnCallRule/WorkingHoursText";
 import { formatGroupingDuration } from "../GroupingRule/GroupingRuleSetup";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import {
   DEFAULT_MAINTENANCE_REMINDER_TIMING,
   MAINTENANCE_REMINDER_RULE_NAME_WORDING,
@@ -228,9 +229,12 @@ const formatMinutes: (minutes: number) => ComposedValue = (
   });
 };
 
-// The name, cut to what the rule's Name column holds.
+/*
+ * The name, cut to what the rule's Name column holds, with plain spaces: a
+ * stored value, not a line a page draws (withPlainSpaces, #8770).
+ */
 const fitName: (name: string) => string = (name: string): string => {
-  return name.slice(0, RULE_NAME_MAX_LENGTH);
+  return withPlainSpaces(name).slice(0, RULE_NAME_MAX_LENGTH);
 };
 
 /*

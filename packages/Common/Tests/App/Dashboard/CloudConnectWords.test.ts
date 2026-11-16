@@ -303,7 +303,7 @@ describe("counts in the reader's language", () => {
       "Every 10 minutes",
     );
     expect(drawCloudTemplate(GERMAN, getCloudReadIntervalWords(5))).toBe(
-      "Alle 5 Minuten",
+      "Alle 5\u00A0Minuten",
     );
     expect(getCloudReadIntervalWords(60).template).toBe("Every hour");
   });
@@ -418,7 +418,7 @@ describe("what reading them costs", () => {
       `Reading these every 10 minutes costs about $${cost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} a month in your cloud's monitoring charges.`,
     );
     expect(drawCloudTemplate(GERMAN, words)).toBe(
-      `Diese alle 10 Minuten zu lesen, kostet etwa ${cost.toLocaleString("de", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD pro Monat.`,
+      `Diese alle 10\u00A0Minuten zu lesen, kostet etwa ${cost.toLocaleString("de", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD pro Monat.`,
     );
   });
 

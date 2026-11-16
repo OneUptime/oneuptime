@@ -52,11 +52,11 @@ describe("getSessionReplayRetentionOptions", () => {
   test("words every choice as a whole phrase in the reader's language", () => {
     expect(labels(getSessionReplayRetentionOptions(MARKING))).toEqual([
       // A language's "one" form is its own key.
-      "⟦1 days_one⟧",
-      "⟦7 days (default)⟧",
-      "⟦14 days⟧",
-      "⟦30 days⟧",
-      "⟦90 days⟧",
+      "⟦1\u00A0days_one⟧",
+      "⟦7\u00A0days (default)⟧",
+      "⟦14\u00A0days⟧",
+      "⟦30\u00A0days⟧",
+      "⟦90\u00A0days⟧",
     ]);
   });
 });
@@ -71,9 +71,9 @@ describe("formatSessionReplayRetention", () => {
   });
 
   test("is one looked-up phrase in the reader's language", () => {
-    expect(formatSessionReplayRetention(30, MARKING)).toBe("⟦30 days⟧");
+    expect(formatSessionReplayRetention(30, MARKING)).toBe("⟦30\u00A0days⟧");
     expect(formatSessionReplayRetention(0, MARKING)).toBe(
-      "⟦not set (defaults to 7 days)⟧",
+      "⟦not set (defaults to 7\u00A0days)⟧",
     );
   });
 });
