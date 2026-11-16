@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "Afgemeld door een serverbeheerder omdat single sign-on (SSO) vereist is",
   "In short": "In het kort",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Krijg een waarschuwing, of meld een incident, wanneer het foutbudget van dit SLO te snel opraakt.",
-  "Set a reliability target, and know before you miss it.": "Stel een betrouwbaarheidsdoel in en weet het voordat je het mist."
+  "Set a reliability target, and know before you miss it.": "Stel een betrouwbaarheidsdoel in en weet het voordat je het mist.",
+  "Put related alerts into one episode, so one problem pages people once.": "Bundel gerelateerde waarschuwingen in één episode, zodat één probleem mensen maar één keer oproept.",
+  "Put related incidents into one episode, so one problem pages people once.": "Bundel gerelateerde incidenten in één episode, zodat één probleem mensen maar één keer oproept.",
+  "Set how long your team has to acknowledge and resolve an incident.": "Stel in hoeveel tijd je team heeft om een incident te bevestigen en op te lossen."
 }

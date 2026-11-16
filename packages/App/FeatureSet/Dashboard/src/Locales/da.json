@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "Logget ud af en serveradministrator, fordi single sign-on (SSO) er påkrævet",
   "In short": "Kort sagt",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Få en advarsel, eller erklær en hændelse, når denne SLO's fejlbudget bruges for hurtigt.",
-  "Set a reliability target, and know before you miss it.": "Sæt et pålidelighedsmål, og få besked, før du misser det."
+  "Set a reliability target, and know before you miss it.": "Sæt et pålidelighedsmål, og få besked, før du misser det.",
+  "Put related alerts into one episode, so one problem pages people once.": "Saml relaterede advarsler i én episode, så ét problem kun tilkalder folk én gang.",
+  "Put related incidents into one episode, so one problem pages people once.": "Saml relaterede hændelser i én episode, så ét problem kun tilkalder folk én gang.",
+  "Set how long your team has to acknowledge and resolve an incident.": "Angiv, hvor lang tid dit team har til at bekræfte og løse en hændelse."
 }

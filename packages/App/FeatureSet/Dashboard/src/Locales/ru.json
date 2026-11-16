@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "Сеанс завершён администратором сервера: требуется единый вход (SSO)",
   "In short": "Коротко",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Получайте оповещение или объявляйте инцидент, когда бюджет ошибок этого SLO расходуется слишком быстро.",
-  "Set a reliability target, and know before you miss it.": "Задайте цель надёжности и узнайте заранее, если можете её не выполнить."
+  "Set a reliability target, and know before you miss it.": "Задайте цель надёжности и узнайте заранее, если можете её не выполнить.",
+  "Put related alerts into one episode, so one problem pages people once.": "Объединяйте связанные оповещения в один эпизод, чтобы одна проблема поднимала дежурных только один раз.",
+  "Put related incidents into one episode, so one problem pages people once.": "Объединяйте связанные инциденты в один эпизод, чтобы одна проблема поднимала дежурных только один раз.",
+  "Set how long your team has to acknowledge and resolve an incident.": "Задайте, сколько времени у команды есть на подтверждение и устранение инцидента."
 }

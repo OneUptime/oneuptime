@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "Utloggad av en serveradministratör eftersom enkel inloggning (SSO) krävs",
   "In short": "Kort sagt",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Få ett larm, eller deklarera en incident, när den här SLO:ns felbudget förbrukas för snabbt.",
-  "Set a reliability target, and know before you miss it.": "Sätt ett tillförlitlighetsmål och få veta innan du missar det."
+  "Set a reliability target, and know before you miss it.": "Sätt ett tillförlitlighetsmål och få veta innan du missar det.",
+  "Put related alerts into one episode, so one problem pages people once.": "Samla relaterade larm i en episod, så att ett problem bara larmar en gång.",
+  "Put related incidents into one episode, so one problem pages people once.": "Samla relaterade incidenter i en episod, så att ett problem bara larmar en gång.",
+  "Set how long your team has to acknowledge and resolve an incident.": "Ange hur lång tid ditt team har på sig att bekräfta och lösa en incident."
 }

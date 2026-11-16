@@ -395,8 +395,13 @@ describe.each(PAGES)(
         `instead of a flood of ${pageCase.ruleNoun}`,
       );
       expect(table.cardProps.description).toContain("drag a rule");
-      // The in-depth help is still a click away.
-      expect(table.helpContent.markdown).toContain("Group By");
+      /*
+       * The in-depth help is still a click away, and names the steps the
+       * form shows: Which Incidents, Which Alerts.
+       */
+      expect(table.helpContent.markdown).toContain(
+        `**${GROUPING_RULE_COPY.whichStepTitle[pageCase.kind]}**`,
+      );
     });
 
     test("lists a rule's name, what it groups and whether it is on - not raw minutes", () => {

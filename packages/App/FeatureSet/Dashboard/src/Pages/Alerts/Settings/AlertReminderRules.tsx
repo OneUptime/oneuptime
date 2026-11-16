@@ -18,36 +18,22 @@ import {
 } from "../../../Utils/Form/EventRuleForm";
 
 const documentationMarkdown: string = `
-### How Alert Reminder Rules Work
+A reminder rule keeps reminding an alert's owners, as often as it says, until the alert is resolved or acknowledged.
 
-A reminder rule reminds an alert's owners, as often as it says, while the alert is open. A new alert gets the first rule that matches it, from the top of the list down, and its reminders stop as the rule's **Stop Reminders When** says: once the alert is resolved, or once someone acknowledges it.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[Alert Created] --> B{Match Against Reminder Rules}
-    B -->|Rule Matches| C[Schedule Reminder]
-    B -->|No Match| D[No Reminders]
-    C --> E[Wait for Interval]
-    E --> F{Time to Stop?}
-    F -->|No| G[Notify Alert Owners]
-    G --> E
-    F -->|Yes| H[Stop Reminders]
-\`\`\`
+- A new alert gets the first rule that matches it, from the top of the list down. Drag a rule by its handle to change its place; a new rule goes to the end.
+- Its owners are reminded at the rule's interval while the alert is open, until the rule's **Stop Reminders When** says to stop.
+- An alert no rule matches gets no reminders.
 
----
+## Match Criteria
 
-### Match Criteria
+| Condition | Matches |
+|-----------|---------|
+| **Severities** | Alerts with one of these severities |
+| **Labels** | Alerts with at least one of these labels |
 
-| Criteria | Description |
-|----------|-------------|
-| **Severities** | Only alerts with these severity levels. |
-| **Labels** | Only alerts with at least one of these labels. |
-
-Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
-
----
-
-### Stop Reminders When
+## Stop Reminders When
 
 | Answer | What it does |
 |--------|--------------|

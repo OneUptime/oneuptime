@@ -122,7 +122,7 @@ describe("a page's own topics", () => {
         nouns: { singular: "queue", plural: "queues" },
         topics: [
           {
-            title: "Matching Discovered Queues",
+            topic: "Matching Discovered Queues",
             markdown: "\nNamed after their destination.\n",
           },
         ],

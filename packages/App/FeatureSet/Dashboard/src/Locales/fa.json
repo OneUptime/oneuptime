@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "به دست یک مدیر سرور خارج شد، چون ورود یکپارچه (SSO) الزامی است",
   "In short": "به‌طور خلاصه",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "وقتی بودجه خطای این SLO خیلی سریع مصرف می‌شود، هشدار بگیرید یا حادثه اعلام کنید.",
-  "Set a reliability target, and know before you miss it.": "یک هدف قابلیت اطمینان تعیین کنید و پیش از آنکه به آن نرسید باخبر شوید."
+  "Set a reliability target, and know before you miss it.": "یک هدف قابلیت اطمینان تعیین کنید و پیش از آنکه به آن نرسید باخبر شوید.",
+  "Put related alerts into one episode, so one problem pages people once.": "هشدارهای مرتبط را در یک اپیزود قرار دهید تا یک مشکل فقط یک بار افراد را فرا بخواند.",
+  "Put related incidents into one episode, so one problem pages people once.": "حادثه‌های مرتبط را در یک اپیزود قرار دهید تا یک مشکل فقط یک بار افراد را فرا بخواند.",
+  "Set how long your team has to acknowledge and resolve an incident.": "تعیین کنید تیم شما چقدر زمان دارد تا یک حادثه را تأیید و رفع کند."
 }

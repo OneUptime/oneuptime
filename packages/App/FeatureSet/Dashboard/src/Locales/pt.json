@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "Sessão encerrada por um administrador do servidor porque o login único (SSO) é obrigatório",
   "In short": "Em resumo",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Receba um alerta, ou declare um incidente, quando o orçamento de erros deste SLO for consumido rápido demais.",
-  "Set a reliability target, and know before you miss it.": "Defina uma meta de confiabilidade e seja avisado antes de não cumpri-la."
+  "Set a reliability target, and know before you miss it.": "Defina uma meta de confiabilidade e seja avisado antes de não cumpri-la.",
+  "Put related alerts into one episode, so one problem pages people once.": "Junte alertas relacionados em um único episódio, para que um mesmo problema acione o plantão uma só vez.",
+  "Put related incidents into one episode, so one problem pages people once.": "Junte incidentes relacionados em um único episódio, para que um mesmo problema acione o plantão uma só vez.",
+  "Set how long your team has to acknowledge and resolve an incident.": "Defina quanto tempo sua equipe tem para confirmar e resolver um incidente."
 }

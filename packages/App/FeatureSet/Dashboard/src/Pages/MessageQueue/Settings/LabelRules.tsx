@@ -22,7 +22,7 @@ const messageQueueLabelDocumentation: string = getLabelRuleHelpMarkdown({
   nouns: { singular: "queue", plural: "queues" },
   topics: [
     {
-      title: "Matching Discovered Queues",
+      topic: "Matching Discovered Queues",
       markdown: `A queue OneUptime discovers is named after its destination, such as \`orders.created\`. So **Queue Name** starts with \`orders.\` covers every queue for that destination.
 
 **Messaging System** is compared with both the queue's OpenTelemetry value (\`kafka\`, \`rabbitmq\`, \`aws_sqs\`) and its display name (\`Apache Kafka\`, \`RabbitMQ\`, \`Amazon SQS\`). So **Messaging System** equals \`kafka\`, or matches the pattern \`^kafka$\`, covers every Kafka topic.`,

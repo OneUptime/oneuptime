@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "シングルサインオン（SSO）必須のため、サーバー管理者によるサインアウト",
   "In short": "要点",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "この SLO のエラーバジェットの消費が速すぎるときに、アラートを受け取るか、インシデントを宣言します。",
-  "Set a reliability target, and know before you miss it.": "信頼性の目標を設定し、達成できなくなる前に知ることができます。"
+  "Set a reliability target, and know before you miss it.": "信頼性の目標を設定し、達成できなくなる前に知ることができます。",
+  "Put related alerts into one episode, so one problem pages people once.": "関連するアラートを 1 つのエピソードにまとめ、1 つの問題での呼び出しを 1 回にします。",
+  "Put related incidents into one episode, so one problem pages people once.": "関連するインシデントを 1 つのエピソードにまとめ、1 つの問題での呼び出しを 1 回にします。",
+  "Set how long your team has to acknowledge and resolve an incident.": "チームがインシデントを確認し、解決するまでの時間を設定します。"
 }

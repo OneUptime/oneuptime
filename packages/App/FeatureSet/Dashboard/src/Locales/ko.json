@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "싱글 사인온(SSO)이 필요하여 서버 관리자가 로그아웃함",
   "In short": "요약",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "이 SLO의 오류 예산이 너무 빨리 소진되면 경고를 받거나 인시던트를 선언합니다.",
-  "Set a reliability target, and know before you miss it.": "안정성 목표를 정하고, 목표를 놓치기 전에 미리 확인하세요."
+  "Set a reliability target, and know before you miss it.": "안정성 목표를 정하고, 목표를 놓치기 전에 미리 확인하세요.",
+  "Put related alerts into one episode, so one problem pages people once.": "관련된 경고를 하나의 에피소드로 묶어, 한 가지 문제로 한 번만 호출되게 합니다.",
+  "Put related incidents into one episode, so one problem pages people once.": "관련된 인시던트를 하나의 에피소드로 묶어, 한 가지 문제로 한 번만 호출되게 합니다.",
+  "Set how long your team has to acknowledge and resolve an incident.": "팀이 인시던트를 인지하고 해결해야 하는 시간을 설정합니다."
 }

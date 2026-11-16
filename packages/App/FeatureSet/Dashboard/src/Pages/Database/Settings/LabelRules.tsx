@@ -22,7 +22,7 @@ const databaseServerLabelDocumentation: string = getLabelRuleHelpMarkdown({
   nouns: { singular: "database", plural: "databases" },
   topics: [
     {
-      title: "Matching Discovered Databases",
+      topic: "Matching Discovered Databases",
       markdown: `A database OneUptime discovers is named after its engine and endpoint, such as \`PostgreSQL db.prod:5432\`. So **Database Name** starts with \`PostgreSQL\` matches every PostgreSQL database.`,
     },
   ],

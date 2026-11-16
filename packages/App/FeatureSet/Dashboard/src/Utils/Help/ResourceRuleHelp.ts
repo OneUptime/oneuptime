@@ -28,9 +28,13 @@ export interface ResourceRuleHelpNouns {
   plural: string;
 }
 
-// A page's own topic, after the shared ones: what it adds about its resource.
+/*
+ * A page's own topic, after the shared ones: what it adds about its
+ * resource. Its heading is "topic", not "title": the help is English, and
+ * a title would be read into the locale files as words to translate.
+ */
 export interface ResourceRuleHelpTopic {
-  title: string;
+  topic: string;
   markdown: string;
 }
 
@@ -56,7 +60,7 @@ const getPageTopics: (
   topics: Array<ResourceRuleHelpTopic> | undefined,
 ): Array<string> => {
   return (topics || []).map((topic: ResourceRuleHelpTopic): string => {
-    return `## ${topic.title}\n\n${topic.markdown.trim()}`;
+    return `## ${topic.topic}\n\n${topic.markdown.trim()}`;
   });
 };
 

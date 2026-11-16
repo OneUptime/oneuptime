@@ -26,7 +26,7 @@ const openStackCloudLabelDocumentation: string = getLabelRuleHelpMarkdown({
   nouns: { singular: "OpenStack cloud", plural: "OpenStack clouds" },
   topics: [
     {
-      title: "By Project and Domain",
+      topic: "By Project and Domain",
       markdown: `A rule with no project or domain labels whole clouds. Give it an **OpenStack Project ID** or an **OpenStack Domain ID** and it labels no cloud: it adds its labels to every alert and incident a monitor opens that reaches that project or domain, on the clouds its other conditions allow.
 
 A project's page and the **Domains** page fill these in for you. They match by ID, so renaming a project or a domain breaks nothing.`,

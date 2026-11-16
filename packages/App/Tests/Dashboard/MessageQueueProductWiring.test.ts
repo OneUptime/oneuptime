@@ -866,7 +866,7 @@ describe("the rule forms match exactly what the rule engines evaluate", () => {
           ? "getLabelRuleHelpMarkdown({"
           : "getOwnerRuleHelpMarkdown({",
       );
-      expect(source).toContain('title: "Matching Discovered Queues"');
+      expect(source).toContain('topic: "Matching Discovered Queues"');
     },
   );
 

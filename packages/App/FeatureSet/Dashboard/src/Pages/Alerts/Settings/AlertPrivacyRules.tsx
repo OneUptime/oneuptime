@@ -23,27 +23,30 @@ import {
 } from "../../../Utils/Form/EventRuleForm";
 
 const alertPrivacyDocumentation: string = `
-### How Alert Privacy Rules Work
+A privacy rule makes every new alert it matches private: only its owners, Project Admins and Project Owners can see it.
 
-A privacy rule makes every new alert it matches private: only the alert's owners (the people and teams named as its owners), Project Admins and Project Owners can see it.
+## How It Works
 
-### Match Criteria
+- A matching alert is private from the moment it is created. One matching rule is enough.
+- Privacy is decided before anything else happens to the alert, so its Slack or Microsoft Teams channel is private too.
+- To make alerts you already have private, open a rule and select **Run Now**. Nothing is made public again.
 
-The conditions a new alert must meet.
+## Match Criteria
 
-### What It Does
-
-A matching alert is private from the moment it is created. One matching rule is enough. Privacy is decided before anything else happens to the alert, so its Slack or Microsoft Teams channel is private too.
+The conditions a new alert must meet, such as its monitor, severity, labels or title.
 `;
 
 const alertEpisodePrivacyDocumentation: string = `
-### How Alert Episode Privacy Rules Work
-
 An episode privacy rule makes every new alert episode it matches private: only its owners, Project Admins and Project Owners can see it.
 
-### Match Criteria
+## How It Works
 
-The conditions a new episode must meet.
+- A matching episode is private from the moment it opens. One matching rule is enough.
+- To make episodes you already have private, open a rule and select **Run Now**. Nothing is made public again.
+
+## Match Criteria
+
+The conditions a new episode must meet, such as its severity, labels or title.
 `;
 
 interface RulesTableProps {

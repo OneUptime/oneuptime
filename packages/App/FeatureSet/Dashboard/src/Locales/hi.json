@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "सिंगल साइन ऑन (SSO) ज़रूरी होने के कारण सर्वर एडमिन ने साइन आउट किया",
   "In short": "संक्षेप में",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "जब इस SLO का त्रुटि बजट बहुत तेज़ी से ख़र्च हो, तो अलर्ट पाएँ या घटना घोषित करें।",
-  "Set a reliability target, and know before you miss it.": "विश्वसनीयता लक्ष्य तय करें, और उससे चूकने से पहले जानें।"
+  "Set a reliability target, and know before you miss it.": "विश्वसनीयता लक्ष्य तय करें, और उससे चूकने से पहले जानें।",
+  "Put related alerts into one episode, so one problem pages people once.": "संबंधित अलर्ट को एक एपिसोड में रखें, ताकि एक समस्या पर लोगों को केवल एक बार बुलाया जाए।",
+  "Put related incidents into one episode, so one problem pages people once.": "संबंधित घटनाओं को एक एपिसोड में रखें, ताकि एक समस्या पर लोगों को केवल एक बार बुलाया जाए।",
+  "Set how long your team has to acknowledge and resolve an incident.": "तय करें कि आपकी टीम के पास किसी घटना को स्वीकार करने और सुलझाने के लिए कितना समय है।"
 }

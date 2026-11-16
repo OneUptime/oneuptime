@@ -56019,5 +56019,8 @@
   "Signed out by a server admin because single sign-on is required": "因需要单点登录 (SSO)，已被服务器管理员登出",
   "In short": "简而言之",
   "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "当此 SLO 的错误预算消耗过快时，接收警报或声明事件。",
-  "Set a reliability target, and know before you miss it.": "设定可靠性目标，并在未能达成之前提前知晓。"
+  "Set a reliability target, and know before you miss it.": "设定可靠性目标，并在未能达成之前提前知晓。",
+  "Put related alerts into one episode, so one problem pages people once.": "将相关警报归入同一个片段，让一个问题只呼叫一次。",
+  "Put related incidents into one episode, so one problem pages people once.": "将相关事件归入同一个片段，让一个问题只呼叫一次。",
+  "Set how long your team has to acknowledge and resolve an incident.": "设置团队确认和解决事件的时限。"
 }

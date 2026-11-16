@@ -404,9 +404,11 @@ More details stay here.
     /*
      * 68, the five episode rule help texts that now have the heading too,
      * the alert incident rules', two for Data Observability's data assets,
-     * and the network naming rules'.
+     * and the network naming rules'; 78 with the alert episode owner rules',
+     * which had none until every help became a lead and its topics (#8889).
+     * Fifty of them are the resource label and owner rules' shared help.
      */
-    expect(helpMarkdown).toHaveLength(77);
+    expect(helpMarkdown).toHaveLength(78);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);
