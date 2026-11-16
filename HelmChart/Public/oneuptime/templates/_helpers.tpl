@@ -1982,10 +1982,11 @@ values are set. Secrets can come from an existing Kubernetes secret.
   value: {{ default false (($.Values.instanceCheckIn).disabled) | squote }}
 
 {{/*
-  Keep GitLab, Forgejo, Gitea and Git repositories off global Runners (as
-  OneUptime Cloud does), for a self-hosted install that serves several tenants
-  whose code must stay apart. Their AI code fixes then need one of the
-  project's own Runners (Types/Runner/GlobalRunnerRepositoryTokens).
+  Keep Forgejo, Gitea and Git repositories off global Runners (as OneUptime
+  Cloud does), and the GitLab ones GitLab makes no short-lived token for, for a
+  self-hosted install that serves several tenants whose code must stay apart.
+  Their AI code fixes then need one of the project's own Runners
+  (Types/Runner/GlobalRunnerRepositoryTokens).
 */}}
 - name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
   value: {{ ternary "true" "false" (default false (($.Values.globalRunner).codeFixGitHubOnly)) | squote }}
