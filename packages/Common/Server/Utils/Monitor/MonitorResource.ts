@@ -109,6 +109,7 @@ import MonitorProbeLastResults, {
   MonitorProbesOfResult,
 } from "./MonitorProbeLastResults";
 import MonitorProbeResultOrder from "./MonitorProbeResultOrder";
+import MonitorFirstMeasured from "./MonitorFirstMeasured";
 import MonitorHeartbeatState, {
   HeartbeatKind,
   HeartbeatWrite,
@@ -505,6 +506,11 @@ export default class MonitorResourceUtil {
           },
           // A key resolved from a cache is checked against the monitor's own.
           ...(options?.secretKey ? { [options.secretKey.column]: true } : {}),
+          /*
+           * Whether anything has measured it yet: the first result that
+           * does stamps it (MonitorFirstMeasured, issue #8899).
+           */
+          ...MonitorFirstMeasured.SELECT,
         },
         props: {
           isRoot: true,
@@ -866,6 +872,19 @@ export default class MonitorResourceUtil {
           );
         }
       }
+
+      /*
+       * The result is the monitor's now: past every refusal, and stored
+       * under its own probe when a probe sent it. The first one that
+       * measured the monitor - not a heartbeat sweep's look at what has not
+       * arrived - says so on its row, once, so the lists and status pages
+       * stop saying it is waiting for its first check
+       * (MonitorFirstMeasured). It never fails the result.
+       */
+      await MonitorFirstMeasured.stampIfFirst({
+        monitor: monitor,
+        dataToProcess: dataToProcess,
+      });
 
       const serverMonitorResponse: ServerMonitorResponse | undefined =
         monitor.monitorType === MonitorType.Server &&
