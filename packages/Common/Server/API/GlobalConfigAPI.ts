@@ -65,6 +65,12 @@ import {
   EnterpriseLicenseSnapshotUtil,
   SeatUsage,
 } from "../Enterprise/EnterpriseLicenseSnapshot";
+import ResolvedRecordRetention from "../Utils/Retention/ResolvedRecordRetention";
+import {
+  ResolvedRecordKind,
+  readResolvedRecordRetentionMaximumInDays,
+} from "../../Types/Retention/ResolvedRecordRetention";
+import { RESOLVED_RECORD_RETENTION_PROJECTS_REACHED_ROUTE } from "../../Types/Retention/ResolvedRecordRetentionAnswers";
 
 /*
  * Who is asking for the license state, which decides how much of it they get.
@@ -364,6 +370,49 @@ export default class GlobalConfigAPI extends BaseAPI<
             res,
             toServerProductsAnswerJSON(await ServerProducts.getAnswer()),
           );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/resolved-record-retention/projects-reached?kind=
+     * Incident&maximumInDays=365 - Admin Dashboard > Settings > Data
+     * Retention (issue #6941): how many live projects that server maximum
+     * holds to a shorter length than they keep resolved incidents (alerts)
+     * for now - set to Never, or to longer - so the question asked before
+     * it is saved says how far it reaches. Master admins only.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/${RESOLVED_RECORD_RETENTION_PROJECTS_REACHED_ROUTE}`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const kind: unknown = req.query["kind"];
+          const maximumInDays: number | undefined =
+            readResolvedRecordRetentionMaximumInDays(
+              req.query["maximumInDays"],
+            );
+
+          if (
+            (kind !== ResolvedRecordKind.Incident &&
+              kind !== ResolvedRecordKind.Alert) ||
+            maximumInDays === undefined
+          ) {
+            throw new BadDataException(
+              "Say which maximum to count projects for: the kind (Incident or Alert) and a maximum in days, one of the retention choices.",
+            );
+          }
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            count: await ResolvedRecordRetention.countProjectsReachedByMaximum({
+              kind: kind,
+              maximumInDays: maximumInDays,
+            }),
+          });
         } catch (err) {
           return next(err);
         }

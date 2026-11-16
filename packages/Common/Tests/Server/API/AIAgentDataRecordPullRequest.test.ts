@@ -139,6 +139,8 @@ describe("POST /ai-agent-data/record-pull-request", () => {
         const run: AIRun = new AIRun();
         run.id = runId;
         run.projectId = projectId;
+        // The worker's own run: it claimed it, so it may record on it.
+        run.aiAgentId = agentId;
         return run;
       });
 
@@ -518,6 +520,24 @@ describe("POST /ai-agent-data/record-pull-request", () => {
     );
 
     expect(refusal()?.message).toBe("Code repository not found");
+    expect(createPullRequestSpy).not.toHaveBeenCalled();
+  });
+
+  test("refuses a run of its project another worker claimed, and records nothing", async () => {
+    jest
+      .spyOn(AIRunService, "findOneById")
+      .mockImplementation(async (): Promise<AIRun | null> => {
+        const run: AIRun = new AIRun();
+        run.id = runId;
+        run.projectId = projectId;
+        run.aiAgentId = ObjectID.generate();
+        return run;
+      });
+
+    await record(recordBody());
+
+    expect(refusal()?.message).toBe("Task not found");
+    expect(findRepositorySpy).not.toHaveBeenCalled();
     expect(createPullRequestSpy).not.toHaveBeenCalled();
   });
 

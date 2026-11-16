@@ -133,6 +133,9 @@ function run(): AIRun {
   value.codeFixTaskType = CodeFixTaskType.CodeRequest;
   value.codeRepositoryId = REPOSITORY_ID;
   value.taskContext = { request: { message: "Add retries", context: [] } };
+  // Claimed by the worker asking, which still works on it.
+  value.aiAgentId = AGENT_ID;
+  value.status = AIRunStatus.Running;
   return value;
 }
 
@@ -275,6 +278,37 @@ describe("POST /ai-agent-data/get-code-task-details", () => {
       storedRun = run();
       if (shape.aiAgentId) {
         storedRun.aiAgentId = shape.aiAgentId;
+      } else {
+        delete storedRun.aiAgentId;
+      }
+      storedRun.status = shape.status;
+
+      const { error, details } = await ask(BODY);
+
+      expect(details).toBeUndefined();
+      expect(error?.message).toBe("Task not found");
+      expect(CodeTaskAgentBrief.build).not.toHaveBeenCalled();
+    }
+  });
+
+  test("a project's own Runner is held to the run it claimed too: refused, exactly as no run, the run another worker holds, a run nobody claimed and one that ended", async () => {
+    const cases: Array<{
+      aiAgentId: ObjectID | undefined;
+      status: AIRunStatus;
+    }> = [
+      { aiAgentId: OTHER_AGENT_ID, status: AIRunStatus.Running },
+      { aiAgentId: undefined, status: AIRunStatus.Queued },
+      { aiAgentId: AGENT_ID, status: AIRunStatus.Completed },
+      { aiAgentId: AGENT_ID, status: AIRunStatus.Queued },
+    ];
+
+    for (const shape of cases) {
+      jest.clearAllMocks();
+      storedRun = run();
+      if (shape.aiAgentId) {
+        storedRun.aiAgentId = shape.aiAgentId;
+      } else {
+        delete storedRun.aiAgentId;
       }
       storedRun.status = shape.status;
 

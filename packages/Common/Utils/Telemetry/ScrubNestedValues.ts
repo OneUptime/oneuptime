@@ -52,6 +52,8 @@ export interface ScrubNestedValuesAllowance {
 
 type NestedValue = Array<unknown> | Record<string, unknown>;
 
+const JSON_WHITESPACE: string = " \t\n\r";
+
 // A list, or a map as JSON writes one: what a rule reads inside.
 function isNested(value: unknown): value is NestedValue {
   if (Array.isArray(value)) {
@@ -270,10 +272,133 @@ function scrubTextsUnderSensitiveKeysAt(
   });
 }
 
+/*
+ * A Sensitive Attribute Keys rule over a list or map read from its JSON
+ * text, within the record's bounds: as scrubTextsUnderSensitiveKeysAt, each
+ * list or map counting its values against the allowance. A part it cannot
+ * read value by value - one nested deeper than SCRUB_MAX_VALUE_DEPTH, or one
+ * holding more values than the record has left - is read as its JSON text:
+ * hidden whole when that text names a secret, or sits under a key that
+ * does, and kept as it is otherwise. `underSecret`: the value sits under a
+ * key that names a secret, so every text of it is hidden.
+ */
+function hideTextsUnderSensitiveKeysWithinAt(
+  value: unknown,
+  isSensitiveKey: (key: string) => boolean,
+  hideText: (text: string) => string,
+  depth: number,
+  allowance: ScrubNestedValuesAllowance,
+  underSecret: boolean,
+): unknown {
+  if (typeof value === "string") {
+    return underSecret ? hideText(value) : value;
+  }
+
+  if (!isNested(value)) {
+    return value;
+  }
+
+  const size: number = Array.isArray(value)
+    ? value.length
+    : Object.keys(value).length;
+
+  if (size === 0) {
+    return value;
+  }
+
+  if (depth >= SCRUB_MAX_VALUE_DEPTH || size > allowance.remaining) {
+    const text: string = toStoredText(value);
+
+    return underSecret || isSensitiveKey(text) ? hideText(text) : value;
+  }
+
+  allowance.remaining -= size;
+
+  // The value of a key-value pair whose key names a secret.
+  const isSensitivePair: boolean =
+    !underSecret &&
+    !Array.isArray(value) &&
+    isKeyValuePair(value) &&
+    isSensitiveKey(value["key"] as string);
+
+  return mapNested(value, (item: unknown, key: string | null): unknown => {
+    return hideTextsUnderSensitiveKeysWithinAt(
+      item,
+      isSensitiveKey,
+      hideText,
+      depth + 1,
+      allowance,
+      underSecret ||
+        (key !== null &&
+          ((isSensitivePair && key === "value") || isSensitiveKey(key))),
+    );
+  });
+}
+
 export default class ScrubNestedValuesUtil {
   // A record's allowance, before any of its values is read.
   public static newRecordAllowance(): ScrubNestedValuesAllowance {
     return { remaining: SCRUB_MAX_NESTED_VALUES_PER_RECORD };
+  }
+
+  /*
+   * The list or map a text is the JSON text of - a log body sent as a map
+   * or a list, which ingest stores as its JSON text, or one written as JSON
+   * - or null for any other text: plain words, a JSON text, number or
+   * true, text that is not JSON at all.
+   */
+  public static readJsonListOrMap(text: string): unknown {
+    let start: number = 0;
+
+    // What JSON reads as space: a space, a tab, a line feed, a return.
+    while (
+      start < text.length &&
+      JSON_WHITESPACE.includes(text.charAt(start))
+    ) {
+      start++;
+    }
+
+    const first: string = text.charAt(start);
+
+    if (first !== "{" && first !== "[") {
+      return null;
+    }
+
+    try {
+      const value: unknown = JSON.parse(text);
+
+      return isNested(value) ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * For a rule that reads keys (Sensitive Attribute Keys), over a list or
+   * map read from a JSON text - a structured log body: the value with the
+   * texts under each key that names a secret hidden, as
+   * scrubTextsUnderSensitiveKeys, read within the record's bounds. The
+   * value is stored as the JSON text it came as, so nothing in it is held
+   * as text first: a part past the bounds - nested deeper than
+   * SCRUB_MAX_VALUE_DEPTH, or past what `allowance` has left - is read as
+   * its JSON text, hidden whole when that text names a secret, and kept as
+   * it is when it names none. The allowance is counted down as the value is
+   * read; nothing is changed in place.
+   */
+  public static hideTextsUnderSensitiveKeysWithinBounds(
+    value: unknown,
+    isSensitiveKey: (key: string) => boolean,
+    hideText: (text: string) => string,
+    allowance: ScrubNestedValuesAllowance,
+  ): unknown {
+    return hideTextsUnderSensitiveKeysWithinAt(
+      value,
+      isSensitiveKey,
+      hideText,
+      0,
+      allowance,
+      false,
+    );
   }
 
   // Whether a value is a list or a map, which a rule reads inside.

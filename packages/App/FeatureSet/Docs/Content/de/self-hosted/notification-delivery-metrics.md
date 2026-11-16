@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Setzen Sie sie in `config.env` und führen Sie dann `npm start` aus. `DISABLE_TELEMETRY_FOR_APP` ist standardmäßig `true`, und dann wird nichts gesendet.
 :::
 
-OneUptime braucht sowohl den Endpunkt als auch die Header: Ohne Header sendet es nichts. Schreiben Sie jeden Header als `name=value` und trennen Sie mehrere mit `;` oder, wie in `OTEL_EXPORTER_OTLP_HEADERS`, mit `,`. Ein Wert darf `=` enthalten. Ohne `;` wird ein Wert so gelesen, wie dieser Standard ihn schreibt, ein Leerzeichen als `%20`: Beenden Sie die Einstellung mit `;`, um ihn genau so zu senden, wie er geschrieben ist. OneUptime hängt `/v1/metrics` selbst an den Endpunkt an, und dieselben Einstellungen senden auch seine eigenen Traces und Logs. Jede Metrik erscheint, sobald OneUptime sie zum ersten Mal erfasst: `notification.send.count` mit der ersten gesendeten Nachricht.
+OneUptime braucht sowohl den Endpunkt als auch die Header: Ohne Header sendet es nichts. Schreiben Sie jeden Header als `name=value` und trennen Sie mehrere mit `;` oder, wie in `OTEL_EXPORTER_OTLP_HEADERS`, mit `,`. Ein Wert darf `=` enthalten. Ohne `;` wird ein Wert so gelesen, wie dieser Standard ihn schreibt, ein Leerzeichen als `%20`: Beenden Sie die Einstellung mit `;`, um ihn genau so zu senden, wie er geschrieben ist. Header, die in `OTEL_EXPORTER_OTLP_HEADERS` selbst oder, nur für Metriken, in `OTEL_EXPORTER_OTLP_METRICS_HEADERS` gesetzt sind, zählen ebenfalls: Der Exporter sendet sie auch, und bei gleichem Namen gewinnen die von OneUptime. OneUptime hängt `/v1/metrics` selbst an den Endpunkt an, und dieselben Einstellungen senden auch seine eigenen Traces und Logs. Jede Metrik erscheint, sobald OneUptime sie zum ersten Mal erfasst: `notification.send.count` mit der ersten gesendeten Nachricht.
 
 ### Deltas an ein OneUptime-Projekt senden
 
@@ -57,19 +57,15 @@ OneUptime sendet Zähler und Histogramme so, wie OpenTelemetry es standardmäßi
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-Die eigene Liste eines Dienstes ersetzt die des ganzen Charts: Wenn Sie `app.extraEnv` oder `worker.extraEnv` setzen, fügen Sie es auch dort hinzu.
+Das Chart gibt den Wert als `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` an jeden Dienst weiter, der die eigene Telemetrie von OneUptime sendet.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Legen Sie sie neben `docker-compose.yml` an, oder fügen Sie dies Ihrer vorhandenen hinzu, und führen Sie dann `npm start` aus.
+Setzen Sie die Einstellung in `config.env` und führen Sie dann `npm start` aus.
 :::
 
 Das gilt für jede Metrik, die OneUptime über sich selbst sendet. Ein Backend, das laufende Summen selbst auswertet, etwa Prometheus, braucht keine Änderung.
@@ -210,7 +206,7 @@ Höchstens 1 % der Bereitschafts-SMS, die über das eigene Twilio-Konto der Inst
 | `a` | `notification.send.count` | **Summe** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Summe** | Dieselben, mit `outcome = failure` |
 
-Die Formel `$b / $a * 100` ist der Anteil, der fehlschlug, und das Ziel gilt, solange er bei oder unter 1 bleibt. Ein Schritt ohne Fehlschlag zeichnet keinen Punkt, da `b` dort keinen hat. `outcome != not_sent` lässt aus, was die eigenen Einstellungen der Projekte zurückgehalten haben, und `global` die eigenen Twilio-Konten der Projekte. Auf einer Installation, die SMS über ihr SMS- und Anruf-Gateway sendet, messen dieselben Abfragen das Gateway. Für einen anderen Kanal ändern Sie `sms`: `call`, `push` oder `email`.
+Die Formel `$b / $a * 100` ist der Anteil, der fehlschlug, und das Ziel gilt, solange er bei oder unter 1 bleibt. Ein Schritt ohne Fehlschlag zeichnet 0, da `b` darin nichts gezählt hat. `outcome != not_sent` lässt aus, was die eigenen Einstellungen der Projekte zurückgehalten haben, und `global` die eigenen Twilio-Konten der Projekte. Auf einer Installation, die SMS über ihr SMS- und Anruf-Gateway sendet, messen dieselben Abfragen das Gateway. Für einen anderen Kanal ändern Sie `sms`: `call`, `push` oder `email`.
 
 ### Alarme gehen innerhalb von 30 Sekunden hinaus
 

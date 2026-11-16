@@ -41,17 +41,21 @@ import {
  *
  * HOW A DEVICE IS REMOVED
  *
- * Soft deleted (deletedAt), as a person's Delete is, so every read already
- * leaves it out: the list, its counts, its search and its select-all, the
- * topology map, the Network overview's count, a discovery import's lookup of
- * the rows it was given (the import copies what it needs when it starts).
- * The unique (projectId, macAddress) index covers live rows only, so a device
- * seen again is a new row - first seen now, nothing stale carried with it -
- * and the next walk's upsert finds no live row to update. Its map
- * suppression (a Hide from map) goes in the same statement: it names the
- * removed row's id, which nothing will draw again, so a device that comes
- * back is on the map again. Soft deleted rows are purged with every other
- * model's on OneUptime Cloud (HardDelete).
+ * Soft deleted (deletedAt) - not deleted at once, as a person's Delete is -
+ * so every read already leaves it out: the list, its counts, its search and
+ * its select-all, the topology map, the Network overview's count, a
+ * discovery import's lookup of the rows it was given (the import copies what
+ * it needs when it starts). The unique (projectId, macAddress) index covers
+ * live rows only, so a device seen again is a new row - first seen now,
+ * nothing stale carried with it - and the next walk's upsert finds no live
+ * row to update. Its map suppression (a Hide from map) goes in the same
+ * statement: it names the removed row's id, which nothing will draw again,
+ * so a device that comes back is on the map again. The removed row is
+ * deleted for good 30 days later, on every installation, self-hosted ones
+ * included: NetworkEndpointService opts in to the daily purge of
+ * soft-deleted rows (SoftDeletedRowsPurge, HardDelete), which elsewhere runs
+ * only where billing is on. Until then a removal that went wrong - an
+ * Unseen Devices time set too short - can still be undone in the database.
  *
  * The statement re-checks on the row it writes what made it due - still
  * live, still not seen since, still unclassified and unedited - so a walk or

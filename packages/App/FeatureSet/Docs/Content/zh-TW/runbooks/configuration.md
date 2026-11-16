@@ -58,6 +58,7 @@ JavaScript、Bash、SSH 和 kubectl 步驟 **絕不在 OneUptime Worker 上執�
 | 每個步驟的輸出 | **50 KB** 。更長的輸出會被截斷並加上標記。 | 每個自動步驟 |
 | 執行逾時 | 預設 **30 秒** | JavaScript、Bash、SSH 和 kubectl 步驟 |
 | 請求逾時 | 預設 **30 秒** | HTTP request 步驟 |
+| 每個請求的回應 | **10 MB** 。更大的回應不會被讀取，步驟會失敗。 | HTTP request 步驟 |
 | 認領逾時 | 預設 **2 分鐘** ：Worker 等待所選 Runner 認領工作、超過即判定失敗的時間 | JavaScript、Bash、SSH 和 kubectl 步驟 |
 | 逾時範圍 | **1 秒到 1 小時** | 每種逾時 |
 | 等待人員 | 無限制 | Manual 步驟和核准 |

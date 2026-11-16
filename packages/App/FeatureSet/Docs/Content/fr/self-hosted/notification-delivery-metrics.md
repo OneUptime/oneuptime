@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Définissez-les dans `config.env`, puis lancez `npm start`. `DISABLE_TELEMETRY_FOR_APP` vaut `true` par défaut, et alors rien n'est envoyé.
 :::
 
-OneUptime a besoin à la fois du point de terminaison et des en-têtes : sans en-tête, il n'envoie rien. Écrivez chaque en-tête sous la forme `name=value`, et séparez-en plusieurs par `;`, ou par `,` comme dans `OTEL_EXPORTER_OTLP_HEADERS`. Une valeur peut contenir `=`. Sans `;`, une valeur est lue telle que ce standard l'écrit, un espace s'écrivant `%20` : terminez le paramètre par `;` pour l'envoyer exactement telle qu'elle est écrite. OneUptime ajoute lui-même `/v1/metrics` au point de terminaison, et les mêmes paramètres envoient aussi ses propres traces et journaux. Chaque métrique apparaît dès que OneUptime l'enregistre pour la première fois : `notification.send.count` avec le premier message envoyé.
+OneUptime a besoin à la fois du point de terminaison et des en-têtes : sans en-tête, il n'envoie rien. Écrivez chaque en-tête sous la forme `name=value`, et séparez-en plusieurs par `;`, ou par `,` comme dans `OTEL_EXPORTER_OTLP_HEADERS`. Une valeur peut contenir `=`. Sans `;`, une valeur est lue telle que ce standard l'écrit, un espace s'écrivant `%20` : terminez le paramètre par `;` pour l'envoyer exactement telle qu'elle est écrite. Les en-têtes définis dans `OTEL_EXPORTER_OTLP_HEADERS` lui-même, ou dans `OTEL_EXPORTER_OTLP_METRICS_HEADERS` pour les seules métriques, comptent aussi : l'exportateur les envoie également, et à nom égal ceux de OneUptime l'emportent. OneUptime ajoute lui-même `/v1/metrics` au point de terminaison, et les mêmes paramètres envoient aussi ses propres traces et journaux. Chaque métrique apparaît dès que OneUptime l'enregistre pour la première fois : `notification.send.count` avec le premier message envoyé.
 
 ### Envoyer des deltas à un projet OneUptime
 
@@ -57,19 +57,15 @@ OneUptime envoie les compteurs et les histogrammes comme OpenTelemetry le fait p
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-La liste propre à un service remplace celle de tout le chart : si vous définissez `app.extraEnv` ou `worker.extraEnv`, ajoutez-la là aussi.
+Le chart transmet la valeur, sous le nom `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`, à chaque service qui envoie la télémétrie de OneUptime lui-même.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Créez-le à côté de `docker-compose.yml`, ou ajoutez ceci à celui que vous avez, puis lancez `npm start`.
+Définissez-le dans `config.env`, puis lancez `npm start`.
 :::
 
 Cela s'applique à chaque métrique que OneUptime envoie sur lui-même. Un backend qui lit lui-même les totaux cumulés, comme Prometheus, n'a besoin d'aucun changement.
@@ -210,7 +206,7 @@ Au plus 1 % des SMS d'astreinte envoyés par le propre compte Twilio de l'instal
 | `a` | `notification.send.count` | **Somme** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Somme** | Les mêmes, avec `outcome = failure` |
 
-La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant qu'elle reste inférieure ou égale à 1. Un pas sans échec ne trace aucun point, car `b` n'en a pas. `outcome != not_sent` exclut ce que les paramètres propres aux projets ont retenu, et `global` les propres comptes Twilio des projets. Sur une installation qui envoie ses SMS par sa passerelle SMS et appels, les mêmes requêtes mesurent la passerelle. Pour un autre canal, remplacez `sms` : `call`, `push` ou `email`.
+La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant qu'elle reste inférieure ou égale à 1. Un pas sans échec trace 0, car `b` n'y a rien compté. `outcome != not_sent` exclut ce que les paramètres propres aux projets ont retenu, et `global` les propres comptes Twilio des projets. Sur une installation qui envoie ses SMS par sa passerelle SMS et appels, les mêmes requêtes mesurent la passerelle. Pour un autre canal, remplacez `sms` : `call`, `push` ou `email`.
 
 ### Les alertes partent en moins de 30 secondes
 

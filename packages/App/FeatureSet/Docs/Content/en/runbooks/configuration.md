@@ -58,6 +58,7 @@ There is no `RUNBOOK_BASH_ENABLED` environment flag any more. Whether these step
 | Output per step | **50 KB**. Longer output is cut off with a marker. | Every automated step |
 | Execution timeout | **30 seconds** by default | JavaScript, Bash, SSH and kubectl steps |
 | Request timeout | **30 seconds** by default | HTTP request steps |
+| Answer per request | **10 MB**. A larger answer is not read, and fails the step. | HTTP request steps |
 | Claim timeout | **2 minutes** by default: how long the Worker waits for the selected Runner to pick up the job before failing it | JavaScript, Bash, SSH and kubectl steps |
 | Timeout range | **1 second to 1 hour** | Every timeout |
 | Waiting for a person | No limit | Manual steps and approvals |

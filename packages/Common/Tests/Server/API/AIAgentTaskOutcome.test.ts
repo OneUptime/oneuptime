@@ -128,11 +128,12 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   const projectId: ObjectID = ObjectID.generate();
+  const workerId: ObjectID = ObjectID.generate();
   runId = ObjectID.generate();
 
   jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
     credentialCheckProving({
-      id: ObjectID.generate(),
+      id: workerId,
       projectId: projectId,
       source: CodeFixAgentSource.Runner,
     }),
@@ -141,6 +142,8 @@ beforeEach(() => {
     const run: AIRun = new AIRun();
     run.id = runId;
     run.projectId = projectId;
+    // The worker's own run: it claimed it.
+    run.aiAgentId = workerId;
     run.status = AIRunStatus.Running;
     return run;
   });

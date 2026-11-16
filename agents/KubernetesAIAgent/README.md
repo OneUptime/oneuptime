@@ -29,7 +29,7 @@ All calls are HTTPS `POST`s to `<ONEUPTIME_URL>/kubernetes-ai-agent-ingest/*`:
 | `register` | Once at start (and again if OneUptime stops recognising the agent). Uses the chart's API key — the same telemetry ingestion key the collector uses. Returns the agent's own id and key. |
 | `heartbeat` | Every 30 seconds. Keeps the agent "connected" and reports what it may do (read-only or not, which namespaces, kubectl version). |
 | `claim-next-job` | Every 3 seconds. One job at a time. |
-| `job/<id>/heartbeat`, `job/<id>/result` | While a command runs, and to report its output. |
+| `job/<id>/heartbeat`, `job/<id>/result` | While a command runs, and to report its output. Once **Enable AI** is turned off for the project, the heartbeat says to stop: a command that has not started does not start, and one that is running is left to finish. |
 | `disconnect` | On shutdown, so the next pod can take over at once. |
 
 It needs the same OneUptime version as the chart, or newer. With an older server it logs `This OneUptime server does not have the Kubernetes AI agent API …` once and checks again every 5 minutes.

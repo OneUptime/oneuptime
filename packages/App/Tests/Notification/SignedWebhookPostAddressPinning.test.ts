@@ -327,7 +327,9 @@ describe("an answer larger than a webhook's can be", () => {
     );
 
     expect(outcome.isDelivered).toBe(false);
-    expect(outcome.error).toMatch(/maxContentLength/);
+    expect(outcome.error).toBe(
+      "The answer was larger than 1 MB, so it was not read.",
+    );
   });
 });
 

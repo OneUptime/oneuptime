@@ -23,6 +23,7 @@ import HTTPResponseBodyReader, {
   HTTPResponseBodyBudget,
 } from "./HTTPResponseBodyReader";
 import { getSameServerRedirectCheck } from "./SameServerRedirect";
+import ResponseTooLarge from "./ResponseTooLarge";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
 
@@ -1000,6 +1001,14 @@ export default class API {
 
     // The caller pulled the plug on purpose.
     if (axiosError.code === "ERR_CANCELED") {
+      return false;
+    }
+
+    /*
+     * The answer was larger than the request reads: the server answered,
+     * and asking again only reads as much of the same answer again.
+     */
+    if (ResponseTooLarge.isError(axiosError)) {
       return false;
     }
 

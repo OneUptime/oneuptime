@@ -21,7 +21,11 @@ global:
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 # An IPv6 address goes in brackets, and in quotes so YAML reads it as text,
 # with any port after the brackets: host: "[2001:db8::1]" or
-# host: "[2001:db8::1]:8080". The chart refuses one without brackets.
+# host: "[2001:db8::1]:8080". The chart refuses a host OneUptime cannot be
+# opened at, and says what to set: an IPv6 address without brackets, a web
+# address instead of the address alone, a port that is not a number from 1 to
+# 65535, or a name with a character no domain name has, such as
+# oneuptime,example.com.
 host: localhost
 httpProtocol: http
 ssl:
@@ -1982,11 +1986,22 @@ openTelemetryExporter:
   # values are percent-decoded as that standard says (%20 is a space); end the
   # setting with ';' to send a value exactly as written, or one that holds ','.
   # Nothing is exported without a header; one OneUptime cannot read is logged
-  # as a warning at startup.
+  # as a warning at startup. Headers set in OTEL_EXPORTER_OTLP_HEADERS (with
+  # extraEnv) count too: the exporters send them as well, under these.
   # The chart hands the value to every pod exactly as set. In a values file,
   # put a value that holds ': ' or ' #' in quotes: YAML reads those itself
   # before the chart sees the value.
   headers:
+  # How OneUptime's own counters and histograms are sent: empty, the
+  # OpenTelemetry default, sends running totals since each process started
+  # (as cumulative does); delta sends what happened since the last point.
+  # Set delta when they go to a OneUptime project: its metrics explorer adds
+  # up the points of each step, so it reads the counts and percentiles of a
+  # time range exactly from deltas only. Keep it empty for a backend that
+  # reads running totals itself, such as Prometheus. Every workload that sends
+  # OneUptime's own telemetry gets it, as
+  # OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE.
+  metricsTemporality:
   # Optional. Reported as k8s.cluster.name on OneUptime's own telemetry so its
   # pods group under this cluster in Topology. Pods always report their pod,
   # namespace, node and deployment names; the cluster name is not visible from
@@ -2158,6 +2173,9 @@ externalPostgres:
   host:
   port:
   username:
+  # Read from a file (helm --set-file, Terraform's file()), the password is
+  # stored without the line ending the file ends with, "\n" or "\r\n", and
+  # otherwise exactly as written: a space it begins or ends with is kept.
   password:
   # If you're using an existing secret for the password, please use this instead of password.
   existingSecret:
@@ -2185,6 +2203,8 @@ externalValkey:
   host:
   port:
   username:
+  # Read from a file, the password is stored without the line ending the file
+  # ends with, and otherwise exactly as written, as externalPostgres.password.
   password:
   ipFamily:
   # If you're using an existing secret for the password, please use this instead of password.
@@ -2213,6 +2233,8 @@ externalClickhouse:
   isHostHttps: false
   port:
   username:
+  # Read from a file, the password is stored without the line ending the file
+  # ends with, and otherwise exactly as written, as externalPostgres.password.
   password:
   ## OneUptime's analytics schema is always a sharded + replicated cluster. Set
   ## this to the name of the cluster you defined in your external ClickHouse
@@ -2313,8 +2335,8 @@ app:
   # How each app pod shares that pool, so queue jobs and probes can never take
   # every connection sign-ins and dashboards need (see "Size the Postgres
   # connections" in docs/production-checklist.md). Of a pool of 50, by
-  # default: probe scheduling - the monitors, monitor tests and network
-  # devices probes are handed, and their pending counts - runs at most 10
+  # default: probe scheduling - every request a probe makes for work, and
+  # the pending counts - runs at most 10
   # requests at once (a fifth of the pool, half of that for one probe), and
   # the queue jobs this pod runs while worker.enabled is false hold at most
   # 30 connections (the pool less a fifth kept for requests and less probe
@@ -2685,6 +2707,14 @@ globalRunner:
   # chart-wide value (they are not merged).
   affinity: {}
   topologySpreadConstraints: []
+  # Each JavaScript step runs in a process of its own, as a user of its own:
+  # the image's sandbox launcher switches the step's process to that user. A
+  # context of your own (here, or the chart-wide containerSecurityContext)
+  # must leave it able to: keep allowPrivilegeEscalation true (the default)
+  # and the SETUID and SETGID capabilities, for example
+  #   capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID"] }
+  # Without them steps still run in their own process, but as the Runner's
+  # user, and the Runner's log says so.
   containerSecurityContext: {}
   # Extra env / volumes for the global Runner. Unlike every other service, it
   # never takes the chart-wide extraEnv/extraVolumes/extraVolumeMounts: those

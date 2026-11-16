@@ -66,7 +66,7 @@ Globala Runners är de Runners som OneUptime kör för alla projekt. Ett JavaScr
 
 En global Runner kör stegen från många projekt, så varje steg hålls åtskilt från alla andra:
 
-- Varje steg körs i en egen `isolated-vm`-sandlåda, skapad för det steget och slängd efteråt: inga filer, inga processer, inga miljövariabler och ingenting som sparas från ett steg till nästa.
+- Varje steg körs i en egen `isolated-vm`-sandlåda, skapad för det steget och slängd efteråt: inga filer, inga processer, inga miljövariabler och ingenting som sparas från ett steg till nästa. Själva sandlådan körs i en process som startas bara för det steget, som en egen användare: processen har inget av Runnerns nyckel, inställningar eller filer och avslutas med steget.
 - Dess HTTP-förfrågningar når bara offentliga internetadresser, aldrig en privat adress, en loopback- eller link-local-adress eller en slutpunkt för molnmetadata, så en global Runner når aldrig ditt nätverk.
 - Den får en hemlig variabel bara när variabelns brytare **Globala Runners får använda den** är påslagen, och bara för ett steg i variabelns eget projekt.
 - Ett projekt kör högst tre steg åt gången på globala Runners, så inget projekt håller dem för sig själv.
@@ -75,13 +75,15 @@ En global Runner tar också OneUptime AI:s kodkorrigeringar, i varje kodreposito
 
 En global Runner som är äldre än 14.0.94, eller som startats med `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, tar inga kodkorrigeringar, och OneUptime räknar inte med den för dem. Ett repository på **Global Runner** säger då att ingen global Runner som är online tar AI-kodkorrigeringar, och sidan **Globala Runners** i administratörspanelen säger varför under den Runnerns status.
 
+En huvudadministratör kan hålla en global Runner helt borta från kodkorrigeringar: dess reglage **Kör AI-kodkorrigeringar**, under **Fler fält** på sidan **Globala Runners** i administratörsdashboarden, är på som standard. Avstängd ger OneUptime den Runnern ingen kodkorrigering och lämnar den inget repositorys token, så den kör bara JavaScript-steg. På OneUptime Cloud arbetar globala Runners bara i GitHub-repositories: ett GitLab-, Forgejo-, Gitea- eller Git-repository nås med anslutningens egen token, så dess kodkorrigeringar körs på en av dina egna Runners.
+
 Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner körs då på projektets standard-Runner eller misslyckas, om ingen är angiven, och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst. Ett kodrepository som inte väljer någon Runner i sina inställningar i Kod arbetar också på projektets standard-Runner eller, om ingen är angiven, på en global Runner, och behöver en av dina medan reglaget är avstängt; se [Kod](/docs/ai/ai-agent#välj-repositoryts-runner).
 
 ### Var globala Runners kommer ifrån
 
 I OneUptime Cloud kör OneUptime dem. En egenhostad installation kör som standard en egen, precis som den kör sina egna globala sonder: tjänsten `global-runner` i Docker Compose och distributionen `globalRunner` i Helm-diagrammet. Den har sin egen nyckel, `GLOBAL_RUNNER_KEY`, och inget annat från servern.
 
-En huvudadministratör kan lägga till fler för att köra steg och kodkorrigeringar från andra värdar: öppna **Inställningar** och sedan **Globala Runners** i administratörspanelen, skapa en och kör det kommando som dess **Visa ID och nyckel** ger på en värd som når internet.
+En huvudadministratör kan lägga till fler för att köra steg och kodkorrigeringar från andra värdar: öppna **Inställningar** och sedan **Globala Runners** i administratörspanelen, skapa en och kör det kommando som dess **Visa ID och nyckel** ger på en värd som når internet. Behåll standardinställningarna för den containern: en container som startas med `no-new-privileges`, eller utan förmågorna `SETUID` och `SETGID`, kan inte köra varje steg som en egen användare, så dess steg körs som Runnerns egen användare, fortfarande vart och ett i en egen process, och dess logg säger det.
 
 För att stänga av den medföljande anger du `GLOBAL_RUNNER_REPLICAS=0` i Docker Composes `config.env`, eller `globalRunner.enabled` till `false` i Helm-diagrammet. Helt utan global Runner listar **Runbooks → Runbook-agenter** bara dina egna Runners, och varje JavaScript-steg och varje kodrepository väljer en av dem.
 

@@ -147,6 +147,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Shard {{shard}}",
     "**Variables**",
     "**Variables ({{count}})**",
+    // The project Invoices page's actions column: French says "Actions" too.
+    "Actions",
   ],
   es: [
     "No",

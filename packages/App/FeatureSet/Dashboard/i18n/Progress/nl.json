@@ -109,6 +109,7 @@
     "Component: {{component}}",
     "Console",
     "Container",
+    "Container Apps",
     "Container {{container}}: {{reason}}",
     "Container {{id}}",
     "Container: {{name}}",

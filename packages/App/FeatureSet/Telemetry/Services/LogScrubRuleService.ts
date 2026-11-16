@@ -14,7 +14,9 @@ import {
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
 } from "Common/Types/Telemetry/ScrubRule";
-import ScrubNestedValuesUtil from "Common/Utils/Telemetry/ScrubNestedValues";
+import ScrubNestedValuesUtil, {
+  ScrubNestedValuesAllowance,
+} from "Common/Utils/Telemetry/ScrubNestedValues";
 import { readOwnValue } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
@@ -49,9 +51,10 @@ const BUILT_IN_PATTERNS: Record<string, RegExp> = {
  * Attribute-KEY denylist for the SensitiveKeys pattern. Value-regex rules
  * miss secrets that don't look like anything (a random password, an opaque
  * token) — but the attribute key names them. Matched case-insensitively
- * against the attribute key; on a hit the WHOLE value gets the rule's
- * scrub action, whatever the value looks like. Same list as the trace
- * engine — keep them in sync.
+ * against the attribute key, and the keys inside a list or map value or a
+ * structured body; on a hit the WHOLE value gets the rule's scrub action,
+ * whatever the value looks like. Same list as the trace engine — keep them
+ * in sync.
  */
 const SENSITIVE_KEY_REGEX: RegExp =
   /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
@@ -307,6 +310,80 @@ export class LogScrubRuleService {
     );
   }
 
+  /*
+   * A body that is the JSON text of a list or a map - one sent as a map or
+   * a list (an OTLP key-value list or list, a Fluentd record's map), which
+   * ingest stores as its JSON text, or one written as JSON - read key by key
+   * by each Sensitive Attribute Keys rule, as an attribute's list or map
+   * is: every text under a key that looks secret is hidden, a password
+   * inside an OTLP {key, value} pair too (#6513). Pattern rules read the
+   * body as the text it is, as they always have.
+   *
+   * Within the record's bounds (Common/Utils/Telemetry/ScrubNestedValues):
+   * the body's values count against what the record's attributes left of
+   * SCRUB_MAX_NESTED_VALUES_PER_RECORD, and a part of the body past the
+   * bounds is read as its JSON text, hidden whole when that text names a
+   * secret - it fails closed, as a held attribute value does - and kept as
+   * it is when it names none. So a Kubernetes object, whose managed fields
+   * run past 32 levels, keeps the rest of its body.
+   *
+   * The body keeps the form it is stored in: the JSON text it came as, with
+   * only the hidden texts changed, and the very text it was when nothing
+   * is hidden.
+   */
+  private static hideSecretsInStructuredBody(
+    body: string,
+    keyRules: Array<CompiledRule>,
+    allowance: ScrubNestedValuesAllowance,
+  ): string {
+    /*
+     * A key is written in the JSON text as it is, but for an escape - JSON
+     * escapes none of the letters a secret key is named by - so a text with
+     * no escape that names no secret anywhere holds no such key, and is not
+     * read further: most bodies.
+     */
+    if (
+      body.indexOf("\\") === -1 &&
+      !keyRules.some((compiled: CompiledRule): boolean => {
+        return compiled.regex.test(body);
+      })
+    ) {
+      return body;
+    }
+
+    const parsed: unknown = ScrubNestedValuesUtil.readJsonListOrMap(body);
+
+    if (parsed === null) {
+      // Plain text, which only pattern rules read.
+      return body;
+    }
+
+    let value: unknown = parsed;
+
+    for (const compiled of keyRules) {
+      const action: string =
+        (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
+
+      // Each rule reads the body within the same bounds.
+      value = ScrubNestedValuesUtil.hideTextsUnderSensitiveKeysWithinBounds(
+        value,
+        (key: string): boolean => {
+          return compiled.regex.test(key);
+        },
+        (text: string): string => {
+          return this.applyScrubAction(
+            text,
+            action,
+            LogScrubPatternType.SensitiveKeys,
+          );
+        },
+        { remaining: allowance.remaining },
+      );
+    }
+
+    return value === parsed ? body : JSON.stringify(value);
+  }
+
   public static scrubLog(
     logRow: JSONObject,
     compiledRules: Array<CompiledRule>,
@@ -322,6 +399,10 @@ export class LogScrubRuleService {
      */
     PatternWorkScope.handOverRecord(logRow);
 
+    // One for the record: its attributes, then its body.
+    const allowance: ScrubNestedValuesAllowance =
+      ScrubNestedValuesUtil.newRecordAllowance();
+
     /*
      * A list or map too deep, or too large, for the rules to read value by
      * value is held as its JSON text first - as the Log table stores it -
@@ -331,9 +412,33 @@ export class LogScrubRuleService {
       logRow["attributes"] && typeof logRow["attributes"] === "object"
         ? ScrubNestedValuesUtil.holdOversizedValuesAsText(
             logRow["attributes"] as JSONObject,
-            ScrubNestedValuesUtil.newRecordAllowance(),
+            allowance,
           )
         : new Set<string>();
+
+    /*
+     * The Sensitive Attribute Keys rules read the keys of a structured
+     * body before any rule changes its text: a pattern rule's replacement
+     * can leave the text no longer JSON - an email address right after an
+     * escape such as \n is matched with the escape's letter - and then no
+     * key in it could be read.
+     */
+    const keyRules: Array<CompiledRule> = compiledRules.filter(
+      (compiled: CompiledRule): boolean => {
+        return (
+          (compiled.rule.patternType as string) ===
+          LogScrubPatternType.SensitiveKeys
+        );
+      },
+    );
+
+    if (keyRules.length > 0 && typeof logRow["body"] === "string") {
+      logRow["body"] = this.hideSecretsInStructuredBody(
+        logRow["body"] as string,
+        keyRules,
+        allowance,
+      );
+    }
 
     /*
      * Each rule's `fieldsToScrub` can be "body", "attributes", or
@@ -350,10 +455,12 @@ export class LogScrubRuleService {
       singleRule[0] = compiled;
 
       /*
-       * SensitiveKeys is key-targeted, so it can only ever act on
-       * attributes — a rule saved with a body-only scope would otherwise
-       * be a silent no-op while looking active in the rules table. Force
-       * the attributes scope for it regardless of the stored value.
+       * SensitiveKeys is key-targeted, so it acts on the values under keys:
+       * an attribute's, and those of a structured body, which it read
+       * above whatever its scope says - a rule saved with a body-only
+       * scope would otherwise be a silent no-op while looking active in
+       * the rules table. Force the attributes scope for it regardless of
+       * the stored value: the body's text holds no key to read.
        */
       const isSensitiveKeysRule: boolean =
         (compiled.rule.patternType as string) ===

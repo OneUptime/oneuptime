@@ -1,6 +1,7 @@
 /*
  * An invoice's amount as Project Settings > Billing and Invoices > Invoices
- * lists it: the payment provider's minor units (cents) as the currency's own
+ * lists it, and as the Admin Dashboard lists the same invoices for staff, so
+ * both read one amount alike: the payment provider's minor units (cents) as the currency's own
  * amount, always with two decimals, then the currency - "22.00 USD", "1,250.50
  * USD", "0.00 USD". Money reads the way the dashboard's other amounts do
  * (Detail's USD cents: two decimals, grouped thousands), never "1250.5 USD". An

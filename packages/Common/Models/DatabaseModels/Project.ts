@@ -3045,6 +3045,44 @@ export default class Project extends TenantModel {
   public keepIncidentsWithCompletedPostmortem?: boolean = undefined;
 
   /*
+   * Which postmortem statuses keep an incident while
+   * keepIncidentsWithCompletedPostmortem is on (issue #6945): their ids,
+   * or empty - where every project starts - for the project's Completed
+   * status, as before. A Project Owner or Admin adds the project's own
+   * statuses (a "Published" below Completed) on Incidents -> Settings ->
+   * Data Retention. Chosen, not worked out from where a status sits: the
+   * statuses at and below Completed all count as done, and "Not Needed" is
+   * one of them (Types/Retention/ResolvedRecordRetention says why).
+   * ProjectService refuses an empty list, and any id that is not one of
+   * the project's postmortem statuses.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Postmortem Statuses That Keep an Incident",
+    description:
+      "The ids of the postmortem statuses whose incidents the incident retention never deletes while Keep Incidents With a Completed Postmortem is on. Empty (the default) is the project's Completed status.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public keepIncidentsInPostmortemStatusIds?: Array<string> = undefined;
+
+  /*
    * How long a resolved alert stays (issue #6903), as
    * incidentRetentionInDays is for incidents: one of the choices, or 0 to
    * keep every alert - the default. Deleted by the Workers job

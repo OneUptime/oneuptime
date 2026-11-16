@@ -20,6 +20,7 @@ import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIAgentTaskPullRequest from "../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
@@ -78,6 +79,10 @@ const OTHER_REPOSITORY_ID: ObjectID = new ObjectID(
 );
 const RUN_ID: ObjectID = new ObjectID("5e1f4b3a-7c8d-4e9f-8a0b-2c3d4e5f6a7b");
 const TASK_ID: ObjectID = new ObjectID("6f2a5c4b-8d9e-4f0a-9b1c-3d4e5f6a7b8c");
+// The Runner asking, which claimed the run and works on it.
+const WORKER_ID: ObjectID = new ObjectID(
+  "7a3b6d5c-9e0f-4a1b-8c2d-4e5f6a7b8c9d",
+);
 
 let storedRun: AIRun | null;
 let workingPullRequest: AIAgentTaskPullRequest | null;
@@ -91,6 +96,8 @@ function requestRun(data: {
   run._id = RUN_ID.toString();
   run.projectId = PROJECT_ID;
   run.runType = AIRunType.CodeFix;
+  run.status = AIRunStatus.Running;
+  run.aiAgentId = WORKER_ID;
   run.codeFixTaskType = CodeFixTaskType.CodeRequest;
   run.codeRepositoryId = data.repositoryId || REPOSITORY_ID;
   if (data.codeTaskId) {
@@ -148,7 +155,7 @@ beforeEach(() => {
 
   jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
     credentialCheckProving({
-      id: ObjectID.generate(),
+      id: WORKER_ID,
       projectId: PROJECT_ID,
       source: CodeFixAgentSource.Runner,
     }),

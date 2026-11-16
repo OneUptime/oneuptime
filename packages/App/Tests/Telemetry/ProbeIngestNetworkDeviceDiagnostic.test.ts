@@ -225,11 +225,23 @@ describe("route registration", () => {
         uri,
       );
 
-      expect(route.middlewares).toEqual([
+      expect(route.middlewares[0]).toBe(
         ProbeAuthorization.isAuthorizedServiceMiddleware,
-      ]);
+      );
     },
   );
+
+  /*
+   * The list is held to the probe scheduling limit after the probe is
+   * authenticated (issue #8051; ProbeWorkSchedulingOverHttp runs it busy);
+   * a report never is: refusing it would lose what the probe found.
+   */
+  test("the list waits for a probe scheduling slot; a report does not", () => {
+    expect(mockRouter.match("post", LIST_URI).middlewares).toHaveLength(2);
+    expect(mockRouter.match("post", INGEST_URI).middlewares).toEqual([
+      ProbeAuthorization.isAuthorizedServiceMiddleware,
+    ]);
+  });
 });
 
 describe("POST /probe/network-device-diagnostic/list", () => {

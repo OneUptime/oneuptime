@@ -22,8 +22,11 @@ import path from "path";
  *     telemetry routes, whose scope holds every worker to the run it
  *     claimed itself (CodeAgentTelemetryScope);
  *   - the project check is only ever asked of an exception or a repository,
- *     and the exception routes then hold a global Runner to its run's
+ *     and the exception routes then hold every worker to its run's
  *     exception;
+ *   - the rule holds a project's own Runner or agent to the run it claimed
+ *     too, and a request that names no run (an older Runner's) is served
+ *     only through a run the worker claimed and still holds;
  *   - no route writes a repository's setup, build or test command into what
  *     it answers but through getRepositoryCommands;
  *   - the completion route offers the model getOfferedTools' tools;
@@ -193,25 +196,48 @@ describe("the code-fix route files", () => {
     }
   });
 
-  test("the exception routes hold a global Runner to its run's exception", () => {
+  test("the exception routes hold every worker to its run's exception", () => {
     const code: string = codeOf("Server/API/AIAgentDataAPI.ts");
 
     // Once for get-exception-details, once for get-code-repositories.
     expect(
-      code.split("AIAgentDataAPI.deniesGlobalRunnerAccessToException(").length -
-        1,
+      code.split("AIAgentDataAPI.deniesAccessToException(").length - 1,
     ).toBe(2);
+    expect(code).not.toContain("deniesGlobalRunnerAccessToException");
     expect(code).toContain(
       "run.triggeredByTelemetryExceptionId.toString() !== data.exceptionId.toString()",
     );
+    // A request that names no run: a fix of this exception the worker holds.
+    expect(code).toContain("triggeredByTelemetryExceptionId: data.exceptionId");
   });
 
-  test("the token route hands a global Runner a token only for the run it holds", () => {
+  test("the token route hands every worker a token only for a run it holds", () => {
     const code: string = codeOf("Server/API/AIAgentDataAPI.ts");
 
-    expect(code).toContain(
+    expect(code).toContain("if (!tokenRun && !isHeldWithoutNamingIt) {");
+    expect(code).not.toContain(
       "if (CodeFixAgentAuth.isGlobalIdentity(aiAgent) && !tokenRun) {",
     );
+  });
+
+  test("a request that names no run is served only through a run the worker claimed and still holds, and never to a global Runner", () => {
+    const code: string = codeOf("Server/API/AIAgentDataAPI.ts");
+    const start: number = code.indexOf(
+      "private static async holdsRunOfProject(",
+    );
+    const helper: string = code.substring(
+      start,
+      code.indexOf("private static async", start + 1),
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(helper).toContain(
+      "if (CodeFixAgentAuth.isGlobalIdentity(data.aiAgent) || !data.projectId) { return false; }",
+    );
+    expect(helper).toContain("status: AIRunStatus.Running,");
+    expect(helper).toContain("aiAgentId: data.aiAgent.id,");
+    expect(helper).toContain("runType: AIRunType.CodeFix,");
+    expect(helper).toContain("projectId: data.projectId,");
   });
 
   test("no route writes a repository's command into its answer but through getRepositoryCommands", () => {
@@ -252,6 +278,23 @@ describe("the code-fix route files", () => {
 
     expect(code).toContain("GitHubUtil.getRepositoryAccessToken(");
     expect(code).not.toContain("getInstallationAccessToken(");
+  });
+});
+
+describe("the rule every route asks", () => {
+  test("holds every identity to the run it claimed: a project's own worker is not let through on its project alone", () => {
+    const code: string = codeOf("Server/Utils/AI/CodeFix/CodeFixAgentAuth.ts");
+    const start: number = code.indexOf("public static deniesAccessToRun(");
+    const rule: string = code.substring(
+      start,
+      code.indexOf("public static isRunClaimedBy(", start),
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(rule).toContain(
+      "if (!CodeFixAgentAuth.isRunClaimedBy(identity, run)) { return true; }",
+    );
+    expect(rule).not.toContain("isGlobalIdentity(");
   });
 });
 

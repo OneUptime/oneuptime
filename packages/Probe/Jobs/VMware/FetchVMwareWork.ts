@@ -4,6 +4,7 @@ import {
   PROBE_INGEST_URL,
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import VMwareCollector from "../../Utils/VMware/VMwareCollector";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -43,6 +44,9 @@ import zlib from "zlib";
 
 // How long one report upload may take: megabytes over a slow site link.
 export const REPORT_UPLOAD_TIMEOUT_IN_MS: number = 5 * 60 * 1000;
+
+// The work the work request hands out, as a busy answer names it (ServerBusy).
+const VMWARE_WORK: string = "VMware collections";
 
 const runningCollections: Map<string, Promise<void>> = new Map();
 const runningTests: Set<string> = new Set();
@@ -98,6 +102,11 @@ export async function fetchVMwareWork(): Promise<VMwareProbeWorkResponse> {
 
   const empty: VMwareProbeWorkResponse = { collections: [], tests: [] };
 
+  // The server asked this probe to wait (ServerBusy): it asks later.
+  if (ServerBusy.isBackingOff(VMWARE_WORK)) {
+    return empty;
+  }
+
   try {
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.fetch<JSONObject>({
@@ -110,6 +119,16 @@ export async function fetchVMwareWork(): Promise<VMwareProbeWorkResponse> {
         headers: {},
         options: ProbeAPIRequest.getDefaultRequestOptions(url),
       });
+
+    /*
+     * Too busy to hand out work now (issue #8051): nothing was claimed, the
+     * vCenters and tests stay due, and this probe asks again once the
+     * server's Retry-After has passed. The collections running carry on.
+     */
+    if (ServerBusy.isBusyAnswer(result)) {
+      ServerBusy.note(VMWARE_WORK, result);
+      return empty;
+    }
 
     if (result instanceof HTTPErrorResponse) {
       logger.warn(

@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 これらを `config.env` に設定してから、`npm start` を実行します。`DISABLE_TELEMETRY_FOR_APP` は既定で `true` で、その場合は何も送信されません。
 :::
 
-OneUptime にはエンドポイントとヘッダーの両方が必要です。ヘッダーがないと何も送信しません。各ヘッダーは `name=value` の形で書き、複数のヘッダーは `;` で区切るか、`OTEL_EXPORTER_OTLP_HEADERS` と同じく `,` で区切ります。値に `=` が含まれていてもかまいません。`;` がない場合、値はその標準の書き方どおりに読み取られ、スペースは `%20` と書きます。値を書いたとおりに送るには、設定の末尾に `;` を付けます。OneUptime はエンドポイントに `/v1/metrics` を自分で付け加え、同じ設定で自身のトレースとログも送信します。各メトリクスは、OneUptime が最初に記録した時点で現れます。`notification.send.count` なら最初のメッセージを送信した時点です。
+OneUptime にはエンドポイントとヘッダーの両方が必要です。ヘッダーがないと何も送信しません。各ヘッダーは `name=value` の形で書き、複数のヘッダーは `;` で区切るか、`OTEL_EXPORTER_OTLP_HEADERS` と同じく `,` で区切ります。値に `=` が含まれていてもかまいません。`;` がない場合、値はその標準の書き方どおりに読み取られ、スペースは `%20` と書きます。値を書いたとおりに送るには、設定の末尾に `;` を付けます。`OTEL_EXPORTER_OTLP_HEADERS` そのもの、またはメトリクスだけなら `OTEL_EXPORTER_OTLP_METRICS_HEADERS` に設定したヘッダーも数えられます。エクスポーターはそれらも送信し、名前が同じなら OneUptime 自身のヘッダーが優先されます。OneUptime はエンドポイントに `/v1/metrics` を自分で付け加え、同じ設定で自身のトレースとログも送信します。各メトリクスは、OneUptime が最初に記録した時点で現れます。`notification.send.count` なら最初のメッセージを送信した時点です。
 
 ### OneUptime プロジェクトにデルタを送信する
 
@@ -57,19 +57,15 @@ OneUptime は、OpenTelemetry の既定どおりにカウンターとヒスト�
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-サービス独自のリストはチャート全体のリストを置き換えます。`app.extraEnv` または `worker.extraEnv` を設定している場合は、そこにも追加してください。
+チャートはこの値を `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` として、OneUptime 自身のテレメトリーを送信するすべてのサービスに渡します。
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-これを `docker-compose.yml` の隣に作成するか、既存のファイルに追加してから、`npm start` を実行します。
+これを `config.env` に設定してから、`npm start` を実行します。
 :::
 
 これは、OneUptime が自身について送信するすべてのメトリクスに適用されます。Prometheus のように累計を自分で読むバックエンドでは、変更は不要です。
@@ -210,7 +206,7 @@ services:
 | `a` | `notification.send.count` | **合計** | `notification.channel = sms`、`notification.on_call_page = true`、`notification.provider.config = global`、`outcome != not_sent` |
 | `b` | `notification.send.count` | **合計** | 同じ条件に `outcome = failure` を加える |
 
-数式 `$b / $a * 100` は失敗した割合で、それが 1 以下にとどまる間は目標を満たしています。失敗のないステップは、`b` にポイントがないため、ポイントが描かれません。`outcome != not_sent` はプロジェクト自身の設定が止めたものを除外し、`global` はプロジェクト独自の Twilio アカウントを除外します。SMS を自身の SMS・通話ゲートウェイ経由で送るインストールでは、同じクエリがゲートウェイを測定します。別のチャネルには `sms` を `call`、`push`、`email` に変えます。
+数式 `$b / $a * 100` は失敗した割合で、それが 1 以下にとどまる間は目標を満たしています。失敗のないステップは、`b` がそこで何も数えていないため、0 が描かれます。`outcome != not_sent` はプロジェクト自身の設定が止めたものを除外し、`global` はプロジェクト独自の Twilio アカウントを除外します。SMS を自身の SMS・通話ゲートウェイ経由で送るインストールでは、同じクエリがゲートウェイを測定します。別のチャネルには `sms` を `call`、`push`、`email` に変えます。
 
 ### 呼び出しが 30 秒以内に送り出される
 

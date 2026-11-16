@@ -58,6 +58,7 @@ Det finns inte längre någon miljöflagga `RUNBOOK_BASH_ENABLED`. Om de här st
 | Output per steg | **50 KB**. Längre output klipps av med en markör. | Varje automatiserat steg |
 | Körningstidsgräns | **30 sekunder** som standard | JavaScript-, Bash-, SSH- och kubectl-steg |
 | Tidsgräns för begäran | **30 sekunder** som standard | HTTP request-steg |
+| Svar per begäran | **10 MB**. Ett större svar läses inte och får steget att misslyckas. | HTTP request-steg |
 | Tidsgräns för övertagande | **2 minuter** som standard: hur länge Workern väntar på att den valda Runnern tar jobbet innan det misslyckas | JavaScript-, Bash-, SSH- och kubectl-steg |
 | Intervall för tidsgränser | **1 sekund till 1 timme** | Varje tidsgräns |
 | Väntan på en person | Ingen gräns | Manual-steg och godkännanden |

@@ -477,9 +477,10 @@ describe("a global Runner takes code fixes, and runs no repository command", () 
       "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentAuth.ts",
     );
 
-    expect(auth).toContain(
-      "if (runner.isGlobalRunner === true && !runner.projectId) {",
-    );
+    // A global Runner with no project, unless a master admin turned its code fixes off.
+    expect(auth).toContain("runner.isGlobalRunner === true &&");
+    expect(auth).toContain("!runner.projectId &&");
+    expect(auth).toContain("!isCodeFixesTurnedOffInOneUptime(runner)");
   });
 
   it("it runs no repository command, offers the code agent no command tool, and reaches Git by the global Runner's rule", () => {
@@ -513,16 +514,15 @@ describe("a global Runner acts only for the fix it took, and a GitHub token reac
     );
 
     expect(auth).toContain("public static deniesAccessToRun(");
+    // Every worker, a global Runner and a project's own alike (#6115).
     expect(auth).toContain(
-      "run.aiAgentId.toString() !== identity.id.toString()",
+      "run.aiAgentId.toString() === identity.id.toString()",
     );
     expect(auth).toContain("return run.status !== AIRunStatus.Running;");
 
     const data: string = source("packages/Common/Server/API/AIAgentDataAPI.ts");
 
-    expect(data).toContain(
-      "if (CodeFixAgentAuth.isGlobalIdentity(aiAgent) && !tokenRun) {",
-    );
+    expect(data).toContain("if (!tokenRun && !isHeldWithoutNamingIt) {");
   });
 
   it("the token a Runner is handed for a GitHub repository is minted for that one repository", () => {
@@ -793,4 +793,61 @@ describe.each(TRANSLATIONS)("the %s upgrade guide", (language: string) => {
       `/docs/${AI_AGENT_PAGE}#${anchorAtEnglishPlace(language, AI_AGENT_PAGE, "pick-the-repositorys-runner")}`,
     ]);
   });
+});
+
+/*
+ * #6115: a master admin's switch keeps a global Runner off code fixes, and
+ * on OneUptime Cloud global Runners work in GitHub repositories only. The
+ * Runners page says both, in every language, on the line after the one on
+ * global Runners that take no code fixes.
+ */
+describe("the Runners page says how a global Runner is kept off code fixes", () => {
+  const PAGE: string = "runbooks/agents.md";
+
+  function linesOf(language: string): Array<string> {
+    return fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "../../../FeatureSet/Docs/Content",
+          language,
+          PAGE,
+        ),
+        "utf8",
+      )
+      .split("\n");
+  }
+
+  it("in English: the switch, where it is, what off does, and OneUptime Cloud's rule, as the code holds them", () => {
+    const line: string = linesOf("en")[77]!;
+
+    expect(line).toContain("**Runs AI Code Fixes**");
+    expect(line).toContain("**More fields**");
+    expect(line).toContain("**Global Runners**");
+    expect(line).toContain("is on by default");
+    expect(line).toContain("hands it no repository's token");
+    expect(line).toContain(
+      "On OneUptime Cloud, global Runners work in GitHub repositories only",
+    );
+    expect(new Runner().getTableColumnMetadata("canRunCodeFixes").title).toBe(
+      "Runs AI Code Fixes",
+    );
+    expect(
+      new Runner().getTableColumnMetadata("canRunCodeFixes").defaultValue,
+    ).toBe(true);
+  });
+
+  it.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s says it on the same line, with three labels and OneUptime Cloud",
+    (language: string) => {
+      const line: string = linesOf(language)[77]!;
+
+      expect(line.split("**").length - 1).toBe(6);
+      expect(line).toContain("OneUptime Cloud");
+      expect(line).toContain("GitHub");
+      expect(linesOf(language)[75]).toContain(
+        "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false",
+      );
+    },
+  );
 });

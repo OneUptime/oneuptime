@@ -82,6 +82,8 @@ ClickHouse disk ≈ (daily raw telemetry GB ÷ compression) × retention days ×
 
 PostgreSQL 儲存的是您的設定和運作狀態，而不是遙測資料，因此成長緩慢，與 ClickHouse 相比始終很小。即使是大型部署，通常也只有幾十 GB。預設的 **25 Gi** 磁碟區適合小型安裝；較大的安裝請規劃 50–100 GB，並為事件和警示歷史留出餘裕。
 
+已解決的事件和警示會一直保留，直到每個專案選擇保留多久。要為每個專案設定上限，請在 **Admin Dashboard → 設定 → 資料保留** 中設定 **最長保留時間**：請參閱 [整個伺服器的上限](/docs/incidents/settings#整個伺服器的上限)。
+
 當應用程式、worker 和探測器的複本很多時，資料庫連線可能會先於儲存空間耗盡。每個 Pod 預設最多開啟 50 個連線，而內建的 PostgreSQL 允許 500 個。Chart 正是為此提供了選用的連線集區 **PgBouncer**（`pgbouncer.enabled`）：複本很多的部署請開啟它。
 
 ## Valkey：快取、佇列與工作階段
