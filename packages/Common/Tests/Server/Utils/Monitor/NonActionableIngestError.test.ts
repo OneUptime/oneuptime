@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHAT NOBODY CAN ACT ON, SHARED FROM COMMON (issue #8069).
@@ -130,8 +131,8 @@ describe("isNonActionableIngestError", () => {
 });
 
 describe("logMonitorEvaluationError", () => {
-  let debug: jest.SpiedFunction<typeof logger.debug>;
-  let error: jest.SpiedFunction<typeof logger.error>;
+  let debug: SpyInstance<typeof logger.debug>;
+  let error: SpyInstance<typeof logger.error>;
 
   beforeEach(() => {
     debug = jest.spyOn(logger, "debug").mockImplementation(() => {

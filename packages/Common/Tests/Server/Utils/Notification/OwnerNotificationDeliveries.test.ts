@@ -31,7 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 type Notify = (delivery: OwnerNotificationDelivery) => Promise<void>;
 
@@ -1505,9 +1505,10 @@ describe("OwnerNotificationDeliveries", () => {
      * and hands that read in.
      */
     test("reads the project's owners through the read it is handed, not ProjectService", async () => {
-      const getOwners: jest.SpiedFunction<typeof ProjectService.getOwners> =
-        jest.spyOn(ProjectService, "getOwners").mockResolvedValue([ALICE]);
-      const findProjectOwners: jest.Mock<() => Promise<Array<User>>> = jest.fn(
+      const getOwners: SpyInstance<typeof ProjectService.getOwners> = jest
+        .spyOn(ProjectService, "getOwners")
+        .mockResolvedValue([ALICE]);
+      const findProjectOwners: Mock<() => Promise<Array<User>>> = jest.fn(
         async (): Promise<Array<User>> => {
           return [CAROL];
         },
@@ -1530,7 +1531,7 @@ describe("OwnerNotificationDeliveries", () => {
     });
 
     test("never reads the project's owners for a record that has its own", async () => {
-      const findProjectOwners: jest.Mock<() => Promise<Array<User>>> = jest.fn(
+      const findProjectOwners: Mock<() => Promise<Array<User>>> = jest.fn(
         async (): Promise<Array<User>> => {
           return [CAROL];
         },
