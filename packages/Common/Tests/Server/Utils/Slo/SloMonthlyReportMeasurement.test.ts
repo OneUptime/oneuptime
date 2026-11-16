@@ -10,6 +10,7 @@ import SloMonthlyReportMeasurement, {
 } from "../../../../Server/Utils/Slo/SloMonthlyReportMeasurement";
 import SloRequestCounting from "../../../../Server/Utils/Slo/SloRequestCounting";
 import OneUptimeDate from "../../../../Types/Date";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
@@ -58,6 +59,13 @@ const MONITOR_B: ObjectID = new ObjectID(
 const SERVICE_ID: ObjectID = new ObjectID(
   "54760000-0000-4000-8000-0000000000c3",
 );
+
+// A histogram whose observations at or under 300 are good: one it can count.
+const COUNTABLE_METRIC: JSONObject = {
+  metricName: "http.server.request.duration",
+  kind: "Histogram",
+  goodAtOrUnder: 300,
+};
 
 const LAST_3_MONTHS: SloMonthlyReportPeriod = {
   kind: SloMonthlyReportPeriodKind.LastMonths,
@@ -186,6 +194,7 @@ describe("SloMonthlyReportMeasurement", () => {
         "timezone",
         "multiMonitorMode",
         "latencyThresholdInMilliseconds",
+        "metricQueryConfig",
         "firstAccumulatedBucketStartAt",
         "lastAccumulatedBucketEndAt",
         "services",
@@ -412,6 +421,45 @@ describe("SloMonthlyReportMeasurement", () => {
     });
   });
 
+  describe("a Metric SLO", () => {
+    test("sums its metric's counted events month by month, in events", async () => {
+      const sums: jest.SpiedFunction<typeof SloRequestCounting.readRangeSums> =
+        jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
+          { goodCount: 0, totalCount: 0 },
+          { goodCount: 998, totalCount: 1000 },
+          { goodCount: 500, totalCount: 500 },
+        ]);
+
+      const report: SloMonthlyReport = await measure(
+        makeSlo({
+          sliType: SliType.Metric,
+          services: [new Service(SERVICE_ID)],
+          monitors: [],
+          metricQueryConfig: COUNTABLE_METRIC,
+          targetPercentage: 99,
+          firstAccumulatedBucketStartAt: new Date("2026-10-01T00:00:00.000Z"),
+          lastAccumulatedBucketEndAt: new Date("2026-11-16T11:55:00.000Z"),
+        }),
+      );
+
+      expect(report.unit).toBe(SloMonthlyReportUnit.Events);
+      expect(report.unavailableReason).toBeNull();
+      expect(sums).toHaveBeenCalledTimes(1);
+      expect(timelineReads).not.toHaveBeenCalled();
+
+      expect(
+        report.months.map((month: { verdict: SloMonthVerdict }) => {
+          return month.verdict;
+        }),
+      ).toEqual([
+        SloMonthVerdict.NoData,
+        SloMonthVerdict.Met,
+        SloMonthVerdict.OnTrack,
+      ]);
+      expect(report.months[1]!.bad).toBe(2);
+    });
+  });
+
   describe("an SLO that measures nothing yet says why, and reads nothing", () => {
     test.each([
       [
@@ -437,8 +485,28 @@ describe("SloMonthlyReportMeasurement", () => {
         SloMonthlyReportUnavailableReason.NoLatencyThreshold,
       ],
       [
+        "a Metric SLO without services",
+        {
+          sliType: SliType.Metric,
+          services: [],
+          metricQueryConfig: COUNTABLE_METRIC,
+        } as Partial<ServiceLevelObjective>,
+        SloMonthlyReportUnavailableReason.NoServicesForMetric,
+      ],
+      [
+        "a Metric SLO with no metric it can count",
+        {
+          sliType: SliType.Metric,
+          services: [new Service(SERVICE_ID)],
+          metricQueryConfig: { kind: "Histogram" },
+        } as Partial<ServiceLevelObjective>,
+        SloMonthlyReportUnavailableReason.NoMetric,
+      ],
+      [
         "an SLI type OneUptime does not measure",
-        { sliType: SliType.Metric } as Partial<ServiceLevelObjective>,
+        {
+          sliType: "Retired SLI type" as SliType,
+        } as Partial<ServiceLevelObjective>,
         SloMonthlyReportUnavailableReason.NotMeasured,
       ],
       [

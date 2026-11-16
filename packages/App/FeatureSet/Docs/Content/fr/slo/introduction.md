@@ -213,7 +213,7 @@ Après une modification de ce qu'il mesure, de l'objectif, de la période ou du 
 
 ### Le rapport mensuel
 
-Le **Rapport mensuel** montre comment le SLO s'est comporté chaque mois calendaire des **3 mois**, **6 mois**, **9 mois** ou **12 mois** écoulés, ou d'une année civile. Chaque mois indique son SLI, son indisponibilité (pour un SLO de requêtes, ses requêtes en échec ou lentes), la part de son budget d'erreur qu'il a consommée, et son résultat :
+Le **Rapport mensuel** montre comment le SLO s'est comporté chaque mois calendaire des **3 mois**, **6 mois**, **9 mois** ou **12 mois** écoulés, ou d'une année civile. Chaque mois indique son SLI, son indisponibilité (pour un SLO de requêtes, ses requêtes en échec ou lentes ; pour un SLO de métrique, ses mauvais événements), la part de son budget d'erreur qu'il a consommée, et son résultat :
 
 | Résultat | Signification |
 | --- | --- |
@@ -225,7 +225,7 @@ Le **Rapport mensuel** montre comment le SLO s'est comporté chaque mois calenda
 
 La ligne **Total** mesure toute la période d'un seul tenant. Un SLO à plusieurs moniteurs a aussi un tableau **Par moniteur** : le SLI propre à chaque moniteur pour chaque mois, le moniteur qui a le plus coûté au SLO en premier. **Télécharger le CSV** enregistre le rapport dans un fichier pour un tableur.
 
-Rien de plus n'est stocké pour le rapport. Chaque mois est calculé à partir de l'historique de statut des moniteurs à l'ouverture du rapport, avec les moniteurs, les statuts d'indisponibilité et l'objectif du SLO tels qu'ils sont aujourd'hui : il remonte donc avant la création du SLO. Les mois d'un SLO de requêtes viennent des requêtes que OneUptime a comptées pour lui, conservées 400 jours. Les mois suivent le fuseau horaire du SLO, ou UTC s'il n'en a pas.
+Rien de plus n'est stocké pour le rapport. Chaque mois est calculé à partir de l'historique de statut des moniteurs à l'ouverture du rapport, avec les moniteurs, les statuts d'indisponibilité et l'objectif du SLO tels qu'ils sont aujourd'hui : il remonte donc avant la création du SLO. Les mois d'un SLO de requêtes viennent des requêtes que OneUptime a comptées pour lui, et ceux d'un SLO de métrique des événements de sa métrique, conservés 400 jours. Les mois suivent le fuseau horaire du SLO, ou UTC s'il n'en a pas.
 
 L'API renvoie le même rapport :
 

@@ -55965,5 +55965,11 @@
   "Wrong password": "رمز عبور نادرست",
   "{{count}} attempt": "{{count}} تلاش",
   "{{summary}} - view sign-in attempt details": "{{summary}} - دیدن جزئیات تلاش برای ورود",
-  "Attachment Seen At": "Attachment Seen At"
+  "Attachment Seen At": "Attachment Seen At",
+  "Bad Events": "رویدادهای بد",
+  "No events were counted before {{month}}, so earlier months are left out.": "پیش از {{month}} هیچ رویدادی شمرده نشده است، پس ماه‌های قبل‌تر کنار گذاشته شده‌اند.",
+  "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "هیچ‌یک از سرویس‌های این SLO در این ماه‌ها رویدادی از متریکش نفرستاده که OneUptime شمرده باشد. بازه‌ای دیرتر انتخاب کنید، یا صبر کنید تا متریک‌های سرویس‌هایش برسند.",
+  "The share of the month's events of this SLO's metric that were good.": "سهم رویدادهای خوب از رویدادهای متریک این SLO در آن ماه.",
+  "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "این SLO متریکی ندارد که بتواند بشمارد، پس هنوز چیزی برای گزارش نیست. متریکش را در تنظیمات انتخاب کنید.",
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "این SLO یک متریک را می‌سنجد، اما هیچ سرویسی انتخاب نشده است، پس هنوز چیزی برای گزارش نیست. سرویس‌هایش را در تنظیمات انتخاب کنید."
 }

@@ -213,7 +213,7 @@ Nach einer Änderung daran, was es misst, an Ziel, Zeitraum oder Berechnung der 
 
 ### Der Monatsbericht
 
-Der **Monatsbericht** zeigt, wie das SLO in jedem Kalendermonat der letzten **3 Monate**, **6 Monate**, **9 Monate** oder **12 Monate** oder eines Kalenderjahres abgeschnitten hat. Jeder Monat zeigt sein SLI, seine Ausfallzeit (bei einem Anfrage-SLO die fehlgeschlagenen oder langsamen Anfragen), den Anteil seines Fehlerbudgets, den er verbraucht hat, und sein Ergebnis:
+Der **Monatsbericht** zeigt, wie das SLO in jedem Kalendermonat der letzten **3 Monate**, **6 Monate**, **9 Monate** oder **12 Monate** oder eines Kalenderjahres abgeschnitten hat. Jeder Monat zeigt sein SLI, seine Ausfallzeit (bei einem Anfrage-SLO die fehlgeschlagenen oder langsamen Anfragen, bei einem Metrik-SLO die fehlerhaften Ereignisse), den Anteil seines Fehlerbudgets, den er verbraucht hat, und sein Ergebnis:
 
 | Ergebnis | Bedeutung |
 | --- | --- |
@@ -225,7 +225,7 @@ Der **Monatsbericht** zeigt, wie das SLO in jedem Kalendermonat der letzten **3 
 
 Die Zeile **Gesamt** misst den ganzen Zeitraum als einen. Ein SLO mit mehreren Monitoren erhält außerdem eine Tabelle **Nach Monitor**: das eigene SLI jedes Monitors in jedem Monat, zuerst der Monitor, der das SLO am meisten gekostet hat. **CSV herunterladen** speichert den Bericht als Datei für eine Tabellenkalkulation.
 
-Für den Bericht wird nichts zusätzlich gespeichert. Jeder Monat wird beim Öffnen aus dem Statusverlauf der Monitore berechnet, mit den Monitoren, den Ausfallzeit-Status und dem Ziel des SLO, wie sie jetzt sind, und reicht so bis vor die Erstellung des SLO zurück. Die Monate eines Anfrage-SLO stammen aus den Anfragen, die OneUptime dafür gezählt hat und 400 Tage lang aufbewahrt. Die Monate richten sich nach der Zeitzone des SLO oder nach UTC, wenn es keine hat.
+Für den Bericht wird nichts zusätzlich gespeichert. Jeder Monat wird beim Öffnen aus dem Statusverlauf der Monitore berechnet, mit den Monitoren, den Ausfallzeit-Status und dem Ziel des SLO, wie sie jetzt sind, und reicht so bis vor die Erstellung des SLO zurück. Die Monate eines Anfrage-SLO stammen aus den Anfragen, die OneUptime dafür gezählt hat, die eines Metrik-SLO aus den Ereignissen seiner Metrik; OneUptime bewahrt beide 400 Tage lang auf. Die Monate richten sich nach der Zeitzone des SLO oder nach UTC, wenn es keine hat.
 
 Die API antwortet mit demselben Bericht:
 

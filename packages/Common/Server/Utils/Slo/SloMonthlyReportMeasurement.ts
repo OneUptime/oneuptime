@@ -22,9 +22,13 @@ import {
   isValidSloTargetPercentage,
 } from "../../../Utils/Slo/SloMonthlyReport";
 import {
+  getSloMetricQueryProblem,
+  normalizeSloMetricQueryConfig,
+} from "../../../Utils/Slo/SloMetricSli";
+import {
   SloRequestCountingRange,
   SloRequestCounts,
-  isRequestSliType,
+  isEventSliType,
 } from "../../../Utils/Slo/SloRequestSli";
 import { MonitorTimelineSet } from "../../../Utils/Slo/SloUtil";
 import {
@@ -43,7 +47,8 @@ import SloRequestCounting from "./SloRequestCounting";
  *     monitor alone for the breakdown;
  *   - a request SLO: the request counts the worker keeps in SloHistory,
  *     summed month by month in one query, inside what its current counting
- *     covers.
+ *     covers - and a Metric SLO's event counts, which the worker keeps the
+ *     same way.
  *
  * Read as OneUptime: the caller was already allowed to read the SLO. The
  * breakdown names only the monitors the caller may read (readMonitorNames);
@@ -60,6 +65,7 @@ export const SLO_MONTHLY_REPORT_SELECT: {
   timezone: true;
   multiMonitorMode: true;
   latencyThresholdInMilliseconds: true;
+  metricQueryConfig: true;
   firstAccumulatedBucketStartAt: true;
   lastAccumulatedBucketEndAt: true;
   services: { _id: true };
@@ -74,6 +80,8 @@ export const SLO_MONTHLY_REPORT_SELECT: {
   timezone: true,
   multiMonitorMode: true,
   latencyThresholdInMilliseconds: true,
+  // Whether a Metric SLO has a metric it can count at all.
+  metricQueryConfig: true,
   firstAccumulatedBucketStartAt: true,
   lastAccumulatedBucketEndAt: true,
   services: { _id: true },
@@ -150,15 +158,30 @@ export default class SloMonthlyReportMeasurement {
       });
     };
 
-    const isRequestSlo: boolean = isRequestSliType(sliType);
+    // A request SLO's requests, or a Metric SLO's events: counted steps.
+    const isEventSlo: boolean = isEventSliType(sliType);
+    const isMetricSlo: boolean = sliType === SliType.Metric;
 
-    if (!isRequestSlo && sliType !== SliType.MonitorUptime) {
+    if (!isEventSlo && sliType !== SliType.MonitorUptime) {
       return unavailable(SloMonthlyReportUnavailableReason.NotMeasured);
     }
 
-    if (isRequestSlo) {
+    if (isEventSlo) {
       if (idsOf(slo.services as Array<Service> | undefined).length === 0) {
-        return unavailable(SloMonthlyReportUnavailableReason.NoServices);
+        return unavailable(
+          isMetricSlo
+            ? SloMonthlyReportUnavailableReason.NoServicesForMetric
+            : SloMonthlyReportUnavailableReason.NoServices,
+        );
+      }
+
+      if (
+        isMetricSlo &&
+        getSloMetricQueryProblem(
+          normalizeSloMetricQueryConfig(slo.metricQueryConfig),
+        ) !== null
+      ) {
+        return unavailable(SloMonthlyReportUnavailableReason.NoMetric);
       }
 
       const threshold: number = Number(slo.latencyThresholdInMilliseconds);
@@ -192,7 +215,7 @@ export default class SloMonthlyReportMeasurement {
         name: string;
         months: Array<SloMonthlyFigures>;
       }>;
-    } = isRequestSlo
+    } = isEventSlo
       ? {
           figures: await SloMonthlyReportMeasurement.measureRequests({
             slo: slo,

@@ -55965,5 +55965,11 @@
   "Wrong password": "密码错误",
   "{{count}} attempt": "{{count}} 次尝试",
   "{{summary}} - view sign-in attempt details": "{{summary}} - 查看登录尝试详情",
-  "Attachment Seen At": "Attachment Seen At"
+  "Attachment Seen At": "Attachment Seen At",
+  "Bad Events": "不良事件",
+  "No events were counted before {{month}}, so earlier months are left out.": "{{month}} 之前没有统计到事件，因此省略了更早的月份。",
+  "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "在这些月份中，此 SLO 的服务都没有发送 OneUptime 统计到的指标事件。请选择更晚的期间，或等待其服务的指标到达。",
+  "The share of the month's events of this SLO's metric that were good.": "此 SLO 的指标在该月的事件中良好事件的比例。",
+  "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "此 SLO 没有可统计的指标，因此还没有可报告的内容。请在设置中选择其指标。",
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "此 SLO 衡量指标，但尚未选择服务，因此还没有可报告的内容。请在设置中选择其服务。"
 }

@@ -55965,5 +55965,11 @@
   "Wrong password": "Verkeerd wachtwoord",
   "{{count}} attempt": "{{count}} poging",
   "{{summary}} - view sign-in attempt details": "{{summary}} - details van de aanmeldpoging bekijken",
-  "Attachment Seen At": "Attachment Seen At"
+  "Attachment Seen At": "Attachment Seen At",
+  "Bad Events": "Slechte gebeurtenissen",
+  "No events were counted before {{month}}, so earlier months are left out.": "Vóór {{month}} zijn geen gebeurtenissen geteld, dus eerdere maanden worden weggelaten.",
+  "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "Geen van de services van deze SLO heeft in deze maanden een gebeurtenis van zijn metriek verstuurd die OneUptime telde. Kies een latere periode, of wacht tot de metrieken van zijn services binnenkomen.",
+  "The share of the month's events of this SLO's metric that were good.": "Het deel van de gebeurtenissen van de metriek van deze SLO in de maand dat goed was.",
+  "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "Deze SLO heeft geen metriek die hij kan tellen, dus er is nog niets te rapporteren. Kies de metriek onder Instellingen.",
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "Deze SLO meet een metriek, maar er zijn geen services gekozen, dus er is nog niets te rapporteren. Kies de services onder Instellingen."
 }

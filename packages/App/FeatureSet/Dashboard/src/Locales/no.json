@@ -55965,5 +55965,11 @@
   "Wrong password": "Feil passord",
   "{{count}} attempt": "{{count}} forsøk",
   "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om påloggingsforsøket",
-  "Attachment Seen At": "Attachment Seen At"
+  "Attachment Seen At": "Attachment Seen At",
+  "Bad Events": "Dårlige hendelser",
+  "No events were counted before {{month}}, so earlier months are left out.": "Ingen hendelser ble telt før {{month}}, så tidligere måneder er utelatt.",
+  "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "Ingen av tjenestene til denne SLO-en sendte en hendelse fra målingen som OneUptime telte i disse månedene. Velg en senere periode, eller vent til målingene fra tjenestene når frem.",
+  "The share of the month's events of this SLO's metric that were good.": "Andelen av månedens hendelser fra målingen til denne SLO-en som var gode.",
+  "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "Denne SLO-en har ingen måling den kan telle, så det er ingenting å rapportere ennå. Velg målingen under Innstillinger.",
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "Denne SLO-en måler en måling, men ingen tjenester er valgt, så det er ingenting å rapportere ennå. Velg tjenestene under Innstillinger."
 }

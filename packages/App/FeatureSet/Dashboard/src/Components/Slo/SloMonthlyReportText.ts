@@ -247,6 +247,12 @@ export const SLO_MONTHLY_REPORT_UNAVAILABLE_TEXT: Record<
   [SloMonthlyReportUnavailableReason.NoServices]: translationKey(
     "This SLO measures requests, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.",
   ),
+  [SloMonthlyReportUnavailableReason.NoServicesForMetric]: translationKey(
+    "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.",
+  ),
+  [SloMonthlyReportUnavailableReason.NoMetric]: translationKey(
+    "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.",
+  ),
   [SloMonthlyReportUnavailableReason.NoLatencyThreshold]: translationKey(
     "This SLO has no latency threshold, so no request can be counted as fast enough. Set its latency threshold in Settings.",
   ),

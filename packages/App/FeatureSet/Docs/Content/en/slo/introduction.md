@@ -213,7 +213,7 @@ After a change to what it measures, the objective, period or downtime calculatio
 
 ### The Monthly Report
 
-The **Monthly Report** shows how the SLO did in each calendar month of the last **3 months**, **6 months**, **9 months** or **12 months**, or of a calendar year. Each month shows its SLI, its downtime (a request SLO's failed or slow requests), the share of its error budget it used, and its result:
+The **Monthly Report** shows how the SLO did in each calendar month of the last **3 months**, **6 months**, **9 months** or **12 months**, or of a calendar year. Each month shows its SLI, its downtime (a request SLO's failed or slow requests, a Metric SLO's bad events), the share of its error budget it used, and its result:
 
 | Result | What it means |
 | --- | --- |
@@ -225,7 +225,7 @@ The **Monthly Report** shows how the SLO did in each calendar month of the last 
 
 The **Total** row measures the whole period as one. An SLO with several monitors also gets a **By Monitor** table: each monitor's own SLI in every month, with the monitor that cost the SLO most first. **Download CSV** saves the report as a file for a spreadsheet.
 
-Nothing extra is stored for the report. Each month is worked out from the monitors' status history when you open it, with the SLO's monitors, downtime statuses and target as they are now, so it reaches back to before the SLO was created. A request SLO's months come from the requests OneUptime counted for it, which it keeps for 400 days. Months run in the SLO's timezone, or in UTC when it has none.
+Nothing extra is stored for the report. Each month is worked out from the monitors' status history when you open it, with the SLO's monitors, downtime statuses and target as they are now, so it reaches back to before the SLO was created. A request SLO's months come from the requests OneUptime counted for it, and a Metric SLO's from the events of its metric, which OneUptime keeps for 400 days. Months run in the SLO's timezone, or in UTC when it has none.
 
 The API answers with the same report:
 

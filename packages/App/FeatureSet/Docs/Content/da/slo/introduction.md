@@ -213,7 +213,7 @@ Efter en ændring af, hvad det måler, målet, perioden eller beregningen af ned
 
 ### Månedsrapporten
 
-**Månedsrapport** viser, hvordan SLO'et klarede sig i hver kalendermåned i de seneste **3 måneder**, **6 måneder**, **9 måneder** eller **12 måneder** eller i et kalenderår. Hver måned viser sin SLI, sin nedetid (for et anmodnings-SLO de mislykkede eller langsomme anmodninger), den andel af sit fejlbudget, den brugte, og sit resultat:
+**Månedsrapport** viser, hvordan SLO'et klarede sig i hver kalendermåned i de seneste **3 måneder**, **6 måneder**, **9 måneder** eller **12 måneder** eller i et kalenderår. Hver måned viser sin SLI, sin nedetid (for et anmodnings-SLO de mislykkede eller langsomme anmodninger, for et metrik-SLO de dårlige begivenheder), den andel af sit fejlbudget, den brugte, og sit resultat:
 
 | Resultat | Hvad det betyder |
 | --- | --- |
@@ -225,7 +225,7 @@ Efter en ændring af, hvad det måler, målet, perioden eller beregningen af ned
 
 Rækken **Total** måler hele perioden som én. Et SLO med flere monitorer får også en tabel **Efter monitor**: hver monitors egen SLI i hver måned, med den monitor, der kostede SLO'et mest, først. **Download CSV** gemmer rapporten som en fil til et regneark.
 
-Der gemmes intet ekstra til rapporten. Hver måned beregnes ud fra monitorernes statushistorik, når du åbner den, med SLO'ets monitorer, nedetidsstatusser og mål, som de er nu, så den rækker tilbage til før SLO'et blev oprettet. Et anmodnings-SLO's måneder kommer fra de anmodninger, OneUptime har talt for det, og som gemmes i 400 dage. Månederne følger SLO'ets tidszone eller UTC, hvis det ikke har nogen.
+Der gemmes intet ekstra til rapporten. Hver måned beregnes ud fra monitorernes statushistorik, når du åbner den, med SLO'ets monitorer, nedetidsstatusser og mål, som de er nu, så den rækker tilbage til før SLO'et blev oprettet. Et anmodnings-SLO's måneder kommer fra de anmodninger, OneUptime har talt for det, og et metrik-SLO's fra begivenhederne fra dets metrik, som gemmes i 400 dage. Månederne følger SLO'ets tidszone eller UTC, hvis det ikke har nogen.
 
 API'et svarer med den samme rapport:
 

@@ -305,7 +305,8 @@ describe("loading the report", () => {
 
     expect(askedFor()).toEqual({ months: "4" });
     expect(periodButton("months-4")).toHaveAttribute("aria-checked", "true");
-    expect(periodButton("months-4").textContent).toBe("4 months");
+    // A number keeps its unit on its line: a no-break space between them.
+    expect(periodButton("months-4").textContent).toBe("4\u00A0months");
   });
 
   test("an address it cannot read opens the default", async () => {
@@ -551,7 +552,8 @@ describe("picking a period", () => {
       within(screen.getByRole("radiogroup", { name: "Period" }))
         .getAllByRole("radio")
         .map((button: HTMLElement): string => {
-          return button.textContent || "";
+          // A number keeps its unit on its line (NoBreakSpaces).
+          return (button.textContent || "").replace(/\u00A0/g, " ");
         }),
     ).toEqual([
       "3 months",
@@ -753,6 +755,73 @@ describe("a request SLO", () => {
     // November so far is below the target, but more requests can still lift it.
     expect(verdictsOf(monthlyTable())[1]).toBe("Below target");
     expect(screen.queryByText("By Monitor")).not.toBeInTheDocument();
+  });
+});
+
+describe("a Metric SLO", () => {
+  test("counts its metric's events, and its bad ones", async () => {
+    answerWith(
+      buildSloMonthlyReport({
+        sloId: SLO_ID,
+        sloName: "Checkout latency",
+        sliType: SliType.Metric,
+        targetPercentage: 99,
+        timezone: "UTC",
+        period: { kind: SloMonthlyReportPeriodKind.LastMonths, months: 1 },
+        months: getSloReportMonths({
+          period: { kind: SloMonthlyReportPeriodKind.LastMonths, months: 1 },
+          now: MEASURED_AT,
+        }),
+        figures: [
+          getRequestMonthlyFigures({ goodCount: 995, totalCount: 1000 }),
+        ],
+        now: MEASURED_AT,
+      }),
+    );
+
+    await opened();
+
+    const headers: Array<string> = Array.from(
+      monthlyTable().querySelectorAll("thead th"),
+    ).map((cell: Element): string => {
+      return (cell.textContent || "").trim();
+    });
+
+    expect(headers).toEqual(expect.arrayContaining(["Events", "Bad Events"]));
+    expect(headers).not.toContain("Requests");
+    expect(headers).not.toContain("Downtime");
+    expect(
+      within(rowsOf(monthlyTable())[0]!).getByText("1,000"),
+    ).toBeInTheDocument();
+  });
+
+  test("a Metric SLO with no metric to count is sent to Settings", async () => {
+    answerWith(
+      buildUnavailableSloMonthlyReport({
+        sloId: SLO_ID,
+        sliType: SliType.Metric,
+        targetPercentage: 99,
+        timezone: "UTC",
+        period: { kind: SloMonthlyReportPeriodKind.LastMonths, months: 12 },
+        reason: SloMonthlyReportUnavailableReason.NoMetric,
+        now: MEASURED_AT,
+      }),
+    );
+
+    openPage();
+
+    const state: HTMLElement = await screen.findByTestId(
+      "slo-monthly-report-unavailable",
+    );
+
+    expect(
+      within(state).getByText(
+        "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(state).getByRole("link", { name: "Open Settings" }),
+    ).toBeInTheDocument();
   });
 });
 

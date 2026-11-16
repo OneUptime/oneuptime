@@ -1355,6 +1355,26 @@ describe("SloMonthlyReport", () => {
       expect(total).toBe("Total,Yes,,99.0000,0,0,,No data");
     });
 
+    test("a Metric SLO's file counts events", () => {
+      const metric: SloMonthlyReport = buildSloMonthlyReport({
+        sloId: SLO_ID,
+        sliType: SliType.Metric,
+        targetPercentage: 99,
+        timezone: "UTC",
+        period: lastMonths(1),
+        months: getSloReportMonths({ period: lastMonths(1), now: NOW }),
+        figures: [
+          getRequestMonthlyFigures({ goodCount: 990, totalCount: 1000 }),
+        ],
+        now: NOW,
+      });
+
+      expect(metric.unit).toBe(SloMonthlyReportUnit.Events);
+      expect(buildSloMonthlyReportCsv(metric).split("\r\n")[0]).toBe(
+        "Month,Month to date,SLI (%),Target (%),Events,Bad events,Error budget used (%),Result",
+      );
+    });
+
     test.each([
       ["plain", "plain"],
       ["a,b", '"a,b"'],

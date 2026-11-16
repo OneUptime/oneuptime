@@ -90,7 +90,10 @@ const SloMonthlyReportTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const report: SloMonthlyReport = props.report;
+  // A request SLO counts requests, a Metric SLO its metric's events.
   const isRequests: boolean = report.unit === SloMonthlyReportUnit.Requests;
+  const isEvents: boolean = report.unit === SloMonthlyReportUnit.Events;
+  const isCounted: boolean = isRequests || isEvents;
   const isSlowRequests: boolean =
     isRequests && getBadRequestKind(report.sliType) === "slow";
 
@@ -158,7 +161,7 @@ const SloMonthlyReportTable: FunctionComponent<ComponentProps> = (
 
     return (
       <span className="tabular-nums text-gray-700">
-        {isRequests
+        {isCounted
           ? translator.formatNumber(Math.round(row.figures.bad))
           : formatDurationCompactInLanguage(
               row.figures.bad,
@@ -215,18 +218,22 @@ const SloMonthlyReportTable: FunctionComponent<ComponentProps> = (
         ? translationKey(
             "The share of the month's requests that were good, as this SLO counts them.",
           )
-        : translationKey(
-            "The share of the month this SLO's monitors were up, counting only the time they were monitored.",
-          ),
+        : isEvents
+          ? translationKey(
+              "The share of the month's events of this SLO's metric that were good.",
+            )
+          : translationKey(
+              "The share of the month this SLO's monitors were up, counting only the time they were monitored.",
+            ),
       getElement: getSliElement,
     },
   ];
 
-  if (isRequests) {
+  if (isCounted) {
     columns.push({
       id: "requests",
       key: "id",
-      title: "Requests",
+      title: isEvents ? "Events" : "Requests",
       type: FieldType.Element,
       disableSort: true,
       hideBelowLargeScreen: true,
@@ -250,11 +257,13 @@ const SloMonthlyReportTable: FunctionComponent<ComponentProps> = (
     {
       id: "bad",
       key: "id",
-      title: isRequests
-        ? isSlowRequests
-          ? "Slow Requests"
-          : "Failed Requests"
-        : "Downtime",
+      title: isEvents
+        ? "Bad Events"
+        : isRequests
+          ? isSlowRequests
+            ? "Slow Requests"
+            : "Failed Requests"
+          : "Downtime",
       type: FieldType.Element,
       disableSort: true,
       hideBelowLargeScreen: true,

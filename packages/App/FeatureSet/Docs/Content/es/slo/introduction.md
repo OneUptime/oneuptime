@@ -213,7 +213,7 @@ Tras un cambio en lo que mide, el objetivo, el periodo o el cálculo del tiempo 
 
 ### El informe mensual
 
-El **Informe mensual** muestra cómo le fue al SLO en cada mes natural de los últimos **3 meses**, **6 meses**, **9 meses** o **12 meses**, o de un año natural. Cada mes muestra su SLI, su tiempo de inactividad (en un SLO de solicitudes, sus solicitudes fallidas o lentas), la parte de su presupuesto de errores que usó y su resultado:
+El **Informe mensual** muestra cómo le fue al SLO en cada mes natural de los últimos **3 meses**, **6 meses**, **9 meses** o **12 meses**, o de un año natural. Cada mes muestra su SLI, su tiempo de inactividad (en un SLO de solicitudes, sus solicitudes fallidas o lentas; en un SLO de métrica, sus eventos malos), la parte de su presupuesto de errores que usó y su resultado:
 
 | Resultado | Qué significa |
 | --- | --- |
@@ -225,7 +225,7 @@ El **Informe mensual** muestra cómo le fue al SLO en cada mes natural de los ú
 
 La fila **Total** mide todo el periodo como uno solo. Un SLO con varios monitores tiene además una tabla **Por monitor**: el SLI propio de cada monitor en cada mes, con primero el monitor que más le costó al SLO. **Descargar CSV** guarda el informe como un archivo para una hoja de cálculo.
 
-No se guarda nada más para el informe. Cada mes se calcula a partir del historial de estado de los monitores al abrirlo, con los monitores, los estados de inactividad y el objetivo del SLO tal como están ahora, así que llega hasta antes de que se creara el SLO. Los meses de un SLO de solicitudes salen de las solicitudes que OneUptime contó para él, que conserva durante 400 días. Los meses siguen la zona horaria del SLO, o UTC si no tiene.
+No se guarda nada más para el informe. Cada mes se calcula a partir del historial de estado de los monitores al abrirlo, con los monitores, los estados de inactividad y el objetivo del SLO tal como están ahora, así que llega hasta antes de que se creara el SLO. Los meses de un SLO de solicitudes salen de las solicitudes que OneUptime contó para él, y los de un SLO de métrica de los eventos de su métrica, que OneUptime conserva durante 400 días. Los meses siguen la zona horaria del SLO, o UTC si no tiene.
 
 La API responde con el mismo informe:
 

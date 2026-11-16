@@ -29,7 +29,9 @@ import SloUtil, { MonitorTimelineSet, TimeSliResult } from "./SloUtil";
  * created, and a status timeline edited later is reflected the next time
  * the report is read. A request SLO's months are summed from the request
  * counts the worker keeps in SloHistory (400 days), from where the current
- * counting starts (firstAccumulatedBucketStartAt). Each month is measured
+ * counting starts (firstAccumulatedBucketStartAt) - and so are a Metric
+ * SLO's, from the good and total events of its metric that the worker keeps
+ * the same way. Each month is measured
  * against the SLO's monitors, services, downtime statuses and target as
  * they are now.
  *
@@ -93,6 +95,8 @@ export enum SloMonthlyReportUnit {
   Seconds = "Seconds",
   // Request Success and Request Latency: requests, and the bad ones.
   Requests = "Requests",
+  // Metric: the events of its counter or histogram, and the bad ones.
+  Events = "Events",
 }
 
 export enum SloMonthVerdict {
@@ -117,6 +121,8 @@ export enum SloMonthVerdict {
 export enum SloMonthlyReportUnavailableReason {
   NoMonitors = "NoMonitors",
   NoServices = "NoServices",
+  NoServicesForMetric = "NoServicesForMetric",
+  NoMetric = "NoMetric",
   NoLatencyThreshold = "NoLatencyThreshold",
   NotMeasured = "NotMeasured",
   TargetOutOfRange = "TargetOutOfRange",
@@ -130,10 +136,14 @@ export const SLO_MONTHLY_REPORT_UNAVAILABLE_MESSAGES: Record<
     "No monitors are attached to this SLO, so there is nothing to report. Attach monitors, or add a monitor rule, first.",
   [SloMonthlyReportUnavailableReason.NoServices]:
     "This SLO measures requests, but no services are chosen, so there is nothing to report. Choose the services whose requests it measures first.",
+  [SloMonthlyReportUnavailableReason.NoServicesForMetric]:
+    "This SLO measures a metric, but no services are chosen, so there is nothing to report. Choose the services whose metric it measures first.",
+  [SloMonthlyReportUnavailableReason.NoMetric]:
+    "This Metric SLO has no metric it can count, so there is nothing to report. Choose its metric, and how its good events are told apart, first.",
   [SloMonthlyReportUnavailableReason.NoLatencyThreshold]:
     "This Request Latency SLO has no latency threshold, so no request can be counted as fast enough. Set its latency threshold first.",
   [SloMonthlyReportUnavailableReason.NotMeasured]:
-    "OneUptime does not measure this SLO's SLI type, so there is nothing to report. Choose Monitor Uptime, Request Success or Request Latency.",
+    "OneUptime does not measure this SLO's SLI type, so there is nothing to report. Choose Monitor Uptime, Request Success, Request Latency or Metric.",
   [SloMonthlyReportUnavailableReason.TargetOutOfRange]:
     "This SLO's target is outside the valid range - it must be greater than 0 and below 100 - so no month can be judged against it. Set a target such as 99.9 first.",
 };
@@ -162,10 +172,11 @@ export interface SloMonthlyFigures {
   /*
    * What the month was measured over: seconds measured for a Monitor
    * Uptime SLO (time with monitoring off and before any monitor had data
-   * is left out), requests counted for a request SLO.
+   * is left out), requests counted for a request SLO, events for a Metric
+   * SLO.
    */
   total: number;
-  // Of those, the seconds counted as downtime, or the bad requests.
+  // Of those, the seconds counted as downtime, or the bad requests or events.
   bad: number;
   // UNROUNDED. Null when nothing was measured (total is 0).
   sliPercentage: number | null;
@@ -769,9 +780,15 @@ export const getSloMonthlyReportUnit: (
 ) => SloMonthlyReportUnit = (
   sliType: SliType | string | null | undefined,
 ): SloMonthlyReportUnit => {
-  return isRequestSliType(sliType)
-    ? SloMonthlyReportUnit.Requests
-    : SloMonthlyReportUnit.Seconds;
+  if (isRequestSliType(sliType)) {
+    return SloMonthlyReportUnit.Requests;
+  }
+
+  if (sliType === SliType.Metric) {
+    return SloMonthlyReportUnit.Events;
+  }
+
+  return SloMonthlyReportUnit.Seconds;
 };
 
 /*
@@ -1348,15 +1365,21 @@ const fixed: FixedFunction = (
 export const buildSloMonthlyReportCsv: (report: SloMonthlyReport) => string = (
   report: SloMonthlyReport,
 ): string => {
-  const isRequests: boolean = report.unit === SloMonthlyReportUnit.Requests;
+  const countedHeaders: Record<SloMonthlyReportUnit, [string, string]> = {
+    [SloMonthlyReportUnit.Seconds]: [
+      "Measured (seconds)",
+      "Downtime (seconds)",
+    ],
+    [SloMonthlyReportUnit.Requests]: ["Requests", "Bad requests"],
+    [SloMonthlyReportUnit.Events]: ["Events", "Bad events"],
+  };
 
   const headers: Array<string> = [
     "Month",
     "Month to date",
     "SLI (%)",
     "Target (%)",
-    isRequests ? "Requests" : "Measured (seconds)",
-    isRequests ? "Bad requests" : "Downtime (seconds)",
+    ...countedHeaders[report.unit],
     "Error budget used (%)",
     "Result",
   ];

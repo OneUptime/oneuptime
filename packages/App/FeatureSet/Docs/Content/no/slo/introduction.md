@@ -213,7 +213,7 @@ Etter en endring av hva det måler, målet, perioden eller nedetidsberegningen e
 
 ### Månedsrapporten
 
-**Månedsrapport** viser hvordan SLO-et gjorde det i hver kalendermåned de siste **3 måneder**, **6 måneder**, **9 måneder** eller **12 måneder**, eller i et kalenderår. Hver måned viser sin SLI, sin nedetid (for et forespørsels-SLO de mislykkede eller trege forespørslene), andelen av feilbudsjettet den brukte, og resultatet:
+**Månedsrapport** viser hvordan SLO-et gjorde det i hver kalendermåned de siste **3 måneder**, **6 måneder**, **9 måneder** eller **12 måneder**, eller i et kalenderår. Hver måned viser sin SLI, sin nedetid (for et forespørsels-SLO de mislykkede eller trege forespørslene, for et målings-SLO de dårlige hendelsene), andelen av feilbudsjettet den brukte, og resultatet:
 
 | Resultat | Hva det betyr |
 | --- | --- |
@@ -225,7 +225,7 @@ Etter en endring av hva det måler, målet, perioden eller nedetidsberegningen e
 
 Raden **Totalt** måler hele perioden som én. Et SLO med flere monitorer får også en tabell **Per monitor**: hver monitors egen SLI i hver måned, med monitoren som kostet SLO-et mest, først. **Last ned CSV** lagrer rapporten som en fil til et regneark.
 
-Ingenting ekstra lagres for rapporten. Hver måned regnes ut fra statushistorikken til monitorene når du åpner den, med monitorene, nedetidsstatusene og målet til SLO-et slik de er nå, så den går tilbake til før SLO-et ble opprettet. Månedene til et forespørsels-SLO kommer fra forespørslene OneUptime har telt for det, som lagres i 400 dager. Månedene følger tidssonen til SLO-et, eller UTC når det ikke har noen.
+Ingenting ekstra lagres for rapporten. Hver måned regnes ut fra statushistorikken til monitorene når du åpner den, med monitorene, nedetidsstatusene og målet til SLO-et slik de er nå, så den går tilbake til før SLO-et ble opprettet. Månedene til et forespørsels-SLO kommer fra forespørslene OneUptime har telt for det, og månedene til et målings-SLO fra hendelsene fra målingen, som lagres i 400 dager. Månedene følger tidssonen til SLO-et, eller UTC når det ikke har noen.
 
 API-et svarer med den samme rapporten:
 

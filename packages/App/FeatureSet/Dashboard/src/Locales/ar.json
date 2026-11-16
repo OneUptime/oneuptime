@@ -55965,5 +55965,11 @@
   "Wrong password": "كلمة مرور خاطئة",
   "{{count}} attempt": "{{count}} محاولة",
   "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول",
-  "Attachment Seen At": "Attachment Seen At"
+  "Attachment Seen At": "Attachment Seen At",
+  "Bad Events": "الأحداث السيئة",
+  "No events were counted before {{month}}, so earlier months are left out.": "لم تُحسب أي أحداث قبل {{month}}، لذا استُبعدت الأشهر السابقة.",
+  "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "لم ترسل أي من خدمات هدف SLO هذا حدثًا من مقياسه احتسبه OneUptime في هذه الأشهر. اختر فترة لاحقة، أو انتظر وصول مقاييس خدماته.",
+  "The share of the month's events of this SLO's metric that were good.": "نسبة أحداث مقياس هدف SLO هذا في الشهر التي كانت جيدة.",
+  "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "لا يملك هدف SLO هذا مقياسًا يمكن عدّه، لذا لا يوجد ما يُبلَّغ عنه بعد. اختر مقياسه في «الإعدادات».",
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "يقيس هدف SLO هذا مقياسًا، لكن لم تُختر أي خدمات، لذا لا يوجد ما يُبلَّغ عنه بعد. اختر خدماته في «الإعدادات»."
 }

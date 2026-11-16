@@ -213,7 +213,7 @@ Dopo una modifica a cosa misura, all'obiettivo, al periodo o al calcolo dell'ina
 
 ### Il report mensile
 
-Il **Report mensile** mostra come è andato lo SLO in ogni mese di calendario degli ultimi **3 mesi**, **6 mesi**, **9 mesi** o **12 mesi**, o di un anno solare. Ogni mese mostra il suo SLI, la sua inattività (per uno SLO delle richieste, le richieste non riuscite o lente), la quota del suo budget di errore che ha usato e il suo risultato:
+Il **Report mensile** mostra come è andato lo SLO in ogni mese di calendario degli ultimi **3 mesi**, **6 mesi**, **9 mesi** o **12 mesi**, o di un anno solare. Ogni mese mostra il suo SLI, la sua inattività (per uno SLO delle richieste, le richieste non riuscite o lente; per uno SLO di metrica, gli eventi problematici), la quota del suo budget di errore che ha usato e il suo risultato:
 
 | Risultato | Cosa significa |
 | --- | --- |
@@ -225,7 +225,7 @@ Il **Report mensile** mostra come è andato lo SLO in ogni mese di calendario de
 
 La riga **Totale** misura l'intero periodo come uno solo. Uno SLO con più monitor ha anche una tabella **Per monitor**: lo SLI di ciascun monitor in ogni mese, con per primo il monitor che è costato di più allo SLO. **Scarica CSV** salva il report in un file per un foglio di calcolo.
 
-Per il report non viene salvato nient'altro. Ogni mese viene calcolato dalla cronologia degli stati dei monitor quando lo apri, con i monitor, gli stati di inattività e l'obiettivo dello SLO come sono adesso, quindi risale anche a prima della creazione dello SLO. I mesi di uno SLO delle richieste derivano dalle richieste che OneUptime ha contato per esso, conservate per 400 giorni. I mesi seguono il fuso orario dello SLO, o UTC se non ne ha uno.
+Per il report non viene salvato nient'altro. Ogni mese viene calcolato dalla cronologia degli stati dei monitor quando lo apri, con i monitor, gli stati di inattività e l'obiettivo dello SLO come sono adesso, quindi risale anche a prima della creazione dello SLO. I mesi di uno SLO delle richieste derivano dalle richieste che OneUptime ha contato per esso, e quelli di uno SLO di metrica dagli eventi della sua metrica, conservati per 400 giorni. I mesi seguono il fuso orario dello SLO, o UTC se non ne ha uno.
 
 L'API risponde con lo stesso report:
 

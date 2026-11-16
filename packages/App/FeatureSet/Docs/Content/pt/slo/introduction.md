@@ -213,7 +213,7 @@ Depois de uma mudança no que ele mede, na meta, no período ou no cálculo da i
 
 ### O relatório mensal
 
-O **Relatório mensal** mostra como o SLO se saiu em cada mês do calendário dos últimos **3 meses**, **6 meses**, **9 meses** ou **12 meses**, ou de um ano civil. Cada mês mostra o SLI, o tempo de inatividade (num SLO de requisições, as requisições com falha ou lentas), a parte do orçamento de erros que usou e o resultado:
+O **Relatório mensal** mostra como o SLO se saiu em cada mês do calendário dos últimos **3 meses**, **6 meses**, **9 meses** ou **12 meses**, ou de um ano civil. Cada mês mostra o SLI, o tempo de inatividade (num SLO de requisições, as requisições com falha ou lentas; num SLO de métrica, os eventos ruins), a parte do orçamento de erros que usou e o resultado:
 
 | Resultado | O que significa |
 | --- | --- |
@@ -225,7 +225,7 @@ O **Relatório mensal** mostra como o SLO se saiu em cada mês do calendário do
 
 A linha **Total** mede o período inteiro como um só. Um SLO com vários monitores também ganha uma tabela **Por monitor**: o SLI de cada monitor em cada mês, com primeiro o monitor que mais custou ao SLO. **Baixar CSV** salva o relatório como um arquivo para uma planilha.
 
-Nada a mais é guardado para o relatório. Cada mês é calculado a partir do histórico de status dos monitores quando você o abre, com os monitores, os status de indisponibilidade e a meta do SLO como estão agora, então ele volta até antes de o SLO ser criado. Os meses de um SLO de requisições vêm das requisições que o OneUptime contou para ele, guardadas por 400 dias. Os meses seguem o fuso horário do SLO, ou UTC quando ele não tem um.
+Nada a mais é guardado para o relatório. Cada mês é calculado a partir do histórico de status dos monitores quando você o abre, com os monitores, os status de indisponibilidade e a meta do SLO como estão agora, então ele volta até antes de o SLO ser criado. Os meses de um SLO de requisições vêm das requisições que o OneUptime contou para ele, e os de um SLO de métrica dos eventos da métrica dele, guardados por 400 dias. Os meses seguem o fuso horário do SLO, ou UTC quando ele não tem um.
 
 A API responde com o mesmo relatório:
 

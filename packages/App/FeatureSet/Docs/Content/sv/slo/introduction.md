@@ -213,7 +213,7 @@ Efter en ändring av vad det mäter, målet, perioden eller beräkningen av drif
 
 ### Månadsrapporten
 
-**Månadsrapport** visar hur SLO:et klarade sig i varje kalendermånad de senaste **3 månader**, **6 månader**, **9 månader** eller **12 månader**, eller under ett kalenderår. Varje månad visar sin SLI, sitt driftstopp (för ett begärande-SLO de misslyckade eller långsamma begärandena), den andel av felbudgeten den använde och sitt resultat:
+**Månadsrapport** visar hur SLO:et klarade sig i varje kalendermånad de senaste **3 månader**, **6 månader**, **9 månader** eller **12 månader**, eller under ett kalenderår. Varje månad visar sin SLI, sitt driftstopp (för ett begärande-SLO de misslyckade eller långsamma begärandena, för ett mätvärdes-SLO de underkända händelserna), den andel av felbudgeten den använde och sitt resultat:
 
 | Resultat | Vad det betyder |
 | --- | --- |
@@ -225,7 +225,7 @@ Efter en ändring av vad det mäter, målet, perioden eller beräkningen av drif
 
 Raden **Totalt** mäter hela perioden som en. Ett SLO med flera monitorer får också en tabell **Per monitor**: varje monitors egen SLI i varje månad, med den monitor som kostade SLO:et mest först. **Ladda ner CSV** sparar rapporten som en fil för ett kalkylblad.
 
-Inget extra sparas för rapporten. Varje månad beräknas från monitorernas statushistorik när du öppnar den, med SLO:ets monitorer, driftstoppsstatusar och mål som de är nu, så den sträcker sig tillbaka till innan SLO:et skapades. Ett begärande-SLO:s månader kommer från de begäranden som OneUptime räknade för det och sparar i 400 dagar. Månaderna följer SLO:ets tidszon, eller UTC när det inte har någon.
+Inget extra sparas för rapporten. Varje månad beräknas från monitorernas statushistorik när du öppnar den, med SLO:ets monitorer, driftstoppsstatusar och mål som de är nu, så den sträcker sig tillbaka till innan SLO:et skapades. Ett begärande-SLO:s månader kommer från de begäranden som OneUptime räknade för det, och ett mätvärdes-SLO:s från händelserna i dess mätvärde, som OneUptime sparar i 400 dagar. Månaderna följer SLO:ets tidszon, eller UTC när det inte har någon.
 
 API:et svarar med samma rapport:
 

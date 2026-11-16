@@ -55965,5 +55965,11 @@
   "Wrong password": "Wrong password",
   "{{count}} attempt": "{{count}} attempt",
   "{{summary}} - view sign-in attempt details": "{{summary}} - view sign-in attempt details",
-  "Attachment Seen At": "Attachment Seen At"
+  "Attachment Seen At": "Attachment Seen At",
+  "Bad Events": "Bad Events",
+  "No events were counted before {{month}}, so earlier months are left out.": "No events were counted before {{month}}, so earlier months are left out.",
+  "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.",
+  "The share of the month's events of this SLO's metric that were good.": "The share of the month's events of this SLO's metric that were good.",
+  "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.",
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings."
 }

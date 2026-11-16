@@ -272,7 +272,9 @@ const SloMonthlyReportElement: FunctionComponent<ComponentProps> = (
           description={
             report.unit === SloMonthlyReportUnit.Requests
               ? "None of this SLO's services served a request that OneUptime counted in these months. Pick a later period, or wait for its services' traces to arrive."
-              : "This SLO's monitors have no status history in these months. Pick a later period, or wait for its monitors to be checked."
+              : report.unit === SloMonthlyReportUnit.Events
+                ? "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive."
+                : "This SLO's monitors have no status history in these months. Pick a later period, or wait for its monitors to be checked."
           }
           dataTestId="slo-monthly-report-no-data"
         />
@@ -298,7 +300,9 @@ const SloMonthlyReportElement: FunctionComponent<ComponentProps> = (
             {translator.translateTemplate(
               report.unit === SloMonthlyReportUnit.Requests
                 ? "No requests were counted before {{month}}, so earlier months are left out."
-                : "This SLO's monitors have no status history before {{month}}, so earlier months are left out.",
+                : report.unit === SloMonthlyReportUnit.Events
+                  ? "No events were counted before {{month}}, so earlier months are left out."
+                  : "This SLO's monitors have no status history before {{month}}, so earlier months are left out.",
               {
                 month: getSloReportMonthName({
                   monthStart: firstMonthWithData.monthStart,

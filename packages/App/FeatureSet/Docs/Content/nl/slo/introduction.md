@@ -213,7 +213,7 @@ Na een wijziging van wat hij meet, het doel, de periode of de downtimeberekening
 
 ### Het maandrapport
 
-Het **Maandrapport** toont hoe de SLO het deed in elke kalendermaand van de afgelopen **3 maanden**, **6 maanden**, **9 maanden** of **12 maanden**, of van een kalenderjaar. Elke maand toont zijn SLI, zijn uitvaltijd (bij een aanvraag-SLO de mislukte of trage aanvragen), het deel van zijn foutbudget dat hij gebruikte, en zijn resultaat:
+Het **Maandrapport** toont hoe de SLO het deed in elke kalendermaand van de afgelopen **3 maanden**, **6 maanden**, **9 maanden** of **12 maanden**, of van een kalenderjaar. Elke maand toont zijn SLI, zijn uitvaltijd (bij een aanvraag-SLO de mislukte of trage aanvragen, bij een metriek-SLO de slechte gebeurtenissen), het deel van zijn foutbudget dat hij gebruikte, en zijn resultaat:
 
 | Resultaat | Wat het betekent |
 | --- | --- |
@@ -225,7 +225,7 @@ Het **Maandrapport** toont hoe de SLO het deed in elke kalendermaand van de afge
 
 De rij **Totaal** meet de hele periode als één geheel. Een SLO met meerdere monitoren krijgt ook een tabel **Per monitor**: de eigen SLI van elke monitor in elke maand, met eerst de monitor die de SLO het meest kostte. **CSV downloaden** slaat het rapport op als bestand voor een spreadsheet.
 
-Voor het rapport wordt niets extra opgeslagen. Elke maand wordt bij het openen berekend uit de statusgeschiedenis van de monitoren, met de monitoren, uitvaltijdstatussen en het doel van de SLO zoals ze nu zijn, zodat het rapport teruggaat tot vóór het aanmaken van de SLO. De maanden van een aanvraag-SLO komen uit de aanvragen die OneUptime ervoor telde en 400 dagen bewaart. De maanden volgen de tijdzone van de SLO, of UTC als die er geen heeft.
+Voor het rapport wordt niets extra opgeslagen. Elke maand wordt bij het openen berekend uit de statusgeschiedenis van de monitoren, met de monitoren, uitvaltijdstatussen en het doel van de SLO zoals ze nu zijn, zodat het rapport teruggaat tot vóór het aanmaken van de SLO. De maanden van een aanvraag-SLO komen uit de aanvragen die OneUptime ervoor telde, die van een metriek-SLO uit de gebeurtenissen van zijn metriek; OneUptime bewaart ze 400 dagen. De maanden volgen de tijdzone van de SLO, of UTC als die er geen heeft.
 
 De API antwoordt met hetzelfde rapport:
 
