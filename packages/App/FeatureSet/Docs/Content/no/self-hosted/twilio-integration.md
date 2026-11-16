@@ -37,7 +37,7 @@ Lagre påloggingsinformasjonen for ett prosjekt, eller én gang for hele install
 | Hvor | Kortet **Twilio-konfigurasjon** under **Flere innstillinger** på **Prosjektinnstillinger > Varslinger > Varslingskanaler** | **Admin Dashboard > Innstillinger > Anrop og SMS** |
 | Hvem kan angi den | **Prosjekteier**, **Prosjektadministrator** eller **Create Call and SMS** i en egendefinert rolle | En master-admin |
 | Hvem kan lese dens Auth Token | **Prosjekteier**, **Prosjektadministrator** eller **Read Call and SMS** i en egendefinert rolle. Andre som ser konfigurasjonen, ser resten av den; tokenet lagres kryptert | En master-admin |
-| Brukes til | SMS og anrop til prosjektets medlemmer så lenge den er prosjektstandarden, statussidene den er tildelt, og policyene for innkommende anrop som bruker den | SMS og anrop til medlemmene i alle prosjekter som ikke har en standardkonfigurasjon |
+| Brukes til | SMS til prosjektets medlemmer så lenge den er prosjektstandarden for SMS, anrop til dem så lenge den er prosjektstandarden for anrop, statussidene den er tildelt, og policyene for innkommende anrop som bruker den | SMS og anrop til medlemmene i alle prosjekter som ikke har en standardkonfigurasjon for dem |
 
 Slik legger du til en prosjektkonfigurasjon:
 
@@ -45,7 +45,7 @@ Slik legger du til en prosjektkonfigurasjon:
 1. Gå til **Prosjektinnstillinger > Varslinger > Varslingskanaler**, og åpne **Flere innstillinger**.
 2. Velg **Opprett Twilio-konfigurasjon** i **Twilio-konfigurasjon**.
 3. Skriv inn et navn, og velg under **Bruk denne kontoen til** hva kontoen sender: **Anrop og SMS**, **Bare SMS** eller **Bare anrop**. Skriv deretter inn **Twilio-konto-SID**, **Twilio-autentiseringstoken** og nummeret valget ber om: **Twilio primært telefonnummer** for anrop, eller **Twilio SMS-telefonnumre** for **Bare SMS**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og **Twilio SMS-telefonnumre** hvis numrene dine ikke kan sende SMS.
-4. **Angi som prosjektstandard** er slått på for prosjektets første konfigurasjon, så SMS og anrop til prosjektets medlemmer, også vaktvarslinger, går gjennom den med en gang du lagrer. Slå den av hvis kontoen bare er for statussider eller innkommende anrop. En senere konfigurasjon starter med bryteren av: Slå den på, eller velg **Angi som prosjektstandard** i konfigurasjonens radmeny for å flytte disse meldingene dit. En API-forespørsel som utelater `isProjectDefault`, behandles på samme måte.
+4. **Angi som prosjektstandard** er slått på for prosjektets første konfigurasjon, så SMS og anrop til prosjektets medlemmer, også vaktvarslinger, går gjennom den med en gang du lagrer. Slå den av hvis kontoen bare er for statussider eller innkommende anrop. En senere konfigurasjon starter med bryteren av: Slå den på, eller velg **Angi som prosjektstandard** i konfigurasjonens radmeny for å flytte disse meldingene dit. En API-forespørsel som utelater `isProjectDefault`, behandles på samme måte. For en konfigurasjon som bare ville tatt SMS-ene eller bare anropene, sier menyen hvilke: **Angi som prosjektstandard for SMS** eller **Angi som prosjektstandard for anrop**.
 5. Lagre. Et prosjekt har én standard for SMS og én for anrop, så en konfigurasjon satt til **Bare SMS** og en satt til **Bare anrop** kan begge være standard: se [En konto bare for SMS, eller bare for anrop](#en-konto-bare-for-sms-eller-bare-for-anrop). Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
 
 > [!IMPORTANT]

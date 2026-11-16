@@ -37,7 +37,7 @@ Spara autentiseringsuppgifterna för ett projekt, eller en gång för hela insta
 | Var | Kortet **Twilio-konfiguration** under **Fler inställningar** på **Projektinställningar > Aviseringar > Aviseringskanaler** | **Admin Dashboard > Inställningar > Samtal och SMS** |
 | Vem kan ange den | **Projektägare**, **Projektadministratör** eller **Create Call and SMS** i en anpassad roll | En master admin |
 | Vem kan läsa dess Auth Token | **Projektägare**, **Projektadministratör** eller **Read Call and SMS** i en anpassad roll. Andra som ser konfigurationen ser resten av den; token lagras krypterad | En master admin |
-| Används för | SMS och samtal till projektets medlemmar så länge den är projektstandard, de statussidor den är tilldelad och de policyer för inkommande samtal som använder den | SMS och samtal till medlemmarna i alla projekt som saknar standardkonfiguration |
+| Används för | SMS till projektets medlemmar så länge den är projektstandard för SMS, samtal till dem så länge den är projektstandard för samtal, de statussidor den är tilldelad och de policyer för inkommande samtal som använder den | SMS och samtal till medlemmarna i alla projekt som saknar standardkonfiguration för dem |
 
 Så lägger du till en projektkonfiguration:
 
@@ -45,7 +45,7 @@ Så lägger du till en projektkonfiguration:
 1. Gå till **Projektinställningar > Aviseringar > Aviseringskanaler** och öppna **Fler inställningar**.
 2. Välj **Skapa Twilio-konfiguration** i **Twilio-konfiguration**.
 3. Ange ett namn och välj under **Använd det här kontot för** vad kontot skickar: **Samtal och SMS**, **Endast SMS** eller **Endast samtal**. Ange sedan **Twilio-konto-SID**, **Twilio-autentiseringstoken** och det nummer som valet ber om: **Twilio primärt telefonnummer** för samtal, eller **Twilio SMS-telefonnummer** för **Endast SMS**. Under **Fler fält** kan du också ange kommaseparerade **Twilio sekundära telefonnummer** för andra länder, och **Twilio SMS-telefonnummer** om dina nummer inte kan skicka SMS.
-4. **Ange som projektstandard** är påslaget för projektets första konfiguration, så SMS och samtal till projektets medlemmar, även jouraviseringar, går genom den så fort du sparar. Stäng av det om kontot bara är till för statussidor eller inkommande samtal. En senare konfiguration börjar med reglaget avstängt: slå på det, eller välj **Ange som projektstandard** i konfigurationens radmeny, för att flytta de meddelandena dit. En API-begäran som utelämnar `isProjectDefault` behandlas på samma sätt.
+4. **Ange som projektstandard** är påslaget för projektets första konfiguration, så SMS och samtal till projektets medlemmar, även jouraviseringar, går genom den så fort du sparar. Stäng av det om kontot bara är till för statussidor eller inkommande samtal. En senare konfiguration börjar med reglaget avstängt: slå på det, eller välj **Ange som projektstandard** i konfigurationens radmeny, för att flytta de meddelandena dit. En API-begäran som utelämnar `isProjectDefault` behandlas på samma sätt. För en konfiguration som bara skulle ta SMS:en eller bara samtalen säger menyn vilka: **Ange som projektstandard för SMS** eller **Ange som projektstandard för samtal**.
 5. Spara. Ett projekt har en standard för SMS och en för samtal, så en konfiguration inställd på **Endast SMS** och en inställd på **Endast samtal** kan båda vara standard: se [Ett konto endast för SMS, eller endast för samtal](#ett-konto-endast-för-sms-eller-endast-för-samtal). Statussidor använder den konfiguration som uttryckligen har tilldelats varje statussida.
 
 > [!IMPORTANT]
