@@ -566,6 +566,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OnCallExecutionLogStepWritesPostgres.test.ts --forceExit
 
+      # #9036, #9069: deleting an escalation rule, a schedule, a team or a
+      # person keeps the on-call runs, their timelines and the pages that
+      # name it (ON DELETE SET NULL), and deleting a picture's file keeps
+      # the person. Reads the migrated keys, then clones the on-call history
+      # tables and what they name into an isolated schema, with their keys:
+      # real deletes keep every row, a policy still takes its runs, a run
+      # paging on a deleted level moves on to the level that moved up into
+      # its place, and OnlineDdl.replaceForeignKey swaps a key on a real
+      # table and is a no-op once done.
+      - name: Test on-call history kept when what it names is deleted, on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_CALL_HISTORY_KEPT_TESTS: "true"
+          ON_CALL_HISTORY_KEPT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_CALL_HISTORY_KEPT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_CALL_HISTORY_KEPT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnCallHistoryKeptPostgres.test.ts --forceExit
+
       # An episode's members show their incident or alert, and their episode,
       # through joins that run neither one's privacy rules: a member row is
       # listed, counted, read and removed only by someone who may see both.

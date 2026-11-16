@@ -92,18 +92,30 @@ interface Fake {
   log: Array<string>;
 }
 
+/*
+ * A foreign key as the catalog read answers: validated or not, and - for
+ * replaceForeignKey - what it does on a delete and an update, and whether
+ * it references the table the statement names.
+ */
+type ForeignKeyRow = {
+  isValidated: boolean;
+  onDelete?: string;
+  onUpdate?: string;
+  isSameTarget?: boolean;
+};
+
 function fake(options: {
   inTransaction?: boolean;
   /* Answers of the index catalog read, in order; the last one repeats. */
   index?: Array<Array<IndexRow>>;
   /* Answers of the foreign key catalog read, in order; the last repeats. */
-  foreignKey?: Array<Array<{ isValidated: boolean }>>;
+  foreignKey?: Array<Array<ForeignKeyRow>>;
   /* Makes a raw-client statement fail. */
   clientError?: (text: string) => Error | null;
 }): Fake {
   const log: Array<string> = [];
   const index: Array<Array<IndexRow>> = [...(options.index || [MISSING])];
-  const foreignKey: Array<Array<{ isValidated: boolean }>> = [
+  const foreignKey: Array<Array<ForeignKeyRow>> = [
     ...(options.foreignKey || [[]]),
   ];
 
@@ -235,9 +247,40 @@ describe("OnlineDdl", () => {
         quotedName: '"FK_3e1a5a33af8c38b49ff26a08688"',
         name: "FK_3e1a5a33af8c38b49ff26a08688",
         addNotValid: `${GENERATED_FOREIGN_KEY} NOT VALID`,
+        replaceNotValid: `ALTER TABLE "Monitor" DROP CONSTRAINT IF EXISTS "FK_3e1a5a33af8c38b49ff26a08688", ADD CONSTRAINT "FK_3e1a5a33af8c38b49ff26a08688" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION NOT VALID`,
         validate: `ALTER TABLE "Monitor" VALIDATE CONSTRAINT "FK_3e1a5a33af8c38b49ff26a08688"`,
+        quotedReferencedTable: '"User"',
+        onDelete: "n",
+        onUpdate: "a",
       });
     });
+
+    test.each([
+      ["ON DELETE CASCADE", "c", "a"],
+      ["ON DELETE SET NULL ON UPDATE NO ACTION", "n", "a"],
+      ["ON DELETE SET DEFAULT ON UPDATE CASCADE", "d", "c"],
+      ["ON DELETE RESTRICT", "r", "a"],
+      ["ON DELETE NO ACTION ON UPDATE SET NULL", "a", "n"],
+      ["", "a", "a"],
+      ["on delete set   null", "n", "a"],
+    ])(
+      "what it does on a delete and an update, as pg_constraint spells it: %s",
+      (actions: string, onDelete: string, onUpdate: string) => {
+        const foreignKey: OnlineForeignKey = OnlineDdl.parseAddForeignKey(
+          `ALTER TABLE "Monitor" ADD CONSTRAINT "FK_x" FOREIGN KEY ("fooId") REFERENCES "public"."Foo"("_id") ${actions}`,
+        );
+
+        expect({
+          onDelete: foreignKey.onDelete,
+          onUpdate: foreignKey.onUpdate,
+          quotedReferencedTable: foreignKey.quotedReferencedTable,
+        }).toEqual({
+          onDelete,
+          onUpdate,
+          quotedReferencedTable: '"public"."Foo"',
+        });
+      },
+    );
 
     test("one already NOT VALID is not marked twice", () => {
       expect(
@@ -540,6 +583,267 @@ describe("OnlineDdl", () => {
         expect.stringContaining("DROP CONSTRAINT"),
       );
       expect(f.log.slice(-2)).toEqual(RESTORE);
+    });
+  });
+
+  /*
+   * A key whose ON DELETE changes (issue #9036): what the generator wrote
+   * as a DROP and an ADD of the same constraint, swapped in one statement
+   * NOT VALID - so the table is never without it - then validated online.
+   */
+  describe("replaceForeignKey", () => {
+    // What the key on "Monitor" was: deleting the person deleted the monitor.
+    const CASCADE_ROW: Array<{
+      isValidated: boolean;
+      onDelete: string;
+      onUpdate: string;
+      isSameTarget: boolean;
+    }> = [
+      { isValidated: true, onDelete: "c", onUpdate: "a", isSameTarget: true },
+    ];
+
+    const SWAP: string = `ALTER TABLE "Monitor" DROP CONSTRAINT IF EXISTS "FK_3e1a5a33af8c38b49ff26a08688", ADD CONSTRAINT "FK_3e1a5a33af8c38b49ff26a08688" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION NOT VALID`;
+    const VALIDATE: string = `ALTER TABLE "Monitor" VALIDATE CONSTRAINT "FK_3e1a5a33af8c38b49ff26a08688"`;
+
+    test("refuses to run inside a transaction, before touching anything", async () => {
+      const f: Fake = fake({ inTransaction: true });
+
+      await expect(
+        OnlineDdl.replaceForeignKey(
+          f.queryRunner,
+          GENERATED_FOREIGN_KEY,
+          LIMITS,
+        ),
+      ).rejects.toThrow("public transaction: boolean = false;");
+      expect(f.log).toEqual([]);
+    });
+
+    test("swaps the old key for the new in one statement, NOT VALID, then validates it within its own bounds", async () => {
+      const f: Fake = fake({ foreignKey: [CASCADE_ROW] });
+
+      await OnlineDdl.replaceForeignKey(
+        f.queryRunner,
+        GENERATED_FOREIGN_KEY,
+        LIMITS,
+      );
+
+      expect(f.log).toEqual([
+        "<foreign key state>",
+        SWAP,
+        ...SET_LIMITS,
+        `client: ${VALIDATE} (660000)`,
+        ...RESTORE,
+      ]);
+      // Never a DROP on its own: the table is never without the key.
+      expect(
+        f.log.filter((statement: string): boolean => {
+          return statement.startsWith('ALTER TABLE "Monitor" DROP CONSTRAINT');
+        }),
+      ).toEqual([SWAP]);
+    });
+
+    test("adds one that is not there at all, in the same one statement", async () => {
+      const f: Fake = fake({ foreignKey: [[]] });
+
+      await OnlineDdl.replaceForeignKey(
+        f.queryRunner,
+        GENERATED_FOREIGN_KEY,
+        LIMITS,
+      );
+
+      expect(f.log).toEqual([
+        "<foreign key state>",
+        SWAP,
+        ...SET_LIMITS,
+        `client: ${VALIDATE} (660000)`,
+        ...RESTORE,
+      ]);
+    });
+
+    test("run again, leaves a key already replaced and validated alone", async () => {
+      const f: Fake = fake({
+        foreignKey: [
+          [
+            {
+              isValidated: true,
+              onDelete: "n",
+              onUpdate: "a",
+              isSameTarget: true,
+            },
+          ],
+        ],
+      });
+
+      await OnlineDdl.replaceForeignKey(
+        f.queryRunner,
+        GENERATED_FOREIGN_KEY,
+        LIMITS,
+      );
+
+      expect(f.log).toEqual(["<foreign key state>"]);
+    });
+
+    test("run again after a stop before its validation, validates the key it swapped in without swapping again", async () => {
+      const f: Fake = fake({
+        foreignKey: [
+          [
+            {
+              isValidated: false,
+              onDelete: "n",
+              onUpdate: "a",
+              isSameTarget: true,
+            },
+          ],
+        ],
+      });
+
+      await OnlineDdl.replaceForeignKey(
+        f.queryRunner,
+        GENERATED_FOREIGN_KEY,
+        LIMITS,
+      );
+
+      expect(f.log).toEqual([
+        "<foreign key state>",
+        ...SET_LIMITS,
+        `client: ${VALIDATE} (660000)`,
+        ...RESTORE,
+      ]);
+    });
+
+    test.each([
+      [
+        "it still cascades",
+        { onDelete: "c", onUpdate: "a", isSameTarget: true },
+      ],
+      [
+        "its ON UPDATE differs",
+        { onDelete: "n", onUpdate: "c", isSameTarget: true },
+      ],
+      [
+        "it references another table",
+        { onDelete: "n", onUpdate: "a", isSameTarget: false },
+      ],
+    ])(
+      "swaps a key of that name when %s",
+      async (
+        _label: string,
+        row: { onDelete: string; onUpdate: string; isSameTarget: boolean },
+      ) => {
+        const f: Fake = fake({
+          foreignKey: [[{ isValidated: true, ...row }]],
+        });
+
+        await OnlineDdl.replaceForeignKey(
+          f.queryRunner,
+          GENERATED_FOREIGN_KEY,
+          LIMITS,
+        );
+
+        expect(f.log).toContain(SWAP);
+      },
+    );
+
+    test("asks the catalog for the key on its own table, and for the table it references", async () => {
+      const reads: Array<Array<unknown>> = [];
+      const f: Fake = fake({ foreignKey: [CASCADE_ROW] });
+      const query: QueryRunner["query"] = f.queryRunner.query;
+
+      f.queryRunner.query = (async (
+        sql: string,
+        parameters?: Array<unknown>,
+      ): Promise<unknown> => {
+        if (sql.includes("FROM pg_constraint con")) {
+          reads.push(parameters || []);
+          expect(sql).toContain("con.confdeltype");
+          expect(sql).toContain("con.confupdtype");
+        }
+
+        return query(sql, parameters);
+      }) as QueryRunner["query"];
+
+      await OnlineDdl.replaceForeignKey(
+        f.queryRunner,
+        GENERATED_FOREIGN_KEY,
+        LIMITS,
+      );
+
+      expect(reads).toEqual([
+        ['"Monitor"', "FK_3e1a5a33af8c38b49ff26a08688", '"User"'],
+      ]);
+    });
+
+    test("rows that violate it fail the migration, and the key stays as swapped - the table is never left without one", async () => {
+      const f: Fake = fake({
+        foreignKey: [CASCADE_ROW],
+        clientError: (text: string): Error | null => {
+          return text === VALIDATE
+            ? pgError(
+                'insert or update on table "Monitor" violates foreign key constraint "FK_3e1a5a33af8c38b49ff26a08688"',
+                "23503",
+              )
+            : null;
+        },
+      });
+
+      await expect(
+        OnlineDdl.replaceForeignKey(
+          f.queryRunner,
+          GENERATED_FOREIGN_KEY,
+          LIMITS,
+        ),
+      ).rejects.toThrow(
+        'Rows of "Monitor" violate "FK_3e1a5a33af8c38b49ff26a08688", so it could not be validated. It stays NOT VALID',
+      );
+      expect(
+        f.log.filter((statement: string): boolean => {
+          return statement.includes("DROP CONSTRAINT");
+        }),
+      ).toEqual([SWAP]);
+      expect(f.log.slice(-2)).toEqual(RESTORE);
+    });
+
+    test("a validation that ran out of lock wait keeps the swapped key for the retry", async () => {
+      const failure: Error = pgError(
+        "canceling statement due to lock timeout",
+        "55P03",
+      );
+      const f: Fake = fake({
+        foreignKey: [CASCADE_ROW],
+        clientError: (text: string): Error | null => {
+          return text === VALIDATE ? failure : null;
+        },
+      });
+
+      await expect(
+        OnlineDdl.replaceForeignKey(
+          f.queryRunner,
+          GENERATED_FOREIGN_KEY,
+          LIMITS,
+        ),
+      ).rejects.toBe(failure);
+      expect(f.log).toEqual([
+        "<foreign key state>",
+        SWAP,
+        ...SET_LIMITS,
+        `client: ${VALIDATE} (660000)`,
+        ...RESTORE,
+      ]);
+    });
+
+    test("refuses anything but a generated foreign key", async () => {
+      const f: Fake = fake({});
+
+      await expect(
+        OnlineDdl.replaceForeignKey(
+          f.queryRunner,
+          `ALTER TABLE "Monitor" DROP CONSTRAINT "FK_3e1a5a33af8c38b49ff26a08688"`,
+          LIMITS,
+        ),
+      ).rejects.toThrow(
+        "expects an ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY",
+      );
+      expect(f.log).toEqual([]);
     });
   });
 });

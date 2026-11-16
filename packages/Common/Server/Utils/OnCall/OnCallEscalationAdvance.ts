@@ -37,6 +37,12 @@ import { OnCallLevelInFlight } from "./OnCallLevelsInFlight";
 import OnCallMoveOnsInFlight, {
   OnCallMoveOnInFlight,
 } from "./OnCallMoveOnsInFlight";
+import {
+  getOnCallPolicyFirstLevel,
+  getOnCallRunLaterLevels,
+  OnCallRunPlace,
+  sortOnCallPolicyLevels,
+} from "../../../Types/OnCallDutyPolicy/OnCallRunLevel";
 
 /*
  * MOVING AN ON-CALL POLICY'S RUN ON TO ITS NEXT ESCALATION RULE.
@@ -95,6 +101,17 @@ import OnCallMoveOnsInFlight, {
  * move on, or now, for a person's. A level it moves on to at once, finding
  * nobody before it, was due at the same moment. A move on inside a page's
  * start (moveOnAtOnce, as a run starts) is timed by the page's start.
+ *
+ * THE NEXT LEVEL IS READ FROM THE POLICY'S LEVELS AS THEY ARE NOW
+ * (OnCallRunLevel, issue #9036): the first level after the place of the
+ * level the run is on - so a level added, moved or deleted before it while
+ * it paged neither skips a level nor pages its own again, and gaps in the
+ * numbering skip nothing. A run whose level was deleted under it (its rule
+ * cleared, ON DELETE SET NULL; its place kept) has waited out the wait that
+ * level started, and goes on to the level that moved up into its place. A
+ * level deleted between being read here and being paged is passed, as one
+ * that reached nobody is, rather than ending the run in error. A new pass
+ * starts from the policy's first level now, whatever its number.
  */
 
 export enum OnCallEscalationAdvanceKind {
@@ -124,6 +141,14 @@ export interface OnCallEscalationAdvanceResult {
   endedWithStatus?: OnCallDutyPolicyStatus | undefined;
   endedWithMessage?: string | undefined;
 }
+
+/*
+ * A level the run moved on to: paged, with what came of it - or found
+ * deleted between being read and being paged, so passed (issue #9036).
+ */
+type OnCallLevelStart =
+  | { isGone: false; outcome: OnCallRuleExecutionOutcome | undefined }
+  | { isGone: true };
 
 /*
  * What a run that went through every rule and reached nobody at all says,
@@ -462,7 +487,15 @@ export default class OnCallEscalationAdvance {
     const passedOnUserIds: Array<ObjectID> =
       await this.getPassedOnUserIds(runId);
 
-    let lastOrder: number = run.lastExecutedEscalationRuleOrder || 0;
+    /*
+     * Where the run is: the level it is on, placed among the policy's
+     * levels as they are now (OnCallRunLevel) - or, that level deleted, at
+     * the place it recorded. Moved on with each level started here.
+     */
+    let place: OnCallRunPlace = {
+      lastExecutedEscalationRuleId: run.lastExecutedEscalationRuleId,
+      lastExecutedEscalationRuleOrder: run.lastExecutedEscalationRuleOrder,
+    };
     let repeatCount: number | undefined = run.onCallPolicyExecutionRepeatCount;
     let lastStarted: OnCallEscalationAdvanceResult | null = null;
 
@@ -483,52 +516,54 @@ export default class OnCallEscalationAdvance {
 
     for (let step: number = 0; step < MAX_RULES_IN_ONE_ADVANCE; step++) {
       /*
-       * The rule just started paged nobody: the run moves past it at once -
-       * claimed again, as any move on is. A run that ended meanwhile - its
-       * page was acknowledged - or that somebody else moved on is left.
+       * The rule just started paged nobody - or was deleted as the run moved
+       * on to it: the run moves past it at once, claimed again, as any move
+       * on is. A run that ended meanwhile - its page was acknowledged - or
+       * that somebody else moved on is left.
        */
       if (step > 0 && !(await this.claimAgain(runId, data.inFlight))) {
-        return lastStarted!;
+        return (
+          lastStarted || {
+            kind: OnCallEscalationAdvanceKind.NotClaimed,
+            pagedUserIds: [],
+          }
+        );
       }
 
+      // The policy's levels now, first to last.
+      const levels: Array<OnCallDutyPolicyEscalationRule> =
+        await this.readLevels(run);
+
+      const laterLevels: Array<OnCallDutyPolicyEscalationRule> =
+        getOnCallRunLaterLevels({ run: place, levels: levels });
+
       /*
-       * The level the person escalating picked, on the first move only: a
-       * level it moves past at once afterwards is followed by the next, as
-       * any level is.
+       * The level the person escalating picked, on the first move only,
+       * while it is still a later level of the run's policy: a level it
+       * moves past at once afterwards is followed by the next, as any
+       * level is.
        */
       const pickedRule: OnCallDutyPolicyEscalationRule | null =
         step === 0 && data.toRuleId
-          ? await this.readLaterRule({
+          ? this.findLaterLevel({
               run: run,
+              laterLevels: laterLevels,
               ruleId: data.toRuleId,
-              afterOrder: lastOrder,
             })
           : null;
 
       const nextRule: OnCallDutyPolicyEscalationRule | null =
-        pickedRule ||
-        (await OnCallDutyPolicyEscalationRuleService.findOneBy({
-          query: {
-            projectId: run.projectId!,
-            onCallDutyPolicyId: run.onCallDutyPolicyId!,
-            order: lastOrder + 1,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            order: true,
-            name: true,
-          },
-        }));
+        pickedRule || laterLevels[0] || null;
 
       if (nextRule) {
         if (pickedRule) {
           await this.skipLevels({
             run: run,
-            afterOrder: lastOrder,
-            beforeOrder: pickedRule.order!,
+            levels: laterLevels.filter(
+              (level: OnCallDutyPolicyEscalationRule): boolean => {
+                return level.order! < pickedRule.order!;
+              },
+            ),
           });
         }
 
@@ -536,18 +571,28 @@ export default class OnCallEscalationAdvance {
           `Starting execution of the next escalation rule: ${nextRule.id}`,
         );
 
-        const outcome: OnCallRuleExecutionOutcome | undefined =
-          await this.startRule({
-            run: run,
-            ruleId: nextRule.id!,
-            passedOnUserIds: passedOnUserIds,
-            send: send,
-          });
+        const started: OnCallLevelStart = await this.startLevelUnlessGone({
+          run: run,
+          rule: nextRule,
+          passedOnUserIds: passedOnUserIds,
+          send: send,
+        });
+
+        if (started.isGone) {
+          // Passed: the run goes on to the level now at its place.
+          place = {
+            lastExecutedEscalationRuleId: null,
+            lastExecutedEscalationRuleOrder: nextRule.order!,
+          };
+          continue;
+        }
+
+        const outcome: OnCallRuleExecutionOutcome | undefined = started.outcome;
 
         lastStarted = this.getStarted({
           kind: OnCallEscalationAdvanceKind.RuleStarted,
           rule: nextRule,
-          fallbackOrder: pickedRule ? pickedRule.order! : lastOrder + 1,
+          fallbackOrder: nextRule.order!,
           outcome: outcome,
         });
 
@@ -555,7 +600,10 @@ export default class OnCallEscalationAdvance {
           return lastStarted;
         }
 
-        lastOrder = lastStarted.rule!.order;
+        place = {
+          lastExecutedEscalationRuleId: nextRule.id,
+          lastExecutedEscalationRuleOrder: lastStarted.rule!.order,
+        };
         continue;
       }
 
@@ -617,23 +665,9 @@ export default class OnCallEscalationAdvance {
         // A new pass: it has reached nobody yet.
         hasPassReachedAnybody = false;
 
-        // get first escalation rule.
+        // The policy's first level now: the lowest place, whatever its number.
         const firstEscalationRule: OnCallDutyPolicyEscalationRule | null =
-          await OnCallDutyPolicyEscalationRuleService.findOneBy({
-            query: {
-              projectId: run.projectId!,
-              onCallDutyPolicyId: run.onCallDutyPolicyId!,
-              order: 1,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              _id: true,
-              order: true,
-              name: true,
-            },
-          });
+          getOnCallPolicyFirstLevel(levels);
 
         if (!firstEscalationRule) {
           logger.debug(
@@ -657,13 +691,23 @@ export default class OnCallEscalationAdvance {
          */
         send.schedule = NotificationSchedule.PolicyRepeat;
 
-        const outcome: OnCallRuleExecutionOutcome | undefined =
-          await this.startRule({
-            run: run,
-            ruleId: firstEscalationRule.id!,
-            passedOnUserIds: passedOnUserIds,
-            send: send,
-          });
+        const started: OnCallLevelStart = await this.startLevelUnlessGone({
+          run: run,
+          rule: firstEscalationRule,
+          passedOnUserIds: passedOnUserIds,
+          send: send,
+        });
+
+        if (started.isGone) {
+          // Passed: the new pass goes on from the level now at its place.
+          place = {
+            lastExecutedEscalationRuleId: null,
+            lastExecutedEscalationRuleOrder: firstEscalationRule.order!,
+          };
+          continue;
+        }
+
+        const outcome: OnCallRuleExecutionOutcome | undefined = started.outcome;
 
         lastStarted = this.getStarted({
           kind: OnCallEscalationAdvanceKind.PolicyStartedAgain,
@@ -676,7 +720,10 @@ export default class OnCallEscalationAdvance {
           return lastStarted;
         }
 
-        lastOrder = lastStarted.rule!.order;
+        place = {
+          lastExecutedEscalationRuleId: firstEscalationRule.id,
+          lastExecutedEscalationRuleOrder: lastStarted.rule!.order,
+        };
         continue;
       }
 
@@ -694,7 +741,12 @@ export default class OnCallEscalationAdvance {
       `Execution log ${runId.toString()} moved past ${MAX_RULES_IN_ONE_ADVANCE} escalation rules that paged nobody in one go; leaving it on the last one.`,
     );
 
-    return lastStarted!;
+    return (
+      lastStarted || {
+        kind: OnCallEscalationAdvanceKind.NotClaimed,
+        pagedUserIds: [],
+      }
+    );
   }
 
   /*
@@ -993,38 +1045,59 @@ export default class OnCallEscalationAdvance {
   }
 
   /*
-   * The level picked to page, when it is still a level of the run's policy
-   * after the one the run is on; null otherwise - it was deleted, moved up
-   * past the run, or is another policy's - and the run moves on to its next
-   * level instead.
+   * The run's policy's levels as they are now: its escalation rules, by
+   * their place, first to last (OnCallRunLevel reads where the run is
+   * among them).
    */
-  private static async readLaterRule(data: {
-    run: OnCallDutyPolicyExecutionLog;
-    ruleId: ObjectID;
-    afterOrder: number;
-  }): Promise<OnCallDutyPolicyEscalationRule | null> {
-    const rule: OnCallDutyPolicyEscalationRule | null =
-      await OnCallDutyPolicyEscalationRuleService.findOneBy({
+  private static async readLevels(
+    run: OnCallDutyPolicyExecutionLog,
+  ): Promise<Array<OnCallDutyPolicyEscalationRule>> {
+    const levels: Array<OnCallDutyPolicyEscalationRule> =
+      await OnCallDutyPolicyEscalationRuleService.findBy({
         query: {
-          _id: data.ruleId.toString(),
-          projectId: data.run.projectId!,
-          onCallDutyPolicyId: data.run.onCallDutyPolicyId!,
-        },
-        props: {
-          isRoot: true,
+          projectId: run.projectId!,
+          onCallDutyPolicyId: run.onCallDutyPolicyId!,
         },
         select: {
           _id: true,
           order: true,
           name: true,
         },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
       });
 
-    if (
-      !rule ||
-      typeof rule.order !== "number" ||
-      !(rule.order > data.afterOrder)
-    ) {
+    return sortOnCallPolicyLevels(levels || []);
+  }
+
+  /*
+   * The level picked to page, when it is still a level of the run's policy
+   * after the one the run is on; null otherwise - it was deleted, moved up
+   * past the run, or is another policy's - and the run moves on to its next
+   * level instead.
+   */
+  private static findLaterLevel(data: {
+    run: OnCallDutyPolicyExecutionLog;
+    laterLevels: Array<OnCallDutyPolicyEscalationRule>;
+    ruleId: ObjectID;
+  }): OnCallDutyPolicyEscalationRule | null {
+    const level: OnCallDutyPolicyEscalationRule | undefined =
+      data.laterLevels.find(
+        (candidate: OnCallDutyPolicyEscalationRule): boolean => {
+          return (
+            candidate.id?.toString().toLowerCase() ===
+            data.ruleId.toString().toLowerCase()
+          );
+        },
+      );
+
+    if (!level) {
       logger.debug(
         `Escalation rule ${data.ruleId.toString()} is not a later level of execution log ${data.run.id?.toString()}; moving on to its next level instead.`,
         {
@@ -1035,58 +1108,28 @@ export default class OnCallEscalationAdvance {
       return null;
     }
 
-    return rule;
+    return level;
   }
 
   /*
-   * The levels after `afterOrder` and before `beforeOrder`: the run skips
-   * them for a later level picked to page, and each gets its line on the
-   * run's timeline saying so. A line that cannot be written is logged and
-   * left: the level picked is paged regardless.
+   * The levels the run skips for a later level picked to page: each gets
+   * its line on the run's timeline saying so. A line that cannot be written
+   * is logged and left: the level picked is paged regardless.
    */
   private static async skipLevels(data: {
     run: OnCallDutyPolicyExecutionLog;
-    afterOrder: number;
-    beforeOrder: number;
+    levels: Array<OnCallDutyPolicyEscalationRule>;
   }): Promise<void> {
-    if (data.beforeOrder <= data.afterOrder + 1) {
-      return;
-    }
-
     try {
-      const rules: Array<OnCallDutyPolicyEscalationRule> =
-        await OnCallDutyPolicyEscalationRuleService.findBy({
-          query: {
-            projectId: data.run.projectId!,
-            onCallDutyPolicyId: data.run.onCallDutyPolicyId!,
-          },
-          select: {
-            _id: true,
-            order: true,
-          },
-          sort: {
-            order: SortOrder.Ascending,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      for (const rule of rules) {
-        if (
-          !rule.id ||
-          typeof rule.order !== "number" ||
-          rule.order <= data.afterOrder ||
-          rule.order >= data.beforeOrder
-        ) {
+      for (const level of data.levels) {
+        if (!level.id) {
           continue;
         }
 
         await OnCallDutyPolicyEscalationRuleService.recordLevelSkippedByEscalation(
-          rule.id,
+          level.id,
           this.getPageContext(data.run),
+          { order: level.order, name: level.name },
         );
       }
     } catch (err) {
@@ -1095,6 +1138,61 @@ export default class OnCallEscalationAdvance {
       );
       logger.error(err as Error);
     }
+  }
+
+  /*
+   * Pages a level the run moves on to (startRule) - or finds it deleted
+   * between being read and being paged (issue #9036): its rule is no
+   * longer a level of the run's policy. Then nobody on it was paged, and
+   * the run moves past it. Any other failure is the move's, as it was.
+   */
+  private static async startLevelUnlessGone(data: {
+    run: OnCallDutyPolicyExecutionLog;
+    rule: OnCallDutyPolicyEscalationRule;
+    passedOnUserIds: Array<ObjectID>;
+    send: OnCallScheduledSend;
+  }): Promise<OnCallLevelStart> {
+    try {
+      return {
+        isGone: false,
+        outcome: await this.startRule({
+          run: data.run,
+          ruleId: data.rule.id!,
+          passedOnUserIds: data.passedOnUserIds,
+          send: data.send,
+        }),
+      };
+    } catch (err) {
+      if (!(await this.isLevelGone({ run: data.run, ruleId: data.rule.id! }))) {
+        throw err;
+      }
+
+      logger.warn(
+        `Escalation rule ${data.rule.id!.toString()} of on-call execution log ${data.run.id?.toString()} was deleted as the run moved on to it; moving on past it.`,
+        {
+          projectId: data.run.projectId?.toString(),
+        } as LogAttributes,
+      );
+
+      return { isGone: true };
+    }
+  }
+
+  // Whether a rule is no longer a level of the run's policy: it was deleted.
+  private static async isLevelGone(data: {
+    run: OnCallDutyPolicyExecutionLog;
+    ruleId: ObjectID;
+  }): Promise<boolean> {
+    const levels: Array<OnCallDutyPolicyEscalationRule> = await this.readLevels(
+      data.run,
+    );
+
+    return !levels.some((level: OnCallDutyPolicyEscalationRule): boolean => {
+      return (
+        level.id?.toString().toLowerCase() ===
+        data.ruleId.toString().toLowerCase()
+      );
+    });
   }
 
   private static getStarted(data: {

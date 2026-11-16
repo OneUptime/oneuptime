@@ -1035,6 +1035,10 @@ import { ProjectCredentialsEncryptedColumns1809182300000 } from "./1809182300000
 import { DropGreenlockTables1809182470000 } from "./1809182470000-DropGreenlockTables";
 import { AddCustomFieldsAndRemindersToUpdatesToPost1809182480026 } from "./1809182480026-AddCustomFieldsAndRemindersToUpdatesToPost";
 import { AddRuleEmptiedLimits1809182490000 } from "./1809182490000-AddRuleEmptiedLimits";
+import { AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000 } from "./1809182500000-AddEscalationRuleOrderAndNameToOnCallTimeline";
+import { KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000 } from "./1809182510000-KeepOnCallHistoryWhenItsSettingsAreDeleted";
+import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "./1809182520000-KeepOwnersWhenTheirPictureFileIsDeleted";
+import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "./1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
 
 export default [
   InitialMigration,
@@ -2074,4 +2078,8 @@ export default [
   DropGreenlockTables1809182470000,
   AddCustomFieldsAndRemindersToUpdatesToPost1809182480026,
   AddRuleEmptiedLimits1809182490000,
+  AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000,
+  KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000,
+  KeepOwnersWhenTheirPictureFileIsDeleted1809182520000,
+  KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000,
 ];

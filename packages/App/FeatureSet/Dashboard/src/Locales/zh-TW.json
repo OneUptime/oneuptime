@@ -56336,5 +56336,10 @@
   "Limited to deleted records": "限定於已刪除的記錄",
   "OneUptime switched this rule off when they were deleted.": "這些記錄被刪除時，OneUptime 已停用此規則。",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "若按原樣啟用，此規則將完全不受這些清單限制。請編輯它以選擇其適用範圍，然後再啟用。",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}，已於 {{date}} 刪除。"
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}，已於 {{date}} 刪除。",
+  "Deleted escalation rule": "已刪除的上報規則",
+  "Escalation Rule Name": "上報規則名稱",
+  "Escalation Rule Order": "上報規則順序",
+  "Level {{order}} (deleted)": "層級 {{order}}（已刪除）",
+  "Level {{order}}: {{name}} (deleted)": "層級 {{order}}：{{name}}（已刪除）"
 }

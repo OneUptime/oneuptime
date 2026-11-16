@@ -56336,5 +56336,10 @@
   "Limited to deleted records": "Ограничено удалёнными записями",
   "OneUptime switched this rule off when they were deleted.": "OneUptime отключил это правило, когда они были удалены.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Если включить правило как есть, эти списки перестанут его ограничивать. Измените его, чтобы выбрать, к чему оно применяется, а затем включите.",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}} (дата удаления: {{date}})."
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}} (дата удаления: {{date}}).",
+  "Deleted escalation rule": "Удалённое правило эскалации",
+  "Escalation Rule Name": "Название правила эскалации",
+  "Escalation Rule Order": "Порядок правила эскалации",
+  "Level {{order}} (deleted)": "Уровень {{order}} (удалён)",
+  "Level {{order}}: {{name}} (deleted)": "Уровень {{order}}: {{name}} (удалён)"
 }

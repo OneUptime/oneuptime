@@ -59,6 +59,12 @@ import { isOnCallPersonPage } from "../../../Types/OnCallDutyPolicy/OnCallPerson
 import { isOnCallPolicyStartedByHand } from "../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import { isOnCallPageAnsweredAsAPage } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import { isOnCallTestPage } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  getOnCallPolicyFirstLevel,
+  getOnCallRunCurrentLevel,
+  getOnCallRunLaterLevels,
+  isOnCallRunLevelDeleted,
+} from "../../../Types/OnCallDutyPolicy/OnCallRunLevel";
 
 /*
  * PASSING A PAGE ON - THE SERVER SIDE OF "CAN'T TAKE IT? ESCALATE."
@@ -1057,21 +1063,29 @@ export default class OnCallPagePassOn {
         : base;
     }
 
-    const currentRule: OnCallDutyPolicyEscalationRule | undefined = rules.find(
-      (rule: OnCallDutyPolicyEscalationRule): boolean => {
-        return (
-          Boolean(run.lastExecutedEscalationRuleId) &&
-          rule.id?.toString() === run.lastExecutedEscalationRuleId?.toString()
-        );
-      },
-    );
+    // The level the run is on, among the policy's levels now (OnCallRunLevel).
+    const currentRule: OnCallDutyPolicyEscalationRule | undefined =
+      getOnCallRunCurrentLevel({ run: run, levels: rules }) || undefined;
 
     const currentRuleId: string =
       run.lastExecutedEscalationRuleId?.toString() || "";
 
+    /*
+     * The level the run is on was deleted while it paged (issue #9036): the
+     * rule was cleared from the run and from its level's lines, and the run
+     * waits out the level's wait before it goes on. Its people are the ones
+     * on lines with no rule, still on the page - and passing it on moves the
+     * run on now, as from any level.
+     */
+    const isLevelDeleted: boolean = isOnCallRunLevelDeleted(run);
+
     const isOnCurrentRule: (ruleId: ObjectID | undefined | null) => boolean = (
       ruleId: ObjectID | undefined | null,
     ): boolean => {
+      if (isLevelDeleted) {
+        return !ruleId;
+      }
+
       return Boolean(ruleId) && ruleId!.toString() === currentRuleId;
     };
 
@@ -1103,14 +1117,14 @@ export default class OnCallPagePassOn {
       };
     }
 
-    const nextRule: OnCallDutyPolicyEscalationRule | undefined = rules.find(
-      (rule: OnCallDutyPolicyEscalationRule): boolean => {
-        return (
-          typeof rule.order === "number" &&
-          rule.order === (run.lastExecutedEscalationRuleOrder || 0) + 1
-        );
-      },
-    );
+    /*
+     * The levels after the run's, first to last, as the levels are now: the
+     * one it moves on to, and the ones escalating may pick (OnCallRunLevel).
+     */
+    const laterRules: Array<OnCallDutyPolicyEscalationRule> =
+      getOnCallRunLaterLevels({ run: run, levels: rules });
+
+    const nextRule: OnCallDutyPolicyEscalationRule | undefined = laterRules[0];
 
     const others: Array<string> = stillOnIt(
       (line: OnCallDutyPolicyExecutionLogTimeline): boolean => {
@@ -1150,13 +1164,9 @@ export default class OnCallPagePassOn {
          * Every level after the person's, the next one first: the levels
          * escalating may page (OnCallPassOnLevelChoice).
          */
-        levelChoices: rules
+        levelChoices: laterRules
           .filter((rule: OnCallDutyPolicyEscalationRule): boolean => {
-            return (
-              Boolean(rule.id) &&
-              typeof rule.order === "number" &&
-              rule.order > (run.lastExecutedEscalationRuleOrder || 0)
-            );
+            return Boolean(rule.id);
           })
           .map(
             (rule: OnCallDutyPolicyEscalationRule): OnCallPassOnLevelChoice => {
@@ -1175,11 +1185,9 @@ export default class OnCallPagePassOn {
       repeatCount > 0 &&
       repeatCount <= getOnCallPolicyRepeatsAllowed(run.onCallDutyPolicy)
     ) {
-      const firstRule: OnCallDutyPolicyEscalationRule | undefined = rules.find(
-        (rule: OnCallDutyPolicyEscalationRule): boolean => {
-          return rule.order === 1;
-        },
-      );
+      // The policy's first level now, whatever its number (OnCallRunLevel).
+      const firstRule: OnCallDutyPolicyEscalationRule | undefined =
+        getOnCallPolicyFirstLevel(rules) || undefined;
 
       return {
         ...base,
