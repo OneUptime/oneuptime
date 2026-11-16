@@ -23,6 +23,21 @@ Where the source names columns, a table's **Columns** tab says where each column
 
 On the **Lineage** tab, pick one of the table's columns in **Follow a column** to highlight where it comes from and where it goes: up the diagram to the columns it is built from, down to the columns built from it, each named on its table, even where it was renamed on the way. An arrow whose sources name no columns may carry it further than is highlighted, and the diagram says so.
 
+## Lineage Map
+
+**Data Observability > Lineage Map** draws every flow of data your project has seen on one page, so you can see who uses which data and where it goes without first picking a table. It shows:
+
+- **Services** writing and reading tables, from the database spans in your traces: a span that names its table (`db.collection.name`, or the older `db.sql.table`) and its statement (`db.operation.name`), such as an `INSERT` or a `SELECT`.
+- **Tables** built from other tables, from every source above.
+- **Pipelines** that load a table from data OneUptime does not watch, such as a Fivetran sync. A pipeline that moves data between two watched tables is named on the arrow between them.
+- **Dashboards** and reverse ETL syncs in your BI tools, reading the tables they are built on.
+
+Every arrow is something OneUptime recorded, never a guess. Cards sit left to right as data flows, and say how they are as on a table's diagram: red for a late table, an open alert or a failed run. An arrow is teal where a service's traces saw it.
+
+Search for a table, service, pipeline or dashboard to keep what matches and everything upstream and downstream of it. Select a card to highlight its whole lineage, see what it comes from and what it goes to, and open its page; **Show Only Its Lineage** leaves only that on the map. The switches beside the search leave services, pipelines or dashboards off. **List** shows every arrow as a line, and is what a phone opens on.
+
+One map draws up to 400 cards, the most recently seen flows first; when your project has more, the map says so. The same map is served by `POST /api/data-observability/lineage/map`, for anyone who may read data assets and their API keys.
+
 ## OpenLineage
 
 Send OpenLineage events to OneUptime, unchanged, with a telemetry [ingestion key](/docs/telemetry/ingestion-keys):

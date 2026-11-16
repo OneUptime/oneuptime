@@ -23,6 +23,21 @@ Cuando la fuente nombra columnas, la pestaña **Columnas** de una tabla indica d
 
 En la pestaña **Linaje**, elige una columna de la tabla en **Seguir una columna** para resaltar de dónde viene y adónde va: hacia arriba en el diagrama, hasta las columnas a partir de las que se construye; hacia abajo, hasta las columnas que se construyen a partir de ella, cada una nombrada en su tabla, incluso donde se renombró por el camino. Una flecha cuyas fuentes no nombran columnas puede llevarla más lejos de lo resaltado, y el diagrama lo indica.
 
+## Mapa de linaje
+
+**Observabilidad de datos > Mapa de linaje** dibuja en una sola página cada flujo de datos que tu proyecto ha visto, para que veas quién usa qué datos y adónde van sin tener que elegir antes una tabla. Muestra:
+
+- **Servicios** que escriben y leen tablas, a partir de los spans de base de datos de tus trazas: un span que nombra su tabla (`db.collection.name`, o el antiguo `db.sql.table`) y su sentencia (`db.operation.name`), como un `INSERT` o un `SELECT`.
+- **Tablas** construidas a partir de otras tablas, de todas las fuentes anteriores.
+- **Canalizaciones** que cargan una tabla a partir de datos que OneUptime no vigila, como una sincronización de Fivetran. Una canalización que mueve datos entre dos tablas vigiladas se nombra en la flecha que las une.
+- **Paneles** y sincronizaciones de reverse ETL en tus herramientas de BI, que leen las tablas sobre las que están construidos.
+
+Cada flecha es algo que OneUptime registró, nunca una suposición. Las tarjetas se colocan de izquierda a derecha según fluyen los datos e indican su estado como en el diagrama de una tabla: rojo para una tabla con retraso, una alerta abierta o una ejecución fallida. Una flecha es turquesa cuando las trazas de un servicio la vieron.
+
+Busca una tabla, un servicio, una canalización o un panel para conservar lo que coincide y todo lo que está aguas arriba y aguas abajo. Selecciona una tarjeta para resaltar todo su linaje, ver de dónde viene y adónde va, y abrir su página; **Mostrar solo su linaje** deja solo eso en el mapa. Los interruptores junto a la búsqueda dejan fuera los servicios, las canalizaciones o los paneles. **Lista** muestra cada flecha como una línea, y es lo que abre un teléfono.
+
+Un mapa dibuja hasta 400 tarjetas, empezando por los flujos vistos más recientemente; cuando tu proyecto tiene más, el mapa lo indica. El mismo mapa lo sirve `POST /api/data-observability/lineage/map`, para quien pueda leer los activos de datos, y sus claves de API.
+
 ## OpenLineage
 
 Envía los eventos de OpenLineage a OneUptime, sin cambios, con una [clave de ingesta](/docs/telemetry/ingestion-keys) de telemetría:

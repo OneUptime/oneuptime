@@ -23,6 +23,21 @@ Waar de bron kolommen noemt, zegt het tabblad **Kolommen** van een tabel waar el
 
 Kies op het tabblad **Herkomst** een kolom van de tabel in **Een kolom volgen** om te markeren waar ze vandaan komt en waar ze naartoe gaat: omhoog in het diagram naar de kolommen waaruit ze is opgebouwd, omlaag naar de kolommen die uit haar zijn opgebouwd, elk genoemd op haar tabel, ook waar de kolom onderweg een andere naam kreeg. Een pijl waarvan de bronnen geen kolommen noemen, kan haar verder dragen dan gemarkeerd is, en het diagram zegt dat.
 
+## Herkomstkaart
+
+**Data Observability > Herkomstkaart** tekent elke gegevensstroom die uw project heeft gezien op één pagina, zodat u ziet wie welke data gebruikt en waar ze naartoe gaan, zonder eerst een tabel te kiezen. Ze toont:
+
+- **Services** die tabellen schrijven en lezen, uit de databasespans in uw traces: een span die zijn tabel (`db.collection.name`, of het oudere `db.sql.table`) en zijn instructie (`db.operation.name`) noemt, zoals een `INSERT` of een `SELECT`.
+- **Tabellen** die uit andere tabellen zijn opgebouwd, uit alle bronnen hierboven.
+- **Pipelines** die een tabel laden uit data die OneUptime niet bewaakt, zoals een Fivetran-synchronisatie. Een pipeline die data tussen twee bewaakte tabellen verplaatst, wordt genoemd op de pijl ertussen.
+- **Dashboards** en reverse-ETL-synchronisaties in uw BI-tools, die de tabellen lezen waarop ze zijn gebouwd.
+
+Elke pijl is iets wat OneUptime heeft vastgelegd, nooit een gok. Kaarten staan van links naar rechts in de richting waarin data stromen en tonen hun toestand zoals op het diagram van een tabel: rood voor een late tabel, een openstaande melding of een mislukte uitvoering. Een pijl is turkoois waar de traces van een service hem hebben gezien.
+
+Zoek naar een tabel, service, pipeline of dashboard om te behouden wat overeenkomt en alles stroomopwaarts en stroomafwaarts ervan. Selecteer een kaart om haar hele herkomst te markeren, te zien waar ze vandaan komt en waar ze naartoe gaat, en haar pagina te openen; **Alleen de herkomst ervan tonen** laat alleen dat op de kaart staan. Met de schakelaars naast de zoekbalk laat u services, pipelines of dashboards weg. **Lijst** toont elke pijl als een regel en is wat een telefoon opent.
+
+Eén kaart tekent maximaal 400 kaarten, de meest recent geziene stromen eerst; heeft uw project er meer, dan zegt de kaart dat. Dezelfde kaart wordt geleverd door `POST /api/data-observability/lineage/map`, voor iedereen die data-assets mag lezen, en hun API-sleutels.
+
 ## OpenLineage
 
 Stuur OpenLineage-gebeurtenissen ongewijzigd naar OneUptime, met een [ingestiesleutel](/docs/telemetry/ingestion-keys) voor telemetrie:
