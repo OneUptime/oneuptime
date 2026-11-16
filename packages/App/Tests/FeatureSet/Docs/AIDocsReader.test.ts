@@ -142,6 +142,17 @@ const NAMED_FOR_THE_QUESTION: Array<[string, string, string]> = [
     "permissions/inviting-people",
   ],
   ["ru", "Как пригласить коллегу в проект?", "permissions/inviting-people"],
+  // Spanish's and Portuguese's "they" form, and the people the page is named for (#8700).
+  [
+    "es",
+    "¿Cómo se suscriben mis clientes a la página de estado?",
+    "status-pages/subscribers",
+  ],
+  [
+    "pt",
+    "Como meus clientes assinam a página de status?",
+    "status-pages/subscribers",
+  ],
   ...ASK_AI_WEBSITE_QUESTIONS.map(
     (entry: AskAiHowDoIQuestionTranslated): [string, string, string] => {
       return [entry.language, entry.question, entry.docsPage];
@@ -334,6 +345,33 @@ describe("the words a question and a page are compared by", () => {
     ["fr", ["vérifier", "vérifiez", "vérifiées", "vérification"]],
     // ... but a "-yer" verb keeps its "-ie": "envoie" (sends) is "envoi" (sending).
     ["fr", ["envoi", "envoie"]],
+    /*
+     * A Spanish or Portuguese verb's "they" form, and the people a page
+     * names by a form of the verb no ending makes (#8700).
+     */
+    [
+      "es",
+      ["suscribo", "suscriben", "suscribirse", "suscriptor", "suscriptores"],
+    ],
+    ["es", ["funciona", "funcionan", "funcionar"]],
+    ["es", ["monitorear", "monitorean", "monitor"]],
+    ["pt", ["assinar", "assinam", "assinante", "assinantes"]],
+    ["pt", ["enviar", "enviam", "enviamos", "envia"]],
+    ["pt", ["receber", "recebem", "recebe"]],
+    // ... and a noun's plural meets its singular, the "-en" or "-em" taken off both.
+    ["es", ["imagen", "imágenes"]],
+    ["es", ["volumen", "volúmenes"]],
+    ["pt", ["mensagem", "mensagens"]],
+    ["pt", ["nuvem", "nuvens"]],
+    // ... but a noun whose verb keeps "-en", and an English word with its "-s", keep it.
+    ["es", ["orden", "órdenes", "ordenar"]],
+    ["es", ["almacén", "almacenes", "almacenar"]],
+    ["es", ["token", "tokens"]],
+    ["es", ["mantén", "mantener"]],
+    ["pt", ["token", "tokens"]],
+    ["pt", ["stream", "streams"]],
+    ["pt", ["program", "programs"]],
+    ["pt", ["problem", "problems"]],
   ] as Array<[string, Array<string>]>)(
     "%s: %p are one word (#7875)",
     (language: string, forms: Array<string>) => {
@@ -455,6 +493,23 @@ describe("the words a question and a page are compared by", () => {
     // A step's imperative and a question's infinitive meet (#8335).
     ["ru", "Как установить агент?", ["установ", "агент"]],
     ["hi", "मैं OneUptime का बैकअप कैसे लूँ?", ["oneuptim", "बैकअप"]],
+    // A Dutch verb's first part is read joined to the verb, never alone (#8698).
+    [
+      "nl",
+      "Hoe zet ik tweestapsverificatie aan?",
+      ["zet", "tweestapsverificati"],
+    ],
+    // A Spanish and a Portuguese "they" form meet the page (#8700).
+    [
+      "es",
+      "¿Cómo se suscriben mis clientes a la página de estado?",
+      ["suscrib", "client", "pagin", "estad"],
+    ],
+    [
+      "pt",
+      "Como meus clientes assinam a página de status?",
+      ["client", "assin", "pagin", "statu"],
+    ],
     // Written without spaces: the question's words are cut out where they stand.
     ["zh-CN", "如何监控我的网站？", ["监控", "网站"]],
     ["zh-TW", "如何監控我的網站？", ["監控", "網站"]],

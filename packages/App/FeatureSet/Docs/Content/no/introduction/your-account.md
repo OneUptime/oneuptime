@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Profilen din](#profilen-din): Navnet, e-posten, tidssonen, språket og bildet ditt.
-- [Logg inn trygt](#logg-inn-trygt): Passordet ditt, innloggingslenker, passnøkler og totrinnsbekreftelse.
+- [Logg inn trygt](#logg-inn-trygt): Passordet ditt, innloggingslenker, passnøkler og tofaktorautentisering.
 - [Prosjektene dine](#prosjektene-dine): Bytt prosjekt, opprett et, og godta invitasjoner.
 - [Brukerinnstillinger](#det-hvert-prosjekt-tar-vare-på-for-deg): Hvordan OneUptime når deg i hvert prosjekt.
 :::
@@ -96,14 +96,14 @@ Du kan logge inn med en lenke i stedet for passordet. Det er ingenting å sette 
 3. Åpne lenken i e-posten, og klikk på **Logg inn**.
 :::
 
-Lenken virker én gang, i 15 minutter, og en nyere lenke erstatter den. Du kan åpne den på en annen enhet, og da er du logget inn der. Hvis du bruker totrinnsbekreftelse, ber OneUptime fortsatt om det andre steget ditt.
+Lenken virker én gang, i 15 minutter, og en nyere lenke erstatter den. Du kan åpne den på en annen enhet, og da er du logget inn der. Hvis du bruker tofaktorautentisering, ber OneUptime fortsatt om det andre steget ditt.
 
 > [!NOTE]
 > Hovedadministratorer på en selvhostet installasjon kan slå av innloggingslenker med **La folk logge inn med en lenke på e-post**, under **Admin Dashboard > Innstillinger > Autentisering**. Lenker som allerede er sendt, slutter da å virke. Så lenge serveren krever SSO, tilbyr innloggingssiden bare SSO.
 
-### Slå på totrinnsbekreftelse
+### Slå på tofaktorautentisering
 
-Totrinnsbekreftelse gjelder når du logger inn med passordet ditt eller en lenke på e-post. Legg først til et andre steg, og slå den deretter på.
+Tofaktorautentisering gjelder når du logger inn med passordet ditt eller en lenke på e-post. Legg først til et andre steg, og slå den deretter på.
 
 :::steps
 ### Legg til en autentiseringsapp
@@ -163,7 +163,7 @@ Logger du inn på nytt, sendes en ny lenke: sjekk også søppelpostmappen. Kan d
 :::
 
 :::details Jeg har mistet autentiseringsappen min
-Ved det andre steget av innloggingen velger du **Mistet tilgangen til autentiseringsappen din?** og skriver inn en av reservekodene dine. Åpne deretter **Sikkerhet → Two-factor authentication**, og legg til den nye appen. Uten reservekoder ber du en administrator av OneUptime-installasjonen din om å tilbakestille totrinnsbekreftelsen på kontoen din.
+Ved det andre steget av innloggingen velger du **Mistet tilgangen til autentiseringsappen din?** og skriver inn en av reservekodene dine. Åpne deretter **Sikkerhet → Two-factor authentication**, og legg til den nye appen. Uten reservekoder ber du en administrator av OneUptime-installasjonen din om å tilbakestille tofaktorautentiseringen på kontoen din.
 :::
 
 :::details Innloggingen ber meg vente før jeg prøver en ny kode

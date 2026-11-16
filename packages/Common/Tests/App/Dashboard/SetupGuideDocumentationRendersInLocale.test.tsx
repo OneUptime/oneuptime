@@ -65,10 +65,12 @@ import IoTDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages
 import OpenStackDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Documentation";
 import KubernetesDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Documentation";
 import StorageArrayDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Documentation";
+import ProxmoxDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Documentation";
 import VMwareDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Documentation";
 import VMwareDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/DocumentationCard";
 import DatabaseDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Documentation";
 import DatabaseDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DocumentationCard";
+import HostDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Host/DocumentationCard";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -104,6 +106,11 @@ import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSe
 import { getStorageArraySetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import { STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationTranslations";
 import {
+  ProxmoxConnectMethod,
+  getProxmoxSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import { PROXMOX_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationTranslations";
+import {
   VMwareInstallMethod,
   getVMwareSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
@@ -118,9 +125,15 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import {
+  HostInstallMethod,
+  getHostSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
@@ -143,8 +156,10 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   OpenStack: {},
   Kubernetes: {},
   StorageArray: {},
+  Proxmox: {},
   VMware: {},
   Database: {},
+  Host: {},
 };
 
 /*
@@ -174,6 +189,18 @@ function storageArrayGuide(): SetupGuideContent {
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     platform: "flasharray",
+  });
+}
+
+// The Proxmox guide before a key is picked: the install script unless another way is.
+function proxmoxGuide(
+  method: ProxmoxConnectMethod = "install-script",
+): SetupGuideContent {
+  return getProxmoxSetupGuide({
+    oneuptimeUrl: READER_URL,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    method: method,
   });
 }
 
@@ -243,6 +270,15 @@ function vmwareGuide(
  * the engine picked (PostgreSQL until another is), its Database Health
  * monitor link in the current project as the card builds it.
  */
+// The Host guide a reader meets before a key is picked: Docker unless another method is picked.
+function hostGuide(method: HostInstallMethod = "docker"): SetupGuideContent {
+  return getHostSetupGuide({
+    oneuptimeUrl: READER_URL,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    method: method,
+  });
+}
+
 function databaseGuide(system: string = "postgresql"): SetupGuideContent {
   return getDatabaseAgentSetupGuide({
     oneuptimeUrl: READER_URL,
@@ -325,6 +361,44 @@ async function openEveryTopic(): Promise<void> {
   await settle();
 }
 
+/*
+ * The project has an ingestion key, so the key step picks it and shows the
+ * address it is sent to, under its label (IngestionKeySelector).
+ */
+function withAKey(): void {
+  const key: TelemetryIngestionKey = new TelemetryIngestionKey();
+  key.id = new ObjectID("10000000-0000-4000-8000-000000000002");
+  key.name = "Production Key";
+  key.secretKey = new ObjectID("10000000-0000-4000-8000-000000000003");
+
+  jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+    data: [key],
+    count: 1,
+    skip: 0,
+    limit: 50,
+  } as never);
+}
+
+// Draws `page` in `language`, and picks the guide's option `option`.
+async function drawWithOption(
+  language: string,
+  page: React.ReactElement,
+  option: string,
+): Promise<void> {
+  await act(async () => {
+    await i18next.changeLanguage(language);
+  });
+  await act(async () => {
+    render(<MemoryRouter>{page}</MemoryRouter>);
+  });
+  await settle();
+
+  await act(async () => {
+    fireEvent.click(screen.getByTestId(`setup-guide-option-${option}`));
+  });
+  await settle();
+}
+
 async function drawIn(
   language: string,
   page: React.ReactElement,
@@ -377,6 +451,9 @@ beforeAll(async () => {
     WORDS["StorageArray"]![language] = (
       await STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
+    WORDS["Proxmox"]![language] = (
+      await PROXMOX_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
     WORDS["OpenStack"]![language] = (
       await OPENSTACK_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
@@ -385,6 +462,9 @@ beforeAll(async () => {
     ).default;
     WORDS["Database"]![language] = (
       await DATABASE_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["Host"]![language] = (
+      await HOST_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -636,6 +716,132 @@ describe("Storage Array > Help > Documentation", () => {
   );
 });
 
+describe("Proxmox > Help > Documentation", () => {
+  // Every piece of `guide` is drawn in the reader's words, and none in English.
+  function expectGuideInReadersWords(
+    guide: SetupGuideContent,
+    language: string,
+  ): void {
+    const drawn: string = drawnTexts().join("\n");
+
+    for (const piece of getSetupGuideWordPieces(guide)) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: false,
+      });
+    }
+    for (const piece of getSetupGuideWordPieces(
+      inLanguage("Proxmox", guide, language),
+    )) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: true,
+      });
+    }
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the Proxmox guide, its title, its ways to connect and both ways to create the token in the reader's words, the pveum commands and Proxmox's own menus as written",
+    async (language: string) => {
+      await drawIn(language, <ProxmoxDocumentationPage {...PAGE_PROPS} />);
+
+      // The token step offers a shell and the Proxmox web UI, one drawn at a time: draw both.
+      for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
+        await act(async () => {
+          fireEvent.click(tab);
+        });
+      }
+      await settle();
+
+      expectGuideInReadersWords(proxmoxGuide(), language);
+
+      // The card's own words, its ways to connect and its tabs come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect a Proxmox Cluster"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect a Proxmox Cluster")).toBeNull();
+      expect(
+        screen.getByText(locale["How do you want to connect your cluster?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Native push (Proxmox VE 9+)"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Create a read-only API token"]!),
+      ).toBeInTheDocument();
+      expect(screen.getByText(locale["Proxmox web UI"]!)).toBeInTheDocument();
+
+      // The commands, and Proxmox's own menus and buttons, are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("pveum user token add");
+      expect(drawn).toContain("*Datacenter → Permissions → API Tokens*");
+      expect(drawn).toContain("**Privilege Separation**");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each(["de", "ar"])(
+    "in %s, picking the native push draws the metric server's steps in the reader's words, its fields as Proxmox VE names them",
+    async (language: string) => {
+      await drawWithOption(
+        language,
+        <ProxmoxDocumentationPage {...PAGE_PROPS} />,
+        "native-push",
+      );
+      await openEveryTopic();
+
+      expectGuideInReadersWords(proxmoxGuide("native-push"), language);
+
+      // The key step's words, and the metric server step's, from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(
+          locale[
+            "Proxmox VE sends its metrics with this key, in the x-oneuptime-token header. Pick an existing key or create a new one — the settings below update to use it."
+          ]!,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Add OneUptime as a metric server"]!),
+      ).toBeInTheDocument();
+
+      // The metric server's fields are named as Proxmox VE's dialog names them.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("*Datacenter → Metric Server*");
+      expect(drawn).toContain("**Server**");
+      expect(drawn).toContain("`/otlp/v1/metrics`");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each(["de", "ar"])(
+    "in %s, with a key picked, the native push labels the endpoint it is sent to in the reader's words",
+    async (language: string) => {
+      withAKey();
+      await drawWithOption(
+        language,
+        <ProxmoxDocumentationPage {...PAGE_PROPS} />,
+        "native-push",
+      );
+
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["OTLP metrics endpoint"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("OTLP metrics endpoint")).toBeNull();
+    },
+  );
+});
+
 describe("Kubernetes > Help > Documentation", () => {
   test.each(["de", "fa"])(
     "in %s, the Kubernetes guide, its title and its platforms in the reader's words, the Helm values as written",
@@ -722,6 +928,29 @@ describe("IoT > Help > Documentation", () => {
           language === "ar" ? "rtl" : "ltr",
         );
       }
+    },
+  );
+
+  test.each(["de", "ar"])(
+    "in %s, with a key picked, MQTT labels the address the devices connect to, and says what the key is for, in the reader's words",
+    async (language: string) => {
+      withAKey();
+      await drawWithOption(
+        language,
+        <IoTDocumentationPage {...PAGE_PROPS} />,
+        "mqtt",
+      );
+
+      const locale: Record<string, string> = readDashboardLocale(language);
+      const hint: string =
+        "Send the ingestion token below as the MQTT password — the username is ignored.";
+
+      expect(
+        screen.getByText(locale["MQTT WebSocket URL"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("MQTT WebSocket URL")).toBeNull();
+      expect(screen.getByText(locale[hint]!)).toBeInTheDocument();
+      expect(screen.queryByText(hint)).toBeNull();
     },
   );
 });
@@ -1270,6 +1499,103 @@ describe("Databases > Help > Documentation", () => {
       });
     }
   });
+});
+
+/*
+ * Hosts > Help > Documentation folds the manual guide under the default
+ * one-command install: the card it folds away is drawn here on its own.
+ */
+describe("Hosts > Help > Documentation, the collector you install yourself", () => {
+  const KEY_STEP: string =
+    "The collector sends this host's metrics to OneUptime with this key. Pick an existing key or create a new one — the config below updates to use it.";
+
+  // The card in `language`, an install method picked, every topic and tab open.
+  async function drawWithMethod(
+    language: string,
+    method: HostInstallMethod,
+  ): Promise<void> {
+    await act(async () => {
+      await i18next.changeLanguage(language);
+    });
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <HostDocumentationCard
+            title="Install the collector yourself"
+            description=""
+            isBare={true}
+          />
+        </MemoryRouter>,
+      );
+    });
+    await settle();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`setup-guide-option-${method}`));
+    });
+    await settle();
+    await openEveryTopic();
+    await openEveryVariant();
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the Docker guide, its question and its key step in the reader's words, its flags and paths as written",
+    async (language: string) => {
+      await drawWithMethod(language, "docker");
+
+      expectGuideInReadersWords("Host", hostGuide(), language);
+
+      // The card's question and its key step come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["How do you want to install the collector?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Save the collector config"]!),
+      ).toBeInTheDocument();
+      expect(locale[KEY_STEP]).not.toBe(KEY_STEP);
+      expect(screen.getByText(locale[KEY_STEP]!)).toBeInTheDocument();
+      expect(screen.queryByText(KEY_STEP)).toBeNull();
+
+      // The collector's flags and the attributes it sets are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("`--network host`");
+      expect(drawn).toContain("`host.name`");
+      expect(drawn).toContain("`oneuptime.label.`");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each([
+    ["de", "linux-deb"],
+    ["ar", "linux-tarball"],
+    ["de", "macos"],
+    ["ar", "windows"],
+  ] as Array<[string, HostInstallMethod]>)(
+    "in %s, picking %s draws that install method's steps and topics in the reader's words",
+    async (language: string, method: HostInstallMethod) => {
+      await drawWithMethod(language, method);
+
+      expectGuideInReadersWords("Host", hostGuide(method), language);
+    },
+  );
+
+  /*
+   * Kubernetes nodes take the Kubernetes agent's steps, not a collector's:
+   * the Kubernetes guide's own pieces, in the Host guide's words.
+   */
+  test.each(["de", "ar"])(
+    "in %s, picking Kubernetes draws the Kubernetes agent's steps in the reader's words",
+    async (language: string) => {
+      await drawWithMethod(language, "kubernetes");
+
+      expectGuideInReadersWords("Host", hostGuide("kubernetes"), language);
+      expect(drawnTexts().join("\n")).toContain("aiAgent.enabled");
+    },
+  );
 });
 
 describe("Podman > Help > Documentation", () => {

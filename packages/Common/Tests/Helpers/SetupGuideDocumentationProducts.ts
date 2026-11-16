@@ -18,13 +18,19 @@ import { STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSe
 import { OPENSTACK_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
 import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
+import { PROXMOX_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import { PROXMOX_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationTranslations";
 import { VMWARE_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
 import { DATABASE_AGENT_SYSTEM_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
+import { HOST_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getProxmoxSetupGuideWays,
   getDatabaseSetupGuideWays,
+  getHostSetupGuideWays,
   getVMwareSetupGuideWays,
   getStorageArraySetupGuideWays,
   getKubernetesSetupGuideWays,
@@ -264,6 +270,30 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
       ],
     }),
     product({
+      name: "Proxmox",
+      translations: PROXMOX_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "PROXMOX_DOCUMENTATION_TRANSLATIONS",
+      ways: getProxmoxSetupGuideWays,
+      options: PROXMOX_CONNECT_METHODS,
+      dashboardWords: [
+        "Proxmox",
+        "Logs",
+        "Recommendations",
+        "AI",
+        "AI agent",
+        "Agent Version",
+        "OneUptime AI agent",
+        "Offline",
+        "Disconnected",
+        "Remove Node",
+        "Install script",
+        "Docker Compose",
+        "Storage",
+        "Backup coverage",
+        "Replication",
+      ],
+    }),
+    product({
       name: "VMware",
       translations: VMWARE_DOCUMENTATION_TRANSLATIONS,
       translationsConstant: "VMWARE_DOCUMENTATION_TRANSLATIONS",
@@ -303,6 +333,33 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "AI",
         "AI agent",
         "The files the agent runs",
+      ],
+    }),
+    product({
+      name: "Host",
+      translations: HOST_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "HOST_DOCUMENTATION_TRANSLATIONS",
+      ways: getHostSetupGuideWays,
+      options: HOST_INSTALL_METHODS,
+      dashboardWords: [
+        "Hosts",
+        "Inventory",
+        "Details",
+        "Overview",
+        "Metrics",
+        "Processes",
+        "Logs",
+        "Systemd Units",
+        "Services",
+        "AI",
+        "AI agent",
+        "Agent Version",
+        "Kubernetes",
+        "Nodes",
+        // The guide's own topics, named from other topics.
+        "Record the serial number, make, model and firmware version",
+        "Enable the Systemd Units tab",
+        "Enable the Windows Services tab",
       ],
     }),
   ];
