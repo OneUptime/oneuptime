@@ -14,7 +14,7 @@ import {
 } from "../../../../Server/Utils/AutoRemediation/RemediationChatWords";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import Project from "../../../../Models/DatabaseModels/Project";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import SlackActionType from "../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";

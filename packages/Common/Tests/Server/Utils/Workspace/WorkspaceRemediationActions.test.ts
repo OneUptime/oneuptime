@@ -9,7 +9,7 @@ import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRe
 import IncidentService from "../../../../Server/Services/IncidentService";
 import UserService from "../../../../Server/Services/UserService";
 import RemediationApproval from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import WorkspaceRemediationActions, {

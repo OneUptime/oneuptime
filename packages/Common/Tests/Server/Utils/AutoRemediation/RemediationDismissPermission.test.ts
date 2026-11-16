@@ -1,5 +1,5 @@
 import RemediationApproval from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import WorkspaceRemediationActions from "../../../../Server/Utils/Workspace/WorkspaceRemediationActions";
 import {
   RUNBOOK_EXECUTE_PERMISSIONS,

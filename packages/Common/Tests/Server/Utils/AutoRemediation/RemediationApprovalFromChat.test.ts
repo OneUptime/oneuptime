@@ -1,7 +1,7 @@
 import RemediationApproval, {
   getFixChangedSinceMessage,
 } from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import AlertFeedService from "../../../../Server/Services/AlertFeedService";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
 import ExternalMcpServerService from "../../../../Server/Services/ExternalMcpServerService";

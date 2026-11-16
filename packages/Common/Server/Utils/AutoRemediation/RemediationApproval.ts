@@ -131,7 +131,7 @@ import ProductBrandingText from "../ProductBrandingText";
 import {
   getRemediationPlanFingerprint,
   isRemediationPlanFingerprint,
-} from "./RemediationPlanFingerprint";
+} from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import { getFixApprovalsNeeded } from "./RemediationApprovalsNeeded";
 import {
   ALREADY_APPROVED_FIRST_MESSAGE,

@@ -54,7 +54,7 @@ import IncidentService from "../../Services/IncidentService";
 import { describeRemediationTrackRecord } from "../../../Types/AutoRemediation/RemediationTrackRecordWords";
 import logger from "../Logger";
 import SlackActionType from "../Workspace/Slack/Actions/ActionTypes";
-import { getRemediationPlanFingerprint } from "./RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import {
   getApprovalMessageNote,
   getViewInProductTitle,
