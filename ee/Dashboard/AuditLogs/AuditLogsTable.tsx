@@ -123,6 +123,7 @@ export const AUDIT_LOGS_TABLE_WORDS: Readonly<{
   unknownUser: string;
   noFieldsRecorded: string;
   viewSessionDetails: string;
+  viewSignInAttemptDetails: string;
 }> = {
   notRecordingNotIncluded: translationKey(
     "Audit logging is not recording: not included in your Enterprise license",
@@ -153,6 +154,10 @@ export const AUDIT_LOGS_TABLE_WORDS: Readonly<{
   unknownUser: translationKey("Unknown user"),
   noFieldsRecorded: translationKey("No fields recorded"),
   viewSessionDetails: translationKey("{{summary}} - view session details"),
+  // A failed sign-in made no session: its details are the attempt's.
+  viewSignInAttemptDetails: translationKey(
+    "{{summary}} - view sign-in attempt details",
+  ),
 };
 
 /*
@@ -228,6 +233,13 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
     icon: IconProp.SignIn,
     className: "border-indigo-200 bg-indigo-50 text-indigo-700",
     iconColor: "text-indigo-600",
+  },
+  // A sign-in to an existing account that failed (issue #6788).
+  SignInFailed: {
+    label: AUDIT_LOG_ACTION_LABELS[AuditLogAction.SignInFailed],
+    icon: IconProp.ShieldExclamation,
+    className: "border-orange-200 bg-orange-50 text-orange-800",
+    iconColor: "text-orange-600",
   },
   SignOut: {
     label: AUDIT_LOG_ACTION_LABELS[AuditLogAction.SignOut],
@@ -886,7 +898,9 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                     type="button"
                     data-testid="audit-log-session-summary"
                     title={translator.translateTemplate(
-                      words.viewSessionDetails,
+                      item.action === AuditLogAction.SignInFailed
+                        ? words.viewSignInAttemptDetails
+                        : words.viewSessionDetails,
                       { summary: summary },
                     )}
                     onClick={() => {

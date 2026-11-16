@@ -1275,7 +1275,11 @@ describe("notification methods", () => {
       );
       expect(sender).toContain('.createHmac("sha256", message.secret)');
       expect(sender).toContain(".update(bodyString)");
-      expect(sender).toContain("doNotFollowRedirects: true,");
+      // Sent through SafeWebhookRequest, which never follows a redirect.
+      expect(sender).toContain("await SafeWebhookRequest.send<JSONObject>(");
+      expect(readCommonSource("Server/Utils/SafeWebhookRequest.ts")).toContain(
+        "doNotFollowRedirects: true,",
+      );
       expect(sender.match(WEBHOOK_TIMEOUT)?.[1]).toBe("10_000");
 
       expect(methods).toContain(

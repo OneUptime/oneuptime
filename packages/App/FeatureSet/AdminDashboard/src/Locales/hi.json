@@ -1244,6 +1244,8 @@
   "Copy Error": "त्रुटि कॉपी करें",
   "Full error message": "पूरा त्रुटि संदेश",
   "Next try: {{time}}": "अगली कोशिश: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "भेजे जाने की प्रतीक्षा कर रही एंट्रियाँ लगभग {{time}} से हटनी शुरू होंगी।",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "लगभग {{time}} से, भेजे जाने की प्रतीक्षा कर रही एंट्रियाँ हटाई जा रही हैं।",
   "Needs a valid Enterprise license that includes audit logs.": "ऑडिट लॉग शामिल करने वाला मान्य Enterprise लाइसेंस आवश्यक है।",
   "Paused": "रोका गया",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "बंद रहने के दौरान कुछ भी नहीं भेजा जाता। यह अपनी जगह याद रखता है: दोबारा चालू करने पर यह बीच में रिकॉर्ड हुई चीज़ें भेजता है।",

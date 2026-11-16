@@ -1244,6 +1244,8 @@
   "Copy Error": "Скопировать ошибку",
   "Full error message": "Полный текст ошибки",
   "Next try: {{time}}": "Следующая попытка: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "Записи, ожидающие отправки, начнут удаляться примерно с {{time}}.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "Примерно с {{time}} записи, ожидающие отправки, удаляются.",
   "Needs a valid Enterprise license that includes audit logs.": "Нужна действующая лицензия Enterprise, включающая журналы аудита.",
   "Paused": "Приостановлено",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "Пока экспорт выключен, ничего не отправляется. Он сохраняет позицию: после включения отправит то, что было записано за это время.",

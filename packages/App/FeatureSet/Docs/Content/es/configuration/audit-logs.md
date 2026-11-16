@@ -65,10 +65,10 @@ Un cambio en estos ajustes se aplica en menos de un minuto.
 | Columna | Qué muestra |
 | --- | --- |
 | **Cuándo** | Hace cuánto, con la fecha y la hora. |
-| **Acción** | `Create`, `Update` o `Delete`, `Download` para un archivo de captura de paquetes que alguien descargó, o `Sign In`, `Sign Out`, `Session Timeout` o `Session Revoked` para una sesión. |
+| **Acción** | `Create`, `Update` o `Delete`, `Download` para un archivo de captura de paquetes que alguien descargó, o `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` o `Session Revoked` para un inicio de sesión o una sesión. |
 | **Recurso** | El nombre del recurso, que lo abre mientras existe, y su tipo. |
 | **Actor** | Quién hizo el cambio: una persona, una clave de API, un workflow o `System` para un cambio que OneUptime hizo por sí mismo. El cambio de una persona hecho a través de un cliente MCP indica cuál. |
-| **Cambios** | Cuántos campos cambiaron, o se capturaron en una creación o una eliminación. En una sesión, cómo se inició o por qué terminó. Haga clic para ver cada campo. |
+| **Cambios** | Cuántos campos cambiaron, o se capturaron en una creación o una eliminación. En un inicio de sesión o una sesión, cómo se inició, por qué falló o por qué terminó. Haga clic para ver cada campo. |
 
 Filtre por **Tipo de recurso**, **Nombre del recurso**, **Acción**, **Correo electrónico del usuario** u **Hora**. Una modificación solo enumera los campos que cambiaron, antes y después, y un guardado que no cambia nada no añade ninguna entrada.
 
@@ -86,7 +86,7 @@ Se registra todo lo que las personas crean, cambian o eliminan en un proyecto: m
 | Registros de ejecuciones | Cada uno ya es la constancia de una ejecución de un flujo de trabajo, una escalada de guardia, un análisis, una importación o una ejecución de IA. |
 | Lo que informan los agentes y la telemetría | Los recursos descubiertos, las lecturas y el uso cambian con cada informe, no porque alguien los haya cambiado. |
 | Fuentes de actividad | Una fuente muestra cambios que el registro de auditoría ya registra. |
-| El estado de trabajo de OneUptime | Sesiones de los lectores de páginas de estado, trabajos en cola y otro estado que OneUptime guarda mientras trabaja. |
+| El estado de trabajo de OneUptime | Trabajos en cola y otro estado que OneUptime guarda mientras trabaja. |
 | La configuración de notificaciones propia de una persona | Las direcciones, los números y las reglas de guardia personales de cada persona son solo suyos. |
 | Las preferencias propias de una persona | Los productos que cada persona fija en su propia barra superior son solo suyos, y solo esa persona los ve. |
 
@@ -114,11 +114,16 @@ Cada vez que un miembro del proyecto inicia sesión en OneUptime, el registro de
 | Acción | Cuándo se registra |
 | --- | --- |
 | `Sign In` | Alguien inicia sesión: con una contraseña o un enlace de inicio de sesión, una clave de acceso, Google, Microsoft, Vercel o el inicio de sesión único. |
+| `Sign-In Failed` | Alguien intenta iniciar sesión en una cuenta existente y no lo consigue: una contraseña, un código de autenticación, un código de respaldo o una llave de seguridad incorrectos, una cuenta bloqueada o sin verificar, o un inicio de sesión único que OneUptime rechazó. |
 | `Sign Out` | La persona cierra sesión. |
 | `Session Timeout` | OneUptime termina la sesión al cumplirse su tiempo: el tiempo de inactividad o la duración de la sesión que fijó un administrador del servidor, o 30 días sin uso. |
 | `Session Revoked` | OneUptime termina la sesión porque la contraseña cambió, la cuenta se bloqueó, o un administrador del servidor restableció o exigió la autenticación de dos factores. |
 
 El **Recurso** de una entrada es la sesión, que recibe el nombre del dispositivo desde el que se inició, por ejemplo `Chrome 130 on macOS`. Su **Actor** es la persona a quien pertenece la sesión, así que filtrar por **Correo electrónico del usuario** encuentra todos sus inicios de sesión y sesiones. Sus detalles indican cómo inició sesión la persona y con qué segundo factor, la dirección IP y la ubicación, y, en una sesión que terminó, cuándo se inició, cuándo se usó por última vez y cuándo caducó. El proveedor de SSO propio de un proyecto solo se nombra en el registro de auditoría de ese proyecto.
+
+Una entrada `Sign-In Failed` trata del intento y recibe el nombre del dispositivo del que vino. Su **Actor** es la cuenta en la que se hizo el intento: quien lo hizo no demostró ser esa persona. Sus detalles indican por qué falló, cómo se intentó iniciar sesión, la dirección IP y la ubicación, nunca lo que se escribió. Un intento con una dirección de correo electrónico que no tiene ninguna cuenta no se registra, y registrar un intento no cambia ni lo que responde la página de inicio de sesión ni la rapidez con que responde. Para que una avalancha de intentos no pueda llenar el registro de auditoría, los primeros 10 intentos fallidos en una cuenta en una hora se registran uno por uno. El resto se cuenta, y la siguiente entrada de la cuenta indica cuántos intentos representa y cuándo se hizo el primero de ellos.
+
+Los lectores de una página de estado privada también se registran, solo en el proyecto de la página de estado: cada inicio de sesión con una contraseña, un enlace de inicio de sesión o el inicio de sesión único de la página de estado, cada cierre de sesión y cada sesión que OneUptime termina porque la contraseña del lector cambió o la página de estado ya no acepta cómo se inició. Sus entradas también están en la propia página **Registros de auditoría** de la página de estado. Su **Actor** es el lector, por su dirección de correo electrónico, y su **Recurso** es la sesión del lector.
 
 Los inicios de sesión y las sesiones se registran guarde o no el proyecto los eventos del sistema. Una duración de la sesión o 30 días sin uso se registran a los pocos minutos de cumplirse. Un tiempo de inactividad en el navegador, o en una versión de la aplicación móvil posterior a la 1.6.0, se registra en los 35 minutos siguientes a cumplirse, vuelva o no la persona. En la versión 1.6.0 y anteriores de la aplicación móvil, se registra cuando la aplicación vuelve a comunicarse con OneUptime.
 

@@ -26,6 +26,11 @@ import FakeEnterpriseModule, {
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import AuditLogAction from "../../../Types/AuditLog/AuditLogAction";
 import { SessionAuditEvent } from "../../../Types/AuditLog/AuditLogSessionEvent";
+import {
+  SignInFailureAuditEvent,
+  SignInFailureReason,
+} from "../../../Types/AuditLog/AuditLogSignInFailure";
+import { StatusPageSessionAuditEvent } from "../../../Types/AuditLog/AuditLogStatusPageSession";
 import { SignInMethod } from "../../../Types/UserSession/SessionSignIn";
 
 /*
@@ -152,9 +157,44 @@ type EntryPoint = {
     | "recordUpdate"
     | "recordDelete"
     | "recordDownload"
-    | "recordSessionEvents";
+    | "recordSessionEvents"
+    | "recordSignInFailures"
+    | "recordStatusPageSessionEvents";
   call: (service: AuditLogService) => Promise<void>;
 };
+
+// A failed sign-in, as FailedSignInAuditLog hands it over (issue #6788).
+const signInFailures: () => Array<SignInFailureAuditEvent> =
+  (): Array<SignInFailureAuditEvent> => {
+    return [
+      {
+        userId: new ObjectID("12121212-1212-4212-8212-121212121212"),
+        attemptId: new ObjectID("14141414-1414-4414-8414-141414141414"),
+        reason: SignInFailureReason.WrongPassword,
+        signIn: { method: SignInMethod.Password },
+        device: "Chrome 130 on macOS",
+        ipAddress: "203.0.113.7",
+        failedAttempts: 1,
+      },
+    ];
+  };
+
+// A status page reader's sign-in (issue #6790).
+const statusPageSessionEvents: () => Array<StatusPageSessionAuditEvent> =
+  (): Array<StatusPageSessionAuditEvent> => {
+    return [
+      {
+        action: AuditLogAction.SignIn,
+        sessionId: new ObjectID("15151515-1515-4515-8515-151515151515"),
+        projectId: PROJECT_ID,
+        statusPageId: new ObjectID("16161616-1616-4616-8616-161616161616"),
+        readerEmail: "customer@example.com",
+        signIn: { method: SignInMethod.Password },
+        device: "Chrome 130 on macOS",
+        ipAddress: "203.0.113.7",
+      },
+    ];
+  };
 
 // A sign-in, as UserSessionService hands it over (issue #6762).
 const sessionEvents: () => Array<SessionAuditEvent> =
@@ -202,6 +242,18 @@ const RECORD_ENTRY_POINTS: Array<EntryPoint> = [
       return service.recordSessionEvents(sessionEvents());
     },
   },
+  {
+    name: "recordSignInFailures",
+    call: (service: AuditLogService): Promise<void> => {
+      return service.recordSignInFailures(signInFailures());
+    },
+  },
+  {
+    name: "recordStatusPageSessionEvents",
+    call: (service: AuditLogService): Promise<void> => {
+      return service.recordStatusPageSessionEvents(statusPageSessionEvents());
+    },
+  },
 ];
 
 let insertSpy: jest.SpyInstance;
@@ -247,6 +299,11 @@ describe("on the Community Edition (no enterprise module)", () => {
       expect(warnSpy).not.toHaveBeenCalled();
     },
   );
+
+  // A failed sign-in is not even counted where nothing could record it.
+  test("nothing records here", () => {
+    expect(AuditLogServiceInstance.hasRecorder()).toBe(false);
+  });
 
   test("invalidating a project's settings is a harmless no-op", () => {
     expect(() => {
@@ -352,6 +409,67 @@ describe("with the Enterprise Edition loaded", () => {
     expect(warnSpy).toHaveBeenCalledWith(
       "AuditLog: failed to record session events",
     );
+  });
+
+  test("recordSignInFailures hands the recorder the very failed sign-ins it was given", async () => {
+    const events: Array<SignInFailureAuditEvent> = signInFailures();
+
+    await AuditLogServiceInstance.recordSignInFailures(events);
+
+    expect(recorder.recordSignInFailures).toHaveBeenCalledTimes(1);
+    expect(recorder.recordSignInFailures.mock.calls[0]![0]).toBe(events);
+  });
+
+  test("recordSignInFailures with none asks the recorder nothing, and never throws when it fails", async () => {
+    await AuditLogServiceInstance.recordSignInFailures([]);
+
+    expect(recorder.recordSignInFailures).not.toHaveBeenCalled();
+
+    recorder.recordSignInFailures.mockRejectedValue(
+      new Error("recorder broke its promise") as never,
+    );
+
+    await expect(
+      AuditLogServiceInstance.recordSignInFailures(signInFailures()),
+    ).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "AuditLog: failed to record failed sign-ins",
+    );
+  });
+
+  test("recordStatusPageSessionEvents hands the recorder the very events it was given", async () => {
+    const events: Array<StatusPageSessionAuditEvent> =
+      statusPageSessionEvents();
+
+    await AuditLogServiceInstance.recordStatusPageSessionEvents(events);
+
+    expect(recorder.recordStatusPageSessionEvents).toHaveBeenCalledTimes(1);
+    expect(recorder.recordStatusPageSessionEvents.mock.calls[0]![0]).toBe(
+      events,
+    );
+  });
+
+  test("recordStatusPageSessionEvents with none asks the recorder nothing, and never throws when it fails", async () => {
+    await AuditLogServiceInstance.recordStatusPageSessionEvents([]);
+
+    expect(recorder.recordStatusPageSessionEvents).not.toHaveBeenCalled();
+
+    recorder.recordStatusPageSessionEvents.mockRejectedValue(
+      new Error("recorder broke its promise") as never,
+    );
+
+    await expect(
+      AuditLogServiceInstance.recordStatusPageSessionEvents(
+        statusPageSessionEvents(),
+      ),
+    ).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "AuditLog: failed to record status page session events",
+    );
+  });
+
+  test("hasRecorder says the Enterprise Edition records here", () => {
+    expect(AuditLogServiceInstance.hasRecorder()).toBe(true);
   });
 
   test("invalidateProjectSettings reaches the recorder's cache", () => {
@@ -491,6 +609,8 @@ describe("what core's AuditLogService still is", () => {
       "recordDelete",
       "recordDownload",
       "recordSessionEvents",
+      "recordSignInFailures",
+      "recordStatusPageSessionEvents",
       "invalidateProjectSettings",
     ]) {
       expect(methods).toContain(entryPoint);

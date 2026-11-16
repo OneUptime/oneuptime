@@ -142,6 +142,12 @@ push forbidden work onto this host.
 Revoking the capability in the dashboard takes effect on the next heartbeat —
 within a minute by default — like every other capability.
 
+Turning **Enable AI** off for the project stops a command this Runner has
+already claimed: the job's heartbeat says to stop, and a command that has not
+started yet does not start (its result says why). One that is already running
+is left to finish, and its result is reported. A runbook's own steps are never
+stopped this way.
+
 ### AI kubectl access
 
 OneUptime AI runs kubectl through the cluster's Kubernetes AI agent or

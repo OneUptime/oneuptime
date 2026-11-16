@@ -1202,6 +1202,270 @@ describe("a network controller's report against a walk (#5379)", () => {
  * takes as HOT updates - and never so late that the map, the "Connected to"
  * card or the Discovered Devices list would read an endpoint as gone.
  */
+/*
+ * OneUptime issue #7541. Who an endpoint is attached to was decided by
+ * precedence alone, so an older walk of a switch, processed after a newer
+ * one, moved an endpoint that had changed ports back to the port it left,
+ * until the switch's next walk. The row now keeps when the device it is
+ * attached to last saw it there (attachmentSeenAt), and that device's older
+ * walks write nothing. Other sources keep their precedence, whatever their
+ * time: lastSeenAt is shared by every forwarding table, ARP table and
+ * controller that sees the MAC, and could not be the guard.
+ */
+describe("EndpointAttachmentUtil.decideUpsert - an older walk of the device it is attached to (#7541)", () => {
+  const MAC: string = "aa:bb:cc:dd:75:41";
+  const T: Date = new Date("2026-11-12T10:05:00Z");
+  const minutesFrom: (minutes: number) => Date = (minutes: number): Date => {
+    return new Date(T.getTime() + minutes * 60 * 1000);
+  };
+
+  // A row the access switch attached at T, on port 7.
+  const attachedAtT: EndpointExistingRowSnapshot = {
+    attachedNetworkDeviceId: "access-switch",
+    attachedInterfaceIndex: 7,
+    attachedPortName: "Gi0/7",
+    vlanId: 12,
+    ipAddress: "10.0.0.20",
+    firstSeenAt: new Date("2026-11-01T00:00:00Z"),
+    lastSeenAt: T,
+    attachmentSeenAt: T,
+  };
+
+  const fdbOf: (
+    deviceId: string,
+    interfaceIndex: number,
+  ) => EndpointIncomingObservation = (
+    deviceId: string,
+    interfaceIndex: number,
+  ): EndpointIncomingObservation => {
+    return {
+      macAddress: MAC,
+      deviceId: deviceId,
+      attachment: {
+        interfaceIndex: interfaceIndex,
+        portName: `Gi0/${interfaceIndex}`,
+        vlanId: 12,
+      },
+    };
+  };
+
+  const decide: (
+    existing: EndpointExistingRowSnapshot | null,
+    incoming: EndpointIncomingObservation,
+    now: Date,
+  ) => EndpointUpsertDecision = (
+    existing: EndpointExistingRowSnapshot | null,
+    incoming: EndpointIncomingObservation,
+    now: Date,
+  ): EndpointUpsertDecision => {
+    return EndpointAttachmentUtil.decideUpsert(existing, incoming, {
+      now: now,
+    });
+  };
+
+  test("an older walk of the switch keeps the newer port: it writes nothing at all", () => {
+    expect(
+      decide(attachedAtT, fdbOf("access-switch", 3), minutesFrom(-5)),
+    ).toEqual({
+      action: "none",
+      setAttachment: false,
+      setIpAddress: false,
+    });
+  });
+
+  test("nor the address its ARP table gave the endpoint then: the newer walk read the table later", () => {
+    const decision: EndpointUpsertDecision = decide(
+      attachedAtT,
+      {
+        ...fdbOf("access-switch", 3),
+        ipBinding: { ipAddress: "10.0.0.10", routerInterfaceIndex: 3 },
+      },
+      minutesFrom(-5),
+    );
+
+    expect(decision.action).toBe("none");
+  });
+
+  test("an older ARP read of a router the row is attached to writes nothing either", () => {
+    const decision: EndpointUpsertDecision = decide(
+      {
+        ...attachedAtT,
+        attachedNetworkDeviceId: "router",
+        attachedInterfaceIndex: 2,
+        attachedPortName: undefined,
+        vlanId: undefined,
+      },
+      {
+        macAddress: MAC,
+        deviceId: "router",
+        ipBinding: { ipAddress: "10.0.0.10", routerInterfaceIndex: 5 },
+      },
+      minutesFrom(-5),
+    );
+
+    expect(decision.action).toBe("none");
+  });
+
+  test("a newer walk of the switch moves it, and carries its own time for the row", () => {
+    const decision: EndpointUpsertDecision = decide(
+      attachedAtT,
+      fdbOf("access-switch", 3),
+      minutesFrom(5),
+    );
+
+    expect(decision.action).toBe("update");
+    expect(decision.setAttachment).toBe(true);
+    expect(decision.attachedInterfaceIndex).toBe(3);
+    expect(decision.attachmentSeenAt).toEqual(minutesFrom(5));
+  });
+
+  test("a walk from the same moment is no older: the same poll processed twice moves it too", () => {
+    const decision: EndpointUpsertDecision = decide(
+      attachedAtT,
+      fdbOf("access-switch", 3),
+      T,
+    );
+
+    expect(decision.action).toBe("update");
+    expect(decision.attachedInterfaceIndex).toBe(3);
+  });
+
+  test("a router's ARP read since does not stop the switch's newer walk: the row's lastSeenAt is not the switch's", () => {
+    // Attached at T, seen by a router at T+1; the switch's walk is from T+0:30.
+    const decision: EndpointUpsertDecision = decide(
+      { ...attachedAtT, lastSeenAt: minutesFrom(1) },
+      fdbOf("access-switch", 3),
+      new Date(T.getTime() + 30 * 1000),
+    );
+
+    expect(decision.action).toBe("update");
+    expect(decision.attachedInterfaceIndex).toBe(3);
+  });
+
+  test("another switch's forwarding table takes the port by precedence, however old its walk", () => {
+    const decision: EndpointUpsertDecision = decide(
+      attachedAtT,
+      fdbOf("uplink-switch", 49),
+      minutesFrom(-30),
+    );
+
+    expect(decision.action).toBe("update");
+    expect(decision.setAttachment).toBe(true);
+    expect(decision.attachedInterfaceIndex).toBe(49);
+    // The new owner's own time, which its older walks are judged by.
+    expect(decision.attachmentSeenAt).toEqual(minutesFrom(-30));
+  });
+
+  test("a router's ARP read refreshes the address whatever its time, and leaves the switch's attachment and time alone", () => {
+    const decision: EndpointUpsertDecision = decide(
+      attachedAtT,
+      {
+        macAddress: MAC,
+        deviceId: "router",
+        ipBinding: { ipAddress: "10.0.0.21", routerInterfaceIndex: 5 },
+      },
+      minutesFrom(-5),
+    );
+
+    expect(decision.action).toBe("update");
+    expect(decision.setAttachment).toBe(false);
+    expect(decision.setIpAddress).toBe(true);
+    expect(decision.ipAddress).toBe("10.0.0.21");
+    expect(decision.attachmentSeenAt).toBeUndefined();
+  });
+
+  test("a network controller still takes the row from an older sighting, and its own time goes with it", () => {
+    const seenAt: Date = minutesFrom(-30);
+    const decision: EndpointUpsertDecision = decide(
+      attachedAtT,
+      {
+        macAddress: MAC,
+        deviceId: "access-switch",
+        attachment: { portName: "Port 3" },
+        controller: { source: "meraki", seenAt: seenAt },
+      },
+      minutesFrom(60),
+    );
+
+    expect(decision.action).toBe("update");
+    expect(decision.setAttachment).toBe(true);
+    expect(decision.attachedPortName).toBe("Port 3");
+    expect(decision.attachmentSeenAt).toEqual(seenAt);
+  });
+
+  test("a row with no attachment time - written before the column - is judged as before", () => {
+    const decision: EndpointUpsertDecision = decide(
+      { ...attachedAtT, attachmentSeenAt: undefined },
+      fdbOf("access-switch", 3),
+      minutesFrom(-5),
+    );
+
+    expect(decision.action).toBe("update");
+    expect(decision.attachedInterfaceIndex).toBe(3);
+    expect(decision.attachmentSeenAt).toEqual(minutesFrom(-5));
+  });
+
+  test("an attachment time that is no time is no guard", () => {
+    const decision: EndpointUpsertDecision = decide(
+      { ...attachedAtT, attachmentSeenAt: new Date("not a time") },
+      fdbOf("access-switch", 3),
+      minutesFrom(-5),
+    );
+
+    expect(decision.action).toBe("update");
+  });
+
+  test("without a clock the old behaviour stands: no time to judge by", () => {
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(
+        attachedAtT,
+        fdbOf("access-switch", 3),
+      );
+
+    expect(decision.action).toBe("update");
+    expect(decision.attachedInterfaceIndex).toBe(3);
+    // The write's own time is meant.
+    expect(decision.attachmentSeenAt).toBeUndefined();
+  });
+
+  test("a create carries the walk's time: every create sets an attachment", () => {
+    const decision: EndpointUpsertDecision = decide(
+      null,
+      fdbOf("access-switch", 7),
+      T,
+    );
+
+    expect(decision.action).toBe("create");
+    expect(decision.attachmentSeenAt).toEqual(T);
+  });
+
+  test("an ARP-only create claims the row for the router, with its time", () => {
+    const decision: EndpointUpsertDecision = decide(
+      null,
+      {
+        macAddress: MAC,
+        deviceId: "router",
+        ipBinding: { ipAddress: "10.0.0.21", routerInterfaceIndex: 5 },
+      },
+      T,
+    );
+
+    expect(decision.action).toBe("create");
+    expect(decision.setAttachment).toBe(true);
+    expect(decision.attachmentSeenAt).toEqual(T);
+  });
+
+  test("an unchanged re-sighting inside the refresh window still writes nothing, so the time stays where it was", () => {
+    const decision: EndpointUpsertDecision = decide(
+      attachedAtT,
+      fdbOf("access-switch", 7),
+      new Date(T.getTime() + 1000),
+    );
+
+    expect(decision.action).toBe("none");
+  });
+});
+
 describe("endpointRefreshSlot", () => {
   const MINUTE: number = 60 * 1000;
   const WINDOW: number = ENDPOINT_LAST_SEEN_REFRESH_MS;

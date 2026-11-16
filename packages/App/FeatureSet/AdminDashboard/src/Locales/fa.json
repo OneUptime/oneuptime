@@ -1244,6 +1244,8 @@
   "Copy Error": "کپی خطا",
   "Full error message": "پیام کامل خطا",
   "Next try: {{time}}": "تلاش بعدی: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "مواردی که در انتظار فرستادن هستند از حدود {{time}} شروع به حذف شدن می‌کنند.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "از حدود {{time}}، مواردی که در انتظار فرستادن هستند در حال حذف شدن‌اند.",
   "Needs a valid Enterprise license that includes audit logs.": "به پروانهٔ معتبر Enterprise که شامل گزارش‌های ممیزی باشد نیاز دارد.",
   "Paused": "متوقف‌شده",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "تا وقتی خاموش است چیزی فرستاده نمی‌شود. جایگاهش را حفظ می‌کند: وقتی دوباره روشن شود، آنچه در این فاصله ثبت شده را می‌فرستد.",

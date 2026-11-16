@@ -401,7 +401,7 @@ Een onderzoek dat mislukt, verloopt of verouderd raakt, geeft het herstel toch v
 
 Terwijl het herstel wacht, zegt de stap **Herstel** dat (**Wachten**), en toont hij wat er gebeurde zodra het onderzoek is afgerond.
 
-Automatisch herstel hangt af van twee schakelaars. **Nieuwe incidenten automatisch herstellen** (of voor waarschuwingen), uit totdat het project het inschakelt: staat het uit, dan wordt geen enkel nieuw incident (of waarschuwing) hersteld. En **AI inschakelen** (**Projectinstellingen → AI → AI-functies**), de hoofdschakelaar voor AI van het project: staat die uit, dan draait geen enkele AI-regel (zelfs geen regel die een runbook zonder AI start) en wordt geen enkel cluster of geen enkele resource hersteld.
+Automatisch herstel hangt af van twee schakelaars. **Nieuwe incidenten automatisch herstellen** (of voor waarschuwingen), uit totdat het project het inschakelt: staat het uit, dan wordt geen enkel nieuw incident (of waarschuwing) hersteld. En **AI inschakelen** (**Projectinstellingen → AI → AI-functies**), de hoofdschakelaar voor AI van het project: staat die uit, dan draait geen enkele AI-regel (zelfs geen regel die een runbook zonder AI start) en wordt geen enkel cluster of geen enkele resource hersteld. Een Runner of een AI-agent die al een opdracht heeft wanneer **AI inschakelen** wordt uitgezet, krijgt bij zijn volgende heartbeat te horen dat hij moet stoppen: een opdracht die nog niet is begonnen, begint niet.
 
 ## Wat het automatische herstel deed
 

@@ -140,7 +140,7 @@ Cada entrada es un objeto JSON, con sus claves siempre en este orden:
 | `id` | El id de la entrada. La misma entrada enviada dos veces tiene el mismo id. |
 | `createdAt` | Cuándo se registró el cambio, en UTC. |
 | `projectId` | El proyecto en el que se hizo el cambio. |
-| `action` | `Create`, `Update`, `Delete` o `Download`, o para una sesión `SignIn`, `SignOut`, `SessionTimeout` o `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` o `Download`, o para un inicio de sesión o una sesión `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` o `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Qué se cambió. |
 | `rootResourceType`, `rootResourceId` | El recurso al que pertenece, como un SLO para su regla. |
 | `userId`, `userName`, `userEmail`, `userType` | Quién hizo el cambio. |
@@ -173,7 +173,7 @@ Una exportación nueva envía la versión 2. Una exportación guardada antes de 
 
 ## Cuando un destino falla
 
-Un lote se intenta tres veces, con pocos segundos de diferencia, y luego la exportación espera antes de volver a intentarlo: un minuto, luego dos, cuatro y así sucesivamente, hasta una hora. Su fila dice **Fallando**, y **Ver error** muestra qué respondió el destino y cuándo se intentará de nuevo.
+Un lote se intenta tres veces, con pocos segundos de diferencia, y luego la exportación espera antes de volver a intentarlo: un minuto, luego dos, cuatro y así sucesivamente, hasta una hora. Su fila dice **Fallando**, y **Ver error** muestra qué respondió el destino, cuándo se intentará de nuevo y a partir de cuándo las entradas pendientes de envío empiezan a eliminarse, o, una vez pasado ese momento, desde cuándo se están eliminando.
 
 Nada se omite: las entradas esperan en el registro de auditoría, y la siguiente entrega que funcione se pone al día desde la más antigua. Aun así, cada entrada se elimina en cuanto es más antigua que la retención con la que se registró, se haya enviado o no, así que corrija una exportación que falla dentro de ese plazo. Una retención más larga solo conserva más tiempo las entradas registradas después de cambiarla.
 

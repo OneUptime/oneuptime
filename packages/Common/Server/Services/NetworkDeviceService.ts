@@ -49,7 +49,12 @@ import SnmpOidListUtil, {
   MAX_DEVICE_SPECIFIC_OIDS,
   MAX_EFFECTIVE_OIDS_PER_DEVICE,
 } from "../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
-import { SnmpTableDefinition } from "../../Types/Monitor/SnmpMonitor/SnmpTable";
+import {
+  SnmpTableDefinition,
+  SnmpTableSnapshot,
+} from "../../Types/Monitor/SnmpMonitor/SnmpTable";
+import { NetworkDeviceTransceiver } from "../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import { JSONObject } from "../../Types/JSON";
 import SnmpTableListUtil, {
   MAX_DEVICE_SPECIFIC_TABLES,
 } from "../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
@@ -395,6 +400,36 @@ export interface NetworkDevicePollVerdict {
    * last good counts. Null clears them: a ping-only poll walks nothing.
    */
   interfaceCounts?: NetworkDeviceInterfaceCounts | null | undefined;
+}
+
+/*
+ * What a poll read that only the poll pipeline and the device's own pages
+ * use (OneUptime issue #7393): the rate baseline the next poll's interface
+ * and counter rates are worked out against, and the SNMP table and
+ * transceiver snapshots. Written with the poll's verdict, in its one
+ * statement (NetworkDeviceService.writePollVerdict). Undefined leaves a
+ * column as it is; an empty snapshot clears it.
+ */
+export interface NetworkDevicePollDetails {
+  lastWalkLog?: JSONObject | undefined;
+  snmpTableSnapshot?: Array<SnmpTableSnapshot> | undefined;
+  transceiverSnapshot?: Array<NetworkDeviceTransceiver> | undefined;
+}
+
+// The columns of NetworkDevicePollDetails, as writePollVerdict writes them.
+export const NETWORK_DEVICE_POLL_DETAIL_COLUMNS: ReadonlyArray<
+  keyof NetworkDevicePollDetails
+> = ["lastWalkLog", "snmpTableSnapshot", "transceiverSnapshot"];
+
+// Whether a poll has any detail to write.
+export function hasPollDetails(
+  details: NetworkDevicePollDetails | undefined,
+): boolean {
+  return NETWORK_DEVICE_POLL_DETAIL_COLUMNS.some(
+    (column: keyof NetworkDevicePollDetails): boolean => {
+      return details?.[column] !== undefined;
+    },
+  );
 }
 
 // One patch as mergeDiscoveredDetails sends it: re-read, and its id checked.
@@ -3682,15 +3717,30 @@ export class Service extends ProjectReferencesService<Model> {
    *   - The cached interface counts, when the poll has any to say. They are
    *     health columns too: the device list and the site overview read
    *     interfacesDown.
+   *   - The poll's details (OneUptime issue #7393), when it has any: the
+   *     rate baseline (lastWalkLog) and the SNMP table and transceiver
+   *     snapshots. Each poll wrote the device row three or four times - the
+   *     claim, the baseline, the verdict, and for a device with tables or
+   *     optics the hooked write of its snapshots, which change on every
+   *     poll - and each write was a new version of the product's most
+   *     written row, and one more writer a person's save of the device
+   *     queued behind. Now a poll writes the row twice: its claim, and this.
+   *     And the details take the verdict's guard, so an older poll's
+   *     baseline and snapshots never land over a newer one's either.
    *
-   * Hook-free, like the walk baseline: no NetworkDeviceService update hook
-   * reads any of these columns (NetworkDeviceWalkLogWritePath pins the list).
-   * Scoped to the device's project, and never written to a deleted device.
-   * Moves `updatedAt`, as the hooked write that used to carry these did.
+   * A monitor-backed device has no verdict (`verdict` null): its bound
+   * monitor owns its health, so only the guard and the poll's details are
+   * written - they are inventory, not health.
    *
-   * Returns whether it wrote. False means the device holds a newer verdict,
-   * or is gone. A lock timeout or a deadlock is thrown, for the caller to
-   * leave to the next poll.
+   * Hook-free, as the walk baseline always was: no NetworkDeviceService
+   * update hook reads any of these columns (NetworkDeviceWalkLogWritePath
+   * pins the list). Scoped to the device's project, and never written to a
+   * deleted device. Moves `updatedAt`, as the hooked writes that used to
+   * carry these did; `version` stays, as the baseline's write left it.
+   *
+   * Returns whether it wrote. False means the device holds a newer poll's
+   * result, or is gone. A lock timeout or a deadlock is thrown, for the
+   * caller to leave to the next poll.
    */
   @CaptureSpan()
   public async writePollVerdict(data: {
@@ -3700,49 +3750,65 @@ export class Service extends ProjectReferencesService<Model> {
     receivedAt: Date;
     // When this worker processed it: lastPolledAt (see above).
     processedAt: Date;
-    verdict: NetworkDevicePollVerdict;
+    // Null for a monitor-backed device: its bound monitor owns its health.
+    verdict: NetworkDevicePollVerdict | null;
+    details?: NetworkDevicePollDetails | undefined;
   }): Promise<boolean> {
     const params: Array<unknown> = [
       data.deviceId.toString(),
       data.projectId.toString(),
       data.receivedAt,
-      data.processedAt,
-      data.verdict.isReachable,
-      data.verdict.isSnmpReachable,
     ];
+
+    // The next placeholder, for a value pushed onto params.
+    const param: (value: unknown) => string = (value: unknown): string => {
+      params.push(value);
+      return `$${params.length}`;
+    };
 
     const setClauses: Array<string> = [
       `"lastPollReceivedAt" = $3::timestamptz`,
-      `"lastPolledAt" = $4::timestamptz`,
-      `"isReachable" = $5::boolean`,
-      `"isSnmpReachable" = $6::boolean`,
     ];
 
-    if (data.verdict.isReachable) {
-      setClauses.push(`"lastSeenAt" = GREATEST("lastSeenAt", $3::timestamptz)`);
+    if (data.verdict) {
+      setClauses.push(
+        `"lastPolledAt" = ${param(data.processedAt)}::timestamptz`,
+        `"isReachable" = ${param(data.verdict.isReachable)}::boolean`,
+        `"isSnmpReachable" = ${param(data.verdict.isSnmpReachable)}::boolean`,
+      );
+
+      if (data.verdict.isReachable) {
+        setClauses.push(
+          `"lastSeenAt" = GREATEST("lastSeenAt", $3::timestamptz)`,
+        );
+      }
+
+      if (data.verdict.isSnmpReachable === true) {
+        setClauses.push(
+          `"lastSnmpSeenAt" = GREATEST("lastSnmpSeenAt", $3::timestamptz)`,
+        );
+      }
+
+      if (data.verdict.interfaceCounts !== undefined) {
+        const counts: NetworkDeviceInterfaceCounts | null =
+          data.verdict.interfaceCounts;
+
+        setClauses.push(
+          `"interfacesTotal" = ${param(counts?.total ?? null)}::integer`,
+          `"interfacesUp" = ${param(counts?.up ?? null)}::integer`,
+          `"interfacesDown" = ${param(counts?.down ?? null)}::integer`,
+        );
+      }
     }
 
-    if (data.verdict.isSnmpReachable === true) {
-      setClauses.push(
-        `"lastSnmpSeenAt" = GREATEST("lastSnmpSeenAt", $3::timestamptz)`,
-      );
-    }
+    for (const column of NETWORK_DEVICE_POLL_DETAIL_COLUMNS) {
+      const value: unknown = data.details?.[column];
 
-    if (data.verdict.interfaceCounts !== undefined) {
-      const counts: NetworkDeviceInterfaceCounts | null =
-        data.verdict.interfaceCounts;
-
-      params.push(
-        counts?.total ?? null,
-        counts?.up ?? null,
-        counts?.down ?? null,
-      );
-
-      setClauses.push(
-        `"interfacesTotal" = $${params.length - 2}::integer`,
-        `"interfacesUp" = $${params.length - 1}::integer`,
-        `"interfacesDown" = $${params.length}::integer`,
-      );
+      if (value !== undefined) {
+        setClauses.push(
+          `"${column}" = ${param(value === null ? null : JSON.stringify(value))}::jsonb`,
+        );
+      }
     }
 
     setClauses.push(`"updatedAt" = CURRENT_TIMESTAMP`);

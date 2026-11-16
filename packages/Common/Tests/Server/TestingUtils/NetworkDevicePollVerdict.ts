@@ -1,4 +1,8 @@
-import { NetworkDevicePollVerdict } from "../../../Server/Services/NetworkDeviceService";
+import {
+  NETWORK_DEVICE_POLL_DETAIL_COLUMNS,
+  NetworkDevicePollDetails,
+  NetworkDevicePollVerdict,
+} from "../../../Server/Services/NetworkDeviceService";
 import ObjectID from "../../../Types/ObjectID";
 
 // What NetworkDeviceService.writePollVerdict is called with.
@@ -7,7 +11,9 @@ export interface PollVerdictWrite {
   deviceId: ObjectID;
   receivedAt: Date;
   processedAt: Date;
-  verdict: NetworkDevicePollVerdict;
+  // Null for a monitor-backed device: only its details are written.
+  verdict: NetworkDevicePollVerdict | null;
+  details?: NetworkDevicePollDetails | undefined;
 }
 
 /*
@@ -20,29 +26,42 @@ export interface PollVerdictWrite {
  * lastSeenAt and lastSnmpSeenAt are the later of the stored time and the
  * receipt time. A row read back from nothing has no stored time, so here
  * they are the receipt time.
+ *
+ * The poll's details - its rate baseline and its SNMP table and transceiver
+ * snapshots - ride in the same statement (issue #7393), each when the poll
+ * has one.
  */
 export function pollVerdictColumns(
   write: PollVerdictWrite,
 ): Record<string, unknown> {
   const columns: Record<string, unknown> = {
     lastPollReceivedAt: write.receivedAt,
-    lastPolledAt: write.processedAt,
-    isReachable: write.verdict.isReachable,
-    isSnmpReachable: write.verdict.isSnmpReachable,
   };
 
-  if (write.verdict.isReachable) {
-    columns["lastSeenAt"] = write.receivedAt;
+  if (write.verdict) {
+    columns["lastPolledAt"] = write.processedAt;
+    columns["isReachable"] = write.verdict.isReachable;
+    columns["isSnmpReachable"] = write.verdict.isSnmpReachable;
+
+    if (write.verdict.isReachable) {
+      columns["lastSeenAt"] = write.receivedAt;
+    }
+
+    if (write.verdict.isSnmpReachable === true) {
+      columns["lastSnmpSeenAt"] = write.receivedAt;
+    }
+
+    if (write.verdict.interfaceCounts !== undefined) {
+      columns["interfacesTotal"] = write.verdict.interfaceCounts?.total ?? null;
+      columns["interfacesUp"] = write.verdict.interfaceCounts?.up ?? null;
+      columns["interfacesDown"] = write.verdict.interfaceCounts?.down ?? null;
+    }
   }
 
-  if (write.verdict.isSnmpReachable === true) {
-    columns["lastSnmpSeenAt"] = write.receivedAt;
-  }
-
-  if (write.verdict.interfaceCounts !== undefined) {
-    columns["interfacesTotal"] = write.verdict.interfaceCounts?.total ?? null;
-    columns["interfacesUp"] = write.verdict.interfaceCounts?.up ?? null;
-    columns["interfacesDown"] = write.verdict.interfaceCounts?.down ?? null;
+  for (const column of NETWORK_DEVICE_POLL_DETAIL_COLUMNS) {
+    if (write.details?.[column] !== undefined) {
+      columns[column] = write.details[column];
+    }
   }
 
   return columns;

@@ -1244,6 +1244,8 @@
   "Copy Error": "Copia errore",
   "Full error message": "Messaggio di errore completo",
   "Next try: {{time}}": "Prossimo tentativo: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "Le voci in attesa di invio iniziano a essere eliminate da circa {{time}}.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "Da circa {{time}} le voci in attesa di invio vengono eliminate.",
   "Needs a valid Enterprise license that includes audit logs.": "Richiede una licenza Enterprise valida che includa i log di audit.",
   "Paused": "In pausa",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "Non viene inviato nulla finché è disattivata. Mantiene la sua posizione: quando la riattivi, invia ciò che è stato registrato nel frattempo.",

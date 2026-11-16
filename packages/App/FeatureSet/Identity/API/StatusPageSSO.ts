@@ -34,6 +34,8 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 // Initialize Express router.
 const router: ExpressRouter = Express.getRouter();
@@ -177,6 +179,8 @@ router.post(
           },
           select: {
             _id: true,
+            // The audit log's sign-in entry names the provider (issue #6790).
+            name: true,
             signOnURL: true,
             issuerURL: true,
             publicCertificate: true,
@@ -341,6 +345,12 @@ router.post(
           ipAddress: getClientIp(req),
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
+          // What the session the code is exchanged for signed in with.
+          signIn: {
+            method: SignInMethod.Saml,
+            ssoProviderName: statusPageSSO.name,
+          },
+          requestOrigin: RequestOriginUtil.fromRequest(req),
         });
 
       // get status page URL.

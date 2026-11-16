@@ -140,7 +140,7 @@ Elke vermelding is één JSON-object, met de sleutels altijd in deze volgorde:
 | `id` | De id van de vermelding. Dezelfde vermelding die twee keer wordt verzonden, heeft dezelfde id. |
 | `createdAt` | Wanneer de wijziging is vastgelegd, in UTC. |
 | `projectId` | Het project waarin de wijziging is gedaan. |
-| `action` | `Create`, `Update`, `Delete` of `Download`, of voor een sessie `SignIn`, `SignOut`, `SessionTimeout` of `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` of `Download`, of voor een aanmelding of een sessie `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` of `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Wat er is gewijzigd. |
 | `rootResourceType`, `rootResourceId` | De resource waartoe het behoort, zoals een SLO voor zijn regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Wie de wijziging heeft gedaan. |
@@ -173,7 +173,7 @@ Een nieuwe export verzendt versie 2. Een export die vóór versie 2 is opgeslage
 
 ## Als een bestemming faalt
 
-Een batch wordt drie keer geprobeerd, met een paar seconden ertussen, waarna de export wacht voordat hij het opnieuw probeert: een minuut, dan twee, vier enzovoort, tot een uur. De rij zegt **Mislukt**, en **Fout bekijken** toont wat de bestemming antwoordde en wanneer de volgende poging is.
+Een batch wordt drie keer geprobeerd, met een paar seconden ertussen, waarna de export wacht voordat hij het opnieuw probeert: een minuut, dan twee, vier enzovoort, tot een uur. De rij zegt **Mislukt**, en **Fout bekijken** toont wat de bestemming antwoordde, wanneer de volgende poging is, en vanaf wanneer de vermeldingen die wachten op verzending worden verwijderd, of, zodra dat moment voorbij is, sinds wanneer ze worden verwijderd.
 
 Er wordt niets overgeslagen: de vermeldingen wachten in het auditlogboek, en de volgende levering die lukt, haalt de achterstand in vanaf de oudste. Elke vermelding wordt toch verwijderd zodra ze ouder is dan de bewaartermijn waarmee ze is vastgelegd, verzonden of niet, dus herstel een mislukte export binnen die tijd. Een langere bewaartermijn bewaart alleen de vermeldingen die na de wijziging worden vastgelegd langer.
 

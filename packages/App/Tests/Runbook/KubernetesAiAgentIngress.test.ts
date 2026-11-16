@@ -6,10 +6,12 @@ import KubernetesAiAgentService, {
 import KubernetesAiAgentJobService from "Common/Server/Services/KubernetesAiAgentJobService";
 import KubernetesClusterAiAccessService from "Common/Server/Services/KubernetesClusterAiAccessService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
 import KubernetesAiAgent from "Common/Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Project from "Common/Models/DatabaseModels/Project";
 import Runner, {
   RunnerConnectionStatus,
 } from "Common/Models/DatabaseModels/Runner";
@@ -61,7 +63,9 @@ import {
  *                          kubernetesClusterId, clusterIdentifier } } } — a
  *                          job naming a credential or another cluster is
  *                          failed, never served
- *   /job/:jobId/heartbeat  200 { status: "ok" } | 404 { message }
+ *   /job/:jobId/heartbeat  200 { status: "ok" } | 200 { status: "ok", stop:
+ *                          true, reason } once Enable AI was turned off for
+ *                          an AI command it holds | 404 { message }
  *   /job/:jobId/result     200 { accepted }
  *   /disconnect            200 { status: "ok" }
  *
@@ -119,6 +123,7 @@ import KubernetesAiAgentIngressAPI from "../../FeatureSet/Runbook/API/Kubernetes
 import KubernetesAiAgentAuthorization from "../../FeatureSet/Runbook/Middleware/KubernetesAiAgentAuthorization";
 import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_CLAIM_MESSAGE,
+  AI_COMMANDS_OFF_STOP_MESSAGE,
 } from "Common/Server/Utils/AI/AiCommandKillSwitch";
 
 /*
@@ -1163,19 +1168,32 @@ describe("POST /claim-next-job", () => {
 });
 
 describe("POST /job/:jobId/heartbeat", () => {
+  const RUN_ID: ObjectID = new ObjectID("12341234-1234-4234-8234-123412341234");
+  const SUGGESTION_ID: ObjectID = new ObjectID(
+    "43214321-4321-4321-8321-432143214321",
+  );
   let heartbeatJob: jest.SpyInstance;
+  let jobLookup: jest.SpyInstance;
 
   beforeEach(() => {
     heartbeatJob = jest
       .spyOn(RunnerJobService, "heartbeatJob")
       .mockResolvedValue(true);
+    // The job the agent holds: an investigation's read.
+    jobLookup = jest
+      .spyOn(RunnerJobService, "findOneBy")
+      .mockResolvedValue(makeJob({ aiRunId: RUN_ID }));
   });
 
-  test('the lease is still the agent\'s: 200 { status: "ok" }', async () => {
-    const wire: WireResponse = await call(
+  function heartbeat(): Promise<WireResponse> {
+    return call(
       "/job/:jobId/heartbeat",
       authenticated({ params: { jobId: JOB_ID.toString() } }),
     );
+  }
+
+  test('the lease is still the agent\'s: 200 { status: "ok" }', async () => {
+    const wire: WireResponse = await heartbeat();
 
     expect(wire.statusCode).toBe(200);
     expect(wire.body).toEqual({ status: "ok" });
@@ -1188,10 +1206,7 @@ describe("POST /job/:jobId/heartbeat", () => {
   test("the lease moved on or the job ended: 404, so the agent stops", async () => {
     heartbeatJob.mockResolvedValue(false);
 
-    const wire: WireResponse = await call(
-      "/job/:jobId/heartbeat",
-      authenticated({ params: { jobId: JOB_ID.toString() } }),
-    );
+    const wire: WireResponse = await heartbeat();
 
     expect(wire.thrownToNext).toBeInstanceOf(NotFoundException);
     expect((wire.thrownToNext as NotFoundException).code).toBe(404);
@@ -1205,6 +1220,169 @@ describe("POST /job/:jobId/heartbeat", () => {
 
     expect(wire.thrownToNext).toBeInstanceOf(BadDataException);
     expect(heartbeatJob).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Enable AI turned off after the agent claimed the job: the agent is told
+   * to stop - the heartbeat sent right before kubectl starts keeps it from
+   * starting. The lease is still renewed, so the agent reports what it did.
+   */
+  describe("with Enable AI turned off since the claim", () => {
+    let isAiOff: jest.SpyInstance;
+
+    beforeEach(() => {
+      isAiOff = jest
+        .spyOn(AiCommandKillSwitch, "isAiOff")
+        .mockResolvedValue(true);
+    });
+
+    test("an investigation's read is told to stop, with the reason, and its lease still renewed", async () => {
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.statusCode).toBe(200);
+      expect(wire.body).toEqual({
+        status: "ok",
+        stop: true,
+        reason: AI_COMMANDS_OFF_STOP_MESSAGE,
+      });
+      expect(heartbeatJob).toHaveBeenCalledTimes(1);
+      expect(heartbeatJob).toHaveBeenCalledWith({
+        jobId: JOB_ID,
+        agentId: AGENT_ID,
+      });
+      // The job this agent holds, by id, as root.
+      expect(jobLookup).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { _id: JOB_ID.toString(), assignedAgentId: AGENT_ID },
+          props: { isRoot: true },
+        }),
+      );
+      // The agent's own project, which the claim held the job to.
+      expect((isAiOff.mock.calls[0]![0] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+    });
+
+    test("a fix's change is told to stop too", async () => {
+      jobLookup.mockResolvedValue(
+        makeJob(
+          {
+            origin: RunnerJobOrigin.AiRemediation,
+            autoRemediationSuggestionId: SUGGESTION_ID,
+          },
+          {
+            args: ["rollout", "restart", "deployment/web", "-n", "web"],
+            displayCommand: "kubectl rollout restart deployment/web -n web",
+            tier: "SafeWrite",
+          },
+        ),
+      );
+
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.body).toEqual({
+        status: "ok",
+        stop: true,
+        reason: AI_COMMANDS_OFF_STOP_MESSAGE,
+      });
+    });
+
+    test("Test access is not: a person checks the cluster's access with it before turning AI on", async () => {
+      jobLookup.mockResolvedValue(makeJob());
+
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.body).toEqual({ status: "ok" });
+      expect(isAiOff).not.toHaveBeenCalled();
+    });
+
+    test("a job the agent no longer holds says nothing more than the lease does", async () => {
+      jobLookup.mockResolvedValue(null);
+
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.body).toEqual({ status: "ok" });
+    });
+
+    test("a lease that moved on is still a 404, stop or not", async () => {
+      heartbeatJob.mockResolvedValue(false);
+
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.thrownToNext).toBeInstanceOf(NotFoundException);
+      expect(jobLookup).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Through the switch's own read of the project, not a stub of it: Enable
+   * AI off on the project's row, and a project that is gone, both stop the
+   * job; Enable AI on lets it go on.
+   */
+  describe("Enable AI as the project's row says it", () => {
+    let projectLookup: jest.SpyInstance;
+
+    beforeEach(() => {
+      (AiCommandKillSwitch.isAiOff as unknown as jest.Mock).mockRestore();
+      projectLookup = jest.spyOn(ProjectService, "findOneById");
+    });
+
+    function projectRow(enableAi: boolean): Project {
+      const row: Project = new Project();
+      row.id = PROJECT_ID;
+      row.enableAi = enableAi;
+      return row;
+    }
+
+    test("turned off: stop", async () => {
+      projectLookup.mockResolvedValue(projectRow(false));
+
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.body).toEqual({
+        status: "ok",
+        stop: true,
+        reason: AI_COMMANDS_OFF_STOP_MESSAGE,
+      });
+      expect(
+        (
+          (projectLookup.mock.calls[0]![0] as Record<string, unknown>)[
+            "id"
+          ] as ObjectID
+        ).toString(),
+      ).toBe(PROJECT_ID.toString());
+    });
+
+    test("the project is gone: stop, there is nobody left to act for", async () => {
+      projectLookup.mockResolvedValue(null);
+
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.body).toMatchObject({ stop: true });
+    });
+
+    test("on: the job goes on", async () => {
+      projectLookup.mockResolvedValue(projectRow(true));
+
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.body).toEqual({ status: "ok" });
+    });
+
+    test("a read that fails is passed on as an error, never answered ok", async () => {
+      projectLookup.mockRejectedValue(new Error("database is down"));
+
+      const wire: WireResponse = await heartbeat();
+
+      expect(wire.thrownToNext).toBeInstanceOf(Error);
+      expect(wire.body).toBeUndefined();
+    });
+  });
+
+  test("with Enable AI on, the job goes on: no stop", async () => {
+    const wire: WireResponse = await heartbeat();
+
+    expect(wire.body).toEqual({ status: "ok" });
   });
 });
 
