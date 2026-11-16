@@ -206,6 +206,7 @@ import AttachedFiles, { hasAttachedFiles } from "../Utils/File/AttachedFiles";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
+import WorkflowListeners from "../Utils/Workflow/WorkflowListeners";
 import CallerPlan from "../Utils/Billing/CallerPlan";
 import QueryIdCondition from "../Utils/Database/QueryIdCondition";
 import {
@@ -5892,6 +5893,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<void> {
     if (this.getModel().enableWorkflowOn) {
       /*
+       * Posted only when an enabled workflow of the project that is not
+       * archived listens to this event - its model's On Create, On Update or
+       * On Delete, or On Create or Update - as the workflow service's
+       * handler reads them: most projects have no workflow on most models,
+       * and each post cost the workflow service a request and a read of the
+       * project's workflows. Posted whenever that cannot be told (#8861,
+       * WorkflowListeners).
+       */
+      const isListenedTo: boolean = await WorkflowListeners.isAnyListening({
+        projectId: projectId,
+        triggerIds: WorkflowListeners.triggerIdsOf({
+          tableName: this.getModel().tableName!,
+          triggerType: triggerType,
+          enableWorkflowOn: this.getModel().enableWorkflowOn,
+        }),
+      });
+
+      if (!isListenedTo) {
+        return;
+      }
+
+      /*
        * An update the record's own create makes, before the create has
        * announced the record: On Create or Update hears the create, once,
        * and not these (RecordsBeingCreated). Said beside the event's data,
@@ -6462,6 +6485,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * up" on it at once, on every server (#7465). See ProjectUsageCache.
        */
       await ProjectUsageCache.afterCreate({
+        tableName: this.model.tableName,
+        row: createBy.data,
+      });
+
+      /*
+       * A workflow created: its project's writes read again which triggers
+       * its workflows listen to, in every process (#8861).
+       */
+      await WorkflowListeners.afterCreate({
         tableName: this.model.tableName,
         row: createBy.data,
       });
@@ -7974,6 +8006,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           rows: rowsDeleted,
         });
 
+        // A workflow deleted is posted to no more (#8861). See WorkflowListeners.
+        await WorkflowListeners.afterDelete({
+          tableName: this.model.tableName,
+          rows: rowsDeleted,
+        });
+
         /*
          * Ingest stops writing against the ids, and a resource whose data
          * still arrives comes back. See DiscoveredResourceIdCache.
@@ -8355,6 +8393,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         // Gone from every status page at once. See StatusPageOverviewCache.
         await StatusPageOverviewCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
+        });
+
+        // A workflow deleted is posted to no more (#8861). See WorkflowListeners.
+        await WorkflowListeners.afterDelete({
           tableName: this.model.tableName,
           rows: items,
         });
@@ -10662,6 +10706,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         tableName: this.model.tableName,
         rows: affectedItems,
         written: data,
+      });
+
+      /*
+       * A workflow turned on or off, archived, given another trigger: its
+       * project's writes read again which triggers its workflows listen to,
+       * in every process - with the update's hooks or without (#8861).
+       */
+      await WorkflowListeners.afterUpdate({
+        tableName: this.model.tableName,
+        rows: affectedItems,
       });
 
       /*

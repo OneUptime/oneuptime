@@ -1,5 +1,7 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import Select from "Common/Server/Types/Database/Select";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -14,30 +16,31 @@ import DatabaseConfig from "Common/Server/DatabaseConfig";
 import NetworkDeviceOwnerTeamService from "Common/Server/Services/NetworkDeviceOwnerTeamService";
 import NetworkDeviceOwnerUserService from "Common/Server/Services/NetworkDeviceOwnerUserService";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
-import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import NetworkDeviceOwnerTeam from "Common/Models/DatabaseModels/NetworkDeviceOwnerTeam";
-import NetworkDeviceOwnerUser from "Common/Models/DatabaseModels/NetworkDeviceOwnerUser";
-import User from "Common/Models/DatabaseModels/User";
-import logger from "Common/Server/Utils/Logger";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
-import {
-  OwnerRowAdded,
-  ownersToTell,
-  planOwnersAdded,
-} from "../../Utils/OwnersAdded";
+import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
+
+// What the networkDevice the owners were added to is read with.
+const NETWORK_DEVICE_SELECT: Select<NetworkDevice> = {
+  _id: true,
+  name: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+};
 
 RunCron(
   "NetworkDeviceOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -62,163 +65,31 @@ RunCron(
       },
     });
 
-    const deviceOwnerTeams: Array<NetworkDeviceOwnerTeam> =
-      await NetworkDeviceOwnerTeamService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          networkDeviceId: true,
-          teamId: true,
-        },
-      });
-
-    const deviceOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
-
-    for (const deviceOwnerTeam of deviceOwnerTeams) {
-      const networkDeviceId: ObjectID = deviceOwnerTeam.networkDeviceId!;
-      const teamId: ObjectID = deviceOwnerTeam.teamId!;
-
-      const users: Array<User> = await TeamMemberService.getUsersInTeams([
-        teamId,
-      ]);
-
-      if (deviceOwnersMap[networkDeviceId.toString()] === undefined) {
-        deviceOwnersMap[networkDeviceId.toString()] = [];
-      }
-
-      (
-        deviceOwnersMap[networkDeviceId.toString()] as Array<OwnerRowAdded>
-      ).push({
-        ownerRowId: deviceOwnerTeam.id!,
-        isTeam: true,
-        users: users,
-      });
-    }
-
-    const deviceOwnerUsers: Array<NetworkDeviceOwnerUser> =
-      await NetworkDeviceOwnerUserService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          networkDeviceId: true,
-          userId: true,
-          user: {
-            email: true,
-            name: true,
-          },
-        },
-      });
-
-    for (const deviceOwnerUser of deviceOwnerUsers) {
-      const networkDeviceId: ObjectID = deviceOwnerUser.networkDeviceId!;
-      const user: User = deviceOwnerUser.user!;
-
-      if (deviceOwnersMap[networkDeviceId.toString()] === undefined) {
-        deviceOwnersMap[networkDeviceId.toString()] = [];
-      }
-
-      (
-        deviceOwnersMap[networkDeviceId.toString()] as Array<OwnerRowAdded>
-      ).push({
-        ownerRowId: deviceOwnerUser.id!,
-        isTeam: false,
-        users: [user],
-      });
-    }
-
-    // send email to all of these users.
-
-    for (const networkDeviceId in deviceOwnersMap) {
-      const ownerRows: Array<OwnerRowAdded> =
-        deviceOwnersMap[networkDeviceId] || [];
-
-      if (ownerRows.length === 0) {
-        continue;
-      }
-
-      const networkDevice: NetworkDevice | null = await readNetworkDevice(
-        new ObjectID(networkDeviceId),
-      );
-
-      /*
-       * Whom each owner row is to tell, written before the rows are taken:
-       * a worker stopped from here on leaves them to be told by a later
-       * run, and one stopped before the take leaves the rows to be read
-       * again.
-       */
-      const deliveries: Array<OwnerNotificationDelivery> = networkDevice
-        ? await planOwnersAdded({
-            kind: OwnerNotificationKind.NetworkDeviceOwnerAdded,
-            projectId: networkDevice.projectId!,
-            resourceId: networkDevice.id!,
-            ownerRows: ownerRows,
-          })
-        : [];
-
-      /*
-       * Marked as notified before the owners are told, so an owner row
-       * whose notification keeps failing is never read again on every run -
-       * one whose network device is gone too.
-       */
-      for (const ownerRow of ownerRows) {
-        if (ownerRow.isTeam) {
-          await NetworkDeviceOwnerTeamService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        } else {
-          await NetworkDeviceOwnerUserService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
-
-      if (!networkDevice) {
-        continue;
-      }
-
-      try {
+    /*
+     * Every record's new owner rows, a page at a time, oldest first: its
+     * team rows and user rows told of together, each person once, each row
+     * taken by one run alone; the run stops between records at its deadline
+     * and the next carries on (OwnersAdded, issue #8862).
+     */
+    await tellOwnersAdded<NetworkDevice>({
+      jobName: "NetworkDeviceOwner:SendOwnerAddedEmail",
+      kind: OwnerNotificationKind.NetworkDeviceOwnerAdded,
+      recordIdColumn: "networkDeviceId",
+      teamService: NetworkDeviceOwnerTeamService,
+      userService: NetworkDeviceOwnerUserService,
+      recordService: NetworkDeviceService,
+      recordSelect: NETWORK_DEVICE_SELECT,
+      deadline: deadline,
+      tell: async (
+        record: NetworkDevice,
+        deliveries: Array<OwnerNotificationDelivery>,
+      ): Promise<void> => {
         await notifyOwnersAdded({
-          networkDevice: networkDevice,
+          networkDevice: record,
           deliveries: deliveries,
         });
-      } catch (e) {
-        logger.error(
-          "Error in sending network device owner added notification",
-          {
-            projectId: networkDevice.projectId?.toString(),
-            networkDeviceId: networkDevice.id?.toString(),
-          },
-        );
-        logger.error(e, {
-          projectId: networkDevice.projectId?.toString(),
-          networkDeviceId: networkDevice.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
 
@@ -230,14 +101,7 @@ async function readNetworkDevice(
     props: {
       isRoot: true,
     },
-    select: {
-      _id: true,
-      name: true,
-      projectId: true,
-      project: {
-        name: true,
-      },
-    },
+    select: NETWORK_DEVICE_SELECT,
   });
 }
 
