@@ -51,6 +51,8 @@ import {
 } from "../../WorkspaceActionAnswers";
 import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
 
 export default class SlackIncidentEpisodeActions {
   // Changing an incident episode's state, as a refusal names it.
@@ -428,6 +430,10 @@ export default class SlackIncidentEpisodeActions {
       label: "On-Call Policy",
       blockId: "onCallPolicy",
       placeholder: "Select On-Call Policy",
+      // How long the policy pages, as the Dashboard's form says (#9006).
+      description: getExecuteOnCallPolicyFormDescription(
+        OnCallPageRecordType.IncidentEpisode,
+      ),
       options: dropdownOption,
     };
 

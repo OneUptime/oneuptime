@@ -38,6 +38,8 @@ import WorkspaceMemberActions, {
 import OnCallPersonPageAnswer from "../../../OnCall/OnCallPersonPageAnswer";
 import SlackActionAnswer from "./Answer";
 import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
 
 export default class SlackAlertActions {
   // Changing an alert's state, as a refusal names it.
@@ -416,6 +418,10 @@ export default class SlackAlertActions {
       label: "On-Call Policy",
       blockId: "onCallPolicy",
       placeholder: "Select On-Call Policy",
+      // How long the policy pages, as the Dashboard's form says (#9006).
+      description: getExecuteOnCallPolicyFormDescription(
+        OnCallPageRecordType.Alert,
+      ),
       options: dropdownOption,
     };
 
