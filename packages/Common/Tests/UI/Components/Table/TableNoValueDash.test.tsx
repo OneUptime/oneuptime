@@ -409,7 +409,7 @@ describe("a column with words of its own for an empty value", () => {
 
 describe("an amount or a share with no value", () => {
   test.each([
-    [FieldType.USDCents, "0 USD"],
+    [FieldType.USDCents, "0\u00A0USD"],
     [FieldType.Percent, "0%"],
   ])(
     "with no words is %s's zero, as it always was",
