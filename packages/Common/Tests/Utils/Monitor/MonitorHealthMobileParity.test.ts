@@ -545,6 +545,29 @@ describe("the app reads a monitor's interval as the web does", () => {
     }
   });
 
+  test("a cron written with more spaces, a tab or a no-break space is read as the web reads it", () => {
+    let compared: number = 0;
+
+    for (const input of INTERVAL_INPUTS) {
+      const collapsed: string = (input || "")
+        .replace(/[\s\u00a0]+/g, " ")
+        .trim();
+
+      if (!CronTab.isValid(collapsed)) {
+        continue;
+      }
+
+      expect({
+        input,
+        cron: MOBILE_FIRST_CHECK.readMonitoringInterval(input),
+      }).toEqual({ input, cron: MonitoringIntervalUtil.toCronOrNull(input) });
+      expect(MOBILE_FIRST_CHECK.readMonitoringInterval(input)).toBe(collapsed);
+      compared++;
+    }
+
+    expect(compared).toBeGreaterThan(40);
+  });
+
   test("whatever the server understands, it stores as a cron the app reads", () => {
     for (const input of INTERVAL_INPUTS) {
       const normalization: MonitoringIntervalNormalization =
