@@ -963,19 +963,25 @@ export const summarizeProductFeedback: (
  * English: the page translates what it shows.
  */
 export const GUIDED_SETUP_TITLES: Readonly<Record<string, string>> = {
-  website_down: "Know when my website or API is down",
-  on_call: "Page the right person when something breaks",
-  status_page: "Publish a status page",
-  telemetry: "Send logs, metrics and traces, then get alerted",
+  website_down: translationKey("Know when my website or API is down"),
+  on_call: translationKey("Page the right person when something breaks"),
+  status_page: translationKey("Publish a status page"),
+  telemetry: translationKey("Send logs, metrics and traces, then get alerted"),
 };
 
+/*
+ * Marked as keys (#8893): the Admin Dashboard's Feedback page looks each up
+ * by what an answer is about, so no lookup of its own names them, and they
+ * read English in every language until its locales had them
+ * (AdminOwnPagesStrings reads this file as a catalog).
+ */
 export const PRODUCT_FEEDBACK_KIND_TITLES: Readonly<
   Record<ProductFeedbackKind, string>
 > = {
-  [ProductFeedbackKind.SetupFlow]: "Guided setup",
-  [ProductFeedbackKind.General]: "Give feedback",
-  [ProductFeedbackKind.Explanation]: "Was this clear?",
-  [ProductFeedbackKind.CheckIn]: "First-week check-in",
+  [ProductFeedbackKind.SetupFlow]: translationKey("Guided setup"),
+  [ProductFeedbackKind.General]: translationKey("Give feedback"),
+  [ProductFeedbackKind.Explanation]: translationKey("Was this clear?"),
+  [ProductFeedbackKind.CheckIn]: translationKey("First-week check-in"),
 };
 
 export const getProductFeedbackTopicTitle: (data: {
@@ -988,7 +994,7 @@ export const getProductFeedbackTopicTitle: (data: {
 
   if (data.kind === ProductFeedbackKind.Explanation) {
     if (data.topic === "how_oneuptime_works") {
-      return "How OneUptime works";
+      return translationKey("How OneUptime works");
     }
 
     if (data.topic.startsWith("term.")) {
@@ -999,7 +1005,7 @@ export const getProductFeedbackTopicTitle: (data: {
   }
 
   if (data.kind === ProductFeedbackKind.CheckIn) {
-    return "Is OneUptime set up the way you wanted?";
+    return translationKey("Is OneUptime set up the way you wanted?");
   }
 
   /*

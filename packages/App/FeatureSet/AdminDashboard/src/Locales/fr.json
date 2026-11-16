@@ -4107,5 +4107,18 @@
   "Sign out everyone signed in without SSO?": "Déconnecter tous ceux qui sont connectés sans SSO ?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Leurs sessions prennent fin maintenant, sur tous les appareils, et ils se reconnectent avec le SSO. Les administrateurs principaux restent connectés.",
   "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Les réponses sont conservées sur ce serveur et lues ici par ses administrateurs principaux. « Donner son avis » est aussi envoyé par e-mail à support@oneuptime.com, et les notes, jamais le texte, vont à l'analyse produit.",
-  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Les réponses sont conservées sur ce serveur et lues ici par ses administrateurs principaux. « Donner son avis » est aussi envoyé à l'e-mail de notification admin, s'il est défini. Rien n'est envoyé à OneUptime."
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Les réponses sont conservées sur ce serveur et lues ici par ses administrateurs principaux. « Donner son avis » est aussi envoyé à l'e-mail de notification admin, s'il est défini. Rien n'est envoyé à OneUptime.",
+  "Know when my website or API is down": "Savoir quand mon site web ou mon API est en panne",
+  "Page the right person when something breaks": "Alerter la bonne personne quand quelque chose tombe en panne",
+  "Publish a status page": "Publiez une page de statut",
+  "Send logs, metrics and traces, then get alerted": "Envoyer des journaux, des métriques et des traces, puis être alerté",
+  "Guided setup": "Configuration guidée",
+  "Give feedback": "Donner votre avis",
+  "First-week check-in": "Point après la première semaine",
+  "How OneUptime works": "Comment fonctionne OneUptime",
+  "Is OneUptime set up the way you wanted?": "OneUptime est-il configuré comme vous le vouliez ?",
+  "Something's broken": "Quelque chose ne marche pas",
+  "Confusing": "Pas clair",
+  "Idea": "Idée",
+  "Other": "Autre"
 }

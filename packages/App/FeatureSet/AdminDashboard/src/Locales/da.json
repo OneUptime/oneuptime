@@ -4107,5 +4107,18 @@
   "Sign out everyone signed in without SSO?": "Log alle ud, der er logget ind uden SSO?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Deres sessioner slutter nu på alle enheder, og de logger ind igen med SSO. Hovedadministratorer forbliver logget ind.",
   "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Svar gemmes på denne server og læses her af dens hovedadministratorer. \"Giv feedback\" sendes også med e-mail til support@oneuptime.com, og bedømmelser, aldrig tekst, sendes til produktanalyse.",
-  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Svar gemmes på denne server og læses her af dens hovedadministratorer. \"Giv feedback\" sendes også til admin-notifikations-e-mailen, hvis der er angivet en. Intet sendes til OneUptime."
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Svar gemmes på denne server og læses her af dens hovedadministratorer. \"Giv feedback\" sendes også til admin-notifikations-e-mailen, hvis der er angivet en. Intet sendes til OneUptime.",
+  "Know when my website or API is down": "Vide, når mit website eller API er nede",
+  "Page the right person when something breaks": "Tilkalde den rette person, når noget går ned",
+  "Publish a status page": "Udgiv en statusside",
+  "Send logs, metrics and traces, then get alerted": "Send protokoller, metrikker og spor, og få derefter advarsler",
+  "Guided setup": "Guidet opsætning",
+  "Give feedback": "Giv feedback",
+  "First-week check-in": "Opfølgning efter første uge",
+  "How OneUptime works": "Sådan virker OneUptime",
+  "Is OneUptime set up the way you wanted?": "Er OneUptime sat op, som du ville?",
+  "Something's broken": "Noget virker ikke",
+  "Confusing": "Uklart",
+  "Idea": "Idé",
+  "Other": "Andet"
 }

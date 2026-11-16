@@ -4107,5 +4107,18 @@
   "Sign out everyone signed in without SSO?": "Sign out everyone signed in without SSO?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.",
   "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.",
-  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime."
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.",
+  "Know when my website or API is down": "Know when my website or API is down",
+  "Page the right person when something breaks": "Page the right person when something breaks",
+  "Publish a status page": "Publish a status page",
+  "Send logs, metrics and traces, then get alerted": "Send logs, metrics and traces, then get alerted",
+  "Guided setup": "Guided setup",
+  "Give feedback": "Give feedback",
+  "First-week check-in": "First-week check-in",
+  "How OneUptime works": "How OneUptime works",
+  "Is OneUptime set up the way you wanted?": "Is OneUptime set up the way you wanted?",
+  "Something's broken": "Something's broken",
+  "Confusing": "Confusing",
+  "Idea": "Idea",
+  "Other": "Other"
 }

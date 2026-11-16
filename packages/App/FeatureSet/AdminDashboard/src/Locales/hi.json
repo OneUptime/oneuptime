@@ -4107,5 +4107,18 @@
   "Sign out everyone signed in without SSO?": "बिना SSO के साइन इन सभी लोगों को साइन आउट करें?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।",
   "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "जवाब इसी सर्वर पर रखे जाते हैं और यहाँ इसके मास्टर एडमिन उन्हें पढ़ते हैं। \"फ़ीडबैक दें\" को support@oneuptime.com पर ईमेल भी किया जाता है, और स्कोर, शब्द कभी नहीं, प्रोडक्ट एनालिटिक्स को जाते हैं।",
-  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "जवाब इसी सर्वर पर रखे जाते हैं और यहाँ इसके मास्टर एडमिन उन्हें पढ़ते हैं। एडमिन सूचना ईमेल सेट होने पर \"फ़ीडबैक दें\" उस पर भी ईमेल किया जाता है। OneUptime को कुछ नहीं भेजा जाता।"
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "जवाब इसी सर्वर पर रखे जाते हैं और यहाँ इसके मास्टर एडमिन उन्हें पढ़ते हैं। एडमिन सूचना ईमेल सेट होने पर \"फ़ीडबैक दें\" उस पर भी ईमेल किया जाता है। OneUptime को कुछ नहीं भेजा जाता।",
+  "Know when my website or API is down": "जानना कि मेरी वेबसाइट या API कब डाउन है",
+  "Page the right person when something breaks": "कुछ बिगड़ने पर सही व्यक्ति को बुलाना",
+  "Publish a status page": "एक स्थिति पृष्ठ प्रकाशित करें",
+  "Send logs, metrics and traces, then get alerted": "लॉग, मेट्रिक्स और ट्रेस भेजें, फिर अलर्ट पाएँ",
+  "Guided setup": "गाइडेड सेटअप",
+  "Give feedback": "फ़ीडबैक दें",
+  "First-week check-in": "पहले हफ़्ते की जाँच",
+  "How OneUptime works": "OneUptime कैसे काम करता है",
+  "Is OneUptime set up the way you wanted?": "क्या OneUptime वैसे सेट हो गया है जैसा आप चाहते थे?",
+  "Something's broken": "कुछ काम नहीं कर रहा",
+  "Confusing": "उलझाने वाला",
+  "Idea": "विचार",
+  "Other": "अन्य"
 }
