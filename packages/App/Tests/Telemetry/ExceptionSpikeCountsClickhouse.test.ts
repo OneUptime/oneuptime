@@ -22,6 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ------------------------------------------------------------------
@@ -297,9 +298,8 @@ integration("the AI insight scan's exception counts against ClickHouse", () => {
   });
 
   test("one statement counts what two counts a candidate counted, for every candidate", async () => {
-    const execute: jest.SpiedFunction<
-      typeof ExceptionInstanceService.executeQuery
-    > = jest.spyOn(ExceptionInstanceService, "executeQuery");
+    const execute: SpyInstance<typeof ExceptionInstanceService.executeQuery> =
+      jest.spyOn(ExceptionInstanceService, "executeQuery");
 
     const counted: Map<
       string,
@@ -348,9 +348,8 @@ integration("the AI insight scan's exception counts against ClickHouse", () => {
   });
 
   test("no window: nothing is counted, and nothing is asked", async () => {
-    const execute: jest.SpiedFunction<
-      typeof ExceptionInstanceService.executeQuery
-    > = jest.spyOn(ExceptionInstanceService, "executeQuery");
+    const execute: SpyInstance<typeof ExceptionInstanceService.executeQuery> =
+      jest.spyOn(ExceptionInstanceService, "executeQuery");
 
     expect(
       await ExceptionInstanceService.countPerValueInWindows({

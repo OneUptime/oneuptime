@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import ExceptionSpikeDetector, {
   EXCEPTION_SPIKE_BASELINE_WINDOW_HOURS,
   EXCEPTION_SPIKE_CANDIDATE_LIMIT,

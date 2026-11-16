@@ -37,6 +37,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import { DataSource } from "typeorm";
 
 /*
@@ -57,7 +58,7 @@ let dataSource: DataSource;
 // A rule service: what RuleSetCache asks of one.
 interface FakeService<TModel extends BaseModel> {
   service: DatabaseService<TModel>;
-  findBy: jest.Mock<(findBy: FindBy<TModel>) => Promise<Array<TModel>>>;
+  findBy: Mock<(findBy: FindBy<TModel>) => Promise<Array<TModel>>>;
 }
 
 function fakeService<TModel extends BaseModel>(
@@ -65,8 +66,8 @@ function fakeService<TModel extends BaseModel>(
   rows: () => Array<TModel>,
 ): FakeService<TModel> {
   const model: TModel = new modelType();
-  const findBy: jest.Mock<(findBy: FindBy<TModel>) => Promise<Array<TModel>>> =
-    jest.fn(async (): Promise<Array<TModel>> => {
+  const findBy: Mock<(findBy: FindBy<TModel>) => Promise<Array<TModel>>> =
+    jest.fn(async (_findBy: FindBy<TModel>): Promise<Array<TModel>> => {
       return rows();
     });
 
@@ -308,7 +309,15 @@ describe("RuleSetCache: what a read hands out", () => {
       id: ObjectID;
       byName: Map<string, Array<string>>;
       names: Set<string>;
-    } = (copy as unknown as Record<string, never>)["extra"];
+    } = (
+      copy as unknown as {
+        extra: {
+          id: ObjectID;
+          byName: Map<string, Array<string>>;
+          names: Set<string>;
+        };
+      }
+    ).extra;
 
     expect(extra.id).not.toBe(id);
     expect(extra.id.toString()).toBe(id.toString());
@@ -319,7 +328,11 @@ describe("RuleSetCache: what a read hands out", () => {
     const original: {
       byName: Map<string, Array<string>>;
       names: Set<string>;
-    } = (rule as unknown as Record<string, never>)["extra"];
+    } = (
+      rule as unknown as {
+        extra: { byName: Map<string, Array<string>>; names: Set<string> };
+      }
+    ).extra;
     expect(original.byName.get("x")).toEqual(["1"]);
     expect(Array.from(original.names)).toEqual(["y"]);
   });
@@ -943,8 +956,10 @@ describe("RuleSetCache: the tables whose writes start a new generation", () => {
   });
 
   test("the tables are worked out once per data source", () => {
-    const build: jest.SpiedFunction<typeof RuleSetCache.buildTables> =
-      jest.spyOn(RuleSetCache, "buildTables");
+    const build: SpyInstance<typeof RuleSetCache.buildTables> = jest.spyOn(
+      RuleSetCache,
+      "buildTables",
+    );
 
     RuleSetCache.getTables();
     RuleSetCache.getTables();
