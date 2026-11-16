@@ -127,7 +127,10 @@ import {
 } from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { readOpenStackChange } from "../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
 import logger from "../Logger";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
 import ExternalMcpServerService from "../../Services/ExternalMcpServerService";
 import McpRemediationRunner from "../AI/Remediation/McpRemediationRunner";
@@ -1751,11 +1754,11 @@ export default class RemediationApproval {
       ? await getApproverName(new ObjectID(firstApprovedByUserId))
       : null;
 
-    const afterFirst: string = firstApprovedByUserId
+    const afterFirst: MarkdownText = firstApprovedByUserId
       ? firstName
-        ? mdText`, after **${firstName}** approved it first`.toString()
-        : ", the second of two approvals"
-      : "";
+        ? mdText`, after **${firstName}** approved it first`
+        : mdText`, the second of two approvals`
+      : FeedMarkdown.empty();
 
     if (
       suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
@@ -1768,7 +1771,8 @@ export default class RemediationApproval {
 
       await postFeedItem({
         suggestion,
-        markdown: `${mdText`⚡ Approved the **fix through MCP servers**${describeWhere(data.from)}`.toString()}${afterFirst}${mdText` (${ExternalMcpToolCallPlanUtil.describeChangeCount(mcpChanges.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString()}`,
+        markdown:
+          mdText`⚡ Approved the **fix through MCP servers**${describeWhere(data.from)}${afterFirst} (${ExternalMcpToolCallPlanUtil.describeChangeCount(mcpChanges.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString(),
         userId: props.userId!,
         pingWorkspace: true,
       });
@@ -1799,7 +1803,8 @@ export default class RemediationApproval {
 
       await postFeedItem({
         suggestion,
-        markdown: `${mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}`.toString()}${afterFirst}${mdText`: ${running}. Verification will watch the monitors for recovery.`.toString()}`,
+        markdown:
+          mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}${afterFirst}: ${running}. Verification will watch the monitors for recovery.`.toString(),
         userId: props.userId!,
         pingWorkspace: true,
       });
