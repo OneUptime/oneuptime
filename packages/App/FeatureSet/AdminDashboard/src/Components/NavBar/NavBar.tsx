@@ -4,6 +4,7 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import NavBar, {
+  HOME_NAV_BAR_ITEM_ID,
   MoreMenuItem,
   NavItem,
 } from "Common/UI/Components/Navbar/NavBar";
@@ -17,7 +18,7 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
    */
   const navItems: NavItem[] = [
     {
-      id: "home-nav-bar-item",
+      id: HOME_NAV_BAR_ITEM_ID,
       title: "Home",
       icon: IconProp.Home,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),

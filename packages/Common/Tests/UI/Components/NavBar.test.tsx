@@ -1,5 +1,6 @@
 import Navbar, {
   ComponentProps,
+  HOME_NAV_BAR_ITEM_ID,
   MoreMenuItem,
   NavItem,
 } from "../../../UI/Components/Navbar/NavBar";
@@ -112,6 +113,82 @@ describe("Navbar", () => {
     expect(screen.getByTestId("mobile-nav-toggle")).toBeInTheDocument();
     expect(screen.getByText("Exceptions")).toBeInTheDocument();
     expect(screen.queryByText("Home")).not.toBeInTheDocument();
+  });
+
+  /*
+   * The Admin Dashboard's Home is /admin, the start of every Admin page's
+   * address. The desktop's trail lights Home only on Home itself; the
+   * phone's header matched Home by prefix, found it first, and said "Home"
+   * on Users, Projects and Settings alike (#9043).
+   */
+  describe("an app whose Home starts every page's address, on a phone", () => {
+    function renderAdminAt(pathname: string): void {
+      Navigation.setLocation({
+        pathname: pathname,
+        search: "",
+        hash: "",
+        state: null,
+        key: "admin",
+      } as Location);
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: 390,
+      });
+
+      const home: NavItem = {
+        id: HOME_NAV_BAR_ITEM_ID,
+        title: "Home",
+        icon: IconProp.Home,
+        route: new Route("/admin"),
+        activeRoute: new Route("/admin"),
+      };
+      const users: MoreMenuItem = {
+        title: "Users",
+        description: "Manage all users across the instance.",
+        icon: IconProp.User,
+        route: new Route("/admin/users"),
+        activeRoute: new Route("/admin/users"),
+      };
+      const settings: MoreMenuItem = {
+        title: "Settings",
+        description: "Authentication, notifications, probes and more.",
+        icon: IconProp.Settings,
+        route: new Route("/admin/settings/host"),
+        activeRoute: new Route("/admin/settings"),
+      };
+
+      render(<Navbar items={[home]} moreMenuItems={[users, settings]} />);
+
+      expect(screen.getByTestId("mobile-nav-toggle")).toBeInTheDocument();
+    }
+
+    it("names the page it is on: Users", () => {
+      renderAdminAt("/admin/users");
+
+      expect(screen.getByText("Users")).toBeInTheDocument();
+      expect(screen.queryByText("Home")).not.toBeInTheDocument();
+    });
+
+    it("names the section a page is in: Settings, on one of its pages", () => {
+      renderAdminAt("/admin/settings/authentication");
+
+      expect(screen.getByText("Settings")).toBeInTheDocument();
+      expect(screen.queryByText("Home")).not.toBeInTheDocument();
+    });
+
+    it("says Home on Home itself", () => {
+      renderAdminAt("/admin");
+
+      expect(screen.getByText("Home")).toBeInTheDocument();
+      expect(screen.queryByText("Users")).not.toBeInTheDocument();
+    });
+
+    it("says Home on a page no item names, as before", () => {
+      renderAdminAt("/admin/logout");
+
+      expect(screen.getByText("Home")).toBeInTheDocument();
+    });
   });
 
   it("uses a product's additional active routes in the mobile selector", () => {
