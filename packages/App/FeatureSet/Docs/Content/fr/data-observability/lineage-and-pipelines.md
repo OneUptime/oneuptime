@@ -23,6 +23,21 @@ Lorsque la source nomme des colonnes, l'onglet **Colonnes** d'une table indique 
 
 Dans l'onglet **Lignage**, choisissez une colonne de la table dans **Suivre une colonne** pour mettre en évidence d'où elle vient et où elle va : en remontant le diagramme jusqu'aux colonnes à partir desquelles elle est construite, en descendant jusqu'aux colonnes construites à partir d'elle, chacune nommée sur sa table, même là où elle a été renommée en chemin. Une flèche dont les sources ne nomment aucune colonne peut la porter plus loin que ce qui est mis en évidence, et le diagramme le signale.
 
+## Carte de lignage
+
+**Observabilité des données > Carte de lignage** dessine sur une seule page chaque flux de données que votre projet a vu, pour que vous voyiez qui utilise quelles données et où elles vont, sans avoir d'abord à choisir une table. Elle montre :
+
+- Les **Services** qui écrivent et lisent des tables, d'après les spans de base de données de vos traces : un span qui nomme sa table (`db.collection.name`, ou l'ancien `db.sql.table`) et son instruction (`db.operation.name`), comme un `INSERT` ou un `SELECT`.
+- Les **Tables** construites à partir d'autres tables, issues de toutes les sources ci-dessus.
+- Les **Pipelines** qui chargent une table à partir de données que OneUptime ne surveille pas, comme une synchronisation Fivetran. Un pipeline qui déplace des données entre deux tables surveillées est nommé sur la flèche qui les relie.
+- Les **Tableaux de bord** et les synchronisations de reverse ETL de vos outils de BI, qui lisent les tables sur lesquelles ils sont construits.
+
+Chaque flèche est quelque chose que OneUptime a enregistré, jamais une supposition. Les cartes se placent de gauche à droite selon le sens des données et indiquent leur état comme sur le diagramme d'une table : rouge pour une table en retard, une alerte ouverte ou une exécution échouée. Une flèche est turquoise lorsque les traces d'un service l'ont vue.
+
+Recherchez une table, un service, un pipeline ou un tableau de bord pour ne garder que ce qui correspond, ainsi que tout ce qui est en amont et en aval. Sélectionnez une carte pour mettre en évidence tout son lignage, voir d'où elle vient et où elle va, et ouvrir sa page ; **Afficher uniquement son lignage** ne laisse que cela sur la carte. Les interrupteurs à côté de la recherche permettent d'exclure les services, les pipelines ou les tableaux de bord. **Liste** affiche chaque flèche sur une ligne, et c'est ce qu'ouvre un téléphone.
+
+Une carte dessine jusqu'à 400 cartes, les flux vus le plus récemment en premier ; quand votre projet en a davantage, la carte le dit. La même carte est servie par `POST /api/data-observability/lineage/map`, pour quiconque peut lire les actifs de données, et leurs clés API.
+
 ## OpenLineage
 
 Envoyez les événements OpenLineage à OneUptime, tels quels, avec une [clé d'ingestion](/docs/telemetry/ingestion-keys) de télémétrie :

@@ -16,7 +16,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   Quality             the rules the data must keep: Checks on what a
  *                       table holds, and Reconciliations of two tables that
  *                       must agree
- *   Usage               who relies on the data and what it costs: Data
+ *   Usage               who relies on the data and what it costs: the
+ *                       Lineage Map of which services, pipelines, tables
+ *                       and dashboards write and read what, Data
  *                       Products promised to their consumers, the BI
  *                       Dashboards built on it, Warehouse Spend, and the
  *                       Unused Tables nobody reads
@@ -102,6 +104,11 @@ export const DATA_OBSERVABILITY_MENU: Array<DataObservabilityMenuSection> = [
   {
     title: "Usage",
     items: [
+      {
+        page: PageMap.DATA_OBSERVABILITY_LINEAGE_MAP,
+        title: "Lineage Map",
+        icon: IconProp.FlowDiagram,
+      },
       {
         page: PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
         title: "Data Products",

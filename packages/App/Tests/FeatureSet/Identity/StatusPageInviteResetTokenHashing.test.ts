@@ -33,7 +33,7 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
  * `POST /status-page-api/reset-password` redeems the other way round: it hashes whatever the
  * link carried and queries `{ statusPageId, resetPasswordToken: SHA256(secret + token) }`. So a
  * raw token in the column matches nothing, and every invited user's welcome link answered
- * "Invalid link. Please go to forgot password page again and request a new link."
+ * "This password reset link has already been used or is not valid. Ask for a new link."
  *
  * `POST /status-page-api/forgot-password` had it right all along -- it persists the digest and
  * mails the raw token -- which is what made the two paths disagree.
@@ -472,7 +472,7 @@ describe("Status page invite mints a redeemable, hashed reset token", () => {
 
     expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
     expect((result.nextError as unknown as Exception).message).toBe(
-      "Invalid link. Please go to forgot password page again and request a new link.",
+      "This password reset link has already been used or is not valid. Ask for a new link.",
     );
     expect(row.password).toBeNull();
     expect(row.resetPasswordToken).not.toBeNull();
@@ -551,7 +551,7 @@ describe("Status page invite mints a redeemable, hashed reset token", () => {
 
     expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
     expect((replay.nextError as unknown as Exception).message).toBe(
-      "Invalid link. Please go to forgot password page again and request a new link.",
+      "This password reset link has already been used or is not valid. Ask for a new link.",
     );
   });
 
@@ -564,7 +564,7 @@ describe("Status page invite mints a redeemable, hashed reset token", () => {
 
     expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
     expect((result.nextError as unknown as Exception).message).toBe(
-      "Invalid link. Please go to forgot password page again and request a new link.",
+      "This password reset link has already been used or is not valid. Ask for a new link.",
     );
     expect(row.password).toBeNull();
   });
@@ -578,7 +578,7 @@ describe("Status page invite mints a redeemable, hashed reset token", () => {
 
     expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
     expect((result.nextError as unknown as Exception).message).toBe(
-      "Expired link. Please go to forgot password page again and request a new link.",
+      "This password reset link has expired. Reset links work for one day. Ask for a new link.",
     );
     expect(row.password).toBeNull();
   });

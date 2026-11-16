@@ -120,9 +120,13 @@ Leave it running (in its own terminal, or in the background with its output in a
 log) until the release has shipped. Once a minute it cancels every queued or
 running workflow run whose branch is neither `release-14.0.106` nor `release`:
 pushes to `main`, other pull requests, scheduled runs. The organization's
-concurrent-job limit is shared, and a full CI run on `main` after every merge
-kept the release's own jobs queued for hours. Cancelled runs can be re-run once
-the release is out; nobody waits on `main`'s CI while a release is in flight.
+concurrent-job limit is shared, and other pull requests' checks, `main`'s test
+images (`test-release.yaml`) and the nightly runs would otherwise keep the
+release's own jobs queued for hours. (`main` no longer runs every pull request
+check again on each merge: those run nightly on `main` instead,
+`Tests/Ops/PullRequestChecksNotOnPush.test.js`.) Cancelled runs can be re-run
+once the release is out; nobody waits on `main`'s CI while a release is in
+flight.
 
 ### 5. Fix every red check in the release branch
 

@@ -24,6 +24,7 @@ jest.mock("../../../UI/Utils/Permission", () => {
 
 import ModelDelete from "../../../UI/Components/ModelDelete/ModelDelete";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, it, beforeEach, jest } from "@jest/globals";
@@ -175,6 +176,7 @@ describe("ModelDelete", () => {
   });
 
   it("reports success after the caller's delete resolves", async () => {
+    Toast.dismissAll();
     let deletedSuccessfully: boolean = false;
 
     renderDelete({
@@ -190,6 +192,13 @@ describe("ModelDelete", () => {
     await waitFor(() => {
       expect(deletedSuccessfully).toBe(true);
     });
+
+    // Said on the page it goes to next, by its kind with no name loaded (#9120).
+    expect(
+      Toast.getToasts().map((toast: ToastItem) => {
+        return toast.title;
+      }),
+    ).toEqual(["Project deleted"]);
   });
 
   /*
@@ -197,6 +206,7 @@ describe("ModelDelete", () => {
    * success handler clears the current project and navigates away from it.
    */
   it("shows the error and does not report success when the delete fails", async () => {
+    Toast.dismissAll();
     let deletedSuccessfully: boolean = false;
 
     renderDelete({
@@ -216,6 +226,7 @@ describe("ModelDelete", () => {
     });
 
     expect(deletedSuccessfully).toBe(false);
+    expect(Toast.getToasts()).toEqual([]);
   });
 
   it("closes the confirmation without deleting when it is dismissed", async () => {

@@ -2,7 +2,8 @@
   "about": [
     "Each Dashboard Offline UI suite's minutes in its group's job on a runner of median speed: the median, over the App Test runs below, of the time from the group's '▶ npm run <suite>' to the next suite's (or the run step's end), its bundle build included. A suite run in halves (or thirds) has one entry per part, '<suite> <i>/<n>', as its groups' <name>_shard say.",
     "A new suite's minutes come from a local run (CI=1, its bundle built, nothing else running) until App Test's runs measure it.",
-    "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to the sum of its suites' minutes here."
+    "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to the sum of its suites' minutes here.",
+    "Since 2026-11-16 a group runs two suites at a time (packages/E2E/Scripts/RunUiSuites.js), so a group's log no longer runs from one '▶ npm run' to the next: the run step's summary lists each suite's minutes from its start to its end instead, taken beside another suite. The minutes here are each suite's one at a time, the 2026-11-03 measurement, and the budget holds a group's sum of them, which two at a time stays far inside."
   ],
   "measuredOn": "2026-11-03",
   "runs": [

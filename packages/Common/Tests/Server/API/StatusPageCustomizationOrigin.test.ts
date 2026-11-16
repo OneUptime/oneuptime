@@ -17,6 +17,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { mockRouter } from "./Helpers";
+import { statusPageReadOf } from "../TestingUtils/StatusPageReads";
 import {
   afterEach,
   beforeAll,
@@ -206,9 +207,10 @@ describe("StatusPageAPI master-page customization origin boundary", () => {
 
       expectCustomizationsDenied(result.payload);
 
-      const findPageCall: Array<unknown> = (
-        StatusPageService.findOneById as jest.Mock
-      ).mock.calls[0] as Array<unknown>;
+      // The page's own read, after the lookup of its project.
+      const findPageCall: Array<unknown> = statusPageReadOf(
+        StatusPageService.findOneById,
+      ) as Array<unknown>;
       const select: Select<StatusPage> = (
         findPageCall[0] as { select: Select<StatusPage> }
       ).select;
@@ -239,9 +241,10 @@ describe("StatusPageAPI master-page customization origin boundary", () => {
       footerHTML: FOOTER_HTML,
     });
 
-    const findPageCall: Array<unknown> = (
-      StatusPageService.findOneById as jest.Mock
-    ).mock.calls[0] as Array<unknown>;
+    // The page's own read, after the lookup of its project.
+    const findPageCall: Array<unknown> = statusPageReadOf(
+      StatusPageService.findOneById,
+    ) as Array<unknown>;
     const select: Select<StatusPage> = (
       findPageCall[0] as { select: Select<StatusPage> }
     ).select;

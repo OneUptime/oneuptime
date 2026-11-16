@@ -11,6 +11,11 @@ import useTranslator from "../../../Utils/UseTranslator";
 export interface ComponentProps {
   items: Array<NotificationItem>;
   onItemClick: (item: NotificationItem) => void;
+  /*
+   * A line of its own at the top of the panel, drawn as given: what the
+   * bell could not check - who is on call - with Try again (#9120).
+   */
+  notice?: ReactElement | undefined;
 }
 
 const NotificationBell: (props: ComponentProps) => ReactElement = (
@@ -88,6 +93,7 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
       {isComponentVisible && (
         <NotificationBellDropdown
           items={props.items}
+          notice={props.notice}
           onItemClick={(item: NotificationItem) => {
             setIsComponentVisible(false);
             props.onItemClick(item);

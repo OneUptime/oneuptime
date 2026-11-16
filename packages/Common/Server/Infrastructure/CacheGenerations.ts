@@ -214,6 +214,23 @@ export default class CacheGenerations {
   }
 
   /*
+   * Whether a generation get() answered was read from Redis - so a change
+   * made in any process is in it, or will be within SHARED_READ_TTL_MS -
+   * rather than standing in for a Redis that could not be reached, when only
+   * this process's own changes count. A cache whose entries must never
+   * outlive a change made elsewhere by more than that keeps nothing under a
+   * generation of which this is false.
+   */
+  public static isSharedGeneration(generation: string): boolean {
+    const shared: string = generation.split(PARTS_SEPARATOR)[0] || "";
+
+    return !(
+      shared === UNREACHABLE_GENERATION ||
+      shared.startsWith(`${UNREACHABLE_GENERATION}:`)
+    );
+  }
+
+  /*
    * A key's shared part as getShared answers it - unless a change was made
    * to the key while it was being read. Then what the change left counts
    * instead: the shared part it wrote, or this process's own part, which

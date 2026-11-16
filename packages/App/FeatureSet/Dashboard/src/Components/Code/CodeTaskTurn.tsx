@@ -317,10 +317,10 @@ export const ContextChips: FunctionComponent<{
 };
 
 // A person's initials, small, beside their name over what they asked.
-const PersonMark: FunctionComponent<{ name: string; seed: string }> = (props: {
+export const PersonMark: FunctionComponent<{
   name: string;
   seed: string;
-}): ReactElement => {
+}> = (props: { name: string; seed: string }): ReactElement => {
   return (
     <div
       aria-hidden="true"
@@ -598,6 +598,64 @@ export function getCodeTaskOriginRecordPage(
 }
 
 /*
+ * What started a task, by name, linked to where it is: the OneUptime record
+ * (an exception, an incident), or another host's thread (a GitHub issue) in
+ * a new tab. A name with nowhere to open is said in bold. The conversation's
+ * first message and the task's Details both draw it.
+ */
+export const CodeTaskOriginLabel: FunctionComponent<{
+  origin: CodeTaskOriginJSON;
+  className?: string | undefined;
+  dataTestId?: string | undefined;
+}> = (props: {
+  origin: CodeTaskOriginJSON;
+  className?: string | undefined;
+  dataTestId?: string | undefined;
+}): ReactElement => {
+  const origin: CodeTaskOriginJSON = props.origin;
+  const recordPage: PageMap | undefined = origin.recordId
+    ? getCodeTaskOriginRecordPage(origin)
+    : undefined;
+  const linkClassName: string = `font-medium text-indigo-600 hover:text-indigo-500 ${props.className || ""}`;
+
+  if (recordPage && origin.recordId) {
+    return (
+      <Link
+        to={RouteUtil.populateRouteParams(RouteMap[recordPage] as Route, {
+          modelId: new ObjectID(origin.recordId),
+        })}
+        className={linkClassName}
+        dataTestId={props.dataTestId}
+      >
+        <>{origin.label}</>
+      </Link>
+    );
+  }
+
+  if (origin.url) {
+    return (
+      <Link
+        to={URL.fromString(origin.url)}
+        openInNewTab={true}
+        className={linkClassName}
+        dataTestId={props.dataTestId}
+      >
+        <>{origin.label}</>
+      </Link>
+    );
+  }
+
+  return (
+    <span
+      data-testid={props.dataTestId}
+      className={`font-medium text-gray-900 ${props.className || ""}`}
+    >
+      {origin.label}
+    </span>
+  );
+};
+
+/*
  * One turn of a task's conversation: what the person asked (or what started
  * the task, for one OneUptime started) and the AI's side of it - how it
  * stands, the steps it is taking or took, its reply, the files it changed
@@ -702,34 +760,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
   const renderOrigin: () => ReactElement = (): ReactElement => {
     if (props.origin) {
       const origin: CodeTaskOriginJSON = props.origin;
-      const recordPage: PageMap | undefined = origin.recordId
-        ? getCodeTaskOriginRecordPage(origin)
-        : undefined;
-      const recordRoute: Route | null =
-        recordPage && origin.recordId
-          ? RouteUtil.populateRouteParams(RouteMap[recordPage] as Route, {
-              modelId: new ObjectID(origin.recordId),
-            })
-          : null;
-
-      const label: ReactElement = recordRoute ? (
-        <Link
-          to={recordRoute}
-          className="font-medium text-indigo-600 hover:text-indigo-500"
-        >
-          <>{origin.label}</>
-        </Link>
-      ) : origin.url ? (
-        <Link
-          to={URL.fromString(origin.url)}
-          openInNewTab={true}
-          className="font-medium text-indigo-600 hover:text-indigo-500"
-        >
-          <>{origin.label}</>
-        </Link>
-      ) : (
-        <span className="font-medium text-gray-900">{origin.label}</span>
-      );
+      const label: ReactElement = <CodeTaskOriginLabel origin={origin} />;
 
       return (
         <li data-testid="code-turn-origin" className={MESSAGE_CLASS_NAME}>

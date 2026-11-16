@@ -182,15 +182,53 @@ describe("the first paint", () => {
     project._id = PROJECT_A;
     project.productSettings = {
       hidden: ["docker"],
-      chosenBy: "goals",
+      chosenBy: "member",
     };
     jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
 
     expect(ProjectProducts.getState(PROJECT_A).answer).toEqual({
       ...getEmptyProjectProductsAnswer(),
       hidden: [ProductKey.Docker],
-      chosenBy: ProjectProductsChosenBy.Goals,
+      chosenBy: ProjectProductsChosenBy.Member,
     });
+  });
+
+  test("a list the project's goals set hides nothing on the first paint", () => {
+    const project: Project = new Project();
+    project._id = PROJECT_A;
+    project.productSettings = {
+      hidden: ["docker", "kubernetes", "logs"],
+      keptHiddenWithData: [],
+      chosenBy: "goals",
+    };
+    jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+
+    expect(ProjectProducts.getState(PROJECT_A).answer).toEqual(
+      getEmptyProjectProductsAnswer(),
+    );
+  });
+
+  test("an answer remembered from when the goals hid products hides nothing until the server answers", async () => {
+    window.localStorage.setItem(
+      `${REMEMBERED_PROJECT_PRODUCTS_KEY_PREFIX}${PROJECT_A}`,
+      JSON.stringify({
+        ...toProjectProductsAnswerJSON(ANSWER),
+        hidden: ["docker", "kubernetes", "logs"],
+        chosenBy: "goals",
+        hiddenWithData: ["logs"],
+      }),
+    );
+
+    expect(ProjectProducts.getState(PROJECT_A)).toEqual({
+      answer: { ...ANSWER, hidden: [], chosenBy: null, hiddenWithData: [] },
+      isFresh: false,
+      error: null,
+    });
+
+    // The server's answer replaces it, as for any remembered answer.
+    await ProjectProducts.load(PROJECT_A);
+
+    expect(ProjectProducts.getState(PROJECT_A).answer).toEqual(ANSWER);
   });
 
   test("another project's list is not this one's", () => {

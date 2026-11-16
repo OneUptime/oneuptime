@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "重置您的密码",
     "subtitle": "请输入您的新密码，我们将更新它。",
-    "successMessage": "您的密码已更新。请登录。",
     "submitButton": "重置密码",
     "knowPasswordPrompt": "知道您的密码？",
-    "loginLink": "登录。"
+    "loginLink": "登录。",
+    "successTitle": "您的密码已重置",
+    "successDescription": "请使用新密码登录。",
+    "signInButton": "登录",
+    "linkExpiredTitle": "此重置链接已过期",
+    "linkExpiredDescription": "重置链接的有效期为一天。请申请新链接，我们会通过电子邮件发送给您。",
+    "linkInvalidTitle": "此重置链接已失效",
+    "linkInvalidDescription": "它可能已被使用，或只复制了一部分。请申请新链接，我们会通过电子邮件发送给您。",
+    "requestNewLinkButton": "申请新链接"
   },
   "sso": {
     "title": "使用 SSO 登录",
@@ -639,5 +646,6 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "Dismiss": "隐藏"
 }

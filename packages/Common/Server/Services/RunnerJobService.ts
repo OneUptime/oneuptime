@@ -217,6 +217,32 @@ import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import logger from "../Utils/Logger";
 import Sleep from "../../Types/Sleep";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PositiveNumber from "../../Types/PositiveNumber";
+import CountBy from "../Types/Database/CountBy";
+import FindBy from "../Types/Database/FindBy";
+import { OnFind } from "../Types/Database/Hooks";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+
+/*
+ * What a Runner job is read through: the runbook run it is a step of, and
+ * the fix OneUptime AI proposed that it runs a command of. A job carries
+ * what the step ran and printed - the run's or the fix's own output - so it
+ * is read only by those who see every private incident or alert the run or
+ * the fix is about (PrivateRecordReadFilter.applyToPartKeys).
+ */
+export const RUNNER_JOB_READ_THROUGH: Array<{
+  column: string;
+  partModelType: { new (): BaseModel };
+}> = [
+  { column: "runbookExecutionId", partModelType: RunbookExecution },
+  {
+    column: "autoRemediationSuggestionId",
+    partModelType: AutoRemediationSuggestion,
+  },
+];
 
 /*
  * Lease the Worker grants on each successful claim. While the lease is fresh
@@ -502,6 +528,48 @@ interface RunnerWriteScopeSettings {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A job of a runbook run or of a fix about a private incident or alert,
+   * only for those who see that record (RUNNER_JOB_READ_THROUGH). Every read
+   * OneUptime makes itself - the Runners' claims, the AI pages' summaries -
+   * is made as OneUptime and is not narrowed.
+   */
+  public static applyPrivacyFilters<T>(
+    query: T,
+    props: DatabaseCommonInteractionProps,
+  ): T {
+    return PrivateRecordReadFilter.applyToPartKeys(
+      query,
+      props,
+      RUNNER_JOB_READ_THROUGH,
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = Service.applyPrivacyFilters(findBy.query, findBy.props);
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = Service.applyPrivacyFilters(countBy.query, countBy.props);
+
+    return super.countBy(countBy);
+  }
+
+  // The read hooks narrow by the run and the fix a job names. See DatabaseService.
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return RUNNER_JOB_READ_THROUGH.map((key: { column: string }): string => {
+      return key.column;
+    });
   }
 
   /*

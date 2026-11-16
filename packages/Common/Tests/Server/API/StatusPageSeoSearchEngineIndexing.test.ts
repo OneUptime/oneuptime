@@ -21,6 +21,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Select from "../../../Server/Types/Database/Select";
 import { mockRouter } from "./Helpers";
+import { statusPageReadOf } from "../TestingUtils/StatusPageReads";
 import {
   afterEach,
   beforeAll,
@@ -124,8 +125,9 @@ describe("StatusPageAPI /seo search engine indexing flag", () => {
      */
     await callSeoRoute();
 
+    // The page's own read, after the lookup of its project.
     const selectArgument: Select<StatusPage> = (
-      (StatusPageService.findOneBy as jest.Mock).mock.calls[0] as Array<{
+      statusPageReadOf(StatusPageService.findOneBy) as Array<{
         select: Select<StatusPage>;
       }>
     )[0]!.select;

@@ -16,10 +16,7 @@ import { useLoadedProjectProducts } from "../../Utils/ProjectProducts/UseProject
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { ProductUsage } from "Common/Types/Product/ProductUsage";
-import {
-  ProjectProductsChosenBy,
-  isHideableProduct,
-} from "Common/Types/Product/ProjectProducts";
+import { isHideableProduct } from "Common/Types/Product/ProjectProducts";
 import { ProjectProductsAnswer } from "Common/Types/Product/ProjectProductsAnswer";
 import { ServerProductOffCopy } from "../ServerProducts/ServerProductsCopy";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -41,6 +38,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * PROJECT SETTINGS > PRODUCTS (issue #6814): the catalog by category, each
  * product with the switch that shows it in this project.
  *
+ * Every product is shown until someone hides it here: nothing else hides
+ * one, not the project's goals and not a product that is not set up yet.
  * Hidden is not off: a hidden product moves under More products at the
  * foot of the menu, Search still finds it, its pages keep working and its
  * data keeps arriving. Each product says what it is to this project - in
@@ -251,14 +250,6 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
           <p>
             {translator.translateText(ProductsSettingsCopy.hiddenExplanation)}
           </p>
-          {answer.chosenBy === ProjectProductsChosenBy.Goals &&
-          answer.hidden.length > 0 ? (
-            <p data-testid="products-settings-from-goals">
-              {translator.translateText(ProductsSettingsCopy.setFromGoals)}
-            </p>
-          ) : (
-            <></>
-          )}
           {!canChoose ? (
             <p data-testid="products-settings-locked">
               {translator.translateText(ProductsSettingsCopy.lockedReason)}

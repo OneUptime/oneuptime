@@ -1162,8 +1162,13 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
   });
 
   it("answers an archived page as one that does not exist", () => {
+    // What the page's HTML is rendered with reads no archived page (readSeo)...
     expect(readSource(STATUS_PAGE_API)).toMatch(
-      /if \(!statusPage \|\| statusPage\.isArchived\) \{\s*return Response\.sendErrorResponse\(\s*req,\s*res,\s*new NotFoundException\("Status Page not found"\),/,
+      /if \(!statusPage \|\| statusPage\.isArchived\) \{\s*return null;\s*\}/,
+    );
+    // ...and its route answers that as a page that does not exist.
+    expect(readSource(STATUS_PAGE_API)).toMatch(
+      /if \(!seo\) \{\s*return Response\.sendErrorResponse\(\s*req,\s*res,\s*new NotFoundException\("Status Page not found"\),/,
     );
     expect(page).toContain(
       'all answer as if the page did not exist ("Status Page not found")',

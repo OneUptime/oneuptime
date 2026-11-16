@@ -897,6 +897,61 @@ describe("what is profiled", () => {
     expect(lastQuery()["serviceId"]).toBe(SERVICE_ID);
   });
 
+  /*
+   * #9118: merged together, two services' stacks answer neither one's
+   * question. With several services and none picked, the services come
+   * first, each with where its own time goes.
+   */
+  test("several services, none picked: the services come first, each with its own hot spot", async () => {
+    await renderOverview();
+
+    const card: HTMLElement = await screen.findByTestId("profiles-services");
+    const headline: HTMLElement = await screen.findByTestId(
+      "profiles-headline-text",
+    );
+
+    // The card sits above the merged answer.
+    expect(
+      headline.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
+
+    // Each service's own code that takes the most, read for that service.
+    await waitFor(() => {
+      expect(
+        within(card).getAllByTestId("profiles-service-hot-spot"),
+      ).toHaveLength(2);
+    });
+    expect(
+      within(card).getAllByTestId("profiles-service-hot-spot")[0],
+    ).toHaveTextContent(/^Your code: parseOrder · \d/);
+
+    const perService: Array<Posted> = requests("/function-list").filter(
+      (request: Posted): boolean => {
+        return request.body["limit"] === 1;
+      },
+    );
+    expect(
+      perService
+        .map((request: Posted): string => {
+          return (request.body["serviceIds"] as Array<string>).join(",");
+        })
+        .sort(),
+    ).toEqual([SERVICE_ID, SEARCH_ID].sort());
+  });
+
+  test("a service picked: no services card, and no read per service", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    await screen.findByTestId("profiles-headline-text");
+
+    expect(screen.queryByTestId("profiles-services")).toBeNull();
+    expect(
+      requests("/function-list").some((request: Posted): boolean => {
+        return request.body["limit"] === 1;
+      }),
+    ).toBe(false);
+  });
+
   test("a service's own tab is locked to it: no picker, no services card", async () => {
     await renderOverview("", { lockedEntityId: SERVICE_ID });
 

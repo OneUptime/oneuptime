@@ -1,6 +1,6 @@
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import { getSignupPasswordValidationError } from "Common/Types/Password";
+import { getPasswordValidationError } from "Common/Types/Password";
 
 type GetEnvFunction = (key: string) => string;
 
@@ -39,7 +39,7 @@ export const E2E_SIGNUP_PASSWORD: string = "violet river lantern";
  * password itself.
  */
 const signupPasswordError: string | null =
-  getSignupPasswordValidationError(E2E_SIGNUP_PASSWORD);
+  getPasswordValidationError(E2E_SIGNUP_PASSWORD);
 
 if (signupPasswordError) {
   throw new Error(

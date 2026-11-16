@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -13,10 +14,14 @@ import {
   HIDE_KERNEL_THREADS,
   SERVICES_DESCRIPTION,
   SERVICES_TITLE,
+  SERVICE_HOT_LEADER,
+  SERVICE_HOT_OWN,
   SERVICE_SAMPLES,
   SHOW_KERNEL_THREADS,
 } from "./ProfileCopy";
 import { ProfileScopeService } from "./ProfileScopeBar";
+import { getShortProfileFunctionName } from "Common/Utils/Profiles/ProfileFunctionNames";
+import { ProfileServiceHotSpot } from "../../Utils/ProfilesView";
 
 /*
  * WHAT IS BEING PROFILED, BUSIEST FIRST.
@@ -26,6 +31,12 @@ import { ProfileScopeService } from "./ProfileScopeBar";
  * The eBPF profiler profiles every process on a host, kernel threads
  * included - those are folded away unless asked for, so the services a
  * person runs come first.
+ *
+ * Under each of the busiest services, where its time goes in a line: its
+ * own code that takes the most, or the busiest function when none of its
+ * own code ran (getProfileServiceHotSpot). With several services and none
+ * picked, the overview draws this card first: merged together, different
+ * services' stacks answer no one's question.
  */
 
 export interface ComponentProps {
@@ -34,6 +45,11 @@ export interface ComponentProps {
   onRetry: () => void;
   services: Array<ProfileScopeService>;
   onSelect: (serviceId: string) => void;
+  /*
+   * Where each service's time goes, by service id: null when it has none to
+   * say, absent while it is read (or for a service it is not read for).
+   */
+  hotSpots?: Record<string, ProfileServiceHotSpot | null> | undefined;
 }
 
 // The most services listed before "Show all".
@@ -72,6 +88,41 @@ const ProfileServicesCard: FunctionComponent<ComponentProps> = (
     },
     0,
   );
+
+  const renderHotSpot: (serviceId: string) => ReactElement = (
+    serviceId: string,
+  ): ReactElement => {
+    const hotSpot: ProfileServiceHotSpot | null | undefined =
+      props.hotSpots?.[serviceId];
+
+    if (!hotSpot) {
+      return <></>;
+    }
+
+    return (
+      <p
+        className="mt-0.5 truncate text-xs text-gray-600"
+        title={hotSpot.functionName}
+        data-testid="profiles-service-hot-spot"
+      >
+        <TranslatedSentence
+          template={hotSpot.isOwnCode ? SERVICE_HOT_OWN : SERVICE_HOT_LEADER}
+          slots={{
+            function: (
+              <span className="font-mono text-gray-800">
+                {getShortProfileFunctionName(hotSpot.functionName)}
+              </span>
+            ),
+            share: (
+              <span className="font-mono">
+                {formatProfileShare(hotSpot.share)}
+              </span>
+            ),
+          }}
+        />
+      </p>
+    );
+  };
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (props.error) {
@@ -130,6 +181,7 @@ const ProfileServicesCard: FunctionComponent<ComponentProps> = (
                         <></>
                       )}
                     </div>
+                    {renderHotSpot(service.id)}
                     <div
                       className="mt-1 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-gray-100"
                       aria-hidden="true"

@@ -289,7 +289,20 @@ Per il profiler .NET, impostate `DD_TRACE_DEBUG=1` sull'applicazione per un minu
 | --- | --- |
 | **Dove va il tempo CPU** | Tutti i profili dell'intervallo, uniti in un unico flame graph. Più un frame è largo, più grande è la sua quota. Fate clic su un frame per ingrandirlo. |
 | **Funzioni** | Le funzioni che occupano di più, ordinate per **Proprio** (il tempo nel codice proprio della funzione), **Totale** (con tutto ciò che chiama) o **Il tuo codice** (le vostre funzioni, ciascuna con il codice di librerie e runtime che chiama: il tempo che una modifica può recuperare). |
-| **Servizi profilati** | Ogni servizio profilato, i più impegnati per primi. I thread del kernel che il profiler eBPF campiona sono nascosti. |
+| **Servizi profilati** | Ogni servizio profilato, i più impegnati per primi, ciascuno con dove va il suo tempo: il suo codice che occupa di più. Con più servizi e nessuno scelto, questa scheda viene per prima. I thread del kernel che il profiler eBPF campiona sono nascosti. |
+
+### Leggere un flame graph
+
+Un flame graph unisce tutti i profili dell'intervallo in un'unica immagine. Ogni barra è una funzione: più è larga, più grande è la sua quota di tempo, e le barre sotto sono le funzioni che chiama. **Come leggerlo**, accanto al titolo del grafico, lo spiega sulla pagina.
+
+- **Proprio** è il tempo nel codice proprio di una funzione, e **Totale** aggiunge tutto ciò che chiama. Una barra larga con poco sotto fa il lavoro da sola: iniziate da lì.
+- I colori dicono di chi è il codice di una barra: **Il tuo codice** (arancione), **Libreria** (blu), **Runtime** (grigio), **Sistema** (viola) e **Nessun simbolo** (grigio chiaro). L'elenco accanto al grafico usa le stesse parole.
+- Una barra mostra il nome breve di una funzione, come `aggregate.(*Builder).Sum`. Passateci sopra per il nome completo, il file e le quote proprio e totale.
+- Fate clic su una barra per ingrandirla e premete Esc per tornare indietro.
+
+### Codice senza simboli
+
+Il codice nativo compilato senza simboli arriva al profiler solo come indirizzi, come `0x270675`. Il flame graph li raggruppa in un'unica barra **Nessun simbolo** sotto la funzione che li ha chiamati, e indica sotto il grafico quanta parte non ha simboli. Per vedere quelle funzioni per nome, conservate i simboli del binario: non rimuoveteli (per Go, togliete `-ldflags="-s -w"`; per C, C++ e Rust, compilate con le informazioni di debug), oppure installate il suo pacchetto di simboli di debug dove gira il profiler.
 
 ### Confrontare due intervalli
 

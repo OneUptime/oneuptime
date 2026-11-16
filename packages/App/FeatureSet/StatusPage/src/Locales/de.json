@@ -343,9 +343,16 @@
     "resetPassword": {
       "description": "Erstellen Sie ein neues Passwort für Ihr {{statusPageName}}-Konto.",
       "instructions": "Bitte geben Sie Ihr neues Passwort ein und wir werden es aktualisieren.",
-      "success": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an.",
       "submit": "Passwort zurücksetzen",
-      "knowPassword": "Kennen Sie Ihr Passwort?"
+      "knowPassword": "Kennen Sie Ihr Passwort?",
+      "successTitle": "Ihr Passwort wurde zurückgesetzt",
+      "successDescription": "Melden Sie sich mit Ihrem neuen Passwort an.",
+      "loginButton": "Anmelden",
+      "linkExpiredTitle": "Dieser Link zum Zurücksetzen ist abgelaufen",
+      "linkExpiredDescription": "Links zum Zurücksetzen gelten einen Tag lang. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+      "linkInvalidTitle": "Dieser Link zum Zurücksetzen funktioniert nicht mehr",
+      "linkInvalidDescription": "Er wurde vielleicht schon verwendet, oder er wurde nur teilweise kopiert. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+      "requestNewLinkButton": "Neuen Link anfordern"
     },
     "magicLink": {
       "title": "Mit einem Link anmelden",
@@ -482,5 +489,23 @@
   },
   "No options available": "Keine Optionen verfügbar",
   "No matches found": "Keine Treffer gefunden",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}: Status geändert auf {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: Status geändert auf {{state}}",
+  "Use at least {{minimum}} characters.": "Verwenden Sie mindestens {{minimum}} Zeichen.",
+  "Try a few unrelated words.": "Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
+  "Password meets requirements": "Das Passwort erfüllt die Anforderungen",
+  "Password must be at least 15 characters.": "Das Passwort muss mindestens 15 Zeichen lang sein.",
+  "Password cannot be more than 100 characters.": "Das Passwort darf höchstens 100 Zeichen lang sein.",
+  "Choose a less predictable password. Try a few unrelated words.": "Wählen Sie ein weniger vorhersehbares Passwort. Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
+  "Password cannot be blank.": "Das Passwort darf nicht nur aus Leerzeichen bestehen.",
+  "Password is required.": "Ein Passwort ist erforderlich.",
+  "Password must be a string.": "Das Passwort muss eine Zeichenfolge sein.",
+  "Between {{minimum}} and {{maximum}} characters": "Zwischen {{minimum}} und {{maximum}} Zeichen",
+  "Avoid common or repeated patterns": "Häufige oder sich wiederholende Muster vermeiden",
+  "Password length": "Passwortlänge",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / mindestens {{minimum}} Zeichen",
+  "Complete:": "Erfüllt:",
+  "Incomplete:": "Nicht erfüllt:",
+  "Special character included (optional)": "Sonderzeichen enthalten (optional)",
+  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $.",
+  "Dismiss": "Ausblenden"
 }

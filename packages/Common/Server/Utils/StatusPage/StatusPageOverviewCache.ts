@@ -4,6 +4,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageUptimeTimezone from "../../../Utils/StatusPage/StatusPageUptimeTimezone";
 import logger from "../Logger";
+import StatusPageSharedReads, { SharedRead } from "./StatusPageSharedReads";
 
 /*
  * The status page overview, cached for a few seconds - and something a
@@ -14,6 +15,14 @@ import logger from "../Logger";
  * for TTL_MS, and builds it once for requests that arrive together. Who may
  * read the page is checked on every request before this is asked; the
  * response is the same for everyone who may.
+ *
+ * And one process builds it for all of them: an overview built anywhere is
+ * kept in Redis for the rest of its TTL_MS, and so is each zone's uptime
+ * history cut for it (StatusPageSharedReads), so a page is built once per
+ * TTL_MS however many pods serve it - not once per pod. An overview read
+ * from Redis is kept until the TTL_MS of its build runs out, never longer,
+ * so a visitor sees one no older than before. While Redis cannot be
+ * reached each process builds its own, as before.
  *
  * Something that stops being shown must not stay on the page until the entry
  * runs out. Every write that can take something off a status page starts a
@@ -106,6 +115,140 @@ interface OverviewHistories {
 }
 
 /*
+ * Where an overview kept in Redis keeps its histories too, and when it runs
+ * out - the same moment in every process that read it.
+ */
+interface SharedOverview {
+  key: string;
+  expiresAt: number;
+}
+
+// How a value is written to Redis and read back (StatusPageSharedReads).
+export interface SharedForm<T> {
+  toJSON: (value: T) => unknown;
+  fromJSON: (json: unknown) => T;
+}
+
+// The ids of a list read back from JSON; throws for anything else.
+const toObjectIDs: (json: unknown) => Array<ObjectID> = (
+  json: unknown,
+): Array<ObjectID> => {
+  if (!Array.isArray(json)) {
+    throw new Error("Not a list of ids");
+  }
+
+  return json.map((id: unknown): ObjectID => {
+    return new ObjectID(String(id));
+  });
+};
+
+/*
+ * An overview as it is kept in Redis: its response is the JSON it is sent
+ * as; what its uptime history is built from - ids and dates - is written out
+ * and read back as they were. Anything else read back is not an overview,
+ * and is built again.
+ */
+export const STATUS_PAGE_OVERVIEW_BASE_FORM: SharedForm<StatusPageOverviewBase> =
+  {
+    toJSON: (overview: StatusPageOverviewBase): unknown => {
+      return {
+        response: overview.response,
+        uptimeHistory: {
+          monitorIds: overview.uptimeHistory.monitorIds.map(
+            (id: ObjectID): string => {
+              return id.toString();
+            },
+          ),
+          monitorGroups: overview.uptimeHistory.monitorGroups.map(
+            (group: {
+              monitorGroupId: ObjectID;
+              monitorIds: Array<ObjectID>;
+            }) => {
+              return {
+                monitorGroupId: group.monitorGroupId.toString(),
+                monitorIds: group.monitorIds.map((id: ObjectID): string => {
+                  return id.toString();
+                }),
+              };
+            },
+          ),
+          rankedMonitorStatusIds: overview.uptimeHistory.rankedMonitorStatusIds,
+          startDate: overview.uptimeHistory.startDate.toISOString(),
+          endDate: overview.uptimeHistory.endDate.toISOString(),
+        },
+      };
+    },
+    fromJSON: (json: unknown): StatusPageOverviewBase => {
+      const overview: Record<string, unknown> = (json || {}) as Record<
+        string,
+        unknown
+      >;
+      const response: unknown = overview["response"];
+      const history: Record<string, unknown> = (overview["uptimeHistory"] ||
+        {}) as Record<string, unknown>;
+
+      if (!response || typeof response !== "object") {
+        throw new Error("Not an overview");
+      }
+
+      const startDate: Date = new Date(String(history["startDate"]));
+      const endDate: Date = new Date(String(history["endDate"]));
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new Error("Not an overview's window");
+      }
+
+      if (!Array.isArray(history["monitorGroups"])) {
+        throw new Error("Not an overview's monitor groups");
+      }
+
+      if (!Array.isArray(history["rankedMonitorStatusIds"])) {
+        throw new Error("Not an overview's statuses");
+      }
+
+      return {
+        response: response as JSONObject,
+        uptimeHistory: {
+          monitorIds: toObjectIDs(history["monitorIds"]),
+          monitorGroups: (history["monitorGroups"] as Array<unknown>).map(
+            (group: unknown) => {
+              const value: Record<string, unknown> = (group || {}) as Record<
+                string,
+                unknown
+              >;
+
+              return {
+                monitorGroupId: new ObjectID(String(value["monitorGroupId"])),
+                monitorIds: toObjectIDs(value["monitorIds"]),
+              };
+            },
+          ),
+          rankedMonitorStatusIds: (
+            history["rankedMonitorStatusIds"] as Array<unknown>
+          ).map((id: unknown): string => {
+            return String(id);
+          }),
+          startDate: startDate,
+          endDate: endDate,
+        },
+      };
+    },
+  };
+
+/*
+ * The key a page's reads are kept under: the page and its project's current
+ * generation - or the page alone when its project cannot be read (there is
+ * no such page, or the read failed): hasProject. isShared is whether that
+ * generation was read from Redis, so a change made in another process is in
+ * it (CacheGenerations.isSharedGeneration).
+ */
+export interface StatusPageCacheKey {
+  key: string;
+  hasProject: boolean;
+  isShared: boolean;
+}
+
+/*
  * How a write of one column of a record can take it off a status page:
  *
  *   - "off": a switch that must be on for the record to be shown (Visible
@@ -155,14 +298,20 @@ export const HIDING_WRITES: Readonly<
 
 /*
  * A status page's own configuration: the page, its groups, its resources
- * and the rules that add monitors to it. Any write or delete of it may take
- * something off the page - but for UNSHOWN_CONFIGURATION_COLUMNS.
+ * and the rules that add monitors to it, and what its header, footer and
+ * sign-in page show - its links and its single sign-on (the page's settings,
+ * StatusPageReadCache, are kept by the same generation). Any write or delete
+ * of it may take something off the page - but for
+ * UNSHOWN_CONFIGURATION_COLUMNS.
  */
 export const STATUS_PAGE_CONFIGURATION_TABLES: ReadonlyArray<string> = [
   "StatusPage",
   "StatusPageGroup",
   "StatusPageResource",
   "StatusPageMonitorRule",
+  "StatusPageHeaderLink",
+  "StatusPageFooterLink",
+  "StatusPageSSO",
 ];
 
 /*
@@ -245,6 +394,15 @@ export default class StatusPageOverviewCache {
   > = new WeakMap<StatusPageOverviewBase, OverviewHistories>();
 
   /*
+   * The overviews kept in Redis too, by the object this process serves:
+   * where their uptime histories are kept there, and when both run out.
+   */
+  private static sharedOverviews: WeakMap<
+    StatusPageOverviewBase,
+    SharedOverview
+  > = new WeakMap<StatusPageOverviewBase, SharedOverview>();
+
+  /*
    * Each project's generation: the shared one, from Redis, and this
    * process's own (CacheGenerations).
    */
@@ -270,8 +428,15 @@ export default class StatusPageOverviewCache {
     // The page's project; null when it cannot be read.
     readProjectId: () => Promise<ObjectID | null>;
     build: () => Promise<T>;
+    /*
+     * How the overview is written to Redis and read back, so one process
+     * builds it for every process (StatusPageSharedReads) while the page's
+     * generation is read from Redis. Left out, each process builds its own.
+     */
+    shared?: SharedForm<T> | undefined;
   }): Promise<T> {
-    const key: string = await this.getKey(data);
+    const cacheKey: StatusPageCacheKey = await this.getPageKey(data);
+    const key: string = cacheKey.key;
 
     const kept: unknown = this.responses.get(key);
 
@@ -282,14 +447,43 @@ export default class StatusPageOverviewCache {
     let building: Promise<unknown> | undefined = this.inFlight.get(key);
 
     if (!building) {
-      const built: Promise<T> = data.build();
+      const sharedKey: string | null =
+        data.shared && cacheKey.isShared ? `overview|${key}` : null;
+
+      const read: Promise<SharedRead<T>> = sharedKey
+        ? StatusPageSharedReads.getOrBuild<T>({
+            key: sharedKey,
+            ttlMs: this.TTL_MS,
+            build: data.build,
+            toJSON: data.shared!.toJSON,
+            fromJSON: data.shared!.fromJSON,
+          })
+        : this.buildHere(data.build);
+
+      const built: Promise<T> = read.then((shared: SharedRead<T>): T => {
+        const lifetime: number = shared.expiresAt - Date.now();
+
+        if (lifetime > 0) {
+          this.responses.set(key, shared.value, lifetime);
+        }
+
+        if (sharedKey && shared.value && typeof shared.value === "object") {
+          this.sharedOverviews.set(
+            shared.value as unknown as StatusPageOverviewBase,
+            {
+              key: sharedKey,
+              expiresAt: shared.expiresAt,
+            },
+          );
+        }
+
+        return shared.value;
+      });
+
       building = built;
       this.inFlight.set(key, built);
 
       built
-        .then((response: T) => {
-          this.responses.set(key, response, this.TTL_MS);
-        })
         .catch(() => {
           // A failed build is never kept; the next request builds again.
         })
@@ -299,6 +493,15 @@ export default class StatusPageOverviewCache {
     }
 
     return (await building) as T;
+  }
+
+  // A build in this process alone, kept for TTL_MS from when it started.
+  private static async buildHere<T>(
+    build: () => Promise<T>,
+  ): Promise<SharedRead<T>> {
+    const startedAt: number = Date.now();
+
+    return { value: await build(), expiresAt: startedAt + this.TTL_MS };
   }
 
   /**
@@ -374,7 +577,13 @@ export default class StatusPageOverviewCache {
     let entry: UptimeHistoryEntry | undefined = byZoneKey.get(zoneKey);
 
     if (!entry) {
-      const built: Promise<{ json: JSONObject; cutIn: string }> = data.build();
+      const built: Promise<{ json: JSONObject; cutIn: string }> =
+        this.buildUptimeHistoryOnce({
+          overview: data.overview,
+          zoneKey: zoneKey,
+          startDate: data.startDate,
+          build: data.build,
+        });
       const thisEntry: UptimeHistoryEntry = { history: built };
 
       entry = thisEntry;
@@ -406,6 +615,60 @@ export default class StatusPageOverviewCache {
     }
 
     return this.labelUptimeHistory(history.json, data.timezone);
+  }
+
+  /*
+   * A zone's uptime history for an overview: built here, or - for an
+   * overview kept in Redis - built once for every process that serves it,
+   * and kept there until the overview runs out (StatusPageSharedReads).
+   */
+  private static async buildUptimeHistoryOnce(data: {
+    overview: StatusPageOverviewBase;
+    zoneKey: string;
+    startDate: Date;
+    build: () => Promise<{ json: JSONObject; cutIn: string }>;
+  }): Promise<{ json: JSONObject; cutIn: string }> {
+    const shared: SharedOverview | undefined = this.sharedOverviews.get(
+      data.overview,
+    );
+
+    if (!shared || shared.expiresAt <= Date.now()) {
+      return await data.build();
+    }
+
+    return (
+      await StatusPageSharedReads.getOrBuild<{
+        json: JSONObject;
+        cutIn: string;
+      }>({
+        key: `${shared.key}|history|${data.startDate.getTime()}|${data.zoneKey}`,
+        ttlMs: this.TTL_MS,
+        expiresAt: shared.expiresAt,
+        build: data.build,
+        toJSON: (history: { json: JSONObject; cutIn: string }): unknown => {
+          return history;
+        },
+        fromJSON: (json: unknown): { json: JSONObject; cutIn: string } => {
+          const history: { json?: unknown; cutIn?: unknown } = (json || {}) as {
+            json?: unknown;
+            cutIn?: unknown;
+          };
+
+          if (
+            !history.json ||
+            typeof history.json !== "object" ||
+            typeof history.cutIn !== "string"
+          ) {
+            throw new Error("Not an uptime history");
+          }
+
+          return {
+            json: history.json as JSONObject,
+            cutIn: history.cutIn,
+          };
+        },
+      })
+    ).value;
   }
 
   // What is kept on an overview, made the first time it is asked for.
@@ -593,32 +856,46 @@ export default class StatusPageOverviewCache {
       StatusPageOverviewBase,
       OverviewHistories
     >();
+    this.sharedOverviews = new WeakMap<
+      StatusPageOverviewBase,
+      SharedOverview
+    >();
     this.generations.clear();
     this.projectOfPage.clear();
   }
 
   /*
-   * The key a page's overview is kept under: the page, and its project's
+   * The key a page's reads are kept under: the page, and its project's
    * generation as it stands before the build - or the page alone when its
-   * project cannot be read.
+   * project cannot be read. Its overview is kept under it, and so is
+   * everything else a page serves from a cache (StatusPageReadCache,
+   * StatusPageImageCache), so a write that takes something off a page, or
+   * changes its settings, is a new key for all of them at once. Never
+   * throws.
    */
-  private static async getKey(data: {
+  public static async getPageKey(data: {
     statusPageId: ObjectID;
     readProjectId: () => Promise<ObjectID | null>;
-  }): Promise<string> {
-    const statusPageId: string = data.statusPageId.toString();
+  }): Promise<StatusPageCacheKey> {
+    const statusPageId: string = data.statusPageId.toString().toLowerCase();
     const projectId: string | null = await this.getProjectOfPage(
       statusPageId,
       data.readProjectId,
     );
 
     if (!projectId) {
-      return statusPageId;
+      return { key: statusPageId, hasProject: false, isShared: false };
     }
 
-    return `${statusPageId}|${await this.generations.get(
+    const generation: string = await this.generations.get(
       this.generationKey(projectId),
-    )}`;
+    );
+
+    return {
+      key: `${statusPageId}|${generation}`,
+      hasProject: true,
+      isShared: CacheGenerations.isSharedGeneration(generation),
+    };
   }
 
   private static async getProjectOfPage(

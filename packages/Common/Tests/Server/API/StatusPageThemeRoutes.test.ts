@@ -35,6 +35,7 @@ import StatusPageTheme, {
   STATUS_PAGE_THEME_COLUMN,
 } from "../../../Types/StatusPage/StatusPageTheme";
 import { mockRouter } from "./Helpers";
+import { statusPageReadOf } from "../TestingUtils/StatusPageReads";
 import {
   afterEach,
   beforeAll,
@@ -137,8 +138,8 @@ describe("StatusPageAPI: the page's theme on its public routes", () => {
   const selectOf: (spy: unknown) => Record<string, unknown> = (
     spy: unknown,
   ): Record<string, unknown> => {
-    const call: Array<unknown> = (spy as jest.Mock).mock
-      .calls[0] as Array<unknown>;
+    // The page's own read, after the lookup of its project.
+    const call: Array<unknown> = statusPageReadOf(spy) as Array<unknown>;
 
     return (call[0] as { select: Record<string, unknown> }).select;
   };

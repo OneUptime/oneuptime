@@ -97,6 +97,11 @@ import {
 } from "../../Types/StatusPage/StatusPageArchive";
 import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "../../Types/StatusPage/StatusPageProjectBlock";
 import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
+import StatusPageAccessRulesUtil, {
+  STATUS_PAGE_ACCESS_RULES_SELECT,
+  StatusPageAccessRules,
+} from "../Utils/StatusPage/StatusPageAccessRules";
+import StatusPageReadCache from "../Utils/StatusPage/StatusPageReadCache";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
@@ -373,6 +378,28 @@ export class Service extends ProjectReferencesService<StatusPage> {
   private static readonly PROJECT_ID_OF_STATUS_PAGE_CACHE_TTL_MS: number =
     60 * 60 * 1000;
 
+  /*
+   * Each page's rules of who may read it (StatusPageAccessRules), which every
+   * public request of a page asks (hasReadAccess) - once per request of
+   * every view, until they were kept. Kept for ACCESS_RULES_TTL_MS under
+   * the page's project generation, and only while that generation is read
+   * from Redis: a change to the page (made private, an allow list, a
+   * password, archived) is a write to it that starts a new generation, so
+   * it takes effect at once in the process that made it, within a second
+   * (CacheGenerations.SHARED_READ_TTL_MS) in every other, and - while Redis
+   * cannot be reached - at once everywhere, as every request reads them
+   * again. Who is signed in is never kept (findSignedInSession).
+   */
+  public static readonly ACCESS_RULES_TTL_MS: number = 5_000;
+
+  private static accessRulesCache: StatusPageReadCache<StatusPageAccessRules | null> =
+    new StatusPageReadCache<StatusPageAccessRules | null>({
+      kind: "access",
+      ttlMs: Service.ACCESS_RULES_TTL_MS,
+      maxEntries: 10_000,
+      keepOnlyWhileShared: true,
+    });
+
   public constructor() {
     super(StatusPage);
   }
@@ -455,40 +482,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
     }
 
     if (statusPageIdOrDomain.includes(".")) {
-      const cachedStatusPageId: string | undefined =
-        this.statusPageDomainToIdCache.get(statusPageIdOrDomain);
-
-      if (cachedStatusPageId) {
-        return new ObjectID(cachedStatusPageId);
-      }
-
-      const statusPageDomain: StatusPageDomain | null =
-        await StatusPageDomainService.findOneBy({
-          query: {
-            fullDomain: statusPageIdOrDomain,
-            domain: {
-              isVerified: true,
-            } as any,
-          },
-          select: {
-            statusPageId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!statusPageDomain || !statusPageDomain.statusPageId) {
-        return null;
-      }
-
-      this.statusPageDomainToIdCache.set(
-        statusPageIdOrDomain,
-        statusPageDomain.statusPageId.toString(),
-        Service.DOMAIN_TO_ID_CACHE_TTL_MS,
-      );
-
-      return statusPageDomain.statusPageId;
+      return await this.resolveCustomDomainOrNull(statusPageIdOrDomain);
     }
 
     try {
@@ -501,6 +495,57 @@ export class Service extends ProjectReferencesService<StatusPage> {
       logger.error(err);
       return null;
     }
+  }
+
+  /*
+   * The status page a verified custom domain serves, or null: through the
+   * cache every public route shares (statusPageDomainToIdCache), so a view
+   * on a custom domain - its HTML, the app asking which page it is (the
+   * /domain route), and every API call after - looks the domain up once per
+   * DOMAIN_TO_ID_CACHE_TTL_MS, not once per request.
+   */
+  @CaptureSpan()
+  public async resolveCustomDomainOrNull(
+    fullDomain: string,
+  ): Promise<ObjectID | null> {
+    if (!fullDomain) {
+      return null;
+    }
+
+    const cachedStatusPageId: string | undefined =
+      this.statusPageDomainToIdCache.get(fullDomain);
+
+    if (cachedStatusPageId) {
+      return new ObjectID(cachedStatusPageId);
+    }
+
+    const statusPageDomain: StatusPageDomain | null =
+      await StatusPageDomainService.findOneBy({
+        query: {
+          fullDomain: fullDomain,
+          domain: {
+            isVerified: true,
+          } as any,
+        },
+        select: {
+          statusPageId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!statusPageDomain || !statusPageDomain.statusPageId) {
+      return null;
+    }
+
+    this.statusPageDomainToIdCache.set(
+      fullDomain,
+      statusPageDomain.statusPageId.toString(),
+      Service.DOMAIN_TO_ID_CACHE_TTL_MS,
+    );
+
+    return statusPageDomain.statusPageId;
   }
 
   /*
@@ -1141,23 +1186,9 @@ export class Service extends ProjectReferencesService<StatusPage> {
     const req: ExpressRequest = data.req;
 
     try {
-      // get status page by id.
-      const statusPage: StatusPage | null = await this.findOneById({
-        id: statusPageId,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          isPublicStatusPage: true,
-          ipWhitelist: true,
-          enableMasterPassword: true,
-          masterPassword: true,
-          isArchived: true,
-          requireSsoForLogin: true,
-          privateUserSessionLengthInHours: true,
-        },
-      });
+      // The page's rules, kept for a few seconds (getAccessRules).
+      const statusPage: StatusPageAccessRules | null =
+        await this.getAccessRules(statusPageId);
 
       /*
        * An archived status page is offline: nobody reads it, signed in or
@@ -1256,7 +1287,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
           isStatusPageMasterPasswordRequired({
             isPublicStatusPage: Boolean(statusPage.isPublicStatusPage),
             enableMasterPassword: statusPage.enableMasterPassword,
-            hasMasterPassword: Boolean(statusPage.masterPassword),
+            hasMasterPassword: statusPage.hasMasterPassword,
           }),
       );
 
@@ -1295,6 +1326,38 @@ export class Service extends ProjectReferencesService<StatusPage> {
   }
 
   /*
+   * A page's rules of who may read it (StatusPageAccessRules): null when
+   * there is no such page. Read with one primary-key lookup, and kept for
+   * ACCESS_RULES_TTL_MS by the page's project generation while Redis
+   * answers (accessRulesCache). They are what the page is; who is asking is
+   * decided from them on every request (hasReadAccess).
+   */
+  @CaptureSpan()
+  public async getAccessRules(
+    statusPageId: ObjectID,
+  ): Promise<StatusPageAccessRules | null> {
+    return await Service.accessRulesCache.getOrRead({
+      statusPageId: statusPageId,
+      readProjectId: (): Promise<ObjectID | null> => {
+        return this.getProjectIdOfStatusPage(statusPageId);
+      },
+      read: async (): Promise<StatusPageAccessRules | null> => {
+        const statusPage: StatusPage | null = await this.findOneById({
+          id: statusPageId,
+          props: {
+            isRoot: true,
+          },
+          select: STATUS_PAGE_ACCESS_RULES_SELECT,
+        });
+
+        return statusPage
+          ? StatusPageAccessRulesUtil.fromStatusPage(statusPage)
+          : null;
+      },
+    });
+  }
+
+  /*
    * The session of the private user signed in to this status page on this
    * request, or null: the page's sign-in cookie, its claims for this page,
    * and the session behind it read live - not revoked, not expired, its
@@ -1307,10 +1370,11 @@ export class Service extends ProjectReferencesService<StatusPage> {
    * moment between an SSO sign-in and the code exchange - is no sign-in.
    */
   private async findSignedInSession(data: {
-    statusPage: Pick<
-      StatusPage,
-      "requireSsoForLogin" | "privateUserSessionLengthInHours"
-    >;
+    // The page as read, or its rules (StatusPageAccessRules).
+    statusPage: {
+      requireSsoForLogin?: boolean | undefined;
+      privateUserSessionLengthInHours?: number | undefined;
+    };
     statusPageId: ObjectID;
     req: ExpressRequest;
     select: Array<string>;

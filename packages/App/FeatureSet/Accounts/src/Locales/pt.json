@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Redefina sua senha",
     "subtitle": "Insira sua nova senha e a atualizaremos.",
-    "successMessage": "Sua senha foi atualizada. Por favor, faça login.",
     "submitButton": "Redefinir senha",
     "knowPasswordPrompt": "Sabe sua senha?",
-    "loginLink": "Entrar."
+    "loginLink": "Entrar.",
+    "successTitle": "Sua senha foi redefinida",
+    "successDescription": "Entre com sua nova senha.",
+    "signInButton": "Entrar",
+    "linkExpiredTitle": "Este link de redefinição expirou",
+    "linkExpiredDescription": "Os links de redefinição valem por um dia. Peça um novo link e nós o enviaremos por e-mail.",
+    "linkInvalidTitle": "Este link de redefinição não funciona mais",
+    "linkInvalidDescription": "Talvez ele já tenha sido usado ou tenha sido copiado só em parte. Peça um novo link e nós o enviaremos por e-mail.",
+    "requestNewLinkButton": "Pedir um novo link"
   },
   "sso": {
     "title": "Login com SSO",
@@ -639,5 +646,6 @@
     "note": "Nota",
     "tip": "Dica",
     "warning": "Aviso"
-  }
+  },
+  "Dismiss": "Dispensar"
 }

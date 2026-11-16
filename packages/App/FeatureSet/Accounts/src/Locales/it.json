@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Reimposta la password",
     "subtitle": "Inserisci la tua nuova password e la aggiorneremo.",
-    "successMessage": "La tua password è stata aggiornata. Effettua l'accesso.",
     "submitButton": "Reimposta password",
     "knowPasswordPrompt": "Conosci la tua password?",
-    "loginLink": "Accedi."
+    "loginLink": "Accedi.",
+    "successTitle": "La tua password è stata reimpostata",
+    "successDescription": "Accedi con la nuova password.",
+    "signInButton": "Accedi",
+    "linkExpiredTitle": "Questo link di reimpostazione è scaduto",
+    "linkExpiredDescription": "I link di reimpostazione valgono un giorno. Richiedi un nuovo link e te lo invieremo via email.",
+    "linkInvalidTitle": "Questo link di reimpostazione non funziona più",
+    "linkInvalidDescription": "Potrebbe essere già stato usato, oppure ne è stata copiata solo una parte. Richiedi un nuovo link e te lo invieremo via email.",
+    "requestNewLinkButton": "Richiedi un nuovo link"
   },
   "sso": {
     "title": "Accedi con SSO",
@@ -639,5 +646,6 @@
     "note": "Nota",
     "tip": "Suggerimento",
     "warning": "Avviso"
-  }
+  },
+  "Dismiss": "Nascondi"
 }

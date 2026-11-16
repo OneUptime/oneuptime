@@ -356,6 +356,12 @@ O que se faz a respeito de um registro privado segue a mesma regra: acionar algu
 
 O que se faz e se envia a respeito de um registro privado só é lido por quem pode ler o registro: suas execuções de políticas de plantão, suas execuções de runbooks, as correções propostas para ele e os registros dos e-mails, SMS, chamadas, notificações push, mensagens de chat, webhooks e solicitações de IA que o OneUptime enviou sobre ele. As pessoas acionadas por causa dele continuam vendo o seu acionamento.
 
+Excluir um registro privado exclui tudo isso junto com ele, seja qual for a forma como é excluído: um de cada vez ou vários de uma vez, pelo painel, pela API, pelo Terraform ou pelo MCP, pela retenção de registros resolvidos ou junto com o seu projeto. As execuções de runbooks e as correções são excluídas com o incidente ou o alerta ao qual estão vinculadas, privado ou não.
+
+Os comandos que um Runner executou para uma execução de runbook ou uma correção, com o que imprimiram, só são lidos por quem pode ler a execução ou a correção. Eles são excluídos com a execução. Os comandos de uma correção excluída permanecem, como registro do que foi executado na sua infraestrutura, e só os Proprietários do projeto e Administradores do projeto os leem.
+
+Um registro que cita um registro privado sem fazer parte dele, como um problema de Data Security, um caso de segurança, um envio de formulário, uma gravação de sessão, ou um alerta ou um incidente públicos em um episódio privado, é lido como antes. Só quem pode ler o registro privado vê ali o seu título e os seus outros campos: para qualquer outra pessoa, um filtro por eles não o encontra, e uma lista que o cita não pode ser ordenada por eles.
+
 Workflows não agem sobre registros privados. As etapas de um workflow agem como Administrador do projeto, mas nunca recebem emprestada a visão dele sobre incidentes, alertas e episódios privados: não encontram nenhum, não alteram nenhum nem acrescentam nada a eles, e um workflow não começa por um deles nem por algo que pertença a ele. Veja [O que os passos de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
 
 ### Regras que pertencem a equipes

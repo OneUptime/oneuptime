@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "パスワードをリセット",
     "subtitle": "新しいパスワードを入力してください。更新されます。",
-    "successMessage": "パスワードが更新されました。ログインしてください。",
     "submitButton": "パスワードをリセット",
     "knowPasswordPrompt": "パスワードを知っていますか？",
-    "loginLink": "ログイン。"
+    "loginLink": "ログイン。",
+    "successTitle": "パスワードをリセットしました",
+    "successDescription": "新しいパスワードでサインインしてください。",
+    "signInButton": "サインイン",
+    "linkExpiredTitle": "このリセット用リンクは期限切れです",
+    "linkExpiredDescription": "リセット用リンクの有効期間は 1 日です。新しいリンクをリクエストすると、メールでお送りします。",
+    "linkInvalidTitle": "このリセット用リンクは使用できなくなりました",
+    "linkInvalidDescription": "すでに使用されたか、一部だけがコピーされた可能性があります。新しいリンクをリクエストすると、メールでお送りします。",
+    "requestNewLinkButton": "新しいリンクをリクエスト"
   },
   "sso": {
     "title": "SSOでログイン",
@@ -639,5 +646,6 @@
     "note": "注記",
     "tip": "ヒント",
     "warning": "警告"
-  }
+  },
+  "Dismiss": "非表示"
 }

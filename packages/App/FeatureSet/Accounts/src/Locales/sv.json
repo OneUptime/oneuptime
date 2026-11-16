@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Återställ ditt lösenord",
     "subtitle": "Ange ditt nya lösenord så uppdaterar vi det.",
-    "successMessage": "Ditt lösenord har uppdaterats. Vänligen logga in.",
     "submitButton": "Återställ lösenord",
     "knowPasswordPrompt": "Kommer du ihåg ditt lösenord?",
-    "loginLink": "Logga in."
+    "loginLink": "Logga in.",
+    "successTitle": "Ditt lösenord har återställts",
+    "successDescription": "Logga in med ditt nya lösenord.",
+    "signInButton": "Logga in",
+    "linkExpiredTitle": "Den här återställningslänken har gått ut",
+    "linkExpiredDescription": "Återställningslänkar fungerar i en dag. Be om en ny länk så mejlar vi den till dig.",
+    "linkInvalidTitle": "Den här återställningslänken fungerar inte längre",
+    "linkInvalidDescription": "Den kan redan ha använts, eller så kopierades bara en del av den. Be om en ny länk så mejlar vi den till dig.",
+    "requestNewLinkButton": "Be om en ny länk"
   },
   "sso": {
     "title": "Logga in med SSO",
@@ -639,5 +646,6 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "Dismiss": "Dölj"
 }

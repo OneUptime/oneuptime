@@ -454,6 +454,8 @@
     "{{count}} ms",
     "{{count}} node",
     "{{count}} person",
+    "{{count}} pipeline",
+    "{{count}} pipelines",
     "{{count}} placement group",
     "{{count}} placement groups",
     "{{count}} pod",

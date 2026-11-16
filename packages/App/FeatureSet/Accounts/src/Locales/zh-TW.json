@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "重設您的密碼",
     "subtitle": "請輸入您的新密碼，我們將為您更新。",
-    "successMessage": "您的密碼已更新。請登入。",
     "submitButton": "重設密碼",
     "knowPasswordPrompt": "知道您的密碼？",
-    "loginLink": "登入。"
+    "loginLink": "登入。",
+    "successTitle": "您的密碼已重設",
+    "successDescription": "請使用新密碼登入。",
+    "signInButton": "登入",
+    "linkExpiredTitle": "此重設連結已過期",
+    "linkExpiredDescription": "重設連結的有效期為一天。請申請新連結，我們會以電子郵件寄給您。",
+    "linkInvalidTitle": "此重設連結已失效",
+    "linkInvalidDescription": "它可能已被使用過，或只複製了一部分。請申請新連結，我們會以電子郵件寄給您。",
+    "requestNewLinkButton": "申請新連結"
   },
   "sso": {
     "title": "使用 SSO 登入",
@@ -639,5 +646,6 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "Dismiss": "隱藏"
 }

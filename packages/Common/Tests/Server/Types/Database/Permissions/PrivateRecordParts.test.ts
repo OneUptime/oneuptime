@@ -26,6 +26,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { getMetadataArgsStorage } from "typeorm";
 import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
+import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
 /*
  * EVERY KIND OF PRIVATE RECORD, AND EVERY PART OF ONE, IS HELD TO THE RULE.
@@ -379,6 +380,9 @@ const ALSO_PARTS: Record<string, Array<{ kind: string; key: string }>> = {
  * a page, an AI run), a record of another product that points at one, or a
  * record that is itself private-capable. A new model naming a private record
  * is classified here - a part, a second part, or none - before it ships.
+ * One that is none still reads the record through its relation only where
+ * its reader sees it (PrivateRecordReadFilter.getRelations, #9102;
+ * PrivateRecordRelations.test lists every such relation).
  */
 const NAMES_BUT_IS_NO_PART: Record<string, string> = {
   AIConversation: "a person's own conversation with OneUptime AI about it",
@@ -570,6 +574,89 @@ describe("a part that names a second private record", () => {
         expect(new metadata.modelType!().tableName).toBe(part.kind);
       }
     }
+  });
+});
+
+/*
+ * A PART GOES WITH ITS RECORD (#9103). What is read through a private
+ * record, and what is done or sent about one, is read only where its reader
+ * sees the record it names - and a row naming no record is read by
+ * everyone. So no part may outlive its record naming none: every key that
+ * names a private record deletes the part with the record (ON DELETE
+ * CASCADE), never clears itself (SET NULL) - however the record is deleted,
+ * since Postgres does it. A runbook run and a fix cleared theirs until
+ * CascadeRunsAndFixesWithTheirRecord; PrivateRecordDeletionPostgres deletes
+ * records every way they can go and reads what is left.
+ */
+describe("every key naming a private record, in every part of one", () => {
+  const keysOf: (modelType: {
+    new (): BaseModel;
+  }) => Array<{ key: string; onDelete: unknown }> = (modelType: {
+    new (): BaseModel;
+  }): Array<{ key: string; onDelete: unknown }> => {
+    return PrivateRecordPermission.getPrivateRecordColumns(modelType)
+      .filter((column: PrivateRecordColumn): boolean => {
+        return !column.isRecord;
+      })
+      .map((column: PrivateRecordColumn) => {
+        const model: BaseModel = new modelType();
+        const relation: string | undefined = model
+          .getTableColumns()
+          .columns.find((candidate: string): boolean => {
+            return (
+              model.getTableColumnMetadata(candidate)
+                ?.manyToOneRelationColumn === column.column
+            );
+          });
+
+        const onDelete: unknown = getMetadataArgsStorage().relations.find(
+          (args: RelationMetadataArgs): boolean => {
+            return (
+              args.propertyName === relation &&
+              (args.target === modelType ||
+                (typeof args.target === "function" &&
+                  modelType.prototype instanceof args.target))
+            );
+          },
+        )?.options?.onDelete;
+
+        return { key: column.column, onDelete: onDelete };
+      });
+  };
+
+  test("deletes the part with the record", () => {
+    const parts: Array<string> = Array.from(
+      new Set<string>([...Object.keys(PARTS), ...Object.keys(ALSO_PARTS)]),
+    ).sort();
+
+    const notCascading: Array<string> = [];
+
+    for (const name of parts) {
+      const modelType: { new (): BaseModel } = AllModelTypes.find(
+        (candidate: { new (): BaseModel }): boolean => {
+          return modelName(candidate) === name;
+        },
+      )!;
+
+      for (const { key, onDelete } of keysOf(modelType)) {
+        if (onDelete !== "CASCADE") {
+          notCascading.push(`${name}.${key}: ${String(onDelete)}`);
+        }
+      }
+    }
+
+    expect(notCascading).toEqual([]);
+  });
+
+  test("of a runbook run and a fix: their incident and their alert", () => {
+    expect(keysOf(modelOfTable("RunbookExecution"))).toEqual([
+      { key: "incidentId", onDelete: "CASCADE" },
+      { key: "alertId", onDelete: "CASCADE" },
+    ]);
+    expect(keysOf(modelOfTable("AutoRemediationSuggestion"))).toEqual([
+      { key: "incidentId", onDelete: "CASCADE" },
+      { key: "alertId", onDelete: "CASCADE" },
+    ]);
   });
 });
 

@@ -343,9 +343,16 @@
     "resetPassword": {
       "description": "{{statusPageName}}アカウントの新しいパスワードを作成してください。",
       "instructions": "新しいパスワードを入力すると、更新されます。",
-      "success": "パスワードが更新されました。ログインしてください。",
       "submit": "パスワードをリセット",
-      "knowPassword": "パスワードをご存じですか？"
+      "knowPassword": "パスワードをご存じですか？",
+      "successTitle": "パスワードをリセットしました",
+      "successDescription": "新しいパスワードでログインしてください。",
+      "loginButton": "ログイン",
+      "linkExpiredTitle": "このリセット用リンクは期限切れです",
+      "linkExpiredDescription": "リセット用リンクの有効期間は 1 日です。新しいリンクをリクエストすると、メールでお送りします。",
+      "linkInvalidTitle": "このリセット用リンクは使用できなくなりました",
+      "linkInvalidDescription": "すでに使用されたか、一部だけがコピーされた可能性があります。新しいリンクをリクエストすると、メールでお送りします。",
+      "requestNewLinkButton": "新しいリンクをリクエスト"
     },
     "magicLink": {
       "title": "リンクでログイン",
@@ -482,5 +489,23 @@
   },
   "No options available": "利用できるオプションはありません",
   "No matches found": "一致するものが見つかりません",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}の状態が {{state}} に変更されました"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}の状態が {{state}} に変更されました",
+  "Use at least {{minimum}} characters.": "{{minimum}}文字以上で入力してください。",
+  "Try a few unrelated words.": "関連のない単語をいくつか組み合わせてみてください。",
+  "Password meets requirements": "パスワードは要件を満たしています",
+  "Password must be at least 15 characters.": "パスワードは15文字以上にしてください。",
+  "Password cannot be more than 100 characters.": "パスワードは100文字以内にしてください。",
+  "Choose a less predictable password. Try a few unrelated words.": "推測されにくいパスワードを選んでください。関連のない単語をいくつか組み合わせてみてください。",
+  "Password cannot be blank.": "パスワードを空白のみにすることはできません。",
+  "Password is required.": "パスワードは必須です。",
+  "Password must be a string.": "パスワードは文字列で入力してください。",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}}文字以上{{maximum}}文字以下",
+  "Avoid common or repeated patterns": "よく使われるパターンや繰り返しを避ける",
+  "Password length": "パスワードの長さ",
+  "{{length}} / {{minimum}} characters minimum": "{{length}}文字 / 最低{{minimum}}文字",
+  "Complete:": "達成済み：",
+  "Incomplete:": "未達成：",
+  "Special character included (optional)": "記号が含まれています（任意）",
+  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。",
+  "Dismiss": "非表示"
 }

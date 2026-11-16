@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Restablezca su contraseña",
     "subtitle": "Ingrese su nueva contraseña y la actualizaremos.",
-    "successMessage": "Su contraseña ha sido actualizada. Por favor, inicie sesión.",
     "submitButton": "Restablecer contraseña",
     "knowPasswordPrompt": "¿Conoce su contraseña?",
-    "loginLink": "Iniciar sesión."
+    "loginLink": "Iniciar sesión.",
+    "successTitle": "Se ha restablecido tu contraseña",
+    "successDescription": "Inicia sesión con tu nueva contraseña.",
+    "signInButton": "Iniciar sesión",
+    "linkExpiredTitle": "Este enlace de restablecimiento ha caducado",
+    "linkExpiredDescription": "Los enlaces de restablecimiento sirven durante un día. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+    "linkInvalidTitle": "Este enlace de restablecimiento ya no funciona",
+    "linkInvalidDescription": "Puede que ya se haya usado o que solo se haya copiado una parte. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+    "requestNewLinkButton": "Pedir un enlace nuevo"
   },
   "sso": {
     "title": "Iniciar sesión con SSO",
@@ -639,5 +646,6 @@
     "note": "Nota",
     "tip": "Consejo",
     "warning": "Advertencia"
-  }
+  },
+  "Dismiss": "Descartar"
 }

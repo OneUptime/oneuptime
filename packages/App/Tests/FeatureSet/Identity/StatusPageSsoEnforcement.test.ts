@@ -329,7 +329,7 @@ const resetPassword: () => Promise<InvokeResult> =
       data: {
         statusPageId: STATUS_PAGE_ID,
         resetPasswordToken: "a-reset-token",
-        password: { _type: "HashedString", value: "a-new-password" },
+        password: { _type: "HashedString", value: "violet river lantern" },
       },
     });
   };

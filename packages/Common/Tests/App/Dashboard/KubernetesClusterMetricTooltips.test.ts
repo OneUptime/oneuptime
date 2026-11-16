@@ -381,13 +381,21 @@ describe("accuracy: the golden tiles and the charts under them", () => {
     expect(CLUSTER.cpuChart).toContain("empty");
   });
 
-  test("memory is an absolute total across nodes that includes cache", () => {
-    expect(CLUSTER.memory).toContain("added together");
-    expect(CLUSTER.memory).toContain("cache");
+  /*
+   * Issue #9113: the tile divides the nodes' working set (memory apps hold,
+   * k8s.node.memory.working_set) by their allocatable memory, as CPU
+   * divides by allocatable CPU; the chart plots the same working set in
+   * bytes. Neither counts the file cache the kernel can free.
+   */
+  test("memory is the working set across nodes as a share of allocatable memory, without cache", () => {
+    expect(CLUSTER.memory).toContain("on all nodes");
+    expect(CLUSTER.memory).toContain("as a share of allocatable memory");
+    expect(CLUSTER.memory).toContain("file cache left out");
+    // What the tile shows when there is nothing to divide by.
+    expect(CLUSTER.memory).toContain("No bar if none is reported");
     expect(CLUSTER.memoryChart).toContain("bytes");
-    expect(CLUSTER.memoryChart).toContain("cache");
-    // Not a percentage - there is no denominator.
-    expect(CLUSTER.memory).not.toContain("%");
+    expect(CLUSTER.memoryChart).toContain("is left out");
+    expect(CLUSTER.memoryChart).not.toContain("Includes file cache");
   });
 
   /*

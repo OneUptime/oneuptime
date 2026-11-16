@@ -4,6 +4,7 @@ import DashboardThemeUtil from "./Utils/DashboardTheme";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
 import NewVersion, {
   NewVersionAudience,
@@ -56,5 +57,6 @@ root.render(
       <NewVersionNavigation />
       <App />
     </BrowserRouter>
+    <ToastRegion />
   </ErrorBoundary>,
 );
