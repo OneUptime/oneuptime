@@ -37,7 +37,7 @@ Save the credentials for one project, or once for the whole installation:
 | Where | The **Twilio Config** card under **More settings** in **Project Settings > Notifications > Notification Channels** | **Admin Dashboard > Settings > Call and SMS** |
 | Who can set it | **Project Owner**, **Project Admin**, or **Create Call and SMS** in a custom role | A master admin |
 | Who can read its Auth Token | **Project Owner**, **Project Admin**, or **Read Call and SMS** in a custom role. Others who can see the configuration see the rest of it; the token is stored encrypted | A master admin |
-| Used for | SMS and calls to the project's members while it is the project default, status pages it is assigned to, and incoming call policies that use it | SMS and calls to the members of any project that has no default configuration |
+| Used for | SMS to the project's members while it is the project default for SMS, calls to them while it is the project default for calls, status pages it is assigned to, and incoming call policies that use it | SMS and calls to the members of any project that has no default configuration for them |
 
 To add a project configuration:
 
@@ -45,7 +45,7 @@ To add a project configuration:
 1. Go to **Project Settings > Notifications > Notification Channels**, and open **More settings**.
 2. In **Twilio Config**, select **Create Twilio Config**.
 3. Enter a name, and pick what the account sends in **Use This Account For**: **Calls and SMS**, **SMS only** or **Calls only**. Then enter **Twilio Account SID**, **Twilio Auth Token**, and the number the choice asks for: **Twilio Primary Phone Number** for calls, or **Twilio SMS Phone Numbers** for **SMS only**. Under **More fields**, optionally enter comma-separated **Twilio Secondary Phone Numbers** for other countries, and **Twilio SMS Phone Numbers** if your numbers cannot send SMS.
-4. **Set as Project Default** starts on for the project's first configuration, so the SMS and calls to the project's members, including on-call notifications, go through it as soon as you save. Turn it off if this account is only for status pages or incoming calls. A later configuration starts with the switch off: turn it on, or pick **Set as Project Default** from the configuration's row menu, to move those messages to it. An API request that leaves `isProjectDefault` out is treated the same way.
+4. **Set as Project Default** starts on for the project's first configuration, so the SMS and calls to the project's members, including on-call notifications, go through it as soon as you save. Turn it off if this account is only for status pages or incoming calls. A later configuration starts with the switch off: turn it on, or pick **Set as Project Default** from the configuration's row menu, to move those messages to it. An API request that leaves `isProjectDefault` out is treated the same way. For a configuration that would take only the SMS or only the calls, the menu says which: **Set as Project Default for SMS** or **Set as Project Default for Calls**.
 5. Save. A project has one default for SMS and one for calls, so a configuration used for **SMS only** and one used for **Calls only** can both be the default: see [An account for SMS only, or calls only](#an-account-for-sms-only-or-calls-only). Status pages use the configuration explicitly assigned to each status page.
 
 > [!IMPORTANT]

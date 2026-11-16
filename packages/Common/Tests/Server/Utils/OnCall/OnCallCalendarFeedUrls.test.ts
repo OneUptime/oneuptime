@@ -11,7 +11,10 @@ import OnCallCalendarFeedUrls, {
 import CalendarFeedToken from "../../../../Server/Utils/OnCall/CalendarFeedToken";
 import Protocol from "../../../../Types/API/Protocol";
 import { OnCallCalendarFeedKind } from "../../../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
+import HostAddressUtil from "../../../../Utils/HostAddressUtil";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The subscription URLs the settings page hands out. What matters: the path
@@ -223,6 +226,52 @@ describe("OnCallCalendarFeedUrls", () => {
       expect(urls.https).not.toContain("https://https://");
     });
 
+    /*
+     * An IPv6 HOST is written in brackets, with any port after them, and the
+     * link keeps it exactly so: a URL writes an IPv6 host in brackets, and
+     * calendar apps parse the link as a URL. Each link here is read back by
+     * the WHATWG URL parser, which refuses an IPv6 host without brackets.
+     */
+    test.each([
+      ["[2001:db8::1]:8443", "[2001:db8::1]", "8443"],
+      ["[2001:db8::1]", "[2001:db8::1]", ""],
+      ["[::1]:3002", "[::1]", "3002"],
+      ["203.0.113.5:8080", "203.0.113.5", "8080"],
+      ["203.0.113.5", "203.0.113.5", ""],
+      ["oneuptime.example.com:8443", "oneuptime.example.com", "8443"],
+      ["oneuptime.example.com", "oneuptime.example.com", ""],
+    ])(
+      "HOST=%s: every link is a URL on host %s, port %j",
+      (host: string, hostname: string, port: string) => {
+        const urls: FeedUrls = OnCallCalendarFeedUrls.buildFeedUrls({
+          kind: OnCallCalendarFeedKind.Schedule,
+          token: TOKEN,
+          host,
+          protocol: Protocol.HTTPS,
+        });
+
+        expect(urls.https).toBe(
+          `https://${host}/api/on-call-calendar/schedule/${TOKEN}/schedule.ics`,
+        );
+
+        for (const link of [urls.https, urls.webcal]) {
+          const parsed: URL = new URL(link);
+
+          expect(parsed.hostname).toBe(hostname.toLowerCase());
+          expect(parsed.port).toBe(port);
+          expect(parsed.pathname).toBe(
+            `/api/on-call-calendar/schedule/${TOKEN}/schedule.ics`,
+          );
+        }
+
+        const cid: string | null = new URL(urls.googleAdd).searchParams.get(
+          "cid",
+        );
+
+        expect(cid).toBe(urls.webcal);
+      },
+    );
+
     test("the webcal and https links differ only in scheme", () => {
       const urls: FeedUrls = OnCallCalendarFeedUrls.buildFeedUrls({
         kind: OnCallCalendarFeedKind.Personal,
@@ -260,6 +309,8 @@ describe("OnCallCalendarFeedUrls", () => {
       "127.0.0.1:80",
       "0.0.0.0",
       "[::1]:3002",
+      "[::1]",
+      "::1",
       "http://localhost/",
     ])("warns for %j", (host: string) => {
       expect(OnCallCalendarFeedUrls.getHostWarning(host)).toBe(HOST_WARNING);
@@ -271,6 +322,10 @@ describe("OnCallCalendarFeedUrls", () => {
       "10.0.0.12",
       "10.0.0.12:3002",
       "oneuptime.internal",
+      "[2001:db8::1]",
+      "[2001:db8::1]:8443",
+      // Without brackets every colon is the address's own: no port is cut off.
+      "2001:db8::1",
     ])("is silent for %j", (host: string) => {
       expect(OnCallCalendarFeedUrls.getHostWarning(host)).toBeNull();
     });
@@ -341,6 +396,44 @@ describe("OnCallCalendarFeedUrls", () => {
         expect(OnCallCalendarFeedUrls.getPrivateHost(host)).toBeNull();
       },
     );
+
+    /*
+     * The host it names is HOST without its port by the rule the ingress
+     * and the app share (HostAddressUtil.stripPort, #8024): the feed used to
+     * keep a copy of its own, and two copies of one rule drift, as the
+     * first-colon cuts did (#7889).
+     */
+    test.each([
+      "10.0.0.12:3002",
+      "[fd00::1]",
+      "[fd12:3456:789a::1]:8443",
+      "[FE80::1]:8080",
+      "fd00:1234::7",
+      "ingress:7849",
+      "OneUptime.Internal:8080",
+    ])("%j is named as HostAddressUtil.stripPort names it", (host: string) => {
+      expect(OnCallCalendarFeedUrls.getPrivateHost(host)).toBe(
+        HostAddressUtil.stripPort(host),
+      );
+    });
+
+    test("a HOST that is only a port names no host, private or public", () => {
+      expect(OnCallCalendarFeedUrls.getPrivateHost(":8080")).toBeNull();
+    });
+
+    test("there is one rule for HOST without its port: the feed calls HostAddressUtil's", () => {
+      const source: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../Server/Utils/OnCall/OnCallCalendarFeedUrls.ts",
+        ),
+        "utf8",
+      );
+
+      expect(source).not.toMatch(/\bstatic\s+stripPort\s*\(/);
+      expect(source).not.toContain("OnCallCalendarFeedUrls.stripPort");
+      expect(source).toContain("HostAddressUtil.stripPort(");
+    });
 
     test("the default reads the environment and is a string or null", () => {
       const value: string | null = OnCallCalendarFeedUrls.getPrivateHost();

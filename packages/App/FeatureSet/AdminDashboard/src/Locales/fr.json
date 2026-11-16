@@ -352,7 +352,7 @@
       "extendDescription": "Déplacer la date de fin de l'essai de ce projet. Le fournisseur de paiement reçoit aussi la nouvelle date : rien n'est facturé pendant l'essai.",
       "newTrialEndDate": "Nouvelle date de fin de l'essai",
       "newTrialEndDateDescription": "La date à laquelle l'essai doit se terminer. Elle doit être dans le futur et ne pas dépasser 730 jours (deux ans).",
-      "notTrialingWarning": "Ce projet n'est pas actuellement en période d'essai. La prolongation clôture la période de facturation à l'usage en cours : le client sera donc facturé immédiatement pour l'usage déjà accumulé sur cette période. L'essai prolongé lui-même est gratuit.",
+      "notTrialingUsageWaived": "Ce projet n'est pas actuellement en période d'essai. En prolongeant l'essai, l'usage que le client a déjà accumulé sur la période de facturation en cours lui est offert : il ne lui sera pas facturé. L'essai prolongé lui-même est gratuit.",
       "extendSubmitButton": "Prolonger l'essai",
       "extendSuccess": "Essai prolongé jusqu'au {{date}}. Le fournisseur de paiement a été mis à jour.",
       "extendFailure": "Échec de la prolongation de l'essai.",
@@ -636,12 +636,6 @@
         "usageCardDescription": "La durée de conservation de l'utilisation quotidienne de la télémétrie de chaque projet, avec ou sans facturation.",
         "usageEditButton": "Modifier la rétention de l'utilisation de la télémétrie"
       },
-      "apiKey": {
-        "cardTitle": "Paramètres de la clé API maître",
-        "cardDescription": "A un accès root à tous les projets de ce serveur.",
-        "editButton": "Modifier les paramètres de la clé API",
-        "apiKeyNotGenerated": "Clé API pas encore générée."
-      },
       "llmProviders": {
         "bannerTitle": "Besoin d'aide pour configurer les fournisseurs LLM ?",
         "bannerDescription": "Les fournisseurs LLM activent les fonctionnalités d'IA. Vous pouvez configurer des fournisseurs LLM globaux disponibles pour tous les projets.",
@@ -752,7 +746,6 @@
   "Edit Server": "Modifier le serveur",
   "Edit SMTP Config": "Modifier la configuration SMTP",
   "Edit API Key": "Modifier la clé API",
-  "Edit API Key Settings": "Modifier les paramètres de la clé API",
   "Edit Twilio Config": "Modifier la configuration Twilio",
   "Edit Telegram Config": "Modifier la configuration Telegram",
   "Edit Meta WhatsApp Config": "Modifier la configuration Meta WhatsApp",
@@ -4019,5 +4012,15 @@
   "### Setup Steps": "### Étapes de configuration",
   "### Required WhatsApp Templates": "### Modèles WhatsApp requis",
   "### Template Bodies": "### Contenu des modèles",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copiez exactement le contenu du modèle ci-dessous — ponctuation et espaces compris — en créant chaque modèle dans Meta. La liste des variables montre chaque espace réservé à configurer dans WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copiez exactement le contenu du modèle ci-dessous — ponctuation et espaces compris — en créant chaque modèle dans Meta. La liste des variables montre chaque espace réservé à configurer dans WhatsApp Manager.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "Aucune clé pour l'instant. Créez-en une pour les scripts et les outils qui appellent l'API en tant qu'administrateur principal.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "Une clé est définie. Elle a été affichée une seule fois, à sa création : seul son hachage est conservé, elle ne peut donc plus être affichée. Si vous l'avez perdue, réinitialisez-la.",
+  "Create Key": "Créer une clé",
+  "Reset Key": "Réinitialiser la clé",
+  "Requests with the key are accepted.": "Les requêtes avec la clé sont acceptées.",
+  "Reset Master API Key?": "Réinitialiser la clé API principale ?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "La clé actuelle cesse aussitôt de fonctionner, pour chaque script et chaque outil qui l'utilise. La nouvelle clé est affichée une seule fois.",
+  "Copy Your Master API Key": "Copiez votre clé API principale",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copiez-la maintenant et conservez-la en lieu sûr, par exemple dans un gestionnaire de secrets. Elle n'est affichée que cette fois : OneUptime n'en conserve qu'un hachage.",
+  "The server did not answer with the master API key. Try again.": "Le serveur n'a pas répondu avec la clé API principale. Réessayez."
 }

@@ -4287,17 +4287,24 @@ describe("Twilio Integration, against the notification server and the forms", ()
         projectConfigUse: TwilioConfigUse.CallsOnly,
       });
 
+      // Only the project's default for the message was read (#6603).
       expect(call).toContain(
-        "This project's Twilio config is used for SMS only",
+        "This project's default Twilio config is used for SMS only",
       );
       expect(sms).toContain(
-        "This project's Twilio config is used for calls only",
+        "This project's default Twilio config is used for calls only",
+      );
+
+      // A config for that kind only made the default for it, in the table's words - or this one used for both.
+      expect(call).toContain(
+        `make a config used for calls only the project default for calls (${TwilioConfigDefaultCopy.setCallsDefaultTitle} in its row's menu)`,
+      );
+      expect(sms).toContain(
+        `make a config used for SMS only the project default for SMS (${TwilioConfigDefaultCopy.setSmsDefaultTitle} in its row's menu)`,
       );
 
       for (const message of [call, sms]) {
-        expect(message).toContain(
-          "can use this project's config for calls and SMS",
-        );
+        expect(message).toContain("or use this config for calls and SMS");
       }
     });
 

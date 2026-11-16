@@ -108,6 +108,9 @@ export class Service extends DatabaseService<Model> {
       // Neither a failure nor an answer: the page moved on to somebody else.
       case OnCallDutyExecutionLogTimelineStatus.PassedOn:
         return Yellow500;
+      // Reached, by another policy's page of them (OnCallPageMerge).
+      case OnCallDutyExecutionLogTimelineStatus.AlreadyPaged:
+        return Green500;
       default:
         return Blue500;
     }
@@ -591,7 +594,9 @@ export class Service extends DatabaseService<Model> {
         status ===
           OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
         status === OnCallDutyExecutionLogTimelineStatus.PassedOn ||
-        status === OnCallDutyExecutionLogTimelineStatus.NotificationSent
+        status === OnCallDutyExecutionLogTimelineStatus.NotificationSent ||
+        // Not paged again: another policy is paging them (OnCallPageMerge).
+        status === OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
       )
     ) {
       return;

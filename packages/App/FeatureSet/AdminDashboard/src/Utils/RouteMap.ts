@@ -81,7 +81,6 @@ const RouteMap: Dictionary<Route> = {
     `/admin/users/${RouteParams.ModelID}/delete`,
   ),
 
-  [PageMap.SETTINGS_HOST]: new Route(`/admin/settings/host`),
   [PageMap.SETTINGS_SMTP]: new Route(`/admin/settings/smtp`),
   [PageMap.SETTINGS_CALL_AND_SMS]: new Route(`/admin/settings/call-and-sms`),
   [PageMap.SETTINGS_WHATSAPP]: new Route(`/admin/settings/whatsapp`),

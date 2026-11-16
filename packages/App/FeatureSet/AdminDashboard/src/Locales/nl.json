@@ -352,7 +352,7 @@
       "extendDescription": "Verplaats de einddatum van de proefperiode van dit project. De betaalprovider krijgt de nieuwe datum ook, dus tijdens de proefperiode wordt niets gefactureerd.",
       "newTrialEndDate": "Nieuwe einddatum proefperiode",
       "newTrialEndDateDescription": "De datum waarop de proefperiode moet eindigen. Moet in de toekomst liggen en niet meer dan 730 dagen (twee jaar) vanaf nu.",
-      "notTrialingWarning": "Dit project heeft momenteel geen proefperiode. Door te verlengen wordt de huidige factureringsperiode voor verbruik afgesloten, waardoor de klant direct wordt gefactureerd voor het verbruik dat deze periode al is opgebouwd. De verlengde proefperiode zelf is gratis.",
+      "notTrialingUsageWaived": "Dit project heeft momenteel geen proefperiode. Door te verlengen wordt het verbruik dat de klant in de huidige factureringsperiode al heeft opgebouwd kwijtgescholden, zodat het niet wordt gefactureerd. De verlengde proefperiode zelf is gratis.",
       "extendSubmitButton": "Proefperiode verlengen",
       "extendSuccess": "Proefperiode verlengd tot {{date}}. De betalingsprovider is bijgewerkt.",
       "extendFailure": "Kan de proefperiode niet verlengen.",
@@ -636,12 +636,6 @@
         "usageCardDescription": "Hoe lang het dagelijkse telemetriegebruik van elk project wordt bewaard, met facturering aan of uit.",
         "usageEditButton": "Bewaring van telemetriegebruik bewerken"
       },
-      "apiKey": {
-        "cardTitle": "Master-API-sleutelinstellingen",
-        "cardDescription": "Heeft root-toegang tot elk project op deze server.",
-        "editButton": "API-sleutelinstellingen bewerken",
-        "apiKeyNotGenerated": "API-sleutel nog niet gegenereerd."
-      },
       "llmProviders": {
         "bannerTitle": "Hulp nodig bij het instellen van LLM-providers?",
         "bannerDescription": "LLM-providers schakelen AI-functies in. U kunt globale LLM-providers configureren die beschikbaar zijn voor alle projecten.",
@@ -752,7 +746,6 @@
   "Edit Server": "Server bewerken",
   "Edit SMTP Config": "SMTP-configuratie bewerken",
   "Edit API Key": "API-sleutel bewerken",
-  "Edit API Key Settings": "API-sleutel-instellingen bewerken",
   "Edit Twilio Config": "Twilio-configuratie bewerken",
   "Edit Telegram Config": "Telegram-configuratie bewerken",
   "Edit Meta WhatsApp Config": "Meta WhatsApp-configuratie bewerken",
@@ -4019,5 +4012,15 @@
   "### Setup Steps": "### Installatiestappen",
   "### Required WhatsApp Templates": "### Vereiste WhatsApp-sjablonen",
   "### Template Bodies": "### Inhoud van de sjablonen",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopieer de inhoud van het sjabloon hieronder precies — inclusief leestekens en spaties — wanneer je elk sjabloon in Meta aanmaakt. De lijst met variabelen toont elke tijdelijke aanduiding die in WhatsApp Manager moet worden ingesteld."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopieer de inhoud van het sjabloon hieronder precies — inclusief leestekens en spaties — wanneer je elk sjabloon in Meta aanmaakt. De lijst met variabelen toont elke tijdelijke aanduiding die in WhatsApp Manager moet worden ingesteld.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "Nog geen sleutel. Maak er een voor scripts en tools die de API als hoofdbeheerder aanroepen.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "Er is een sleutel ingesteld. Die werd één keer getoond, toen hij werd gemaakt: alleen de hash ervan wordt bewaard, dus hij kan niet opnieuw worden getoond. Bent u hem kwijt, stel hem dan opnieuw in.",
+  "Create Key": "Sleutel aanmaken",
+  "Reset Key": "Sleutel opnieuw instellen",
+  "Requests with the key are accepted.": "Verzoeken met de sleutel worden geaccepteerd.",
+  "Reset Master API Key?": "Master API-sleutel opnieuw instellen?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "De huidige sleutel werkt meteen niet meer, voor elk script en elke tool die hem gebruikt. De nieuwe sleutel wordt één keer getoond.",
+  "Copy Your Master API Key": "Kopieer uw master API-sleutel",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopieer hem nu en bewaar hem op een veilige plek, zoals een secret manager. Hij wordt alleen deze keer getoond: OneUptime bewaart er alleen een hash van.",
+  "The server did not answer with the master API key. Try again.": "De server antwoordde niet met de master API-sleutel. Probeer het opnieuw."
 }

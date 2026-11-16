@@ -20,6 +20,7 @@ import { ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES } from "../../../../../
 import { isOnCallPersonPage } from "../../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallPolicyStartedByHand } from "../../../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import UserNotificationExecutionStatus from "../../../../../Types/UserNotification/UserNotificationExecutionStatus";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
 import QuietChannelsWorld, {
@@ -500,12 +501,21 @@ describe("acknowledging INC-8 itself answers the page, for whoever it paged", ()
     });
     await world.settle();
 
-    // His own pages about INC-8, still going out to him.
+    /*
+     * His own pages about INC-8, still going out to him - and, once his page
+     * is answered, his pages merged into it from other policies' runs
+     * (OnCallPageMerge), answered with it: none here.
+     */
     expect(logReads).toEqual([
       expect.objectContaining({
         projectId: PROJECT_ID,
         userId: NITIN,
         triggeredByIncidentId: INCIDENT_ID,
+      }),
+      expect.objectContaining({
+        userId: NITIN,
+        triggeredByIncidentId: INCIDENT_ID,
+        status: UserNotificationExecutionStatus.AlreadyPaged,
       }),
     ]);
     expect(logUpdates).toHaveLength(1);

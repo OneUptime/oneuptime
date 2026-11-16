@@ -118,7 +118,12 @@ beforeEach(() => {
     kept.delete(`${namespace}-${key}`);
   }) as never);
 
-  // The give-back's UPDATE, as Postgres answers it.
+  /*
+   * The give-back's UPDATE, as TypeORM's postgres query() answers one:
+   * [rows, rowCount], an array of two whether or not anything matched. Read
+   * as the rows, every give-back succeeded, and a claim that was not given
+   * back was sent again.
+   */
   jest.spyOn(UserOnCallLogService, "getRepository").mockReturnValue({
     manager: {
       query: async (sql: string, parameters: Array<unknown>) => {
@@ -133,11 +138,11 @@ beforeEach(() => {
         const [, key, claimedAt] = parameters as [string, string, string];
 
         if (executed[key] !== claimedAt) {
-          return [];
+          return [[], 0];
         }
 
         delete executed[key];
-        return [{ _id: LOG_ID.toString() }];
+        return [[{ _id: LOG_ID.toString() }], 1];
       },
     },
   } as never);

@@ -96,6 +96,7 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findOneById: jest.fn(),
       findCreatedNotificationsDue: jest.fn(),
       takeCreatedNotification: jest.fn(),
       findOwners: jest.fn(),
@@ -153,6 +154,20 @@ jest.mock("Common/Server/Utils/WhatsAppTemplateUtil", () => {
   };
 });
 
+/*
+ * The notifications on-call pages sent, which the job reads to leave out an
+ * owner the alert's page reached already (#7987): held in memory
+ * (InMemoryOnCallPages).
+ */
+jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: jest.fn(),
+    },
+  };
+});
+
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -164,13 +179,23 @@ import { OwnerNotificationDeliveryStatus } from "Common/Types/Notification/Owner
 import {
   InMemoryOwnerNotificationDeliveries,
   useInMemoryOwnerNotificationDeliveries,
+  usersNamedBy,
 } from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
+import UserService from "Common/Server/Services/UserService";
+import {
+  InMemoryOnCallPages,
+  useInMemoryOnCallPages,
+} from "Common/Tests/Helpers/InMemoryOnCallPages";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import OwnerNotificationDeliveries from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendCreatedResourceNotification";
 
 interface AlertServiceMock {
   findAllBy: jest.Mock;
+  findOneById: jest.Mock;
   findCreatedNotificationsDue: jest.Mock;
   takeCreatedNotification: jest.Mock;
   findOwners: jest.Mock;
@@ -355,6 +380,7 @@ async function runWorkerTick(): Promise<void> {
 describe("AlertOwner:SendCreatedResourceEmail worker", () => {
   let markdownSpy: jest.SpyInstance;
   let deliveries: InMemoryOwnerNotificationDeliveries;
+  let pages: InMemoryOnCallPages;
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -368,6 +394,9 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
      * owner told through it (OwnerNotificationDeliveries, #8199).
      */
     deliveries = useInMemoryOwnerNotificationDeliveries();
+
+    // Nobody was paged, unless a test says so (#7987).
+    pages = useInMemoryOnCallPages();
 
     // Real conversion, spied - call counts are the regression under test.
     markdownSpy = jest.spyOn(Markdown, "convertToHTML");
@@ -1393,6 +1422,325 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
 
       expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
       expect(feedService.createAlertFeedItem).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * ONE NOTIFICATION FOR A NEW ALERT, NOT TWO (#7987).
+   *
+   * A project with one person, its owner, and the "Default on-call policy"
+   * the guided setup made: when a monitor opened ALT-1 she was paged
+   * ("ACTION REQUIRED: Alert ALT-1 created"), and a minute later sent the
+   * owners' "[New Alert ALT-1]" with the same facts - and read the second as
+   * a second alert. An owner the alert's on-call page reached already is
+   * left out of the owners' notification; everybody else is told as before.
+   */
+  describe("someone the alert's on-call page reached already", () => {
+    const ANA: User = makeOwner("ana");
+    const BO: User = makeOwner("bo");
+    const CARA: User = makeOwner("cara");
+
+    // A notification of the alert's page to `user`, in `status`.
+    function paged(
+      user: User,
+      status: UserNotificationStatus = UserNotificationStatus.Sent,
+    ): void {
+      pages.add({
+        projectId: PROJECT_ID,
+        userId: user.id!,
+        triggeredByAlertId: ALERT_ID,
+        status: status,
+      });
+    }
+
+    // Whom the owners' notification was sent to, in order.
+    function sentTo(): Array<string> {
+      return notificationService.sendUserNotification.mock.calls.map(
+        (args: Array<unknown>): string => {
+          return (args[0] as { userId: ObjectID }).userId.toString();
+        },
+      );
+    }
+
+    function feedItems(): Array<{
+      feedInfoInMarkdown: string;
+      moreInformationInMarkdown: string;
+    }> {
+      return feedService.createAlertFeedItem.mock.calls.map(
+        (args: Array<unknown>) => {
+          return args[0] as {
+            feedInfoInMarkdown: string;
+            moreInformationInMarkdown: string;
+          };
+        },
+      );
+    }
+
+    beforeEach(() => {
+      alertService.findAllBy.mockResolvedValue([makeAlert({})] as never);
+    });
+
+    test("the issue's project: its one person, a Project Owner standing in and paged by the default policy, is sent the page alone", async () => {
+      alertService.findOwners.mockResolvedValue([]);
+      projectService.getOwners.mockResolvedValue([ANA]);
+      paged(ANA);
+
+      await runWorkerTick();
+
+      expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
+      // Nobody was notified, so no entry says the Project Owners were.
+      expect(feedService.createAlertFeedItem).not.toHaveBeenCalled();
+      // Taken all the same, so it is not read again.
+      expect(alertService.takeCreatedNotification).toHaveBeenCalledTimes(1);
+      // Never written down: no later run tells her either.
+      expect(deliveries.statusesOf(ALERT_ID)).toEqual({});
+    });
+
+    test("an owner who is on call, and was paged, is not sent the owners' notification", async () => {
+      alertService.findOwners.mockResolvedValue([ANA]);
+      paged(ANA);
+
+      await runWorkerTick();
+
+      expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
+      expect(feedService.createAlertFeedItem).not.toHaveBeenCalled();
+      expect(deliveries.statusesOf(ALERT_ID)).toEqual({});
+    });
+
+    test("an owner who is only an owner is sent it, as before - whoever else was paged", async () => {
+      alertService.findOwners.mockResolvedValue([BO]);
+      // The engineer on call, who owns nothing.
+      paged(CARA);
+
+      await runWorkerTick();
+
+      expect(sentTo()).toEqual(["bo"]);
+      expect(
+        (
+          notificationService.sendUserNotification.mock.calls[0]![0] as {
+            emailEnvelope: EmailEnvelope;
+          }
+        ).emailEnvelope.subject,
+      ).toBe("[New Alert #7] - High latency");
+      expect(feedItems()).toEqual([
+        expect.objectContaining({
+          feedInfoInMarkdown:
+            "Owners were notified that this alert was created.",
+          moreInformationInMarkdown: "- Owner bo (bo@acme.test)\n",
+        }),
+      ]);
+    });
+
+    test("a Project Owner standing in who was not paged is sent it, as before", async () => {
+      alertService.findOwners.mockResolvedValue([]);
+      projectService.getOwners.mockResolvedValue([BO]);
+
+      await runWorkerTick();
+
+      expect(sentTo()).toEqual(["bo"]);
+      expect(feedItems()).toEqual([
+        expect.objectContaining({
+          feedInfoInMarkdown:
+            "The Project Owners were notified that this alert was created, as it has no owners yet.",
+          moreInformationInMarkdown: "- Owner bo (bo@acme.test)\n",
+        }),
+      ]);
+    });
+
+    test("two owners, one of them paged: only the other is told, and the feed says who was left out, and why", async () => {
+      alertService.findOwners.mockResolvedValue([ANA, BO]);
+      paged(ANA);
+
+      await runWorkerTick();
+
+      expect(sentTo()).toEqual(["bo"]);
+      expect(deliveries.statusesOf(ALERT_ID)).toEqual({
+        ["bo"]: OwnerNotificationDeliveryStatus.Sent,
+      });
+
+      // Never listed among those notified: named apart, with the reason.
+      expect(feedItems()).toEqual([
+        expect.objectContaining({
+          feedInfoInMarkdown:
+            "Owners were notified that this alert was created.",
+          moreInformationInMarkdown:
+            "- Owner bo (bo@acme.test)\n" +
+            "\nNot notified again, as the on-call page reached them: Owner ana (ana@acme.test).\n",
+        }),
+      ]);
+    });
+
+    test.each([
+      UserNotificationStatus.Sending,
+      UserNotificationStatus.Sent,
+      UserNotificationStatus.Acknowledged,
+      UserNotificationStatus.PassedOn,
+      UserNotificationStatus.NotAnswered,
+    ])(
+      "a notification of the page that is %s reached them: they are left out",
+      async (status: UserNotificationStatus) => {
+        alertService.findOwners.mockResolvedValue([ANA, BO]);
+        paged(ANA, status);
+
+        await runWorkerTick();
+
+        expect(sentTo()).toEqual(["bo"]);
+      },
+    );
+
+    test.each([UserNotificationStatus.Error, UserNotificationStatus.Skipped])(
+      "a page whose notification is %s did not reach them: they are told, and the feed names them as told",
+      async (status: UserNotificationStatus) => {
+        alertService.findOwners.mockResolvedValue([ANA, BO]);
+        paged(ANA, status);
+
+        await runWorkerTick();
+
+        expect(sentTo()).toEqual(["ana", "bo"]);
+        expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
+          "- Owner ana (ana@acme.test)\n- Owner bo (bo@acme.test)\n",
+        );
+      },
+    );
+
+    test("a page that has sent nothing yet - held for working hours, or their first rule waits - leaves them to be told", async () => {
+      alertService.findOwners.mockResolvedValue([ANA, BO]);
+      // Bo's page went out; Ana's is held, and wrote nothing to her timeline.
+      paged(BO);
+
+      await runWorkerTick();
+
+      expect(sentTo()).toEqual(["ana"]);
+    });
+
+    test("a page about another record - another alert, the incident declared from this one - does not count", async () => {
+      alertService.findOwners.mockResolvedValue([ANA]);
+      pages.add({
+        projectId: PROJECT_ID,
+        userId: ANA.id!,
+        triggeredByAlertId: new ObjectID("alert-2"),
+      });
+      pages.add({
+        projectId: PROJECT_ID,
+        userId: ANA.id!,
+        triggeredByIncidentId: new ObjectID("incident-1"),
+      });
+
+      await runWorkerTick();
+
+      expect(sentTo()).toEqual(["ana"]);
+    });
+
+    test("the read failing tells everybody, as before, and says so", async () => {
+      alertService.findOwners.mockResolvedValue([ANA, BO]);
+      paged(ANA);
+      pages.failWith(new Error("The database is away"));
+
+      await runWorkerTick();
+
+      expect(sentTo()).toEqual(["ana", "bo"]);
+      expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
+        "- Owner ana (ana@acme.test)\n- Owner bo (bo@acme.test)\n",
+      );
+      expect(
+        mockedLogger.error.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).startsWith(
+            `Could not read whom the on-call page of AlertCreated ${ALERT_ID.toString()} reached`,
+          );
+        }),
+      ).toBe(true);
+    });
+
+    test("reads the page once for all the alert's owners, after reading them and before writing them down", async () => {
+      alertService.findOwners.mockResolvedValue([ANA, BO, CARA]);
+
+      await runWorkerTick();
+
+      expect(pages.reads).toHaveLength(1);
+
+      const query: Record<string, unknown> = pages.reads[0]!.query as Record<
+        string,
+        unknown
+      >;
+
+      expect(String(query["triggeredByAlertId"])).toBe(ALERT_ID.toString());
+      expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+
+      const read: number = (
+        UserOnCallLogTimelineService.findBy as unknown as jest.Mock
+      ).mock.invocationCallOrder[0]!;
+
+      expect(alertService.findOwners.mock.invocationCallOrder[0]!).toBeLessThan(
+        read,
+      );
+      expect(read).toBeLessThan(
+        (
+          OwnerNotificationDeliveryService.writeOwnersToTell as unknown as jest.Mock
+        ).mock.invocationCallOrder[0]!,
+      );
+      expect(read).toBeLessThan(
+        alertService.takeCreatedNotification.mock.invocationCallOrder[0]!,
+      );
+    });
+
+    test("an owner left out is never written down, so a later run that takes up what a stopped one left never tells them", async () => {
+      let now: Date = new Date("2026-11-15T10:02:00.000Z");
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+        return new Date(now.getTime());
+      });
+
+      alertService.findOwners.mockResolvedValue([ANA, BO, CARA]);
+      // The owners a later run takes up, read back by their ids.
+      jest.spyOn(UserService, "findBy").mockImplementation((async (data: {
+        query: JSONObject;
+      }) => {
+        return usersNamedBy([ANA, BO, CARA], data.query);
+      }) as never);
+      paged(ANA);
+      // The worker is killed as it sets out to tell Cara.
+      deliveries.stopAt({ statement: "startTelling", userId: "cara" });
+
+      void runWorkerTick();
+
+      for (
+        let turn: number = 0;
+        turn < 500 && deliveries.stops() === 0;
+        turn++
+      ) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      }
+
+      expect(deliveries.stops()).toBe(1);
+      expect(sentTo()).toEqual(["bo"]);
+      expect(deliveries.statusesOf(ALERT_ID)).toEqual({
+        ["bo"]: OwnerNotificationDeliveryStatus.Sent,
+        ["cara"]: OwnerNotificationDeliveryStatus.Pending,
+      });
+
+      // Started again, minutes later: the alert was taken, and is due no more.
+      now = new Date(
+        now.getTime() +
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES * 60 * 1000,
+      );
+      alertService.findAllBy.mockResolvedValue([]);
+      alertService.findOneById.mockResolvedValue(makeAlert({}));
+
+      await runWorkerTick();
+
+      expect(sentTo()).toEqual(["bo", "cara"]);
+
+      // The later run's entry names whom the two runs told - never Ana.
+      expect(feedItems()).toHaveLength(1);
+      expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
+        "- Owner bo (bo@acme.test)\n- Owner cara (cara@acme.test)\n",
+      );
+
+      now = new Date(now.getTime() + 60 * 60 * 1000);
+      await runWorkerTick();
+
+      expect(sentTo()).toEqual(["bo", "cara"]);
     });
   });
 });
