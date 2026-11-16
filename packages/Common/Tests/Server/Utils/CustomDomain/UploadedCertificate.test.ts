@@ -17,6 +17,7 @@ import {
   withPassphrase,
 } from "../../TestingUtils/UploadedCertificates";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * What a custom domain's owner uploads to serve the domain with their own
@@ -266,7 +267,7 @@ describe("an update", () => {
   type Rows = Array<UploadedCertificateColumns>;
 
   function rowsOf(rows: Rows): {
-    readRows: jest.Mock<() => Promise<Rows>>;
+    readRows: Mock<() => Promise<Rows>>;
   } {
     return {
       readRows: jest.fn<() => Promise<Rows>>().mockResolvedValue(rows),
@@ -274,7 +275,7 @@ describe("an update", () => {
   }
 
   test("that writes none of the three reads no row", async () => {
-    const reader: { readRows: jest.Mock<() => Promise<Rows>> } = rowsOf([]);
+    const reader: { readRows: Mock<() => Promise<Rows>> } = rowsOf([]);
 
     await UploadedCertificate.assertUpdateIsServable({
       data: {},
@@ -285,7 +286,7 @@ describe("an update", () => {
   });
 
   test("that turns the switch off reads no row and is let through", async () => {
-    const reader: { readRows: jest.Mock<() => Promise<Rows>> } = rowsOf([]);
+    const reader: { readRows: Mock<() => Promise<Rows>> } = rowsOf([]);
 
     await UploadedCertificate.assertUpdateIsServable({
       data: { isCustomCertificate: false, customCertificateKey: "junk" },
@@ -325,7 +326,7 @@ describe("an update", () => {
   });
 
   test("a renewed certificate for the key already stored goes through, the key left blank", async () => {
-    const reader: { readRows: jest.Mock<() => Promise<Rows>> } = rowsOf([
+    const reader: { readRows: Mock<() => Promise<Rows>> } = rowsOf([
       {
         isCustomCertificate: true,
         customCertificate: report.certificate,
