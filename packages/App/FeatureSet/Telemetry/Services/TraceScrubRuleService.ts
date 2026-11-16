@@ -22,6 +22,7 @@ import ScrubJsonTextUtil, {
   ScrubJsonTexts,
 } from "Common/Utils/Telemetry/ScrubJsonText";
 import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
+import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { copyOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
@@ -316,6 +317,7 @@ export class TraceScrubRuleService {
     rules: Array<CompiledRule>,
     heldAsText: ReadonlySet<string>,
     jsonTexts: ScrubJsonTexts,
+    correlationIdKeys?: ReadonlySet<string> | undefined,
   ): void {
     for (const compiled of rules) {
       const isKeyTargeted: boolean =
@@ -326,7 +328,11 @@ export class TraceScrubRuleService {
         const action: string =
           (compiled.rule.scrubAction as string) || TraceScrubAction.Redact;
 
-        // Key match → every text of the value gets the action.
+        /*
+         * Key match → every text of the value gets the action - but for a
+         * span's attribute that holds its own session or conversation id,
+         * which its column keeps (#8924).
+         */
         ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
           attributes,
           (key: string): boolean => {
@@ -340,6 +346,7 @@ export class TraceScrubRuleService {
             );
           },
           heldAsText,
+          correlationIdKeys,
         );
 
         continue;
@@ -516,6 +523,18 @@ export class TraceScrubRuleService {
     const jsonTexts: ScrubJsonTexts = new ScrubJsonTexts();
 
     /*
+     * The span's own attributes that hold its session id or, on an AI call,
+     * its conversation id - the values its sessionId and llmConversationId
+     * columns store: correlation ids, which a Sensitive Attribute Keys rule
+     * keeps where the columns keep them
+     * (Common/Utils/Telemetry/CorrelationIdAttributes, #8924). An event's
+     * or a link's attributes are read as before. Read before any rule
+     * changes them.
+     */
+    const correlationIdKeys: ReadonlySet<string> =
+      correlationIdAttributeKeys(spanRow);
+
+    /*
      * Each rule's `fieldsToScrub` is per-rule (name vs attributes
      * vs events vs all), so we still have to dispatch per rule.
      * The old implementation did
@@ -588,6 +607,7 @@ export class TraceScrubRuleService {
           singleRule,
           heldIn(spanRow["attributes"]),
           jsonTexts,
+          correlationIdKeys,
         );
       }
 

@@ -21,6 +21,7 @@ import ScrubJsonTextUtil, {
   ScrubJsonTexts,
 } from "Common/Utils/Telemetry/ScrubJsonText";
 import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
+import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { readOwnValue } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
@@ -290,6 +291,7 @@ export class LogScrubRuleService {
     compiled: CompiledRule,
     heldAsText: ReadonlySet<string>,
     jsonTexts: ScrubJsonTexts,
+    correlationIdKeys: ReadonlySet<string>,
   ): void {
     const patternType: string = (compiled.rule.patternType as string) || "";
 
@@ -297,7 +299,11 @@ export class LogScrubRuleService {
       const action: string =
         (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
 
-      // Key match → every text of the value gets the action.
+      /*
+       * Key match → every text of the value gets the action - but for the
+       * attribute that holds the log's own session id, which its sessionId
+       * column keeps (#8924).
+       */
       ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
         attributes,
         (key: string): boolean => {
@@ -311,6 +317,7 @@ export class LogScrubRuleService {
           );
         },
         heldAsText,
+        correlationIdKeys,
       );
 
       return;
@@ -429,6 +436,16 @@ export class LogScrubRuleService {
     const jsonTexts: ScrubJsonTexts = new ScrubJsonTexts();
 
     /*
+     * The attributes that hold the log's own session id - the value its
+     * sessionId column stores, the id session replay files it under: a
+     * correlation id, which a Sensitive Attribute Keys rule keeps where the
+     * column keeps it (Common/Utils/Telemetry/CorrelationIdAttributes,
+     * #8924). Read before any rule changes them.
+     */
+    const correlationIdKeys: ReadonlySet<string> =
+      correlationIdAttributeKeys(logRow);
+
+    /*
      * A list or map too deep, or too large, for the rules to read value by
      * value is held as its JSON text first - as the Log table stores it -
      * so every rule reads the same value, in time in line with its length.
@@ -518,6 +535,7 @@ export class LogScrubRuleService {
           compiled,
           heldAsText,
           jsonTexts,
+          correlationIdKeys,
         );
       }
     }
