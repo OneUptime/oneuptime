@@ -503,7 +503,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### روشن کردن پایش Control Plane
 
-صفحه **Control Plane** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
+**صفحه کنترل** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -559,11 +559,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 این کپی چرخش آن گواهی توسط OpenShift را دنبال نمی‌کند، پس وقتی متریک‌های etcd متوقف شدند این فرمان‌ها را دوباره اجرا کنید. یک control plane میزبانی‌شده (ROSA با HCP، HyperShift) این مؤلفه‌ها را بیرون از خوشه اجرا می‌کند: عامل هیچ‌کدام را پیدا نمی‌کند و آن زبانه‌ها آنجا خالی می‌مانند.
 
-سرویس‌های مدیریت‌شده Kubernetes (EKS، GKE، AKS) etcd، زمان‌بند یا مدیر کنترلرها را در دسترس نمی‌گذارند، پس آن زبانه‌ها آنجا خالی می‌مانند. تا متریک‌های یک زبانه برسند، صفحه **Control Plane** به‌جای نمودارهایش نشان می‌دهد چه چیزی باید تنظیم شود، همراه با فرمانی برای کپی.
+سرویس‌های مدیریت‌شده Kubernetes (EKS، GKE، AKS) etcd، زمان‌بند یا مدیر کنترلرها را در دسترس نمی‌گذارند، پس آن زبانه‌ها آنجا خالی می‌مانند. تا متریک‌های یک زبانه برسند، **صفحه کنترل** به‌جای نمودارهایش نشان می‌دهد چه چیزی باید تنظیم شود، همراه با فرمانی برای کپی.
 
 ### روشن کردن متریک‌های CoreDNS
 
-زبانه **CoreDNS** در صفحه **Control Plane** نمودارهای پرس‌وجوهای DNS، تأخیر، حافظه نهان و ارسال را می‌کشد. گردآوری آن‌ها به‌طور پیش‌فرض خاموش است:
+زبانه **CoreDNS** در **صفحه کنترل** نمودارهای پرس‌وجوهای DNS، تأخیر، حافظه نهان و ارسال را می‌کشد. گردآوری آن‌ها به‌طور پیش‌فرض خاموش است:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -586,11 +586,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set serviceMesh.provider=istio
 ```
 
-برای Istio آمار Envoy هر sidecar از نوع `istio-proxy` (پورت `15090`) را می‌خواند؛ برای Linkerd، پورت مدیریت هر `linkerd-proxy` را. control plane هیچ‌کدام از meshها برداشت نمی‌شود: istiod (کارت **Pilot**) و مؤلفه‌های identity، destination و proxy-injector در Linkerd (کارت **Control Plane**) متریک‌هایشان را روی پورت‌های مدیریتی خودشان ارائه می‌کنند، پس آن کارت‌ها به‌جای نمودارهایشان همین را می‌گویند.
+برای Istio آمار Envoy هر sidecar از نوع `istio-proxy` (پورت `15090`) را می‌خواند؛ برای Linkerd، پورت مدیریت هر `linkerd-proxy` را. control plane هیچ‌کدام از meshها برداشت نمی‌شود: istiod (کارت **Pilot**) و مؤلفه‌های identity، destination و proxy-injector در Linkerd (کارت **صفحه کنترل**) متریک‌هایشان را روی پورت‌های مدیریتی خودشان ارائه می‌کنند، پس آن کارت‌ها به‌جای نمودارهایشان همین را می‌گویند.
 
 ### متریک‌هایی که عامل گردآوری نمی‌کند
 
-برخی نمودارها متریک‌هایی را نشان می‌دهند که عامل برداشتی برایشان ندارد: **kube-proxy** در صفحه **Control Plane**؛ **Cilium** (با Hubble) در صفحه **Service Mesh**؛ و در زبانه‌های Istio و Linkerd، control plane خود meshها (**istiod**، و مؤلفه‌های identity، destination و proxy-injector در Linkerd). این نمودارها وقتی پر می‌شوند که آن متریک‌ها از راه دیگری به OneUptime برسند، برای نمونه از [OpenTelemetry Collector](/docs/telemetry/open-telemetry) خودتان که آن‌ها را برداشت می‌کند، با ویژگی منبع `k8s.cluster.name` که روی نام خوشه (`clusterName` عامل) تنظیم شده باشد. خوشه‌هایی که بدون kube-proxy اجرا می‌شوند اصلاً متریک kube-proxy ندارند.
+برخی نمودارها متریک‌هایی را نشان می‌دهند که عامل برداشتی برایشان ندارد: **kube-proxy** در **صفحه کنترل**؛ **Cilium** (با Hubble) در صفحه **Service Mesh**؛ و در زبانه‌های Istio و Linkerd، control plane خود meshها (**istiod**، و مؤلفه‌های identity، destination و proxy-injector در Linkerd). این نمودارها وقتی پر می‌شوند که آن متریک‌ها از راه دیگری به OneUptime برسند، برای نمونه از [OpenTelemetry Collector](/docs/telemetry/open-telemetry) خودتان که آن‌ها را برداشت می‌کند، با ویژگی منبع `k8s.cluster.name` که روی نام خوشه (`clusterName` عامل) تنظیم شده باشد. خوشه‌هایی که بدون kube-proxy اجرا می‌شوند اصلاً متریک kube-proxy ندارند.
 
 ### روشن کردن مشاهده‌پذیری هزینه
 

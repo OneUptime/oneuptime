@@ -374,6 +374,83 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 指標對佇列的命名與 span 不同。RabbitMQ 的 span 通常標明 exchange，而 Broker 的指標描述的是佇列。兩者在透過預設 exchange 傳送的訊息上會對應起來，因為其 routing key 就是佇列名稱。",
   "- RabbitMQ reports only the queues of virtual hosts its user has access to, and logs no error for the rest. RabbitMQ's counters appear with the first activity.":
     "- RabbitMQ 只回報其使用者有權存取的虛擬主機中的佇列，對其餘部分不記錄任何錯誤。RabbitMQ 的計數器會在首次有活動時出現。",
+  "This is the Amazon SNS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Amazon SNS 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "- `delay` waits for CloudWatch to publish a period, so with this configuration this queue's broker metrics arrive 11 to 17 minutes late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](/docs/telemetry/queues#alerting)).":
+    "- `delay` 會等待 CloudWatch 發布一個週期，因此在此設定下，此佇列的 Broker 指標會延遲 11 到 17 分鐘送達：以它們為對象的監測器需要更長的時間範圍（請參閱 [警示](/docs/telemetry/queues#alerting) 下的 **延遲送達的指標**）。",
+  "Send a few messages through `orders`. Every span that names this queue is tagged with it as OneUptime ingests it: the spans fill in the **Overview** — messages published and consumed, errors and processing time, and the services under **Producers** and **Consumers** — and the **Traces** tab.":
+    "透過 `orders` 傳送幾則訊息。OneUptime 在擷取時會為每個標明此佇列的 span 加上此佇列的標記：這些 span 會填入 **概覽**（發布和取用的訊息、錯誤和處理時間，以及 **生產者** 和 **消費者** 下的服務）和 **追蹤** 分頁。",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive: with the configuration in step 3, CloudWatch's arrive 11 to 17 minutes late.":
+    "概覽中的 **Broker 健康狀態** 會隨著 Broker 指標送達而填入：在第 3 步的設定下，CloudWatch 的指標會延遲 11 到 17 分鐘送達。",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry, and over the last 60 minutes of cloud monitoring metrics, which arrive late.":
+    "一旦探索程序找到標明此佇列的 span 或 Broker 指標，標頭就會顯示 **最近出現過**。探索程序每 10 分鐘執行一次，讀取最近 15 分鐘的遙測，並讀取最近 60 分鐘的雲端監控指標，因為它們會延遲送達。",
+  "Names are compared without regard to case.": "名稱比較時不區分大小寫。",
+  "- **Spans**: `messaging.system` = `aws.sns` (or `aws_sns`, `amazonsns` or `sns`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **Span**：`messaging.system` = `aws.sns`（或 `aws_sns`、`amazonsns`、`sns`），以及目的地 `orders`（位於 `messaging.destination.name`，或 `messaging.destination` 這類舊鍵中）。",
+  "- **Broker metrics**: `Dimensions.TopicName` or `TopicName` = `orders`.":
+    "- **Broker 指標**：`Dimensions.TopicName` 或 `TopicName` = `orders`。",
+  "This is the Amazon SQS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Amazon SQS 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "This is the Apache ActiveMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Apache ActiveMQ 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive.":
+    "概覽中的 **Broker 健康狀態** 會隨著 Broker 指標送達而填入。",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "一旦探索程序找到標明此佇列的 span 或 Broker 指標，標頭就會顯示 **最近出現過**。探索程序每 10 分鐘執行一次，讀取最近 15 分鐘的遙測。",
+  "- JMS clients' spans say `jms` whichever broker is behind them, so they and the Apache ActiveMQ broker's metrics land on this one queue.":
+    "- 無論背後是哪種 Broker，JMS 用戶端的 span 都標明 `jms`，因此它們和 Apache ActiveMQ Broker 的指標會落在這一個佇列上。",
+  "The JMX host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`).":
+    "JMX 主機已根據此佇列的遙測回報的 Broker 位址（`broker-1.example.com:9092`）預先填好。",
+  "This is the Apache Kafka queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Apache Kafka 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "- **Spans**: `messaging.system` = `kafka` and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **Span**：`messaging.system` = `kafka`，以及目的地 `orders`（位於 `messaging.destination.name`，或 `messaging.destination` 這類舊鍵中）。",
+  "- **Broker metrics**: `topic` = `orders`.":
+    "- **Broker 指標**：`topic` = `orders`。",
+  "For a cluster with SASL or TLS, uncomment `auth` and `tls`. The bootstrap broker is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver names each topic in `topic`, which is how the metrics find the topic's queue. It reports a consumer group's lag and committed offsets only on topics the group has committed an offset to, and skips topics whose names start with `_`.":
+    "對於使用 SASL 或 TLS 的叢集，請取消 `auth` 和 `tls` 的註解。啟動 Broker 已根據此佇列的遙測回報的 Broker 位址（`broker-1.example.com:9092`）預先填好；如果 Collector 透過其他方式連到 Broker，請修改它。接收器在 `topic` 中標明每個主題，指標就是靠它找到主題的佇列。它只在消費者群組已提交過 offset 的主題上回報該群組的延遲和已提交的 offset，並略過名稱以 `_` 開頭的主題。",
+  "This is the Apache Pulsar queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Apache Pulsar 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "- **Spans**: `messaging.system` = `pulsar` (or `apache_pulsar`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **Span**：`messaging.system` = `pulsar`（或 `apache_pulsar`），以及目的地 `orders`（位於 `messaging.destination.name`，或 `messaging.destination` 這類舊鍵中）。",
+  "This is the Apache RocketMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Apache RocketMQ 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "This is the Azure Event Grid queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "這是 Azure Event Grid 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及帶有它的 `messaging.system` 和 `messaging.destination.name` 的指標。下面的內容都已為此佇列預先填好。",
+  "Metrics that carry its `messaging.system` and `messaging.destination.name` on each datapoint show on its **Metrics** tab.":
+    "每個資料點都帶有它的 `messaging.system` 和 `messaging.destination.name` 的指標，會顯示在它的 **指標** 分頁上。",
+  "The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "一旦探索程序找到標明此佇列的 span 或訊息用戶端指標，標頭就會顯示 **最近出現過**。探索程序每 10 分鐘執行一次，讀取最近 15 分鐘的遙測。",
+  "This is the Azure Event Hubs queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Azure Event Hubs 佇列 `orders`（命名空間 `orders-ns`）。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "- **Spans**: `messaging.system` = `eventhubs` (or `azure_eventhubs`, `azure.eventhubs` or `microsoft.eventhub`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`, from an SDK connected to `orders-ns.servicebus.windows.net`.":
+    "- **Span**：`messaging.system` = `eventhubs`（或 `azure_eventhubs`、`azure.eventhubs`、`microsoft.eventhub`），以及目的地 `orders`（位於 `messaging.destination.name`，或 `messaging.destination` 這類舊鍵中），來自連線到 `orders-ns.servicebus.windows.net` 的 SDK。",
+  "- **Broker metrics**: `metadata_entityname` = `orders`, on the namespace whose `name` is `orders-ns`.":
+    "- **Broker 指標**：`metadata_entityname` = `orders`，位於 `name` 為 `orders-ns` 的命名空間上。",
+  "This is the Azure Service Bus queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Azure Service Bus 佇列 `orders`（命名空間 `orders-ns`）。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "This is the BullMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "這是 BullMQ 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及帶有它的 `messaging.system` 和 `messaging.destination.name` 的指標。下面的內容都已為此佇列預先填好。",
+  "This is the Google Cloud Pub/Sub queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 Google Cloud Pub/Sub 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "This is the JMS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "這是 JMS 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及帶有它的 `messaging.system` 和 `messaging.destination.name` 的指標。下面的內容都已為此佇列預先填好。",
+  "Its metrics join this queue, which from then on shows as an Apache ActiveMQ queue.":
+    "它的指標會併入此佇列，此後此佇列會顯示為 Apache ActiveMQ 佇列。",
+  "This is the NATS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "這是 NATS 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及帶有它的 `messaging.system` 和 `messaging.destination.name` 的指標。下面的內容都已為此佇列預先填好。",
+  "This is the RabbitMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "這是 RabbitMQ 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及 Broker 本身的指標。下面的內容都已為此佇列預先填好。",
+  "Set `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in the collector's environment. The management endpoint's host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver reports each queue under its RabbitMQ name, while most instrumentations' spans name the exchange a message went through: the two meet for messages sent through the default exchange, whose routing key is the queue's name.":
+    "在 Collector 的環境中設定 `RABBITMQ_USERNAME` 和 `RABBITMQ_PASSWORD`。管理端點的主機已根據此佇列的遙測回報的 Broker 位址（`broker-1.example.com:9092`）預先填好；如果 Collector 透過其他方式連到 Broker，請修改它。接收器以 RabbitMQ 中的名稱回報每個佇列，而大多數檢測的 span 標明的是訊息經過的 exchange：兩者在透過預設 exchange 傳送的訊息上會對應起來，因為其 routing key 就是佇列名稱。",
+  "This is the `acme-bus` queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "這是 `acme-bus` 佇列 `orders`。它的資料來自向它發布訊息和從中取用訊息的應用程式的訊息 span，以及帶有它的 `messaging.system` 和 `messaging.destination.name` 的指標。下面的內容都已為此佇列預先填好。",
+  "OneUptime does not know this messaging system, so it has no ready-made way to read the broker's metrics; send them with `messaging.system` and `messaging.destination.name` on each datapoint and they attach to the queue.":
+    "OneUptime 不認識這個訊息系統，因此沒有現成的方式讀取 Broker 的指標；在每個資料點上帶上 `messaging.system` 和 `messaging.destination.name` 傳送它們，它們就會歸屬到該佇列。",
+  "OneUptime charts no broker metrics for `acme-bus` under **Broker health**. Everything a collector sends is in the **Metrics** explorer, and a metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
+    "OneUptime 不會在 **Broker 健康狀態** 下為 `acme-bus` 繪製 Broker 指標。Collector 傳送的所有資料都在 **指標** 瀏覽器中，每個資料點都帶有 `messaging.system` 和 `messaging.destination.name` 的指標會顯示在佇列的 **指標** 分頁上。",
+  "- Only the broker's own metrics need a system OneUptime knows (see [Supported messaging systems](/docs/telemetry/queues#supported-messaging-systems)). Its metrics are in the **Metrics** explorer.":
+    "- 只有 Broker 本身的指標才需要 OneUptime 認識的系統（請參閱 [支援的訊息系統](/docs/telemetry/queues#supported-messaging-systems)）。它的指標在 **指標** 瀏覽器中。",
 };
 
 export default TRANSLATION;

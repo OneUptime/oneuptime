@@ -465,7 +465,7 @@ describe("MessageQueueDocumentationCard", () => {
       });
 
       expect(container.textContent).toContain(
-        "This is the ibmmq queue `DEV.QUEUE.1`.",
+        "This is the `ibmmq` queue `DEV.QUEUE.1`.",
       );
       expect(container.textContent).not.toContain("kafka_metrics");
       expect(stepTitle(3)).toBe("Check that this queue fills in");
