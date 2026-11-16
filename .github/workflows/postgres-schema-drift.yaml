@@ -3307,9 +3307,12 @@ jobs:
       # #6480 and #6987: time a monitor's monitoring was turned off is left
       # out of its days, its rolling uptime, a monitor group's days and the
       # group's uptime. Runs the four statements on a structure-only copy of
-      # the migrated MonitorStatusTimeline table (its isMonitoringOff column
-      # among them) against a reference that skips the time off, and checks
-      # the open row before a switch ends at the switch.
+      # the migrated MonitorStatusTimeline, Monitor and MonitorStatus tables
+      # (the isMonitoringOff column among them) against a reference that
+      # skips the time off, and checks the open row before a switch ends at
+      # the switch. #8960: so is the time before a monitor's first check
+      # (Monitor.firstMeasuredAt), in five zones, while a monitor checked from
+      # the start reads exactly what the four statements read before.
       - name: Test time with monitoring off on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -3321,6 +3324,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorStatusTimelineMonitoringOffPostgres.test.ts --forceExit
+
+      # #6887: a monitor's days are cut on the grid of local midnights the
+      # monitor group statement cuts on, each period's days found with
+      # width_bucket. Runs the day aggregate and the statement it replaced on
+      # a structure-only copy of the migrated MonitorStatusTimeline, Monitor
+      # and MonitorStatus tables, on drawn timelines in nine zones over
+      # windows with DST and midnight clock changes, holds the new one to the
+      # old one's buckets to within a microsecond, and times both on a
+      # flapping page.
+      - name: Test a monitor's day bars against the previous day split on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DAILY_UPTIME_AGGREGATE_TESTS: "true"
+          DAILY_UPTIME_AGGREGATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DAILY_UPTIME_AGGREGATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DAILY_UPTIME_AGGREGATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorDailyUptimeAggregatePostgres.test.ts --forceExit
 
       # Clones the migrated MonitorTest table into an isolated schema and runs
       # the write a probe's monitor test result makes: keyed on the test and
@@ -3863,13 +3886,13 @@ jobs:
           --forceExit
 
       # When something first measured a monitor (#8899): the column
-      # 1809180900000 adds is a nullable timestamp; BackfillMonitorFirstMeasuredAt
+      # 1809181100000 adds is a nullable timestamp; BackfillMonitorFirstMeasuredAt
       # stamps, with its creation time, every monitor that left a trace of being
       # measured and every manual one, pages past a page, and changes nothing
       # the second time; a first result's stamp lands once, and skips a row
       # another writer holds rather than waiting for it. Clones the migrated
       # Monitor, MonitorProbe and MonitorStatusTimeline tables into an
-      # isolated schema.
+      # isolated schema. An App suite, so in shard 3, which installs App.
       - name: Test when something first measured a monitor on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/App
@@ -3881,6 +3904,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtPostgres.test.ts
+          --forceExit
+
+      # #8960: a monitor's uptime history leaves out the time before its
+      # first check, so BackfillMonitorFirstMeasuredAtForUptimeHistory gives a
+      # monitor measured before the column existed its creation - one a
+      # result stamped during the upgrade before the backfill reached it, a
+      # Probe Status monitor, a Network Device monitor whose device was
+      # polled - and leaves the rest; the whole upgrade, in order, keeps a
+      # monitor checked all along its history, and until its row is there
+      # the uptime statements leave nothing out. Clones the migrated tables
+      # it reads into an isolated schema.
+      - name: Test a monitor's first check put right for its uptime history on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_MONITOR_FIRST_MEASURED_HISTORY_TESTS: "true"
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtForUptimeHistoryPostgres.test.ts
           --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two

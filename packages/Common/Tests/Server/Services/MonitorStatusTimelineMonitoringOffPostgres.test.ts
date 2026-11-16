@@ -1,7 +1,14 @@
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
-import MonitorStatusTimelineService from "../../../Server/Services/MonitorStatusTimelineService";
-import { Green, Red, Yellow } from "../../../Types/BrandColors";
+import MonitorStatusTimelineService, {
+  FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME,
+  MergedDowntimeRow,
+  MonitorGroupDailyUptimeRow,
+  RollingUptimeTotalRow,
+  Service as MonitorStatusTimelineServiceType,
+  UptimeDailyAggregateRow,
+} from "../../../Server/Services/MonitorStatusTimelineService";
+import { Blue, Green, Red, Yellow } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import {
   MonitorUptimeWindowKey,
@@ -14,7 +21,9 @@ import {
   UptimeDayBucket,
   UptimeStatusDuration,
 } from "../../../Types/StatusPage/UptimeDailyAggregate";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorFirstCheck from "../../../Utils/Monitor/MonitorFirstCheck";
 import MonitorGroupUptimeDailyAggregateUtil from "../../../Utils/StatusPage/MonitorGroupUptimeDailyAggregateUtil";
 import DayUptimeGraphUtil, {
   UptimeGraphDay,
@@ -27,6 +36,12 @@ import UptimeUtil, {
 import WorstStatusTimeline from "../../../Utils/Uptime/WorstStatusTimeline";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { getJestSpyOn } from "../../Spy";
+import {
+  PREVIOUS_DAILY_UPTIME_AGGREGATE_SQL,
+  PREVIOUS_MERGED_DOWNTIME_SQL,
+  PREVIOUS_ROLLING_UPTIME_TOTALS_SQL,
+  previousMonitorGroupDailyUptimeAggregateSql,
+} from "./PreviousUptimeStatements";
 import {
   afterAll,
   beforeAll,
@@ -61,6 +76,18 @@ import { DataSource } from "typeorm";
  * WorstStatusTimeline for a group, and cut into the days DayUptimeGraphUtil
  * draws.
  *
+ * THE TIME BEFORE A MONITOR'S FIRST CHECK (issue #8960) is left out of the
+ * same four statements: every monitor is created in the operational status,
+ * which nothing stands behind until something has measured it
+ * (Monitor.firstMeasuredAt). The reference cuts each monitor's events of a
+ * status a monitor can start in at its first check - all of them while
+ * nothing has checked it - and leaves a status something else recorded, and
+ * time with monitoring off, as they are; a manual monitor, and one the
+ * Monitor table does not hold, count from the start. Drawn timelines with
+ * first checks before, inside and after the window are held to it in five
+ * zones, and a monitor checked from the start to exactly what the statements
+ * read before (PreviousUptimeStatements.ts).
+ *
  * Opt in with RUN_POSTGRES_MONITORING_OFF_UPTIME_TESTS=true against a
  * database the registered migrations have been applied to, e.g.
  *
@@ -70,8 +97,10 @@ import { DataSource } from "typeorm";
  *   DATABASE_PASSWORD=... npx jest Tests/Server/Services/MonitorStatusTimelineMonitoringOffPostgres.test.ts
  *
  * CI runs it in .github/workflows/postgres-schema-drift.yaml. Only the
- * MonitorStatusTimeline table's definition is copied from public into a
- * uniquely named schema that is dropped afterwards; every row is synthetic.
+ * definitions of MonitorStatusTimeline, Monitor and MonitorStatus are copied
+ * from public into a uniquely named schema that is dropped afterwards; every
+ * row is synthetic. A monitor with no Monitor row reads as checked from the
+ * start, so every test written before issue #8960 reads as it did.
  */
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_MONITORING_OFF_UPTIME_TESTS"] === "true"
@@ -92,13 +121,17 @@ function makeStatus(data: {
   name: string;
   priority: number;
   color: Color;
+  isOfflineState?: boolean | undefined;
+  isOperationalState?: boolean | undefined;
 }): MonitorStatus {
   const status: MonitorStatus = new MonitorStatus();
   status.id = new ObjectID(data.id);
   status.name = data.name;
   status.priority = data.priority;
   status.color = data.color;
-  status.isOperationalState = data.name === "Operational";
+  status.isOperationalState =
+    data.isOperationalState ?? data.name === "Operational";
+  status.isOfflineState = data.isOfflineState === true;
   return status;
 }
 
@@ -119,9 +152,29 @@ const OFFLINE: MonitorStatus = makeStatus({
   name: "Offline",
   priority: 3,
   color: Red,
+  isOfflineState: true,
 });
 
 const STATUSES: Array<MonitorStatus> = [OPERATIONAL, DEGRADED, OFFLINE];
+
+/*
+ * A status flagged operational AND offline: not one a monitor starts in
+ * (MonitorFirstCheck.isStartingStatus), so it was recorded, even before the
+ * first check. Only the tests of issue #8960 use it.
+ */
+const OPERATIONAL_AND_OFFLINE: MonitorStatus = makeStatus({
+  id: "64810000-0000-4000-8000-000000000004",
+  name: "Partly operational",
+  priority: 4,
+  color: Blue,
+  isOperationalState: true,
+  isOfflineState: true,
+});
+
+const EVERY_STATUS: Array<MonitorStatus> = [
+  ...STATUSES,
+  OPERATIONAL_AND_OFFLINE,
+];
 
 const DOWNTIME_STATUS_IDS: Array<string> = [
   DEGRADED.id!.toString(),
@@ -136,6 +189,17 @@ const RANKED_STATUS_IDS: Array<string> =
 
 const ZONES: Array<string> = ["UTC", "America/New_York", "Asia/Kolkata"];
 
+/*
+ * The zones the time before a monitor's first check is held to the
+ * reference in (issue #8960): with them, a clock that changes at midnight
+ * and one three quarters of an hour off.
+ */
+const FIRST_CHECK_ZONES: Array<string> = [
+  ...ZONES,
+  "America/Santiago",
+  "Pacific/Chatham",
+];
+
 interface Row {
   monitorId: string;
   statusId: string;
@@ -146,7 +210,7 @@ interface Row {
 }
 
 function statusById(statusId: string): MonitorStatus {
-  return STATUSES.find((status: MonitorStatus) => {
+  return EVERY_STATUS.find((status: MonitorStatus) => {
     return status.id!.toString() === statusId;
   })!;
 }
@@ -224,6 +288,101 @@ function groupEvents(data: {
         monitorId: id,
         startDate: WINDOW_START,
         endDate: WINDOW_END,
+      }),
+    );
+  }
+
+  return WorstStatusTimeline.merge(events, {
+    downtimeMonitorStatusIds: DOWNTIME_STATUS_IDS,
+  });
+}
+
+/*
+ * A monitor as the Monitor table holds it, for the tests of the time before
+ * its first check (issue #8960).
+ */
+interface MonitorRow {
+  monitorId: string;
+  monitorType: MonitorType;
+  firstMeasuredAt: Date | null;
+}
+
+/*
+ * When a monitor's time starts to count, in milliseconds, as the statements
+ * read it: from the start for a manual monitor and for one the Monitor table
+ * does not hold, never while nothing has checked it, from its first check
+ * otherwise.
+ */
+function measuredFromMs(monitors: Array<MonitorRow>, id: string): number {
+  const monitor: MonitorRow | undefined = monitors.find(
+    (candidate: MonitorRow) => {
+      return candidate.monitorId === id;
+    },
+  );
+
+  if (!monitor || monitor.monitorType === MonitorType.Manual) {
+    return -Infinity;
+  }
+
+  return monitor.firstMeasuredAt ? monitor.firstMeasuredAt.getTime() : Infinity;
+}
+
+/*
+ * One monitor's events in the window, the time with monitoring off skipped
+ * and, of a status a monitor can start in, the time before its first check
+ * cut away: what the monitor's row would have said then is Waiting for data,
+ * not a status (MonitorFirstCheck).
+ */
+function checkedEvents(data: {
+  rows: Array<Row>;
+  monitorId: string;
+  startDate: Date;
+  endDate: Date;
+  monitors: Array<MonitorRow>;
+}): Array<MonitorEvent> {
+  const from: number = measuredFromMs(data.monitors, data.monitorId);
+  const events: Array<MonitorEvent> = [];
+
+  for (const event of monitorEvents(data)) {
+    const start: number = new Date(event.startDate).getTime();
+    const end: number = new Date(event.endDate).getTime();
+
+    if (
+      !MonitorFirstCheck.isStartingStatus(
+        statusById(event.eventStatusId.toString()),
+      ) ||
+      start >= from
+    ) {
+      events.push(event);
+      continue;
+    }
+
+    if (from >= end) {
+      continue;
+    }
+
+    events.push({ ...event, startDate: new Date(from) });
+  }
+
+  return events;
+}
+
+// A group's events, each member's checked time merged by the worst status.
+function checkedGroupEvents(data: {
+  rows: Array<Row>;
+  monitorIds: Array<string>;
+  monitors: Array<MonitorRow>;
+}): Array<Event> {
+  const events: Array<MonitorEvent> = [];
+
+  for (const id of Array.from(new Set(data.monitorIds))) {
+    events.push(
+      ...checkedEvents({
+        rows: data.rows,
+        monitorId: id,
+        startDate: WINDOW_START,
+        endDate: WINDOW_END,
+        monitors: data.monitors,
       }),
     );
   }
@@ -388,6 +547,60 @@ function expectBucketsToMatch(
   });
 }
 
+// Two readings of the same seconds: to within a microsecond.
+function expectWithinAMicrosecond(actual: number, expected: number): void {
+  expect(Math.abs(actual - expected)).toBeLessThanOrEqual(0.000001);
+}
+
+/*
+ * The same days, with the same statuses, coverage and time with monitoring
+ * off, to within a microsecond: what a monitor checked from the start reads
+ * now against what it read before issue #8960.
+ */
+function expectSameBuckets(
+  actual: Array<UptimeDayBucket>,
+  expected: Array<UptimeDayBucket>,
+): void {
+  expect(
+    actual.map((bucket: UptimeDayBucket) => {
+      return `${bucket.bucketStart.toISOString()} ${bucket.bucketEnd.toISOString()} ${bucket.daySeconds}`;
+    }),
+  ).toEqual(
+    expected.map((bucket: UptimeDayBucket) => {
+      return `${bucket.bucketStart.toISOString()} ${bucket.bucketEnd.toISOString()} ${bucket.daySeconds}`;
+    }),
+  );
+
+  expected.forEach((expectedBucket: UptimeDayBucket, index: number) => {
+    const actualBucket: UptimeDayBucket = actual[index]!;
+    const actualSeconds: Record<string, number> = secondsOf(actualBucket);
+    const expectedSeconds: Record<string, number> = secondsOf(expectedBucket);
+
+    expectWithinAMicrosecond(
+      actualBucket.coveredSeconds,
+      expectedBucket.coveredSeconds,
+    );
+    expect(Object.keys(actualSeconds).sort()).toEqual(
+      Object.keys(expectedSeconds).sort(),
+    );
+
+    for (const statusId of Object.keys(expectedSeconds)) {
+      expectWithinAMicrosecond(
+        actualSeconds[statusId]!,
+        expectedSeconds[statusId]!,
+      );
+    }
+
+    expect(actualBucket.monitoringOffSeconds === undefined).toBe(
+      expectedBucket.monitoringOffSeconds === undefined,
+    );
+    expectWithinAMicrosecond(
+      actualBucket.monitoringOffSeconds || 0,
+      expectedBucket.monitoringOffSeconds || 0,
+    );
+  });
+}
+
 function bucketAt(
   buckets: Array<UptimeDayBucket>,
   dayStart: Date,
@@ -510,6 +723,148 @@ describePostgres(
       });
     }
 
+    /*
+     * The row BackfillMonitorFirstMeasuredAtForUptimeHistory leaves once it
+     * has put Monitor.firstMeasuredAt right for history: until it is there,
+     * the statements cut nothing (issue #8960).
+     */
+    async function markTheUpgradeDone(): Promise<void> {
+      await database.query(
+        `INSERT INTO "DataMigrations" ("_id", "version", "name", "executed", "executedAt")
+         VALUES (gen_random_uuid(), 1, $1, true, now())`,
+        [FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME],
+      );
+    }
+
+    // Monitors in the Monitor table, with their type and first check (#8960).
+    async function insertMonitors(monitors: Array<MonitorRow>): Promise<void> {
+      for (const monitor of monitors) {
+        await database.query(
+          `INSERT INTO "Monitor"
+             ("_id", "version", "projectId", "name", "slug", "monitorType", "currentMonitorStatusId", "firstMeasuredAt")
+           VALUES ($1, 1, $2, $3, $3, $4, $5, $6)`,
+          [
+            monitor.monitorId,
+            PROJECT_ID,
+            `monitor-${monitor.monitorId.slice(-6)}`,
+            monitor.monitorType,
+            OPERATIONAL.id!.toString(),
+            monitor.firstMeasuredAt,
+          ],
+        );
+      }
+    }
+
+    /*
+     * The four statements as they were before issue #8960 (and #6887), on
+     * the same rows, shaped by the same functions: what a monitor checked
+     * from the start must still read.
+     */
+    async function previousMonitorDays(data: {
+      monitorIds: Array<string>;
+      zone: string;
+    }): Promise<UptimeDailyAggregate> {
+      const rows: Array<UptimeDailyAggregateRow> = await database.query(
+        PREVIOUS_DAILY_UPTIME_AGGREGATE_SQL,
+        [data.monitorIds, WINDOW_START, WINDOW_END, data.zone],
+      );
+
+      return MonitorStatusTimelineServiceType.toUptimeDailyAggregate(
+        rows,
+        data.zone,
+      );
+    }
+
+    async function previousGroupDays(data: {
+      groups: Array<Array<string>>;
+      zone: string;
+    }): Promise<MonitorGroupUptimeDailyAggregate> {
+      const groupKeys: Array<number> = [];
+      const memberIds: Array<string> = [];
+
+      data.groups.forEach((monitorIds: Array<string>, index: number) => {
+        for (const id of monitorIds) {
+          groupKeys.push(index + 1);
+          memberIds.push(id);
+        }
+      });
+
+      const rows: Array<MonitorGroupDailyUptimeRow> = await database.query(
+        previousMonitorGroupDailyUptimeAggregateSql({
+          levelCount: RANKED_STATUS_IDS.length,
+        }),
+        [
+          groupKeys,
+          memberIds,
+          WINDOW_START,
+          WINDOW_END,
+          data.zone,
+          RANKED_STATUS_IDS,
+          data.groups.length,
+        ],
+      );
+
+      return MonitorStatusTimelineServiceType.toMonitorGroupUptimeDailyAggregate(
+        {
+          rows: rows,
+          monitorGroupIds: data.groups.map(
+            (_: Array<string>, index: number) => {
+              return new ObjectID(
+                `64830000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+              );
+            },
+          ),
+          rankedMonitorStatusIds: RANKED_STATUS_IDS,
+          timezone: data.zone,
+        },
+      );
+    }
+
+    async function previousMergedDowntime(
+      monitorIds: Array<string>,
+    ): Promise<MergedDowntimeTotals> {
+      const rows: Array<MergedDowntimeRow> = await database.query(
+        PREVIOUS_MERGED_DOWNTIME_SQL,
+        [monitorIds, WINDOW_START, WINDOW_END, DOWNTIME_STATUS_IDS],
+      );
+
+      return MonitorStatusTimelineServiceType.toMergedDowntimeTotals(rows);
+    }
+
+    async function previousRollingTotals(
+      id: string,
+    ): Promise<Array<MonitorUptimeWindowTotal>> {
+      const windows: Array<{ key: MonitorUptimeWindowKey; startDate: Date }> =
+        ROLLING_WINDOWS.map(
+          (window: { key: MonitorUptimeWindowKey; days: number }) => {
+            return {
+              key: window.key,
+              startDate: before(WINDOW_END, window.days),
+            };
+          },
+        );
+
+      const rows: Array<RollingUptimeTotalRow> = await database.query(
+        PREVIOUS_ROLLING_UPTIME_TOTALS_SQL,
+        [
+          id,
+          WINDOW_END,
+          windows.map((window: { key: MonitorUptimeWindowKey }) => {
+            return window.key;
+          }),
+          windows.map((window: { startDate: Date }) => {
+            return window.startDate.toISOString();
+          }),
+        ],
+      );
+
+      return MonitorStatusTimelineServiceType.toRollingUptimeTotals({
+        rows: rows,
+        windows: windows,
+        endDate: WINDOW_END,
+      });
+    }
+
     beforeAll(async () => {
       database = new DataSource({
         type: "postgres",
@@ -532,9 +887,43 @@ describePostgres(
       await database.initialize();
 
       await database.query(`CREATE SCHEMA "${schema}"`);
-      await database.query(
-        `CREATE TABLE "${schema}"."MonitorStatusTimeline" (LIKE public."MonitorStatusTimeline" INCLUDING ALL)`,
-      );
+
+      /*
+       * The Monitor and MonitorStatus tables too, which the statements read
+       * a monitor's first check and a status's flags from (issue #8960), and
+       * DataMigrations, whose row of the upgrade that puts the first check
+       * right for history opens the cut (getMeasuredFromCte).
+       */
+      for (const table of [
+        "MonitorStatusTimeline",
+        "Monitor",
+        "MonitorStatus",
+        "DataMigrations",
+      ]) {
+        await database.query(
+          `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
+        );
+      }
+
+      await markTheUpgradeDone();
+
+      for (const status of EVERY_STATUS) {
+        await database.query(
+          `INSERT INTO "MonitorStatus"
+             ("_id", "version", "projectId", "name", "slug", "color", "priority", "isOperationalState", "isOfflineState")
+           VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            status.id!.toString(),
+            PROJECT_ID,
+            status.name,
+            status.name!.toLowerCase().replace(/\s+/g, "-"),
+            status.color!.toString(),
+            status.priority,
+            status.isOperationalState === true,
+            status.isOfflineState === true,
+          ],
+        );
+      }
 
       const currentSchema: Array<{ current_schema: string }> =
         await database.query("SELECT current_schema()");
@@ -550,6 +939,7 @@ describePostgres(
 
     beforeEach(async () => {
       await database.query(`DELETE FROM "MonitorStatusTimeline"`);
+      await database.query(`DELETE FROM "Monitor"`);
 
       // The service reads through its repository's manager: point it here.
       getJestSpyOn(
@@ -1396,6 +1786,868 @@ describePostgres(
                 );
               }
             },
+          );
+        }
+      });
+    });
+
+    /*
+     * THE TIME BEFORE A MONITOR'S FIRST CHECK (issue #8960). A monitor is
+     * created in the operational status, and until something measures it
+     * its row reads Waiting for data (Not monitored yet on a status page):
+     * its bars, its rolling uptime, its group's bars and its group's uptime
+     * leave that time out, so it neither shows green nor lifts or lowers a
+     * percentage.
+     */
+    describe("the time before a monitor's first check (issue #8960)", () => {
+      const createdAt: Date = new Date("2026-03-01T08:00:00.000Z");
+
+      // A monitor created on 1 March, Operational ever since.
+      function createdRows(id: string): Array<Row> {
+        return [
+          {
+            monitorId: id,
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: createdAt,
+            endsAt: null,
+            isMonitoringOff: false,
+          },
+        ];
+      }
+
+      // A monitor checked from long before the window, Offline for a day.
+      function checkedRows(id: string): Array<Row> {
+        return [
+          {
+            monitorId: id,
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: before(WINDOW_START, 30),
+            endsAt: new Date("2026-03-20T00:00:00.000Z"),
+            isMonitoringOff: false,
+          },
+          {
+            monitorId: id,
+            statusId: OFFLINE.id!.toString(),
+            startsAt: new Date("2026-03-20T00:00:00.000Z"),
+            endsAt: new Date("2026-03-21T00:00:00.000Z"),
+            isMonitoringOff: false,
+          },
+          {
+            monitorId: id,
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: new Date("2026-03-21T00:00:00.000Z"),
+            endsAt: null,
+            isMonitoringOff: false,
+          },
+        ];
+      }
+
+      test("a monitor nothing has checked yet has no data: no day, no rolling window, nothing of its group's days or uptime", async () => {
+        await insertRows([
+          ...createdRows(monitorId(1)),
+          ...checkedRows(monitorId(2)),
+        ]);
+        await insertMonitors([
+          {
+            monitorId: monitorId(1),
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: null,
+          },
+          {
+            monitorId: monitorId(2),
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: before(WINDOW_START, 30),
+          },
+        ]);
+
+        for (const zone of ZONES) {
+          const aggregate: UptimeDailyAggregate = await monitorDays({
+            monitorIds: [monitorId(1), monitorId(2)],
+            zone: zone,
+          });
+          const unchecked: Array<UptimeDayBucket> = aggregate.monitors.find(
+            (monitor: { monitorId: ObjectID }) => {
+              return monitor.monitorId.toString() === monitorId(1);
+            },
+          )!.buckets;
+
+          // Every day of the window comes back, and every one is no data.
+          expect(unchecked.length).toBeGreaterThan(40);
+
+          for (const bucket of unchecked) {
+            expect(bucket.coveredSeconds).toBe(0);
+            expect(bucket.statusDurations).toEqual([]);
+            expect(Object.keys(bucket)).not.toContain("monitoringOffSeconds");
+          }
+
+          // Its group reads exactly what the monitor checked reads alone.
+          const groups: MonitorGroupUptimeDailyAggregate = await groupDays({
+            groups: [[monitorId(1), monitorId(2)], [monitorId(2)]],
+            zone: zone,
+          });
+
+          expectSameBuckets(
+            groups.monitorGroups[0]!.buckets,
+            groups.monitorGroups[1]!.buckets,
+          );
+        }
+
+        // Its rolling uptime: no data in every window.
+        for (const total of await rollingTotals(monitorId(1))) {
+          expect(total.coveredSeconds).toBe(0);
+          expect(total.statusDurations).toEqual([]);
+        }
+
+        // The merged uptime: nothing of it, so its group reads as the other monitor.
+        expect(await mergedDowntime([monitorId(1)])).toEqual({
+          coveredSeconds: 0,
+          downtimeSeconds: 0,
+        });
+
+        const alone: MergedDowntimeTotals = await mergedDowntime([
+          monitorId(2),
+        ]);
+        const both: MergedDowntimeTotals = await mergedDowntime([
+          monitorId(1),
+          monitorId(2),
+        ]);
+        expectWithinAMicrosecond(both.coveredSeconds, alone.coveredSeconds);
+        expectWithinAMicrosecond(both.downtimeSeconds, alone.downtimeSeconds);
+        expectWithinAMicrosecond(alone.downtimeSeconds, 86400);
+      });
+
+      test("checked at last, its time counts from the first check: the day of it in part, the days before not at all", async () => {
+        const firstCheck: Date = new Date("2026-03-10T15:00:00.000Z");
+
+        await insertRows([
+          // Created on 1 March, in the status every monitor starts in.
+          {
+            monitorId: monitorId(1),
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: createdAt,
+            endsAt: new Date("2026-03-12T00:00:00.000Z"),
+            isMonitoringOff: false,
+          },
+          // Offline on the 12th, by its checks.
+          {
+            monitorId: monitorId(1),
+            statusId: OFFLINE.id!.toString(),
+            startsAt: new Date("2026-03-12T00:00:00.000Z"),
+            endsAt: new Date("2026-03-12T06:00:00.000Z"),
+            isMonitoringOff: false,
+          },
+          {
+            monitorId: monitorId(1),
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: new Date("2026-03-12T06:00:00.000Z"),
+            endsAt: null,
+            isMonitoringOff: false,
+          },
+        ]);
+        await insertMonitors([
+          {
+            monitorId: monitorId(1),
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: firstCheck,
+          },
+        ]);
+
+        const buckets: Array<UptimeDayBucket> = (
+          await monitorDays({ monitorIds: [monitorId(1)], zone: "UTC" })
+        ).monitors[0]!.buckets;
+
+        // Created on 1 March: the days before the first check are no data.
+        expect(
+          bucketAt(buckets, new Date("2026-03-05T00:00:00.000Z")),
+        ).toMatchObject({ coveredSeconds: 0, statusDurations: [] });
+        // The day of it, from 15:00.
+        expect(
+          bucketAt(buckets, new Date("2026-03-10T00:00:00.000Z")),
+        ).toMatchObject({
+          coveredSeconds: 9 * 3600,
+          statusDurations: [
+            { monitorStatusId: OPERATIONAL.id, seconds: 9 * 3600 },
+          ],
+        });
+        // Then as it always read.
+        expect(
+          bucketAt(buckets, new Date("2026-03-12T00:00:00.000Z")),
+        ).toMatchObject({ coveredSeconds: 86400 });
+
+        // Its 30 days start on 11 March at 15:45: after the first check, all of them.
+        const last30Days: MonitorUptimeWindowTotal = (
+          await rollingTotals(monitorId(1))
+        )[2]!;
+        expectWithinAMicrosecond(last30Days.coveredSeconds, 30 * 86400);
+
+        // The merged uptime of it alone: from the first check, 6 hours down.
+        const merged: MergedDowntimeTotals = await mergedDowntime([
+          monitorId(1),
+        ]);
+        expectWithinAMicrosecond(
+          merged.coveredSeconds,
+          (WINDOW_END.getTime() - firstCheck.getTime()) / 1000,
+        );
+        expectWithinAMicrosecond(merged.downtimeSeconds, 6 * 3600);
+      });
+
+      test("a status something else recorded before the first check counts, as the monitor's row shows it; back in the status it starts in, it does not", async () => {
+        // Created on 1 March; an incident marked it Offline on the 3rd for 6 hours.
+        const rows: Array<Row> = [
+          {
+            monitorId: monitorId(1),
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: createdAt,
+            endsAt: new Date("2026-03-03T06:00:00.000Z"),
+            isMonitoringOff: false,
+          },
+          {
+            monitorId: monitorId(1),
+            statusId: OFFLINE.id!.toString(),
+            startsAt: new Date("2026-03-03T06:00:00.000Z"),
+            endsAt: new Date("2026-03-03T12:00:00.000Z"),
+            isMonitoringOff: false,
+          },
+          // A person set a status flagged operational and offline.
+          {
+            monitorId: monitorId(1),
+            statusId: OPERATIONAL_AND_OFFLINE.id!.toString(),
+            startsAt: new Date("2026-03-03T12:00:00.000Z"),
+            endsAt: new Date("2026-03-03T14:00:00.000Z"),
+            isMonitoringOff: false,
+          },
+          {
+            monitorId: monitorId(1),
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: new Date("2026-03-03T14:00:00.000Z"),
+            endsAt: null,
+            isMonitoringOff: false,
+          },
+        ];
+
+        await insertRows(rows);
+        await insertMonitors([
+          {
+            monitorId: monitorId(1),
+            monitorType: MonitorType.IncomingRequest,
+            firstMeasuredAt: null,
+          },
+        ]);
+
+        const buckets: Array<UptimeDayBucket> = (
+          await monitorDays({ monitorIds: [monitorId(1)], zone: "UTC" })
+        ).monitors[0]!.buckets;
+
+        expect(
+          bucketAt(buckets, new Date("2026-03-03T00:00:00.000Z")),
+        ).toMatchObject({
+          coveredSeconds: 8 * 3600,
+          statusDurations: [
+            { monitorStatusId: OFFLINE.id, seconds: 6 * 3600 },
+            {
+              monitorStatusId: OPERATIONAL_AND_OFFLINE.id,
+              seconds: 2 * 3600,
+            },
+          ],
+        });
+
+        // Every other day: Operational, the status it started in - no data.
+        for (const bucket of buckets) {
+          if (
+            bucket.bucketStart.getTime() !==
+            new Date("2026-03-03T00:00:00.000Z").getTime()
+          ) {
+            expect(bucket.coveredSeconds).toBe(0);
+          }
+        }
+
+        // The uptime it reads is that of the recorded time: Offline for 6 of 8 hours.
+        const merged: MergedDowntimeTotals = await mergedDowntime([
+          monitorId(1),
+        ]);
+        expectWithinAMicrosecond(merged.coveredSeconds, 8 * 3600);
+        expectWithinAMicrosecond(merged.downtimeSeconds, 6 * 3600);
+
+        // Checked from the 4th at noon: Operational counts from then.
+        await database.query(
+          `UPDATE "Monitor" SET "firstMeasuredAt" = $1 WHERE "_id" = $2`,
+          [new Date("2026-03-04T12:00:00.000Z"), monitorId(1)],
+        );
+
+        const checked: Array<UptimeDayBucket> = (
+          await monitorDays({ monitorIds: [monitorId(1)], zone: "UTC" })
+        ).monitors[0]!.buckets;
+
+        expect(
+          bucketAt(checked, new Date("2026-03-04T00:00:00.000Z")),
+        ).toMatchObject({
+          coveredSeconds: 12 * 3600,
+          statusDurations: [
+            { monitorStatusId: OPERATIONAL.id, seconds: 12 * 3600 },
+          ],
+        });
+        expect(
+          bucketAt(checked, new Date("2026-03-03T00:00:00.000Z"))
+            .coveredSeconds,
+        ).toBe(8 * 3600);
+      });
+
+      test("time with monitoring off before the first check is still time with monitoring off (#7112), in a monitor's days and its group's", async () => {
+        const switchedOffAt: Date = new Date("2026-03-05T18:00:00.000Z");
+
+        const rows: Array<Row> = [
+          {
+            monitorId: monitorId(1),
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: createdAt,
+            endsAt: switchedOffAt,
+            isMonitoringOff: false,
+          },
+          {
+            monitorId: monitorId(1),
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: switchedOffAt,
+            endsAt: null,
+            isMonitoringOff: true,
+          },
+        ];
+
+        await insertRows(rows);
+        await insertMonitors([
+          {
+            monitorId: monitorId(1),
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: null,
+          },
+        ]);
+
+        for (const zone of ZONES) {
+          const monitor: Array<UptimeDayBucket> = (
+            await monitorDays({ monitorIds: [monitorId(1)], zone: zone })
+          ).monitors[0]!.buckets;
+          const group: Array<UptimeDayBucket> = (
+            await groupDays({ groups: [[monitorId(1)]], zone: zone })
+          ).monitorGroups[0]!.buckets;
+
+          for (const buckets of [monitor, group]) {
+            for (const bucket of buckets) {
+              expect(bucket.coveredSeconds).toBe(0);
+            }
+
+            // Nothing checked, and monitoring off as the rows mark it.
+            expectBucketsToMatch(
+              buckets,
+              toDays([], zone, offSpans({ rows, monitorIds: [monitorId(1)] })),
+            );
+          }
+        }
+
+        const utc: Array<UptimeDayBucket> = (
+          await monitorDays({ monitorIds: [monitorId(1)], zone: "UTC" })
+        ).monitors[0]!.buckets;
+
+        // The day it was turned off: 6 hours off, and the 18 before it no data.
+        expect(
+          bucketAt(utc, new Date("2026-03-05T00:00:00.000Z")),
+        ).toMatchObject({ coveredSeconds: 0, monitoringOffSeconds: 6 * 3600 });
+        expect(
+          Object.keys(bucketAt(utc, new Date("2026-03-04T00:00:00.000Z"))),
+        ).not.toContain("monitoringOffSeconds");
+      });
+
+      test("a manual monitor, and a monitor the Monitor table does not hold, count from the start", async () => {
+        await insertRows([
+          ...createdRows(monitorId(1)),
+          ...createdRows(monitorId(2)),
+        ]);
+        await insertMonitors([
+          // A person sets a manual monitor's status: nothing will ever check it.
+          {
+            monitorId: monitorId(1),
+            monitorType: MonitorType.Manual,
+            firstMeasuredAt: null,
+          },
+        ]);
+
+        const aggregate: UptimeDailyAggregate = await monitorDays({
+          monitorIds: [monitorId(1), monitorId(2)],
+          zone: "UTC",
+        });
+
+        for (const monitor of aggregate.monitors) {
+          expect(
+            bucketAt(monitor.buckets, new Date("2026-03-02T00:00:00.000Z"))
+              .coveredSeconds,
+          ).toBe(86400);
+        }
+
+        expectSameBuckets(
+          aggregate.monitors[0]!.buckets,
+          (
+            await previousMonitorDays({
+              monitorIds: [monitorId(1), monitorId(2)],
+              zone: "UTC",
+            })
+          ).monitors[0]!.buckets,
+        );
+      });
+
+      test("until the upgrade has put the first check right for history, nothing is cut: every monitor reads as it always did", async () => {
+        /*
+         * During an upgrade a result stamps its monitor with the upgrade's
+         * time before BackfillMonitorFirstMeasuredAtForUptimeHistory gives
+         * it its creation: until that row is there, no history may read
+         * from the column.
+         */
+        await insertRows([
+          ...createdRows(monitorId(1)),
+          ...checkedRows(monitorId(2)),
+        ]);
+        await insertMonitors([
+          {
+            monitorId: monitorId(1),
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: null,
+          },
+          {
+            monitorId: monitorId(2),
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: new Date("2026-04-01T00:00:00.000Z"),
+          },
+        ]);
+
+        await database.query(`DELETE FROM "DataMigrations"`);
+
+        try {
+          const ids: Array<string> = [monitorId(1), monitorId(2)];
+          const [current, previous] = await Promise.all([
+            monitorDays({ monitorIds: ids, zone: "UTC" }),
+            previousMonitorDays({ monitorIds: ids, zone: "UTC" }),
+          ]);
+
+          current.monitors.forEach(
+            (monitor: { buckets: Array<UptimeDayBucket> }, index: number) => {
+              expectSameBuckets(
+                monitor.buckets,
+                previous.monitors[index]!.buckets,
+              );
+            },
+          );
+
+          const [merged, previousMerged] = await Promise.all([
+            mergedDowntime(ids),
+            previousMergedDowntime(ids),
+          ]);
+          expectWithinAMicrosecond(
+            merged.coveredSeconds,
+            previousMerged.coveredSeconds,
+          );
+
+          const [groups, previousGroups] = await Promise.all([
+            groupDays({ groups: [ids], zone: "UTC" }),
+            previousGroupDays({ groups: [ids], zone: "UTC" }),
+          ]);
+          expectSameBuckets(
+            groups.monitorGroups[0]!.buckets,
+            previousGroups.monitorGroups[0]!.buckets,
+          );
+
+          const [rolling, previousRolling] = await Promise.all([
+            rollingTotals(monitorId(1)),
+            previousRollingTotals(monitorId(1)),
+          ]);
+          rolling.forEach((total: MonitorUptimeWindowTotal, index: number) => {
+            expectWithinAMicrosecond(
+              total.coveredSeconds,
+              previousRolling[index]!.coveredSeconds,
+            );
+          });
+        } finally {
+          await markTheUpgradeDone();
+        }
+
+        // Once it is there, the monitor nothing has checked has no data.
+        const after: UptimeDailyAggregate = await monitorDays({
+          monitorIds: [monitorId(1)],
+          zone: "UTC",
+        });
+
+        for (const bucket of after.monitors[0]!.buckets) {
+          expect(bucket.coveredSeconds).toBe(0);
+        }
+      });
+
+      /*
+       * Up to five monitors, each a run of rows as drawRows draws them above
+       * - gaps, orphaned open rows, deleted rows, runs with monitoring off,
+       * a status set by hand while it was off - each a website monitor first
+       * checked before the window, inside it or after it, or not yet; a
+       * manual monitor; or one the Monitor table does not hold.
+       */
+      const random: SeededRandom = seededRandom(8960);
+
+      function drawFirstCheckRows(monitorIds: Array<string>): Array<Row> {
+        const rows: Array<Row> = [];
+
+        for (const id of monitorIds) {
+          let cursor: number =
+            WINDOW_START.getTime() - random(5 * 24) * HOUR_MS;
+          const rowCount: number = 1 + random(30);
+          let isOff: boolean = random(5) === 0;
+
+          for (let n: number = 0; n < rowCount; n++) {
+            if (random(3) === 0) {
+              cursor += random(3 * 24 * 60) * 60 * 1000;
+            }
+
+            if (random(4) === 0) {
+              isOff = !isOff;
+            }
+
+            const length: number = (1 + random(4 * 24 * 60 * 60)) * 1000;
+            const isOpen: boolean = random(12) === 0 || n === rowCount - 1;
+
+            rows.push({
+              monitorId: id,
+              // Half the time the status it starts in, so there is time to cut.
+              statusId:
+                random(2) === 0
+                  ? OPERATIONAL.id!.toString()
+                  : EVERY_STATUS[random(EVERY_STATUS.length)]!.id!.toString(),
+              startsAt: new Date(cursor),
+              endsAt: isOpen ? null : new Date(cursor + length),
+              isMonitoringOff: isOff,
+              deletedAt:
+                random(30) === 0 ? new Date("2026-04-20T00:00:00.000Z") : null,
+            });
+
+            cursor += length;
+          }
+        }
+
+        return rows;
+      }
+
+      function drawMonitors(monitorIds: Array<string>): Array<MonitorRow> {
+        const monitors: Array<MonitorRow> = [];
+
+        for (const id of monitorIds) {
+          const shape: number = random(6);
+
+          if (shape === 0) {
+            continue; // not in the Monitor table
+          }
+
+          if (shape === 1) {
+            monitors.push({
+              monitorId: id,
+              monitorType: MonitorType.Manual,
+              firstMeasuredAt: random(2) === 0 ? null : WINDOW_START,
+            });
+            continue;
+          }
+
+          const at: number =
+            WINDOW_START.getTime() -
+            7 * DAY_MS +
+            random(
+              Math.round(
+                (WINDOW_END.getTime() - WINDOW_START.getTime()) / 1000,
+              ) +
+                14 * 86400,
+            ) *
+              1000;
+
+          monitors.push({
+            monitorId: id,
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: shape === 2 ? null : new Date(at),
+          });
+        }
+
+        return monitors;
+      }
+
+      /*
+       * The ranking the group statement reads, with the status flagged
+       * operational and offline among them, as the page ranks its statuses.
+       */
+      const EVERY_RANKED_STATUS_ID: Array<string> =
+        MonitorGroupUptimeDailyAggregateUtil.getRankedMonitorStatusIds({
+          monitorStatuses: EVERY_STATUS,
+          downtimeMonitorStatusIds: DOWNTIME_STATUS_IDS,
+        });
+
+      test.each(FIRST_CHECK_ZONES)(
+        "a monitor's days, a group's days, the merged uptime and the rolling windows match the reference in %s",
+        async (zone: string) => {
+          for (let draw: number = 0; draw < 5; draw++) {
+            await database.query(`DELETE FROM "MonitorStatusTimeline"`);
+            await database.query(`DELETE FROM "Monitor"`);
+
+            const ids: Array<string> = Array.from(
+              { length: 1 + random(5) },
+              (_: unknown, index: number) => {
+                return monitorId(300 + draw * 10 + index);
+              },
+            );
+
+            const rows: Array<Row> = drawFirstCheckRows(ids);
+            const monitors: Array<MonitorRow> = drawMonitors(ids);
+            await insertRows(rows);
+            await insertMonitors(monitors);
+
+            const aggregate: UptimeDailyAggregate = await monitorDays({
+              monitorIds: ids,
+              zone: zone,
+            });
+
+            for (const id of ids) {
+              expectBucketsToMatch(
+                aggregate.monitors.find((monitor: { monitorId: ObjectID }) => {
+                  return monitor.monitorId.toString() === id;
+                })!.buckets,
+                toDays(
+                  checkedEvents({
+                    rows,
+                    monitorId: id,
+                    startDate: WINDOW_START,
+                    endDate: WINDOW_END,
+                    monitors,
+                  }),
+                  zone,
+                  offSpans({ rows, monitorIds: [id] }),
+                ),
+              );
+            }
+
+            const groups: MonitorGroupUptimeDailyAggregate =
+              await MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate(
+                {
+                  monitorGroups: [
+                    {
+                      monitorGroupId: new ObjectID(
+                        "64830000-0000-4000-8000-000000000001",
+                      ),
+                      monitorIds: ids.map((id: string) => {
+                        return new ObjectID(id);
+                      }),
+                    },
+                  ],
+                  rankedMonitorStatusIds: EVERY_RANKED_STATUS_ID,
+                  startDate: WINDOW_START,
+                  endDate: WINDOW_END,
+                  timezone: zone,
+                },
+              );
+
+            expectBucketsToMatch(
+              groups.monitorGroups[0]!.buckets,
+              toDays(
+                checkedGroupEvents({ rows, monitorIds: ids, monitors }),
+                zone,
+                offSpans({ rows, monitorIds: ids }),
+              ),
+            );
+
+            // The group's uptime is read from the same checked time.
+            let covered: number = 0;
+            let downtime: number = 0;
+
+            for (const event of checkedGroupEvents({
+              rows,
+              monitorIds: ids,
+              monitors,
+            })) {
+              const seconds: number =
+                (new Date(event.endDate).getTime() -
+                  new Date(event.startDate).getTime()) /
+                1000;
+              covered += seconds;
+
+              if (
+                DOWNTIME_STATUS_IDS.includes(event.eventStatusId.toString())
+              ) {
+                downtime += seconds;
+              }
+            }
+
+            const merged: MergedDowntimeTotals = await mergedDowntime(ids);
+            expect(merged.coveredSeconds).toBeCloseTo(covered, 3);
+            expect(merged.downtimeSeconds).toBeCloseTo(downtime, 3);
+
+            // And each monitor's rolling windows.
+            for (const id of ids) {
+              const totals: Array<MonitorUptimeWindowTotal> =
+                await rollingTotals(id);
+
+              ROLLING_WINDOWS.forEach(
+                (
+                  window: { key: MonitorUptimeWindowKey; days: number },
+                  index: number,
+                ) => {
+                  const seconds: Record<string, number> = {};
+                  let windowCovered: number = 0;
+
+                  for (const event of checkedEvents({
+                    rows,
+                    monitorId: id,
+                    startDate: before(WINDOW_END, window.days),
+                    endDate: WINDOW_END,
+                    monitors,
+                  })) {
+                    const length: number =
+                      (new Date(event.endDate).getTime() -
+                        new Date(event.startDate).getTime()) /
+                      1000;
+                    const statusId: string = event.eventStatusId.toString();
+                    seconds[statusId] = (seconds[statusId] || 0) + length;
+                    windowCovered += length;
+                  }
+
+                  const total: MonitorUptimeWindowTotal = totals[index]!;
+                  expect(total.coveredSeconds).toBeCloseTo(windowCovered, 3);
+
+                  for (const duration of total.statusDurations) {
+                    expect(duration.seconds).toBeCloseTo(
+                      seconds[duration.monitorStatusId.toString()]!,
+                      3,
+                    );
+                  }
+                  expect(total.statusDurations.length).toBe(
+                    Object.keys(seconds).length,
+                  );
+                },
+              );
+            }
+          }
+        },
+      );
+
+      test("a monitor checked from the start reads exactly what all four statements read before", async () => {
+        for (let draw: number = 0; draw < 12; draw++) {
+          await database.query(`DELETE FROM "MonitorStatusTimeline"`);
+          await database.query(`DELETE FROM "Monitor"`);
+
+          const ids: Array<string> = Array.from(
+            { length: 1 + random(5) },
+            (_: unknown, index: number) => {
+              return monitorId(500 + draw * 10 + index);
+            },
+          );
+
+          const rows: Array<Row> = drawFirstCheckRows(ids);
+          await insertRows(rows);
+
+          /*
+           * Each first checked no later than its first row starts - what
+           * the upgrade stamps a monitor checked before the column existed
+           * with is its creation - or a manual monitor.
+           */
+          await insertMonitors(
+            ids.map((id: string): MonitorRow => {
+              const firstRow: number = Math.min(
+                ...rows
+                  .filter((row: Row) => {
+                    return row.monitorId === id;
+                  })
+                  .map((row: Row) => {
+                    return row.startsAt.getTime();
+                  }),
+              );
+
+              return {
+                monitorId: id,
+                monitorType:
+                  random(4) === 0 ? MonitorType.Manual : MonitorType.Website,
+                firstMeasuredAt: new Date(firstRow - random(3) * HOUR_MS),
+              };
+            }),
+          );
+
+          const zone: string =
+            FIRST_CHECK_ZONES[draw % FIRST_CHECK_ZONES.length]!;
+
+          const [current, previous] = await Promise.all([
+            monitorDays({ monitorIds: ids, zone: zone }),
+            previousMonitorDays({ monitorIds: ids, zone: zone }),
+          ]);
+
+          for (const id of ids) {
+            const bucketsOf: (
+              aggregate: UptimeDailyAggregate,
+            ) => Array<UptimeDayBucket> = (
+              aggregate: UptimeDailyAggregate,
+            ): Array<UptimeDayBucket> => {
+              return aggregate.monitors.find(
+                (monitor: { monitorId: ObjectID }) => {
+                  return monitor.monitorId.toString() === id;
+                },
+              )!.buckets;
+            };
+
+            expectSameBuckets(bucketsOf(current), bucketsOf(previous));
+
+            const [rolling, previousRolling] = await Promise.all([
+              rollingTotals(id),
+              previousRollingTotals(id),
+            ]);
+
+            rolling.forEach(
+              (total: MonitorUptimeWindowTotal, index: number) => {
+                const previousTotal: MonitorUptimeWindowTotal =
+                  previousRolling[index]!;
+
+                expectWithinAMicrosecond(
+                  total.coveredSeconds,
+                  previousTotal.coveredSeconds,
+                );
+                expect(total.statusDurations.length).toBe(
+                  previousTotal.statusDurations.length,
+                );
+                total.statusDurations.forEach(
+                  (duration: UptimeStatusDuration, durationIndex: number) => {
+                    expect(duration.monitorStatusId.toString()).toBe(
+                      previousTotal.statusDurations[
+                        durationIndex
+                      ]!.monitorStatusId.toString(),
+                    );
+                    expectWithinAMicrosecond(
+                      duration.seconds,
+                      previousTotal.statusDurations[durationIndex]!.seconds,
+                    );
+                  },
+                );
+              },
+            );
+          }
+
+          const [groups, previousGroups] = await Promise.all([
+            groupDays({ groups: [ids, [ids[0]!]], zone: zone }),
+            previousGroupDays({ groups: [ids, [ids[0]!]], zone: zone }),
+          ]);
+
+          groups.monitorGroups.forEach(
+            (group: { buckets: Array<UptimeDayBucket> }, index: number) => {
+              expectSameBuckets(
+                group.buckets,
+                previousGroups.monitorGroups[index]!.buckets,
+              );
+            },
+          );
+
+          const [merged, previousMerged] = await Promise.all([
+            mergedDowntime(ids),
+            previousMergedDowntime(ids),
+          ]);
+
+          expectWithinAMicrosecond(
+            merged.coveredSeconds,
+            previousMerged.coveredSeconds,
+          );
+          expectWithinAMicrosecond(
+            merged.downtimeSeconds,
+            previousMerged.downtimeSeconds,
           );
         }
       });

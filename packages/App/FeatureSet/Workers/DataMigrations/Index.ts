@@ -184,6 +184,7 @@ import HashProjectApiKeys from "./HashProjectApiKeys";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitorsTurnedOffWouldHaveResolved";
 import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
+import BackfillMonitorFirstMeasuredAtForUptimeHistory from "./BackfillMonitorFirstMeasuredAtForUptimeHistory";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1244,6 +1245,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillMonitorFirstMeasuredAt(),
+  /*
+   * A monitor's uptime bars and percentages leave out the time before its
+   * first check (issue #8960). A monitor measured before the column existed
+   * is given its creation where a result that came back during the upgrade
+   * stamped it with the upgrade's time, and a Probe Status or Network
+   * Device monitor - measured by OneUptime itself, with no trace the
+   * backfill reads - where it was measured; the uptime statements leave
+   * nothing out until this row is there. Postgres only, paged by id and
+   * idempotent; right after BackfillMonitorFirstMeasuredAt, whose finishing
+   * time it reads, and before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new BackfillMonitorFirstMeasuredAtForUptimeHistory(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -244,34 +244,42 @@ export default class StatusPageResourceUptimeUtil {
           data.statusPageResource.monitorGroupId,
         );
 
-      const uptimePercentFromGroupBuckets: number | null = groupBuckets
-        ? UptimeDailyAggregateUtil.getUptimePercent({
-            buckets: groupBuckets,
-            downtimeMonitorStatusIds: downtimeMonitorStatusIds,
-            precision: data.precision,
-          })
-        : null;
-
-      // buckets that cover nothing fall back, as a monitor's do.
-      if (uptimePercentFromGroupBuckets !== null) {
-        return uptimePercentFromGroupBuckets;
+      /*
+       * The server measured the group's days: their figure stands, and one
+       * that covers nothing is no uptime (null), never the rows' (issue
+       * #8960). The rows hold what the measured days leave out - the time
+       * before a monitor's first check, the time with monitoring off - and
+       * read it as 100%, which an average of the page's resources would be
+       * lifted by.
+       */
+      if (groupBuckets) {
+        return UptimeDailyAggregateUtil.getUptimePercent({
+          buckets: groupBuckets,
+          downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+          precision: data.precision,
+        });
       }
     }
 
     if (data.uptimeDailyAggregate && data.statusPageResource.monitorId) {
-      const uptimePercentFromBuckets: number | null =
-        UptimeDailyAggregateUtil.getUptimePercent({
-          buckets: UptimeDailyAggregateUtil.getBucketsForMonitor(
-            data.uptimeDailyAggregate,
-            data.statusPageResource.monitorId,
-          ),
+      const buckets: Array<UptimeDayBucket> =
+        UptimeDailyAggregateUtil.getBucketsForMonitor(
+          data.uptimeDailyAggregate,
+          data.statusPageResource.monitorId,
+        );
+
+      /*
+       * The same for a monitor the aggregate measured (it has a bucket for
+       * every day of the window): no time covered is no uptime. A monitor
+       * the aggregate has nothing for - one added to the page after it was
+       * cut - falls back to its rows, as before.
+       */
+      if (buckets.length > 0) {
+        return UptimeDailyAggregateUtil.getUptimePercent({
+          buckets: buckets,
           downtimeMonitorStatusIds: downtimeMonitorStatusIds,
           precision: data.precision,
         });
-
-      // buckets that cover nothing fall back to the rows, as before.
-      if (uptimePercentFromBuckets !== null) {
-        return uptimePercentFromBuckets;
       }
     }
 
@@ -289,20 +297,17 @@ export default class StatusPageResourceUptimeUtil {
           data.statusPageResource.monitorGroupId.toString()
         ];
 
-      const uptimePercentFromMergedDowntime: number | null = merged
-        ? UptimeUtil.calculateUptimePercentOfCoveredSeconds({
-            coveredSeconds: merged.coveredSeconds,
-            downtimeSeconds: merged.downtimeSeconds,
-            precision: data.precision,
-          })
-        : null;
-
       /*
-       * Nothing recorded for the group, or a payload from a server that
-       * predates the figure: the rows, as before.
+       * The server merged the group's monitors: nothing recorded is no
+       * uptime, as with its days. A payload from a server that predates the
+       * figure falls back to the rows, as before.
        */
-      if (uptimePercentFromMergedDowntime !== null) {
-        return uptimePercentFromMergedDowntime;
+      if (merged) {
+        return UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: merged.coveredSeconds,
+          downtimeSeconds: merged.downtimeSeconds,
+          precision: data.precision,
+        });
       }
     }
 
