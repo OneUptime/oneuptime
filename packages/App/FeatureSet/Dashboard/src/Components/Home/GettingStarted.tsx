@@ -257,6 +257,9 @@ export const getStepAfter: (
 // The plan a project is on, as a step held back by its plan names it.
 const CURRENT_PLAN_HELD_BACK: PlanType = PlanType.Free;
 
+// How wide the quickstart is while it is the whole of Home.
+export const QUICKSTART_MAX_WIDTH_CLASS_NAME: string = "max-w-7xl";
+
 const GettingStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -487,11 +490,20 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
 
   const firstName: string = getGreetingFirstName();
 
+  /*
+   * While it is the whole of Home, the quickstart keeps to a width the eye
+   * can take in, under the page's title, so Continue and Start sit near
+   * what they act on; as a card among others it is as wide as they are.
+   */
+  const quickstartClassName: string = `${props.className || ""} ${
+    isTakingHome ? QUICKSTART_MAX_WIDTH_CLASS_NAME : ""
+  }`.trim();
+
   if (view === WelcomeCardView.Question) {
     return (
       <GoalQuestion
         key={isChangingGoals ? "change" : "first"}
-        className={props.className}
+        className={quickstartClassName}
         initialGoals={isChangingGoals ? goals : []}
         isChange={isChangingGoals}
         isSaving={isSaving}
@@ -700,9 +712,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     <section
       data-testid="getting-started"
       aria-labelledby={headingId}
-      className={`overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${
-        props.className || ""
-      }`}
+      className={`overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${quickstartClassName}`}
     >
       <div className="bg-gradient-to-br from-indigo-50 via-white to-white px-5 pb-6 pt-6 sm:px-8 sm:pt-8">
         <WelcomeGreeting

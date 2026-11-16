@@ -233,7 +233,10 @@ import Home, {
   getHomeMode,
   needsSomeoneDuringQuickstart,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
-import { WelcomeCardView } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
+import {
+  QUICKSTART_MAX_WIDTH_CLASS_NAME,
+  WelcomeCardView,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import { HomeCounts } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeRowCard";
 import {
@@ -1152,6 +1155,10 @@ describe("a brand-new project's quickstart", () => {
     expect(screen.queryByTestId("home-overview-stats")).toBeNull();
     expect(screen.queryByTestId("home-health-create-monitor")).toBeNull();
     expect(screen.queryByTestId("home-deciding")).toBeNull();
+    // A width the eye can take in, under the page's title.
+    expect(screen.getByTestId("getting-started").className).toContain(
+      QUICKSTART_MAX_WIDTH_CLASS_NAME,
+    );
   });
 
   test("the question is the whole of Home too", async () => {
@@ -1333,6 +1340,10 @@ describe("a brand-new project's quickstart", () => {
     await waitFor(() => {
       expect(screen.getByTestId("getting-started")).toBeVisible();
     });
+    // A card among the others: as wide as they are.
+    expect(screen.getByTestId("getting-started").className).not.toContain(
+      QUICKSTART_MAX_WIDTH_CLASS_NAME,
+    );
     // Where the Welcome card always was: under the headline.
     expect(
       screen

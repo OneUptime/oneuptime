@@ -118,11 +118,13 @@ export const GUIDED_SETUP_OUTCOMES_TITLE: string =
 
 /*
  * The frame's two columns from lg up: the steps, as wide as they were
- * (max-w-3xl), and what the setup sets up beside them. A setup with
- * nothing to say there keeps one column.
+ * (max-w-3xl), and what the setup sets up beside them; on a very wide
+ * screen (2xl) both a little wider, never so wide that a form's fields
+ * stretch out of reach of their labels. A setup with nothing to say there
+ * keeps one column.
  */
 export const GUIDED_SETUP_COLUMNS_CLASS_NAME: string =
-  "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,48rem)_20rem] lg:gap-8 xl:grid-cols-[minmax(0,48rem)_22rem]";
+  "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,48rem)_20rem] lg:gap-8 xl:grid-cols-[minmax(0,48rem)_22rem] 2xl:grid-cols-[minmax(0,52rem)_24rem] 2xl:gap-10";
 
 // What one outcome's mark looks like, by the state of its step.
 const OutcomeMark: FunctionComponent<{
@@ -437,7 +439,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={`w-full ${hasAside ? "max-w-6xl" : "max-w-3xl"}`}
+      className={`w-full ${hasAside ? "max-w-6xl 2xl:max-w-7xl" : "max-w-3xl"}`}
       data-testid="guided-setup"
     >
       {hasAside ? (
