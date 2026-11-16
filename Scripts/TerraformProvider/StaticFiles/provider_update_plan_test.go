@@ -16,8 +16,7 @@ import (
 //
 // The state between the two plans is the create plan with every unknown
 // value null: what a resource looks like after the server returned nothing
-// for the fields it fills in itself, such as a monitor's
-// incoming_monitor_request or a probe's last_alive. Those fields are
+// for the fields it fills in itself, such as a probe's last_alive. Those fields are
 // writable at create and never at update, so the generator gives them
 // UseStateForUnknown followed by RequiresReplace. That only works from
 // terraform-plugin-framework v1.15.1, where UseStateForUnknown keeps a null
