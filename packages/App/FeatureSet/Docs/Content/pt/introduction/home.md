@@ -20,6 +20,8 @@ Abra **Início** na barra do topo, ou pressione `g` e depois `h` de qualquer lug
 5. **Seu projeto**, do que o projeto é feito, e **Próximas manutenções** quando houver alguma programada.
 6. **Explore o OneUptime**, todos os produtos, uma categoria por vez.
 
+Enquanto a lista **Boas-vindas ao OneUptime 👋** de um projeto novo aparece, ela ocupa todo o Início: a primeira coisa que você vê é o que fazer primeiro. Um incidente aberto, ou qualquer outra coisa que precise de alguém, continua aparecendo acima dela. Oculte a lista, ou conclua-a, e o resto do Início volta.
+
 ### Pesquisar e criar
 
 A caixa de pesquisa abre a pesquisa, assim como `Mod` + `K`: digite o nome de qualquer página, monitor, incidente, alerta, página de status ou política de plantão. Veja [Pesquisar](#pesquisar-uma-página-uma-configuração-ou-uma-ação). **Declarar incidente** abre o formulário que declara um incidente. **Criar** oferece **Criar monitor**, **Agendar manutenção** e **Criar anúncio**. Cada um só aparece para quem tem permissão para usá-lo.
@@ -56,7 +58,7 @@ Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Or
 
 ### A lista de boas-vindas
 
-Na primeira vez que um Proprietário do projeto ou um Administrador do projeto abre o Início de um projeto novo, o cartão pergunta **O que você quer fazer primeiro?** Marque um ou mais objetivos, como **Saber quando meu site ou API cair** ou **Só estou dando uma olhada**, e clique em **Continuar**: a lista passa a ter as etapas de que esses objetivos precisam. **Pular** dá as quatro etapas que todo projeto recebe. Para responder de novo depois, clique em **Alterar** na lista. Um projeto que já usa monitores, telemetria ou plantão não é perguntado.
+Na primeira vez que um Proprietário do projeto ou um Administrador do projeto abre o Início de um projeto novo, o cartão o cumprimenta pelo primeiro nome e pergunta **O que você quer fazer primeiro?** Escolha um ou mais objetivos, como **Saber quando meu site ou API cair**, e clique em **Continuar**: a lista passa a ter as etapas de que esses objetivos precisam. Enquanto você escolhe, ela diz quantas etapas são e quanto tempo levam, mais ou menos. **Só estou dando uma olhada** leva você direto ao resto do Início e deixa uma linha para mostrar a lista de novo. Para responder de novo depois, clique em **Alterar** na lista. Um projeto que já usa monitores, telemetria ou plantão não é perguntado.
 
 Cada etapa se marca sozinha quando a coisa funciona, não quando um registro existe, e todos que configuram o projeto veem a mesma lista, em todos os dispositivos:
 
@@ -72,7 +74,11 @@ Cada etapa se marca sozinha quando a coisa funciona, não quando um registro exi
 
 A etapa a fazer primeiro é marcada com **Próxima etapa**. No plano Free do OneUptime Cloud, que tem uma pessoa, **Convide sua equipe** diz que precisa do plano Growth e abre **Cobrança**. Em um servidor auto-hospedado que ainda não pode enviar e-mails, os administradores do servidor veem primeiro **Este servidor ainda não pode enviar e-mails**, que abre o painel de administração.
 
+Cada etapa diz quanto tempo leva, mais ou menos, a lista diz quanto tempo falta, e a próxima etapa tem seu próprio botão **Iniciar**.
+
 Uma configuração guiada faz todo o trabalho em uma só página, uma etapa de cada vez, e termina com o que configurou e o que fazer em seguida. Para abri-la de novo mais tarde, pesquise pelo nome dela.
+
+Ao lado das etapas, uma configuração guiada lista o que ela configura, marcado à medida que você avança, e diz quanto tempo leva, mais ou menos.
 
 Abaixo das etapas, **Como o OneUptime funciona** mostra os quatro produtos principais na ordem em que um problema passa por eles: **Monitores**, **Incidentes e alertas**, **Plantão** e **Páginas de status**. Clique em um para abri-lo. Abaixo, ele diz o que alimenta esse ciclo, a telemetria e a infraestrutura, e leva a [Conceitos básicos](/docs/introduction/core-concepts) e [Glossário](/docs/introduction/glossary).
 

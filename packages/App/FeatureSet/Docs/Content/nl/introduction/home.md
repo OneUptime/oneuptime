@@ -20,6 +20,8 @@ Open **Start** in de balk bovenaan, of druk vanaf elke plek op `g` en dan `h`. S
 5. **Je project**, waaruit het project bestaat, en **Aankomend onderhoud** als er onderhoud gepland is.
 6. **Verken OneUptime**, elk product, één categorie tegelijk.
 
+Zolang de checklist **Welkom bij OneUptime 👋** van een nieuw project wordt getoond, is die heel Home: het eerste wat je ziet, is wat je eerst doet. Een open incident, of iets anders waarvoor iemand nodig is, verschijnt er nog steeds boven. Verberg de checklist, of rond hem af, en de rest van Home komt terug.
+
 ### Zoeken en aanmaken
 
 Het zoekvak opent Zoeken, net als `Mod` + `K`: typ de naam van een pagina, monitor, incident, waarschuwing, statuspagina of bereikbaarheidsbeleid. Zie [Zoeken](#zoeken-naar-een-pagina-een-instelling-of-een-actie). **Incident melden** opent het formulier waarmee u een incident meldt. **Aanmaken** biedt **Monitor maken**, **Onderhoud plannen** en **Aankondiging aanmaken**. Elk ervan wordt alleen getoond aan wie het mag gebruiken.
@@ -56,7 +58,7 @@ Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op
 
 ### De welkomstchecklist
 
-De eerste keer dat een Projecteigenaar of Projectbeheerder Home van een nieuw project opent, vraagt de kaart **Wat wil je eerst doen?** Vink een of meer doelen aan, zoals **Weten wanneer mijn website of API plat ligt** of **Ik kijk alleen even rond**, en klik op **Doorgaan**: de checklist bevat dan de stappen die die doelen nodig hebben. **Overslaan** geeft de vier stappen die elk project krijgt. Om later opnieuw te antwoorden, klik je in de checklist op **Wijzigen**. Een project dat al monitors, telemetrie of bereikbaarheid gebruikt, krijgt de vraag niet.
+De eerste keer dat een Projecteigenaar of Projectbeheerder Home van een nieuw project opent, begroet de kaart hem bij zijn voornaam en vraagt **Wat wil je eerst doen?** Kies een of meer doelen, zoals **Weten wanneer mijn website of API plat ligt**, en klik op **Doorgaan**: de checklist bevat dan de stappen die die doelen nodig hebben. Terwijl je kiest, zegt hij hoeveel stappen dat zijn en hoe lang ze ongeveer duren. **Ik kijk alleen even rond** brengt je in plaats daarvan meteen naar de rest van Home en laat een regel staan om de checklist weer te tonen. Om later opnieuw te antwoorden, klik je in de checklist op **Wijzigen**. Een project dat al monitors, telemetrie of bereikbaarheid gebruikt, krijgt de vraag niet.
 
 Elke stap vinkt zichzelf af zodra het werkt, niet zodra er een record bestaat, en iedereen die het project inricht ziet dezelfde lijst, op elk apparaat:
 
@@ -72,7 +74,11 @@ Elke stap vinkt zichzelf af zodra het werkt, niet zodra er een record bestaat, e
 
 De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abonnement van OneUptime Cloud, met één persoon, zegt **Nodig je team uit** dat het het Growth-abonnement nodig heeft, en opent het **Facturering**. Op een zelfgehoste server die nog geen e-mail kan versturen, zien de beheerders van de server eerst **Deze server kan nog geen e-mail versturen**; dat opent het beheerdashboard.
 
+Elke stap zegt hoe lang hij ongeveer duurt, de checklist hoeveel tijd er ongeveer over is, en de volgende stap heeft een eigen knop **Starten**.
+
 Een begeleide installatie doet het hele werk op één pagina, stap voor stap, en eindigt met wat ze heeft ingesteld en wat je daarna doet. Zoek later op de naam om er een opnieuw te openen.
+
+Naast haar stappen somt een begeleide installatie op wat ze instelt, afgevinkt terwijl je vordert, en zegt ze hoe lang ze ongeveer duurt.
 
 Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheid** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
 

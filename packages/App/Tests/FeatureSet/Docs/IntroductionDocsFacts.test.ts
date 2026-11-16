@@ -649,10 +649,11 @@ describe("Quickstart", () => {
           serverCanSendEmail: true,
         };
       };
+      // Each step of the path is drawn by WelcomePlanStep (#8897).
       const doneStep: string = oneLine(
         blockFrom(
-          CHECKLIST_SOURCE,
-          "if (isComplete) {",
+          PLAN_STEP_SOURCE,
+          "// A done step is a record, not a way anywhere.",
           "A step to do is a button",
         ),
       );
@@ -1643,6 +1644,24 @@ const UPCOMING_SOURCE: string = dashboard(
   "Components/Home/UpcomingMaintenance.tsx",
 );
 const EXPLORE_SOURCE: string = dashboard("Components/Home/ExploreProducts.tsx");
+// The greeting the checklist opens with (#8897).
+const GREETING_SOURCE: string = dashboard(
+  "Components/Home/WelcomeChecklist/WelcomeGreeting.tsx",
+);
+// Home, which is the checklist alone while it shows (#8897).
+const HOME_PAGE_SOURCE: string = dashboard("Pages/Home/Home.tsx");
+// One step of the checklist's path, with about how long it takes (#8897).
+const PLAN_STEP_SOURCE: string = dashboard(
+  "Components/Home/WelcomeChecklist/WelcomePlanStep.tsx",
+);
+// The question, with what the goals picked bring (#8897).
+const QUESTION_SOURCE: string = dashboard(
+  "Components/Home/WelcomeChecklist/GoalQuestion.tsx",
+);
+// The frame every guided setup is drawn in.
+const GUIDED_SETUP_FRAME_SOURCE: string = dashboard(
+  "Components/GuidedSetup/GuidedSetupFrame.tsx",
+);
 
 const TASK_STEP: RegExp =
   /^ {4}step: WelcomeStep\.(\w+),\n {4}title: translationKey\("([^"]+)"\),$/gm;
@@ -2300,7 +2319,14 @@ describe("Home Page & Shortcuts", () => {
     expect(CHECKLIST_CATALOG_SOURCE).toContain(
       'title: "Welcome to OneUptime 👋",',
     );
-    expect(CHECKLIST_SOURCE).toContain("title={WELCOME_CHECKLIST_COPY.title}");
+    /*
+     * The checklist opens on a greeting (#8897): the card's title, with the
+     * person's first name when the Dashboard knows it.
+     */
+    expect(CHECKLIST_SOURCE).toContain("<WelcomeGreeting");
+    expect(GREETING_SOURCE).toContain(
+      "translator.translateText(WELCOME_CHECKLIST_COPY.title)",
+    );
 
     const items: Array<string> = Array.from(
       whatHomeShows.matchAll(NUMBERED_ITEM),
@@ -2436,17 +2462,81 @@ describe("Home Page & Shortcuts", () => {
       'title: translationKey("What do you want to do first?"),',
     );
     expect(section).toContain(
-      "the card asks **What do you want to do first?**",
+      "the card greets them by their first name and asks **What do you want to do first?**",
     );
+    expect(GREETING_SOURCE).toContain("getFirstName()");
     // The first goal and the last, as the question lists them.
     expect(goals[0]).toBe("Know when my website or API is down");
     expect(goals[goals.length - 1]).toBe("Just looking around");
     expect(section).toContain(`**${goals[0]}**`);
     expect(section).toContain(`**${goals[goals.length - 1]}**`);
-    for (const button of ["Continue", "Skip", "Change"]) {
+    for (const button of ["Continue", "Change"]) {
       expect(CHECKLIST_CATALOG_SOURCE).toContain(`translationKey("${button}")`);
       expect(section).toContain(`**${button}**`);
     }
+    /*
+     * Skip is gone (#8897): "Just looking around" is the way out, under the
+     * cards, and it hides the checklist for the person who chose it.
+     */
+    expect(CHECKLIST_CATALOG_SOURCE).not.toContain('translationKey("Skip")');
+    expect(section).not.toContain("**Skip**");
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      "export const WELCOME_JUST_LOOKING_GOAL: ProjectGoal = ProjectGoal.Explore;",
+    );
+    expect(CHECKLIST_SOURCE).toMatch(
+      /const justLookAround[\s\S]*WELCOME_CHECKLIST_GOALS_ROUTE[\s\S]*WELCOME_CHECKLIST_HIDE_ROUTE/,
+    );
+    expect(section).toContain(
+      `**${goals[goals.length - 1]}** takes you straight to the rest of Home instead, and leaves a line to show the checklist again.`,
+    );
+    // While picking, how many steps and about how long.
+    expect(QUESTION_SOURCE).toContain("WELCOME_QUESTION_COPY.stepsToSetUp");
+    expect(QUESTION_SOURCE).toContain("getWelcomeStepsMinutes(planSteps)");
+    expect(section).toContain(
+      "While you pick, it says how many steps that is and about how long they take.",
+    );
+  });
+
+  it("says the checklist is all of Home while it shows, with what cannot wait above it", () => {
+    expect(whatHomeShows).toContain(
+      "While a new project's **Welcome to OneUptime 👋** checklist shows, it is all of Home, so the first thing you meet is what to do first. An open incident, or anything else that needs someone, still shows above it. Hide the checklist, or finish it, and the rest of Home comes back.",
+    );
+    // The question and the steps are the quickstart; Home draws only it.
+    expect(HOME_PAGE_SOURCE).toContain(
+      "return isQuickstartView(view) ? HomeMode.Quickstart : HomeMode.Overview;",
+    );
+    // An open incident or anything else that needs someone: the health card.
+    expect(HOME_PAGE_SOURCE).toContain(
+      "kind === ProjectHealthKind.Incidents ||",
+    );
+    expect(HOME_PAGE_SOURCE).toContain(
+      "kind === ProjectHealthKind.NeedsAttention",
+    );
+  });
+
+  it("says each step's minutes, the minutes left and the next step's Start, as the path draws them", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(PLAN_STEP_SOURCE).toContain("WELCOME_STEP_MINUTES[state.step]");
+    expect(CHECKLIST_SOURCE).toContain("getWelcomeMinutesLeft(answer.steps)");
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'startButton: translationKey("Start"),',
+    );
+    expect(section).toContain(
+      "Each step says about how long it takes, the checklist says about how long is left, and the next step has a **Start** button of its own.",
+    );
+  });
+
+  it("says a guided setup lists what it sets up beside its steps, and how long it takes", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(GUIDED_SETUP_FRAME_SOURCE).toContain(
+      'translationKey("What this sets up")',
+    );
+    expect(GUIDED_SETUP_FRAME_SOURCE).toContain("props.minutes");
+    expect(section).toContain(
+      "Beside its steps, a guided setup lists what it sets up, ticked off as you go, and says about how long it takes.",
+    );
   });
 
   it("gives the checklist's steps, what finishes each and what each opens, as the catalog routes them", () => {

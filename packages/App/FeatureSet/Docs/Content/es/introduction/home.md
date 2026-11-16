@@ -20,6 +20,8 @@ Abre **Inicio** en la barra superior, o pulsa `g` y luego `h` desde cualquier si
 5. **Tu proyecto**, de qué se compone el proyecto, y **Próximos mantenimientos** cuando hay alguno programado.
 6. **Explora OneUptime**, todos los productos, una categoría cada vez.
 
+Mientras se muestra la lista **Te damos la bienvenida a OneUptime 👋** de un proyecto nuevo, ocupa todo Inicio: lo primero que ves es qué hacer primero. Un incidente abierto, o cualquier otra cosa que necesite a alguien, sigue apareciendo encima. Oculta la lista, o termínala, y vuelve el resto de Inicio.
+
 ### Buscar y crear
 
 El cuadro de búsqueda abre la búsqueda, igual que `Mod` + `K`: escribe el nombre de cualquier página, monitor, incidente, alerta, página de estado o política de guardia. Consulta la sección [Buscar](#buscar-una-página-un-ajuste-o-una-acción). **Declarar incidente** abre el formulario para declarar un incidente. **Crear** ofrece **Crear monitor**, **Programar mantenimiento** y **Crear anuncio**. Cada uno solo se muestra a quien tiene permiso para usarlo.
@@ -56,7 +58,7 @@ Un número mayor que cero muestra **Requiere atención**, o **En curso** y **Pre
 
 ### La lista de bienvenida
 
-La primera vez que un Propietario del proyecto o un Administrador del proyecto abre Inicio en un proyecto nuevo, la tarjeta pregunta **¿Qué quieres hacer primero?** Marca uno o más objetivos, como **Saber cuándo cae mi sitio web o mi API** o **Solo estoy mirando**, y haz clic en **Continuar**: la lista contendrá los pasos que necesitan esos objetivos. **Omitir** da los cuatro pasos que recibe todo proyecto. Para responder de nuevo más tarde, haz clic en **Cambiar** en la lista. A un proyecto que ya usa monitores, telemetría o guardias no se le pregunta.
+La primera vez que un Propietario del proyecto o un Administrador del proyecto abre Inicio en un proyecto nuevo, la tarjeta lo saluda por su nombre y pregunta **¿Qué quieres hacer primero?** Elige uno o más objetivos, como **Saber cuándo cae mi sitio web o mi API**, y haz clic en **Continuar**: la lista contendrá los pasos que necesitan esos objetivos. Mientras eliges, indica cuántos pasos son y cuánto tardan aproximadamente. **Solo estoy mirando** te lleva directamente al resto de Inicio y deja una línea para volver a mostrar la lista. Para responder de nuevo más tarde, haz clic en **Cambiar** en la lista. A un proyecto que ya usa monitores, telemetría o guardias no se le pregunta.
 
 Cada paso se marca solo cuando la cosa funciona, no cuando existe un registro, y todas las personas que configuran el proyecto ven la misma lista, en cada dispositivo:
 
@@ -72,7 +74,11 @@ Cada paso se marca solo cuando la cosa funciona, no cuando existe un registro, y
 
 El paso que toca primero está marcado con **Siguiente paso**. En el plan Free de OneUptime Cloud, que incluye una persona, **Invita a tu equipo** indica que necesita el plan Growth y abre **Facturación**. En un servidor autoalojado que aún no puede enviar correos, los administradores del servidor ven primero **Este servidor aún no puede enviar correos electrónicos**, que abre el panel de administración.
 
+Cada paso indica cuánto tarda aproximadamente, la lista indica cuánto tiempo queda, y el siguiente paso tiene su propio botón **Iniciar**.
+
 Una configuración guiada hace todo el trabajo en una sola página, paso a paso, y termina con lo que configuró y qué hacer después. Para volver a abrirla más tarde, busca su nombre.
+
+Junto a sus pasos, una configuración guiada enumera lo que configura, marcado a medida que avanzas, e indica cuánto tarda aproximadamente.
 
 Bajo los pasos, **Cómo funciona OneUptime** muestra los cuatro productos principales en el orden en que un problema pasa por ellos: **Monitores**, **Incidentes y alertas**, **Guardia** y **Páginas de estado**. Haz clic en uno para abrirlo. Debajo dice qué alimenta ese ciclo, la telemetría y la infraestructura, y enlaza a [Conceptos básicos](/docs/introduction/core-concepts) y [Glosario](/docs/introduction/glossary).
 

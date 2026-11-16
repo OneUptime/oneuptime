@@ -20,6 +20,8 @@ Die Startseite ist die erste Seite, die Sie in einem Projekt sehen. Sie zeigt au
 5. **Ihr Projekt**, woraus das Projekt besteht, und **Bevorstehende Wartung**, wenn eine geplant ist.
 6. **OneUptime erkunden**, jedes Produkt, eine Kategorie nach der anderen.
 
+Solange die Checkliste **Willkommen bei OneUptime 👋** eines neuen Projekts angezeigt wird, ist sie die ganze Startseite: Als Erstes sehen Sie, was zuerst zu tun ist. Ein offener Vorfall oder etwas anderes, das jemanden braucht, erscheint trotzdem darüber. Blenden Sie die Checkliste aus oder schließen Sie sie ab, dann kehrt der Rest der Startseite zurück.
+
 ### Suchen und erstellen
 
 Das Suchfeld öffnet die Suche, genau wie `Mod` + `K`: Tippen Sie den Namen einer beliebigen Seite, eines Monitors, eines Vorfalls, einer Warnung, einer Statusseite oder einer Bereitschaftsrichtlinie. Siehe [Suchen](#nach-einer-seite-einer-einstellung-oder-einer-aktion-suchen). **Vorfall melden** öffnet das Formular, mit dem Sie einen Vorfall melden. **Erstellen** bietet **Monitor erstellen**, **Wartung planen** und **Ankündigung erstellen** an. Jede davon wird nur Personen angezeigt, die sie verwenden dürfen.
@@ -56,7 +58,7 @@ Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **
 
 ### Die Willkommens-Checkliste
 
-Wenn ein Projektinhaber oder Projektadministrator die Startseite eines neuen Projekts zum ersten Mal öffnet, fragt die Karte **Was möchten Sie zuerst tun?** Haken Sie ein oder mehrere Ziele an, etwa **Wissen, wenn meine Website oder API ausfällt** oder **Ich sehe mich nur um**, und klicken Sie auf **Weiter**: Die Checkliste enthält dann die Schritte, die diese Ziele brauchen. **Überspringen** gibt Ihnen die vier Schritte, die jedes Projekt bekommt. Um später neu zu antworten, klicken Sie in der Checkliste auf **Ändern**. Ein Projekt, das schon Monitore, Telemetrie oder Bereitschaft nutzt, wird nicht gefragt.
+Wenn ein Projektinhaber oder Projektadministrator die Startseite eines neuen Projekts zum ersten Mal öffnet, begrüßt die Karte ihn mit seinem Vornamen und fragt **Was möchten Sie zuerst tun?** Wählen Sie ein oder mehrere Ziele, etwa **Wissen, wenn meine Website oder API ausfällt**, und klicken Sie auf **Weiter**: Die Checkliste enthält dann die Schritte, die diese Ziele brauchen. Während Sie wählen, sagt sie, wie viele Schritte das sind und wie lange sie etwa dauern. **Ich sehe mich nur um** bringt Sie stattdessen direkt zum Rest der Startseite und lässt eine Zeile stehen, mit der Sie die Checkliste wieder einblenden. Um später neu zu antworten, klicken Sie in der Checkliste auf **Ändern**. Ein Projekt, das schon Monitore, Telemetrie oder Bereitschaft nutzt, wird nicht gefragt.
 
 Jeder Schritt hakt sich selbst ab, sobald die Sache funktioniert, nicht schon, wenn ein Eintrag existiert, und alle, die das Projekt einrichten, sehen auf jedem Gerät dieselbe Liste:
 
@@ -72,7 +74,11 @@ Jeder Schritt hakt sich selbst ab, sobald die Sache funktioniert, nicht schon, w
 
 Der Schritt, mit dem Sie beginnen, ist mit **Nächster Schritt** markiert. Im Free-Tarif von OneUptime Cloud, der eine Person umfasst, sagt **Team einladen**, dass es den Growth-Tarif braucht, und öffnet **Abrechnung**. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, sehen die Administratoren des Servers zuerst **Dieser Server kann noch keine E-Mails senden**; das öffnet das Admin-Dashboard.
 
+Jeder Schritt sagt, wie lange er etwa dauert, die Checkliste, wie viel Zeit etwa noch bleibt, und der nächste Schritt hat eine eigene Schaltfläche **Starten**.
+
 Eine geführte Einrichtung erledigt die ganze Aufgabe auf einer Seite, Schritt für Schritt, und endet damit, was sie eingerichtet hat und was als Nächstes zu tun ist. Um eine später wieder zu öffnen, suchen Sie nach ihrem Namen.
+
+Neben ihren Schritten listet eine geführte Einrichtung auf, was sie einrichtet, abgehakt, sobald Sie vorankommen, und sagt, wie lange sie etwa dauert.
 
 Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaft** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen. Darunter steht, was diesen Kreislauf speist, Telemetrie und Infrastruktur, mit Links zu den Seiten [Grundkonzepte](/docs/introduction/core-concepts) und [Glossar](/docs/introduction/glossary).
 

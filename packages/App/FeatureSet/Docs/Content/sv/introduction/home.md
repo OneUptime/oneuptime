@@ -20,6 +20,8 @@ Hem är den första sidan du ser i ett projekt. Den visar med en blick om något
 5. **Ditt projekt**, vad projektet består av, och **Kommande underhåll** när något underhåll är schemalagt.
 6. **Utforska OneUptime**, varje produkt, en kategori i taget.
 
+Så länge ett nytt projekts checklista **Välkommen till OneUptime 👋** visas är den hela Hem: det första du ser är vad du ska göra först. En öppen incident, eller något annat som behöver någon, visas ändå ovanför den. Dölj checklistan, eller gör klart den, så kommer resten av Hem tillbaka.
+
 ### Sök och skapa
 
 Sökrutan öppnar sökningen, precis som `Mod` + `K`: skriv namnet på vilken sida, monitor, incident, larm, statussida eller jourpolicy som helst. Se [Sök](#sök-efter-en-sida-en-inställning-eller-en-åtgärd). **Deklarera incident** öppnar formuläret där du deklarerar en incident. **Skapa** erbjuder **Skapa monitor**, **Schemalägg underhåll** och **Skapa meddelande**. Var och en visas bara för den som får använda den.
@@ -56,7 +58,7 @@ En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **B
 
 ### Välkomstchecklistan
 
-Första gången en Projektägare eller Projektadministratör öppnar Hem i ett nytt projekt frågar kortet **Vad vill du göra först?** Kryssa i ett eller flera mål, till exempel **Veta när min webbplats eller mitt API ligger nere** eller **Jag tittar bara runt**, och klicka på **Fortsätt**: checklistan innehåller då de steg som målen behöver. **Hoppa över** ger de fyra steg som alla projekt får. För att svara igen senare klickar du på **Ändra** i checklistan. Ett projekt som redan använder monitorer, telemetri eller jour får inte frågan.
+Första gången en Projektägare eller Projektadministratör öppnar Hem i ett nytt projekt hälsar kortet på dem med förnamn och frågar **Vad vill du göra först?** Välj ett eller flera mål, till exempel **Veta när min webbplats eller mitt API ligger nere**, och klicka på **Fortsätt**: checklistan innehåller då de steg som målen behöver. Medan du väljer säger den hur många steg det blir och ungefär hur lång tid de tar. **Jag tittar bara runt** tar dig i stället direkt till resten av Hem och lämnar en rad kvar så att du kan visa checklistan igen. För att svara igen senare klickar du på **Ändra** i checklistan. Ett projekt som redan använder monitorer, telemetri eller jour får inte frågan.
 
 Varje steg bockar av sig självt när saken fungerar, inte när en post finns, och alla som konfigurerar projektet ser samma lista, på alla enheter:
 
@@ -72,7 +74,11 @@ Varje steg bockar av sig självt när saken fungerar, inte när en post finns, o
 
 Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds Free-plan, som har en person, säger **Bjud in ditt team** att den behöver Growth-planen, och öppnar **Fakturering**. På en egen server som ännu inte kan skicka e-post ser serverns administratörer först **Den här servern kan inte skicka e-post än**; den öppnar administratörsdashboarden.
 
+Varje steg säger ungefär hur lång tid det tar, checklistan ungefär hur lång tid som är kvar, och nästa steg har en egen knapp **Starta**.
+
 En guidad installation gör hela jobbet på en sida, ett steg i taget, och slutar med vad den har konfigurerat och vad du gör härnäst. Sök på dess namn för att öppna den igen senare.
+
+Bredvid sina steg listar en guidad installation vad den sätter upp, avbockat allt eftersom, och säger ungefär hur lång tid den tar.
 
 Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jour** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
 
