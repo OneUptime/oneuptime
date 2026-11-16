@@ -208,14 +208,14 @@ I **Domän** (platshållare `status.example.com`) skriver du hela adressen som f
 
 #### Behåll det kostnadsfria certifikatet, eller ladda upp ditt eget
 
-**Fler fält** är hopfällt, och dess rubrik säger vilket certifikat domänen kommer att använda: "Vi utfärdar ett gratis SSL-certifikat för den här domänen och förnyar det automatiskt." Öppna det bara för att använda ett eget certifikat: aktivera **Ladda upp anpassat certifikat** och klistra sedan in **Certifikat** och **Privat certifikatnyckel** i PEM-format. Båda är då obligatoriska.
+**Fler fält** är hopfällt, och dess rubrik säger vilket certifikat domänen kommer att använda: "Vi utfärdar ett gratis SSL-certifikat för den här domänen och förnyar det automatiskt." Öppna det bara för att använda ett eget certifikat: aktivera **Ladda upp anpassat certifikat** och klistra sedan in **Certifikat** och **Privat certifikatnyckel** i PEM-format. Båda är då obligatoriska. Nyckeln lagras krypterad och visas aldrig igen. Ett certifikat och en nyckel som inte hör ihop avvisas, med orsaken under fältet som är fel.
 
 #### Fortsätt
 
 Klicka på **Fortsätt**. Om projektet har verifierat domänen som adressen ligger på läggs domänen till och dess **DNS-inställning** öppnas, med CNAME-posten som ska läggas till. Om inte lägger OneUptime till den domänen under **Projektinställningar → Avancerad → Domäner**, och **DNS-inställning** öppnas med båda posterna, så att du verifierar domänen direkt där, utan att lämna sidan.
 :::
 
-En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan adress lägger du till den och tar bort den gamla. Ett namn som en instrumentpanel eller ett formulär redan använder, i vilket projekt som helst, avvisas: en domän visar en statussida, en instrumentpanel eller ett formulär.
+En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. På en domän som levererar ditt eget certifikat är **Privat certifikatnyckel** tomt i dialogrutan **Redigera**: lämna det tomt för att behålla den sparade nyckeln, vilket är allt ett certifikat som förnyats med samma nyckel behöver, eller klistra in en ny nyckel. På en domän med det kostnadsfria certifikatet ber **Ladda upp anpassat certifikat** om nyckeln när du slår på det. För att använda en annan adress lägger du till den och tar bort den gamla. Ett namn som en instrumentpanel eller ett formulär redan använder, i vilket projekt som helst, avvisas: en domän visar en statussida, en instrumentpanel eller ett formulär.
 
 Att lägga till en domän i projektet kräver behörighet att skapa projektdomäner (**Create Domain**, eller Projektägare eller Projektadministratör), och att verifiera den kräver **Edit Domain**. Utan dem säger dialogrutan vem som kan göra det.
 

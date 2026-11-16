@@ -208,14 +208,14 @@ Typ in **Domein** (plaatshouder `status.example.com`) het volledige adres dat me
 
 #### Het gratis certificaat houden, of uw eigen uploaden
 
-**Meer velden** is ingeklapt, en de kop zegt welk certificaat het domein gaat gebruiken: "We geven een gratis SSL-certificaat uit voor dit domein en verlengen het automatisch." Open het alleen om een eigen certificaat te gebruiken: zet **Aangepast certificaat uploaden** aan en plak dan het **Certificaat** en de **Privésleutel van certificaat** in PEM-formaat. Beide zijn dan verplicht.
+**Meer velden** is ingeklapt, en de kop zegt welk certificaat het domein gaat gebruiken: "We geven een gratis SSL-certificaat uit voor dit domein en verlengen het automatisch." Open het alleen om een eigen certificaat te gebruiken: zet **Aangepast certificaat uploaden** aan en plak dan het **Certificaat** en de **Privésleutel van certificaat** in PEM-formaat. Beide zijn dan verplicht. De sleutel wordt versleuteld opgeslagen en nooit meer getoond. Een certificaat en een sleutel die niet bij elkaar horen, worden geweigerd, met de reden onder het veld dat niet klopt.
 
 #### Doorgaan
 
 Klik op **Doorgaan**. Als het project het domein waarop het adres staat al heeft geverifieerd, wordt het domein toegevoegd en opent de **DNS-instelling** ervan, met het CNAME-record dat u moet toevoegen. Zo niet, dan voegt OneUptime dat domein toe aan **Projectinstellingen → Geavanceerd → Domeinen** en opent de **DNS-instelling** met beide records, zodat u het domein meteen daar verifieert, zonder de pagina te verlaten.
 :::
 
-De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Om een ander adres te gebruiken, voegt u dat toe en verwijdert u het oude. Een naam die een dashboard of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.
+De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Bij een domein dat uw eigen certificaat aanbiedt, is **Privésleutel van certificaat** leeg in het venster **Bewerken**: laat het leeg om de opgeslagen sleutel te behouden, wat genoeg is voor een certificaat dat met dezelfde sleutel is verlengd, of plak een nieuwe sleutel. Bij een domein met het gratis certificaat vraagt het aanzetten van **Aangepast certificaat uploaden** om de sleutel. Om een ander adres te gebruiken, voegt u dat toe en verwijdert u het oude. Een naam die een dashboard of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.
 
 Een domein aan het project toevoegen vereist de machtiging om projectdomeinen aan te maken (**Create Domain**, of Projecteigenaar of Projectbeheerder), en het verifiëren vereist **Edit Domain**. Zonder die machtigingen zegt het dialoogvenster wie het kan doen.
 

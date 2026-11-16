@@ -1225,12 +1225,13 @@ const DataMigrations: Array<DataMigrationBase> = [
   new EncryptUploadedCertificateKeys(),
   /*
    * The private keys of the free certificates ordered from Let's Encrypt
-   * (AcmeCertificate.certificateKey), and the account and certificate keys
-   * the Greenlock store it replaced kept (GreenlockCertificate.blob), stored
-   * as plaintext before they were kept encrypted at rest: each encrypted in
-   * place, in raw SQL, only while it still holds the value read. Paged and
-   * idempotent; nginx serves a key not encrypted yet as itself meanwhile.
-   * Before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   * (AcmeCertificate.certificateKey), stored as plaintext before they were
+   * kept encrypted at rest: each encrypted in place, in raw SQL, only while
+   * it still holds the value read. Paged and idempotent; nginx serves a key
+   * not encrypted yet as itself meanwhile. The keys the Greenlock store kept
+   * are not encrypted: a schema migration drops its tables first
+   * (DropGreenlockTables1809182470000). Before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptLetsEncryptKeys(),
   /*
