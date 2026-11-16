@@ -61,7 +61,7 @@ import UserWebAuthnService from "./UserWebAuthnService";
 import TwoFactorWrongCodes from "../Utils/TwoFactorWrongCodes";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
-import { getPasswordValidationError } from "../../Types/Password";
+import NewPasswordRule from "../Utils/NewPasswordRule";
 import {
   normalizeUserLanguageToStore,
   UNSUPPORTED_USER_LANGUAGE_MESSAGE,
@@ -376,6 +376,12 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     /*
+     * The one password rule, for a new account's password however it came:
+     * sign up, a master admin's Create User, the API (Utils/NewPasswordRule).
+     */
+    NewPasswordRule.assertMet(createBy.data.password);
+
+    /*
      * The enterprise seat limit, enforced here because this is the one place
      * every new user passes through: team invitations, self-service signup,
      * SSO/OIDC just-in-time provisioning, SCIM, and the Admin Dashboard all
@@ -558,6 +564,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     this.normalizeLanguage(updateBy.data as unknown as JSONObject);
+
+    /*
+     * The one password rule, for a new password however it came: a reset
+     * link, Update Password, a master admin's Set Password, the API
+     * (Utils/NewPasswordRule). Only a new one: signing in writes none.
+     */
+    NewPasswordRule.assertMet(updateBy.data.password);
 
     let carryForward: Array<Model> = [];
 
@@ -1792,13 +1805,8 @@ export class Service extends DatabaseService<Model> {
     userId: ObjectID;
     password: string;
   }): Promise<void> {
-    const validationError: string | null = getPasswordValidationError(
-      data.password,
-    );
-
-    if (validationError) {
-      throw new BadDataException(validationError);
-    }
+    // Before the user is looked up: a weak password is refused for anybody.
+    NewPasswordRule.assertMet(data.password);
 
     const user: Model | null = await this.findOneBy({
       query: {

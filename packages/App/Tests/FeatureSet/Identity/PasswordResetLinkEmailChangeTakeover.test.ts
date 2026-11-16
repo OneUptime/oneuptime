@@ -535,7 +535,9 @@ describe("Identity password reset — a link must not outlive the address it was
       });
 
       expect(replay.nextError).toBeNull();
-      expect(lastErrorMessage()).toContain("Invalid link");
+      expect(lastErrorMessage()).toContain(
+        "has already been used or is not valid",
+      );
       expect(row.password).toBe("aVeryG00dPassword!");
     });
   });
@@ -567,7 +569,9 @@ describe("Identity password reset — a link must not outlive the address it was
       });
 
       expect(result.nextError).toBeNull();
-      expect(lastErrorMessage()).toContain("Invalid link");
+      expect(lastErrorMessage()).toContain(
+        "has already been used or is not valid",
+      );
     });
 
     it("writes no password and revokes no sessions when it refuses", async () => {
@@ -633,7 +637,7 @@ describe("Identity password reset — a link must not outlive the address it was
       });
 
       expect(result.nextError).toBeNull();
-      expect(lastErrorMessage()).toContain("Expired link");
+      expect(lastErrorMessage()).toContain("has expired");
       expect(row.password).toBe("the-old-hashed-password");
     });
 

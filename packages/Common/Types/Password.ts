@@ -1,20 +1,25 @@
 /*
- * The password rules, in one place, so the form that collects a password and
+ * The one password rule, in one place, so a form that collects a password and
  * the endpoint that stores it cannot disagree about what is acceptable.
  *
- * Every password form in OneUptime has historically carried its own inline
- * `minLength: 6`, and no server-side check existed at all -- the browser was
- * the only thing enforcing it. That is fine right up until a password arrives
- * from somewhere that is not the browser, which is exactly what an admin API
- * is. These constants and `getPasswordValidationError` live in Common/Types
- * (not Common/Server) precisely so the browser can import them too.
+ * Every form that sets a password - sign up, Reset Password (OneUptime's and a
+ * status page's), the Dashboard's Update Password, and Admin Dashboard's
+ * Create User and Set Password - checks it as the person types and shows its
+ * checklist (UI/Components/PasswordRequirements). The server checks it again
+ * wherever a password is written: UserService and StatusPagePrivateUserService
+ * refuse a new password that breaks it (Server/Utils/NewPasswordRule), however
+ * it arrived. Sign-up, the reset routes and Set Password ask it first, to
+ * answer before anything else happens.
+ *
+ * It is a rule for a NEW password only. Signing in never checks it, so a
+ * password set before the rule existed keeps working until its owner changes
+ * it (#9123). A sign-in form never checks a password's length either.
+ *
+ * It lives in Common/Types (not Common/Server) so the browser can import it.
  */
 
-/*
- * Keep the existing minimum for password-management flows. New account
- * signup uses the stronger policy below.
- */
-export const MINIMUM_PASSWORD_LENGTH: number = 6;
+// Long enough to be a passphrase: a few unrelated words.
+export const MINIMUM_PASSWORD_LENGTH: number = 15;
 
 /*
  * An upper bound, so a caller cannot hand the hasher an arbitrarily large
@@ -25,9 +30,7 @@ export const MINIMUM_PASSWORD_LENGTH: number = 6;
  */
 export const MAXIMUM_PASSWORD_LENGTH: number = 100;
 
-export const MINIMUM_SIGNUP_PASSWORD_LENGTH: number = 15;
-
-const COMMON_SIGNUP_PASSWORDS: Set<string> = new Set([
+const COMMON_PASSWORDS: Set<string> = new Set([
   "password",
   "oneuptime",
   "letmein",
@@ -37,15 +40,41 @@ const COMMON_SIGNUP_PASSWORDS: Set<string> = new Set([
   "changeme",
 ]);
 
-const REPEATED_SIGNUP_PASSWORD_PATTERN: RegExp = /^(.{1,14})\1+$/u;
+const REPEATED_PASSWORD_PATTERN: RegExp = /^(.{1,14})\1+$/u;
+
+/*
+ * The rule's refusals. Each is a sentence that says what to do, and each is a
+ * key in the locales of every app with a form that sets a password, so a form
+ * shows the server's refusal in the reader's language.
+ */
+export const PASSWORD_RULE_MESSAGES: {
+  required: string;
+  notText: string;
+  blank: string;
+  tooShort: string;
+  tooLong: string;
+  predictable: string;
+} = {
+  required: "Password is required.",
+  notText: "Password must be a string.",
+  blank: "Password cannot be blank.",
+  tooShort: `Password must be at least ${MINIMUM_PASSWORD_LENGTH} characters.`,
+  tooLong: `Password cannot be more than ${MAXIMUM_PASSWORD_LENGTH} characters.`,
+  predictable: "Choose a less predictable password. Try a few unrelated words.",
+};
+
+// A password's length as a person counts it: an emoji is one character.
+export function getPasswordLength(password: string): number {
+  return Array.from(password).length;
+}
 
 /**
- * Check obvious patterns independently of length so signup can show each
- * requirement as the user types. Blank input returns true so an empty form
+ * Check obvious patterns independently of length so a form can show each
+ * requirement as the person types. Blank input returns true so an empty form
  * cannot complete this requirement.
  * Passing this check alone does not mean the password is valid or strong.
  */
-export function isPredictableSignupPassword(password: string): boolean {
+export function isPredictablePassword(password: string): boolean {
   if (password.trim().length === 0) {
     return true;
   }
@@ -67,76 +96,51 @@ export function isPredictableSignupPassword(password: string): boolean {
   });
 
   return (
-    REPEATED_SIGNUP_PASSWORD_PATTERN.test(comparable) ||
-    COMMON_SIGNUP_PASSWORDS.has(comparable.replace(/\d+$/u, "")) ||
+    REPEATED_PASSWORD_PATTERN.test(comparable) ||
+    COMMON_PASSWORDS.has(comparable.replace(/\d+$/u, "")) ||
     isSequence
   );
 }
 
-/** New accounts use a stronger policy; existing credentials remain valid. */
-export function getSignupPasswordValidationError(
-  password: unknown,
-): string | null {
-  if (password === undefined || password === null || password === "") {
-    return "Password is required.";
-  }
-
-  if (typeof password !== "string") {
-    return "Password must be a string.";
-  }
-
-  if (password.trim().length === 0) {
-    return "Password cannot be blank.";
-  }
-
-  // Count Unicode characters, including emoji, once each. Never alter the secret.
-  const length: number = Array.from(password).length;
-
-  if (length < MINIMUM_SIGNUP_PASSWORD_LENGTH) {
-    return `Password must be at least ${MINIMUM_SIGNUP_PASSWORD_LENGTH} characters.`;
-  }
-
-  if (length > MAXIMUM_PASSWORD_LENGTH) {
-    return `Password cannot be more than ${MAXIMUM_PASSWORD_LENGTH} characters.`;
-  }
-
-  if (isPredictableSignupPassword(password)) {
-    return "Choose a less predictable password. Try a few unrelated words.";
-  }
-
-  return null;
-}
-
 /**
- * Why this password is unacceptable, or null if it is fine.
+ * Why this new password is unacceptable, or null if it is fine.
  *
  * Returns a message rather than throwing so the same function can back a
  * browser-side form validator and a server-side guard -- the server wraps the
  * message in the exception type it wants to return.
  *
  * Length is measured on the raw value, NOT a trimmed one: a password is a
- * secret the user typed, and silently trimming it would store something other
- * than what they entered and then fail to match it at login. A value that is
- * *only* whitespace is rejected outright, though -- that is a mistake, not a
- * password.
+ * secret the person typed, and silently trimming it would store something
+ * other than what they entered and then fail to match it at sign-in. A value
+ * that is *only* whitespace is rejected outright, though -- that is a mistake,
+ * not a password.
  */
-export function getPasswordValidationError(
-  password: string | undefined | null,
-): string | null {
+export function getPasswordValidationError(password: unknown): string | null {
   if (password === undefined || password === null || password === "") {
-    return "Password is required.";
+    return PASSWORD_RULE_MESSAGES.required;
+  }
+
+  if (typeof password !== "string") {
+    return PASSWORD_RULE_MESSAGES.notText;
   }
 
   if (password.trim().length === 0) {
-    return "Password cannot be blank.";
+    return PASSWORD_RULE_MESSAGES.blank;
   }
 
-  if (password.length < MINIMUM_PASSWORD_LENGTH) {
-    return `Password cannot be less than ${MINIMUM_PASSWORD_LENGTH} characters.`;
+  // Count Unicode characters, including emoji, once each. Never alter the secret.
+  const length: number = getPasswordLength(password);
+
+  if (length < MINIMUM_PASSWORD_LENGTH) {
+    return PASSWORD_RULE_MESSAGES.tooShort;
   }
 
-  if (password.length > MAXIMUM_PASSWORD_LENGTH) {
-    return `Password cannot be more than ${MAXIMUM_PASSWORD_LENGTH} characters.`;
+  if (length > MAXIMUM_PASSWORD_LENGTH) {
+    return PASSWORD_RULE_MESSAGES.tooLong;
+  }
+
+  if (isPredictablePassword(password)) {
+    return PASSWORD_RULE_MESSAGES.predictable;
   }
 
   return null;
