@@ -969,6 +969,38 @@ describe("a button's value", () => {
     expect(read?.fingerprint).toBe("0123456789abcdef");
   });
 
+  test("on a dialog's Approve, carries the step its press was offered as, and reads it back", () => {
+    const firstApprover: string = "90000000-0000-4000-8000-0000000000aa";
+
+    for (const approvalStep of ["only", "first", `second:${firstApprover}`]) {
+      const written: string = RemediationChatMessage.encodeActionValue({
+        suggestionId: SUGGESTION_ID,
+        fingerprint: "0123456789abcdef",
+        approvalStep,
+      });
+
+      expect(written).toBe(
+        `${SUGGESTION_ID.toString()}:0123456789abcdef:${approvalStep}`,
+      );
+      // Within what Slack and Teams carry on a button.
+      expect(written.length).toBeLessThanOrEqual(128);
+
+      const read: RemediationActionValue | null =
+        RemediationChatMessage.decodeActionValue(written);
+
+      expect(read?.suggestionId.toString()).toBe(SUGGESTION_ID.toString());
+      expect(read?.fingerprint).toBe("0123456789abcdef");
+      expect(read?.approvalStep).toBe(approvalStep);
+    }
+
+    // A message's own buttons carry no step, as before.
+    expect(
+      RemediationChatMessage.decodeActionValue(
+        `${SUGGESTION_ID.toString()}:0123456789abcdef`,
+      )?.approvalStep,
+    ).toBeUndefined();
+  });
+
   test("anything this message could not have written reads as nothing", () => {
     for (const value of [
       undefined,
@@ -980,6 +1012,10 @@ describe("a button's value", () => {
       `not-a-uuid:${"0".repeat(16)}`,
       `${SUGGESTION_ID.toString()}:`,
       `${SUGGESTION_ID.toString()}:${"0".repeat(200)}`,
+      // A step this code never wrote.
+      `${SUGGESTION_ID.toString()}:0123456789abcdef:`,
+      `${SUGGESTION_ID.toString()}:0123456789abcdef:third`,
+      `${SUGGESTION_ID.toString()}:0123456789abcdef:second:Maya`,
     ]) {
       expect(RemediationChatMessage.decodeActionValue(value)).toBeNull();
     }

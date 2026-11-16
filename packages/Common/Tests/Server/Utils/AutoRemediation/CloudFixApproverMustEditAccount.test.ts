@@ -177,6 +177,8 @@ function suggestionRow(cloud: Cloud): Record<string, unknown> {
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     resourceType: cloud.type,
     resourceId: new ObjectID(CLOUD_ACCOUNT_ID),

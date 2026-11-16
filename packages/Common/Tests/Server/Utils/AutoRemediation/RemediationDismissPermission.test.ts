@@ -106,6 +106,8 @@ function runbookRow(
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.Runbook,
     runbookId: RUNBOOK_ID,
     runbookNameSnapshot: "Restart checkout",

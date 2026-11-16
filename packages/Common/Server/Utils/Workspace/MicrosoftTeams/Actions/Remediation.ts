@@ -149,10 +149,10 @@ export default class MicrosoftTeamsRemediationActions {
       data.actionType ===
       MicrosoftTeamsRemediationActionType.SubmitApproveRemediation
     ) {
-      let approved: WorkspaceAnswer;
+      let answer: WorkspaceAnswer;
 
       try {
-        approved = await WorkspaceRemediationActions.approve({
+        answer = await WorkspaceRemediationActions.approve({
           props,
           value,
           from: WorkspaceType.MicrosoftTeams,
@@ -165,32 +165,25 @@ export default class MicrosoftTeamsRemediationActions {
 
         /*
          * The card no longer says what its press does (someone else
-         * approved first, or the rule changed): nothing was done. The
-         * presser is told to review the fix again, and the stale card is
-         * taken away so nobody in the channel presses it again.
+         * approved first, or the rule changed): nothing was done, and the
+         * presser is told to review the fix again.
          */
-        await MicrosoftTeamsActionAnswer.reply({
-          turnContext: data.turnContext,
-          answer: {
-            markdown: mdText`${err.message}`.toString(),
-            text: err.message,
-          },
-        });
-        await MicrosoftTeamsReplies.deleteBestEffort(
-          data.turnContext,
-          data.turnContext.activity.replyToId,
-        );
-        return;
+        answer = {
+          markdown: mdText`${err.message}`.toString(),
+          text: err.message,
+        };
       }
 
       /*
-       * Confirmed, then the approval card is removed - best-effort, as
-       * every submitted form is (MicrosoftTeamsReplies): it has done its
-       * work, and left on screen it would invite a second press.
+       * Confirmed (or told to review it again), then the approval card is
+       * removed - best-effort, as every submitted form is
+       * (MicrosoftTeamsReplies): it has done its work, or no longer says
+       * what pressing it does, and left on screen it would invite another
+       * press from anyone in the channel.
        */
       await MicrosoftTeamsActionAnswer.reply({
         turnContext: data.turnContext,
-        answer: approved,
+        answer,
       });
       await MicrosoftTeamsReplies.deleteBestEffort(
         data.turnContext,

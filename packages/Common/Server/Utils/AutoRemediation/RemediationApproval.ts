@@ -1583,8 +1583,6 @@ export default class RemediationApproval {
       throw new BadDataException("This suggestion has no project.");
     }
 
-    const atVersion: number = readRowVersion(suggestion);
-
     /*
      * What the fix runs, checked as it is now - its kind's own checks -
      * and the project as read, for its two-approvals rule:
@@ -1650,6 +1648,9 @@ export default class RemediationApproval {
     });
 
     await assertMayPress({ props, step, expectedStep: data.expectedStep });
+
+    // Every claim below lands only on the version all of the above read.
+    const atVersion: number = readRowVersion(suggestion);
 
     if (step.kind === RemediationApprovalStepKind.First) {
       const isRecorded: boolean = await claimOrSeeMoved({

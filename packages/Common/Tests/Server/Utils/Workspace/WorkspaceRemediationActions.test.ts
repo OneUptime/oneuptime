@@ -381,8 +381,9 @@ describe("the approval dialog", () => {
       "Scale the ECS service checkout-api out to 8 tasks",
     );
     expect(dialog?.markdown).toContain("Approving runs exactly what is shown");
+    // The fix, what it runs, and what its press does: the only approval it needs.
     expect(dialog?.value).toBe(
-      `${SUGGESTION_ID.toString()}:${getRemediationPlanFingerprint(row)}`,
+      `${SUGGESTION_ID.toString()}:${getRemediationPlanFingerprint(row)}:only`,
     );
 
     /*

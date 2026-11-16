@@ -107,6 +107,8 @@ function base(): Record<string, unknown> {
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     verificationWindowMinutes: 15,
   };
 }
