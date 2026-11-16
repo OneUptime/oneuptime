@@ -358,7 +358,7 @@ describe("in every language", () => {
 describe("a monitor's interval", () => {
   test("in English without a translator, as it always read", () => {
     expect(MonitorCheckScheduleUtil.describeInterval("*/5 * * * *")).toBe(
-      "Every 5 minutes",
+      "Every 5\u00A0minutes",
     );
     expect(MonitorCheckScheduleUtil.describeInterval(undefined)).toBe(
       "Every minute",

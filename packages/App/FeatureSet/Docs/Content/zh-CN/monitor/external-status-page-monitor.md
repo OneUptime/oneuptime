@@ -1,6 +1,6 @@
 # 外部状态页监控
 
-外部状态页监视器会关注你所依赖的服务（AWS、GCP、Azure、GitHub、OpenAI、Anthropic 等众多服务）的公开状态页，并在该服务商报告故障或性能下降时向你告警。用它在服务商报告上游问题的第一时间得知，并把这些问题与你自己的问题区分开。
+外部状态页监视器会关注你所依赖的服务（AWS、GCP、Azure、GitHub、OpenAI、Anthropic 等众多服务）的公开状态页，并在该服务商报告故障或性能下降时向你警报。用它在服务商报告上游问题的第一时间得知，并把这些问题与你自己的问题区分开。
 
 它也能逐个资源读取用 OneUptime 制作的状态页，并区分计划维护与故障：监视另一个团队的项目，或状态页运行在 OneUptime 上的服务商。
 
@@ -29,7 +29,7 @@ flowchart TB
 可以用它来：
 
 - 监控你的应用所依赖的第三方服务的可用性
-- 在上游服务商发生故障时收到告警
+- 在上游服务商发生故障时收到警报
 - 跟踪各个组件的状态
 - 只关注你依赖的组件（例如 GitHub 的 Git Operations 和 Pull Requests，或 OpenAI 的 "APIs" 组），这样页面上其他无关的事件就不会触发你的监视器
 - 在性能下降影响用户之前发现它
@@ -135,7 +135,7 @@ flowchart TB
 | **外部状态页活动事件数** | 状态页上当前进行中的事件数（选择了组件或组时，只计算影响范围内组件的事件） | 等于、不等于以及数值比较 |
 | **外部状态页响应时间（毫秒）** | 获取状态页数据所花的时间 | 大于、小于、大于或等于、小于或等于 |
 
-整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。选择了组件或组时，无论是哪种页面，它都是其中最差的状态。这些比较区分大小写。监视器摘要会像显示每个组件的状态一样，用文字和颜色显示整体状态（`under_maintenance` 显示为 **维护中**），而条件比较的是页面报告的值。要针对故障告警，**外部状态页活动事件数** 和 **外部状态页组件状态** 通常更可靠。
+整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。选择了组件或组时，无论是哪种页面，它都是其中最差的状态。这些比较区分大小写。监视器摘要会像显示每个组件的状态一样，用文字和颜色显示整体状态（`under_maintenance` 显示为 **维护中**），而条件比较的是页面报告的值。要针对故障警报，**外部状态页活动事件数** 和 **外部状态页组件状态** 通常更可靠。
 
 对于 RSS 或 Atom 订阅源，最近 24 小时内的条目算作进行中的事件：RSS 条目按发布日期，Atom 条目按更新日期。日期在未来的条目要到该日期才计入。
 
@@ -198,7 +198,7 @@ flowchart TB
 
 ## 模板变量
 
-从外部状态页监视器创建事件或告警时，你可以在标题、描述和修复说明中使用这些变量（参见 [事件与告警模板](/docs/monitor/incident-alert-templating)）：
+从外部状态页监视器创建事件或警报时，你可以在标题、描述和修复说明中使用这些变量（参见 [事件与警报模板](/docs/monitor/incident-alert-templating)）：
 
 | 变量 | 说明 |
 | ------------------------- | ------------------------------------------------------------------------------- |
@@ -278,7 +278,7 @@ flowchart TB
 ## 后续步骤
 
 :::cards
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 把服务商的状态放进事件标题。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 把服务商的状态放进事件标题。
 - [API 监控](/docs/monitor/api-monitor): 在服务商状态之外检查你自己的端点。
 - [创建监视器](/docs/monitor/create-monitor): 所有监视器类型共有的步骤。
 :::

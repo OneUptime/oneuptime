@@ -42,7 +42,7 @@ Alles andere finden Sie im Dashboard.
 :::
 
 :::details Kann ich einen Alarm direkt in der Benachrichtigung bestätigen?
-Nein. Tippen Sie auf die Benachrichtigung: Die App öffnet den Vorfall, die Warnung, die Episode oder den Sicherheitsfall, um den es geht, im richtigen Projekt, und dort bestätigen Sie. Ist die App gesperrt oder sind Sie abgemeldet, öffnet sie den Alarm, sobald Sie drin sind.
+Nein. Tippen Sie auf die Benachrichtigung: Die App öffnet den Vorfall, die Warnung, die Episode oder den Sicherheitsfall, um den es geht, im richtigen Projekt, und dort bestätigen Sie. Ist die App gesperrt oder sind Sie abgemeldet, öffnet sie die Warnung, sobald Sie drin sind.
 :::
 
 :::details Ist meine Anmeldung auf dem Telefon sicher?
@@ -64,7 +64,7 @@ Das braucht sie nicht. Die App lädt das Dashboard bei jedem Öffnen von Ihrem O
 :::
 
 :::details Kann sie mich wecken wie das Telefon?
-Nein. Browser können „Nicht stören“ oder einen Fokus nicht übergehen, eine Desktop-Benachrichtigung ist also nur so laut, wie der Computer es zulässt. Für Alarme, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen.
+Nein. Browser können „Nicht stören“ oder einen Fokus nicht übergehen, eine Desktop-Benachrichtigung ist also nur so laut, wie der Computer es zulässt. Für Warnungen, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen.
 :::
 
 :::details Funktioniert sie offline?
@@ -135,7 +135,7 @@ Stellen Sie die Akkunutzung der App in den Android-Einstellungen für OneUptime 
 :::
 
 :::details Kritische Warnungen durchbrechen den Stummmodus nicht
-Öffnen Sie in der App **Settings**: Die Zeile unter **Critical On-Call Alerts** sagt, was auf diesem Telefon fehlt. Prüfen Sie dann unter **Benutzereinstellungen → Wie ich erreichbar bin**, dass die Bereitschaftsregel, die den Alarm geschickt hat, auf **Kritische Warnung** steht, nicht auf **Normal**. Jedes Telefon hat seinen eigenen Schalter.
+Öffnen Sie in der App **Settings**: Die Zeile unter **Critical On-Call Alerts** sagt, was auf diesem Telefon fehlt. Prüfen Sie dann unter **Benutzereinstellungen → Wie ich erreichbar bin**, dass die Bereitschaftsregel, die die Warnung geschickt hat, auf **Kritische Warnung** steht, nicht auf **Normal**. Jedes Telefon hat seinen eigenen Schalter.
 :::
 
 ### Desktop-App

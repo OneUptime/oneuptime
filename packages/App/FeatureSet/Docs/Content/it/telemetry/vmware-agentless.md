@@ -28,7 +28,7 @@ Ogni pochi minuti la sonda accede a vCenter con l'account che hai salvato, legge
 | Dove è conservato l'account | Crittografato in OneUptime, inviato solo alla sonda | Nel file `.env` dell'agent |
 | Cosa deve raggiungere | vCenter sulla porta TCP 443, dalla sonda | vCenter sulla porta TCP 443, dall'agent |
 | vCenter più grande | Circa 48 MiB di metriche per raccolta | Nessun limite |
-| Syslog ESXi e l'agent AI | Non inclusi | Inclusi |
+| Syslog ESXi e l'agent IA | Non inclusi | Inclusi |
 
 Entrambi inviano gli stessi dati. Puoi passare un vCenter dall'uno all'altro in qualsiasi momento dalla sua pagina **Impostazioni**.
 

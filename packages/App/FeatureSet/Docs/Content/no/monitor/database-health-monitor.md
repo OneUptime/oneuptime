@@ -248,7 +248,7 @@ På Azure SQL Database leser du `VIEW DATABASE STATE` der denne tabellen sier `V
 
 | Hva som feiler | Monitorstatus | Hva du ser |
 |---|---|---|
-| **Tilkoblingen** eller testspørringen — feil påloggingsinformasjon, avvist tilkobling, TLS-feil, tidsavbrudd ved tilkobling | **Frakoblet** | `Database Is Online` er false, og hendelsen og vaktpolicyen du har knyttet til den, utløses. |
+| **Tilkoblingen** eller testspørringen — feil påloggingsinformasjon, avvist tilkobling, TLS-feil, tidsavbrudd ved tilkobling | **Offline** | `Database Is Online` er false, og hendelsen og vaktpolicyen du har knyttet til den, utløses. |
 | **En gruppe** — en manglende rettighet, en avslått `performance_schema`, et tidsavbrudd for en setning | **Forblir online** | Målingene gruppen ikke kunne lese, **mangler** — de er ikke null. Ingen graflinje tegnes, ingen terskel på de seriene kan slå til, og ingen hendelse kan oppstå fra dem. Kontrollen registrerer ett innsamlingsproblem som nevner gruppen, årsaken og — der det finnes en — den nøyaktige `GRANT`-en som skal kjøres; det vises i monitorens sammendrag og telles i **Mislykkede målingsgrupper**. |
 | **Motoren kan ikke levere en måling i det hele tatt** — standard-MySQL har ingen teller for vranglåser; SQL Server lar tilkoblingstaket være ubegrenset som standard, så en «brukt prosent» ville vært meningsløs | **Forblir online** | Målingen mangler rett og slett. Dette er **ikke** et innsamlingsproblem, teller ikke i **Mislykkede målingsgrupper** og er ikke noe som skal fikses. Se kolonnen Engines under [Innsamlede målinger](#innsamlede-målinger). |
 
@@ -408,7 +408,7 @@ For en terskel på én enkelt måling bør du bruke **Databasemåling** fremfor 
 
 | Rekkefølge | Kriterier | Filter |
 |---|---|---|
-| 1 | **Frakoblet** | `Database Is Online` er `false`. |
+| 1 | **Offline** | `Database Is Online` er `false`. |
 | 2 | **Redusert** | `Database Metric` → **Brukte tilkoblinger** er større enn `90`, evaluert over 5 minutter med All Values, slik at én enkelt topp ikke tilkaller noen. |
 | 3 | **Redusert** | `Database Metric` → **Brukte transaksjons-ID-er** er større enn `80`. |
 | 4 | **Redusert** | `Database Metric` → **Blokkerte økter** er større enn `0`, over 5 minutter. |
@@ -429,8 +429,8 @@ Knytt en vaktpolicy til offline-kriteriet, og la alt som er avledet av **Mislykk
 
 ## Feilsøking
 
-:::details Monitoren er frakoblet, men databasen kjører
-Frakoblet betyr at sonden ikke kunne koble til, eller at testspørringen feilet: verten eller porten kan ikke nås fra sonden, påloggingen ble avvist, TLS feilet eller tilkoblingen fikk tidsavbrudd. Monitorens sammendrag viser feilen. Sjekk at sonden kan nå databasen (en sonde som OneUptime drifter, trenger en offentlig adresse; bruk ellers en [egendefinert sonde](/docs/probe/custom-probe)), sjekk brukernavnet og passordet eller monitorhemmeligheten for det, og slå av **Verify server certificate** for et selvsignert sertifikat. Klikk deretter på **Test monitor** for å sjekke igjen.
+:::details Monitoren er offline, men databasen kjører
+Offline betyr at sonden ikke kunne koble til, eller at testspørringen feilet: verten eller porten kan ikke nås fra sonden, påloggingen ble avvist, TLS feilet eller tilkoblingen fikk tidsavbrudd. Monitorens sammendrag viser feilen. Sjekk at sonden kan nå databasen (en sonde som OneUptime drifter, trenger en offentlig adresse; bruk ellers en [egendefinert sonde](/docs/probe/custom-probe)), sjekk brukernavnet og passordet eller monitorhemmeligheten for det, og slå av **Verify server certificate** for et selvsignert sertifikat. Klikk deretter på **Test monitor** for å sjekke igjen.
 :::
 
 :::details **Tilkoblinger**, **Aktivitet** og **Låser og blokkeringer** mangler på PostgreSQL

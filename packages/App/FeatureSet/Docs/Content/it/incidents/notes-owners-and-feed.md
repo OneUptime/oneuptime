@@ -142,8 +142,8 @@ L'editor ha un pulsante **Bozza con IA**, su entrambe le pagine delle note e nel
 
 | Finestra                               | Che cosa scrive                                                      | Modelli                                                           |
 | -------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Genera nota pubblica con l'AI**       | Una nota rivolta ai clienti, da un'analisi dei dati dell'incidente.  | **Status Update**, **Resolution Notice**, **Maintenance Update**  |
-| **Genera nota privata con l'AI**      | Una nota tecnica interna.                                            | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
+| **Genera nota pubblica con l'IA**       | Una nota rivolta ai clienti, da un'analisi dei dati dell'incidente.  | **Status Update**, **Resolution Notice**, **Maintenance Update**  |
+| **Genera nota privata con l'IA**      | Una nota tecnica interna.                                            | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
 
 Dietro il pulsante, la dashboard invia una richiesta a `/incident/generate-note-from-ai/{incidentId}` con il modello scelto e un tipo di nota `public` o `internal`.
 

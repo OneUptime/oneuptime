@@ -64,7 +64,7 @@ Fäll ut **Säkerhet** i sidomenyn i **Användarprofil**. Avsnittet har tre sido
 | --- | --- |
 | **Lösenordshantering** | Ange ett nytt lösenord. |
 | **Passkeys** | Logga in utan lösenord, med ditt fingeravtryck, ditt ansikte, skärmlåset eller en säkerhetsnyckel. |
-| **Two-factor authentication** | Kräv ett andra steg efter lösenordet eller en länk via e-post: en kod från en app, eller en säkerhetsnyckel. |
+| **Tvåfaktorsautentisering** | Kräv ett andra steg efter lösenordet eller en länk via e-post: en kod från en app, eller en säkerhetsnyckel. |
 
 ### Byt lösenord
 
@@ -108,7 +108,7 @@ Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en l
 :::steps
 ### Lägg till en autentiseringsapp
 
-Öppna **Säkerhet → Two-factor authentication**. Under **Authenticator apps** lägger du till en app och ger den ett namn. Skanna QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, ange den sexsiffriga koden som den visar och klicka på **Verify and finish**. Vill du hellre använda en USB- eller NFC-nyckel lägger du till den under **Security keys**.
+Öppna **Säkerhet → Tvåfaktorsautentisering**. Under **Authenticator apps** lägger du till en app och ger den ett namn. Skanna QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, ange den sexsiffriga koden som den visar och klicka på **Verify and finish**. Vill du hellre använda en USB- eller NFC-nyckel lägger du till den under **Security keys**.
 
 ### Spara dina reservkoder
 
@@ -116,7 +116,7 @@ Första gången du lägger till en app, en nyckel eller en passnyckel visar OneU
 
 ### Slå på den
 
-Klicka på **Enable two-factor authentication** högst upp på sidan och bekräfta. Kortet visar nu **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
+Klicka på **Aktivera tvåfaktorsautentisering** högst upp på sidan och bekräfta. Kortet visar nu **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
 :::
 
 > [!TIP]
@@ -163,7 +163,7 @@ Loggar du in igen skickas en ny länk: titta även i skräppostmappen. Kan du in
 :::
 
 :::details Jag har tappat bort min autentiseringsapp
-I inloggningens andra steg väljer du **Förlorat åtkomsten till din autentiseringsapp?** och anger en av dina reservkoder. Öppna sedan **Säkerhet → Two-factor authentication** och lägg till din nya app. Utan reservkoder ber du en administratör för din OneUptime-installation att återställa tvåfaktorsautentiseringen för ditt konto.
+I inloggningens andra steg väljer du **Förlorat åtkomsten till din autentiseringsapp?** och anger en av dina reservkoder. Öppna sedan **Säkerhet → Tvåfaktorsautentisering** och lägg till din nya app. Utan reservkoder ber du en administratör för din OneUptime-installation att återställa tvåfaktorsautentiseringen för ditt konto.
 :::
 
 :::details Inloggningen ber mig vänta innan jag provar en annan kod

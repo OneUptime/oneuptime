@@ -64,8 +64,8 @@ Ein PagerDuty-Plan bleibt ein OneUptime-Plan: Seine Ebenen haben Vorrang voreina
 
 ## Was nicht übernommen wird
 
-- **Vorfälle, Alarme und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Vorfällen.
-- **Integrationen, Event Orchestrations, Incident Workflows und Statusseiten.** Richten Sie stattdessen Ihre Monitore und Alarmquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
+- **Vorfälle, Warnungen und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Vorfällen.
+- **Integrationen, Event Orchestrations, Incident Workflows und Statusseiten.** Richten Sie stattdessen Ihre Monitore und Warnungsquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
 - **Plan-Überschreibungen und bereits beendete Ebenen.** Legen Sie die Überschreibungen, die Sie noch brauchen, nach dem Import in OneUptime an.
 - **Schichtbasierte Pläne.** Der Import liest die Pläne mit Ebenen von PagerDuty, nicht die neueren schichtbasierten Pläne (shift-based schedules). Wenn Ihr Konto welche hat, sagt die Vorschau das ganz oben, und eine Eskalationsregel, die einen davon alarmiert, wird ohne ihn übernommen. Legen Sie sie in OneUptime an.
 - **Die Benachrichtigungsregeln der einzelnen Personen.** Personen wählen in ihren eigenen **Benutzereinstellungen**, wie sie alarmiert werden, sobald sie ihre Einladung annehmen.
@@ -91,8 +91,8 @@ Eingeladene Personen nehmen ihre Einladung an und fügen dann eine Telefonnummer
 ### Ihre Vorfallnummern fortsetzen
 Wenn Ihr Team Vorfälle bei ihrer Nummer nennt, lassen Sie die Nummern von OneUptime nach Ihrer letzten in PagerDuty beginnen: Setzen Sie unter **Vorfälle** > **Einstellungen** > **Nummerierung** auf der Karte **Nächste Nummer** die **Nächste Vorfallnummer** auf die Nummer danach. Eine Nummer bezeichnet dann nie zwei verschiedene Vorfälle.
 
-### Alarme an OneUptime senden
-Richten Sie Ihre Monitore und die Tools, die Alarme auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
+### Warnungen an OneUptime senden
+Richten Sie Ihre Monitore und die Tools, die Warnungen auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
 
 ### Die Alarmierung in PagerDuty ausschalten
 Sobald OneUptime die richtigen Personen alarmiert, schalten Sie die Benachrichtigungen in PagerDuty aus, damit niemand doppelt alarmiert wird.

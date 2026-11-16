@@ -74,7 +74,7 @@ På en underside registrerer konteksten også poden, containeren, VM-en, prosess
 
 - Den kjører bare de skrivebeskyttede kommandoene en AI-undersøkelse kan kjøre på den typen ressurs (se [AI-agenter for infrastrukturen](/docs/ai/infrastructure-ai-agents)), så mange som svaret trenger, kontrollert av OneUptime og igjen av agenten, i alle tillatelsesmoduser. En endring gjennom agenten, for eksempel å starte en tjeneste på nytt, kjøres aldri fra Spør AI: den gir deg i stedet den nøyaktige kommandoen, og agenten gjør bare endringer når OneUptime AI utbedrer en hendelse eller et varsel, etter ressursens egne innstillinger for rettelser. Spør AIs egne handlinger, for eksempel å kjøre en runbook, følger samtalens tillatelsesmodus, som beskrevet nedenfor.
 - Den når bare ressursene du har lov til å se, og bare mens AI-undersøkelse er slått på for ressursen.
-- Når den ikke kan kjøre en kommando der (ingen agent er tilkoblet, agenten er frakoblet, eller AI-undersøkelse er slått av for ressursen), sier den det, sammen med hva som må endres, og svarer i stedet ut fra prosjektets data.
+- Når den ikke kan kjøre en kommando der (ingen agent er tilkoblet, agenten er offline, eller AI-undersøkelse er slått av for ressursen), sier den det, sammen med hva som må endres, og svarer i stedet ut fra prosjektets data.
 
 ## Handlinger og tillatelsesmoduser
 

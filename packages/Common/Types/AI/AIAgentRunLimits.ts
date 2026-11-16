@@ -1,3 +1,4 @@
+import { NO_BREAK_SPACE, withDurationWordsHeld } from "../NoBreakSpaces";
 /*
  * How far one AI run may go before it answers with what it has (issue
  * #6440: "Why is there a budget? Can we remove all of the artificial limits
@@ -678,9 +679,9 @@ export default class AIAgentRunLimitsHelper {
     const minutes: number | null = this.normalizeTimeLimitInMinutes(value);
 
     if (minutes === null) {
-      return `Uses the project's time limit per run: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes unless the project set its own.`;
+      return `Uses the project's time limit per run: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES}${NO_BREAK_SPACE}minutes unless the project set its own.`;
     }
 
-    return `Stops investigating after ${plural(minutes, "minute", "minutes")} and reports what it found.`;
+    return `Stops investigating after ${withDurationWordsHeld(plural(minutes, "minute", "minutes"))} and reports what it found.`;
   }
 }

@@ -284,7 +284,7 @@ Um ein Modell selbst zu bepreisen (ein ausgehandelter Tarif, ein Fine-Tune oder 
 
 ## Tägliche Kostenbudgets
 
-Ein Budget verfolgt die Ausgaben eines Tages in USD, über den UTC-Tag. Alle 15 Minuten addiert OneUptime die KI-Ausgaben des Tages (jeden Dienst aus seinen KI-Aufrufen oder, wenn seine Aufrufe keine Kosten melden, aus seinen Kostenmetriken), zeigt sie am Budget und veröffentlicht zwei Metriken. Ein Budget, dessen **Ausgaben zählen aus** auf **Anbieterkonten** steht, zählt stattdessen, was Ihren verbundenen Konten berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#budgets-und-alarme).
+Ein Budget verfolgt die Ausgaben eines Tages in USD, über den UTC-Tag. Alle 15 Minuten addiert OneUptime die KI-Ausgaben des Tages (jeden Dienst aus seinen KI-Aufrufen oder, wenn seine Aufrufe keine Kosten melden, aus seinen Kostenmetriken), zeigt sie am Budget und veröffentlicht zwei Metriken. Ein Budget, dessen **Ausgaben zählen aus** auf **Anbieterkonten** steht, zählt stattdessen, was Ihren verbundenen Konten berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#budgets-und-warnungen).
 
 | Metrik | Was sie ist |
 | --- | --- |

@@ -285,6 +285,6 @@ OneUptime 会检测这些属性，按指纹把错误归并为 **异常** 中的�
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 也从 .NET 发送追踪和指标。
 - [日志管道](/docs/telemetry/log-pipelines): 在日志到达时解析并丰富它们。
-- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出告警。
+- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出警报。
 - [搜索语法](/docs/telemetry/search-syntax): 按 Serilog 属性筛选。
 :::

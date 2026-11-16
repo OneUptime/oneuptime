@@ -43,7 +43,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Innkomme
 
 ### Gå gjennom kriteriene
 
-Trinnet **Kriterier** starter med [standardkriteriene](#hva-du-får-fra-start), som markerer monitoren som frakoblet når en e-post nevner `error`. Klikk på et kriterium for å endre det, eller klikk på **Legg til kriterier** for å legge til et. Se [Eksempler på konfigurasjoner](#eksempler-på-konfigurasjoner) for vanlige oppsett.
+Trinnet **Kriterier** starter med [standardkriteriene](#hva-du-får-fra-start), som markerer monitoren som offline når en e-post nevner `error`. Klikk på et kriterium for å endre det, eller klikk på **Legg til kriterier** for å legge til et. Se [Eksempler på konfigurasjoner](#eksempler-på-konfigurasjoner) for vanlige oppsett.
 
 ### Opprett monitoren
 
@@ -117,7 +117,7 @@ Fullfør bekreftelsen slik e-posten forteller deg.
 Har det kommet en annen e-post siden, viser kortet ikke lenger bekreftelses-e-posten. Åpne **Overvåkingslogger**, finn bekreftelses-e-posten ut fra emnet i kolonnen **E-post**, og klikk på **Vis sammendrag** på den raden.
 
 > [!IMPORTANT]
-> **Kriteriene dine ser den også.** Bekreftelses-e-posten evalueres som enhver annen e-post. En formulering som "if you received this in error" samsvarer med standardkriteriet `error` og markerer monitoren som frakoblet. For å unngå det slår du av **Sjekk denne monitoren** i kortet **Overvåking** på monitorens side **Innstillinger** mens du bekrefter (du blir bedt om å bekrefte). En monitor med overvåking slått av lagrer fortsatt e-posten, og kortet **Monitor-sammendrag** viser den fortsatt. Den evaluerer likevel ingenting, så e-posten får ingen rad i **Overvåkingslogger**: les den før en annen e-post kommer. Når du er ferdig, trykker du på **Slå på overvåking** i banneret øverst på monitorens sider, eller slår bryteren på igjen.
+> **Kriteriene dine ser den også.** Bekreftelses-e-posten evalueres som enhver annen e-post. En formulering som "if you received this in error" samsvarer med standardkriteriet `error` og markerer monitoren som offline. For å unngå det slår du av **Sjekk denne monitoren** i kortet **Overvåking** på monitorens side **Innstillinger** mens du bekrefter (du blir bedt om å bekrefte). En monitor med overvåking slått av lagrer fortsatt e-posten, og kortet **Monitor-sammendrag** viser den fortsatt. Den evaluerer likevel ingenting, så e-posten får ingen rad i **Overvåkingslogger**: les den før en annen e-post kommer. Når du er ferdig, trykker du på **Slå på overvåking** i banneret øverst på monitorens sider, eller slår bryteren på igjen.
 
 **Bekreftelsen hører til adressen.** Hvis du [tilbakestiller eller tilpasser adressen](#tilbakestill-eller-tilpass-e-postadressen), ser tjenesten en ny mottaker, og du må bekrefte på nytt.
 
@@ -143,7 +143,7 @@ En ny monitor for innkommende e-post opprettes med to kriterier som leser innhol
 
 | Kriterium | Filtertype | Filtervilkår | Verdi | Virkning |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | E-postinnhold  | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
+| Offline  | E-postinnhold  | Inneholder | `error` | Markerer monitoren som offline, åpner en hendelse |
 | Online   | E-postinnhold  | Inneholder ikke | `error` | Markerer monitoren som online |
 
 Dette passer for det vanlige tilfellet der en jobb eller et verktøy fra en tredjepart sender sitt eget resultat på e-post: en melding der innholdet nevner `error`, tar monitoren ned, og den neste meldingen uten ordet får monitoren opp igjen og løser hendelsen. Sammenligningen av innholdet skiller ikke mellom store og små bokstaver, så `Error` og `ERROR` samsvarer også.

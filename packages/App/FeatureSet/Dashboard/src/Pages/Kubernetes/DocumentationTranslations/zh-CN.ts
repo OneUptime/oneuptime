@@ -18,14 +18,14 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `my-cluster` with a name for this cluster, such as `prod-us-east-1`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.":
     "将 `my-cluster` 替换为此集群的名称，例如 `prod-us-east-1`。集群在 OneUptime 中就以此名称显示，所以请保持不变：新名称会注册一个新集群。",
   "`--set aiAgent.enabled=true` turns **AI investigations** on, as the chart does by default: OneUptime AI investigates incidents and alerts on this cluster with read-only kubectl, through the Kubernetes AI agent.":
-    "`--set aiAgent.enabled=true` 会开启 **AI 调查**，与 chart 的默认设置一致：OneUptime AI 通过 Kubernetes AI 代理，使用只读 kubectl 调查此集群上的事件和告警。",
+    "`--set aiAgent.enabled=true` 会开启 **AI 调查**，与 chart 的默认设置一致：OneUptime AI 通过 Kubernetes AI 代理，使用只读 kubectl 调查此集群上的事件和警报。",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
     "在第 1 步中选择一个摄取密钥，以填入 `<YOUR_API_KEY>`。",
   "You should see:": "你应该会看到：",
   "The collector and the Kubernetes AI agent, plus one `-logs` and one `-ebpf` pod on every node. Once they are `Running`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.":
     "收集器和 Kubernetes AI 代理，外加每个节点上各一个 `-logs` 和 `-ebpf` Pod。它们变为 `Running` 后，集群会自动出现在 **Kubernetes** 部分，通常在一两分钟内。",
   "**Kubernetes AI agent (on by default, read-only).** The `kubernetes-agent-ai-agent` pod lets OneUptime AI investigate incidents and alerts on this cluster with read-only kubectl — `get`, `describe`, `logs`, `events`, `top` — using the same API key, and it can change nothing unless you give it write access later. Open the cluster and go to **AI → Agent** to see it. Don't want it? Install with `--set aiAgent.enabled=false` instead of `--set aiAgent.enabled=true`.":
-    "**Kubernetes AI 代理（默认开启，只读）。** `kubernetes-agent-ai-agent` Pod 让 OneUptime AI 使用相同的 API 密钥，以只读 kubectl（`get`、`describe`、`logs`、`events`、`top`）调查此集群上的事件和告警；除非你之后授予它写入权限，否则它无法更改任何内容。打开集群并前往 **人工智能 → 智能体** 即可看到它。不需要它？安装时用 `--set aiAgent.enabled=false` 代替 `--set aiAgent.enabled=true`。",
+    "**Kubernetes AI 代理（默认开启，只读）。** `kubernetes-agent-ai-agent` Pod 让 OneUptime AI 使用相同的 API 密钥，以只读 kubectl（`get`、`describe`、`logs`、`events`、`top`）调查此集群上的事件和警报；除非你之后授予它写入权限，否则它无法更改任何内容。打开集群并前往 **人工智能 → 智能体** 即可看到它。不需要它？安装时用 `--set aiAgent.enabled=false` 代替 `--set aiAgent.enabled=true`。",
   "Namespace rules decide what the agent collects from each namespace. To collect pod logs and eBPF data only from `default`, `production` and `staging`:":
     "命名空间规则决定代理从每个命名空间收集什么。若只从 `default`、`production` 和 `staging` 收集 Pod 日志和 eBPF 数据：",
   "To keep everything but stop the logs of noisy namespaces, exclude them from `podLogs` only:":

@@ -138,7 +138,7 @@ if [[ "$HTTP_CODE" != "200" ]]; then
 fi
 ```
 
-Hvis den valgte Runneren er frakoblet når kjøringen når dette trinnet, venter trinnet opptil **claim timeout** (2 minutter som standard) og feiler deretter på grunn av tidsavbrudd. Legg til en agent under **Runbooks → Runbook-agenter** før du regner med et Bash-trinn.
+Hvis den valgte Runneren er offline når kjøringen når dette trinnet, venter trinnet opptil **claim timeout** (2 minutter som standard) og feiler deretter på grunn av tidsavbrudd. Legg til en agent under **Runbooks → Runbook-agenter** før du regner med et Bash-trinn.
 
 > [!TIP]
 > Hold passord og tokener utenfor skriptet. Lagre dem som hemmelige [runbook-variabler](/docs/runbooks/variables), og skriv `{{global.variables.NAME}}` der verdien skal stå: Runneren mottar skriptet med verdien satt inn, og trinnets utdata viser `[REDACTED]` i stedet.

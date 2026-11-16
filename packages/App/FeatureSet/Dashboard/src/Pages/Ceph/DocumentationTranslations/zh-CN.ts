@@ -32,7 +32,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Docker Compose also runs **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. If the install script created its Ceph client it is already working; otherwise it waits for one — see **OneUptime AI agent** under Advanced.":
     "Docker Compose 还会运行 **`oneuptime-ceph-ai-agent`**，即 OneUptime AI 代理。如果安装脚本创建了它的 Ceph 客户端，它已经在工作；否则它会等待客户端——参见“高级”中的 **OneUptime AI 代理**。",
   "**OneUptime AI agent (on by default, read-only).** AI investigations are on: once it has its Ceph client, it lets OneUptime AI investigate incidents and alerts on this cluster with read-only `ceph` commands, and changes nothing unless you allow fixes.":
-    "**OneUptime AI 代理（默认开启，只读）。** AI 调查已开启：一旦它有了 Ceph 客户端，就会让 OneUptime AI 使用只读的 `ceph` 命令调查此集群上的事件和告警，除非你允许修复，否则不会做任何更改。",
+    "**OneUptime AI 代理（默认开启，只读）。** AI 调查已开启：一旦它有了 Ceph 客户端，就会让 OneUptime AI 使用只读的 `ceph` 命令调查此集群上的事件和警报，除非你允许修复，否则不会做任何更改。",
   "The install script writes these to `/opt/oneuptime-ceph-agent/.env`. After changing one, apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent`.":
     "安装脚本会把这些写入 `/opt/oneuptime-ceph-agent/.env`。更改其中任何一项后，在 `/opt/oneuptime-ceph-agent` 中用 `docker compose up -d` 应用它。",
   "| Variable | Required | Description |": "| 变量 | 必填 | 说明 |",
@@ -70,7 +70,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "集群会带着 `team:storage` 和 `env:production` 标签出现。标签匹配不区分大小写，因此会复用现有的 `Production` 标签；在 OneUptime 界面中添加的标签永远不会被代理删除。",
   "The agent ships everything the mgr prometheus module exports. OneUptime's Ceph pages, metric catalog and alert templates are built on:":
-    "代理会发送 mgr 的 prometheus 模块导出的所有内容。OneUptime 的 Ceph 页面、指标目录和告警模板基于：",
+    "代理会发送 mgr 的 prometheus 模块导出的所有内容。OneUptime 的 Ceph 页面、指标目录和警报模板基于：",
   "| Category | Data |": "| 类别 | 数据 |",
   "| **Cluster Health** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), monitor quorum, total and used raw capacity |":
     "| **集群健康状况** | `ceph_health_status`（0 = OK，1 = WARN，2 = ERR）、监视器仲裁、总原始容量和已用原始容量 |",
@@ -81,7 +81,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| **Placement Groups** | Active, degraded, and undersized PG counts |":
     "| **Placement Group** | 活动、降级和副本不足的 PG 数量 |",
   "`docker-compose.yml` also runs **`oneuptime-ceph-ai-agent`**. While OneUptime AI investigates an incident or alert on this cluster, it runs `ceph` commands through it — `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. It registers as the cluster named `CEPH_CLUSTER_NAME` and appears on the cluster's **AI → AI agent** page.":
-    "`docker-compose.yml` 还会运行 **`oneuptime-ceph-ai-agent`**。当 OneUptime AI 调查此集群上的事件或告警时，会通过它运行 `ceph` 命令：`ceph health detail`、`ceph osd tree`、`ceph pg dump_stuck`、`ceph crash ls`。它注册为名为 `CEPH_CLUSTER_NAME` 的集群，并显示在集群的 **人工智能 → AI 代理** 页面上。",
+    "`docker-compose.yml` 还会运行 **`oneuptime-ceph-ai-agent`**。当 OneUptime AI 调查此集群上的事件或警报时，会通过它运行 `ceph` 命令：`ceph health detail`、`ceph osd tree`、`ceph pg dump_stuck`、`ceph crash ls`。它注册为名为 `CEPH_CLUSTER_NAME` 的集群，并显示在集群的 **人工智能 → AI 代理** 页面上。",
   "It connects as its own Ceph client, `client.oneuptime-ai`, with the cluster's minimal `ceph.conf` and that client's keyring in a `ceph/` folder next to `docker-compose.yml`. The install script offers to create them on a fresh install, when `ceph` works with admin rights on the machine you run it on. Otherwise, or to add them later, on a Ceph admin node:":
     "它以自己的 Ceph 客户端 `client.oneuptime-ai` 连接，使用集群的最小 `ceph.conf` 和该客户端的密钥环，二者放在 `docker-compose.yml` 旁边的 `ceph/` 文件夹中。全新安装时，如果 `ceph` 在你运行脚本的机器上能以管理员权限运行，安装脚本会提议创建它们。否则，或者要稍后添加它们，请在 Ceph 管理节点上运行：",
   "If the agent runs on another machine, copy the two files into its `ceph/` folder the same way. **Never put the admin keyring there.**":

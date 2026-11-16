@@ -64,12 +64,12 @@ Rotationen auf derselben Ebene, die gleichzeitig Bereitschaft haben, und eine Ro
 
 ## Was nicht übernommen wird
 
-- **Alarmgruppen und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Alarmen.
-- **Integrationen, Routen und ausgehende Webhooks.** Richten Sie stattdessen Ihre Monitore und Alarmquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
+- **Warnungsgruppen und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Warnungen.
+- **Integrationen, Routen und ausgehende Webhooks.** Richten Sie stattdessen Ihre Monitore und Warnungsquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
 - **Überschreibungen, einmalige Schichten und bereits beendete Rotationen.** Legen Sie die Überschreibungen, die Sie noch brauchen, nach dem Import in OneUptime an.
 - **Schichten aus einem Kalenderlink.** Ein Plan, dessen Schichten aus einem iCal-Link stammen, wird ohne Ebenen übernommen. Legen Sie sie in OneUptime an.
 - **Die Benachrichtigungsregeln der einzelnen Personen.** Personen wählen in ihren eigenen **Benutzereinstellungen**, wie sie alarmiert werden, sobald sie ihre Einladung annehmen.
-- **Schritte, für die OneUptime keine genaue Entsprechung hat.** Ein Schritt, der eine Slack-Benutzergruppe oder einen Kanal benachrichtigt, einen Webhook aufruft, einen Vorfall ausruft oder den Alarm auflöst, wird weggelassen. Ein Schritt, der Personen nacheinander benachrichtigt, alarmiert alle gleichzeitig, ein Schritt, der nur zu bestimmten Zeiten oder Alarmzahlen weitergeht, geht immer weiter, und die Vorschau sagt, was sich ändert.
+- **Schritte, für die OneUptime keine genaue Entsprechung hat.** Ein Schritt, der eine Slack-Benutzergruppe oder einen Kanal benachrichtigt, einen Webhook aufruft, einen Vorfall ausruft oder die Warnung auflöst, wird weggelassen. Ein Schritt, der Personen nacheinander benachrichtigt, alarmiert alle gleichzeitig, ein Schritt, der nur zu bestimmten Zeiten oder Warnungszahlen weitergeht, geht immer weiter, und die Vorschau sagt, was sich ändert.
 
 ## Grenzen
 
@@ -91,8 +91,8 @@ Eingeladene Personen nehmen ihre Einladung an und fügen dann eine Telefonnummer
 ### Ihre Vorfallnummern fortsetzen
 Wenn Ihr Team Vorfälle bei ihrer Nummer nennt, lassen Sie die Nummern von OneUptime nach Ihrer letzten in Grafana OnCall beginnen: Setzen Sie unter **Vorfälle** > **Einstellungen** > **Nummerierung** auf der Karte **Nächste Nummer** die **Nächste Vorfallnummer** auf die Nummer danach. Eine Nummer bezeichnet dann nie zwei verschiedene Vorfälle.
 
-### Alarme an OneUptime senden
-Richten Sie Ihre Monitore und die Tools, die Alarme auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
+### Warnungen an OneUptime senden
+Richten Sie Ihre Monitore und die Tools, die Warnungen auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
 
 ### Die Alarmierung in Grafana OnCall ausschalten
 Sobald OneUptime die richtigen Personen alarmiert, schalten Sie die Benachrichtigungen in Grafana OnCall aus, damit niemand doppelt alarmiert wird.

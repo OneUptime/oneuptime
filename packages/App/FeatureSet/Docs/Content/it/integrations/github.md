@@ -1,6 +1,6 @@
 # GitHub
 
-OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi repository tramite la GitHub App di OneUptime, e l'AI di OneUptime apre pull request che correggono ciò che trova, e risponde quando la menzioni in una issue o in una pull request. Oppure costruisci un flusso di lavoro che apre una issue GitHub per ogni incidente, così il lavoro che ne segue viene tracciato nel repository a cui appartiene il servizio.
+OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi repository tramite la GitHub App di OneUptime, e l'IA di OneUptime apre pull request che correggono ciò che trova, e risponde quando la menzioni in una issue o in una pull request. Oppure costruisci un flusso di lavoro che apre una issue GitHub per ogni incidente, così il lavoro che ne segue viene tracciato nel repository a cui appartiene il servizio.
 
 :::cards
 - [Scegliere come collegarsi](#scegliere-come-collegarsi): La GitHub App o un flusso di lavoro, e cosa fa ciascuno.
@@ -25,7 +25,7 @@ I due sono indipendenti, e puoi usarne uno o entrambi. La GitHub App lavora nei 
 
 | Modo | Cosa fa | Di cosa ha bisogno |
 | --- | --- | --- |
-| La GitHub App | Importa i tuoi repository. L'AI di OneUptime vi apre pull request che correggono eccezioni, trace lente e le cause trovate dalle sue indagini, e risponde alle menzioni in issue e pull request. | Un'organizzazione o un account su cui installare l'app. Su OneUptime Cloud, il piano **Growth**. |
+| La GitHub App | Importa i tuoi repository. L'IA di OneUptime vi apre pull request che correggono eccezioni, trace lente e le cause trovate dalle sue indagini, e risponde alle menzioni in issue e pull request. | Un'organizzazione o un account su cui installare l'app. Su OneUptime Cloud, il piano **Growth**. |
 | Un flusso di lavoro | Apre una issue GitHub per ogni incidente, nel repository che scegli. | Un token GitHub che possa creare issue, e un flusso di lavoro di due blocchi. |
 
 ## Collegare i tuoi repository
@@ -123,7 +123,7 @@ Il proprietario o il repository nell'**URL** è sbagliato, oppure il token non p
 ## Prossimi passi
 
 :::cards
-- [GitHub App](/docs/ai/github-app): Chiedi all'AI di OneUptime una modifica, una revisione o una review direttamente da GitHub.
+- [GitHub App](/docs/ai/github-app): Chiedi all'IA di OneUptime una modifica, una revisione o una review direttamente da GitHub.
 - [GitLab](/docs/integrations/gitlab): Lo stesso flusso di lavoro, per le issue GitLab.
 - [Componenti del flusso di lavoro](/docs/workflows/components#api): Ogni impostazione dei blocchi API.
 - [Panoramica delle integrazioni](/docs/integrations/index): Gli schemi dietro ogni integrazione.

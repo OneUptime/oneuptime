@@ -116,7 +116,7 @@ Hver gang et medlem af projektet logger ind på OneUptime, registrerer auditlogg
 | `Sign In` | Nogen logger ind: med en adgangskode eller et login-link, en adgangsnøgle, Google, Microsoft, Vercel eller single sign-on. |
 | `Sign Out` | Personen logger ud. |
 | `Session Timeout` | OneUptime afslutter sessionen, fordi tiden er gået: den inaktivitetsperiode eller sessionslængde, en serveradministrator har angivet, eller 30 dage uden brug. |
-| `Session Revoked` | OneUptime afslutter sessionen, fordi adgangskoden blev ændret, kontoen blev blokeret, eller en serveradministrator nulstillede eller krævede totrinsgodkendelse. |
+| `Session Revoked` | OneUptime afslutter sessionen, fordi adgangskoden blev ændret, kontoen blev blokeret, eller en serveradministrator nulstillede eller krævede tofaktorgodkendelse. |
 
 En posts **Ressource** er sessionen, navngivet efter den enhed, den loggede ind fra, for eksempel `Chrome 130 on macOS`. Postens **Aktør** er den person, sessionen tilhører, så filtrering efter **Bruger-e-mail** finder alle deres logins og sessioner. Detaljerne viser, hvordan personen loggede ind og med hvilken anden faktor, IP-adressen og stedet, og for en afsluttet session, hvornår den loggede ind, hvornår den sidst blev brugt, og hvornår den udløb. Et projekts egen SSO-udbyder nævnes kun i det projekts auditlog.
 

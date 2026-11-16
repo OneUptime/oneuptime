@@ -15,6 +15,7 @@ import {
   dashboardWord,
   expectPageLoadsOnlyItsLanguage,
 } from "../SuiteHelpers/LocaleChunks";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Code in a browser, against the offline fixture (Code/Fixture): its first
@@ -2907,7 +2908,8 @@ test.describe("a repository's page: ask AI", () => {
     ).toHaveCount(0);
     /*
      * The facts read apart, a dot between each: who asked, when, how long
-     * AI worked on it and its pull request.
+     * AI worked on it and its pull request. The number is held to its
+     * unit by a no-break space (#8669), which a pattern matches as written.
      */
     await expect(
       rows
@@ -2916,7 +2918,7 @@ test.describe("a repository's page: ask AI", () => {
         .getByTestId("code-meta-dot"),
     ).toHaveCount(3);
     await expect(rows.nth(1).getByTestId("code-task-row-duration")).toHaveText(
-      /^worked \d+ minutes?$/,
+      new RegExp(`^worked \\d+${NO_BREAK_SPACE}minutes?$`),
     );
 
     await expectNoSidewaysScroll(page);

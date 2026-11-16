@@ -35,7 +35,7 @@ flowchart TB
 | 기능 | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | 모니터링, 경고, 인시던트, 온콜, 상태 페이지, 로그, 메트릭, 트레이스, 예외, 대시보드, 워크플로, AI 기능, API, Terraform | 예 | 예 | 모든 요금제 |
-| 비밀번호 로그인, 이중 인증, 팀, 기본 제공 역할, API 키 | 예 | 예 | 모든 요금제 |
+| 비밀번호 로그인, 2단계 인증, 팀, 기본 제공 역할, API 키 | 예 | 예 | 모든 요금제 |
 | 프로젝트 로그인을 위한 [SAML SSO와 OpenID Connect](/docs/identity/sso) | 예 | 예 | Scale 요금제 이상 |
 | 비공개 상태 페이지 로그인을 위한 SAML SSO와 OpenID Connect | 예 | 예 | Scale 요금제 이상 |
 | [전역(인스턴스 전체) SSO와 OIDC](/docs/identity/global-sso) | 예 | 예 | 해당 없음 |

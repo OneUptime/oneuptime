@@ -148,7 +148,7 @@ Status kommen nur dort an, wo der Anbieter sie melden kann:
 | --- | --- |
 | `notification.channel` | Wie bei `notification.send.count` |
 | `notification.page.start` | Wovon die Zeit ausgeht, wie unten |
-| `notification.trigger.type` | Der Datensatz, für den der Alarm gilt: `incident`, `alert`, `incident_episode`, `alert_episode` |
+| `notification.trigger.type` | Der Datensatz, für den die Warnung gilt: `incident`, `alert`, `incident_episode`, `alert_episode` |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Nur benutzerdefinierte Kanäle |
 
 | `notification.page.start` | Die Zeit läuft ab |

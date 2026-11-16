@@ -1,6 +1,6 @@
 # Microsoft Teams 集成
 
-将你的自托管 OneUptime 连接到 Microsoft Teams。你需要在 Microsoft Entra ID 中注册一个应用，为它创建一个 Azure Bot，把应用的凭据交给 OneUptime，然后安装服务器生成的 Teams 应用包。之后，OneUptime 会把告警和事件发布到你的频道和聊天中，你的团队可以直接在 Teams 里处理。
+将你的自托管 OneUptime 连接到 Microsoft Teams。你需要在 Microsoft Entra ID 中注册一个应用，为它创建一个 Azure Bot，把应用的凭据交给 OneUptime，然后安装服务器生成的 Teams 应用包。之后，OneUptime 会把警报和事件发布到你的频道和聊天中，你的团队可以直接在 Teams 里处理。
 
 本页面向运维 OneUptime 服务器的人员。Teams 连接后，通知规则按项目设置：请参阅 [Microsoft Teams](/docs/workspace-connections/microsoft-teams)。
 
@@ -69,7 +69,7 @@ Incoming Webhook 或 Teams 工作流 URL 都不能替代此机器人的消息传
 - **User.Read** - 在 OAuth 流程中获取已通过身份验证的用户的个人资料信息（显示名称、电子邮件）所必需
 - **Team.ReadBasic.All** - 用户选择要连接哪个团队时，列出其所属团队所必需
 - **Channel.ReadBasic.All** - 读取频道信息并列出团队中的频道以投递通知所必需
-- **ChannelMessage.Send** - 向 Teams 频道发送告警和事件通知所必需
+- **ChannelMessage.Send** - 向 Teams 频道发送警报和事件通知所必需
 
 **添加应用程序权限**（应用以自身身份执行操作、没有已登录用户时）：
 
@@ -229,7 +229,7 @@ Microsoft 要求 [自托管机器人提供可公开访问的 HTTPS 端点](https
 | 从 Microsoft 到 OneUptime | `POST /api/microsoft-bot/messages` | 机器人消息、会话安装事件和卡片操作 |
 | 从用户的浏览器到 OneUptime | `/api/microsoft-teams/auth` 和 `/api/microsoft-teams/admin-consent/callback` | 登录和管理员许可的重定向 |
 
-应用注册发往 `/api/microsoft-teams/auth` 和 `/api/microsoft-teams/admin-consent/callback` 的重定向会经由用户的浏览器返回。该浏览器必须能访问 OneUptime，例如通过企业网络或 VPN。机器人消息和卡片操作来自 Microsoft 的服务器，需要单独可访问的 ingress。仅有出站告警投递成功，并不能证明入站连通性。
+应用注册发往 `/api/microsoft-teams/auth` 和 `/api/microsoft-teams/admin-consent/callback` 的重定向会经由用户的浏览器返回。该浏览器必须能访问 OneUptime，例如通过企业网络或 VPN。机器人消息和卡片操作来自 Microsoft 的服务器，需要单独可访问的 ingress。仅有出站警报投递成功，并不能证明入站连通性。
 
 ### 从私有部署发布机器人端点
 
@@ -280,16 +280,16 @@ Microsoft 不支持为 Bot Framework 入站流量使用固定的 IP 允许列表
 
 这些症状通常意味着 **Azure Bot Service 无法将经过身份验证的活动投递到你的消息传递端点**。请检查路由、机器人身份验证和项目配置。
 
-令人困惑的是，告警卡片仍然能到达 Teams，这让集成看起来几乎是正常的。其实并非如此：两个方向相互独立，只有其中一个在工作：
+令人困惑的是，警报卡片仍然能到达 Teams，这让集成看起来几乎是正常的。其实并非如此：两个方向相互独立，只有其中一个在工作：
 
 | 方向 | 传输方式 | Azure 需要访问你吗？ |
 | --- | --- | --- |
-| OneUptime 在频道中发布告警卡片 | OneUptime 使用你的客户端密码进行身份验证并调用 Microsoft | **否** |
+| OneUptime 在频道中发布警报卡片 | OneUptime 使用你的客户端密码进行身份验证并调用 Microsoft | **否** |
 | 你按下该卡片上的按钮 | Azure Bot Service 向 `/api/microsoft-bot/messages` 发送 POST | **是** |
 | 你给机器人发送 `help` | Azure Bot Service 向 `/api/microsoft-bot/messages` 发送 POST | **是** |
 | 聊天被登记到 **Microsoft Teams Chats** 中 | Azure Bot Service 以 POST 将机器人活动发送到 `/api/microsoft-bot/messages` | **是** |
 
-因此，告警能送达只证明了那次出站发送；它不能证明每一项 Graph 权限或入站机器人端点都没问题。交互功能需要入站机器人活动被成功处理。
+因此，警报能送达只证明了那次出站发送；它不能证明每一项 Graph 权限或入站机器人端点都没问题。交互功能需要入站机器人活动被成功处理。
 
 OneUptime 根据机器人活动登记聊天，例如应用安装、机器人被添加到会话，或在该聊天中发给机器人的消息。这些活动都经由同一个入站端点到达。如果在添加应用并给它发消息之后，**Microsoft Teams Chats** 列表仍为空，说明该项目没有登记任何聊天；请检查入站请求、身份验证错误以及租户与项目的映射。点击 **Refresh Chats** 会重新读取 OneUptime 已存储的聊天，并从 Microsoft 重新读取每个已存储群聊的名称。
 

@@ -25,7 +25,7 @@ Besorgen Sie eine Twilio-Telefonnummer mit den SMS- und/oder Sprachfunktionen, d
 
 ### Die Grenzen des Kontos prüfen
 
-Prüfen Sie das Guthaben des Kontos, die Berechtigungen für Zielländer und die geltenden Anforderungen an die Registrierung von Absendern. Testkonten haben Einschränkungen bei Empfängern, Regionen und anderem, die echte Alarme von OneUptime verhindern können; lesen Sie vor dem Testen [Twilios Dokumentation zu Konten und Testphase](https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account). Verwenden Sie für die Produktion ein aufgewertetes Konto.
+Prüfen Sie das Guthaben des Kontos, die Berechtigungen für Zielländer und die geltenden Anforderungen an die Registrierung von Absendern. Testkonten haben Einschränkungen bei Empfängern, Regionen und anderem, die echte Warnungen von OneUptime verhindern können; lesen Sie vor dem Testen [Twilios Dokumentation zu Konten und Testphase](https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account). Verwenden Sie für die Produktion ein aufgewertetes Konto.
 :::
 
 ## 2. Zugangsdaten in OneUptime speichern

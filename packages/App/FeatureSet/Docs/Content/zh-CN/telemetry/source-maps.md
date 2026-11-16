@@ -153,6 +153,6 @@ done
 
 :::cards
 - [浏览器端设置](/docs/rum/browser-setup): 使用 OpenTelemetry Web SDK 发送浏览器追踪和异常。
-- [异常监控](/docs/monitor/exceptions-monitor): 出现新异常时发出告警。
+- [异常监控](/docs/monitor/exceptions-monitor): 出现新异常时发出警报。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 所有遥测数据的端点、密钥和限制。
 :::

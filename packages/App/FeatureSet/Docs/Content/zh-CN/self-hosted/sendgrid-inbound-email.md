@@ -1,6 +1,6 @@
 # SendGrid 入站邮件
 
-OneUptime 的 **Incoming Email Monitor** 让你可以根据发送到唯一、按监视器区分的电子邮件地址的邮件来创建和解决告警。这对于集成旧系统、告警工具或任何能够发送邮件的服务都很有用。
+OneUptime 的 **Incoming Email Monitor** 让你可以根据发送到唯一、按监视器区分的电子邮件地址的邮件来创建和解决警报。这对于集成旧系统、警报工具或任何能够发送邮件的服务都很有用。
 
 同样的设置也让工作流可以接收邮件：带有 **传入邮件** 触发器的工作流会在同一个域名上获得自己的地址，发往该地址的每封邮件都会启动该工作流。参见[触发器](/docs/workflows/triggers#incoming-email)。
 
@@ -29,7 +29,7 @@ sequenceDiagram
 1. 你在 OneUptime 中创建一个 **Incoming Email Monitor**
 2. OneUptime 为该监视器生成一个唯一的电子邮件地址（例如 `monitor-abc123@inbound.yourdomain.com`）
 3. 当有邮件发往该地址时，SendGrid 接收它并通过 Webhook 转发给 OneUptime
-4. OneUptime 根据你配置的条件评估该邮件，以创建或解决告警
+4. OneUptime 根据你配置的条件评估该邮件，以创建或解决警报
 
 ## 先决条件
 
@@ -120,13 +120,13 @@ inboundEmail:
 
 ### 创建 传入邮件 监视器
 
-[创建 Incoming Email 监视器](/docs/monitor/incoming-email-monitor#创建入站邮件监视器)。它的 **概览** 页面会显示它的地址，例如 `monitor-abc123def456@inbound.yourdomain.com`，它的条件决定哪些邮件创建告警、哪些邮件解决告警。
+[创建 Incoming Email 监视器](/docs/monitor/incoming-email-monitor#创建入站邮件监视器)。它的 **概览** 页面会显示它的地址，例如 `monitor-abc123def456@inbound.yourdomain.com`，它的条件决定哪些邮件创建警报、哪些邮件解决警报。
 
 工作流使用同一个域名。把 **传入邮件** 触发器添加到工作流并点击它：它的地址（`workflow-…@inbound.yourdomain.com`）显示在其设置的顶部。在设置上面的入站邮件变量之前，触发器会提示服务器尚未设置为接收邮件。
 
 ### 发送测试邮件
 
-向监视器的地址发送一封主题符合其条件的邮件。监视器的摘要会显示这封邮件，条件匹配时会创建告警。
+向监视器的地址发送一封主题符合其条件的邮件。监视器的摘要会显示这封邮件，条件匹配时会创建警报。
 :::
 
 ## 环境变量参考
@@ -154,8 +154,8 @@ inboundEmail:
 4. **检查 Webhook 密钥：** Destination URL 必须以 `INBOUND_EMAIL_WEBHOOK_SECRET` 的值结尾。只要该变量为空或是占位符，每封邮件都会以 `503` 被拒绝，`app` 服务的日志会在启动时说明这一点；发送到以其他内容结尾的 URL 的邮件会以 `403` 被拒绝。
 :::
 
-:::details 监视器不创建告警
-1. **核对条件：** 检查你的告警创建条件是否与邮件内容匹配，在使用模式匹配之前先用精确字符串测试。
+:::details 监视器不创建警报
+1. **核对条件：** 检查你的警报创建条件是否与邮件内容匹配，在使用模式匹配之前先用精确字符串测试。
 2. **检查监视器：** 确认它没有被禁用，并且类型是 传入邮件。
 3. **查看监视器的摘要：** 检查邮件是否已接收并处理，并阅读评估日志，了解条件是如何匹配的。
 :::

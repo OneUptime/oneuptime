@@ -49,7 +49,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 ### Erklær en hendelse for hvert utløst varsel
 
-Åpne det første kriteriet i trinnet **Kriterier**, det som markerer monitoren som frakoblet. Sett filteret til **Forespørselstekst**, **Inneholder**, `"status":"firing"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
+Åpne det første kriteriet i trinnet **Kriterier**, det som markerer monitoren som offline. Sett filteret til **Forespørselstekst**, **Inneholder**, `"status":"firing"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
 
 - **Hendelsestittel**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`.
 - **Alvorlighetsgrad**: hendelsesalvorlighetsgraden disse varslene skal ha.
@@ -222,7 +222,7 @@ Ingen av veiene merker det når Prometheus eller Alertmanager slutter å virke: 
 :::steps
 ### Opprett watchdog-monitoren
 
-Opprett en andre monitor for innkommende forespørsler, kalt `Alertmanager watchdog`. Sett filteret for det første kriteriet, det som markerer monitoren som frakoblet, til **Innkommende forespørsel**, **Ikke mottatt innen (minutter)**, `10`, og filteret for det andre kriteriet til **Innkommende forespørsel**, **Mottatt innen (minutter)**, `10`. Dashbordet staver begge slik. Kopier **Heartbeat URL** for den nye monitoren.
+Opprett en andre monitor for innkommende forespørsler, kalt `Alertmanager watchdog`. Sett filteret for det første kriteriet, det som markerer monitoren som offline, til **Innkommende forespørsel**, **Ikke mottatt innen (minutter)**, `10`, og filteret for det andre kriteriet til **Innkommende forespørsel**, **Mottatt innen (minutter)**, `10`. Dashbordet staver begge slik. Kopier **Heartbeat URL** for den nye monitoren.
 
 ### Send watchdog-varselet dit
 
@@ -251,7 +251,7 @@ receivers:
 ```
 :::
 
-Når watchdog-varselet ikke har kommet på ti minutter, blir watchdog-monitoren frakoblet og erklærer en hendelse. Den neste watchdog-varslingen gjør monitoren tilkoblet igjen og løser hendelsen.
+Når watchdog-varselet ikke har kommet på ti minutter, blir watchdog-monitoren offline og erklærer en hendelse. Den neste watchdog-varslingen gjør monitoren tilkoblet igjen og løser hendelsen.
 
 ## Feilsøking
 

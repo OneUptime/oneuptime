@@ -59,7 +59,7 @@ flowchart TB
 
 ### 选择要监控的内容
 
-新监视器从 **告警内容** 下的 **Cluster Stopped Reporting** 开始。要监视其他内容：
+新监视器从 **警报内容** 下的 **Cluster Stopped Reporting** 开始。要监视其他内容：
 
 - **更改** – 选择另一个 [模板](#现成的警报模板)。它会设置指标、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以更改 **时间范围**。
 - **Custom Metric**（在 **更多字段** 下） – 从 **Docker Swarm Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把范围缩小到部分任务。
@@ -96,7 +96,7 @@ flowchart TB
 
 ## 现成的警报模板
 
-**告警内容** 列表提供七个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。**Node Not Ready** 按节点 `resource.docker.swarm.node.name` 对查询分组，**Service Replicas Mismatch** 按服务 `resource.docker.swarm.service.name` 分组，任务模板按 `resource.container.name` 分组，因此每个节点、服务或任务都会单独评估，并获得各自的事件和警报，其根本原因会列出受影响的对象及其值。阈值是可以编辑的起点。
+**警报内容** 列表提供七个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。**Node Not Ready** 按节点 `resource.docker.swarm.node.name` 对查询分组，**Service Replicas Mismatch** 按服务 `resource.docker.swarm.service.name` 分组，任务模板按 `resource.container.name` 分组，因此每个节点、服务或任务都会单独评估，并获得各自的事件和警报，其根本原因会列出受影响的对象及其值。阈值是可以编辑的起点。
 
 任务模板还只读取 Swarm 的任务：在节点上以其他方式启动的容器（包括代理自身的容器）不会计入。**Custom Metric** 或 **高级** 查询会读取代理报告的每个容器；**服务名称** 过滤器可将其缩小到一个服务的任务。
 
@@ -196,7 +196,7 @@ flowchart TB
 | 2 | 检查 _监视器名称_ 是否在线 | 第一个查询有数据 | 将监视器标记为 **运行正常**。 |
 
 > [!IMPORTANT]
-> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监视器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监视器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监视器离线。要针对某个值警报，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监视器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 故障排除
 

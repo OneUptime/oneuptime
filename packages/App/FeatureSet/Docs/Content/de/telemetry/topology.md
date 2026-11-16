@@ -84,7 +84,7 @@ Klicken Sie auf einen Pfeil, um seine Anfragerate, Fehlerrate und durchschnittli
 
 ## Die eigene Karte einer Ressource öffnen
 
-Ein vCenter, ein Kubernetes-Cluster, ein Host, ein Docker- oder Podman-Host, ein Docker-Swarm-, Proxmox- oder Ceph-Cluster und ein Storage-Array haben jeweils eine eigene Seite **Topologie**. Sie zeichnet diese eine Ressource im Detail, aus ihrem eigenen Inventar: was worin liegt, jeden Teil gefärbt nach seinem Zustand, und jeden offenen Vorfall und Alarm an dem Teil, den er betrifft.
+Ein vCenter, ein Kubernetes-Cluster, ein Host, ein Docker- oder Podman-Host, ein Docker-Swarm-, Proxmox- oder Ceph-Cluster und ein Storage-Array haben jeweils eine eigene Seite **Topologie**. Sie zeichnet diese eine Ressource im Detail, aus ihrem eigenen Inventar: was worin liegt, jeden Teil gefärbt nach seinem Zustand, und jeden offenen Vorfall und Warnung an dem Teil, den er betrifft.
 
 - **Als Baum lesen.** Die Ressource steht oben, und die Teile jedes Teils stehen rechts daneben, mit ihm verbunden durch eine Linie, die rot oder orange wird, wo etwas Aufmerksamkeit erfordert. Teile mit einem Problem darin öffnen sich von selbst, die runde Schaltfläche an einem Teil öffnet oder schließt ihn, und die Pfeiltasten bewegen sich durch die Karte.
 - **Finden, was Aufmerksamkeit erfordert.** **Erfordert Aufmerksamkeit** behält nur die Teile mit Problemen und den Weg zu jedem, und die Suche findet einen Teil überall in der Ressource.

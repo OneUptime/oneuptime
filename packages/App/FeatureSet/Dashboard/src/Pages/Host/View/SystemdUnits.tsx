@@ -63,6 +63,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/UI/Components/Detail/EmptyValue";
 import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * Like processes and Windows services, unit state is a point-in-time sample
@@ -614,7 +615,7 @@ const HostSystemdUnits: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No systemd unit metrics in the last ${UNIT_LOOKBACK_MINUTES} minutes. Add the systemd receiver to your collector: see the Documentation tab.`
+      ? `No systemd unit metrics in the last ${UNIT_LOOKBACK_MINUTES}${NO_BREAK_SPACE}minutes. Add the systemd receiver to your collector: see the Documentation tab.`
       : "No units match the current filters.";
 
   /*

@@ -104,7 +104,7 @@ Seksjonen **Flere felt** er den samme i skjemaet for én monitor og i dialogen f
 | Felt | Standard | Hva det gjør |
 | ----- | ------- | ------------ |
 | **Verktøytips** (`displayTooltip`) | Tom | Vises som verktøytips ved siden av ressursen på statussiden din. Bruk det for omfanget: «Kunder i USA og EU». |
-| **Vis gjeldende ressursstatus** (`showCurrentStatus`) | På | Viser gjeldende status, som i drift, redusert eller frakoblet, ved siden av raden. |
+| **Vis gjeldende ressursstatus** (`showCurrentStatus`) | På | Viser gjeldende status, som i drift, redusert eller offline, ved siden av raden. |
 | **Vis oppetid %** (`showUptimePercent`) | Av | Viser en oppetidsprosent ved siden av ressursen. |
 | **Velg presisjon for oppetid** (`uptimePercentPrecision`) | Én desimal | Vises når **Vis oppetid %** er slått på, og er da påkrevd. |
 | **Vis statushistorikkdiagram** (`showStatusHistoryChart`) | På | Viser ressursens daglige søyler med oppetidshistorikk. |

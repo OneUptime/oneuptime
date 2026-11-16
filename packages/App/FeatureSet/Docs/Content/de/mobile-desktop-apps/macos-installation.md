@@ -70,7 +70,7 @@ Klicken Sie auf **Gerät registrieren**, behalten Sie im Feld **Gerätename** de
 Klicken Sie im Dialog **Browser registriert** auf **Testbenachrichtigung senden**. Erscheint nichts, sehen Sie sich die Mitteilungseinstellungen des Mac an: siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
-Ein Browser kann einen Fokus wie „Nicht stören“ nicht durchbrechen. Für Alarme, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen: siehe [iOS-Installation](/docs/mobile-desktop-apps/ios-installation#den-stummmodus-durchbrechen).
+Ein Browser kann einen Fokus wie „Nicht stören“ nicht durchbrechen. Für Warnungen, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen: siehe [iOS-Installation](/docs/mobile-desktop-apps/ios-installation#den-stummmodus-durchbrechen).
 
 Bei einem selbst gehosteten OneUptime brauchen Browser-Benachrichtigungen die VAPID-Schlüssel des Servers: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#einrichtung-bei-selbsthosting).
 

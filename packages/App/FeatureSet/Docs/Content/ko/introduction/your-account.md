@@ -64,7 +64,7 @@ flowchart TB
 | --- | --- |
 | **비밀번호 관리** | 새 비밀번호를 설정합니다. |
 | **Passkeys** | 지문, 얼굴, 화면 잠금 또는 보안 키로 비밀번호 없이 로그인합니다. |
-| **Two-factor authentication** | 비밀번호나 이메일로 받은 링크 다음에 두 번째 단계(앱의 코드 또는 보안 키)를 요구합니다. |
+| **2단계 인증** | 비밀번호나 이메일로 받은 링크 다음에 두 번째 단계(앱의 코드 또는 보안 키)를 요구합니다. |
 
 ### 비밀번호 변경
 
@@ -108,7 +108,7 @@ flowchart TB
 :::steps
 ### 인증 앱 추가
 
-**보안 → Two-factor authentication**을 엽니다. **Authenticator apps**에서 앱을 추가하고 이름을 붙입니다. 1Password, Google Authenticator, Microsoft Authenticator 같은 앱으로 QR 코드를 스캔하고, 앱에 표시된 6자리 코드를 입력한 다음 **Verify and finish**를 클릭합니다. 대신 USB 또는 NFC 키를 쓰려면 **Security keys**에서 추가합니다.
+**보안 → 2단계 인증**을 엽니다. **Authenticator apps**에서 앱을 추가하고 이름을 붙입니다. 1Password, Google Authenticator, Microsoft Authenticator 같은 앱으로 QR 코드를 스캔하고, 앱에 표시된 6자리 코드를 입력한 다음 **Verify and finish**를 클릭합니다. 대신 USB 또는 NFC 키를 쓰려면 **Security keys**에서 추가합니다.
 
 ### 백업 코드 저장
 
@@ -116,7 +116,7 @@ flowchart TB
 
 ### 켜기
 
-페이지 위쪽에서 **Enable two-factor authentication**을 클릭하고 확인합니다. 카드에 **활성화됨**이 표시됩니다. 다음에 비밀번호나 이메일로 받은 링크로 로그인할 때부터 OneUptime이 두 번째 단계를 요구합니다.
+페이지 위쪽에서 **2단계 인증 활성화**를 클릭하고 확인합니다. 카드에 **활성화됨**이 표시됩니다. 다음에 비밀번호나 이메일로 받은 링크로 로그인할 때부터 OneUptime이 두 번째 단계를 요구합니다.
 :::
 
 > [!TIP]
@@ -163,7 +163,7 @@ flowchart TB
 :::
 
 :::details 인증 앱을 잃어버렸습니다
-로그인의 두 번째 단계에서 **인증 앱에 액세스할 수 없나요?** 를 고르고 백업 코드 중 하나를 입력합니다. 그런 다음 **보안 → Two-factor authentication**을 열고 새 앱을 추가합니다. 백업 코드가 없다면 OneUptime 설치의 관리자에게 계정의 2단계 인증을 재설정해 달라고 요청하세요.
+로그인의 두 번째 단계에서 **인증 앱에 액세스할 수 없나요?** 를 고르고 백업 코드 중 하나를 입력합니다. 그런 다음 **보안 → 2단계 인증**을 열고 새 앱을 추가합니다. 백업 코드가 없다면 OneUptime 설치의 관리자에게 계정의 2단계 인증을 재설정해 달라고 요청하세요.
 :::
 
 :::details 로그인에서 다른 코드를 시도하기 전에 기다리라고 합니다

@@ -46,7 +46,7 @@ I **Konfigurasjon av profilmonitor** setter du **Funksjon** til funksjonen som s
 
 ### Angi kriteriene
 
-En monitor som er startet fra **Opprett monitor**, har to kriterier: frakoblet, med en hendelse, når **Antall profiler** er 0, og tilkoblet når det er over 0. For å bli varslet om funksjonen legger du til et filter **Funksjonsandel (i %)**: se [Kriterier](#kriterier).
+En monitor som er startet fra **Opprett monitor**, har to kriterier: offline, med en hendelse, når **Antall profiler** er 0, og tilkoblet når det er over 0. For å bli varslet om funksjonen legger du til et filter **Funksjonsandel (i %)**: se [Kriterier](#kriterier).
 
 ### Opprett monitoren
 
@@ -139,7 +139,7 @@ Når utrullingen får `parseOrder` til å ta 45 % av CPU-tiden, utløser neste e
 Checkout-tjenesten kjører et Pyroscope-SDK som laster opp CPU-profiler. Du vil ha en hendelse når de uteblir i fem minutter:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: checkout-tjenesten, `lastXSecondsOfProfiles`: `300`
-- Kriterium 1: **Antall profiler** **Lik** `0`: sett monitoren som frakoblet og erklær en hendelse
+- Kriterium 1: **Antall profiler** **Lik** `0`: sett monitoren som offline og erklær en hendelse
 - Kriterium 2: **Antall profiler** **Større enn** `0`: sett monitoren som tilkoblet
 
 Mens SDK-et laster opp, teller hver evaluering noen profiler, og kriterium 2 holder monitoren tilkoblet. Når tjenesten rulles ut uten SDK-et, faller antallet til 0 fem minutter etter den siste opplastingen, kriterium 1 samsvarer, og hendelsen erklæres. Den første opplastingen etter rettingen bringer antallet over 0 igjen, og hendelsen løser seg selv hvis **Løs hendelse automatisk** er slått på for den.

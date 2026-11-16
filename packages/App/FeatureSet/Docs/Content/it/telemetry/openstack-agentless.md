@@ -42,7 +42,7 @@ Un'API Octavia ferma è `up 0` per una sonda, cosa che l'exporter dell'agente no
 | Cosa deve raggiungere | Keystone e l'API di ogni servizio, in HTTPS | Keystone e l'API di ogni servizio |
 | API su HTTP in chiaro | Non raccolte: un token non viene mai inviato non cifrato | Raccolte |
 | Cloud più grande | Testato con [200.000 istanze](/docs/telemetry/openstack-very-large-clouds) su un cloud simulato, non reale, in un massimo di dieci caricamenti da 48 MiB | Non testato su larga scala: [la sua scrape va in timeout](/docs/telemetry/openstack-very-large-clouds#tramite-lagente) ben prima di allora |
-| Log dei servizi e agente AI | Non inclusi | Inclusi |
+| Log dei servizi e agente IA | Non inclusi | Inclusi |
 | Ciò su cui poggia il cloud: RabbitMQ, MariaDB, Memcached, HAProxy, OVN, libvirt | Non incluso: una sonda legge le API del cloud | Incluso, con i suoi target indicati |
 | CPU, memoria e disco reali di ogni istanza, da libvirt o Ceilometer | Non inclusi | Inclusi, con i loro exporter indicati |
 | Login a Keystone | Uno per la durata di un token, di solito un'ora | Uno per ogni scrape |
@@ -50,7 +50,7 @@ Un'API Octavia ferma è `up 0` per una sonda, cosa che l'exporter dell'agente no
 
 Entrambi inviano le stesse serie, quindi le pagine e i monitor funzionano con l'uno o con l'altro. Una sonda invia anche ciò che solo un client nativo può leggere: gli indirizzi di un'istanza, lo stato del task e il messaggio di errore, l'immagine da cui è stata avviata, se un operatore ha forzato un servizio Nova come fermo, quali reti serve un agente DHCP, quale pool contiene un volume, quando un'istanza, un volume o un'immagine è cambiata l'ultima volta, e lo stato di ogni snapshot e backup dei volumi. Cinder dice quale pool contiene un volume solo a una credenziale che tratta come admin. Su un cloud che esegue [Heat o Magnum](/docs/telemetry/openstack#heat-e-magnum), invia anche perché uno stack o un cluster è fallito, quali istanze e volumi possiede uno stack, il progetto, il template e la versione di Kubernetes di ogni cluster, e se ciascun motore di Heat e ciascun conductor di Magnum è attivo.
 
-Scegli l'agente per i log dei servizi, per l'agente AI, per ciò su cui poggia il cloud e l'utilizzo reale di ogni istanza, per un cloud le cui API parlano solo HTTP in chiaro, come fanno DevStack e Kolla-Ansible per impostazione predefinita, o per un cloud così grande da dover essere [letto dai suoi database](/docs/telemetry/openstack-very-large-clouds#il-percorso-dei-database). Scegli una sonda per tutto il resto: non c'è nulla da installare e legge di più di ciò che dicono Nova e Cinder. [OpenStack di dimensioni molto grandi](/docs/telemetry/openstack-very-large-clouds) dice cosa costa l'una o l'altra a qualsiasi dimensione.
+Scegli l'agente per i log dei servizi, per l'agente IA, per ciò su cui poggia il cloud e l'utilizzo reale di ogni istanza, per un cloud le cui API parlano solo HTTP in chiaro, come fanno DevStack e Kolla-Ansible per impostazione predefinita, o per un cloud così grande da dover essere [letto dai suoi database](/docs/telemetry/openstack-very-large-clouds#il-percorso-dei-database). Scegli una sonda per tutto il resto: non c'è nulla da installare e legge di più di ciò che dicono Nova e Cinder. [OpenStack di dimensioni molto grandi](/docs/telemetry/openstack-very-large-clouds) dice cosa costa l'una o l'altra a qualsiasi dimensione.
 
 Puoi passare un cloud dall'una all'altra in qualsiasi momento dalla sua pagina **Impostazioni**.
 
