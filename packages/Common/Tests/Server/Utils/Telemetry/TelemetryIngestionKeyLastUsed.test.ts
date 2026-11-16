@@ -252,6 +252,27 @@ describe("TelemetryIngestionKeyLastUsed.stampWhenAccepted", () => {
     expect(markUsed()).not.toHaveBeenCalled();
   });
 
+  test("a stamp that throws is logged, and never thrown into the response's own handling", () => {
+    jest.spyOn(logger, "warn").mockImplementation(() => {
+      return undefined as never;
+    });
+    const failure: Error = new Error("the key service is not there");
+    markUsed().mockImplementation((): never => {
+      throw failure;
+    });
+    const res: FakeResponse = new FakeResponse();
+
+    TelemetryIngestionKeyLastUsed.stampWhenAccepted(buildPolicy(), res);
+
+    expect(() => {
+      res.answer(200);
+    }).not.toThrow();
+    expect(logger.warn).toHaveBeenCalledWith(
+      `TelemetryIngest: failed to record last used for ingestion key ${KEY_ID}`,
+    );
+    expect(logger.warn).toHaveBeenCalledWith(failure);
+  });
+
   test("a stamp that fails to write is the helper's to log, never the response's to throw", async () => {
     jest.spyOn(logger, "warn").mockImplementation(() => {
       return undefined as never;

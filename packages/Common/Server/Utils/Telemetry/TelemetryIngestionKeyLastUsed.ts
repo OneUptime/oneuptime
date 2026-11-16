@@ -88,6 +88,10 @@ export default class TelemetryIngestionKeyLastUsed {
    * one - unit tests hand the middleware a bare object - and a response that
    * cannot be watched is one whose answer cannot be known, so it stamps
    * nothing rather than guessing.
+   *
+   * The listener runs inside Node's own response handling, where a throw
+   * would be an uncaught exception, so nothing it does may throw: the stamp
+   * is caught here as its rejection is caught in stamp().
    */
   public static stampWhenAccepted(
     policy: TelemetryIngestionKeyPolicy,
@@ -100,8 +104,15 @@ export default class TelemetryIngestionKeyLastUsed {
     }
 
     (once as AnsweredHttpResponse["once"]).call(res, "finish", (): void => {
-      if (isAcceptedHttpStatus(res.statusCode)) {
-        TelemetryIngestionKeyLastUsed.stamp(policy);
+      try {
+        if (isAcceptedHttpStatus(res.statusCode)) {
+          TelemetryIngestionKeyLastUsed.stamp(policy);
+        }
+      } catch (err: unknown) {
+        logger.warn(
+          `TelemetryIngest: failed to record last used for ingestion key ${policy.ingestionKeyId.toString()}`,
+        );
+        logger.warn(err);
       }
     });
   }
