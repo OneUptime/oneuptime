@@ -4,6 +4,13 @@ import DatabaseService from "../../Services/DatabaseService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import JobDeadline from "../JobDeadline";
 import logger from "../Logger";
+import TablePurgeWalk, {
+  TablePurgeOfTable,
+  TablePurgeSummary,
+  TablePurgedTable,
+  getPurgedTableName,
+  readPurgedCount,
+} from "./TablePurgeWalk";
 
 /*
  * DELETING FOR GOOD THE ROWS SOFT DELETED MORE THAN 30 DAYS AGO (OneUptime
@@ -53,13 +60,8 @@ import logger from "../Logger";
  * another's backlog, and what is left goes over the next days. The job's
  * deadline - its time limit, or a lost lock - stops the run before its next
  * batch. A table whose purge fails is logged and tried again the next day;
- * the others go on.
- *
- * Each batch asks from the first row due: the rows a batch removes are gone,
- * and a table that removes its rows in an order of its own - network sites
- * and their types, leaves first (NetworkSiteLeafPurge) - finds the next
- * ones itself. So a batch that removes fewer rows than the batch size is no
- * sign the table is done; one that removes none is.
+ * the others go on. The walk is the one the purge by age shares
+ * (TablePurgeWalk, which says why a short batch is no sign a table is done).
  */
 
 // How long a soft-deleted row is kept before it is deleted for good.
@@ -76,45 +78,13 @@ export const SOFT_DELETED_ROWS_PURGE_BATCH_SIZE: number = 1000;
 export const SOFT_DELETED_ROWS_PURGE_TIME_BUDGET_MS: number = 20 * 60 * 1000;
 
 // What one table's purge did in a run.
-export interface SoftDeletedRowsPurgeOfTable {
-  // Rows deleted for good.
-  purged: number;
-  // Rows due may be left: the run was out of time before a batch removed nothing.
-  isCutShort: boolean;
-}
+export type SoftDeletedRowsPurgeOfTable = TablePurgeOfTable;
 
 // A table rows were deleted from in a run, and how many.
-export interface SoftDeletedRowsPurgedTable {
-  table: string;
-  purged: number;
-}
+export type SoftDeletedRowsPurgedTable = TablePurgedTable;
 
-export interface SoftDeletedRowsPurgeSummary {
-  // Tables this installation purges that the run worked on.
-  tables: number;
-  // Rows deleted for good.
-  purged: number;
-  // The tables rows were deleted from, in the order they were worked on.
-  purgedTables: Array<SoftDeletedRowsPurgedTable>;
-  // Tables whose purge failed: logged, and tried again next run.
-  failedTables: number;
-  // Rows due were left for the next run: out of time, or past the deadline.
-  isCutShort: boolean;
-}
-
-// What a batch says it removed, as a count: never negative, never NaN.
-function countOf(value: unknown): number {
-  const count: number = Number(value);
-
-  return Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
-}
-
-// The table a service writes, for the log.
-function tableOf(service: DatabaseService<BaseModel>): string {
-  return (
-    service.getModel()?.tableName || service.modelType?.name || "unknown table"
-  );
-}
+// What a run did; `tables` counts the tables this installation purges.
+export type SoftDeletedRowsPurgeSummary = TablePurgeSummary;
 
 export default class SoftDeletedRowsPurge {
   // The clock, a seam for tests.
@@ -160,7 +130,7 @@ export default class SoftDeletedRowsPurge {
   public static async purgeBatch(
     service: DatabaseService<BaseModel>,
   ): Promise<number> {
-    return countOf(
+    return readPurgedCount(
       await service.hardDeleteBy({
         query: {
           deletedAt: QueryHelper.lessThan(this.getCutoff()),
@@ -183,21 +153,12 @@ export default class SoftDeletedRowsPurge {
     service: DatabaseService<BaseModel>;
     isOutOfTime: () => boolean;
   }): Promise<SoftDeletedRowsPurgeOfTable> {
-    let purged: number = 0;
-
-    for (;;) {
-      const removed: number = await this.purgeBatch(data.service);
-
-      purged += removed;
-
-      if (removed === 0) {
-        return { purged: purged, isCutShort: false };
-      }
-
-      if (data.isOutOfTime()) {
-        return { purged: purged, isCutShort: true };
-      }
-    }
+    return await TablePurgeWalk.purgeTable({
+      purgeBatch: (): Promise<number> => {
+        return this.purgeBatch(data.service);
+      },
+      isOutOfTime: data.isOutOfTime,
+    });
   }
 
   /*
@@ -211,66 +172,32 @@ export default class SoftDeletedRowsPurge {
     deadline?: JobDeadline | undefined;
     timeBudgetMs?: number | undefined;
   }): Promise<SoftDeletedRowsPurgeSummary> {
-    const budgetMs: number =
-      data.timeBudgetMs ?? SOFT_DELETED_ROWS_PURGE_TIME_BUDGET_MS;
-    const startedAt: number = this.now().getTime();
-
-    const summary: SoftDeletedRowsPurgeSummary = {
-      tables: 0,
-      purged: 0,
-      purgedTables: [],
-      failedTables: 0,
-      isCutShort: false,
-    };
-
-    const isPastDeadline: () => boolean = (): boolean => {
-      return Boolean(data.deadline?.hasPassed());
-    };
-
-    const isOutOfTime: () => boolean = (): boolean => {
-      return isPastDeadline() || this.now().getTime() - startedAt >= budgetMs;
-    };
-
-    for (const service of data.services) {
-      if (!this.isPurgedOnThisInstall(service, data.isBillingEnabled)) {
-        continue;
-      }
-
-      // Past the deadline, the tables left wait for the next run.
-      if (isPastDeadline()) {
-        summary.isCutShort = true;
-        return summary;
-      }
-
-      summary.tables += 1;
-
-      try {
-        const result: SoftDeletedRowsPurgeOfTable = await this.purgeTable({
-          service: service,
-          isOutOfTime: isOutOfTime,
-        });
-
-        summary.purged += result.purged;
-
-        if (result.purged > 0) {
-          summary.purgedTables.push({
-            table: tableOf(service),
-            purged: result.purged,
-          });
-        }
-
-        if (result.isCutShort) {
-          summary.isCutShort = true;
-        }
-      } catch (error) {
-        summary.failedTables += 1;
+    return await TablePurgeWalk.run({
+      services: data.services.filter(
+        (service: unknown): service is DatabaseService<BaseModel> => {
+          return this.isPurgedOnThisInstall(service, data.isBillingEnabled);
+        },
+      ),
+      purgeTable: (
+        service: DatabaseService<BaseModel>,
+        isOutOfTime: () => boolean,
+      ): Promise<SoftDeletedRowsPurgeOfTable> => {
+        return this.purgeTable({ service: service, isOutOfTime: isOutOfTime });
+      },
+      onTableFailed: (
+        service: DatabaseService<BaseModel>,
+        error: unknown,
+      ): void => {
         logger.error(
-          `Soft-deleted rows: deleting the ${tableOf(service)} rows deleted more than ${SOFT_DELETED_ROWS_RETENTION_IN_DAYS} days ago failed. They are tried again next run.`,
+          `Soft-deleted rows: deleting the ${getPurgedTableName(service)} rows deleted more than ${SOFT_DELETED_ROWS_RETENTION_IN_DAYS} days ago failed. They are tried again next run.`,
         );
         logger.error(error);
-      }
-    }
-
-    return summary;
+      },
+      now: (): Date => {
+        return this.now();
+      },
+      deadline: data.deadline,
+      timeBudgetMs: data.timeBudgetMs ?? SOFT_DELETED_ROWS_PURGE_TIME_BUDGET_MS,
+    });
   }
 }
