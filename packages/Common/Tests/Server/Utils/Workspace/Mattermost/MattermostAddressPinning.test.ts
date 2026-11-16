@@ -263,7 +263,9 @@ describe("a call to the Mattermost server", () => {
     process.env[ALLOW_ENV] = "true";
     const send: SpyInstance<typeof SafeWebhookRequest.send> = jest
       .spyOn(SafeWebhookRequest, "send")
-      .mockRejectedValue(new Error("not sent in this test") as never);
+      .mockRejectedValue(
+        new Error("not sent in this test") as never,
+      ) as unknown as SpyInstance<typeof SafeWebhookRequest.send>;
 
     await expect(callBot("https://chat.corp.example")).rejects.toThrow(
       "not sent in this test",
@@ -326,7 +328,9 @@ describe("a post to a Mattermost incoming webhook", () => {
     checkAnswers["chat.example.com"] = "93.184.216.34";
     const send: SpyInstance<typeof SafeWebhookRequest.send> = jest
       .spyOn(SafeWebhookRequest, "send")
-      .mockRejectedValue(new Error("not sent in this test") as never);
+      .mockRejectedValue(
+        new Error("not sent in this test") as never,
+      ) as unknown as SpyInstance<typeof SafeWebhookRequest.send>;
 
     await expect(
       MattermostUtil.sendMessageToChannelViaIncomingWebhook({

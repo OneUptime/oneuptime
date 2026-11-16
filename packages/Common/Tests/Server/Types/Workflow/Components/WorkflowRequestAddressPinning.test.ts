@@ -375,7 +375,9 @@ describe.each(API_STEPS)(
 
       const send: SpyInstance<typeof SafeWebhookRequest.send> = jest
         .spyOn(SafeWebhookRequest, "send")
-        .mockRejectedValue(new Error("not sent in this test") as never);
+        .mockRejectedValue(
+          new Error("not sent in this test") as never,
+        ) as unknown as SpyInstance<typeof SafeWebhookRequest.send>;
 
       await createStep().run(
         argsFor("http://internal.example/items"),

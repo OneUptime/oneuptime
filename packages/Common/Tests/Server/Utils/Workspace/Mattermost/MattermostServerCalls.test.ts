@@ -186,7 +186,7 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
     jest.spyOn(API, "delete").mockImplementation(answer("DELETE") as never);
 
     // The check every call runs, approving each URL (WebhookAddressCheck).
-    ssrfSpy = approveEveryWebhookAddress();
+    ssrfSpy = approveEveryWebhookAddress() as unknown as jest.SpyInstance;
   });
 
   afterEach(() => {
