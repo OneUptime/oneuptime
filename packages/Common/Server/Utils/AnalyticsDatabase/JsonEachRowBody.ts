@@ -14,9 +14,10 @@ import { Readable, Stream } from "stream";
  * those two strings were 19% of everything the App allocated (#6086).
  *
  * These are the same bytes - each row's JSON.stringify and a line break, in
- * order - written in 32 KB pieces straight into Buffers: a third to a half
- * less CPU per batch, and nothing large left on the heap. A row that cannot
- * be written (a BigInt, a cycle) still throws before any request is made.
+ * order - written in 32 KB pieces straight into Buffers: nothing large left
+ * on the heap, the same CPU for rows of plain ASCII, and a quarter to a half
+ * less when a batch carries characters past Latin-1. A row that cannot be
+ * written (a BigInt, a cycle) still throws before any request is made.
  * ---------------------------------------------------------------------------
  */
 

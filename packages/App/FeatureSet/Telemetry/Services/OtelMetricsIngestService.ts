@@ -1828,14 +1828,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                    * The per-metric invariant attribute base: every datapoint
                    * of this metric copies it once (in buildMetricRow /
                    * buildMetricEvaluationRow) and layers its own few
-                   * datapoint attributes on top. A single Object.assign with
-                   * ordered sources reproduces the historical spread + scope
-                   * loop exactly — same key-collision winners (resource <
+                   * datapoint attributes on top. One merge of ordered
+                   * sources reproduces the historical spread + scope loop
+                   * exactly — same key-collision winners (resource <
                    * metric attributes < scope.*) and same key insertion
                    * order — while the scope prefixing itself now happens
                    * once per scopeMetric (see above) instead of per metric.
-                   * mergeOwnValues is that merge, keeping an attribute named
-                   * __proto__ as a key, by spread (#6086).
+                   * mergeOwnValues merges by spread, keeping an attribute
+                   * named __proto__ as a key (#6086).
                    */
                   const metricAttributes: Dictionary<
                     AttributeType | Array<AttributeType>

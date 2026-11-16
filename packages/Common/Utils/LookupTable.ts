@@ -121,8 +121,8 @@ export function assignOwnValues<T>(
  * By object spread, which the servers' ES2018 target leaves to the
  * language: CopyDataProperties defines each key, so "__proto__" stays a key
  * (Tests/Dependencies/TypeScriptTargets pins the targets, and
- * LookupTable.test.ts this function). It is also how V8 copies a map
- * fastest: Object.assign stores key by key, and on ingest's many map
+ * Tests/Utils/LookupTableOwnKeys this function). It is also how V8 copies
+ * a map fastest: Object.assign stores key by key, and on ingest's many map
  * shapes each store missed V8's inline caches - 3.7 µs to merge one
  * record's 13 keys, against 0.17 µs by spread (#6086).
  */
