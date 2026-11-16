@@ -17,7 +17,12 @@ import {
 import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
 import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
 import { AIChatWidgetData } from "../../../../Types/AI/AIChatTypes";
-import { Amber600, Gray500, Green, Red500 } from "../../../../Types/BrandColors";
+import {
+  Amber600,
+  Gray500,
+  Green,
+  Red500,
+} from "../../../../Types/BrandColors";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -148,7 +153,7 @@ function monitor(spec: MonitorSpec): Monitor {
     spec.pausedByMaintenance === true;
   row.isNoProbeEnabledOnThisMonitor = spec.noProbeEnabled === true;
   row.isAllProbesDisconnectedFromThisMonitor = spec.probesDisconnected === true;
-  row.createdAt = spec.createdAt || ago(1 * MINUTE);
+  row.createdAt = spec.createdAt || ago(MINUTE);
   row.monitoringInterval = spec.monitoringInterval || EVERY_FIVE_MINUTES;
 
   if (spec.firstMeasuredAt !== undefined) {
@@ -304,10 +309,7 @@ describe("the words query_monitors says a monitor nothing has checked yet in", (
     ["something has measured it", { firstMeasuredAt: ago(10 * MINUTE) }],
     ["it was read without the column", { firstMeasuredAt: undefined }],
     ["it is a manual monitor", { type: MonitorType.Manual }],
-    [
-      "an incident set it Offline before its first check",
-      { status: OFFLINE },
-    ],
+    ["an incident set it Offline before its first check", { status: OFFLINE }],
     ["its monitoring is off", { monitoringOff: true }],
     ["it is archived", { isArchived: true }],
   ] as Array<[string, Partial<MonitorSpec>]>)(
@@ -365,7 +367,7 @@ describe("query_monitors lists a monitor nothing has checked yet as such", () =>
       brandNew("Payments API"),
       monitor({
         name: "Checkout API",
-        firstMeasuredAt: ago(1 * HOUR),
+        firstMeasuredAt: ago(HOUR),
       }),
     ]);
 
@@ -393,7 +395,7 @@ describe("query_monitors lists a monitor nothing has checked yet as such", () =>
 
   test("a list every monitor of which has been measured carries no note", async () => {
     const { result } = await list([
-      monitor({ name: "Checkout API", firstMeasuredAt: ago(1 * HOUR) }),
+      monitor({ name: "Checkout API", firstMeasuredAt: ago(HOUR) }),
       // Read before the column was: as it always was.
       monitor({ name: "Search" }),
     ]);
@@ -407,7 +409,7 @@ describe("query_monitors lists a monitor nothing has checked yet as such", () =>
       brandNew("Payments API"),
       brandNew("Billing", { createdAt: ago(2 * HOUR) }),
       brandNew("Edge", { noProbeEnabled: true }),
-      monitor({ name: "Checkout API", firstMeasuredAt: ago(1 * HOUR) }),
+      monitor({ name: "Checkout API", firstMeasuredAt: ago(HOUR) }),
       brandNew("Backup Job", { monitoringOff: true }),
     ]);
 
@@ -459,7 +461,9 @@ describe("query_monitors read by id says a monitor nothing has checked yet", () 
   test("reads it with what the Monitors table reads a row's status by", async () => {
     const { findOneById } = await readById(brandNew("Payments API"));
 
-    const select: JSONObject = firstCallArg(findOneById)["select"] as JSONObject;
+    const select: JSONObject = firstCallArg(findOneById)[
+      "select"
+    ] as JSONObject;
     expect(select["firstMeasuredAt"]).toBe(true);
     expect(select["isArchived"]).toBe(true);
     expect(select["disableActiveMonitoring"]).toBe(true);
@@ -515,7 +519,7 @@ describe("query_monitors read by id says a monitor nothing has checked yet", () 
 
   test("a monitor something has measured keeps its status, its colour and no note", async () => {
     const { result } = await readById(
-      monitor({ name: "Checkout API", firstMeasuredAt: ago(1 * HOUR) }),
+      monitor({ name: "Checkout API", firstMeasuredAt: ago(HOUR) }),
     );
 
     expect(result.dataForLlm).not.toContain(NOT_CHECKED_YET_MONITOR_NOTE);

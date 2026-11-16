@@ -83,7 +83,9 @@ describe("AddMonitorFirstMeasuredAt1809181100000", () => {
     expect(model.getTableColumnMetadata("firstMeasuredAt").type).toBe(
       TableColumnType.Date,
     );
-    expect(model.getTableColumnMetadata("firstMeasuredAt").required).toBeFalsy();
+    expect(
+      model.getTableColumnMetadata("firstMeasuredAt").required,
+    ).toBeFalsy();
     expect(model.getColumnAccessControlFor("firstMeasuredAt")?.create).toEqual(
       [],
     );
@@ -91,9 +93,9 @@ describe("AddMonitorFirstMeasuredAt1809181100000", () => {
       [],
     );
     // The same readers as the monitor's status: a Viewer's page must load.
-    expect(
-      model.getColumnAccessControlFor("firstMeasuredAt")?.read,
-    ).toEqual(model.getColumnAccessControlFor("currentMonitorStatusId")?.read);
+    expect(model.getColumnAccessControlFor("firstMeasuredAt")?.read).toEqual(
+      model.getColumnAccessControlFor("currentMonitorStatusId")?.read,
+    );
     expect(model.getColumnAccessControlFor("firstMeasuredAt")?.read).toEqual(
       expect.arrayContaining([
         Permission.Viewer,
@@ -145,7 +147,9 @@ describe("AddMonitorFirstMeasuredAt1809181100000", () => {
     expect(names.indexOf(MIGRATION_CLASS_NAME)).toBeGreaterThan(
       names.indexOf("AddResolvedRecordRetentionServerLimits1809181000000"),
     );
-    expect(names.indexOf("AddResolvedRecordRetentionServerLimits1809181000000")).toBeGreaterThan(-1);
+    expect(
+      names.indexOf("AddResolvedRecordRetentionServerLimits1809181000000"),
+    ).toBeGreaterThan(-1);
     expect(
       fs.existsSync(
         path.join(

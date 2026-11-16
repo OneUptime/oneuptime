@@ -63,9 +63,7 @@ function registeredMigrations(): Array<string> {
   );
 
   return Array.from(
-    index
-      .replace(/\/\*[\s\S]*?\*\//g, " ")
-      .matchAll(/new ([A-Za-z0-9]+)\(\)/g),
+    index.replace(/\/\*[\s\S]*?\*\//g, " ").matchAll(/new ([A-Za-z0-9]+)\(\)/g),
   ).map((match: RegExpMatchArray): string => {
     return match[1]!;
   });
@@ -93,7 +91,10 @@ function stubTable(data: {
       if (statement.sql === STAMP_MEASURED_MONITORS_SQL) {
         const pageIds: Array<string> = statement.parameters[0] as Array<string>;
 
-        if (data.failingPageStartsAt && pageIds[0] === data.failingPageStartsAt) {
+        if (
+          data.failingPageStartsAt &&
+          pageIds[0] === data.failingPageStartsAt
+        ) {
           throw new Error("canceling statement due to lock timeout");
         }
 
@@ -286,7 +287,10 @@ describe("BackfillMonitorFirstMeasuredAt", () => {
 
   test("counts what the driver hands back, in either shape", () => {
     expect(
-      BackfillMonitorFirstMeasuredAt.countRows([[{ _id: "a" }, { _id: "b" }], 2]),
+      BackfillMonitorFirstMeasuredAt.countRows([
+        [{ _id: "a" }, { _id: "b" }],
+        2,
+      ]),
     ).toBe(2);
     expect(
       BackfillMonitorFirstMeasuredAt.countRows([{ _id: "a" }, { _id: "b" }]),
@@ -319,9 +323,10 @@ describe("what the stamp writes, and when", () => {
       // A second event on its status timeline.
       `EXISTS (SELECT 1 FROM "MonitorStatusTimeline" AS "timeline" WHERE "timeline"."monitorId" = "monitor"."_id" OFFSET 1 LIMIT 1)`,
     ]) {
-      expect({ trace, isRead: STAMP_MEASURED_MONITORS_SQL.includes(trace) }).toEqual(
-        { trace, isRead: true },
-      );
+      expect({
+        trace,
+        isRead: STAMP_MEASURED_MONITORS_SQL.includes(trace),
+      }).toEqual({ trace, isRead: true });
     }
   });
 

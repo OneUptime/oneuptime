@@ -187,9 +187,9 @@ const ownWords: (
   };
 };
 
-const toColor: (
+const toColor: (color: Color | string | null | undefined) => Color | null = (
   color: Color | string | null | undefined,
-) => Color | null = (color: Color | string | null | undefined): Color | null => {
+): Color | null => {
   if (!color) {
     return null;
   }

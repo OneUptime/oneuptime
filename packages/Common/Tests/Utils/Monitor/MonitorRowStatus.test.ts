@@ -85,7 +85,7 @@ const newRow: (
     isAllProbesDisconnectedFromThisMonitor: false,
     monitorType: MonitorType.Website,
     firstMeasuredAt: null,
-    createdAt: ago(1 * MINUTE),
+    createdAt: ago(MINUTE),
     monitoringInterval: EVERY_FIVE_MINUTES,
     currentMonitorStatus: {
       name: OPERATIONAL.name,
@@ -196,7 +196,9 @@ describe("MonitorFirstCheck: whether anything has measured a monitor", () => {
       ),
     ).toBe(false);
     expect(
-      MonitorFirstCheck.isStatusUnmeasured(newRow({ firstMeasuredAt: ago(DAY) })),
+      MonitorFirstCheck.isStatusUnmeasured(
+        newRow({ firstMeasuredAt: ago(DAY) }),
+      ),
     ).toBe(false);
   });
 
@@ -386,15 +388,15 @@ describe("MonitorRowStatus: what a row says", () => {
       { disableActiveMonitoringBecauseOfManualIncident: true },
       { disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true },
     ]) {
-      expect(
-        rowStatus(newRow({ ...pause, createdAt: ago(2 * HOUR) })),
-      ).toEqual({
-        kind: MonitorRowStatusKind.PausedBeforeFirstCheck,
-        text: "Paused",
-        color: Gray500,
-        isProductWords: true,
-        shouldAnimate: false,
-      });
+      expect(rowStatus(newRow({ ...pause, createdAt: ago(2 * HOUR) }))).toEqual(
+        {
+          kind: MonitorRowStatusKind.PausedBeforeFirstCheck,
+          text: "Paused",
+          color: Gray500,
+          isProductWords: true,
+          shouldAnimate: false,
+        },
+      );
     }
   });
 
@@ -444,9 +446,10 @@ describe("MonitorRowStatus: what a row says", () => {
       text: "Archived",
       color: Gray500,
     });
-    expect(rowStatus(newRow({ disableActiveMonitoring: true }))).toMatchObject(
-      { text: "Disabled", color: Gray500 },
-    );
+    expect(rowStatus(newRow({ disableActiveMonitoring: true }))).toMatchObject({
+      text: "Disabled",
+      color: Gray500,
+    });
     expect(
       rowStatus(newRow({ isNoProbeEnabledOnThisMonitor: true })),
     ).toMatchObject({ text: "Probes Not Enabled", color: Red500 });
@@ -462,7 +465,9 @@ describe("MonitorRowStatus: what a row says", () => {
 
     expect(status.kind).toBe(MonitorRowStatusKind.Status);
     expect(status.text).toBe("Operational");
-    expect(status.color?.toString()).toBe(Color.fromString("#10B981").toString());
+    expect(status.color?.toString()).toBe(
+      Color.fromString("#10B981").toString(),
+    );
     expect(status.isProductWords).toBe(false);
     expect(status.shouldAnimate).toBe(true);
   });
@@ -484,9 +489,9 @@ describe("MonitorRowStatus: what a row says", () => {
   });
 
   test("a manual monitor says its status, measured or not", () => {
-    expect(
-      rowStatus(newRow({ monitorType: MonitorType.Manual })).text,
-    ).toBe("Operational");
+    expect(rowStatus(newRow({ monitorType: MonitorType.Manual })).text).toBe(
+      "Operational",
+    );
   });
 
   test("a row read without firstMeasuredAt says its status, as every row did before", () => {
@@ -498,7 +503,9 @@ describe("MonitorRowStatus: what a row says", () => {
 
   test("a row read with no status says Unknown, with no colour", () => {
     expect(
-      rowStatus(newRow({ firstMeasuredAt: ago(HOUR), currentMonitorStatus: null })),
+      rowStatus(
+        newRow({ firstMeasuredAt: ago(HOUR), currentMonitorStatus: null }),
+      ),
     ).toEqual({
       kind: MonitorRowStatusKind.NoStatus,
       text: "Unknown",
@@ -734,7 +741,7 @@ describe("a row says what the monitor's own page says (the hero's badge)", () =>
     MonitorType.ProbeStatus,
   ];
 
-  const AGES: Array<number> = [1 * MINUTE, 12 * MINUTE, 2 * HOUR, 10 * DAY];
+  const AGES: Array<number> = [MINUTE, 12 * MINUTE, 2 * HOUR, 10 * DAY];
 
   const PAUSES: Array<Partial<MonitorRowStatusFields>> = [
     {},

@@ -352,7 +352,9 @@ describe("the last missing-signal check of a heartbeat monitor (#8123)", () => {
   );
 
   test("older than that, the stamp: the sweeps have stopped reaching the monitor", () => {
-    const checkedAt: Date = ago((HEARTBEAT_CHECK_STAMP_FRESH_FOR_SECONDS + 1) * SECOND);
+    const checkedAt: Date = ago(
+      (HEARTBEAT_CHECK_STAMP_FRESH_FOR_SECONDS + 1) * SECOND,
+    );
     const fact: MonitorOverviewFact | undefined = factOf(
       build(
         input(MonitorType.IncomingRequest, {
@@ -425,7 +427,10 @@ describe("HeartbeatSweepSchedule", () => {
       }),
     ).toBe(true);
     expect(
-      HeartbeatSweepSchedule.isStampOnSchedule({ checkedAt: undefined, now: NOW }),
+      HeartbeatSweepSchedule.isStampOnSchedule({
+        checkedAt: undefined,
+        now: NOW,
+      }),
     ).toBe(false);
     expect(
       HeartbeatSweepSchedule.isStampOnSchedule({ checkedAt: null, now: NOW }),
@@ -455,9 +460,10 @@ describe("HeartbeatSweepSchedule", () => {
     ]) {
       const source: string = fs.readFileSync(path.join(workers, sweep), "utf8");
 
-      expect({ sweep, everyThirty: source.includes("EVERY_THIRTY_SECONDS") }).toEqual(
-        { sweep, everyThirty: true },
-      );
+      expect({
+        sweep,
+        everyThirty: source.includes("EVERY_THIRTY_SECONDS"),
+      }).toEqual({ sweep, everyThirty: true });
     }
 
     // EVERY_THIRTY_SECONDS is the cron for thirty seconds.
@@ -485,9 +491,11 @@ describe("HeartbeatSweepSchedule", () => {
         "Missing-request check",
         "Missing-email check",
       ]) {
-        expect({ file, key, isWorded: typeof locale[key] === "string" }).toEqual(
-          { file, key, isWorded: true },
-        );
+        expect({
+          file,
+          key,
+          isWorded: typeof locale[key] === "string",
+        }).toEqual({ file, key, isWorded: true });
       }
 
       expect(String(locale["Every {{count}} seconds"])).toContain("{{count}}");

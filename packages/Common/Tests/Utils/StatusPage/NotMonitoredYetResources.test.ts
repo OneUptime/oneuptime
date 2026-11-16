@@ -73,7 +73,9 @@ const OFF_WEBSITE: MonitorFields = {
 
 let nextId: number = 1;
 
-function monitorResource(monitor: MonitorFields): StatusPageResourceWithMonitor {
+function monitorResource(
+  monitor: MonitorFields,
+): StatusPageResourceWithMonitor {
   const id: string = `9a000000-0000-4000-8000-${String(nextId++).padStart(12, "0")}`;
 
   return {
@@ -279,9 +281,7 @@ describe("the resources a page draws as not monitored, and the ones it words Not
     ],
   };
 
-  function idsOf(
-    rows: Array<StatusPageResourceWithMonitor>,
-  ): Array<string> {
+  function idsOf(rows: Array<StatusPageResourceWithMonitor>): Array<string> {
     return rows
       .map((row: StatusPageResourceWithMonitor): string => {
         return String(row._id);

@@ -62,7 +62,7 @@ interface MonitorSeed {
   createdAt: Date;
   firstMeasuredAt?: Date | undefined;
   serverMonitorRequestReceivedAt?: Date | undefined;
-  incomingMonitorRequest?: object | undefined;
+  incomingMonitorRequest?: Record<string, unknown> | undefined;
   incomingRequestWithSecretAt?: Date | undefined;
   incomingEmailMonitorLastEmailReceivedAt?: Date | undefined;
   telemetryMonitorLastMonitorAt?: Date | undefined;
@@ -82,8 +82,7 @@ describePostgres("when something first measured a monitor (Postgres)", () => {
     database = new DataSource({
       type: "postgres",
       host:
-        process.env["MONITOR_FIRST_MEASURED_TEST_DATABASE_HOST"] ||
-        "localhost",
+        process.env["MONITOR_FIRST_MEASURED_TEST_DATABASE_HOST"] || "localhost",
       port: Number(
         process.env["MONITOR_FIRST_MEASURED_TEST_DATABASE_PORT"] || "5400",
       ),
@@ -176,7 +175,7 @@ describePostgres("when something first measured a monitor (Postgres)", () => {
 
   async function insertProbeRow(
     monitorId: string,
-    lastMonitoringLog: object | null,
+    lastMonitoringLog: Record<string, unknown> | null,
   ): Promise<void> {
     await database.query(
       `INSERT INTO "${schema}"."MonitorProbe" ("_id", "version", "projectId", "monitorId", "probeId", "isEnabled", "lastMonitoringLog") VALUES ($1, 1, $2, $3, $4, true, $5::jsonb)`,
@@ -352,9 +351,10 @@ describePostgres("when something first measured a monitor (Postgres)", () => {
     }
 
     for (const id of [never, emptyProbeLog, oneStatusEvent]) {
-      expect({ name: id, firstMeasuredAt: rows.get(id)!.firstMeasuredAt }).toEqual(
-        { name: id, firstMeasuredAt: null },
-      );
+      expect({
+        name: id,
+        firstMeasuredAt: rows.get(id)!.firstMeasuredAt,
+      }).toEqual({ name: id, firstMeasuredAt: null });
     }
 
     expect(rows.get(alreadyStamped)!.firstMeasuredAt?.toISOString()).toBe(

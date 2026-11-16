@@ -46,7 +46,9 @@ let redisFails: boolean;
 
 function monitor(n: number, values: Partial<Monitor> = {}): Monitor {
   const row: Monitor = new Monitor();
-  row.id = new ObjectID(`dededede-0000-4000-8000-${String(n).padStart(12, "0")}`);
+  row.id = new ObjectID(
+    `dededede-0000-4000-8000-${String(n).padStart(12, "0")}`,
+  );
   row._id = row.id.toString();
   Object.assign(row, values);
   return row;
@@ -363,9 +365,9 @@ describe("MonitorHeartbeatState: incoming request arrivals by monitor", () => {
         monitorIds: [monitorId.toString().toLowerCase()],
       });
 
-    expect(
-      arrivals.get(monitorId.toString().toLowerCase())?.getTime(),
-    ).toBe(REPORTED_AT.getTime());
+    expect(arrivals.get(monitorId.toString().toLowerCase())?.getTime()).toBe(
+      REPORTED_AT.getTime(),
+    );
   });
 
   test("nothing kept for an arrival that is not a time", async () => {

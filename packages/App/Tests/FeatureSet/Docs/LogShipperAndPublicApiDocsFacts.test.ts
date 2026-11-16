@@ -3407,16 +3407,18 @@ describe("the Public API page", () => {
 
     // Each language names it as that language's status page draws it.
     for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
-      const statusPageWords: Record<string, Record<string, unknown>> =
-        JSON.parse(
-          fs.readFileSync(
-            path.join(
-              __dirname,
-              `../../../FeatureSet/StatusPage/src/Locales/${language}.json`,
-            ),
-            "utf-8",
+      const statusPageWords: Record<
+        string,
+        Record<string, unknown>
+      > = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            `../../../FeatureSet/StatusPage/src/Locales/${language}.json`,
           ),
-        ) as Record<string, Record<string, unknown>>;
+          "utf-8",
+        ),
+      ) as Record<string, Record<string, unknown>>;
       const word: string = String(
         (statusPageWords["overview"] || {})["notMonitoredYet"],
       );

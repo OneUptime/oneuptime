@@ -35,7 +35,10 @@ export default class MonitorLatestArrivals {
     const reportedMonitors: Array<Monitor> = monitors.filter(
       (monitor: Monitor): boolean => {
         // Read with the column, NULL included.
-        return Boolean(monitor.id) && monitor.serverMonitorRequestReceivedAt !== undefined;
+        return (
+          Boolean(monitor.id) &&
+          monitor.serverMonitorRequestReceivedAt !== undefined
+        );
       },
     );
 
@@ -79,7 +82,10 @@ export default class MonitorLatestArrivals {
 
       if (
         kept &&
-        MonitorLatestArrivals.isNewer(kept, monitor.serverMonitorRequestReceivedAt)
+        MonitorLatestArrivals.isNewer(
+          kept,
+          monitor.serverMonitorRequestReceivedAt,
+        )
       ) {
         monitor.serverMonitorRequestReceivedAt = kept;
       }
@@ -94,7 +100,10 @@ export default class MonitorLatestArrivals {
 
       if (
         kept &&
-        MonitorLatestArrivals.isNewer(kept, request["incomingRequestReceivedAt"])
+        MonitorLatestArrivals.isNewer(
+          kept,
+          request["incomingRequestReceivedAt"],
+        )
       ) {
         request["incomingRequestReceivedAt"] = MonitorLatestArrivals.asWritten(
           kept,

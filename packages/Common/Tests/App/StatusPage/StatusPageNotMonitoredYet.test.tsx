@@ -2,13 +2,7 @@
  * @timezone UTC
  */
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";

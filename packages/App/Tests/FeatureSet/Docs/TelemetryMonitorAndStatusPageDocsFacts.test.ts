@@ -3069,10 +3069,12 @@ describe("status page resources", () => {
    */
   it("names Not monitored yet as each language's status page draws it (#8899)", () => {
     for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
-      const statusPageWords: Record<string, Record<string, unknown>> =
-        JSON.parse(
-          readSource(`App/FeatureSet/StatusPage/src/Locales/${language}.json`),
-        ) as Record<string, Record<string, unknown>>;
+      const statusPageWords: Record<
+        string,
+        Record<string, unknown>
+      > = JSON.parse(
+        readSource(`App/FeatureSet/StatusPage/src/Locales/${language}.json`),
+      ) as Record<string, Record<string, unknown>>;
       const word: string = String(
         (statusPageWords["overview"] || {})["notMonitoredYet"],
       );
@@ -3081,9 +3083,11 @@ describe("status page resources", () => {
         "status-pages/resources-and-groups",
       );
 
-      expect({ language, word, named: page.includes(`**${word}**`) }).toEqual(
-        { language, word, named: true },
-      );
+      expect({ language, word, named: page.includes(`**${word}**`) }).toEqual({
+        language,
+        word,
+        named: true,
+      });
     }
   });
 });

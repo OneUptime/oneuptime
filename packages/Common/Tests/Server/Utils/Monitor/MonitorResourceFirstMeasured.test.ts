@@ -508,8 +508,8 @@ describe("what measures a monitor stamps it, once", () => {
       projectId: monitor.projectId!,
       monitorId: monitor.id!,
       probeId: PROBE_ID,
-      monitorStepId: monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!
-        .id,
+      monitorStepId:
+        monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.id,
       isOnline: true,
       monitoredAt: OneUptimeDate.getCurrentDate(),
       responseTimeInMs: 120,
@@ -604,8 +604,8 @@ describe("what does not measure a monitor stamps nothing", () => {
         projectId: monitor.projectId!,
         monitorId: monitor.id!,
         probeId: PROBE_ID,
-        monitorStepId: monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!
-          .id,
+        monitorStepId:
+          monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.id,
         isOnline: true,
         monitoredAt: OneUptimeDate.getCurrentDate(),
       } as unknown as ProbeMonitorResponse),

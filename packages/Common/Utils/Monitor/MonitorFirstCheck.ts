@@ -131,7 +131,9 @@ export default class MonitorFirstCheck {
   public static isStartingStatus(
     status: StartingStatusFlags | null | undefined,
   ): boolean {
-    return status?.isOperationalState === true && status.isOfflineState !== true;
+    return (
+      status?.isOperationalState === true && status.isOfflineState !== true
+    );
   }
 
   /*
