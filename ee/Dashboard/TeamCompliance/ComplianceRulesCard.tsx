@@ -933,7 +933,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             description={
               canCreate
                 ? "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own."
-                : "A rule says what everyone on this team must set up. Ask a project admin to add one."
+                : "A rule says what everyone on this team must set up. Ask a Project Admin to add one."
             }
             footer={
               canCreate ? (
