@@ -206,16 +206,44 @@ export default class TimeBeforeFirstCheck {
       copy._id = row._id;
     }
 
-    copy.projectId = row.projectId;
-    copy.monitorId = row.monitorId;
-    copy.monitorStatusId = row.monitorStatusId;
-    copy.monitorStatus = row.monitorStatus;
-    copy.startsAt = changes.startsAt || row.startsAt;
-    copy.endsAt = "endsAt" in changes ? changes.endsAt : row.endsAt;
-    copy.isMonitoringOff =
+    if (row.projectId) {
+      copy.projectId = row.projectId;
+    }
+
+    if (row.monitorId) {
+      copy.monitorId = row.monitorId;
+    }
+
+    if (row.monitorStatusId) {
+      copy.monitorStatusId = row.monitorStatusId;
+    }
+
+    if (row.monitorStatus) {
+      copy.monitorStatus = row.monitorStatus;
+    }
+
+    const startsAt: Date | undefined = changes.startsAt || row.startsAt;
+
+    if (startsAt) {
+      copy.startsAt = startsAt;
+    }
+
+    // An end left out is an open row, as a row read with none is.
+    const endsAt: Date | undefined =
+      "endsAt" in changes ? changes.endsAt : row.endsAt;
+
+    if (endsAt) {
+      copy.endsAt = endsAt;
+    }
+
+    const isMonitoringOff: boolean | undefined =
       changes.isMonitoringOff === undefined
         ? row.isMonitoringOff
         : changes.isMonitoringOff;
+
+    if (isMonitoringOff !== undefined) {
+      copy.isMonitoringOff = isMonitoringOff;
+    }
 
     return copy;
   }

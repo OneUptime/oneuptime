@@ -37,6 +37,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+// jest-mock's own spy type, what spyOn from @jest/globals returns (#8598).
+import { SpyInstance } from "jest-mock";
 
 /*
  * An SLO's monthly report, measured when it is asked for: a Monitor Uptime
@@ -166,7 +168,7 @@ async function measure(
 }
 
 describe("SloMonthlyReportMeasurement", () => {
-  let timelineReads: jest.SpiedFunction<
+  let timelineReads: SpyInstance<
     typeof MonitorStatusTimelineService.findAllBy
   >;
 
@@ -459,7 +461,7 @@ describe("SloMonthlyReportMeasurement", () => {
     };
 
     test("sums its counted requests month by month, inside what its counting covers", async () => {
-      const sums: jest.SpiedFunction<typeof SloRequestCounting.readRangeSums> =
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
         jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 9990, totalCount: 10000 },
@@ -493,7 +495,7 @@ describe("SloMonthlyReportMeasurement", () => {
     });
 
     test("an SLO whose requests were never counted reads as no data in every month", async () => {
-      const sums: jest.SpiedFunction<typeof SloRequestCounting.readRangeSums> =
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
         jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 0, totalCount: 0 },
@@ -539,7 +541,7 @@ describe("SloMonthlyReportMeasurement", () => {
 
   describe("a Metric SLO", () => {
     test("sums its metric's counted events month by month, in events", async () => {
-      const sums: jest.SpiedFunction<typeof SloRequestCounting.readRangeSums> =
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
         jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 998, totalCount: 1000 },
@@ -637,7 +639,7 @@ describe("SloMonthlyReportMeasurement", () => {
         fields: Partial<ServiceLevelObjective>,
         reason: SloMonthlyReportUnavailableReason,
       ) => {
-        const sums: jest.SpiedFunction<
+        const sums: SpyInstance<
           typeof SloRequestCounting.readRangeSums
         > = jest.spyOn(SloRequestCounting, "readRangeSums");
 

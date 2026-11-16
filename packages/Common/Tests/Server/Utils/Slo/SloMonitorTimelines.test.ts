@@ -294,8 +294,8 @@ describe("fetchPerMonitorTimelines and the time before a monitor's first check",
 
   test("a monitor measured before the upgrade, stamped with its creation, comes back exactly as read", async () => {
     const sets: Array<MonitorTimelineSet> = await fetch();
-    const read: Array<MonitorStatusTimeline> =
-      await timelineReads.mock.results[0]!.value;
+    const read: Array<MonitorStatusTimeline> = (await timelineReads.mock
+      .results[0]!.value) as Array<MonitorStatusTimeline>;
 
     expect(setOf(sets, CHECKED).timelines).toBe(read);
     expect(sliOf(setOf(sets, CHECKED))).toEqual({ badDays: 1, totalDays: 30 });
