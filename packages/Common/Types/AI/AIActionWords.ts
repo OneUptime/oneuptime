@@ -111,9 +111,14 @@ export interface AIActionMoment {
  * " > " (#8831): "Seite: Benutzereinstellungen > ... ". English reads each
  * as the Dashboard draws it, a key that names its meaning as its word
  * (MeaningKeys): "Insights (explorer analytics)" is "Insights".
+ *
+ * A name may be a template its values fill once it is said - another
+ * product's name, the same in every language: "Import from {{tool}}" with
+ * { tool: "PagerDuty" } reads "Import aus PagerDuty" in German (#8834).
  */
 export interface AIActionMenuPath {
   menuPath: Array<string>;
+  values?: Record<string, string> | undefined;
 }
 
 /*
@@ -1446,8 +1451,13 @@ export function aiActionMoment(moment: Date): AIActionMoment {
 }
 
 // A Dashboard page by its place and name, each said in the sentence's language (AIActionMenuPath).
-export function aiActionMenuPath(menuPath: Array<string>): AIActionMenuPath {
-  return { menuPath: [...menuPath] };
+export function aiActionMenuPath(
+  menuPath: Array<string>,
+  values?: Record<string, string> | undefined,
+): AIActionMenuPath {
+  return values && Object.keys(values).length > 0
+    ? { menuPath: [...menuPath], values: { ...values } }
+    : { menuPath: [...menuPath] };
 }
 
 /*
@@ -1493,22 +1503,39 @@ export function isAIActionMenuPath(value: unknown): value is AIActionMenuPath {
 const MAX_MENU_PATH_NAMES: number = 8;
 const MAX_MENU_PATH_NAME_CHARS: number = 200;
 
-// A stored place the Dashboard can say: one to eight names, each a short text.
+const isMenuPathName: (name: unknown) => boolean = (
+  name: unknown,
+): boolean => {
+  return (
+    typeof name === "string" &&
+    name.trim().length > 0 &&
+    name.length <= MAX_MENU_PATH_NAME_CHARS
+  );
+};
+
+/*
+ * A stored place the Dashboard can say: one to eight names, each a short
+ * text, and what fills a name's placeholders, each a short text too.
+ */
 const isKnownMenuPath: (value: AIActionMenuPath) => boolean = (
   value: AIActionMenuPath,
 ): boolean => {
+  // Read from a conversation's saved JSON: anything, whatever its type says.
+  const values: unknown = value.values;
+
   return (
     value.menuPath.length > 0 &&
     value.menuPath.length <= MAX_MENU_PATH_NAMES &&
-    value.menuPath.every((name: unknown): boolean => {
-      return (
-        typeof name === "string" &&
-        name.trim().length > 0 &&
-        name.length <= MAX_MENU_PATH_NAME_CHARS
-      );
-    })
+    value.menuPath.every(isMenuPathName) &&
+    (values === undefined ||
+      (isPlainObject(values) &&
+        Object.keys(values).length > 0 &&
+        Object.keys(values).length <= MAX_SENTENCE_VALUES &&
+        Object.values(values).every(isMenuPathName)))
   );
 };
+
+const PLACEHOLDER_IN_NAME: RegExp = /\{\{\s*[\w.]+\s*\}\}/;
 
 /*
  * A page's place and name in the translator's language: each name as the
@@ -1522,6 +1549,11 @@ export function describeAIActionMenuPath(
 ): string {
   return value.menuPath
     .map((name: string): string => {
+      // A template, filled with its values once it is said (#8834).
+      if (value.values && PLACEHOLDER_IN_NAME.test(name)) {
+        return translator.translateTemplate(name, value.values).trim();
+      }
+
       return translator.translateTerm(name);
     })
     .join(" > ");
