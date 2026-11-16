@@ -1244,6 +1244,8 @@
   "Copy Error": "Kopier feil",
   "Full error message": "Hele feilmeldingen",
   "Next try: {{time}}": "Neste forsøk: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "Oppføringer som venter på å bli sendt, begynner å bli slettet fra omkring {{time}}.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "Siden omkring {{time}} blir oppføringer som venter på å bli sendt, slettet.",
   "Needs a valid Enterprise license that includes audit logs.": "Krever en gyldig Enterprise-lisens som omfatter revisjonslogger.",
   "Paused": "Pauset",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "Ingenting sendes mens den er slått av. Den beholder plassen sin: når den slås på igjen, sender den det som ble registrert i mellomtiden.",

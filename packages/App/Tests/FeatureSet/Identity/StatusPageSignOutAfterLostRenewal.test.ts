@@ -218,6 +218,12 @@ const revokeLiveSessionCalls: Array<{
   sessionId: string;
 }> = [];
 
+/*
+ * What each sign-out handed the revocation besides its reason: where its
+ * request came from, which the audit log's Sign Out says (issue #6790).
+ */
+const signOutOrigins: Array<unknown> = [];
+
 jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
   return {
     __esModule: true,
@@ -282,8 +288,10 @@ jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
       },
       revokeSessionByRefreshToken: async (
         refreshToken: string,
-        options: { reason: string },
+        options: { reason: string; requestOrigin?: unknown },
       ): Promise<boolean> => {
+        signOutOrigins.push(options.requestOrigin);
+
         const row: SessionRow | undefined = live(
           table.find((candidate: SessionRow): boolean => {
             return candidate.refreshToken === refreshToken;
@@ -307,8 +315,9 @@ jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
           statusPagePrivateUserId: ObjectID;
           sessionId: ObjectID;
         },
-        options: { reason: string },
+        options: { reason: string; requestOrigin?: unknown },
       ): Promise<boolean> => {
+        signOutOrigins.push(options.requestOrigin);
         revokeLiveSessionCalls.push({
           statusPageId: data.statusPageId.toString(),
           readerId: data.statusPagePrivateUserId.toString(),
@@ -741,6 +750,7 @@ beforeEach(() => {
   table.length = 0;
   rotations = 0;
   revokeLiveSessionCalls.length = 0;
+  signOutOrigins.length = 0;
   (globalThis as { __readerPages?: Dictionary<string> }).__readerPages = {};
 });
 
@@ -780,6 +790,20 @@ describe("a renewal whose answer was lost, then the reader signs out of the page
     expect(revokeLiveSessionCalls).toEqual([
       { statusPageId: PAGE_ID, readerId: READER_ID, sessionId: SESSION_ID },
     ]);
+    /*
+     * Each way it tried to end the session said where the sign-out came
+     * from - as RequestOriginUtil reads it, empty for this stand-in request.
+     */
+    expect(signOutOrigins.length).toBeGreaterThan(0);
+
+    for (const origin of signOutOrigins) {
+      expect(origin).toBeDefined();
+      expect(Object.keys(origin as Record<string, unknown>).sort()).toEqual([
+        "device",
+        "ipAddress",
+        "location",
+      ]);
+    }
   });
 
   it("an hour, or 29 days, on: still ended, as long as the refresh token would have lasted", async () => {

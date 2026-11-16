@@ -140,7 +140,7 @@ Varje post är ett JSON-objekt, med nycklarna alltid i den här ordningen:
 | `id` | Postens ID. Samma post, skickad två gånger, har samma ID. |
 | `createdAt` | När ändringen registrerades, i UTC. |
 | `projectId` | Projektet där ändringen gjordes. |
-| `action` | `Create`, `Update`, `Delete` eller `Download`, eller för en session `SignIn`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` eller `Download`, eller för en inloggning eller en session `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Vad som ändrades. |
 | `rootResourceType`, `rootResourceId` | Resursen den hör till, till exempel ett SLO för dess regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Vem som gjorde ändringen. |
@@ -173,7 +173,7 @@ En ny export skickar version 2. En export som sparades före version 2 fortsätt
 
 ## När ett mål misslyckas
 
-En batch försöks tre gånger med några sekunders mellanrum, och sedan väntar exporten innan den försöker igen: en minut, sedan två, fyra och så vidare, upp till en timme. Raden säger **Misslyckas**, och **Visa fel** visar vad målet svarade och när nästa försök kommer.
+En batch försöks tre gånger med några sekunders mellanrum, och sedan väntar exporten innan den försöker igen: en minut, sedan två, fyra och så vidare, upp till en timme. Raden säger **Misslyckas**, och **Visa fel** visar vad målet svarade, när nästa försök kommer, och från när posterna som väntar på att skickas börjar tas bort, eller, när den tidpunkten har passerat, sedan när de tas bort.
 
 Inget hoppas över: Posterna väntar i granskningsloggen, och nästa leverans som lyckas tar igen från den äldsta. Varje post tas ändå bort när den är äldre än lagringstiden den registrerades med, skickad eller inte, så åtgärda en export som misslyckas inom den tiden. En längre lagringstid gäller bara poster som registreras efter att du ändrar den.
 

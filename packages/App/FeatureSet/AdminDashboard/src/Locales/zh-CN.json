@@ -1244,6 +1244,8 @@
   "Copy Error": "复制错误",
   "Full error message": "完整错误信息",
   "Next try: {{time}}": "下次尝试：{{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "等待发送的条目将从大约 {{time}} 起开始被删除。",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "自大约 {{time}} 起，等待发送的条目正在被删除。",
   "Needs a valid Enterprise license that includes audit logs.": "需要包含审计日志的有效 Enterprise 许可证。",
   "Paused": "已暂停",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "关闭期间不会发送任何内容。它会保留位置：重新开启后，会发送期间记录的内容。",

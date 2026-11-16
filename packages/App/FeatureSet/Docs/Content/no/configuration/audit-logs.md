@@ -65,10 +65,10 @@ En endring av disse innstillingene trer i kraft innen ett minutt.
 | Kolonne | Hva den viser |
 | --- | --- |
 | **Når** | Hvor lenge siden, med dato og klokkeslett. |
-| **Handling** | `Create`, `Update` eller `Delete`, `Download` for en pakkeopptaksfil som noen har lastet ned, eller `Sign In`, `Sign Out`, `Session Timeout` eller `Session Revoked` for en økt. |
+| **Handling** | `Create`, `Update` eller `Delete`, `Download` for en pakkeopptaksfil som noen har lastet ned, eller `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` eller `Session Revoked` for en pålogging eller en økt. |
 | **Ressurs** | Ressursens navn, som åpner den så lenge den finnes, og typen. |
 | **Aktør** | Hvem som gjorde endringen: en person, en API-nøkkel, en arbeidsflyt eller `System` for en endring OneUptime selv gjorde. En persons endring via en MCP-klient nevner hvilken. |
-| **Endringer** | Hvor mange felt som ble endret, eller registrert ved en opprettelse eller sletting. For en økt: hvordan den logget på, eller hvorfor den sluttet. Klikk for å se hvert felt. |
+| **Endringer** | Hvor mange felt som ble endret, eller registrert ved en opprettelse eller sletting. For en pålogging eller en økt: hvordan det ble logget på, hvorfor det mislyktes, eller hvorfor økten sluttet. Klikk for å se hvert felt. |
 
 Filtrer etter **Ressurstype**, **Ressursnavn**, **Handling**, **Bruker-e-post** eller **Tid**. En endring viser bare feltene som ble endret, før og etter, og en lagring som ikke endrer noe, legger ikke til noen oppføring.
 
@@ -86,7 +86,7 @@ Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, 
 | Registreringer av kjøringer | Hver av dem er allerede registreringen av en kjøring av en arbeidsflyt, en vakteskalering, en skanning, en import eller en AI-kjøring. |
 | Det agenter og telemetri rapporterer | Oppdagede ressurser, målinger og forbruk endrer seg med hver rapport, ikke fordi noen har endret dem. |
 | Aktivitetsfeeder | En feed viser endringer som revisjonsloggen allerede registrerer. |
-| OneUptimes arbeidstilstand | Økter for lesere av statussider, jobber i kø og annen tilstand OneUptime holder mens det arbeider. |
+| OneUptimes arbeidstilstand | Jobber i kø og annen tilstand OneUptime holder mens det arbeider. |
 | En persons egen varslingsoppsett | Hver persons adresser, numre og personlige vaktregler tilhører bare dem. |
 | En persons egne preferanser | Produktene hver person fester i sin egen øverste linje, tilhører bare dem, og bare de ser dem. |
 
@@ -114,11 +114,16 @@ Hver gang et medlem av prosjektet logger på OneUptime, registrerer revisjonslog
 | Handling | Når den registreres |
 | --- | --- |
 | `Sign In` | Noen logger på: med passord eller en innloggingslenke, en passnøkkel, Google, Microsoft, Vercel eller enkel pålogging. |
+| `Sign-In Failed` | Noen prøver å logge på en eksisterende konto og mislykkes: feil passord, autentiseringskode, reservekode eller sikkerhetsnøkkel, en blokkert eller ubekreftet konto, eller en enkel pålogging som OneUptime avviste. |
 | `Sign Out` | Personen logger ut. |
 | `Session Timeout` | OneUptime avslutter økten fordi tiden er ute: inaktivitetsperioden eller øktlengden en serveradministrator har angitt, eller 30 dager uten bruk. |
 | `Session Revoked` | OneUptime avslutter økten fordi passordet ble endret, kontoen ble blokkert, eller en serveradministrator tilbakestilte eller krevde tofaktorautentisering. |
 
 For en slik oppføring er **Ressurs** økten, navngitt etter enheten den logget på fra, for eksempel `Chrome 130 on macOS`. **Aktør** er personen økten tilhører, så filtrering etter **Bruker-e-post** finner alle påloggingene og øktene deres. Detaljene sier hvordan de logget på og med hvilken andre faktor, IP-adressen og stedet, og for en økt som er avsluttet, når den logget på, når den sist ble brukt og når den utløp. Et prosjekts egen SSO-leverandør nevnes bare i revisjonsloggen til det prosjektet.
+
+En `Sign-In Failed`-oppføring gjelder forsøket og er navngitt etter enheten det kom fra. **Aktør** er kontoen forsøket ble gjort på: den som gjorde det, har ikke bevist at de er den personen. Detaljene sier hvorfor det mislyktes, hvordan de prøvde å logge på, IP-adressen og stedet, aldri hva som ble skrevet. Et forsøk på en e-postadresse som ingen konto har, registreres ikke, og at et forsøk registreres, endrer verken hva påloggingssiden svarer, eller hvor raskt. For at en flom av forsøk ikke skal kunne fylle revisjonsloggen, registreres de første 10 mislykkede forsøkene på en konto i løpet av en time hver for seg. Resten telles, og kontoens neste oppføring sier hvor mange forsøk den står for, og når det første av dem ble gjort.
+
+Leserne av en privat statusside registreres også, bare i statussidens prosjekt: hver pålogging med passord, en innloggingslenke eller statussidens enkle pålogging, hver utlogging, og hver økt OneUptime avslutter fordi leserens passord ble endret, eller fordi statussiden ikke lenger godtar måten den logget på. Oppføringene deres står også på statussidens egen side **Revisjonslogger**. **Aktør** er leseren, med e-postadressen sin, og **Ressurs** er leserens økt.
 
 Pålogginger og økter registreres enten prosjektet lagrer systemhendelser eller ikke. En utløpt øktlengde eller 30 dager uten bruk registreres innen noen minutter. En utløpt inaktivitetsperiode i nettleseren, eller i en versjon av mobilappen nyere enn 1.6.0, registreres innen 35 minutter, enten personen kommer tilbake eller ikke. I mobilappen versjon 1.6.0 og eldre registreres den neste gang appen kontakter OneUptime.
 

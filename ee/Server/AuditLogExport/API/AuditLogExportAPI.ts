@@ -26,11 +26,19 @@ import {
   AuditLogExportDestinationKind,
   getAuditLogExportDestinationDefinition,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
+import {
+  AUDIT_LOG_EXPORT_ENTRIES_LOST_AT_KEY,
+  AUDIT_LOG_EXPORT_ENTRIES_LOST_READ_AT_KEY,
+} from "Common/Types/AuditLog/Export/AuditLogExportEntriesLost";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import AuditLogExporter from "../AuditLogExporter";
+import AuditLogService from "Common/Server/Services/AuditLogService";
+import AuditLogExporter, {
+  AuditLogExportEntryReader,
+} from "../AuditLogExporter";
 import { AuditLogExportDeliveryReceipt } from "../Destinations/Types";
 
 /*
@@ -60,6 +68,14 @@ import { AuditLogExportDeliveryReceipt } from "../Destinations/Types";
  * creating an export in the project asks (the role, the plan, the Enterprise
  * Edition - checkCallerMayCreate), before anything is read as OneUptime;
  * the instance's is a master admin's, and never names a project.
+ *
+ * And, for a failing export's View Error dialog, when the entries it has
+ * not sent start to be deleted (#7186):
+ *
+ *   POST /audit-log-export/entries-lost-at           a project's export
+ *   POST /audit-log-export/instance/entries-lost-at  the instance's (master admins)
+ *
+ * held to the gate of reading the export (AuditLogExportEntriesLostAt).
  *
  * Routes only, no router.use() (ee/Tests/Server/ModuleShape.test.ts).
  */
@@ -318,6 +334,144 @@ export class AuditLogExportTest {
   }
 }
 
+/*
+ * WHEN A FAILING EXPORT'S WAITING ENTRIES START TO BE DELETED (#7186):
+ *
+ *   POST /audit-log-export/entries-lost-at           a project's export
+ *   POST /audit-log-export/instance/entries-lost-at  the instance's (master admins)
+ *
+ * with { exportId }, for the View Error dialog. The answer is
+ * { entriesLostAt, readAt }: the soonest date one of the entries the export
+ * has not sent is deleted (AuditLogService.findSoonestRetentionDateForExport,
+ * over the same entries the exporter would send next:
+ * AuditLogExporter.unsentWindow), and when it was read - which the page
+ * says the date against (Types/AuditLog/Export/AuditLogExportEntriesLost).
+ * entriesLostAt is null for an export that is not failing or is turned
+ * off, and when nothing waits. A read the audit log cannot answer fails,
+ * and the page then says no date rather than a wrong one.
+ *
+ * Held to the gate of reading the export: a project's export is read as the
+ * caller (the roles that may read it, in their own project only), the
+ * instance's needs a master admin and never names a project.
+ */
+export class AuditLogExportEntriesLostAt {
+  // Where the entries are read from: the audit log by default.
+  public static reader: AuditLogExportEntryReader = AuditLogService;
+
+  public static async readProjectExport(data: {
+    body: unknown;
+    props: DatabaseCommonInteractionProps;
+    now?: Date | undefined;
+  }): Promise<JSONObject> {
+    const projectId: ObjectID = CommonAPI.assertAuthenticatedProjectMember(
+      data.props,
+    );
+    const exportId: ObjectID = AuditLogExportEntriesLostAt.readExportId(
+      data.body,
+    );
+
+    const visible: AuditLogExport | null =
+      await AuditLogExportService.findOneBy({
+        query: { _id: exportId.toString(), projectId: projectId },
+        select: { _id: true, projectId: true },
+        props: data.props,
+      });
+
+    CommonAPI.assertResourceBelongsToProject({
+      resourceProjectId: visible?.projectId,
+      projectId: projectId,
+    });
+
+    return await AuditLogExportEntriesLostAt.read({
+      exportId,
+      now: data.now || OneUptimeDate.getCurrentDate(),
+    });
+  }
+
+  // The instance's, for a master admin (the route's middleware has said so).
+  public static async readInstanceExport(data: {
+    body: unknown;
+    props: DatabaseCommonInteractionProps;
+    now?: Date | undefined;
+  }): Promise<JSONObject> {
+    const exportId: ObjectID = AuditLogExportEntriesLostAt.readExportId(
+      data.body,
+    );
+
+    const visible: AuditLogExport | null =
+      await AuditLogExportService.findOneBy({
+        query: { _id: exportId.toString() },
+        select: { _id: true, projectId: true },
+        props: { ...data.props, isMasterAdmin: true },
+      });
+
+    // The instance's route reads the instance's exports only.
+    if (!visible || visible.projectId) {
+      throw new BadDataException("The export no longer exists.");
+    }
+
+    return await AuditLogExportEntriesLostAt.read({
+      exportId,
+      now: data.now || OneUptimeDate.getCurrentDate(),
+    });
+  }
+
+  private static readExportId(body: unknown): ObjectID {
+    const value: JSONValue | undefined = readBody(body)["exportId"];
+
+    if (typeof value !== "string" || !ObjectID.isValidUUID(value)) {
+      throw new BadDataException("A valid export ID is required.");
+    }
+
+    return new ObjectID(value);
+  }
+
+  /*
+   * The soonest date among the entries the export has not sent, while it
+   * is failing and on: a healthy export has nothing waiting long, and one
+   * that is off sends nothing until it is turned on again.
+   */
+  private static async read(data: {
+    exportId: ObjectID;
+    now: Date;
+  }): Promise<JSONObject> {
+    const item: AuditLogExport | null = await AuditLogExportService.findOneById(
+      {
+        id: data.exportId,
+        select: {
+          _id: true,
+          projectId: true,
+          isEnabled: true,
+          startsAt: true,
+          createdAt: true,
+          cursorCreatedAt: true,
+          cursorEntryId: true,
+          failingSince: true,
+        },
+        props: { isRoot: true },
+      },
+    );
+
+    if (!item) {
+      throw new BadDataException("The export no longer exists.");
+    }
+
+    const entriesLostAt: Date | null =
+      item.failingSince && item.isEnabled !== false
+        ? await AuditLogExportEntriesLostAt.reader.findSoonestRetentionDateForExport(
+            AuditLogExporter.unsentWindow(item, data.now),
+          )
+        : null;
+
+    return {
+      [AUDIT_LOG_EXPORT_ENTRIES_LOST_AT_KEY]: entriesLostAt
+        ? entriesLostAt.toISOString()
+        : null,
+      [AUDIT_LOG_EXPORT_ENTRIES_LOST_READ_AT_KEY]: data.now.toISOString(),
+    };
+  }
+}
+
 router.post(
   "/audit-log-export/test",
   UserMiddleware.getUserMiddleware,
@@ -351,6 +505,52 @@ router.post(
         req,
         res,
         await AuditLogExportTest.testInstanceExport({ body: req.body, props }),
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/audit-log-export/entries-lost-at",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        await AuditLogExportEntriesLostAt.readProjectExport({
+          body: req.body,
+          props,
+        }),
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/audit-log-export/instance/entries-lost-at",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  UserMiddleware.getUserMiddleware,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        await AuditLogExportEntriesLostAt.readInstanceExport({
+          body: req.body,
+          props,
+        }),
       );
     } catch (error) {
       next(error);

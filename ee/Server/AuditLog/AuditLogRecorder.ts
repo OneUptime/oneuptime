@@ -37,6 +37,17 @@ import {
   isSessionAuditLogAction,
   SessionAuditEvent,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
+import {
+  AUDIT_LOG_SIGN_IN_ATTEMPT_RESOURCE_TYPE,
+  isSignInFailureReason,
+  SignInFailureAuditEvent,
+} from "Common/Types/AuditLog/AuditLogSignInFailure";
+import {
+  AUDIT_LOG_STATUS_PAGE_READER_ACTOR_TYPE,
+  AUDIT_LOG_STATUS_PAGE_SESSION_RESOURCE_TYPE,
+  AUDIT_LOG_STATUS_PAGE_SESSION_ROOT_RESOURCE_TYPE,
+  StatusPageSessionAuditEvent,
+} from "Common/Types/AuditLog/AuditLogStatusPageSession";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import {
   AUDIT_LOG_SECRET_COLUMNS,
@@ -75,8 +86,11 @@ import {
   readAuditLogValue,
 } from "Common/Utils/AuditLog/AuditLogTypedValues";
 import {
+  getDeviceName,
   getSessionEntryChanges,
   getSessionEntryResourceName,
+  getSignInFailureEntryChanges,
+  getStatusPageSessionEntryChanges,
 } from "./AuditLogSessionEntries";
 
 /*
@@ -130,7 +144,10 @@ import {
  * sign-out, a session timed out or revoked - filed in every project the
  * person is a member of that records audit logs, as theirs, whether or not
  * the project stores system events (AuditLogSessionEntries says what each
- * entry holds).
+ * entry holds). A failed sign-in on an existing account (recordSignInFailures,
+ * issue #6788) is filed the same way, and a private status page's reader's
+ * session (recordStatusPageSessionEvents, issue #6790) in that status page's
+ * project alone.
  *
  * WHAT A WRITE ROUND THE HOOKS RECORDS (recordUpdate's includeColumns): a
  * write OneUptime makes for a person outside DatabaseService - a merge of
@@ -207,6 +224,14 @@ interface CachedUser {
 interface RootResourcePointer {
   rootResourceType: string | null;
   rootResourceId: ObjectID | null;
+}
+
+// What one project's entry about an event of a person's is built from.
+interface MemberProjectEntryInput<TEvent> {
+  event: TEvent;
+  projectId: ObjectID;
+  person: { name: string | null; email: string | null } | null;
+  retentionInDays: number;
 }
 
 /*
@@ -509,59 +534,179 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
         },
       );
 
-      if (recordable.length === 0) {
-        return;
-      }
-
-      const projectIdsByUser: Map<
-        string,
-        Array<ObjectID>
-      > = await this.getMemberProjectIds(
-        recordable.map((event: SessionAuditEvent): ObjectID => {
-          return event.userId;
+      await this.insertMany(
+        await this.buildEntriesInMemberProjects({
+          events: recordable,
+          getUserId: (event: SessionAuditEvent): ObjectID => {
+            return event.userId;
+          },
+          buildEntry: (data: MemberProjectEntryInput<SessionAuditEvent>) => {
+            return this.buildSessionEntry(data);
+          },
         }),
       );
-
-      const entries: Array<AuditLog> = [];
-
-      for (const event of recordable) {
-        const projectIds: Array<ObjectID> =
-          projectIdsByUser.get(event.userId.toString().toLowerCase()) || [];
-
-        if (projectIds.length === 0) {
-          continue;
-        }
-
-        let person: { name: string | null; email: string | null } | null = null;
-
-        for (const projectId of projectIds) {
-          const settings: CachedProjectSettings | null =
-            await this.getProjectSettings(projectId);
-
-          if (!this.isSessionEventEligible(settings)) {
-            continue;
-          }
-
-          if (!person) {
-            person = await this.getUserInfo(event.userId);
-          }
-
-          entries.push(
-            this.buildSessionEntry({
-              event,
-              projectId,
-              person,
-              retentionInDays: settings!.retentionInDays,
-            }),
-          );
-        }
-      }
-
-      await this.insertMany(entries);
     } catch (err) {
       logger.warn("AuditLog: failed to record session events");
       logger.warn(err);
     }
+  }
+
+  /*
+   * FAILED SIGN-INS (issue #6788): an attempt on an existing account that
+   * failed (Common/Types/AuditLog/AuditLogSignInFailure), as core's
+   * FailedSignInAuditLog hands it over once its bound let it through.
+   *
+   * Filed as a sign-in is: in every project the account's person is a
+   * member of that records audit logs, whether or not it stores system
+   * events - and nowhere else, so nobody outside the person's projects
+   * learns anything about the account from an entry. The entry is about the
+   * attempt: a Sign-In Attempt, by the attempt's id - every project's entry
+   * about it shares it - named by the device it came from, rolling up to
+   * the account (User, by its id). Its actor is the account; what else it
+   * says is AuditLogSessionEntries'.
+   */
+  public async recordSignInFailures(
+    events: Array<SignInFailureAuditEvent>,
+  ): Promise<void> {
+    try {
+      const recordable: Array<SignInFailureAuditEvent> = (events || []).filter(
+        (event: SignInFailureAuditEvent): boolean => {
+          return Boolean(
+            event &&
+              event.userId &&
+              event.attemptId &&
+              isSignInFailureReason(event.reason),
+          );
+        },
+      );
+
+      if (recordable.length === 0) {
+        return;
+      }
+
+      await this.insertMany(
+        await this.buildEntriesInMemberProjects({
+          events: recordable,
+          getUserId: (event: SignInFailureAuditEvent): ObjectID => {
+            return event.userId;
+          },
+          buildEntry: (
+            data: MemberProjectEntryInput<SignInFailureAuditEvent>,
+          ) => {
+            return this.buildSignInFailureEntry(data);
+          },
+        }),
+      );
+    } catch (err) {
+      logger.warn("AuditLog: failed to record failed sign-ins");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * A PRIVATE STATUS PAGE'S READERS' SESSIONS (issue #6790): a reader's
+   * sign-in, sign-out or a session OneUptime ended
+   * (Common/Types/AuditLog/AuditLogStatusPageSession).
+   *
+   * Filed in the status page's project alone - a reader belongs to no
+   * other - when it records audit logs, eligible as a member's session
+   * events are. The entry is about the session, by its id, named by its
+   * device, rolling up to the status page; its actor is the reader, by
+   * their address, with no user id: they are no OneUptime user.
+   */
+  public async recordStatusPageSessionEvents(
+    events: Array<StatusPageSessionAuditEvent>,
+  ): Promise<void> {
+    try {
+      const entries: Array<AuditLog> = [];
+
+      for (const event of events || []) {
+        if (
+          !event ||
+          !event.sessionId ||
+          !event.projectId ||
+          !event.statusPageId ||
+          !isSessionAuditLogAction(event.action) ||
+          (event.action as AuditLogAction) === AuditLogAction.SignInFailed
+        ) {
+          continue;
+        }
+
+        const settings: CachedProjectSettings | null =
+          await this.getProjectSettings(event.projectId);
+
+        if (!this.isSessionEventEligible(settings)) {
+          continue;
+        }
+
+        entries.push(
+          this.buildStatusPageSessionEntry({
+            event,
+            retentionInDays: settings!.retentionInDays,
+          }),
+        );
+      }
+
+      await this.insertMany(entries);
+    } catch (err) {
+      logger.warn("AuditLog: failed to record status page session events");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * One entry for each event in every project its person is a member of
+   * that records audit logs: their projects read together, each project's
+   * settings once (the cache every entry reads), and each person looked up
+   * once, only when one of their projects records it.
+   */
+  private async buildEntriesInMemberProjects<TEvent>(data: {
+    events: Array<TEvent>;
+    getUserId: (event: TEvent) => ObjectID;
+    buildEntry: (input: MemberProjectEntryInput<TEvent>) => AuditLog;
+  }): Promise<Array<AuditLog>> {
+    const projectIdsByUser: Map<
+      string,
+      Array<ObjectID>
+    > = await this.getMemberProjectIds(data.events.map(data.getUserId));
+
+    const entries: Array<AuditLog> = [];
+
+    for (const event of data.events) {
+      const userId: ObjectID = data.getUserId(event);
+      const projectIds: Array<ObjectID> =
+        projectIdsByUser.get(userId.toString().toLowerCase()) || [];
+
+      if (projectIds.length === 0) {
+        continue;
+      }
+
+      let person: { name: string | null; email: string | null } | null = null;
+
+      for (const projectId of projectIds) {
+        const settings: CachedProjectSettings | null =
+          await this.getProjectSettings(projectId);
+
+        if (!this.isSessionEventEligible(settings)) {
+          continue;
+        }
+
+        if (!person) {
+          person = await this.getUserInfo(userId);
+        }
+
+        entries.push(
+          data.buildEntry({
+            event,
+            projectId,
+            person,
+            retentionInDays: settings!.retentionInDays,
+          }),
+        );
+      }
+    }
+
+    return entries;
   }
 
   /*
@@ -667,13 +812,89 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     return result;
   }
 
-  // One project's entry about a session event.
-  private buildSessionEntry(data: {
-    event: SessionAuditEvent;
-    projectId: ObjectID;
-    person: { name: string | null; email: string | null } | null;
+  // One project's entry about a failed sign-in.
+  private buildSignInFailureEntry(
+    data: MemberProjectEntryInput<SignInFailureAuditEvent>,
+  ): AuditLog {
+    const auditLog: AuditLog = new AuditLog();
+
+    auditLog.projectId = data.projectId;
+    auditLog.resourceType = AUDIT_LOG_SIGN_IN_ATTEMPT_RESOURCE_TYPE;
+    auditLog.resourceId = data.event.attemptId;
+    auditLog.resourceName = getDeviceName(data.event.device);
+    auditLog.rootResourceType = AUDIT_LOG_SESSION_ROOT_RESOURCE_TYPE;
+    auditLog.rootResourceId = data.event.userId;
+    auditLog.action = AuditLogAction.SignInFailed;
+
+    // The account the attempt was made on.
+    this.setPersonAsActor({
+      auditLog,
+      userId: data.event.userId,
+      person: data.person,
+    });
+
+    auditLog.changes = getSignInFailureEntryChanges({
+      event: data.event,
+      projectId: data.projectId,
+    });
+    auditLog.retentionDate = this.computeRetentionDate(data.retentionInDays);
+
+    return auditLog;
+  }
+
+  // The status page's project's entry about a reader's session event.
+  private buildStatusPageSessionEntry(data: {
+    event: StatusPageSessionAuditEvent;
     retentionInDays: number;
   }): AuditLog {
+    const auditLog: AuditLog = new AuditLog();
+
+    auditLog.projectId = data.event.projectId;
+    auditLog.resourceType = AUDIT_LOG_STATUS_PAGE_SESSION_RESOURCE_TYPE;
+    auditLog.resourceId = data.event.sessionId;
+    auditLog.resourceName = getDeviceName(data.event.device);
+    auditLog.rootResourceType =
+      AUDIT_LOG_STATUS_PAGE_SESSION_ROOT_RESOURCE_TYPE;
+    auditLog.rootResourceId = data.event.statusPageId;
+    auditLog.action = data.event.action;
+
+    // The reader: no OneUptime user, so no user id - only their address.
+    auditLog.userType = AUDIT_LOG_STATUS_PAGE_READER_ACTOR_TYPE;
+
+    const readerEmail: string | undefined = data.event.readerEmail?.trim();
+
+    if (readerEmail) {
+      auditLog.userEmail = readerEmail;
+    }
+
+    auditLog.changes = getStatusPageSessionEntryChanges(data.event);
+    auditLog.retentionDate = this.computeRetentionDate(data.retentionInDays);
+
+    return auditLog;
+  }
+
+  // A person as an entry's actor: by their id, name and address, as a user.
+  private setPersonAsActor(data: {
+    auditLog: AuditLog;
+    userId: ObjectID;
+    person: { name: string | null; email: string | null } | null;
+  }): void {
+    data.auditLog.userId = data.userId;
+    data.auditLog.userType = UserType.User;
+
+    if (data.person?.name) {
+      data.auditLog.userName = data.person.name;
+    }
+
+    if (data.person?.email) {
+      data.auditLog.userEmail = data.person.email;
+    }
+  }
+
+  // One project's entry about a session event.
+  private buildSessionEntry(
+    data: MemberProjectEntryInput<SessionAuditEvent>,
+  ): AuditLog {
     const auditLog: AuditLog = new AuditLog();
 
     auditLog.projectId = data.projectId;
@@ -685,16 +906,11 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     auditLog.action = data.event.action;
 
     // The person whose session it is.
-    auditLog.userId = data.event.userId;
-    auditLog.userType = UserType.User;
-
-    if (data.person?.name) {
-      auditLog.userName = data.person.name;
-    }
-
-    if (data.person?.email) {
-      auditLog.userEmail = data.person.email;
-    }
+    this.setPersonAsActor({
+      auditLog,
+      userId: data.event.userId,
+      person: data.person,
+    });
 
     auditLog.changes = getSessionEntryChanges({
       event: data.event,

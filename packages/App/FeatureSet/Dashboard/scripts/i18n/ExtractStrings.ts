@@ -416,6 +416,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts",
     kind: "keys",
   },
+  /*
+   * Why a sign-in failed ("Wrong password", "Too many wrong codes") and the
+   * attempt an entry is about ("Sign-In Attempt"), as the audit log's
+   * table and dialog draw them (#6788). Only the words the file marks are
+   * read: the stored reasons they label are not.
+   */
+  {
+    directory: "packages/Common/Types/AuditLog/AuditLogSignInFailure.ts",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/Workflow/WorkflowStatus.ts",
     kind: "keys",
