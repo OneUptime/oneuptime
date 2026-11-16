@@ -959,6 +959,57 @@ describe("the policy does not page again on top of a run started by hand that is
 });
 
 /*
+ * A direct page about the incident, run as OnCallDutyPolicyExecutionLog
+ * Service starts one: sent from a chat by `by`, or by a workflow's step
+ * named `workflowName`; to observers when `isObserverPage`.
+ */
+async function startDirect(data: {
+  users: Array<ObjectID>;
+  by?: ObjectID | undefined;
+  workflowName?: string | undefined;
+  isObserverPage?: boolean | undefined;
+}): Promise<{ runId: ObjectID; outcome: OnCallPagingOutcome }> {
+  const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+  run.id = nextId();
+  run.projectId = PROJECT_ID;
+  run.triggeredByIncidentId = INCIDENT_ID;
+  run.userNotificationEventType = UserNotificationEventType.IncidentCreated;
+  run.status = OnCallDutyPolicyStatus.Executing;
+  run.createdAt = new Date(world.clock);
+
+  if (data.by) {
+    run.triggeredByUserId = data.by;
+  }
+
+  if (data.workflowName !== undefined) {
+    run.triggeredByWorkflowId = nextId();
+    run.triggeredByWorkflowName = data.workflowName;
+  }
+
+  if (data.isObserverPage) {
+    run.isObserverPage = true;
+  }
+
+  // As the database holds it: with no policy (addRunRow reads one with every run).
+  world.runs.push(run);
+
+  const outcome: OnCallPagingOutcome =
+    await OnCallDutyPolicyEscalationRuleService.startDirectPage({
+      projectId: PROJECT_ID,
+      triggeredByIncidentId: INCIDENT_ID,
+      userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      onCallPolicyExecutionLogId: run.id,
+      targets: {
+        userIds: data.users,
+        teamIds: [],
+        onCallScheduleIds: [],
+      },
+    });
+
+  return { runId: run.id, outcome: outcome };
+}
+
+/*
  * A DIRECT PAGE AND A POLICY PAGING ONE PERSON ABOUT ONE INCIDENT (#8859).
  *
  * A page somebody sends from Slack or Microsoft Teams, and a workflow's Page
@@ -978,58 +1029,6 @@ describe("the policy does not page again on top of a run started by hand that is
  * it is asked for. An observer's page is never merged, either way.
  */
 describe("4. a direct page and a policy paging the same person about one incident (#8859)", () => {
-  /*
-   * A direct page about the incident, run as OnCallDutyPolicyExecutionLog
-   * Service starts one: sent from a chat by `by`, or by a workflow's step
-   * named `workflowName`; to observers when `isObserverPage`.
-   */
-  async function startDirect(data: {
-    users: Array<ObjectID>;
-    by?: ObjectID | undefined;
-    workflowName?: string | undefined;
-    isObserverPage?: boolean | undefined;
-  }): Promise<{ runId: ObjectID; outcome: OnCallPagingOutcome }> {
-    const run: OnCallDutyPolicyExecutionLog =
-      new OnCallDutyPolicyExecutionLog();
-    run.id = nextId();
-    run.projectId = PROJECT_ID;
-    run.triggeredByIncidentId = INCIDENT_ID;
-    run.userNotificationEventType = UserNotificationEventType.IncidentCreated;
-    run.status = OnCallDutyPolicyStatus.Executing;
-    run.createdAt = new Date(world.clock);
-
-    if (data.by) {
-      run.triggeredByUserId = data.by;
-    }
-
-    if (data.workflowName !== undefined) {
-      run.triggeredByWorkflowId = nextId();
-      run.triggeredByWorkflowName = data.workflowName;
-    }
-
-    if (data.isObserverPage) {
-      run.isObserverPage = true;
-    }
-
-    // As the database holds it: with no policy (addRunRow reads one with every run).
-    world.runs.push(run);
-
-    const outcome: OnCallPagingOutcome =
-      await OnCallDutyPolicyEscalationRuleService.startDirectPage({
-        projectId: PROJECT_ID,
-        triggeredByIncidentId: INCIDENT_ID,
-        userNotificationEventType: UserNotificationEventType.IncidentCreated,
-        onCallPolicyExecutionLogId: run.id,
-        targets: {
-          userIds: data.users,
-          teamIds: [],
-          onCallScheduleIds: [],
-        },
-      });
-
-    return { runId: run.id, outcome: outcome };
-  }
-
   test("Dana pages Ana from a chat, then a policy reaches her: the policy's page is merged into Dana's, and sends nothing", async () => {
     const fromDana: { runId: ObjectID } = await startDirect({
       users: [ANA],
@@ -1243,5 +1242,162 @@ describe("4. a direct page and a policy paging the same person about one inciden
       `Ana Lopez: ${observers.runId.toString()}`,
       `Ana Lopez: ${RUN_ID.toString()}`,
     ]);
+  });
+});
+
+/*
+ * A PAGE SENT FROM A CHAT, ABOUT AN INCIDENT SOMEBODY IS ON ALREADY (#6714).
+ *
+ * `/oneuptime page` in Slack, "page" to the Microsoft Teams bot, an
+ * incident's Page Someone: a page a person asked for (OnCallPersonPage)
+ * goes on until one of the people it paged answers it, or the incident is
+ * resolved - and it is mostly sent into an incident somebody acknowledged
+ * already. Its link, a call's 1, a text and the chat's own Acknowledge
+ * answered it, but the Dashboard and the mobile app - where its push opens
+ * the incident - offered only Escalate: the incident's own Acknowledge is
+ * gone once it is acknowledged, and the page went on calling. Since #7747
+ * they offer Acknowledge again for it (isPageAgain, isAskedFor), which
+ * answers it as its link would (acknowledgePagesAgainForRecord). This holds
+ * the issue's own case to that, end to end: nobody is left paged once
+ * somebody it paged answers, and nobody's page is answered for them.
+ */
+describe("5. a page sent from a chat about an incident somebody acknowledged already (#6714)", () => {
+  // Bob acknowledged the incident; five minutes on, Dana pages `users` from its channel.
+  async function pagedFromAChatOnceAcknowledged(
+    users: Array<ObjectID>,
+  ): Promise<ObjectID> {
+    await world.changeState(ACKNOWLEDGED, BOB, { tellsWho: true });
+    world.advance(5);
+
+    return (await startDirect({ users: users, by: DANA })).runId;
+  }
+
+  // Acknowledge again, from the Dashboard or the app, signed in as `userId`.
+  async function acknowledgeAgain(userId: ObjectID): Promise<number> {
+    return await OnCallAcknowledgementTimeoutUtil.acknowledgePagesAgainForRecord(
+      {
+        userId: userId,
+        projectId: PROJECT_ID,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: INCIDENT_ID,
+      },
+    );
+  }
+
+  test("it pages its people itself, though the incident is acknowledged", async () => {
+    const run: ObjectID = await pagedFromAChatOnceAcknowledged([ANA]);
+
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${run.toString()}`]);
+    expect(world.isStillPaging(ANA, run)).toBe(true);
+  });
+
+  test("the Dashboard and the app list it as a page to answer: Acknowledge again beside Escalate, worded as paged to help", async () => {
+    const run: ObjectID = await pagedFromAChatOnceAcknowledged([ANA]);
+
+    const pages: Array<OnCallOpenPage> = await openPagesOf(ANA);
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.executionLogId).toBe(run.toString());
+    // Acknowledge again, as for a page again...
+    expect(pages[0]!.isPageAgain).toBe(true);
+    // ...but paged to help, not paged again: somebody asked for her.
+    expect(pages[0]!.isAskedFor).toBe(true);
+    // A responder's page: Escalate is offered too.
+    expect("isObserverPage" in pages[0]!).toBe(false);
+  });
+
+  test("Acknowledge again answers it: her notifications stop, and the run records her as who answered", async () => {
+    const run: ObjectID = await pagedFromAChatOnceAcknowledged([ANA]);
+
+    world.advance(2);
+
+    expect(await acknowledgeAgain(ANA)).toBe(1);
+    expect(world.runById(run).acknowledgedByUserId!.toString()).toBe(
+      ANA.toString(),
+    );
+    expect(world.isStillPaging(ANA, run)).toBe(false);
+    expect(await openPagesOf(ANA)).toEqual([]);
+  });
+
+  test("one answer is the page's answer: nobody else it paged is offered Acknowledge again any more", async () => {
+    const run: ObjectID = await pagedFromAChatOnceAcknowledged([ANA, CARL]);
+
+    expect(await acknowledgeAgain(ANA)).toBe(1);
+
+    expect(world.runById(run).acknowledgedByUserId!.toString()).toBe(
+      ANA.toString(),
+    );
+    // Carl's page was answered by Ana: nothing is left for him to answer.
+    expect(await acknowledgeAgain(CARL)).toBe(0);
+    expect(
+      (await openPagesOf(CARL)).filter((page: OnCallOpenPage): boolean => {
+        return page.isPageAgain === true;
+      }),
+    ).toEqual([]);
+  });
+
+  test("it answers the page, not the incident: Bob is still who acknowledged it", async () => {
+    await pagedFromAChatOnceAcknowledged([ANA]);
+
+    await acknowledgeAgain(ANA);
+
+    expect(world.incident!.stateId.toString()).toBe(ACKNOWLEDGED.toString());
+    expect(
+      world.stateRows.map((row: { createdByUserId: ObjectID | null }) => {
+        return row.createdByUserId?.toString();
+      }),
+    ).toEqual([BOB.toString()]);
+  });
+
+  test("somebody it did not page answers nothing with it, and the page goes on", async () => {
+    const run: ObjectID = await pagedFromAChatOnceAcknowledged([ANA]);
+
+    expect(await acknowledgeAgain(CARL)).toBe(0);
+    expect(world.runById(run).acknowledgedByUserId).toBeFalsy();
+    expect(world.isStillPaging(ANA, run)).toBe(true);
+  });
+
+  test("a second press, from another tab, finds nothing left to answer", async () => {
+    await pagedFromAChatOnceAcknowledged([ANA]);
+
+    expect(await acknowledgeAgain(ANA)).toBe(1);
+    expect(await acknowledgeAgain(ANA)).toBe(0);
+  });
+
+  test("once the incident is resolved, there is nothing left to answer, and nothing is offered", async () => {
+    const run: ObjectID = await pagedFromAChatOnceAcknowledged([ANA]);
+
+    world.advance(3);
+    await world.resolve(BOB);
+
+    expect(await acknowledgeAgain(ANA)).toBe(0);
+    expect(world.runById(run).acknowledgedByUserId).toBeFalsy();
+    expect(
+      (await openPagesOf(ANA)).filter((page: OnCallOpenPage): boolean => {
+        return page.isPageAgain === true;
+      }),
+    ).toEqual([]);
+  });
+
+  test("sent before anybody acknowledged the incident, the incident's own Acknowledge answers it: no Acknowledge again", async () => {
+    const fromDana: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      by: DANA,
+    });
+
+    const pages: Array<OnCallOpenPage> = await openPagesOf(ANA);
+
+    // The header offers the incident's own Acknowledge instead.
+    expect(pages).toHaveLength(1);
+    expect("isPageAgain" in pages[0]!).toBe(false);
+
+    // Ana acknowledges the incident herself: that answers her page.
+    world.advance(1);
+    await world.changeState(ACKNOWLEDGED, ANA, { tellsWho: true });
+
+    expect(world.runById(fromDana.runId).acknowledgedByUserId!.toString()).toBe(
+      ANA.toString(),
+    );
+    expect(world.isStillPaging(ANA, fromDana.runId)).toBe(false);
   });
 });
