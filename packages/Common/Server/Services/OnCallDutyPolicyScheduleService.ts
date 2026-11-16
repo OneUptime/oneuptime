@@ -737,13 +737,22 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     return onUpdate;
   }
 
+  /*
+   * The schedules whose roster has the user on call now, in any of the
+   * projects: one read however many projects (OnCallDutyPolicyService's
+   * on-duty answer, #8124).
+   */
   public async getOnCallSchedulesWhereUserIsOnCallDuty(data: {
-    projectId: ObjectID;
+    projectIds: Array<ObjectID>;
     userId: ObjectID;
   }): Promise<Array<OnCallDutyPolicySchedule>> {
+    if (data.projectIds.length === 0) {
+      return [];
+    }
+
     const schedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
       query: {
-        projectId: data.projectId,
+        projectId: QueryHelper.any(data.projectIds),
         currentUserIdOnRoster: data.userId,
       },
       select: {
