@@ -15,11 +15,22 @@ import {
 import fs from "fs";
 
 /*
- * What one JavaScript step's process costs, measured inside the launcher's
- * test container: the wall time of steps that return at once, one after
- * another, and the resident and proportional memory of a step's process
- * while it runs. Run as root, which may read another user's smaps_rollup.
- * Not a test file itself; the numbers go in the pull request.
+ * What one JavaScript step's process costs in the Runner's image: the wall
+ * time of steps that return at once, one after another, through the image's
+ * launcher and bundle, and the resident and proportional memory of a step's
+ * process while it runs. Not a test file itself; run it in the built image
+ * as root (which may read another user's smaps_rollup), with the Runner's
+ * sources mounted over the image's:
+ *
+ *   docker run --rm -u 0 --cap-add SYS_PTRACE \
+ *     -v "$PWD/packages/Runner:/usr/src/app:ro" \
+ *     -v "$PWD/packages/Common:/usr/src/Common:ro" \
+ *     oneuptime/runner:<tag> node --no-node-snapshot \
+ *     --require ts-node/register/transpile-only \
+ *     Tests/Utils/JavaScriptSandbox/Helpers/MeasureStepCost.ts
+ *
+ * For #6115 it read about 0.3 s a step and 126 MB resident (105 MB
+ * proportional) while a step ran.
  */
 
 function readKilobytes(file: string, field: string): number | null {
