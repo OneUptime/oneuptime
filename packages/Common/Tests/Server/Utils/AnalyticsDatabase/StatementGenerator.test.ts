@@ -2089,6 +2089,52 @@ describe("StatementGenerator", () => {
         });
       }).toThrow(BadDataException);
     });
+
+    test("an unknown column is refused in a sentence that says what to send", () => {
+      expect(() => {
+        return sortStatementFor({ not_a_column: SortOrder.Ascending });
+      }).toThrow(
+        '<plural-name> have no column "not_a_column" to sort by. Sort by one of their columns, as in { "createdAt": "DESC" }.',
+      );
+    });
+
+    /*
+     * Any direction but ASC and DESC was written into the ORDER BY as the
+     * word "undefined", and ClickHouse failed the read as a server fault
+     * (#8141). Refused now, as the caller's to fix, before any SQL is made.
+     */
+    test.each([
+      ["a lower-case direction", "desc", '"desc"'],
+      ["a direction in other capitals", "Asc", '"Asc"'],
+      ["an unknown direction", "SIDEWAYS", '"SIDEWAYS"'],
+      ["a number", -1, "-1"],
+      ["true", true, "true"],
+      ["null", null, "null"],
+      ["no direction at all", undefined, "undefined"],
+      ["an order with nulls", { direction: "DESC", nulls: "LAST" }, '{"direction":"DESC","nulls":"LAST"}'],
+      ["an order through a relation", { name: "ASC" }, '{"name":"ASC"}'],
+      ["a list", ["DESC"], "a list"],
+    ])(
+      "%s is refused as bad data, not written into the ORDER BY",
+      (_name: string, value: unknown, quoted: string) => {
+        expect(() => {
+          return sortStatementFor({ column_1: value } as never);
+        }).toThrow(
+          new BadDataException(
+            `<plural-name> cannot be sorted by "column_1" with ${quoted}. Sort it "ASC" or "DESC".`,
+          ),
+        );
+      },
+    );
+
+    test("a bad direction after a good one is refused too, and nothing is built", () => {
+      expect(() => {
+        return sortStatementFor({
+          column_2: SortOrder.Descending,
+          column_1: "descending",
+        } as never);
+      }).toThrow(BadDataException);
+    });
   });
 
   describe("toColumnsCreateStatement", () => {
