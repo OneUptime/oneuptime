@@ -158,7 +158,10 @@ export const getDeletedLevelText: (
     });
   }
 
-  return translator.translateText(DELETED_ESCALATION_RULE_LABEL);
+  return (
+    translator.translateText(DELETED_ESCALATION_RULE_LABEL) ||
+    DELETED_ESCALATION_RULE_LABEL
+  );
 };
 
 export interface ComponentProps {
