@@ -18,17 +18,19 @@ import {
   test,
 } from "node:test";
 import AgentStatus from "../AgentStatus";
-import IngestClient from "../IngestClient";
+import IngestClient, { IngestResponse } from "../IngestClient";
 import JobLoop, {
   ClaimedJob,
   DEFAULT_JOB_TIMINGS,
   JobTimings,
   NOT_RUN_LEASE_LOST_MESSAGE,
   NOT_RUN_SHUTTING_DOWN_MESSAGE,
+  NOT_RUN_STOPPED_MESSAGE,
   getJobRefusal,
   getResultRetryDelayMs,
   normalizeJobTimeout,
   parseClaimedJob,
+  readStopReason,
 } from "../JobLoop";
 import KubectlExecutor, { KubectlExecutorSettings } from "../KubectlExecutor";
 import { AgentPosture } from "../Posture";
@@ -176,6 +178,74 @@ describe("claimed jobs, before anything runs", () => {
     // Null or empty credential fields are the server saying "none".
     assert.strictEqual(
       getJobRefusal(job({ credentialId: null, credential: "" })),
+      null,
+    );
+  });
+
+  test("a job heartbeat says to stop with stop: true alone, and why", () => {
+    const answer: (body: Record<string, unknown> | null) => IngestResponse = (
+      body: Record<string, unknown> | null,
+    ): IngestResponse => {
+      return {
+        kind: "ok",
+        status: 200,
+        body,
+        message: "",
+        retryAfterSeconds: null,
+      };
+    };
+
+    assert.strictEqual(
+      readStopReason(
+        answer({
+          status: "ok",
+          stop: true,
+          reason:
+            " OneUptime AI was turned off for this project (Enable AI) while its agent held this command. ",
+        }),
+      ),
+      "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.",
+    );
+    // No reason given: still a stop.
+    assert.strictEqual(
+      readStopReason(answer({ status: "ok", stop: true })),
+      "OneUptime said to stop this command.",
+    );
+    assert.strictEqual(
+      readStopReason(answer({ status: "ok", stop: true, reason: 42 })),
+      "OneUptime said to stop this command.",
+    );
+    assert.strictEqual(
+      readStopReason(
+        answer({ status: "ok", stop: true, reason: "x".repeat(900) }),
+      )!.length,
+      500,
+    );
+
+    // A server that predates the stop, and anything that is not a literal true.
+    for (const body of [
+      { status: "ok" },
+      { status: "ok", stop: "true" },
+      { status: "ok", stop: 1 },
+      { status: "ok", stop: false, reason: "no" },
+      null,
+    ]) {
+      assert.strictEqual(
+        readStopReason(answer(body)),
+        null,
+        JSON.stringify(body),
+      );
+    }
+
+    // Only an answer that renewed the lease can say it.
+    assert.strictEqual(
+      readStopReason({
+        kind: "other",
+        status: 404,
+        body: { stop: true, reason: "gone" },
+        message: "HTTP 404",
+        retryAfterSeconds: null,
+      }),
       null,
     );
   });
@@ -406,6 +476,166 @@ describe("the job loop", () => {
     assert.deepStrictEqual(resultBodies(), [
       { success: false, output: "", errorMessage: NOT_RUN_LEASE_LOST_MESSAGE },
     ]);
+  });
+
+  /*
+   * Enable AI turned off after the claim: the job's heartbeat says to stop
+   * ({ status: "ok", stop: true, reason }). Right before kubectl starts, it
+   * does not start; once it runs, it is left to finish. Either way the
+   * lease is still renewed and the result is reported.
+   */
+  describe("when OneUptime says to stop", () => {
+    const REASON: string =
+      "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.";
+
+    test("told to stop right before running: kubectl never runs, and the result says why", async () => {
+      server.script("/claim-next-job", jobReply({}));
+      server.script("/job/:id/heartbeat", {
+        json: { status: "ok", stop: true, reason: REASON },
+      });
+
+      await loop().tick();
+
+      assert.strictEqual(kubectl.getCommandInvocations().length, 0);
+      assert.deepStrictEqual(routes(), [
+        "/claim-next-job",
+        "/job/job-1/heartbeat",
+        "/job/job-1/result",
+      ]);
+      // No exit code: that is how OneUptime reads "did not run".
+      assert.deepStrictEqual(resultBodies(), [
+        {
+          success: false,
+          output: "",
+          errorMessage: `${NOT_RUN_STOPPED_MESSAGE}: ${REASON}`,
+        },
+      ]);
+      assert.strictEqual(
+        NOT_RUN_STOPPED_MESSAGE,
+        "The Kubernetes AI agent did not run this command: when it was about to start, OneUptime said to stop",
+      );
+      assert.ok(
+        logs.messages("warn").some((message: string): boolean => {
+          return message.includes("before it ran");
+        }),
+      );
+    });
+
+    test("a fix's change is held the same way", async () => {
+      server.script(
+        "/claim-next-job",
+        jobReply({
+          origin: "AiRemediation",
+          payload: {
+            args: ["rollout", "restart", "deployment/web", "-n", "web"],
+            clusterIdentifier: "prod-us",
+          },
+        }),
+      );
+      server.script("/job/:id/heartbeat", {
+        json: { status: "ok", stop: true, reason: REASON },
+      });
+
+      await loop({
+        executor: executor({ allowWrites: true }),
+      }).tick();
+
+      assert.strictEqual(kubectl.getCommandInvocations().length, 0);
+      assert.strictEqual(
+        resultBodies()[0]!["errorMessage"],
+        `${NOT_RUN_STOPPED_MESSAGE}: ${REASON}`,
+      );
+    });
+
+    test("a stop a background heartbeat brought before kubectl started keeps it from starting too", async () => {
+      server.script("/claim-next-job", jobReply({}));
+      // The pre-spawn heartbeat is slow and says nothing of a stop ...
+      server.script("/job/:id/heartbeat", {
+        json: { status: "ok" },
+        delayMs: 400,
+      });
+      // ... while the background ones, sent meanwhile, say to stop.
+      server.setDefault("/job/:id/heartbeat", {
+        json: { status: "ok", stop: true, reason: REASON },
+      });
+
+      await loop({ timings: { jobHeartbeatIntervalMs: 20 } }).tick();
+
+      assert.ok(server.requestsTo("/job/:id/heartbeat").length >= 2);
+      assert.strictEqual(kubectl.getCommandInvocations().length, 0);
+      assert.strictEqual(
+        resultBodies()[0]!["errorMessage"],
+        `${NOT_RUN_STOPPED_MESSAGE}: ${REASON}`,
+      );
+    });
+
+    test("told to stop while running: kubectl is left to finish, its lease still renewed and its result reported", async () => {
+      kubectl.setBehaviour({ stdout: "slow\n", sleepMs: 600 });
+      server.script("/claim-next-job", jobReply({}));
+      // The pre-spawn heartbeat lets it start; every later one says to stop.
+      server.script("/job/:id/heartbeat", { json: { status: "ok" } });
+      server.setDefault("/job/:id/heartbeat", {
+        json: { status: "ok", stop: true, reason: REASON },
+      });
+
+      await loop({ timings: { jobHeartbeatIntervalMs: 100 } }).tick();
+
+      assert.strictEqual(kubectl.getCommandInvocations().length, 1);
+      // Heartbeats go on after the stop: the lease is kept to the end.
+      assert.ok(server.requestsTo("/job/:id/heartbeat").length >= 3);
+      assert.deepStrictEqual(resultBodies(), [
+        { success: true, output: "[stdout]\nslow\n", exitCode: 0 },
+      ]);
+      // Said once, however many heartbeats repeat it.
+      assert.strictEqual(
+        logs.messages("warn").filter((message: string): boolean => {
+          return message.includes("left to finish");
+        }).length,
+        1,
+      );
+    });
+
+    test("an answer that says to stop still renews the lease, so the result is still retried", async () => {
+      /*
+       * kubectl runs past the lease the pre-spawn heartbeat confirmed. Only
+       * the background heartbeats - every one of which says to stop - can
+       * keep it: if a stop did not renew the lease, the first failed
+       * delivery could not be retried at all.
+       */
+      kubectl.setBehaviour({ stdout: "slow\n", sleepMs: 1_200 });
+      server.script("/claim-next-job", jobReply({}));
+      server.script("/job/:id/heartbeat", { json: { status: "ok" } });
+      server.setDefault("/job/:id/heartbeat", {
+        json: { status: "ok", stop: true, reason: REASON },
+      });
+      server.setDefault("/job/:id/result", { status: 503, json: {} });
+
+      await loop({
+        timings: { jobHeartbeatIntervalMs: 100, leaseMs: 1_000 },
+      }).tick();
+
+      assert.strictEqual(kubectl.getCommandInvocations().length, 1);
+      assert.ok(resultBodies().length >= 2, `${resultBodies().length}`);
+      assert.strictEqual(resultBodies()[0]!["exitCode"], 0);
+    });
+
+    test("a job nothing asks to stop runs and reports as before", async () => {
+      kubectl.setBehaviour({ stdout: "slow\n", sleepMs: 300 });
+      server.script("/claim-next-job", jobReply({}));
+
+      await loop({ timings: { jobHeartbeatIntervalMs: 100 } }).tick();
+
+      assert.ok(server.requestsTo("/job/:id/heartbeat").length >= 2);
+      assert.strictEqual(kubectl.getCommandInvocations().length, 1);
+      assert.deepStrictEqual(resultBodies(), [
+        { success: true, output: "[stdout]\nslow\n", exitCode: 0 },
+      ]);
+      assert.ok(
+        !logs.messages().some((message: string): boolean => {
+          return message.includes("said to stop");
+        }),
+      );
+    });
   });
 
   test("a pre-spawn heartbeat with no usable answer does not stop the command", async () => {

@@ -2685,6 +2685,14 @@ globalRunner:
   # chart-wide value (they are not merged).
   affinity: {}
   topologySpreadConstraints: []
+  # Each JavaScript step runs in a process of its own, as a user of its own:
+  # the image's sandbox launcher switches the step's process to that user. A
+  # context of your own (here, or the chart-wide containerSecurityContext)
+  # must leave it able to: keep allowPrivilegeEscalation true (the default)
+  # and the SETUID and SETGID capabilities, for example
+  #   capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID"] }
+  # Without them steps still run in their own process, but as the Runner's
+  # user, and the Runner's log says so.
   containerSecurityContext: {}
   # Extra env / volumes for the global Runner. Unlike every other service, it
   # never takes the chart-wide extraEnv/extraVolumes/extraVolumeMounts: those

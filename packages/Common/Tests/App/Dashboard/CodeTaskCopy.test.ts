@@ -364,6 +364,8 @@ describe("Code's words are complete", () => {
       CodeTaskBlockerType.RunnerTakesNoCodeFixes,
       // A Git server only the project's own Runner reaches.
       CodeTaskBlockerType.RepositoryNeedsOwnRunner,
+      // A token no global Runner is handed, on OneUptime Cloud (#6115).
+      CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner,
       // Replacing a token takes what connecting repositories takes.
       CodeTaskBlockerType.RepositoryTokenRefused,
     ];

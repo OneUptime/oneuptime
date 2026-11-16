@@ -401,7 +401,7 @@ Un'indagine che fallisce, scade o diventa obsoleta libera comunque il rimedio: i
 
 Mentre il rimedio aspetta, il passaggio **Rimedio** lo dice (**In attesa**) e mostra che cosa è successo una volta conclusa l'indagine.
 
-Il rimedio automatico dipende da due interruttori. **Correggi automaticamente i nuovi incidenti** (o gli avvisi), disattivato finché il progetto non lo attiva: con esso disattivato, nessun nuovo incidente (o avviso) viene corretto. E **Abilita IA** (**Impostazioni del progetto → IA → Funzionalità IA**), l'interruttore principale dell'IA del progetto: con esso disattivato, non viene eseguita alcuna regola IA (nemmeno una che avvia un runbook senza IA) e non viene corretto alcun cluster né alcuna risorsa.
+Il rimedio automatico dipende da due interruttori. **Correggi automaticamente i nuovi incidenti** (o gli avvisi), disattivato finché il progetto non lo attiva: con esso disattivato, nessun nuovo incidente (o avviso) viene corretto. E **Abilita IA** (**Impostazioni del progetto → IA → Funzionalità IA**), l'interruttore principale dell'IA del progetto: con esso disattivato, non viene eseguita alcuna regola IA (nemmeno una che avvia un runbook senza IA) e non viene corretto alcun cluster né alcuna risorsa. A un Runner o a un agente IA che ha già un comando quando **Abilita IA** viene disattivato viene detto di fermarsi al suo heartbeat successivo: un comando non ancora iniziato non inizia.
 
 ## Cosa ha fatto il rimedio automatico
 
