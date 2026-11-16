@@ -32,6 +32,7 @@ import {
 import {
   KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH,
   KUBERNETES_CLUSTER_AI_LOGS_LIMIT,
+  KubernetesClusterAiLogFix,
   KubernetesClusterAiLogs,
 } from "../../../Types/Kubernetes/KubernetesClusterAiLogs";
 import { AiActivityInsights } from "../../../Types/AI/AiActivityInsights";
@@ -1260,6 +1261,49 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       const serialized: string = JSON.stringify(logs);
       expect(serialized).not.toContain("commandPlan");
       expect(serialized).not.toContain("output");
+    });
+
+    /*
+     * A fix that waits for the second of two approvals says when the first
+     * was given, so the page says what it waits for (#6422); a fix that no
+     * longer waits does not, whatever its first approval was.
+     */
+    test("fixes: one that waits for its second approval says when it was approved first; one that moved on does not", async () => {
+      const waiting: ObjectID = ObjectID.generate();
+      const approved: ObjectID = ObjectID.generate();
+      const firstApprovedAt: Date = new Date("2026-09-01T00:05:00.000Z");
+
+      suggestionFind.mockResolvedValue([
+        suggestion(waiting, 2, { firstApprovedAt }),
+        suggestion(approved, 5, {
+          status: "Approved",
+          firstApprovedAt,
+          approvedAt: new Date("2026-09-01T00:09:00.000Z"),
+        }),
+      ] as never);
+
+      await callRoute(LOGS_ROUTE);
+
+      const logs: KubernetesClusterAiLogs =
+        lastResponse() as unknown as KubernetesClusterAiLogs;
+      const byId: (id: ObjectID) => KubernetesClusterAiLogFix = (
+        id: ObjectID,
+      ): KubernetesClusterAiLogFix => {
+        return logs.fixes.find((fix: KubernetesClusterAiLogFix): boolean => {
+          return fix.id === id.toString();
+        })!;
+      };
+
+      expect(byId(waiting).firstApprovedAt).toBe("2026-09-01T00:05:00.000Z");
+      expect(byId(approved).firstApprovedAt).toBeUndefined();
+      // Read with the rest of the summary, as root.
+      expect(
+        (
+          suggestionFind.mock.calls[0]![0] as {
+            select: Record<string, unknown>;
+          }
+        ).select["firstApprovedAt"],
+      ).toBe(true);
     });
 
     test("counts kubectl commands of the last 30 days by kind, leaving the connection tests out", async () => {

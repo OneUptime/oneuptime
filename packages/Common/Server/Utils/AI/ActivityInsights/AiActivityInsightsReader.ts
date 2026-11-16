@@ -21,6 +21,7 @@ import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import { isWaitingForOthersApproval } from "../../../../Types/AutoRemediation/RemediationApprovals";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
@@ -576,6 +577,10 @@ export default class AiActivityInsightsReader {
             approvedFrom: suggestion.approvedFrom,
             incidentId: suggestion.incidentId?.toString(),
             alertId: suggestion.alertId?.toString(),
+            isFirstApprovedByReader: isWaitingForOthersApproval({
+              suggestion,
+              readerUserId: scope.props.userId,
+            }),
           };
         },
       ),
@@ -835,6 +840,8 @@ export default class AiActivityInsightsReader {
         createdAt: true,
         approvedAt: true,
         approvedFrom: true,
+        // Whose first approval a riskier fix waits after: the reader's own, or not.
+        firstApprovedByUserId: true,
         incidentId: true,
         alertId: true,
       },

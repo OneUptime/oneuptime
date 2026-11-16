@@ -176,6 +176,8 @@ export interface KubernetesAiLogsFix {
   incidentId: string | null;
   alertId: string | null;
   approvedAt: string | null;
+  // A fix that waits for its second approval: when the first was given.
+  firstApprovedAt: string | null;
 }
 
 export interface KubernetesAiLogs {
@@ -271,6 +273,7 @@ function parseFix(value: unknown): KubernetesAiLogsFix | null {
     incidentId: readString(value["incidentId"]),
     alertId: readString(value["alertId"]),
     approvedAt: readString(value["approvedAt"]),
+    firstApprovedAt: readString(value["firstApprovedAt"]),
   };
 }
 
@@ -376,7 +379,25 @@ export function getInvestigationStatusLook(status: string): StatusLook {
   );
 }
 
-export function getFixStatusLook(status: string): StatusLook {
+/*
+ * A fix that waits for approval, and was approved once already, waits for
+ * the second of the two approvals a riskier fix needs: it says so (#6422),
+ * as the incident's AI card does.
+ */
+const WAITING_FOR_SECOND_APPROVAL_LOOK: StatusLook = {
+  label: "Waiting for a second approval",
+  color: Yellow500,
+};
+
+export function getFixStatusLook(
+  status: string,
+  // When a fix that still waits was approved first (the server says so).
+  firstApprovedAt?: string | null | undefined,
+): StatusLook {
+  if (status === AutoRemediationSuggestionStatus.Suggested && firstApprovedAt) {
+    return WAITING_FOR_SECOND_APPROVAL_LOOK;
+  }
+
   return (
     FIX_STATUS_LOOKS[status as AutoRemediationSuggestionStatus] || {
       label: status,
@@ -602,7 +623,7 @@ function InvestigationRow(props: {
 function FixRow(props: { fix: KubernetesAiLogsFix }): ReactElement {
   const translator: Translator = useTranslator();
   const look: StatusLook | null = props.fix.status
-    ? getFixStatusLook(props.fix.status)
+    ? getFixStatusLook(props.fix.status, props.fix.firstApprovedAt)
     : null;
   const type: string | null = describeFixType(props.fix.suggestionType);
   const target: { route: Route; label: string } | null = props.fix.incidentId

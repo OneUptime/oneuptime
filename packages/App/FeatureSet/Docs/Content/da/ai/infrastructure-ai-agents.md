@@ -325,7 +325,7 @@ Rettelser har de samme fire tilstande som på et Kubernetes-cluster; `ONEUPTIME_
 - **Fra**: AI undersøger kun.
 - **Bed om godkendelse**: efter årsagsanalysen stiller OneUptime AI en diagnose med læsekommandoer og sammensætter den mindste plan, der adresserer årsagen, for eksempel `docker restart web`. Planen vises på hændelsen eller advarslen med sin begrundelse, forventede effekt og rollback; et menneske godkender den med ét klik, og OneUptime kører præcis de kommandoer.
 - **Automatisk**: sikre ændringer (**SafeWrite**) kører af sig selv; en mere risikabel ændring (**RiskyWrite**) foreslås til godkendelse, medmindre ressourcens liste over tilladte kommandoer nævner dens præcise form.
-- **Spring godkendelse over**: hver ændring, som politikken tillader, inklusive de mere risikable, kører af sig selv. Det, der altid kræver et menneske, venter stadig på et.
+- **Spring godkendelse over**: hver ændring, som politikken tillader, inklusive de mere risikable, kører af sig selv. Det, der altid kræver et menneske, venter stadig på et. Beder projektet om, at to personer godkender en mere risikabel rettelse, foreslås en mere risikabel ændring i stedet til deres godkendelse.
 
 Når en rettelse har kørt, holder OneUptime øje med hændelsens eller advarslens monitorer. Kommer de sig ikke, kører planens rollback, og OneUptime AI sammensætter én plan mere med det mislykkede forsøg for øje: højst to runder pr. hændelse eller advarsel. I tilstanden **Automatisk** beder den anden runde om godkendelse; med **Spring godkendelse over** kører den også af sig selv. Uovervågede rettelser har en sikring på tre pr. ressource pr. time: ud over det, eller mens en anden uovervåget runde fra OneUptime AI stadig ændrer eller verificerer den samme ressource, foreslår en runde sin plan til godkendelse i stedet for at køre den.
 
@@ -342,7 +342,7 @@ En hændelse eller advarsel får ét AI-rettelsesspor. Når den er knyttet til e
 
 Nogle mere risikable ændringer **kræver altid et menneske** i alle tilstande, også Spring godkendelse over, og ingen post på listen over tilladte kommandoer ændrer det; de er markeret som sådan i tabellerne nedenfor.
 
-Et projekt kan også bede om, at to personer godkender en rettelse, der indeholder en mere risikabel ændring: se [To personer godkender en mere risikabel rettelse](/docs/ai/ai-sre#to-personer-godkender-en-mere-risikabel-rettelse).
+Et projekt kan også bede om, at to personer godkender en rettelse, der indeholder en mere risikabel ændring; så kører ingen mere risikabel ændring af sig selv, heller ikke via listen over tilladte kommandoer eller Spring godkendelse over: se [To personer godkender en mere risikabel rettelse](/docs/ai/ai-sre#to-personer-godkender-en-mere-risikabel-rettelse).
 
 ### Rettelser på Docker- og Podman-værter
 
