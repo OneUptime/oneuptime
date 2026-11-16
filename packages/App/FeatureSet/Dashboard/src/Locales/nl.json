@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mnd jaarlijks gefactureerd"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Fout bij laden van bereikbaarheidsbeleid",
-    "onCallPoliciesFetchError": "Er is iets niet in orde, we kunnen het bereikbaarheidsbeleid waarvoor u dienst hebt niet ophalen. Laad de pagina opnieuw om het opnieuw te proberen.",
+    "onCallPoliciesFetchError": "Kon niet controleren voor welk bereikbaarheidsbeleid u dienst hebt.",
     "incidentsActiveOne": "{{count}} Actief incident",
     "incidentsActiveOther": "{{count}} Actieve incidenten",
     "incidentsTooltip": "Alle actieve incidenten weergeven",
@@ -56413,5 +56412,17 @@
   "{{count}} more further upstream": "{{count}} meer verder stroomopwaarts",
   "{{count}} more further upstream_one": "{{count}} meer verder stroomopwaarts",
   "{{count}} more further downstream": "{{count}} meer verder stroomafwaarts",
-  "{{count}} more further downstream_one": "{{count}} meer verder stroomafwaarts"
+  "{{count}} more further downstream_one": "{{count}} meer verder stroomafwaarts",
+  "Couldn't pin {{product}}.": "{{product}} kon niet worden vastgezet.",
+  "Couldn't unpin {{product}}.": "{{product}} kon niet worden losgemaakt.",
+  "{{itemName}} added": "{{itemName}} toegevoegd",
+  "{{itemName}} attached": "{{itemName}} bijgevoegd",
+  "{{itemName}} connected": "{{itemName}} gekoppeld",
+  "{{itemName}} created": "{{itemName}} aangemaakt",
+  "{{itemName}} declared": "{{itemName}} gemeld",
+  "{{itemName}} deleted": "{{itemName}} verwijderd",
+  "{{itemName}} invited": "{{itemName}} uitgenodigd",
+  "{{itemName}} linked": "{{itemName}} gekoppeld",
+  "{{itemName}} removed": "{{itemName}} weggehaald",
+  "{{itemName}} started": "{{itemName}} gestart"
 }

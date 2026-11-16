@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/ماه با صورت‌حساب سالانه"
   },
   "header": {
-    "errorTitleOnCallPolicies": "خطا در بارگذاری سیاست‌های آنکال",
-    "onCallPoliciesFetchError": "چیزی درست نیست، نمی‌توانیم سیاست‌های آنکالی را که در آن‌ها کشیک هستید دریافت کنیم. برای تلاش دوباره صفحه را بارگذاری کنید.",
+    "onCallPoliciesFetchError": "بررسی نشد که در کدام سیاست‌های آنکال کشیک هستید.",
     "incidentsActiveOne": "{{count}} حادثه فعال",
     "incidentsActiveOther": "{{count}} حادثه فعال",
     "incidentsTooltip": "مشاهده همه حوادث فعال",
@@ -56413,5 +56412,17 @@
   "{{count}} more further upstream": "{{count}} مورد دیگر دورتر در بالادست",
   "{{count}} more further upstream_one": "{{count}} مورد دیگر دورتر در بالادست",
   "{{count}} more further downstream": "{{count}} مورد دیگر دورتر در پایین‌دست",
-  "{{count}} more further downstream_one": "{{count}} مورد دیگر دورتر در پایین‌دست"
+  "{{count}} more further downstream_one": "{{count}} مورد دیگر دورتر در پایین‌دست",
+  "Couldn't pin {{product}}.": "سنجاق کردن {{product}} انجام نشد.",
+  "Couldn't unpin {{product}}.": "برداشتن سنجاق {{product}} انجام نشد.",
+  "{{itemName}} added": "{{itemName}} افزوده شد",
+  "{{itemName}} attached": "{{itemName}} پیوست شد",
+  "{{itemName}} connected": "{{itemName}} متصل شد",
+  "{{itemName}} created": "{{itemName}} ایجاد شد",
+  "{{itemName}} declared": "{{itemName}} اعلام شد",
+  "{{itemName}} deleted": "{{itemName}} حذف شد",
+  "{{itemName}} invited": "{{itemName}} دعوت شد",
+  "{{itemName}} linked": "{{itemName}} پیوند داده شد",
+  "{{itemName}} removed": "{{itemName}} برداشته شد",
+  "{{itemName}} started": "{{itemName}} آغاز شد"
 }

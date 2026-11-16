@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mdr. faktureret årligt"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Fejl ved indlæsning af vagtpolitikker",
-    "onCallPoliciesFetchError": "Noget er ikke rigtigt, vi kan ikke hente de vagtpolitikker, du er på vagt for. Genindlæs siden for at prøve igen.",
+    "onCallPoliciesFetchError": "Kunne ikke tjekke, hvilke vagtpolitikker du er på vagt for.",
     "incidentsActiveOne": "{{count}} Aktiv hændelse",
     "incidentsActiveOther": "{{count}} Aktive hændelser",
     "incidentsTooltip": "Vis alle aktive hændelser",
@@ -56413,5 +56412,17 @@
   "{{count}} more further upstream": "{{count}} flere længere opstrøms",
   "{{count}} more further upstream_one": "{{count}} mere længere opstrøms",
   "{{count}} more further downstream": "{{count}} flere længere nedstrøms",
-  "{{count}} more further downstream_one": "{{count}} mere længere nedstrøms"
+  "{{count}} more further downstream_one": "{{count}} mere længere nedstrøms",
+  "Couldn't pin {{product}}.": "{{product}} kunne ikke fastgøres.",
+  "Couldn't unpin {{product}}.": "{{product}} kunne ikke frigøres.",
+  "{{itemName}} added": "{{itemName}} tilføjet",
+  "{{itemName}} attached": "{{itemName}} vedhæftet",
+  "{{itemName}} connected": "{{itemName}} forbundet",
+  "{{itemName}} created": "{{itemName}} oprettet",
+  "{{itemName}} declared": "{{itemName}} erklæret",
+  "{{itemName}} deleted": "{{itemName}} slettet",
+  "{{itemName}} invited": "{{itemName}} inviteret",
+  "{{itemName}} linked": "{{itemName}} tilknyttet",
+  "{{itemName}} removed": "{{itemName}} fjernet",
+  "{{itemName}} started": "{{itemName}} startet"
 }

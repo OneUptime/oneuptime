@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mese fatturato annualmente"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Errore nel caricamento delle policy di reperibilità",
-    "onCallPoliciesFetchError": "Qualcosa non va, non riusciamo a recuperare le policy di reperibilità per cui sei in servizio. Ricarica la pagina per riprovare.",
+    "onCallPoliciesFetchError": "Impossibile verificare per quali policy di reperibilità sei in servizio.",
     "incidentsActiveOne": "{{count}} Incidente attivo",
     "incidentsActiveOther": "{{count}} Incidenti attivi",
     "incidentsTooltip": "Visualizza tutti gli incidenti attivi",
@@ -56413,5 +56412,17 @@
   "{{count}} more further upstream": "Altri {{count}} più a monte",
   "{{count}} more further upstream_one": "Un altro {{count}} più a monte",
   "{{count}} more further downstream": "Altri {{count}} più a valle",
-  "{{count}} more further downstream_one": "Un altro {{count}} più a valle"
+  "{{count}} more further downstream_one": "Un altro {{count}} più a valle",
+  "Couldn't pin {{product}}.": "Impossibile fissare {{product}}.",
+  "Couldn't unpin {{product}}.": "Impossibile sbloccare {{product}}.",
+  "{{itemName}} added": "Aggiunto: {{itemName}}",
+  "{{itemName}} attached": "Allegato: {{itemName}}",
+  "{{itemName}} connected": "Collegato: {{itemName}}",
+  "{{itemName}} created": "Creato: {{itemName}}",
+  "{{itemName}} declared": "Dichiarato: {{itemName}}",
+  "{{itemName}} deleted": "Eliminato: {{itemName}}",
+  "{{itemName}} invited": "Invitato: {{itemName}}",
+  "{{itemName}} linked": "Collegato: {{itemName}}",
+  "{{itemName}} removed": "Rimosso: {{itemName}}",
+  "{{itemName}} started": "Avviato: {{itemName}}"
 }

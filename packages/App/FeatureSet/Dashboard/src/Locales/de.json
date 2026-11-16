@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/Mon. jährlich abgerechnet"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Fehler beim Laden der Bereitschaftsrichtlinien",
-    "onCallPoliciesFetchError": "Etwas stimmt nicht, wir können die Bereitschaftsrichtlinien, für die Sie im Dienst sind, nicht abrufen. Laden Sie die Seite neu, um es erneut zu versuchen.",
+    "onCallPoliciesFetchError": "Es konnte nicht geprüft werden, für welche Bereitschaftsrichtlinien Sie im Dienst sind.",
     "incidentsActiveOne": "{{count}} Aktiver Vorfall",
     "incidentsActiveOther": "{{count}} Aktive Vorfälle",
     "incidentsTooltip": "Alle aktiven Vorfälle anzeigen",
@@ -56413,5 +56412,17 @@
   "{{count}} more further upstream": "{{count}} weitere weiter stromaufwärts",
   "{{count}} more further upstream_one": "{{count}} weitere weiter stromaufwärts",
   "{{count}} more further downstream": "{{count}} weitere weiter stromabwärts",
-  "{{count}} more further downstream_one": "{{count}} weitere weiter stromabwärts"
+  "{{count}} more further downstream_one": "{{count}} weitere weiter stromabwärts",
+  "Couldn't pin {{product}}.": "{{product}} konnte nicht fixiert werden.",
+  "Couldn't unpin {{product}}.": "{{product}} konnte nicht gelöst werden.",
+  "{{itemName}} added": "{{itemName}} hinzugefügt",
+  "{{itemName}} attached": "{{itemName}} angehängt",
+  "{{itemName}} connected": "{{itemName}} verbunden",
+  "{{itemName}} created": "{{itemName}} erstellt",
+  "{{itemName}} declared": "{{itemName}} gemeldet",
+  "{{itemName}} deleted": "{{itemName}} gelöscht",
+  "{{itemName}} invited": "{{itemName}} eingeladen",
+  "{{itemName}} linked": "{{itemName}} verknüpft",
+  "{{itemName}} removed": "{{itemName}} entfernt",
+  "{{itemName}} started": "{{itemName}} gestartet"
 }
