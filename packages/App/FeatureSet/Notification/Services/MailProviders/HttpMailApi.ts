@@ -1,6 +1,7 @@
 import { InlineImageRefusalFlag } from "./InlineImageRefusal";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import logger from "Common/Server/Utils/Logger";
+import RetryAfter from "Common/Utils/RetryAfter";
 import { createHash } from "crypto";
 
 /*
@@ -321,36 +322,17 @@ export default class HttpMailApi {
   }
 
   /*
-   * The Retry-After header as seconds: delta-seconds ("30") or an HTTP date.
-   * Undefined when absent, negative or not a value, so the backoff applies.
+   * The Retry-After header as seconds, as RFC 9110 writes it (Common's
+   * RetryAfter): delta-seconds ("30") or an HTTP date, at least one second -
+   * "0", or a date gone by, is not a retry at once. Undefined when absent or
+   * neither, so the backoff applies: "-5", "1.5" and "5 seconds" included
+   * (Date.parse took the last for a day gone by, so no wait at all).
    */
   public static parseRetryAfter(
     value: string | null | undefined,
     now: number = Date.now(),
   ): number | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    const trimmed: string = value.trim();
-
-    if (!trimmed) {
-      return undefined;
-    }
-
-    const seconds: number = Number(trimmed);
-
-    if (Number.isFinite(seconds)) {
-      return seconds >= 0 ? seconds : undefined;
-    }
-
-    const date: number = Date.parse(trimmed);
-
-    if (Number.isFinite(date)) {
-      return Math.max(0, Math.ceil((date - now) / 1000));
-    }
-
-    return undefined;
+    return RetryAfter.parseSeconds(value, { nowMs: now });
   }
 
   // The wait before retry number `attempt` (1 after the first try).

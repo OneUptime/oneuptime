@@ -485,6 +485,16 @@ describe("sending, to a stand-in for SES", () => {
   });
 
   test("throttled, it is tried again after SES's Retry-After, signed afresh, and goes", async () => {
+    // "0" waits a second, never at once (issue #8928): stubbed, and seen.
+    const slept: Array<number> = [];
+    jest
+      .spyOn(
+        HttpMailApi as unknown as { sleep: (ms: number) => Promise<void> },
+        "sleep",
+      )
+      .mockImplementation(async (ms: number): Promise<void> => {
+        slept.push(ms);
+      });
     ses.answerNextWith({
       ...amazonSesError(429, "TooManyRequestsException", "Too many requests."),
       headers: {
@@ -497,6 +507,7 @@ describe("sending, to a stand-in for SES", () => {
 
     expect(ses.requests).toHaveLength(2);
     expect(ses.requests[0]!.body).toBe(ses.requests[1]!.body);
+    expect(slept).toEqual([1000]);
   });
 
   test("a refusal is reported at once, with SES's words", async () => {

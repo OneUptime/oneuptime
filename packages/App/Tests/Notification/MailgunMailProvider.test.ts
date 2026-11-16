@@ -8,7 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
+import HttpMailApi, {
   MailApiAnswer,
   MailApiSendException,
 } from "../../FeatureSet/Notification/Services/MailProviders/HttpMailApi";
@@ -315,6 +315,16 @@ describe("sending, to a stand-in for Mailgun", () => {
   });
 
   test("throttled, it is tried again with a fresh form, and goes", async () => {
+    // "0" waits a second, never at once (issue #8928): stubbed, and seen.
+    const slept: Array<number> = [];
+    jest
+      .spyOn(
+        HttpMailApi as unknown as { sleep: (ms: number) => Promise<void> },
+        "sleep",
+      )
+      .mockImplementation(async (ms: number): Promise<void> => {
+        slept.push(ms);
+      });
     mailgun.answerNextWith({
       status: 429,
       body: { message: "Too Many Requests" },
@@ -327,6 +337,7 @@ describe("sending, to a stand-in for Mailgun", () => {
 
     expect(mailgun.requests).toHaveLength(2);
     expect(mailgunMimeOf(mailgun.requests[1]!)).toContain(LOGO.contentId);
+    expect(slept).toEqual([1000]);
   });
 
   test("a key Mailgun does not take is reported at once", async () => {
