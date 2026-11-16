@@ -332,7 +332,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Once an Apache ActiveMQ broker's metrics arrive, the queue shows as an Apache ActiveMQ queue and charts them under **Broker health**: see [Apache ActiveMQ](/docs/telemetry/queues#apache-activemq).":
     "همین که متریک‌های یک بروکر Apache ActiveMQ برسد، صف به‌عنوان صف Apache ActiveMQ نمایش داده می‌شود و آن‌ها را زیر **سلامت بروکر** نمودار می‌کند: [Apache ActiveMQ](/docs/telemetry/queues#apache-activemq) را ببینید.",
   "- JMS brokers other than ActiveMQ have no charted metrics. Their metrics are in the **Metrics** explorer. For an ActiveMQ broker, see **If the broker is Apache ActiveMQ** under **Advanced**.":
-    "- بروکرهای JMS به‌جز ActiveMQ هیچ متریک نموداری ندارند. متریک‌هایشان در کاوشگر **متریک‌ها** هستند. برای یک بروکر ActiveMQ، **اگر کارگزار Apache ActiveMQ است** را زیر **پیشرفته** ببینید.",
+    "- بروکرهای JMS به‌جز ActiveMQ هیچ متریک نموداری ندارند. متریک‌هایشان در کاوشگر **متریک‌ها** هستند. برای یک بروکر ActiveMQ، **اگر بروکر Apache ActiveMQ است** را زیر **پیشرفته** ببینید.",
   "NATS queues appear in OneUptime on their own, from the messaging spans of the applications that publish to and consume from them. You can also add one by hand: **Queues → Create Queue**.":
     "صف‌های NATS خودبه‌خود در OneUptime ظاهر می‌شوند، از اسپن‌های پیام‌رسانی برنامه‌هایی که در آن‌ها منتشر می‌کنند و از آن‌ها مصرف می‌کنند. می‌توانید یک صف را دستی هم اضافه کنید: **صف‌ها ← ساخت صف**.",
   "- **Java**: the OpenTelemetry Java agent traces NATS clients — its NATS instrumentation reports `messaging.system` = `nats` — without code changes.":

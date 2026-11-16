@@ -357,4 +357,16 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /\blarm/i,
     dropped: /\bavisering/i,
   },
+  {
+    /*
+     * Its Broker health section, its broker metrics and its docs say
+     * بروکر; the Queues pages' broker column and picker said کارگزار, so
+     * one setup guide named the broker both ways (#8799).
+     */
+    language: "fa",
+    thing: "Brokers",
+    english: /\bbrokers?\b/i,
+    word: /بروکر/,
+    dropped: /کارگزار/,
+  },
 ];
