@@ -1,6 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
-import GreenlockCertificateService from "Common/Server/Services/GreenlockCertificateService";
 import EncryptColumnInPlace, {
   ColumnToEncrypt,
   ModelRepository,
@@ -8,16 +7,16 @@ import EncryptColumnInPlace, {
 
 /*
  * Encrypts the private keys of the free certificates OneUptime orders from
- * Let's Encrypt, stored before they were kept encrypted at rest.
+ * Let's Encrypt, stored before they were kept encrypted at rest:
+ * AcmeCertificate.certificateKey, the key of each certificate ordered for a
+ * custom domain or for the server's own host. Encrypted on every order and
+ * renewal from now on; a row written before holds the key as plaintext.
  *
- *   - AcmeCertificate.certificateKey: the key of each certificate the
- *     Greenlock store ordered, for a custom domain or for the server's own
- *     host. Encrypted on every order and renewal from now on; a row written
- *     before holds the key as plaintext.
- *   - GreenlockCertificate.blob: the store ACME certificates replaced, which
- *     nothing reads any more, kept the private keys of the ACME account and
- *     of each domain's certificate there (isKeyPair). An installation that
- *     ran OneUptime before then still holds them.
+ * It encrypted GreenlockCertificate.blob too, the ACME account and
+ * certificate keys of the store ACME certificates replaced. That table is
+ * gone now (DropGreenlockTables1809181850000, #8990), dropped by a schema
+ * migration before any data migration runs, and its keys with it: there is
+ * nothing of it left to encrypt.
  *
  * Each value is encrypted in place, in raw SQL, only while the row still
  * holds the plaintext read (EncryptColumnInPlace): a key renewed meanwhile
@@ -27,8 +26,8 @@ import EncryptColumnInPlace, {
  * certificate throughout: DatabaseService.decrypt hands back a key that is
  * not our ciphertext as it is, and decrypts the rest, so its jobs write the
  * same key to disk before and after (Nginx/Jobs/AcmeWriteCertificates,
- * WriteServerCertToDisk). One table, or one row, that cannot be read or
- * written costs the others nothing, and no log line carries a key.
+ * WriteServerCertToDisk). A row that cannot be read or written costs the
+ * others nothing, and no log line carries a key.
  */
 export default class EncryptLetsEncryptKeys extends DataMigrationBase {
   public constructor() {
@@ -42,12 +41,6 @@ export default class EncryptLetsEncryptKeys extends DataMigrationBase {
         repository:
           AcmeCertificateService.getRepository() as unknown as ModelRepository,
         column: "certificateKey",
-      },
-      {
-        kind: "Greenlock store entry",
-        repository:
-          GreenlockCertificateService.getRepository() as unknown as ModelRepository,
-        column: "blob",
       },
     ];
 

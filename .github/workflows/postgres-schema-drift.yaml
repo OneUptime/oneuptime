@@ -308,6 +308,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberDeletePostgres.test.ts --forceExit
 
+      # #8990: the Greenlock store's tables, with the old ACME keys they hold,
+      # go in one statement - and behind a reader of "User", which their keys
+      # point at, the drop waits only its lock_timeout and is tried again,
+      # never parking "User"'s readers behind it. In a schema of its own.
+      - name: Test dropping the Greenlock tables on Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DROP_GREENLOCK_TABLES_TESTS: "true"
+          DROP_GREENLOCK_TABLES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DROP_GREENLOCK_TABLES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DROP_GREENLOCK_TABLES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/DropGreenlockTablesPostgres.test.ts --forceExit
+
       # Deleting the resolved incidents and alerts a project no longer keeps
       # (issue #6903): the real statements, hard deletes and cascades - what
       # goes, what stays (not resolved, resolved lately, a completed
