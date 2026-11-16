@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### Maak een ingestiesleutel aan
 
-Open in OneUptime **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**, klik op **Inname-sleutel aanmaken** en kopieer de sleutel. Je OTLP-basis-URL is `https://oneuptime.com/otlp`, of `https://YOUR-ONEUPTIME-HOST/otlp` als je OneUptime zelf host.
+Open in OneUptime **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**, klik op **Ingestiesleutel aanmaken** en kopieer de sleutel. Je OTLP-basis-URL is `https://oneuptime.com/otlp`, of `https://YOUR-ONEUPTIME-HOST/otlp` als je OneUptime zelf host.
 
 ### Maak de bestemming aan in Cursor
 

@@ -31,7 +31,7 @@ OneUptime non ha un gateway suo: custodirebbe le tue chiavi dei provider e aggiu
 
 ## Prima di iniziare
 
-- Una chiave di ingestione: apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di ingestione**.
+- Una chiave di acquisizione: apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di acquisizione**.
 - Il tuo URL di base OTLP: `https://oneuptime.com/otlp`, oppure `https://YOUR-ONEUPTIME-HOST/otlp` se ospiti OneUptime tu stesso. OneUptime accetta OTLP su HTTP, in protobuf e in JSON.
 - La chiave viaggia nell'intestazione `x-oneuptime-token` di ogni richiesta di export.
 

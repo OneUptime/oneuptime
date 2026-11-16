@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### Создайте ключ приёма
 
-В OneUptime откройте **Настройки проекта → Телеметрия и APM → Ключи приема**, нажмите **Создать ключ приёма** и скопируйте ключ. Ваш базовый URL OTLP — `https://oneuptime.com/otlp` или `https://YOUR-ONEUPTIME-HOST/otlp`, если вы размещаете OneUptime у себя.
+В OneUptime откройте **Настройки проекта → Телеметрия и APM → Ключи приёма**, нажмите **Создать ключ приёма** и скопируйте ключ. Ваш базовый URL OTLP — `https://oneuptime.com/otlp` или `https://YOUR-ONEUPTIME-HOST/otlp`, если вы размещаете OneUptime у себя.
 
 ### Создайте получателя в Cursor
 

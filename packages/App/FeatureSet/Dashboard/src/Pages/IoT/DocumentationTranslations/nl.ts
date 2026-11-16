@@ -16,7 +16,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `building-a-sensors` and `sensor-001` with your fleet name and device id. Keep `iot.fleet.name` stable: changing it registers a brand-new fleet.":
     "Vervang `building-a-sensors` en `sensor-001` door je vlootnaam en de apparaat-id. Houd `iot.fleet.name` stabiel: wie hem wijzigt, registreert een gloednieuwe vloot.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Kies in stap 1 een inname-sleutel om `<YOUR_API_KEY>` in te vullen.",
+    "Kies in stap 1 een ingestiesleutel om `<YOUR_API_KEY>` in te vullen.",
   "Emit your readings as metrics named after the `iot_*` conventions, and give every datapoint a `device.id` attribute — for example:":
     "Stuur je metingen als metrieken met namen volgens de `iot_*`-conventies, en geef elk datapunt een `device.id`-attribuut, bijvoorbeeld:",
   "| Metric | Value | Datapoint attribute |":
@@ -75,7 +75,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "1. Verify `iot.fleet.name` is set as a **resource** attribute (not a datapoint label), and that `service.name` is `iot/<fleet>`.":
     "1. Controleer of `iot.fleet.name` als **resource**-attribuut is gezet (niet als datapuntlabel) en of `service.name` gelijk is aan `iot/<fleet>`.",
   "2. Confirm the exporter endpoint is `<YOUR_ONEUPTIME_URL>/otlp` and the `x-oneuptime-token` header carries a valid ingestion key.":
-    "2. Controleer of het exporter-endpoint `<YOUR_ONEUPTIME_URL>/otlp` is en of de header `x-oneuptime-token` een geldige inname-sleutel bevat.",
+    "2. Controleer of het exporter-endpoint `<YOUR_ONEUPTIME_URL>/otlp` is en of de header `x-oneuptime-token` een geldige ingestiesleutel bevat.",
   "1. Make sure each datapoint carries a `device.id` label — devices are keyed on it.":
     "1. Zorg dat elk datapunt een label `device.id` draagt: apparaten worden daarop gesleuteld.",
   "2. Send `iot_device_info` (identity-only) for devices that have not yet reported readings so they still show up in the inventory.":
@@ -83,7 +83,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "3. Check that `device.id` values are stable across reports; a changing id creates duplicate device rows.":
     "3. Controleer of de waarden van `device.id` stabiel blijven tussen meldingen; een wisselende id maakt dubbele apparaatrijen aan.",
   "`401` means the ingestion key is missing, wrong or expired; `422` means it has been disabled, or is a browser key, which cannot send device telemetry. Select a different key above (or create a new one) and update the `x-oneuptime-token` header your device or collector sends.":
-    "`401` betekent dat de inname-sleutel ontbreekt, onjuist of verlopen is; `422` betekent dat hij is uitgeschakeld of een browsersleutel is, die geen apparaattelemetrie kan sturen. Kies hierboven een andere sleutel (of maak een nieuwe) en werk de header `x-oneuptime-token` bij die je apparaat of collector stuurt.",
+    "`401` betekent dat de ingestiesleutel ontbreekt, onjuist of verlopen is; `422` betekent dat hij is uitgeschakeld of een browsersleutel is, die geen apparaattelemetrie kan sturen. Kies hierboven een andere sleutel (of maak een nieuwe) en werk de header `x-oneuptime-token` bij die je apparaat of collector stuurt.",
   "1. Use the exact `iot_*` metric names from **Metric conventions** under Advanced — other names are stored as generic metrics and do not populate the IoT charts.":
     "1. Gebruik de exacte `iot_*`-metrieknamen uit **Metriekconventies** onder Geavanceerd: andere namen worden als algemene metrieken opgeslagen en vullen de IoT-grafieken niet.",
   "2. `iot_cpu_usage_ratio` is a `0`–`1` ratio; send the raw ratio and OneUptime renders it as a percentage.":
@@ -148,7 +148,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "OneUptime recognizes the following `iot_*` metric names. Over MQTT the topic names the device, so every reading is attributed to it. You only need to send the metrics that make sense for your device — missing ones are simply not charted.":
     "OneUptime herkent de volgende `iot_*`-metrieknamen. Via MQTT benoemt het topic het apparaat, dus elke meting wordt eraan toegeschreven. Je hoeft alleen de metrieken te sturen die zinvol zijn voor je apparaat: ontbrekende worden gewoon niet getoond.",
   "The project-wide ingestion key suits gateways that publish on behalf of many devices. For devices that connect directly, register each device under the fleet's **Device Registry** tab: it issues a per-device credential — the credential ID is the MQTT **username** and the secret is the **password**. The fleet appears with its first reading, so send one with the project-wide key first, as in step 2.":
-    "De projectbrede inname-sleutel past bij gateways die namens veel apparaten publiceren. Registreer apparaten die rechtstreeks verbinden elk afzonderlijk op het tabblad **Apparaatregister** van de vloot: het geeft een referentie per apparaat uit; de referentie-ID is de MQTT-**gebruikersnaam** en het geheim is het **wachtwoord**. De vloot verschijnt met zijn eerste meting, dus stuur er eerst een met de projectbrede sleutel, zoals in stap 2.",
+    "De projectbrede ingestiesleutel past bij gateways die namens veel apparaten publiceren. Registreer apparaten die rechtstreeks verbinden elk afzonderlijk op het tabblad **Apparaatregister** van de vloot: het geeft een referentie per apparaat uit; de referentie-ID is de MQTT-**gebruikersnaam** en het geheim is het **wachtwoord**. De vloot verschijnt met zijn eerste meting, dus stuur er eerst een met de projectbrede sleutel, zoals in stap 2.",
   "- **Topic isolation** — a device credential can only publish under its own `oneuptime/<fleet>/<device>/…` topics; anything else is dropped.":
     "- **Topic-isolatie**: een apparaatreferentie kan alleen publiceren onder de eigen topics `oneuptime/<fleet>/<device>/…`; al het andere wordt verworpen.",
   "- **Individual revocation** — disable or delete one device's credential without touching the rest of the fleet; a connected device is cut off within a few seconds.":
@@ -183,7 +183,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "OneUptime rejects bad credentials at CONNECT with return code 4. Check that:":
     "OneUptime weigert onjuiste referenties bij CONNECT met retourcode 4. Controleer of:",
   "- the password is a valid ingestion key — or, for a registered device, the credential's secret, with its credential ID as the username;":
-    "- het wachtwoord een geldige inname-sleutel is, of, voor een geregistreerd apparaat, het geheim van de referentie, met de referentie-ID als gebruikersnaam;",
+    "- het wachtwoord een geldige ingestiesleutel is, of, voor een geregistreerd apparaat, het geheim van de referentie, met de referentie-ID als gebruikersnaam;",
   "- the key is a server key (browser keys are refused over MQTT) and has not been disabled or expired.":
     "- de sleutel een serversleutel is (browsersleutels worden via MQTT geweigerd) en niet is uitgeschakeld of verlopen.",
   "1. The device id is the `<device>` segment of the topic — keep it stable across publishes; a changing id creates duplicate device rows.":

@@ -30,9 +30,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then point the OTLP exporter at OneUptime. Most SDKs and agents read these environment variables:":
     "फिर OTLP एक्सपोर्टर को OneUptime की ओर करें। ज़्यादातर SDK और एजेंट ये एनवायरनमेंट वेरिएबल पढ़ते हैं:",
   "> **This token is a secret.** Use a **Server** ingestion key, kept in your\n> deployment's secrets. Never put a Server key in browser JavaScript — a\n> **Browser** ingestion key exists for that.":
-    "> **यह टोकन एक सीक्रेट है।** **सर्वर** इन्जेशन कुंजी इस्तेमाल करें, जो आपके\n> डिप्लॉयमेंट के सीक्रेट में रखी जाए। सर्वर कुंजी को कभी ब्राउज़र JavaScript में न रखें — उसके लिए\n> **ब्राउज़र** इन्जेशन कुंजी होती है।",
+    "> **यह टोकन एक सीक्रेट है।** **सर्वर** इंजेशन कुंजी इस्तेमाल करें, जो आपके\n> डिप्लॉयमेंट के सीक्रेट में रखी जाए। सर्वर कुंजी को कभी ब्राउज़र JavaScript में न रखें — उसके लिए\n> **ब्राउज़र** इंजेशन कुंजी होती है।",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इन्जेशन कुंजी चुनें।",
+    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इंजेशन कुंजी चुनें।",
   "Read the topics' CloudWatch metrics with the collector's `aws_cloudwatch` receiver, or stream them through a CloudWatch Metric Stream and Amazon Data Firehose to its `awsfirehose` receiver.":
     "टॉपिक की CloudWatch मेट्रिक्स कलेक्टर के `aws_cloudwatch` रिसीवर से पढ़ें, या उन्हें CloudWatch Metric Stream और Amazon Data Firehose के ज़रिए उसके `awsfirehose` रिसीवर तक स्ट्रीम करें।",
   "The `aws_cloudwatch` receiver polls CloudWatch's `GetMetricData` API with the AWS SDK's default credentials (environment, shared profile or instance role), which need `cloudwatch:ListMetrics` and `cloudwatch:GetMetricData`:":
@@ -75,7 +75,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "See [A queue my applications use was not created](/docs/telemetry/queues#a-queue-my-applications-use-was-not-created) on the Queues documentation page.":
     "क्यू के दस्तावेज़ पेज पर [मेरे एप्लिकेशन जिस क्यू का इस्तेमाल करते हैं, वह नहीं बनी](/docs/telemetry/queues#a-queue-my-applications-use-was-not-created) देखें।",
   "- Check the collector's log. OneUptime refuses a wrong ingestion key with `401` (`422` for a disabled key or a Browser key), and the collector logs `Exporting failed` for every batch it drops.":
-    "- कलेक्टर का लॉग जाँचें। OneUptime गलत इन्जेशन कुंजी को `401` के साथ अस्वीकार करता है (बंद की गई कुंजी या ब्राउज़र कुंजी के लिए `422`), और कलेक्टर हर छोड़े गए बैच के लिए `Exporting failed` लॉग करता है।",
+    "- कलेक्टर का लॉग जाँचें। OneUptime गलत इंजेशन कुंजी को `401` के साथ अस्वीकार करता है (बंद की गई कुंजी या ब्राउज़र कुंजी के लिए `422`), और कलेक्टर हर छोड़े गए बैच के लिए `Exporting failed` लॉग करता है।",
   "- It is late. `aws_cloudwatch` waits `delay` (10 minutes) for CloudWatch to publish, so its points arrive 11 to 17 minutes late.":
     "- डेटा देर से आ रहा है। `aws_cloudwatch` CloudWatch के प्रकाशित करने के लिए `delay` (10 मिनट) रुकता है, इसलिए इसके पॉइंट 11 से 17 मिनट देर से आते हैं।",
   "See [Broker health stays empty](/docs/telemetry/queues#broker-health-stays-empty) on the Queues documentation page.":

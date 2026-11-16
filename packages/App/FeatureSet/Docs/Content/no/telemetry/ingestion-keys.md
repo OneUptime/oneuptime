@@ -57,7 +57,7 @@ Gå til **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. **Tel
 
 ### Gi nøkkelen et navn, og velg type
 
-Klikk på **Opprett ingestion-nøkkel**. Dialogen starter med navnet **Servernøkkel** og typen **Server**. Velg **Nøkkeltype**, og gi nøkkelen nytt navn etter det som skal bruke den, for eksempel `checkout-collector`. En **Beskrivelse** ligger under **Avansert**.
+Klikk på **Opprett inntaksnøkkel**. Dialogen starter med navnet **Servernøkkel** og typen **Server**. Velg **Nøkkeltype**, og gi nøkkelen nytt navn etter det som skal bruke den, for eksempel `checkout-collector`. En **Beskrivelse** ligger under **Avansert**.
 
 ### Legg til origins for en nettlesernøkkel
 
@@ -65,10 +65,10 @@ En **Nettleser**-nøkkel ber om sine **Tillatte opprinnelser** i neste trinn, **
 
 ### Opprett nøkkelen, og kopier hemmeligheten
 
-Klikk på **Opprett ingestion-nøkkel**. Nøkkelens egen side åpnes: kopier **Hemmelig nøkkel**, og gi den til avsenderne dine.
+Klikk på **Opprett inntaksnøkkel**. Nøkkelens egen side åpnes: kopier **Hemmelig nøkkel**, og gi den til avsenderne dine.
 :::
 
-Hvert produkts **Oppsettveiledning** starter med **Velg en ingestion-nøkkel**, som viser nøklene veiledningen kan bruke, og oppretter en på stedet. Kodesnuttene i veiledningen inneholder deretter den nøkkelen.
+Hvert produkts **Oppsettveiledning** starter med **Velg en inntaksnøkkel**, som viser nøklene veiledningen kan bruke, og oppretter en på stedet. Kodesnuttene i veiledningen inneholder deretter den nøkkelen.
 
 ## Send telemetri med nøkkelen
 

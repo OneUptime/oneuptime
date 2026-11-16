@@ -95,7 +95,7 @@ En applikation viser **Modtager data**, så længe der kommer telemetri, og **In
 :::steps
 ### Opret en indtagelsesnøgle
 
-Åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret ingestion-nøgle**. En webapp skal bruge en **Browser**-nøgle, som kun virker fra de oprindelser, du angiver. En mobilapp skal bruge en **Server**-nøgle, fordi et mobil-SDK ikke sender en `Origin`-header.
+Åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret indtagelsesnøgle**. En webapp skal bruge en **Browser**-nøgle, som kun virker fra de oprindelser, du angiver. En mobilapp skal bruge en **Server**-nøgle, fordi et mobil-SDK ikke sender en `Origin`-header.
 
 ### Instrumenter din app
 

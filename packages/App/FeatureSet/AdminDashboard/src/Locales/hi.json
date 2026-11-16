@@ -2722,7 +2722,7 @@
   "Deleting a team takes away the permissions it gave its members. Anyone for whom it was their only team loses access to the project.": "टीम हटाने से उसके सदस्यों को दी गई अनुमतियाँ हट जाती हैं। जिनकी कोई और टीम नहीं है, वे प्रोजेक्ट तक पहुँच खो देते हैं।",
   "Deleting an API key stops anything that uses it from working.": "API कुंजी हटाने से उसका उपयोग करने वाली हर चीज़ काम करना बंद कर देती है।",
   "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.": "कस्टम भूमिका हटाने से उसे रखने वाली हर टीम और API कुंजी से उसकी अनुमतियाँ हट जाती हैं। टीमें और कुंजियाँ खुद, अपने बाकी सब कुछ के साथ, बनी रहती हैं।",
-  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "इन्जेशन कुंजी हटाने पर OneUptime उस कुंजी से अब भी भेजी जा रही टेलीमेट्री को अस्वीकार कर देता है।",
+  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "इंजेशन कुंजी हटाने पर OneUptime उस कुंजी से अब भी भेजी जा रही टेलीमेट्री को अस्वीकार कर देता है।",
   "Deleting an announcement takes it off every status page that shows it.": "घोषणा हटाने से वह उन सभी स्थिति पृष्ठों से हट जाती है जो उसे दिखाते हैं।",
   "Deleting a pipeline also deletes its processors.": "पाइपलाइन हटाने से उसके प्रोसेसर भी हट जाते हैं।",
   "Deleting a form also deletes its submissions and custom domains. The incidents and events it created stay.": "फ़ॉर्म हटाने से उसके सबमिशन और कस्टम डोमेन भी हट जाते हैं। उससे बनी घटनाएँ और इवेंट बने रहते हैं।",

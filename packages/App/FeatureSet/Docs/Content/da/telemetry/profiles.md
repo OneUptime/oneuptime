@@ -35,11 +35,11 @@ Du skal bruge en telemetri-indtagelsesnøgle af typen **Server**. Hvis du ikke h
 
 Gå til **Produkter → Projektindstillinger**, åbn **Telemetri og APM** i sidemenuen, og vælg **Indtagelsesnøgler**.
 
-![Listen »Indtagelsesnøgler«, med »Opret ingestion-nøgle« fremhævet](screen:ingestion-keys)
+![Listen »Indtagelsesnøgler«, med »Opret indtagelsesnøgle« fremhævet](screen:ingestion-keys)
 
 ### Opret en nøgle
 
-Klik på **Opret ingestion-nøgle**. Dialogen har allerede nøglens navn udfyldt og **Server** valgt (den slags nøgle, en applikation eller en collector sender med), så klik på **Opret ingestion-nøgle** for at oprette den, eller omdøb den først.
+Klik på **Opret indtagelsesnøgle**. Dialogen har allerede nøglens navn udfyldt og **Server** valgt (den slags nøgle, en applikation eller en collector sender med), så klik på **Opret indtagelsesnøgle** for at oprette den, eller omdøb den først.
 
 ### Kopiér hemmeligheden
 

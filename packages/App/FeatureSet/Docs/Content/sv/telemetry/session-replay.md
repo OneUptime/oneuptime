@@ -54,7 +54,7 @@ Lägg till en skripttagg på varje sida som du vill spela in.
 :::steps
 ### Skapa en Browser-nyckel
 
-Under **Projektinställningar → Telemetri och APM → Intagningsnycklar** klickar du på **Skapa ingestion-nyckel**, väljer **Webbläsare** som **Nyckeltyp** och anger din webbplats ursprung under **Tillåtna ursprung**. Kopiera sedan nyckelns **Hemlig nyckel**. [Webbläsarkonfiguration](/docs/rum/browser-setup#konfigurera) visar varje skärm.
+Under **Projektinställningar → Telemetri och APM → Intagningsnycklar** klickar du på **Skapa intagningsnyckel**, väljer **Webbläsare** som **Nyckeltyp** och anger din webbplats ursprung under **Tillåtna ursprung**. Kopiera sedan nyckelns **Hemlig nyckel**. [Webbläsarkonfiguration](/docs/rum/browser-setup#konfigurera) visar varje skärm.
 
 ### Lägg till skripttaggen
 

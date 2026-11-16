@@ -80,7 +80,7 @@ Beveiligingsgegevens zijn alleen leesbaar voor de rollen Projecteigenaar en Proj
 :::steps
 ### Maak een ingestiesleutel aan
 
-Open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Inname-sleutel aanmaken**. Beveiligingsgebeurtenissen gebruiken dezelfde sleutels als de rest van je telemetrie.
+Open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Ingestiesleutel aanmaken**. Beveiligingsgebeurtenissen gebruiken dezelfde sleutels als de rest van je telemetrie.
 
 ### Post je gebeurtenissen
 

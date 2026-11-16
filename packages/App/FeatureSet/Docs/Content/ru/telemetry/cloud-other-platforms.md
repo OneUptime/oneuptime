@@ -29,7 +29,7 @@ flowchart TB
 | Azure App Service | `azure_app_service` | `azureappservice` в Collector, детекторы `azure` для Node.js и .NET; с SDK `cloud.account.id` задаёте вы | `azure.app_service.instance.id`, иначе `service.instance.id`, затем `host.id` |
 | Azure Container Instances | `azure_container_instances` | Вы (детектора нет) | `host.name` |
 
-Для каждого раздела ниже нужен ключ приёма типа **Сервер** из раздела **Настройки проекта → Телеметрия и APM → Ключи приема** и приложение, инструментированное OpenTelemetry SDK. Если вы размещаете OneUptime самостоятельно, замените `https://oneuptime.com/otlp` на `https://YOUR-ONEUPTIME-HOST/otlp`.
+Для каждого раздела ниже нужен ключ приёма типа **Сервер** из раздела **Настройки проекта → Телеметрия и APM → Ключи приёма** и приложение, инструментированное OpenTelemetry SDK. Если вы размещаете OneUptime самостоятельно, замените `https://oneuptime.com/otlp` на `https://YOUR-ONEUPTIME-HOST/otlp`.
 
 > [!IMPORTANT]
 > На каждой из этих платформ токен — это секрет. В каждом разделе указано хранилище секретов платформы. Токен, записанный в обычную переменную окружения, может прочитать любой, кто может прочитать конфигурацию приложения.

@@ -31,7 +31,7 @@ Der Explorer hat fünf Tabs:
 | **Betrachter** | Spans suchen und filtern und ihre Traces öffnen. Er öffnet mit der letzten Stunde, neueste zuerst, 50 Spans pro Seite. |
 | **Einblicke** | Anfrageraten, Fehlerraten und Latenz pro Dienst, und die Anfragen, die einen Blick wert sind. |
 | **KI** | Die langsamen und fehlschlagenden Vorgänge und das fehlende Tracing, die OneUptime in Ihren Traces findet, und was OneUptime AI dagegen getan hat. Siehe [Langsame und fehlschlagende Vorgänge mit KI finden und beheben](#langsame-und-fehlschlagende-vorgänge-mit-ki-finden-und-beheben). |
-| **Einrichtungsanleitung** | Wie Sie Traces mit OpenTelemetry senden, mit einem Ihrer [Aufnahmeschlüssel](/docs/telemetry/ingestion-keys). |
+| **Einrichtungsanleitung** | Wie Sie Traces mit OpenTelemetry senden, mit einem Ihrer [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys). |
 | **Einstellungen** | Was mit Spans beim Eintreffen geschieht: **Pipelines**, **Drop-Filter**, **Scrub-Regeln** und **Aufzeichnungsregeln**. |
 
 ## Bevor Sie beginnen

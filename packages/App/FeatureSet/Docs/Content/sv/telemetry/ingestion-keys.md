@@ -57,7 +57,7 @@ Gå till **Projektinställningar → Telemetri och APM → Intagningsnycklar**. 
 
 ### Namnge nyckeln och välj dess typ
 
-Klicka på **Skapa ingestion-nyckel**. Dialogrutan börjar med namnet **Servernyckel** och typen **Server**. Välj **Nyckeltyp** och byt namn på nyckeln efter det som ska använda den, till exempel `checkout-collector`. En **Beskrivning** finns under **Avancerad**.
+Klicka på **Skapa intagningsnyckel**. Dialogrutan börjar med namnet **Servernyckel** och typen **Server**. Välj **Nyckeltyp** och byt namn på nyckeln efter det som ska använda den, till exempel `checkout-collector`. En **Beskrivning** finns under **Avancerad**.
 
 ### Lägg till en webbläsarnyckels ursprung
 
@@ -65,10 +65,10 @@ En **Webbläsare**-nyckel ber om sina **Tillåtna ursprung** i nästa steg, **We
 
 ### Skapa nyckeln och kopiera dess hemlighet
 
-Klicka på **Skapa ingestion-nyckel**. Nyckelns egen sida öppnas: kopiera dess **Hemlig nyckel** och ge den till dina avsändare.
+Klicka på **Skapa intagningsnyckel**. Nyckelns egen sida öppnas: kopiera dess **Hemlig nyckel** och ge den till dina avsändare.
 :::
 
-Varje produkts **Installationsguide** börjar med **Välj en ingestion-nyckel**, som listar de nycklar guiden kan använda och skapar en på plats. Kodsnuttarna i guiden innehåller sedan den nyckeln.
+Varje produkts **Installationsguide** börjar med **Välj en intagningsnyckel**, som listar de nycklar guiden kan använda och skapar en på plats. Kodsnuttarna i guiden innehåller sedan den nyckeln.
 
 ## Skicka telemetri med nyckeln
 

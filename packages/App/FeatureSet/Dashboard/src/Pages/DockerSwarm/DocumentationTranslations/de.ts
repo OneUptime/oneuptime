@@ -14,7 +14,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Docker Engine 20.10+ with the Docker Compose v2 plugin":
     "Docker Engine 20.10 oder neuer mit dem Docker-Compose-v2-Plugin",
   "When it asks, enter the OneUptime URL and the ingestion key shown in step 1, and a name for the cluster, such as `prod-swarm`. The name is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.":
-    "Geben Sie auf Nachfrage die OneUptime-URL und den Aufnahmeschlüssel aus Schritt 1 ein sowie einen Namen für den Cluster, etwa `prod-swarm`. Unter diesem Namen erscheint der Cluster in OneUptime, halten Sie ihn also stabil: Ein neuer Name registriert einen neuen Cluster.",
+    "Geben Sie auf Nachfrage die OneUptime-URL und den Ingestion-Schlüssel aus Schritt 1 ein sowie einen Namen für den Cluster, etwa `prod-swarm`. Unter diesem Namen erscheint der Cluster in OneUptime, halten Sie ihn also stabil: Ein neuer Name registriert einen neuen Cluster.",
   "The script puts the agent in `/opt/oneuptime-docker-swarm-agent` and starts it with Docker Compose.":
     "Das Skript legt den Agenten in `/opt/oneuptime-docker-swarm-agent` ab und startet ihn mit Docker Compose.",
   "`docker compose ps` lists three containers: the collector (`oneuptime-docker-swarm-agent`), the inventory poller (`oneuptime-docker-swarm-inventory`) and the OneUptime AI agent (`oneuptime-docker-swarm-ai-agent`). The cluster appears in the **Docker Swarm** section within a few minutes, and its Nodes, Services, Tasks, Stacks, Networks, Secrets, Configs and Volumes pages fill in after the first inventory snapshot (≤ 5 minutes).":
@@ -30,7 +30,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | Die URL Ihrer OneUptime-Instanz (z. B. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_SERVICE_TOKEN` | Yes | The telemetry ingestion key from step 1 |":
-    "| `ONEUPTIME_SERVICE_TOKEN` | Ja | Der Telemetrie-Aufnahmeschlüssel aus Schritt 1 |",
+    "| `ONEUPTIME_SERVICE_TOKEN` | Ja | Der Telemetrie-Ingestion-Schlüssel aus Schritt 1 |",
   "| `DOCKER_SWARM_CLUSTER_NAME` | Yes | The cluster's name in OneUptime, and its join key: stamped on every signal as the `docker.swarm.cluster.name` resource attribute. Defaults to `docker-swarm` |":
     "| `DOCKER_SWARM_CLUSTER_NAME` | Ja | Der Name des Clusters in OneUptime und sein Verknüpfungsschlüssel: an jedem Signal als Ressourcenattribut `docker.swarm.cluster.name` vermerkt. Standard: `docker-swarm` |",
   "| `DOCKER_SWARM_NODE_NAME` | No | This node's name, stamped on its containers' metrics and logs as `docker.swarm.node.name` — what a Docker Swarm monitor's **Node Name** filter matches. The install script sets it to the node's hostname, the name `docker node ls` shows. Empty: no node name is stamped |":
@@ -78,7 +78,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Each task's metrics carry its container (`container.name`, `container.image.name`, and `container.runtime=docker`, which the `docker_stats` receiver adds), its service (`docker.swarm.service.name`) and its node (`docker.swarm.node.id`, and `docker.swarm.node.name` from `DOCKER_SWARM_NODE_NAME`). The agent stamps `docker.swarm.cluster.name` on everything and never `host.name`, so OneUptime attributes the telemetry to this swarm cluster rather than registering each node as a standalone Host or Docker Host.":
     "Die Metriken jeder Aufgabe tragen ihren Container (`container.name`, `container.image.name` und `container.runtime=docker`, das der Receiver `docker_stats` hinzufügt), ihren Dienst (`docker.swarm.service.name`) und ihren Knoten (`docker.swarm.node.id` und `docker.swarm.node.name` aus `DOCKER_SWARM_NODE_NAME`). Der Agent vermerkt `docker.swarm.cluster.name` an allem und nie `host.name`, sodass OneUptime die Telemetrie diesem Swarm-Cluster zuordnet, statt jeden Knoten als eigenständigen Host oder Docker-Host zu registrieren.",
   "Run the diagnostic script on the manager node. It checks the containers, that the inventory poller is on a manager, the snapshot file, the cluster name and the key — and asks OneUptime directly whether it accepts the ingestion key. A rejected key (`401` or `422`) otherwise shows only as an easy-to-miss `Exporting failed` line in the collector's logs.":
-    "Führen Sie das Diagnoseskript auf dem Manager-Knoten aus. Es prüft die Container, ob der Inventar-Poller auf einem Manager läuft, die Snapshot-Datei, den Clusternamen und den Schlüssel — und fragt OneUptime direkt, ob es den Aufnahmeschlüssel akzeptiert. Ein abgelehnter Schlüssel (`401` oder `422`) zeigt sich sonst nur als leicht zu übersehende Zeile `Exporting failed` in den Protokollen des Collectors.",
+    "Führen Sie das Diagnoseskript auf dem Manager-Knoten aus. Es prüft die Container, ob der Inventar-Poller auf einem Manager läuft, die Snapshot-Datei, den Clusternamen und den Schlüssel — und fragt OneUptime direkt, ob es den Ingestion-Schlüssel akzeptiert. Ein abgelehnter Schlüssel (`401` oder `422`) zeigt sich sonst nur als leicht zu übersehende Zeile `Exporting failed` in den Protokollen des Collectors.",
   "Otherwise, check the collector's logs (`docker compose logs oneuptime-docker-swarm-agent` in `/opt/oneuptime-docker-swarm-agent`), that `ONEUPTIME_SERVICE_TOKEN` and `ONEUPTIME_URL` in `/opt/oneuptime-docker-swarm-agent/.env` are correct, and that the manager can reach your OneUptime instance.":
     "Prüfen Sie andernfalls die Protokolle des Collectors (`docker compose logs oneuptime-docker-swarm-agent` in `/opt/oneuptime-docker-swarm-agent`), ob `ONEUPTIME_SERVICE_TOKEN` und `ONEUPTIME_URL` in `/opt/oneuptime-docker-swarm-agent/.env` stimmen und ob der Manager Ihre OneUptime-Instanz erreicht.",
   "Confirm the poller runs on a manager: `docker node ls` must succeed there. Then look for `failed to emit ...` lines in its logs:":
@@ -95,11 +95,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's name comes from `DOCKER_SWARM_CLUSTER_NAME`. Change it in `/opt/oneuptime-docker-swarm-agent/.env` and run `docker compose up -d` in `/opt/oneuptime-docker-swarm-agent` — note that a new name registers a new cluster.":
     "Der Name des Clusters kommt aus `DOCKER_SWARM_CLUSTER_NAME`. Ändern Sie ihn in `/opt/oneuptime-docker-swarm-agent/.env` und führen Sie `docker compose up -d` in `/opt/oneuptime-docker-swarm-agent` aus — beachten Sie, dass ein neuer Name einen neuen Cluster registriert.",
   "When it asks, enter the OneUptime URL and the ingestion key shown in step 1, and **`swarm-1`** as the cluster name — exactly, or the data registers as a new cluster.":
-    "Geben Sie auf Nachfrage die OneUptime-URL und den Aufnahmeschlüssel aus Schritt 1 ein sowie **`swarm-1`** als Clusternamen — genau so, sonst werden die Daten als neuer Cluster registriert.",
+    "Geben Sie auf Nachfrage die OneUptime-URL und den Ingestion-Schlüssel aus Schritt 1 ein sowie **`swarm-1`** als Clusternamen — genau so, sonst werden die Daten als neuer Cluster registriert.",
   "Replace `my-swarm` with a name for this cluster, such as `prod-swarm`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.":
     "Ersetzen Sie `my-swarm` durch einen Namen für diesen Cluster, etwa `prod-swarm`. Unter diesem Namen erscheint der Cluster in OneUptime, halten Sie ihn also stabil: Ein neuer Name registriert einen neuen Cluster.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Wählen Sie in Schritt 1 einen Aufnahmeschlüssel, um `<YOUR_API_KEY>` auszufüllen.",
+    "Wählen Sie in Schritt 1 einen Ingestion-Schlüssel, um `<YOUR_API_KEY>` auszufüllen.",
   "Add this node's name to it. The collector puts it on the node's container metrics, and a Docker Swarm monitor's **Node Name** filter matches it:":
     "Fügen Sie ihr den Namen dieses Knotens hinzu. Der Collector vermerkt ihn an den Container-Metriken des Knotens, und der Filter **Knotenname** eines Docker-Swarm-Monitors passt darauf:",
   "Then start it:": "Starten Sie ihn dann:",

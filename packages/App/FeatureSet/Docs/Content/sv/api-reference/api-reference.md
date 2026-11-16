@@ -158,7 +158,7 @@ Inget raderas eller slås av. Nycklarna och anslutningarna behålls, och de fung
 
 Under **Growth** listar **Projektinställningar** > **Avancerad** > **API-nycklar** de nycklar som projektet fortfarande har och säger att de har stoppats, så att vilken som helst av dem kan raderas (återkallas) på alla planer. Att skapa eller ändra nycklar kräver **Growth**. **Projektinställningar** > **Fakturering och fakturor** > **Fakturering** anger hur många API-nycklar en lägre plan stoppar och hur många SCIM-anslutningar den begränsar, för varje plan du kan välja, och vad projektets plan har stoppat; Projektägare får ett e-postmeddelande när en planändring stoppar dem. Ägarna till projekt som redan låg under de här planerna när detta började får ett e-postmeddelande som säger vad som stoppades och hur det slås på igen.
 
-Bara ett projekts API-nycklar och SCIM-anslutningar påverkas. Personer påverkas inte: inloggning i instrumentpanelen, och MCP-klienter som är anslutna genom inloggning, fungerar som förut. Inmatningsnycklar för telemetri, sondnycklar och agentnycklar är inte API-nycklar och fortsätter att fungera. Egendrivna installationer har inga planer, så för dem ändras ingenting.
+Bara ett projekts API-nycklar och SCIM-anslutningar påverkas. Personer påverkas inte: inloggning i instrumentpanelen, och MCP-klienter som är anslutna genom inloggning, fungerar som förut. Intagningsnycklar för telemetri, sondnycklar och agentnycklar är inte API-nycklar och fortsätter att fungera. Egendrivna installationer har inga planer, så för dem ändras ingenting.
 
 ## Namnge och skriva poster
 

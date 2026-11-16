@@ -2722,7 +2722,7 @@
   "Deleting a team takes away the permissions it gave its members. Anyone for whom it was their only team loses access to the project.": "Als u een team verwijdert, verliezen de leden de rechten die het hun gaf. Wie geen ander team heeft, verliest de toegang tot het project.",
   "Deleting an API key stops anything that uses it from working.": "Als u een API-sleutel verwijdert, werkt alles wat die gebruikt niet meer.",
   "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.": "Als u een aangepaste rol verwijdert, verliest elk team en elke API-sleutel die haar heeft haar machtigingen. De teams en sleutels zelf blijven, met al het andere dat ze hebben.",
-  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "Als u een ingestion key verwijdert, weigert OneUptime telemetrie die er nog mee wordt verzonden.",
+  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "Als u een ingestiesleutel verwijdert, weigert OneUptime telemetrie die er nog mee wordt verzonden.",
   "Deleting an announcement takes it off every status page that shows it.": "Als u een aankondiging verwijdert, wordt die van elke statuspagina gehaald die haar toont.",
   "Deleting a pipeline also deletes its processors.": "Als u een pipeline verwijdert, worden ook de processors ervan verwijderd.",
   "Deleting a form also deletes its submissions and custom domains. The incidents and events it created stay.": "Als u een formulier verwijdert, worden ook de inzendingen en aangepaste domeinen ervan verwijderd. De incidenten en gebeurtenissen die het heeft aangemaakt, blijven bestaan.",
