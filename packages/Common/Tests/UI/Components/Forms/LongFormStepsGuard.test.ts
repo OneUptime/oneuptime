@@ -183,6 +183,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     return { file: file!, form: form!, reason: reason! };
   }),
   {
+    file: `${DASHBOARD}/Pages/Monitor/View/Slos.tsx`,
+    form: "ModelTable: Monitor > SLOs",
+    reason:
+      "Create on a monitor's SLOs tab (getMonitorSloCreateFormFields) keeps only the SLOs page's Objective step: name and target on screen, and the description, at-risk threshold, window and labels folded under Advanced. What It Measures is this monitor's uptime, so that step's fields are filtered out; the scan counts the whole getSloFormFields list it filters. Common's MonitorLogsAndSlosEmptyStates pins the shape.",
+  },
+  {
     file: `${DASHBOARD}/Components/NotificationRule/OnCallRulesTable.tsx`,
     form: "ModelTable: notification-rules",
     reason:
