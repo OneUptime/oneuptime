@@ -30,6 +30,7 @@ import {
   getCodeRepositoryRunnerWords,
   getGlobalRunnerKeptOffText,
   CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT,
+  CODE_GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_TEXT,
   getGlobalRunnersLiveStatus,
   getNewRuleRunnerId,
   getProjectDefaultRunner,
@@ -1827,7 +1828,6 @@ describe("a code repository's Runner lines, in its host's words", () => {
    */
   test("the line a repository on the Global Runner adds where global Runners never get its token", () => {
     for (const provider of [
-      CodeRepositoryType.GitLab,
       CodeRepositoryType.Forgejo,
       CodeRepositoryType.Git,
     ]) {
@@ -1839,11 +1839,46 @@ describe("a code repository's Runner lines, in its host's words", () => {
 
     for (const provider of [CodeRepositoryType.GitHub, undefined, null]) {
       expect(getGlobalRunnerKeptOffText(provider, true)).toBeNull();
+      expect(getGlobalRunnerKeptOffText(provider, true, new Date())).toBeNull();
     }
 
     // The same sentence as Code's notice for it.
     expect(CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT).toContain(
       "its access token is never handed to a global Runner",
+    );
+    expect(CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT).toContain(
+      "a Forgejo, Gitea or Git repository",
+    );
+  });
+
+  /*
+   * #8912: a GitLab repository's fixes push with a token OneUptime makes for
+   * each run, so it is kept off global Runners only once GitLab refused to
+   * make one - and then its line says why, and what to do.
+   */
+  test("a GitLab repository's line, only once GitLab refused to make its fixes a token", () => {
+    expect(
+      getGlobalRunnerKeptOffText(CodeRepositoryType.GitLab, true),
+    ).toBeNull();
+    expect(
+      getGlobalRunnerKeptOffText(CodeRepositoryType.GitLab, true, null),
+    ).toBeNull();
+    expect(
+      getGlobalRunnerKeptOffText(
+        CodeRepositoryType.GitLab,
+        true,
+        "2026-11-16T10:00:00.000Z",
+      ),
+    ).toBe(CODE_GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_TEXT);
+    expect(
+      getGlobalRunnerKeptOffText(CodeRepositoryType.GitLab, false, new Date()),
+    ).toBeNull();
+
+    expect(CODE_GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_TEXT).toContain(
+      "GitLab did not let OneUptime make a short-lived token for this repository",
+    );
+    expect(CODE_GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_TEXT).toContain(
+      "Maintainer's token with the api scope",
     );
   });
 

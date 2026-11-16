@@ -21,6 +21,7 @@ import {
   CodeWorkerKind,
 } from "../../../../../Types/Runner/CodeRepositoryRunner";
 import { GlobalRunnerCodeFixAvailability } from "../../../../../Types/Runner/RunnerCodeFixes";
+import { GlobalRunnerKeptOffReason } from "../../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
@@ -155,20 +156,25 @@ describe("CodeRepositoryRunnerChoice", () => {
         runnerId: true,
         isGlobalRunnerPicked: true,
         repositoryHostedAt: true,
+        // Whether GitLab made it no short-lived token (#8912).
+        mintedTokenRefusedAt: true,
       });
     });
 
-    test("a repository read with them hands over all four", () => {
+    test("a repository read with them hands over all five", () => {
+      const refusedAt: Date = new Date("2026-11-16T10:00:00.000Z");
       const row: CodeRepository = repository(RUNNER_ID);
       row.projectId = PROJECT_ID;
       row.isGlobalRunnerPicked = true;
       row.repositoryHostedAt = CodeRepositoryType.GitLab;
+      row.mintedTokenRefusedAt = refusedAt;
 
       expect(getCodeRepositoryRunnerFactsRow(row)).toEqual({
         projectId: PROJECT_ID,
         runnerId: row.runnerId,
         isGlobalRunnerPicked: true,
         repositoryHostedAt: CodeRepositoryType.GitLab,
+        mintedTokenRefusedAt: refusedAt,
       });
     });
   });
@@ -851,10 +857,11 @@ describe("CodeRepositoryRunnerChoice", () => {
     });
 
     /*
-     * On OneUptime Cloud no global Runner is handed a GitLab, Forgejo,
-     * Gitea or Git repository's token (#6115): such a repository on the
-     * Global Runner has nothing to do its work, whoever is online, and
-     * says why - unless an agent of the project's own takes it.
+     * On OneUptime Cloud no global Runner is handed a Forgejo, Gitea or Git
+     * repository's token (#6115), nor a GitLab one's GitLab made no
+     * short-lived token for (#8912): such a repository on the Global Runner
+     * has nothing to do its work, whoever is online, and says why - unless
+     * an agent of the project's own takes it.
      */
     describe("on OneUptime Cloud, a repository that is not on GitHub", () => {
       let savedBilling: string | undefined;
@@ -874,7 +881,6 @@ describe("CodeRepositoryRunnerChoice", () => {
 
       test("on the Global Runner, is not online, and says it needs a Runner of the project's own", async () => {
         for (const type of [
-          CodeRepositoryType.GitLab,
           CodeRepositoryType.Forgejo,
           CodeRepositoryType.Git,
         ]) {
@@ -887,11 +893,37 @@ describe("CodeRepositoryRunnerChoice", () => {
             decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
             isOnline: false,
             needsOwnRunnerForItsToken: true,
+            keptOffReason: GlobalRunnerKeptOffReason.ConnectionToken,
           });
         }
 
         // Whoever is online: the global Runners are never asked.
         expect(globalOnline).not.toHaveBeenCalled();
+      });
+
+      test("a GitLab repository works on the Global Runner, until GitLab refuses to make its fixes a token", async () => {
+        expect(
+          await CodeRepositoryRunnerChoice.getStatusForRepository({
+            ...facts(),
+            repositoryHostedAt: CodeRepositoryType.GitLab,
+          }),
+        ).toEqual({
+          decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+          isOnline: true,
+        });
+
+        expect(
+          await CodeRepositoryRunnerChoice.getStatusForRepository({
+            ...facts(),
+            repositoryHostedAt: CodeRepositoryType.GitLab,
+            mintedTokenRefusedAt: new Date(),
+          }),
+        ).toEqual({
+          decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+          isOnline: false,
+          needsOwnRunnerForItsToken: true,
+          keptOffReason: GlobalRunnerKeptOffReason.TokenNotMinted,
+        });
       });
 
       test("an agent of the project's own still takes it", async () => {
@@ -900,7 +932,7 @@ describe("CodeRepositoryRunnerChoice", () => {
         expect(
           await CodeRepositoryRunnerChoice.getStatusForRepository({
             ...facts(),
-            repositoryHostedAt: CodeRepositoryType.GitLab,
+            repositoryHostedAt: CodeRepositoryType.Forgejo,
           }),
         ).toEqual({
           decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
@@ -1120,11 +1152,16 @@ describe("CodeRepositoryRunnerChoice", () => {
         }
       });
 
-      test("a global Runner online does not count for a project whose every repository is not on GitHub", async () => {
+      test("a global Runner online does not count for a project whose every repository is kept off it", async () => {
+        const refusedGitLab: CodeRepository = hostedAt(
+          CodeRepositoryType.GitLab,
+        );
+        refusedGitLab.mintedTokenRefusedAt = new Date();
+
         jest
           .spyOn(CodeRepositoryService, "findBy")
           .mockResolvedValue([
-            hostedAt(CodeRepositoryType.GitLab),
+            refusedGitLab,
             hostedAt(CodeRepositoryType.Forgejo),
             hostedAt(CodeRepositoryType.Git),
           ]);
@@ -1134,6 +1171,21 @@ describe("CodeRepositoryRunnerChoice", () => {
             PROJECT_ID,
           ),
         ).toBe(false);
+      });
+
+      test("it counts for a GitLab repository GitLab makes its fixes a token for", async () => {
+        jest
+          .spyOn(CodeRepositoryService, "findBy")
+          .mockResolvedValue([
+            hostedAt(CodeRepositoryType.GitLab),
+            hostedAt(CodeRepositoryType.Forgejo),
+          ]);
+
+        expect(
+          await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+            PROJECT_ID,
+          ),
+        ).toBe(true);
       });
 
       test("it counts once one repository is on GitHub, and for a project with no repository yet", async () => {
@@ -1171,7 +1223,10 @@ describe("CodeRepositoryRunnerChoice", () => {
         expect(
           (find.mock.calls[0]![0] as { select: Record<string, unknown> })
             .select,
-        ).toMatchObject({ repositoryHostedAt: true });
+        ).toMatchObject({
+          repositoryHostedAt: true,
+          mintedTokenRefusedAt: true,
+        });
       });
     });
 

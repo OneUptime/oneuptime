@@ -137,6 +137,8 @@ const SHARED: Array<string> = [
   // Add Custom Domain's field and button: the Dashboard's own words.
   CustomDomainCopy.addAddressTitle,
   CustomDomainCopy.addSubmit,
+  // The card's guide link: the words every guided setup links its guide with.
+  CustomDomainCopy.guideLink,
   ...KIND_COPIES.flatMap(([, copy]: [string, CustomDomainKindCopy]) => {
     return [
       copy.dnsSetupNotEnabled,
@@ -481,10 +483,12 @@ describe("the copy", () => {
    * word for who may add a project domain; DNS Setup's line over each
    * record, when it last looked, what happens next with two records, and
    * both kinds' intro for two records) and took two away (the Domain
-   * dropdown's line and its link to Project Settings): 43.
+   * dropdown's line and its link to Project Settings): 43. #7025 brought
+   * one, Project Settings -> Domains' line over the TXT record it now
+   * draws with DNS Setup's own component: 44.
    */
-  test("brings 43 sentences of its own", () => {
-    expect(NEW_SENTENCES).toHaveLength(43);
+  test("brings 44 sentences of its own", () => {
+    expect(NEW_SENTENCES).toHaveLength(44);
   });
 
   test.each(OTHER_LOCALES)(
@@ -698,7 +702,7 @@ describe("the Custom Domains pages", () => {
     const kinds: string = readSource(KINDS);
 
     expect(kinds).toMatch(
-      /STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: StatusPageDomain, parentColumn: "statusPageId", tableId: "domains-table", tableName: "Status Page > Domains", userPreferencesKey: "status-page-domains-table", saveFilterTableId: "status-page-domains-table", getCnameRecord: \(\): string => \{ return StatusPageCNameRecord; \}, cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD", copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/status-pages\/branding-and-domains#custom-domains", \}/,
+      /STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: StatusPageDomain, parentColumn: "statusPageId", tableId: "domains-table", tableName: "Status Page > Domains", userPreferencesKey: "status-page-domains-table", saveFilterTableId: "status-page-domains-table", getCnameRecord: \(\): string => \{ return StatusPageCNameRecord; \}, cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD", copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/status-pages\/branding-and-domains#custom-domains", guideDocsPath: "\/docs\/guides\/status-page#add-your-domain", \}/,
     );
     expect(kinds).toMatch(
       /DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: DashboardDomain, parentColumn: "dashboardId", tableId: "dashboard-domains-table", tableName: "Dashboard > Domains", userPreferencesKey: "dashboard-domains-table", saveFilterTableId: "dashboard-domains-table", getCnameRecord: \(\): string => \{ return DashboardCNameRecord; \}, cnameRecordVariable: "DASHBOARD_CNAME_RECORD", copy: DASHBOARD_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/dashboards\/sharing#custom-domains", \}/,

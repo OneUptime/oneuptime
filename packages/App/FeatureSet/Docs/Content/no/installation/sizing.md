@@ -102,6 +102,8 @@ I tillegg til datalagrene dimensjonerer du de tilstandsløse arbeidslastene. Hve
 | Ingress-gateway | `nginx` | Mengden forespørsler |
 | Telemetry writer, når den er slått på | `telemetryWriter` | Ikke med lasten: Den samler hvert telemetri-innsett i ClickHouse, så den dimensjoneres etter hva ClickHouse tåler |
 
+Hver av dem kjører Node.js, som tilpasser heapen sin etter minnegrensen til containeren sin (`resources.limits.memory`): 75 % av grensen, minst 256 MB og høyst 8096 MB. Uten grense kan heapen vokse til 8096 MB. Resten av grensen er til minnet Node.js bruker utenfor heapen. Vil du velge heapen selv, setter du `NODE_OPTIONS` til `--max-old-space-size=` etterfulgt av en størrelse i MB i tjenestens `extraEnv` (med Docker Compose i tjenestens `environment` i en override-fil). Det går foran størrelsen grensen gir.
+
 Chartet inneholder **KEDA**, slik at appen, workerne, sondene og den globale Runneren kan skalere etter køetterslepet sitt. Slå på `keda.enabled` sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster som ennå ikke har KEDA, trenger den første installasjonen en ekstra runde: Se chartets [KEDA-veiledning](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Tjenester som KEDA ikke styrer, kan i stedet bruke en autoskalerer basert på CPU eller minne (`autoscaling`).
 
 ## Startnivåer

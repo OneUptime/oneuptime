@@ -92,6 +92,8 @@ I en liste vises en posts etiketter under hinanden; er der flere end fire, vises
 
 For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet for at slette den. Alt, der har etiketten, beholder den, og du kan stadig filtrere efter den, men ingen kan tilføje den til noget igen: Hver etiketvælger udelader den, og API'et, Terraform og MCP afviser den. Dialogen viser de regler og tilladelser, der er sat op til at bruge etiketten, og som bliver ved med at bruge den, indtil du ændrer dem. Arkiverede etiketter vises for sig, i den sammenfoldede sektion **Arkiverede etiketter**, hvor **Fjern fra arkivet** sætter en tilbage. **Slet** viser først alt, som etiketten ville blive fjernet fra, og tilbyder **Arkiver i stedet**.
 
+**Bruges af**, i menuen på en mærkats række, tæller posterne af hver slags, der har mærkaten, og åbner dem en side ad gangen. Poster, du ikke må åbne, tælles, men nævnes ikke.
+
 ## Notifikationer
 
 **Projektindstillinger → Notifikationer** rummer, hvordan projektet sender notifikationer:

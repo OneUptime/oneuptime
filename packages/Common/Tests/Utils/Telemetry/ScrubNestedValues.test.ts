@@ -514,6 +514,73 @@ describe("an attribute map, as the services scrub one", () => {
       arrivedAsText: "reset your password here",
     });
   });
+
+  /*
+   * #8993: the services read the keys of a JSON text held in a string
+   * (Utils/Telemetry/ScrubJsonKeys.ts) through `readJsonText`, which is
+   * handed every text under no secret key that arrived as text - the
+   * value itself, or one inside a list or a map - and nothing else.
+   */
+  test("hideAttributeTextsUnderSensitiveKeys hands each text under no secret key to readJsonText, and keeps what it answers", () => {
+    const handed: Array<string> = [];
+    const readJsonText: (text: string) => string = (text: string): string => {
+      handed.push(text);
+      return text.startsWith("{") ? "read" : text;
+    };
+    const attributes: Record<string, unknown> = {
+      "http.request.body": '{"password":"p"}',
+      "db.password": '{"a":"b"}',
+      held: '[{"password":"p"}]',
+      kept: '{"token":"t"}',
+      list: ['{"token":"t"}', "plain", 7, { token: "under a key", note: "n" }],
+      count: 4,
+    };
+
+    ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
+      attributes,
+      isSensitiveKey,
+      hide,
+      new Set<string>(["held"]),
+      new Set<string>(["kept"]),
+      readJsonText,
+    );
+
+    expect(handed).toEqual(['{"password":"p"}', '{"token":"t"}', "plain", "n"]);
+    expect(attributes).toEqual({
+      "http.request.body": "read",
+      // Under a secret key: hidden whole, never read.
+      "db.password": "[REDACTED]",
+      // Held as its JSON text: hidden whole when it names a secret.
+      held: "[REDACTED]",
+      // A record's own id, which its column keeps: never read.
+      kept: '{"token":"t"}',
+      list: ["read", "plain", 7, { token: "[REDACTED]", note: "n" }],
+      count: 4,
+    });
+  });
+
+  test("scrubTextsUnderSensitiveKeys hands readJsonText the texts under no secret key, a text on its own too", () => {
+    const readJsonText: (text: string) => string = (text: string): string => {
+      return `<${text}>`;
+    };
+
+    expect(
+      ScrubNestedValuesUtil.scrubTextsUnderSensitiveKeys(
+        { a: "x", password: "y", b: ["z", 1] },
+        isSensitiveKey,
+        hide,
+        readJsonText,
+      ),
+    ).toEqual({ a: "<x>", password: "[REDACTED]", b: ["<z>", 1] });
+    expect(
+      ScrubNestedValuesUtil.scrubTextsUnderSensitiveKeys(
+        "alone",
+        isSensitiveKey,
+        hide,
+        readJsonText,
+      ),
+    ).toBe("<alone>");
+  });
 });
 
 describe("holdOversizedValuesAsText bounds what the rules read value by value", () => {
@@ -862,12 +929,10 @@ describe("a hostile record is scrubbed in time in line with its size", () => {
  *
  * A log body sent as a map or a list is stored as its JSON text, which a
  * keys rule never read: a password inside a key-value list body was stored
- * as sent. LogScrubRuleService reads such a body back
- * (readJsonListOrMap) and hides the texts under its secret keys
- * (hideTextsUnderSensitiveKeysWithinBounds), within the record's bounds.
- * The body is stored as the JSON text it came as, so nothing in it is held
- * as text first: a part past the bounds is read as its JSON text, hidden
- * whole when that text names a secret, and kept as it is otherwise.
+ * as sent. readJsonListOrMap says whether a text is the JSON text of a list
+ * or a map; a keys rule then reads it where it is written, within the
+ * record's bounds (Utils/Telemetry/ScrubJsonKeys.ts, whose tests hold the
+ * rest, JSON texts held in strings included, #8993).
  * ---------------------------------------------------------------------------
  */
 
@@ -880,29 +945,6 @@ function otlpMap(entries: Array<[string, unknown]>): Record<string, unknown> {
       }),
     },
   };
-}
-
-function hideWithin(
-  value: unknown,
-  allowance: ScrubNestedValuesAllowance = newAllowance(),
-): unknown {
-  return ScrubNestedValuesUtil.hideTextsUnderSensitiveKeysWithinBounds(
-    value,
-    isSensitiveKey,
-    hide,
-    allowance,
-  );
-}
-
-// `inner` inside `maps` maps, one in the other, each under `key`.
-function nestMaps(inner: unknown, maps: number, key: string): unknown {
-  let value: unknown = inner;
-
-  for (let level: number = 0; level < maps; level++) {
-    value = { [key]: value };
-  }
-
-  return value;
 }
 
 describe("readJsonListOrMap reads a body that is the JSON text of a list or a map", () => {
@@ -954,237 +996,5 @@ describe("readJsonListOrMap reads a body that is the JSON text of a list or a ma
 
     expect(Object.getPrototypeOf(value)).toBe(Object.prototype);
     expect(Object.keys(value)).toEqual(["__proto__"]);
-  });
-});
-
-describe("hideTextsUnderSensitiveKeysWithinBounds reads a structured body key by key", () => {
-  test("hides the texts under a secret key, an OTLP pair's included, and keeps every other value", () => {
-    const body: Record<string, unknown> = otlpMap([
-      ["message", { stringValue: "login from a new device" }],
-      ["password", { stringValue: "pw-1" }],
-      ["retries", { intValue: 3 }],
-      [
-        "request",
-        otlpMap([
-          ["path", { stringValue: "/login" }],
-          ["authorization", { stringValue: "Bearer abc" }],
-        ]),
-      ],
-    ]);
-
-    expect(hideWithin(body)).toEqual(
-      otlpMap([
-        ["message", { stringValue: "login from a new device" }],
-        ["password", { stringValue: "[REDACTED]" }],
-        ["retries", { intValue: 3 }],
-        [
-          "request",
-          otlpMap([
-            ["path", { stringValue: "/login" }],
-            ["authorization", { stringValue: "[REDACTED]" }],
-          ]),
-        ],
-      ]),
-    );
-  });
-
-  test("hides every text under a map key that names a secret, numbers and true or false kept", () => {
-    expect(
-      hideWithin({
-        user: "ada",
-        session_token: { value: "t-1", scopes: ["read", "write"], ttl: 60 },
-        auth: { passwordHash: "h-1", mfa: true },
-        tags: ["password-reset"],
-      }),
-    ).toEqual({
-      user: "ada",
-      session_token: {
-        value: "[REDACTED]",
-        scopes: ["[REDACTED]", "[REDACTED]"],
-        ttl: 60,
-      },
-      auth: { passwordHash: "[REDACTED]", mfa: true },
-      // A text in a list holds no key.
-      tags: ["password-reset"],
-    });
-  });
-
-  test("within the bounds, it hides what scrubTextsUnderSensitiveKeys hides", () => {
-    const values: Array<unknown> = [
-      otlpMap([["db.password", { stringValue: "pw" }]]),
-      [{ token: "t" }, { name: "x", cookie: ["a", "b"] }],
-      { a: { b: { c: { authorization: "Bearer x", d: 1 } } } },
-      [
-        { key: "api.token.list", value: { arrayValue: { values: ["t1"] } } },
-        { key: "user.name", value: { stringValue: "my password" } },
-      ],
-      {
-        key: "session_token",
-        value: { stringValue: "s3cr3t", value: "stringValue" },
-      },
-    ];
-
-    for (const value of values) {
-      expect(hideWithin(value)).toEqual(
-        ScrubNestedValuesUtil.scrubTextsUnderSensitiveKeys(
-          value,
-          isSensitiveKey,
-          hide,
-        ),
-      );
-    }
-  });
-
-  test("returns the very value when nothing is hidden, and never changes what it was given", () => {
-    const plain: unknown = deepFreeze({
-      message: "nothing secret here",
-      list: [1, "two", { three: 3 }],
-    });
-
-    expect(hideWithin(plain)).toBe(plain);
-
-    const secret: unknown = deepFreeze(
-      otlpMap([["password", { stringValue: "pw-1" }]]),
-    );
-    const before: string = JSON.stringify(secret);
-    const hidden: unknown = hideWithin(secret);
-
-    expect(hidden).not.toBe(secret);
-    expect(JSON.stringify(secret)).toBe(before);
-    expect(JSON.stringify(hidden)).not.toContain("pw-1");
-  });
-
-  test("counts the values it reads, at every level, against the record's allowance", () => {
-    const allowance: ScrubNestedValuesAllowance = { remaining: 100 };
-
-    // The map's 2 entries, the list's 3 items and the inner map's 1 entry.
-    hideWithin({ a: "x", b: ["y", "z", { c: "w" }] }, allowance);
-
-    expect(allowance.remaining).toBe(100 - 6);
-  });
-
-  test("a part past what the record has left is read as its JSON text: hidden whole when it names a secret, kept when it names none", () => {
-    // 3 entries at the top, then 3 under "first": 6 values fit.
-    const body: Record<string, unknown> = {
-      first: { password: "pw-1", note: "a", other: "b" },
-      second: ["no", "secret", "word", "here"],
-      third: ["the token is t-1", "x", "y", "z"],
-    };
-    const allowance: ScrubNestedValuesAllowance = { remaining: 6 };
-    const hidden: Record<string, unknown> = hideWithin(
-      body,
-      allowance,
-    ) as Record<string, unknown>;
-
-    expect(hidden).toEqual({
-      first: { password: "[REDACTED]", note: "a", other: "b" },
-      // Past the allowance and naming no secret: kept as the list it is.
-      second: ["no", "secret", "word", "here"],
-      // Past the allowance and naming one: hidden whole.
-      third: "[REDACTED]",
-    });
-    expect(hidden["second"]).toBe(body["second"]);
-    expect(allowance.remaining).toBe(0);
-  });
-
-  test("a part under a secret key past the bounds is hidden whole, whatever its text says", () => {
-    const allowance: ScrubNestedValuesAllowance = { remaining: 1 };
-
-    expect(
-      hideWithin({ apiToken: ["plain", "words", "only"] }, allowance),
-    ).toEqual({ apiToken: "[REDACTED]" });
-  });
-
-  test(`a part nested deeper than ${SCRUB_MAX_VALUE_DEPTH} levels is read as its JSON text: hidden whole when it names a secret, kept when it names none`, () => {
-    const deepSecret: unknown = nestMaps(
-      { password: "pw-1" },
-      SCRUB_MAX_VALUE_DEPTH,
-      "f",
-    );
-    const deepPlain: unknown = nestMaps(
-      { name: "nginx" },
-      SCRUB_MAX_VALUE_DEPTH,
-      "f",
-    );
-    const body: Record<string, unknown> = {
-      kind: "Pod",
-      metadata: { name: "checkout-1" },
-      managed: deepSecret,
-      plain: deepPlain,
-    };
-
-    const hidden: Record<string, unknown> = hideWithin(body) as Record<
-      string,
-      unknown
-    >;
-
-    // The rest of the body is read key by key, and kept.
-    expect(hidden["kind"]).toBe("Pod");
-    expect(hidden["metadata"]).toBe(body["metadata"]);
-    // The deep part naming no secret is kept as it is, a map.
-    expect(hidden["plain"]).toBe(deepPlain);
-    // The deep part naming one: the map at the bound is hidden whole.
-    expect(JSON.stringify(hidden["managed"])).not.toContain("pw-1");
-    expect(JSON.stringify(hidden["managed"])).toBe(
-      JSON.stringify(nestMaps("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1, "f")),
-    );
-  });
-
-  test(`a part exactly ${SCRUB_MAX_VALUE_DEPTH} levels deep is still read key by key`, () => {
-    const body: unknown = nestMaps(
-      { password: "pw-1", name: "kept" },
-      SCRUB_MAX_VALUE_DEPTH - 1,
-      "f",
-    );
-
-    expect(hideWithin(body)).toEqual(
-      nestMaps(
-        { password: "[REDACTED]", name: "kept" },
-        SCRUB_MAX_VALUE_DEPTH - 1,
-        "f",
-      ),
-    );
-  });
-
-  test(`a body of more than ${SCRUB_MAX_NESTED_VALUES_PER_RECORD} values is read key by key up to the bound, the rest as text`, () => {
-    const contacts: Array<unknown> = [];
-
-    for (let index: number = 0; index < 6_000; index++) {
-      contacts.push({ email: `user${index}@example.com`, password: "pw" });
-    }
-
-    const hidden: { contacts: Array<unknown> } = hideWithin({
-      contacts: contacts,
-    }) as { contacts: Array<unknown> };
-
-    // 1 entry and 6,000 items, then 2 entries a contact while it lasts.
-    expect(hidden.contacts[0]).toEqual({
-      email: "user0@example.com",
-      password: "[REDACTED]",
-    });
-    expect(hidden.contacts[1_998]).toEqual({
-      email: "user1998@example.com",
-      password: "[REDACTED]",
-    });
-    // Past it, each contact is read as its text, which names a secret.
-    expect(hidden.contacts[1_999]).toBe("[REDACTED]");
-    expect(hidden.contacts[5_999]).toBe("[REDACTED]");
-    expect(JSON.stringify(hidden)).not.toContain('"pw"');
-  });
-
-  test("a hostile body - a million values, 100,000 levels deep - is read in time in line with its size", () => {
-    const LIMIT_IN_MS: number = 2000;
-    const run: FastestRun<unknown> = fastestRun({
-      run: (): unknown => {
-        return hideWithin({
-          wide: new Array<string>(1_000_000).fill("a password"),
-          deep: nestMaps({ token: "t" }, 100_000, "f"),
-        });
-      },
-      limitInMs: LIMIT_IN_MS,
-    });
-
-    expect(run.inMs).toBeLessThan(LIMIT_IN_MS);
-    expect(JSON.stringify(run.result)).not.toContain('"token":"t"');
   });
 });

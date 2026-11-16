@@ -773,3 +773,183 @@ describe("saving a rule's updates through the API", () => {
     });
   });
 });
+
+/*
+ * A SECURITY CASE RULE CHOOSES THE NOTICES IT POSTS (#7936).
+ *
+ * A security case posts four notices to the channels and chats its rules
+ * name, each with its kind (SecurityCaseNotifications): a case at a
+ * priority, an assignment, an approval asked for and a response target. A
+ * channel meant for approvals got every assignment too.
+ */
+describe("the channels and chats of a security case's rules", () => {
+  const CASE_ID: ObjectID = new ObjectID(
+    "75810000-0000-4000-8000-000000000003",
+  );
+
+  const { PriorityReached, Assigned, ApprovalRequested, ResponseTargets } =
+    NotificationRuleUpdateKind;
+
+  function securityRule(data: {
+    channelNames?: string | undefined;
+    chatIds?: Array<string> | undefined;
+    updatesToPost?: Array<NotificationRuleUpdateKind> | undefined;
+  }): WorkspaceNotificationRule {
+    return workspaceRule({
+      eventType: NotificationRuleEventType.SecurityCase,
+      workspaceType: data.chatIds
+        ? WorkspaceType.MicrosoftTeams
+        : WorkspaceType.Slack,
+      notificationRule: {
+        _type: "SecurityCaseNotificationRule",
+        filterCondition: FilterCondition.All,
+        filters: [],
+        shouldPostToExistingChannel: Boolean(data.channelNames),
+        existingChannelNames: data.channelNames || "",
+        ...(data.chatIds
+          ? { shouldPostToExistingChat: true, existingChatIds: data.chatIds }
+          : {}),
+        ...(data.updatesToPost ? { updatesToPost: data.updatesToPost } : {}),
+      } as BaseNotificationRule,
+    });
+  }
+
+  async function channelsFor(
+    kind: NotificationRuleUpdateKind,
+    rules: Array<WorkspaceNotificationRule>,
+  ): Promise<Array<string>> {
+    jest
+      .spyOn(WorkspaceNotificationRuleService, "getMatchingNotificationRules")
+      .mockResolvedValue(rules);
+
+    return namesOf(
+      await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
+        {
+          projectId: PROJECT_ID,
+          workspaceType: WorkspaceType.Slack,
+          notificationRuleEventType: NotificationRuleEventType.SecurityCase,
+          notificationFor: { securityCaseId: CASE_ID },
+          updateKinds: [kind],
+        },
+      ),
+    );
+  }
+
+  test("REGRESSION: a channel meant for approvals gets an approval and not an assignment", async () => {
+    const rules: Array<WorkspaceNotificationRule> = [
+      securityRule({
+        channelNames: "sec-approvals",
+        updatesToPost: [ApprovalRequested],
+      }),
+      securityRule({ channelNames: "sec-all" }),
+    ];
+
+    expect(await channelsFor(ApprovalRequested, rules)).toEqual([
+      "sec-approvals",
+      "sec-all",
+    ]);
+    expect(await channelsFor(Assigned, rules)).toEqual(["sec-all"]);
+  });
+
+  test("a rule saved before the Updates step posts every notice, as it always did", async () => {
+    for (const kind of [
+      PriorityReached,
+      Assigned,
+      ApprovalRequested,
+      ResponseTargets,
+    ]) {
+      expect(
+        await channelsFor(kind, [securityRule({ channelNames: "sec-all" })]),
+      ).toEqual(["sec-all"]);
+    }
+  });
+
+  test("Key updates only: a case at its priority, approvals and response targets, and not assignments", async () => {
+    const quiet: Array<WorkspaceNotificationRule> = [
+      securityRule({
+        channelNames: "sec-leads",
+        updatesToPost: NotificationRuleUpdates.getKeyKinds(
+          NotificationRuleEventType.SecurityCase,
+        ),
+      }),
+    ];
+
+    for (const kind of [PriorityReached, ApprovalRequested, ResponseTargets]) {
+      expect(await channelsFor(kind, quiet)).toEqual(["sec-leads"]);
+    }
+    expect(await channelsFor(Assigned, quiet)).toEqual([]);
+  });
+
+  test("a rule with every notice left out posts none: a case has no first message", async () => {
+    for (const kind of [
+      PriorityReached,
+      Assigned,
+      ApprovalRequested,
+      ResponseTargets,
+    ]) {
+      expect(
+        await channelsFor(kind, [
+          securityRule({ channelNames: "sec-muted", updatesToPost: [] }),
+        ]),
+      ).toEqual([]);
+    }
+  });
+
+  test("a Microsoft Teams chat is chosen the same way", async () => {
+    jest
+      .spyOn(WorkspaceNotificationRuleService, "getMatchingNotificationRules")
+      .mockResolvedValue([
+        securityRule({
+          chatIds: ["chat-approvals"],
+          updatesToPost: [ApprovalRequested],
+        }),
+        securityRule({ chatIds: ["chat-all"] }),
+      ]);
+
+    const chatsFor: (
+      kind: NotificationRuleUpdateKind,
+    ) => Promise<Array<string>> = (
+      kind: NotificationRuleUpdateKind,
+    ): Promise<Array<string>> => {
+      return WorkspaceNotificationRuleService.getExistingChatIdsBasedOnEventType(
+        {
+          projectId: PROJECT_ID,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          notificationRuleEventType: NotificationRuleEventType.SecurityCase,
+          notificationFor: { securityCaseId: CASE_ID },
+          updateKinds: [kind],
+        },
+      );
+    };
+
+    expect(await chatsFor(ApprovalRequested)).toEqual([
+      "chat-approvals",
+      "chat-all",
+    ]);
+    expect(await chatsFor(Assigned)).toEqual(["chat-all"]);
+  });
+
+  test("saved through the API: its notices are taken, a record's updates refused", async () => {
+    await expect(
+      hooks.onBeforeCreate({
+        data: securityRule({
+          channelNames: "sec-approvals",
+          updatesToPost: [ApprovalRequested, ResponseTargets],
+        }),
+        props: ROOT,
+      } as CreateBy<WorkspaceNotificationRule>),
+    ).resolves.toBeTruthy();
+
+    await expect(
+      hooks.onBeforeCreate({
+        data: securityRule({
+          channelNames: "sec-approvals",
+          updatesToPost: [PrivateNotes],
+        }),
+        props: ROOT,
+      } as CreateBy<WorkspaceNotificationRule>),
+    ).rejects.toThrow(
+      'updatesToPost lists "PrivateNotes", which Security Case rules cannot choose.',
+    );
+  });
+});

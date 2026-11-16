@@ -96,6 +96,8 @@ Ogni barra del grafico di uptime, qui e su una pagina di stato, mostra per quant
 
 L'elenco **Gruppi di monitor** può filtrare i gruppi per proprietario ed etichetta, impostare etichette e proprietari su molti gruppi insieme, ed esportare o importare gruppi in JSON.
 
+La **Panoramica** ha anche una scheda **Usato da**: le pagine di stato che mostrano il gruppo e gli SLO che misurano i suoi monitor. Se nessuna pagina di stato lo mostra, la scheda lo dice e rimanda alle pagine di stato. Eliminare il gruppo, dalla sua pagina o dall'elenco, dice prima quali pagine di stato lo mostrano.
+
 ## Disattivare il monitoraggio di un intero gruppo
 
 La scheda **Monitoraggio** nella **Panoramica** di un gruppo disattiva il monitoraggio, o lo riattiva, per tutti i monitor del gruppo in una volta sola.

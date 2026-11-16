@@ -45,8 +45,20 @@ import NotificationRuleWorkspaceChannel, {
  * with the key updates ticked (getNewRuleUpdatesToPost): who is on call
  * now, and when nobody is.
  *
- * Monitor, security and SLO rules post every update; they have no choice
- * yet (getChoosableKinds is empty for them).
+ * So does a security case rule (issue #7936), from the four notices a case
+ * posts (SecurityCaseNotifications): a case that opens at, or rises to, a
+ * higher priority, an assignment, a playbook step waiting for approval and
+ * a response target about to be missed, or missed. A case has no first
+ * message: a rule may leave every notice out.
+ *
+ * Custom field edits (issue #7937) and the reminders that a record is still
+ * open (issue #7938) are boxes of their own, out of Other edits and
+ * Everything else. A rule saved before them, with Other edits or
+ * Everything else ticked, had the new box ticked by the upgrade
+ * (AddCustomFieldsAndRemindersToUpdatesToPost), so it posts what it did.
+ *
+ * Monitor, security hunt and SLO rules post every update; they have no
+ * choice (getChoosableKinds is empty for them).
  *
  * A hand-off's line names the person on call as text that pings nobody,
  * so a channel that hears every hand-off is not pinged by each one. An
@@ -84,9 +96,19 @@ export enum NotificationRuleUpdateKind {
   Postmortem = "Postmortem",
   // AI root cause analyses, call summaries and automatic fixes.
   AI = "AI",
-  // The title, description, labels, custom fields and other fields.
+  // The title, description, labels, monitors and other fields.
   Edits = "Edits",
-  // Everything else: linked records, reminders, delivery problems.
+  /*
+   * Custom field values set, changed or cleared (issue #7937): its record's
+   * update hook names it, beside Edits when other fields changed with them.
+   */
+  CustomFields = "CustomFields",
+  /*
+   * The reminders that the record is still open, which its reminder rules
+   * send its owners (issue #7938): the reminder jobs name it.
+   */
+  Reminders = "Reminders",
+  // Everything else: linked records, delivery problems.
   Other = "Other",
 
   /*
@@ -106,6 +128,19 @@ export enum NotificationRuleUpdateKind {
    * escalation rules.
    */
   PolicyChanges = "PolicyChanges",
+
+  /*
+   * A security case's notices (issue #7936), each posted with its kind
+   * (SecurityCaseNotifications.postToChannels).
+   */
+  // A case opens at a priority, or rises to a higher one.
+  PriorityReached = "PriorityReached",
+  // A case is assigned to a person or a team.
+  Assigned = "Assigned",
+  // A playbook step waits for someone to approve it.
+  ApprovalRequested = "ApprovalRequested",
+  // A case is about to miss a response target, or misses it.
+  ResponseTargets = "ResponseTargets",
 }
 
 // What a rule picks on its Updates step.
@@ -129,7 +164,8 @@ export const ALWAYS_POSTED_UPDATE_KINDS: ReadonlyArray<NotificationRuleUpdateKin
  * The updates each kind of rule can choose, in the order its Updates step
  * lists them. Only what that kind of record posts: an alert has no public
  * notes or postmortem, an episode's severity changes stay in its feed, a
- * scheduled maintenance event's owners are not posted.
+ * scheduled maintenance event's owners are not posted, an episode has no
+ * reminders.
  */
 const CHOOSABLE_UPDATE_KINDS: Readonly<
   Partial<
@@ -147,6 +183,8 @@ const CHOOSABLE_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.Postmortem,
     NotificationRuleUpdateKind.AI,
     NotificationRuleUpdateKind.Edits,
+    NotificationRuleUpdateKind.CustomFields,
+    NotificationRuleUpdateKind.Reminders,
     NotificationRuleUpdateKind.Other,
   ],
   [NotificationRuleEventType.Alert]: [
@@ -158,6 +196,8 @@ const CHOOSABLE_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.Paging,
     NotificationRuleUpdateKind.AI,
     NotificationRuleUpdateKind.Edits,
+    NotificationRuleUpdateKind.CustomFields,
+    NotificationRuleUpdateKind.Reminders,
     NotificationRuleUpdateKind.Other,
   ],
   [NotificationRuleEventType.IncidentEpisode]: [
@@ -183,6 +223,7 @@ const CHOOSABLE_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.StateChanges,
     NotificationRuleUpdateKind.PublicNotes,
     NotificationRuleUpdateKind.PrivateNotes,
+    NotificationRuleUpdateKind.Reminders,
     NotificationRuleUpdateKind.Other,
   ],
   // Everything an on-call policy's feed posts: nothing is Everything else.
@@ -193,6 +234,13 @@ const CHOOSABLE_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.Overrides,
     NotificationRuleUpdateKind.PolicyChanges,
     NotificationRuleUpdateKind.Owners,
+  ],
+  // Every notice a security case posts (issue #7936): nothing else.
+  [NotificationRuleEventType.SecurityCase]: [
+    NotificationRuleUpdateKind.PriorityReached,
+    NotificationRuleUpdateKind.Assigned,
+    NotificationRuleUpdateKind.ApprovalRequested,
+    NotificationRuleUpdateKind.ResponseTargets,
   ],
 };
 
@@ -234,6 +282,17 @@ const KEY_UPDATE_KINDS: Readonly<
   [NotificationRuleEventType.OnCallDutyPolicy]: [
     NotificationRuleUpdateKind.OnCallNow,
     NotificationRuleUpdateKind.NobodyOnCall,
+  ],
+  /*
+   * What a security channel has to act on (issue #7936): a case at a
+   * priority it is for, a step nobody can run until it is approved, and a
+   * response target about to be missed. Who a case is assigned to is left
+   * out.
+   */
+  [NotificationRuleEventType.SecurityCase]: [
+    NotificationRuleUpdateKind.PriorityReached,
+    NotificationRuleUpdateKind.ApprovalRequested,
+    NotificationRuleUpdateKind.ResponseTargets,
   ],
 };
 

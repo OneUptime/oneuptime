@@ -102,6 +102,8 @@ PostgreSQL 儲存的是您的設定和運作狀態，而不是遙測資料，因
 | 輸入閘道 | `nginx` | 要求量 |
 | 遙測寫入器（開啟時） | `telemetryWriter` | 不隨負載成長：它把每次遙測插入批次寫入 ClickHouse，因此依 ClickHouse 能承受的量決定規模 |
 
+它們都執行 Node.js，Node.js 依容器的記憶體上限（`resources.limits.memory`）決定堆積的大小：上限的 75%，最少 256 MB，最多 8096 MB。沒有上限時，堆積最多可成長到 8096 MB。上限的其餘部分留給 Node.js 在堆積之外使用的記憶體。若要自行選擇堆積的大小，請將 `NODE_OPTIONS` 設為 `--max-old-space-size=` 加上以 MB 為單位的大小，寫在服務的 `extraEnv` 中（使用 Docker Compose 時，寫在覆寫檔案裡服務的 `environment` 中）。它優先於由上限得出的大小。
+
 Chart 內建 **KEDA**，因此應用程式、worker、探測器和全域 Runner 可以依佇列積壓自動調整規模。請同時開啟 `keda.enabled` 和每個服務自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安裝 KEDA 的叢集上，第一次安裝需要額外執行一輪：請參閱 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)。KEDA 不管理的服務可以改用以 CPU 或記憶體為依據的自動調整器（`autoscaling`）。
 
 ## 起步級別

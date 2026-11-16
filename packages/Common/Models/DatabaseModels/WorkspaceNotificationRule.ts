@@ -290,7 +290,7 @@ class WorkspaceNotificationRule extends BaseModel {
      * (hideColumnDescription).
      */
     description:
-      "The rule, as JSON: the events it is for (filters, filterCondition), where it posts, and for incident, alert, incident episode, alert episode, scheduled maintenance and on-call policy rules, updatesToPost: the updates it posts after the record's first message, any of ResolvedAndReopened, StateChanges, SeverityChanges, PublicNotes, PrivateNotes, Owners, Paging, EpisodeMembers, Postmortem, AI, Edits and Other - for an on-call policy rule, any of OnCallNow, OnCallNext, NobodyOnCall, Overrides, PolicyChanges and Owners - as its kind of rule allows. Left out, the rule posts every update. The first message, and a video call's Join button, are posted whatever it lists. An on-call policy rule that posts OnCallNow can set shouldMentionWhoIsOnCall to true: its hand-off line then mentions the person who comes on call, where they connected their chat account. Owner and On-Call Policy conditions in filters name people, teams and policies of this project by ID.",
+      "The rule, as JSON: the events it is for (filters, filterCondition), where it posts, and for incident, alert, incident episode, alert episode, scheduled maintenance, on-call policy and security case rules, updatesToPost: the updates it posts after the record's first message, any of ResolvedAndReopened, StateChanges, SeverityChanges, PublicNotes, PrivateNotes, Owners, Paging, EpisodeMembers, Postmortem, AI, Edits, CustomFields, Reminders and Other - for an on-call policy rule, any of OnCallNow, OnCallNext, NobodyOnCall, Overrides, PolicyChanges and Owners; for a security case rule, any of PriorityReached, Assigned, ApprovalRequested and ResponseTargets - as its kind of rule allows. Left out, the rule posts every update. The first message, and a video call's Join button, are posted whatever it lists. An on-call policy rule that posts OnCallNow can set shouldMentionWhoIsOnCall to true: its hand-off line then mentions the person who comes on call, where they connected their chat account. Owner and On-Call Policy conditions in filters name people, teams and policies of this project by ID.",
     required: true,
     unique: false,
     type: TableColumnType.JSON,
@@ -298,8 +298,8 @@ class WorkspaceNotificationRule extends BaseModel {
     /*
      * An incident rule that posts to an existing channel and, there, only
      * the key updates. updatesToPost is for incident, alert, episode,
-     * scheduled maintenance and on-call policy rules: left out, the rule
-     * posts every update (NotificationRuleUpdates).
+     * scheduled maintenance, on-call policy and security case rules: left
+     * out, the rule posts every update (NotificationRuleUpdates).
      */
     example: {
       _type: "IncidentNotificationRule",

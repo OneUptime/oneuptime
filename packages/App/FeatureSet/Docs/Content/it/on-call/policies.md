@@ -57,6 +57,8 @@ Aprite una policy dall'elenco. Il suo menu laterale contiene tutto ciò che la r
 - **Sostituzioni utente** sostituisce persone solo in questa policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 - **Impostazioni** contiene **Esporta: Policy di reperibilità** e la scheda che archivia la policy.
 
+**Cosa attiva questa policy**, nella **Panoramica**, elenca le regole di reperibilità, i monitor i cui criteri attivano la policy, i modelli e le altre regole che la attivano, e i flussi di lavoro che lo fanno, ciascuno con un link. Una regola disattivata mostra **Disattivato**. Se nulla attiva la policy, la scheda lo dice: non chiama nessuno finché qualcosa non la attiva. Eliminare o archiviare la policy lo dice prima. Ciò che non puoi aprire viene contato, non nominato.
+
 ## Ripetere una policy
 
 Quando l'attesa dell'ultimo livello scade senza che nessuno riconosca, una policy si ferma, a meno che non si ripeta. Per scegliere, aprite la pagina **Regole di escalation** della policy e fate clic su **Modifica** nella scheda **Criterio di ripetizione** sotto le regole. **Modifica criterio di ripetizione** chiede **Se nessuno riconosce dopo l'ultimo livello**:

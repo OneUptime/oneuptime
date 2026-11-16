@@ -1180,3 +1180,190 @@ describe("the step and the card's row in other languages", () => {
     );
   });
 });
+
+/*
+ * AN INCIDENT'S AND AN ALERT'S CUSTOM FIELD CHANGES AND STILL-OPEN
+ * REMINDERS, BOXES OF THEIR OWN (#7937, #7938), and a security case rule's
+ * step (#7936): the four notices a case posts, which a rule may all leave
+ * out - a case has no first message.
+ */
+describe("the boxes out of Other edits and Everything else", () => {
+  test.each([
+    NotificationRuleEventType.Incident,
+    NotificationRuleEventType.Alert,
+  ] as Array<UpdatesEventType>)(
+    "a %s rule's Custom field changes and Reminders boxes sit after Other edits and say what each covers",
+    async (eventType: UpdatesEventType) => {
+      renderStep({
+        rule: ruleOf([]),
+        eventType: eventType,
+        instance: await dashboardIn(ENGLISH),
+      });
+
+      const names: Array<string> = boxes().map(
+        (updateBox: HTMLElement): string => {
+          return (
+            document.querySelector(`label[for="${updateBox.id}"]`)
+              ?.textContent || ""
+          );
+        },
+      );
+
+      expect(names.slice(-4)).toEqual([
+        "Other edits",
+        "Custom field changes",
+        "Reminders",
+        "Everything else",
+      ]);
+      expect(box("Other edits")).toHaveAccessibleDescription(
+        "Title, description, labels and more.",
+      );
+      expect(box("Custom field changes")).toHaveAccessibleDescription(
+        "Custom field values set, changed or cleared.",
+      );
+      expect(box("Reminders")).toHaveAccessibleDescription(
+        eventType === NotificationRuleEventType.Incident
+          ? "Reminders that the incident is still open."
+          : "Reminders that the alert is still open.",
+      );
+    },
+  );
+
+  test("Everything else no longer says it carries the reminders or the custom fields", () => {
+    for (const eventType of UPDATES_EVENT_TYPES) {
+      const kinds: UpdatesCopy["kinds"] = UPDATES_COPY[eventType].kinds;
+
+      for (const kind of [
+        NotificationRuleUpdateKind.Other,
+        NotificationRuleUpdateKind.Edits,
+      ]) {
+        const description: string =
+          (kinds[kind] as UpdateKindCopy | undefined)?.description || "";
+
+        expect({ eventType, kind, description }).toEqual({
+          eventType,
+          kind,
+          description: expect.not.stringMatching(/reminder|custom field/i),
+        });
+      }
+    }
+  });
+
+  test("a maintenance event rule has a Reminders box, before Everything else", async () => {
+    renderStep({
+      rule: ruleOf([]),
+      eventType: NotificationRuleEventType.ScheduledMaintenance,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(box("Reminders")).toHaveAccessibleDescription(
+      "Reminders that the event is not over yet.",
+    );
+    expect(box("Everything else")).toHaveAccessibleDescription(
+      "Anything else posted about the event.",
+    );
+  });
+
+  test("ticking Reminders on a rule of Everything else adds it in the boxes' order", async () => {
+    const changes: Array<IncidentNotificationRule> = renderStep({
+      rule: ruleOf([NotificationRuleUpdateKind.Other]),
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    await userEvent.click(box("Reminders"));
+
+    expect(
+      (changes[changes.length - 1] as { updatesToPost?: unknown })
+        .updatesToPost,
+    ).toEqual([
+      NotificationRuleUpdateKind.Reminders,
+      NotificationRuleUpdateKind.Other,
+    ]);
+  });
+
+  test("German: the new boxes in German", async () => {
+    renderStep({ rule: ruleOf([]), instance: await dashboardIn("de") });
+
+    expect(box("Änderungen benutzerdefinierter Felder")).toBeVisible();
+    expect(box("Erinnerungen")).toHaveAccessibleDescription(
+      "Erinnerungen, dass der Vorfall noch offen ist.",
+    );
+  });
+});
+
+describe("a security case rule's step (#7936)", () => {
+  const SECURITY_CASE: UpdatesEventType =
+    NotificationRuleEventType.SecurityCase;
+
+  test("a rule saved before the step, and a new rule, opens on Every update", async () => {
+    renderStep({
+      rule: {
+        ...ruleOf(),
+        ...NotificationRuleUpdates.getNewRuleUpdates(SECURITY_CASE),
+      } as IncidentNotificationRule,
+      eventType: SECURITY_CASE,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(checkedAnswer()).toBe("Every update");
+    expect(answer("Every update")).toHaveAccessibleDescription(
+      "New and raised cases, assignments, approvals needed and response targets.",
+    );
+    expect(answer("Key updates only")).toHaveAccessibleDescription(
+      "New and raised cases, approvals needed and response targets.",
+    );
+  });
+
+  test("its boxes are the four notices, each saying when it is posted", async () => {
+    renderStep({
+      rule: ruleOf([NotificationRuleUpdateKind.ApprovalRequested]),
+      eventType: SECURITY_CASE,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(box("New and raised cases")).toHaveAccessibleDescription(
+      "When a case opens, or rises to a higher priority.",
+    );
+    expect(box("Assignments")).toHaveAccessibleDescription(
+      "When a case is assigned to a person or a team.",
+    );
+    expect(box("Approvals needed")).toHaveAccessibleDescription(
+      "When a playbook step waits for someone to approve it.",
+    );
+    expect(box("Response targets")).toHaveAccessibleDescription(
+      "When a case is about to miss a response target, or misses it.",
+    );
+    expect(tickedBoxes()).toEqual(["Approvals needed"]);
+  });
+
+  test("Key updates only ticks every notice but Assignments", async () => {
+    const changes: Array<IncidentNotificationRule> = renderStep({
+      rule: ruleOf(),
+      eventType: SECURITY_CASE,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    await userEvent.click(answer("Key updates only"));
+
+    expect(
+      (changes[changes.length - 1] as { updatesToPost?: unknown })
+        .updatesToPost,
+    ).toEqual([
+      NotificationRuleUpdateKind.PriorityReached,
+      NotificationRuleUpdateKind.ApprovalRequested,
+      NotificationRuleUpdateKind.ResponseTargets,
+    ]);
+  });
+
+  test("with none ticked, it says the rule posts nothing", async () => {
+    renderStep({
+      rule: ruleOf([]),
+      eventType: SECURITY_CASE,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(
+      screen.getByTestId("notification-rule-updates-nothing-chosen"),
+    ).toHaveTextContent("With none ticked, the rule posts nothing.");
+  });
+});

@@ -36,6 +36,13 @@ import ObjectID from "../../../Types/ObjectID";
  * roster it reads is already up to a minute behind the hand-over), and a
  * policy, a schedule or a team renamed, a schedule or a team deleted.
  *
+ * My On-Call Policies asks across every project the person may open
+ * (getOrBuildMany): the projects whose answers are kept are answered from
+ * here, and the rest are built together, by one build that reads them all
+ * at once (#8124) - and kept one by one, as a project's own request keeps
+ * it. A project's request and a request across projects that miss together
+ * share the build.
+ *
  * An answer is shared between the requests it is handed to and must not be
  * changed.
  */
@@ -68,45 +75,173 @@ export default class OnDutyPoliciesCache {
     userId: ObjectID;
     build: () => Promise<T>;
   }): Promise<T> {
-    const projectKey: string = data.projectId.toString().toLowerCase();
+    const projectKey: string = this.projectKeyOf(data.projectId);
 
-    const key: string = [
-      projectKey,
-      data.userId.toString().toLowerCase(),
-      await this.generations.get(projectKey),
-    ].join("|");
+    const answers: Map<string, T> = await this.getOrBuildMany<T>({
+      projectIds: [data.projectId],
+      userId: data.userId,
+      build: async (): Promise<Map<string, T>> => {
+        return new Map<string, T>([[projectKey, await data.build()]]);
+      },
+    });
 
-    const kept: unknown = this.answers.get(key);
+    return answers.get(projectKey) as T;
+  }
 
-    if (kept !== undefined) {
-      return kept as T;
+  /*
+   * The person's answer in each of the projects, by lower-cased project id:
+   * each kept in its project's current generation, else built now. The
+   * projects with nothing kept and nothing under way are handed to one call
+   * of `build`, which answers every project it is handed, keyed the same
+   * way; a project another request is building meanwhile is waited for.
+   * Each answer is kept on its own, under its project's generation, as
+   * getOrBuild keeps it. A failed build is never kept, and fails the call.
+   */
+  public static async getOrBuildMany<T>(data: {
+    projectIds: Array<ObjectID>;
+    userId: ObjectID;
+    build: (projectIds: Array<ObjectID>) => Promise<Map<string, T>>;
+  }): Promise<Map<string, T>> {
+    const userKey: string = data.userId.toString().toLowerCase();
+
+    // Each project once, however it is written.
+    const projects: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const projectId of data.projectIds) {
+      projects.set(this.projectKeyOf(projectId), projectId);
     }
 
-    const building: Promise<unknown> | undefined = this.inFlight.get(key);
+    // Each project's key under its generation now, read side by side.
+    const keys: Map<string, string> = new Map<string, string>();
 
-    if (building) {
-      return (await building) as T;
+    await Promise.all(
+      Array.from(projects.keys()).map(
+        async (projectKey: string): Promise<void> => {
+          keys.set(
+            projectKey,
+            [projectKey, userKey, await this.generations.get(projectKey)].join(
+              "|",
+            ),
+          );
+        },
+      ),
+    );
+
+    const answers: Map<string, T> = new Map<string, T>();
+    const waits: Array<Promise<void>> = [];
+    const missing: Array<string> = [];
+
+    for (const projectKey of projects.keys()) {
+      const key: string = keys.get(projectKey)!;
+      const kept: unknown = this.answers.get(key);
+
+      if (kept !== undefined) {
+        answers.set(projectKey, kept as T);
+        continue;
+      }
+
+      const building: Promise<unknown> | undefined = this.inFlight.get(key);
+
+      if (building) {
+        waits.push(
+          building.then((answer: unknown): void => {
+            answers.set(projectKey, answer as T);
+          }),
+        );
+        continue;
+      }
+
+      missing.push(projectKey);
     }
 
-    const built: Promise<T> = data.build();
-    this.inFlight.set(key, built);
+    if (missing.length > 0) {
+      waits.push(
+        this.buildTogether<T>({
+          missing,
+          projects,
+          keys,
+          answers,
+          build: data.build,
+        }),
+      );
+    }
+
+    await Promise.all(waits);
+
+    // In the order the projects were asked for.
+    const ordered: Map<string, T> = new Map<string, T>();
+
+    for (const projectKey of projects.keys()) {
+      ordered.set(projectKey, answers.get(projectKey) as T);
+    }
+
+    return ordered;
+  }
+
+  /*
+   * One build for the projects nothing kept or built: each project's part of
+   * it is what another request asking for that project meanwhile waits for.
+   */
+  private static async buildTogether<T>(data: {
+    missing: Array<string>;
+    projects: Map<string, ObjectID>;
+    keys: Map<string, string>;
+    answers: Map<string, T>;
+    build: (projectIds: Array<ObjectID>) => Promise<Map<string, T>>;
+  }): Promise<void> {
+    const built: Promise<Map<string, T>> = data.build(
+      data.missing.map((projectKey: string): ObjectID => {
+        return data.projects.get(projectKey)!;
+      }),
+    );
+
+    const parts: Map<string, Promise<T>> = new Map<string, Promise<T>>();
+
+    for (const projectKey of data.missing) {
+      const part: Promise<T> = built.then((answers: Map<string, T>): T => {
+        if (!answers.has(projectKey)) {
+          throw new Error(
+            "The on-call policies someone is on duty for were not built for every project asked for.",
+          );
+        }
+
+        return answers.get(projectKey) as T;
+      });
+
+      // Its failure is the build's, which this call throws; nobody else need catch it.
+      part.catch((): void => {
+        return undefined;
+      });
+
+      parts.set(projectKey, part);
+      this.inFlight.set(data.keys.get(projectKey)!, part);
+    }
 
     try {
-      const answer: T = await built;
+      for (const projectKey of data.missing) {
+        const answer: T = await parts.get(projectKey)!;
 
-      /*
-       * Kept under the generation it was started in: a change made while
-       * it was built started a new one, and this answer is never asked
-       * for again.
-       */
-      this.answers.set(key, answer, this.TTL_MS);
-
-      return answer;
+        /*
+         * Kept under the generation it was started in: a change made while
+         * it was built started a new one, and this answer is never asked
+         * for again.
+         */
+        this.answers.set(data.keys.get(projectKey)!, answer, this.TTL_MS);
+        data.answers.set(projectKey, answer);
+      }
     } finally {
-      if (this.inFlight.get(key) === built) {
-        this.inFlight.delete(key);
+      for (const projectKey of data.missing) {
+        const key: string = data.keys.get(projectKey)!;
+
+        if (this.inFlight.get(key) === parts.get(projectKey)) {
+          this.inFlight.delete(key);
+        }
       }
     }
+  }
+
+  private static projectKeyOf(projectId: ObjectID): string {
+    return projectId.toString().toLowerCase();
   }
 
   /*

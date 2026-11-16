@@ -179,7 +179,12 @@ describe("StatusPageResourceUptimeUtil: a monitor group, from its own days", () 
     ).toBe(99.16);
   });
 
-  test("with days nothing was recorded on, falls back to its merged downtime, then its rows", () => {
+  test("with days nothing was recorded on, it has no uptime: not a merged figure's, not the 100% its rows read (issue #8960)", () => {
+    /*
+     * The server measured the group's days and found nothing to count - its
+     * monitors not checked yet, or off. Its rows hold that time in the
+     * status a monitor is created in, and say up.
+     */
     const empty: MonitorGroupUptimeDailyAggregate = groupAggregate([
       day(0, []),
       day(1, []),
@@ -195,10 +200,22 @@ describe("StatusPageResourceUptimeUtil: a monitor group, from its own days", () 
           },
         },
       }),
-    ).toBe(90);
+    ).toBeNull();
 
-    // nothing merged either: the rows, which say up.
-    expect(uptimeOf({ monitorGroupUptimeDailyAggregate: empty })).toBe(100);
+    expect(uptimeOf({ monitorGroupUptimeDailyAggregate: empty })).toBeNull();
+  });
+
+  test("with no days from the server, a merged figure that covers nothing is no uptime either; only no figure at all falls back to the rows", () => {
+    expect(
+      uptimeOf({
+        monitorGroupMergedDowntime: {
+          [MONITOR_GROUP.toString()]: { coveredSeconds: 0, downtimeSeconds: 0 },
+        },
+      }),
+    ).toBeNull();
+
+    // A server that predates both: the rows, which say up.
+    expect(uptimeOf({})).toBe(100);
   });
 
   test("a group the aggregate has no days for is measured as before", () => {

@@ -11,6 +11,7 @@ import {
 } from "./CustomDomainKinds";
 import CustomDomainRecords, { CustomDomainRecord } from "./CustomDomainRecords";
 import CustomDomainServerReadinessNotice from "./CustomDomainServerReadinessNotice";
+import CustomDomainEvents from "./CustomDomainEvents";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -42,7 +43,12 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 
 /*
  * DNS Setup: the records only a custom domain's owner can add, each with its
@@ -75,6 +81,11 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *
  * On a self-hosted server, what the server still needs before any custom
  * domain can work is said above the records (CustomDomainServerReadiness).
+ *
+ * What each Check now found, record by record, and the verification it
+ * ends in, are product events (CustomDomainEvents, #7024), numbered by the
+ * Check now of this dialog they came from: how many tries a record takes
+ * is where people get stuck.
  */
 
 // What the dialog reads of the domain's row.
@@ -169,6 +180,9 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   const [isProjectDomainVerified, setIsProjectDomainVerified] =
     useState<boolean>(!props.projectDomain);
 
+  // How many times Check now ran in this dialog, for its events.
+  const checkCount: React.MutableRefObject<number> = useRef<number>(0);
+
   const cnameRecord: string = props.kind.getCnameRecord();
 
   const fullDomain: string = props.domain.fullDomain?.toString() || "";
@@ -250,6 +264,9 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     setIsChecking(true);
     setError("");
 
+    checkCount.current += 1;
+    const checkNumber: number = checkCount.current;
+
     try {
       // The project's domain first: the custom domain cannot be added before.
       if (props.projectDomain && !isProjectDomainVerified) {
@@ -258,6 +275,12 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
         );
 
         setTxtCheck(txt.records[0]);
+
+        CustomDomainEvents.recordChecked({
+          kind: props.kind,
+          check: txt.records[0],
+          checkNumber: checkNumber,
+        });
 
         if (!txt.isVerified) {
           setCnameCheck(cnameNotCheckedYet(fullDomain, cnameRecord));
@@ -285,12 +308,27 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
 
       setCnameCheck(dns.records[0]);
 
+      CustomDomainEvents.recordChecked({
+        kind: props.kind,
+        check: dns.records[0],
+        checkNumber: checkNumber,
+      });
+
       if (dns.isVerified) {
-        setResult(
+        const verification: CustomDomainVerificationResult =
           dns.certificate || {
             certificateStatus: CustomDomainCertificateStatus.Issuing,
-          },
-        );
+          };
+
+        setResult(verification);
+
+        CustomDomainEvents.verified({
+          kind: props.kind,
+          certificateStatus: verification.certificateStatus,
+          recordCount: props.projectDomain ? 2 : 1,
+          checkNumber: checkNumber,
+        });
+
         props.onVerified();
       }
     } catch (err) {
@@ -309,7 +347,10 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
         closeButtonText={CustomDomainCopy.dnsSetupClose}
       >
         <div className="space-y-4">
-          <CustomDomainServerReadinessNotice kind={props.kind} />
+          <CustomDomainServerReadinessNotice
+            kind={props.kind}
+            eventSource="dns_setup"
+          />
           <p className="text-sm leading-6 text-gray-600">
             <TranslatedSentence
               template={props.kind.copy.dnsSetupNotEnabled}
@@ -452,7 +493,10 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
       error={error}
     >
       <div className="space-y-4">
-        <CustomDomainServerReadinessNotice kind={props.kind} />
+        <CustomDomainServerReadinessNotice
+          kind={props.kind}
+          eventSource="dns_setup"
+        />
 
         <p className="text-sm leading-6 text-gray-600">
           <TranslatedSentence

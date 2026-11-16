@@ -4,14 +4,12 @@ import {
   TaskResult,
   TaskResultData,
 } from "./TaskHandlerInterface";
-import { GitHubTaskDetails } from "../Utils/BackendAPI";
+import { GitHubTaskDetails, RepositoryToken } from "../Utils/BackendAPI";
 import RepositoryManager, {
   RepositoryConfig,
   CloneResult,
 } from "../Utils/RepositoryManager";
-import PullRequestCreator, {
-  PullRequestResult,
-} from "../Utils/PullRequestCreator";
+import { PullRequestResult } from "../Utils/PullRequestCreator";
 import BuildVerification, {
   VerificationOutcome,
 } from "../Utils/BuildVerification";
@@ -41,6 +39,7 @@ export default class GitHubIssueFixTaskHandler extends GitHubTaskHandlerBase {
     context: TaskContext;
     details: GitHubTaskDetails;
     repositoryConfig: RepositoryConfig;
+    repositoryToken: RepositoryToken;
     cloneResult: CloneResult;
     repositoryManager: RepositoryManager;
     agent: CodeAgent;
@@ -130,38 +129,23 @@ export default class GitHubIssueFixTaskHandler extends GitHubTaskHandlerBase {
       data.repositoryConfig,
     );
 
-    const prCreator: PullRequestCreator = new PullRequestCreator(
-      context.logger,
-    );
-
     const prBody: string =
       this.buildPullRequestBody(details, agentResult.summary) +
       BuildVerification.buildPullRequestBodySection(verification);
 
-    const prResult: PullRequestResult = await prCreator.createPullRequest({
-      token: data.repositoryConfig.token,
-      organizationName: data.repositoryConfig.organizationName,
-      repositoryName: data.repositoryConfig.repositoryName,
+    /*
+     * Opened by OneUptime where the token's answer says so - the token then
+     * pushes and opens nothing - or with the token, by an older server's
+     * rules (GitHub's API, PullRequestCreator), and recorded either way.
+     */
+    const prResult: PullRequestResult = await this.openPullRequest(context, {
+      repositoryId: details.repository.id,
+      token: data.repositoryToken,
       baseBranch: baseBranch,
       headBranch: branchName,
       title: this.buildPullRequestTitle(details),
       body: prBody,
-    });
-
-    await this.log(context, `Pull request created: ${prResult.htmlUrl}`);
-
-    await this.recordOpenedPullRequest(context, {
-      taskId: context.taskId.toString(),
-      codeRepositoryId: details.repository.id,
-      pullRequestUrl: prResult.htmlUrl,
-      pullRequestNumber: prResult.number,
-      pullRequestId: prResult.id,
-      title: prResult.title,
-      description: prBody.substring(0, 1000),
-      headRefName: branchName,
-      baseRefName: baseBranch,
-      runnerVerificationStatus: verification.status,
-      runnerVerificationSummary: verification.summary,
+      verification,
     });
 
     const resultData: TaskResultData = {

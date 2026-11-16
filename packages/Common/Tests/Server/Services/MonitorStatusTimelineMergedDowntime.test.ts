@@ -1,8 +1,10 @@
 import {
+  FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME,
   MergedDowntimeRow,
   MergedDowntimeTotals,
   Service as MonitorStatusTimelineServiceType,
 } from "../../../Server/Services/MonitorStatusTimelineService";
+import { MonitorUptimeWindowKey } from "../../../Types/Monitor/MonitorUptimeSummary";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, jest, test } from "@jest/globals";
 
@@ -110,19 +112,23 @@ async function aggregateSql(): Promise<string> {
 }
 
 /*
- * The parts of a src CTE that decide which rows count and where each ends:
- * the window, the end expression, and the WHERE clause.
+ * The parts of a src CTE that decide which rows count and where each starts
+ * and ends: the window, the cut at the monitor's first check (issue #8960),
+ * the end expression, the join that reads the first check, and the WHERE
+ * clause.
  */
 function rowRules(sql: string): {
   window: string;
+  start: string;
   end: string;
+  measuredJoin: string;
   where: string;
 } {
   const window: RegExpMatchArray | null = sql.match(
     /WITH params AS \( SELECT (\$2::timestamptz AS win_start, LEAST\(\$3::timestamptz, now\(\)\) AS eff_end)/,
   );
   const src: RegExpMatchArray | null = sql.match(
-    /GREATEST\(t\."startsAt", p\.win_start\) AS s, (.*?) AS e FROM "MonitorStatusTimeline" t CROSS JOIN params p (WHERE .*?) \), \w+ AS \(/,
+    /GREATEST\( t\."startsAt", p\.win_start, (CASE .*? END) \) AS s, (.*?) AS e FROM "MonitorStatusTimeline" t CROSS JOIN params p (LEFT JOIN measured mf ON mf\.monitor_id = t\."monitorId") (WHERE .*?) \), \w+ AS \(/,
   );
 
   expect(window).not.toBeNull();
@@ -130,8 +136,10 @@ function rowRules(sql: string): {
 
   return {
     window: window![1]!,
-    end: src![1]!,
-    where: src![2]!,
+    start: src![1]!,
+    end: src![2]!,
+    measuredJoin: src![3]!,
+    where: src![4]!,
   };
 }
 
@@ -148,6 +156,12 @@ describe("MonitorStatusTimelineService.getMergedDowntimeSeconds", () => {
     );
 
     expect(merged).toEqual(aggregate);
+
+    // Both leave a monitor's time before its first check out (#8960).
+    expect(merged.start).toContain("mf.measured_from");
+    expect(merged.measuredJoin).toBe(
+      'LEFT JOIN measured mf ON mf.monitor_id = t."monitorId"',
+    );
 
     expect(merged.end).toContain(
       'LEAD(t."startsAt") OVER ( PARTITION BY t."monitorId" ORDER BY t."startsAt", t."endsAt" NULLS LAST )',
@@ -245,6 +259,142 @@ describe("MonitorStatusTimelineService.getMergedDowntimeSeconds", () => {
     expect(totals).toEqual({ coveredSeconds: 0, downtimeSeconds: 0 });
     expect(stub.calls).toHaveLength(0);
     expect(stub.getRepositoryCalls()).toBe(0);
+  });
+});
+
+/*
+ * THE TIME BEFORE A MONITOR'S FIRST CHECK (issue #8960). Every monitor is
+ * created in the operational status, which no check stands behind until
+ * something has measured it (Monitor.firstMeasuredAt), so the statements
+ * that measure a monitor's time leave that time out - all of it while
+ * nothing has checked the monitor - after the LEAD, as the time with
+ * monitoring off is. The SQL was run against Postgres
+ * (MonitorStatusTimelineMonitoringOffPostgres.test.ts); these pin the parts
+ * that must not drift apart between the four statements.
+ */
+describe("the time before a monitor's first check, in every statement (issue #8960)", () => {
+  async function groupSql(): Promise<string> {
+    const stub: StubbedService = stubService();
+
+    await stub.service.getMonitorGroupDailyUptimeAggregate({
+      monitorGroups: [
+        {
+          monitorGroupId: new ObjectID(MONITOR_B),
+          monitorIds: [new ObjectID(MONITOR_A)],
+        },
+      ],
+      rankedMonitorStatusIds: [OFFLINE],
+      startDate: WINDOW_START,
+      endDate: WINDOW_END,
+    });
+
+    return flatten(stub.calls[0]!.sql);
+  }
+
+  async function rollingSql(): Promise<string> {
+    const stub: StubbedService = stubService();
+
+    await stub.service.getRollingUptimeTotals({
+      monitorId: new ObjectID(MONITOR_A),
+      windows: [
+        {
+          key: MonitorUptimeWindowKey.Last24Hours,
+          startDate: new Date(WINDOW_END.getTime() - 86400 * 1000),
+        },
+      ],
+      endDate: WINDOW_END,
+    });
+
+    return flatten(stub.calls[0]!.sql);
+  }
+
+  test("a monitor's days, a group's days and the merged downtime cut every period the same way", async () => {
+    const aggregate: ReturnType<typeof rowRules> = rowRules(
+      await aggregateSql(),
+    );
+    const merged: ReturnType<typeof rowRules> = rowRules(await mergedSql());
+    const groupRules: RegExpMatchArray | null = (await groupSql()).match(
+      /GREATEST\( t\."startsAt", p\.win_start, (CASE .*? END) \) AS s, (.*?) AS e FROM "MonitorStatusTimeline" t CROSS JOIN params p (LEFT JOIN measured mf ON mf\.monitor_id = t\."monitorId") (WHERE .*?) \), \w+ AS \(/,
+    );
+
+    expect(groupRules).not.toBeNull();
+    expect(merged.start).toBe(aggregate.start);
+    expect(groupRules![1]).toBe(aggregate.start);
+    expect(groupRules![3]).toBe(aggregate.measuredJoin);
+  });
+
+  test("when a monitor's time starts to count: its first check, never while nothing has checked it, always for a manual monitor", async () => {
+    for (const sql of [await aggregateSql(), await mergedSql()]) {
+      expect(sql).toContain(
+        `measured AS ( SELECT m."_id" AS monitor_id, CASE WHEN m."monitorType" IS NULL OR m."monitorType" = 'Manual' OR NOT EXISTS ( SELECT 1 FROM "DataMigrations" dm WHERE dm."name" = 'BackfillMonitorFirstMeasuredAtForUptimeHistory' AND dm."executed" = true AND dm."deletedAt" IS NULL ) THEN '-infinity'::timestamptz ELSE COALESCE(m."firstMeasuredAt", 'infinity'::timestamptz) END AS measured_from FROM "Monitor" m WHERE m."_id" = ANY($1::uuid[]) )`,
+      );
+    }
+
+    /*
+     * Until the upgrade has put Monitor.firstMeasuredAt right for history
+     * (its DataMigrations row), every monitor counts from the start: a
+     * result that came back during the upgrade stamped it with the
+     * upgrade's time. The row's name is the migration's, never renamed.
+     */
+    expect(FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME).toBe(
+      "BackfillMonitorFirstMeasuredAtForUptimeHistory",
+    );
+
+    // A group reads its members', which are $2.
+    expect(await groupSql()).toContain(
+      `FROM "Monitor" m WHERE m."_id" = ANY($2::uuid[]) )`,
+    );
+    // The rolling windows read the one monitor's.
+    expect(await rollingSql()).toContain(
+      `FROM "Monitor" m WHERE m."_id" = ANY(ARRAY[$1::uuid]) )`,
+    );
+  });
+
+  test("only a period of a status a monitor can start in, before its first check, is cut, and the cut is never NULL", async () => {
+    const start: string = rowRules(await aggregateSql()).start;
+
+    // Time with monitoring off, and a period once it has been checked: no cut.
+    expect(start).toContain(
+      `WHEN t."isMonitoringOff" IS TRUE OR t."startsAt" >= COALESCE(mf.measured_from, '-infinity'::timestamptz) THEN '-infinity'::timestamptz`,
+    );
+    // Operational and not offline as well: the status every monitor starts in.
+    expect(start).toContain(
+      `WHEN EXISTS ( SELECT 1 FROM "MonitorStatus" ms WHERE ms."_id" = t."monitorStatusId" AND ms."isOperationalState" IS TRUE AND ms."isOfflineState" IS NOT TRUE ) THEN mf.measured_from`,
+    );
+    // Anything else, a status something recorded: no cut. GREATEST ignores a NULL.
+    expect(start).toMatch(/ELSE '-infinity'::timestamptz END$/);
+    expect(start).not.toMatch(/THEN NULL|ELSE NULL/);
+  });
+
+  test("the cut is made after the LEAD has seen every row: no row is filtered before it", async () => {
+    for (const sql of [await aggregateSql(), await mergedSql()]) {
+      const rules: ReturnType<typeof rowRules> = rowRules(sql);
+
+      // The WHERE clause is the overlap predicate alone, as before.
+      expect(rules.where).toBe(
+        'WHERE t."monitorId" = ANY($1::uuid[]) AND t."deletedAt" IS NULL AND t."startsAt" <= p.eff_end AND (t."endsAt" >= p.win_start OR t."endsAt" IS NULL)',
+      );
+      expect(rules.where).not.toContain("measured");
+      // and the LEAD reads startsAt, never the cut start.
+      expect(rules.end).toContain('LEAD(t."startsAt")');
+    }
+  });
+
+  test("a monitor's rolling windows cut by the same rule, on each window's rows", async () => {
+    const sql: string = await rollingSql();
+
+    expect(sql).toContain(
+      `GREATEST( r.starts_at, w.win_start, CASE WHEN r.is_off OR r.starts_at >= COALESCE(mf.measured_from, '-infinity'::timestamptz) THEN '-infinity'::timestamptz WHEN EXISTS ( SELECT 1 FROM "MonitorStatus" ms WHERE ms."_id" = r.status_id AND ms."isOperationalState" IS TRUE AND ms."isOfflineState" IS NOT TRUE ) THEN mf.measured_from ELSE '-infinity'::timestamptz END ) AS s`,
+    );
+    // A monitor that is not found counts as it always did: a LEFT JOIN, not a CROSS JOIN.
+    expect(sql).toContain("LEFT JOIN measured mf ON true");
+    // The rows are read, and each window's LEAD taken, before anything is cut.
+    expect(sql).toContain(
+      "WHERE r.ends_at >= w.win_start OR r.ends_at IS NULL ), agg AS (",
+    );
+    expect(sql).toContain(
+      "LEAD(r.starts_at) OVER ( PARTITION BY w.window_no ORDER BY r.starts_at, r.ends_at NULLS LAST )",
+    );
   });
 });
 
