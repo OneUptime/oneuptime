@@ -222,4 +222,22 @@ describe("a match looks the same in Search and in the project list", () => {
 
     expect(theme).toMatch(/html\.dark :is\([^)]*\.bg-yellow-100[^)]*\)/);
   });
+
+  test("the mark takes no room of its own: its ground reaches past the letters without moving them", () => {
+    /*
+     * A padded mark split the word it sat in: with "kube" typed,
+     * "Kubernetes" read "Kube rnetes". The margin takes back, on each side,
+     * the room the padding gives the ground (the browser suite measures it:
+     * E2E NavigationSearch/ProjectPickerSearch.spec.ts).
+     */
+    const classes: Array<string> = MATCHED_TEXT_MARK_CLASS_NAME.split(" ");
+    const SPACING_CLASS: RegExp = /^-?(p|m)[xytblrse]?-/;
+
+    // As much margin taken back as padding given, on the same sides.
+    expect(
+      classes.filter((name: string): boolean => {
+        return SPACING_CLASS.test(name);
+      }),
+    ).toEqual(["-mx-0.5", "px-0.5"]);
+  });
 });

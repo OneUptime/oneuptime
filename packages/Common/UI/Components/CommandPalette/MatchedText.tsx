@@ -7,9 +7,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the project list's search mark a match alike, so the mark means one thing
  * wherever it is seen; the dark theme gives the ground its own shade
  * (Theme.css).
+ *
+ * The ground reaches a little past the letters on each side (px-0.5)
+ * without moving them (-mx-0.5): a mark that took room of its own split
+ * the word it sat in, so with "kube" typed "Kubernetes" read "Kube
+ * rnetes", and Search's "Monitors" read "Mon itors" for "mon".
  */
 export const MATCHED_TEXT_MARK_CLASS_NAME: string =
-  "rounded-sm bg-yellow-100 px-0.5 text-inherit";
+  "-mx-0.5 rounded-sm bg-yellow-100 px-0.5 text-inherit";
 
 export interface ComponentProps {
   text: string;
