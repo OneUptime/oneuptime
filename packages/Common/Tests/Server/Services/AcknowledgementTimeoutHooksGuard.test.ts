@@ -247,8 +247,16 @@ describe("an acknowledged page tells the acknowledgement timeout", () => {
 
     visit(source);
 
-    expect(viaHook).toHaveLength(1);
-    expect(enclosingMethodName(viaHook[0]!)).toBe("onUpdateSuccess");
+    /*
+     * The hook, and the answer that answers the pages merged into the one
+     * answered (OnCallPageMerge): each of those runs is answered through it
+     * too, so each one's clock starts.
+     */
+    expect(
+      viaHook.map((call: ts.CallExpression): string => {
+        return enclosingMethodName(call);
+      }),
+    ).toEqual(["onUpdateSuccess", "answerMergedPages"]);
   });
 
   test("after the record itself is acknowledged, with the moment it was answered", () => {

@@ -2927,6 +2927,43 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/OnCall/OnCallStuckNotificationsPostgres.test.ts --forceExit
 
+      # Clones the migrated UserOnCallLog, OnCallDutyPolicyExecutionLog,
+      # OnCallDutyPolicy and OnCallDutyPolicyExecutionLogTimeline tables into
+      # an isolated schema (#7837). Somebody two of a record's policies page
+      # is paged once: the read that finds the open page another policy's
+      # run has of them, of a run that may stand for theirs; where a merged
+      # page stands (waits, answered, or takes the page over with what the
+      # other page sent); the merged pages answered with an answer; and a
+      # take-over writes what the other page sent so its claims skip it.
+      - name: Test on-call page merges on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ONCALL_PAGE_MERGE_TESTS: "true"
+          ONCALL_PAGE_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ONCALL_PAGE_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ONCALL_PAGE_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/OnCall/OnCallPageMergePostgres.test.ts --forceExit
+
+      # Clones the migrated UserOnCallLog table into an isolated schema. A
+      # person's on-call notification is claimed with one UPDATE ...
+      # RETURNING, which TypeORM answers with [rows, rowCount]: a claim wins
+      # once (of runs claiming it at once, exactly one), and is given back
+      # only by the moment it was taken at, once.
+      - name: Test on-call notification claims on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ONCALL_CLAIMS_TESTS: "true"
+          ONCALL_CLAIMS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ONCALL_CLAIMS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ONCALL_CLAIMS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserOnCallLogClaimsPostgres.test.ts --forceExit
+
       # Clones the migrated PacketCapture, File and Probe tables into an
       # isolated schema and runs packet capture's hand-written SQL: a probe
       # claims only its own Pending captures (one statement, FOR NO KEY

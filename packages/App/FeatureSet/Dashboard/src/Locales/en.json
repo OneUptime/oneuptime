@@ -55971,5 +55971,11 @@
   "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.",
   "The share of the month's events of this SLO's metric that were good.": "The share of the month's events of this SLO's metric that were good.",
   "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.",
-  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings."
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.",
+  "Already Paged": "Already Paged",
+  "Already paged about this by another on-call policy, so not paged again.": "Already paged about this by another on-call policy, so not paged again.",
+  "Already paged about this by {{name}}, so not paged again.": "Already paged about this by {{name}}, so not paged again.",
+  "Merged Into On-Call Log ID": "Merged Into On-Call Log ID",
+  "Their page from another on-call policy is over, so this policy pages them now.": "Their page from another on-call policy is over, so this policy pages them now.",
+  "Their page from {{name}} is over, so this policy pages them now.": "Their page from {{name}} is over, so this policy pages them now."
 }

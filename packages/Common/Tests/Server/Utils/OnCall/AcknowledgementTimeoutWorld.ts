@@ -4,7 +4,6 @@ import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
-import OnCallDutyPolicyExecutionLogTimeline from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import URL from "../../../../Types/API/URL";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
@@ -499,31 +498,8 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
             return matchesQuery(data.query, row as unknown as FakeRow);
           })
           .map((row: UserOnCallLog) => {
-            const log: UserOnCallLog = copy(row);
-            const run: OnCallDutyPolicyExecutionLog | undefined = this.findRun(
-              row.onCallDutyPolicyExecutionLogId,
-            );
-
-            if (run) {
-              log.onCallDutyPolicyExecutionLog = copy(run);
-            }
-
-            // And the run's line for them, as PassOnWorld reads it.
-            const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
-              this.steps.find(
-                (candidate: OnCallDutyPolicyExecutionLogTimeline) => {
-                  return sameKey(
-                    candidate._id,
-                    row.onCallDutyPolicyExecutionLogTimelineId,
-                  );
-                },
-              );
-
-            if (step) {
-              log.onCallDutyPolicyExecutionLogTimeline = copy(step);
-            }
-
-            return log;
+            // With their run and the run's line for them (PassOnWorld).
+            return this.readLog(row);
           });
       },
     );

@@ -55971,5 +55971,11 @@
   "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "在這些月份中，此 SLO 的服務都沒有傳送 OneUptime 統計到的指標事件。請選擇更晚的期間，或等待其服務的指標到達。",
   "The share of the month's events of this SLO's metric that were good.": "此 SLO 的指標在該月的事件中良好事件的比例。",
   "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "此 SLO 沒有可計算的指標，因此還沒有可報告的內容。請在設定中選擇其指標。",
-  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "此 SLO 衡量指標，但尚未選擇服務，因此還沒有可報告的內容。請在設定中選擇其服務。"
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "此 SLO 衡量指標，但尚未選擇服務，因此還沒有可報告的內容。請在設定中選擇其服務。",
+  "Already Paged": "已呼叫過",
+  "Already paged about this by another on-call policy, so not paged again.": "另一個待命策略已為此呼叫過，因此不再重複呼叫。",
+  "Already paged about this by {{name}}, so not paged again.": "{{name}} 已為此呼叫過，因此不再重複呼叫。",
+  "Merged Into On-Call Log ID": "合併到的待命日誌 ID",
+  "Their page from another on-call policy is over, so this policy pages them now.": "另一個待命策略的呼叫已結束，因此現在由此策略自行呼叫。",
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已結束，因此現在由此策略自行呼叫。"
 }

@@ -1426,19 +1426,98 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
     },
   );
 
+  /*
+   * A page merged into the person's open page from another policy's run
+   * (OnCallPageMerge): its step says Already Paged, and keeps saying so when
+   * the page ends without taking the page over - it sent nothing, the other
+   * page did. Taking the page over moves it on, as any page's.
+   */
+  test("a merged page's log marks its step Already Paged, with the log's message", async () => {
+    await callOnUpdateSuccess({
+      status: UserNotificationExecutionStatus.AlreadyPaged,
+      statusMessage:
+        "Already paged about this by Payments, so not paged again.",
+    });
+
+    expect(timelineUpdates()[0]!.data).toEqual({
+      status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+      statusMessage:
+        "Already paged about this by Payments, so not paged again.",
+    });
+  });
+
+  test("a merged page that ends without taking the page over leaves its step saying Already Paged, not Notification Sent", async () => {
+    logFindBySpy.mockResolvedValue([
+      {
+        onCallDutyPolicyExecutionLogTimelineId: TIMELINE_ID,
+        onCallDutyPolicyExecutionLogTimeline: {
+          status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+        },
+      },
+    ] as never);
+
+    await callOnUpdateSuccess({
+      status: UserNotificationExecutionStatus.Completed,
+      statusMessage: "Execution completed because incident is acknowledged.",
+    });
+
+    expect(timelineUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  test.each<
+    [UserNotificationExecutionStatus, OnCallDutyExecutionLogTimelineStatus]
+  >([
+    [
+      UserNotificationExecutionStatus.Executing,
+      OnCallDutyExecutionLogTimelineStatus.Executing,
+    ],
+    [
+      UserNotificationExecutionStatus.PassedOn,
+      OnCallDutyExecutionLogTimelineStatus.PassedOn,
+    ],
+  ])(
+    "a merged page that is %s - it took the page over, or was escalated - moves its step on",
+    async (
+      status: UserNotificationExecutionStatus,
+      stepStatus: OnCallDutyExecutionLogTimelineStatus,
+    ): Promise<void> => {
+      logFindBySpy.mockResolvedValue([
+        {
+          onCallDutyPolicyExecutionLogTimelineId: TIMELINE_ID,
+          onCallDutyPolicyExecutionLogTimeline: {
+            status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+          },
+        },
+      ] as never);
+
+      await callOnUpdateSuccess({
+        status: status,
+        statusMessage:
+          "Their page from Payments is over, so this policy pages them now.",
+      });
+
+      expect(timelineUpdates()[0]!.data).toEqual({
+        status: stepStatus,
+        statusMessage:
+          "Their page from Payments is over, so this policy pages them now.",
+      });
+    },
+  );
+
   test("every member of UserNotificationExecutionStatus has a case - the default is unreachable for valid members", async () => {
     /*
-     * The enum has exactly six members and the switch has exactly six cases,
-     * so `default: throw new BadDataException("Invalid status")` cannot be hit
-     * by a value that came out of the enum. It is reachable only when a caller
-     * pushes a string that was never a member (an API payload, a migration, or
-     * a cast) into `data.status`.
+     * The enum has exactly seven members and the switch has exactly seven
+     * cases, so `default: throw new BadDataException("Invalid status")`
+     * cannot be hit by a value that came out of the enum. It is reachable
+     * only when a caller pushes a string that was never a member (an API
+     * payload, a migration, or a cast) into `data.status`.
      */
     const all: Array<UserNotificationExecutionStatus> = Object.values(
       UserNotificationExecutionStatus,
     );
 
     expect(all.sort()).toEqual([
+      UserNotificationExecutionStatus.AlreadyPaged,
       UserNotificationExecutionStatus.Completed,
       UserNotificationExecutionStatus.Error,
       UserNotificationExecutionStatus.Executing,

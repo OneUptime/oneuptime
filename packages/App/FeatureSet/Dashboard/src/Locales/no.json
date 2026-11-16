@@ -55971,5 +55971,11 @@
   "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "Ingen av tjenestene til denne SLO-en sendte en hendelse fra målingen som OneUptime telte i disse månedene. Velg en senere periode, eller vent til målingene fra tjenestene når frem.",
   "The share of the month's events of this SLO's metric that were good.": "Andelen av månedens hendelser fra målingen til denne SLO-en som var gode.",
   "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "Denne SLO-en har ingen måling den kan telle, så det er ingenting å rapportere ennå. Velg målingen under Innstillinger.",
-  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "Denne SLO-en måler en måling, men ingen tjenester er valgt, så det er ingenting å rapportere ennå. Velg tjenestene under Innstillinger."
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "Denne SLO-en måler en måling, men ingen tjenester er valgt, så det er ingenting å rapportere ennå. Velg tjenestene under Innstillinger.",
+  "Already Paged": "Allerede kalt opp",
+  "Already paged about this by another on-call policy, so not paged again.": "Allerede kalt opp om dette av en annen vaktpolicy, så ikke kalt opp igjen.",
+  "Already paged about this by {{name}}, so not paged again.": "Allerede kalt opp om dette av {{name}}, så ikke kalt opp igjen.",
+  "Merged Into On-Call Log ID": "ID for vaktloggen dette ble slått sammen med",
+  "Their page from another on-call policy is over, so this policy pages them now.": "Oppkallingen fra en annen vaktpolicy er over, så denne policyen kaller opp selv nå.",
+  "Their page from {{name}} is over, so this policy pages them now.": "Oppkallingen fra {{name}} er over, så denne policyen kaller opp selv nå."
 }

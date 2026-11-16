@@ -85,8 +85,10 @@ Wie opnieuw wordt opgeroepen, bevestigt vanuit het bericht of met **Opnieuw beve
 
 Een incident, waarschuwing of episode voert elk van zijn beleidsregels apart uit, tegelijk.
 
-- Wie in twee ervan dienst heeft, wordt door allebei opgeroepen, één keer door elk: OneUptime voegt de oproepen van verschillende beleidsregels niet samen. Binnen één beleid wordt iemand die een niveau twee keer noemt, persoonlijk en via een team of een schema, maar één keer opgeroepen.
+- Wie in twee ervan dienst heeft, wordt maar één keer opgeroepen. Bereikt een niveau van een beleid iemand die er al door een ander beleid over wordt opgeroepen, dan roept het diegene niet opnieuw op: het uitvoeringslogboek ervan toont diegene als **Al opgeroepen**, en de feed van het incident en het bericht van het beleid in Slack en Microsoft Teams noemen het beleid waardoor diegene wordt opgeroepen. Het niveau wacht toch zijn minuten af voordat het volgende niveau aan de beurt is, zoals bij iedereen die erdoor is opgeroepen. Een antwoord op die ene oproep geldt voor beide beleidsregels. Binnen één beleid wordt iemand die een niveau twee keer noemt, persoonlijk en via een team of een schema, maar één keer opgeroepen.
 - Het incident of de waarschuwing bevestigen stopt binnen een minuut elk beleid dat ervoor loopt, waar het ook wordt bevestigd: vanuit elke oproep erover, op de eigen pagina, in de mobiele app, of in Slack of Microsoft Teams. Er wordt geen volgend niveau opgeroepen, en geen gesprek of sms die nog wacht, wordt verstuurd. Meldingen die al zijn verstuurd, blijven verstuurd.
+
+Eén keer opgeroepen worden betekent niet dat iemand een oproep mist. Die ene oproep kan eindigen zonder antwoord: diegene escaleert hem vanuit een van de berichten ervan, wat alleen dat beleid escaleert, de oproep kan niet worden verstuurd, of het beleid ervan stopt. Dan roept het andere beleid diegene binnen een minuut zelf op, zonder opnieuw te versturen wat diegene al had bereikt. **Escaleren** op de pagina van het incident of in de mobiele app escaleert beide. Een nieuwe oproep, een beleid dat met de hand is gestart en een oproep die iemand vanuit Slack of Microsoft Teams stuurde, roepen hun mensen altijd zelf op, ook iemand die al door een ander beleid wordt opgeroepen. Een oproep aan een waarnemer en een oproep aan een ontvanger worden nooit samengevoegd.
 
 Sommige oproepen gaan na de bevestiging door, tot iemand die ze opriepen antwoordt of het is opgelost: een nieuwe oproep, een oproep aan waarnemers, een oproep die iemand vanuit Slack of Microsoft Teams naar mensen stuurde, en een beleid dat met de hand is gestart.
 
@@ -123,7 +125,7 @@ Uitvoeringslogboeken vind je op drie plekken:
 - onder **Bereikbaarheid → Geavanceerd → Uitvoeringslogboeken**, voor elk beleid, waar directe oproepen vanuit workflows en chat staan als **Directe oproep**;
 - op de pagina **Bereikbaarheidsuitvoeringen** van een incident of een waarschuwing.
 
-Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **Tijdlijn bekijken** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. **Gemeld via** toont hoe elke oproep de persoon bereikte: telefoonoproep, sms, e-mail, pushmelding enzovoort. Een schema waarin niemand dienst heeft, toont **Niemand was bereikbaar** in plaats van een persoon. Een niveau dat niemand opriep, zegt waarom, met **Direct doorgegaan** eronder: het beleid heeft er niet op gewacht. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
+Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **Tijdlijn bekijken** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. **Gemeld via** toont hoe elke oproep de persoon bereikte: telefoonoproep, sms, e-mail, pushmelding enzovoort. Een schema waarin niemand dienst heeft, toont **Niemand was bereikbaar** in plaats van een persoon. Een niveau dat niemand opriep, zegt waarom, met **Direct doorgegaan** eronder: het beleid heeft er niet op gewacht. Iemand die al door een ander beleid werd opgeroepen, toont **Al opgeroepen**: zie [Als meerdere beleidsregels oproepen](#als-meerdere-beleidsregels-oproepen). In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
 
 ## Een beleid archiveren of verwijderen
 
@@ -176,7 +178,7 @@ Het beleid is gearchiveerd: een gearchiveerd beleid blijft staan bij de incident
 :::
 
 :::details Iemand werd voor één incident twee keer opgeroepen
-Diegene heeft dienst in twee van de beleidsregels die het incident uitvoert, en elk beleid roept zijn eigen mensen op. Het incident bevestigen vanuit een van beide oproepen stopt ze allebei. Zet beide teams of schema's in hetzelfde niveau van één beleid, dan wordt diegene maar één keer opgeroepen.
+Wie dienst heeft in twee van de beleidsregels die het incident uitvoert, wordt maar één keer opgeroepen, door het eerste beleid dat diegene bereikt. Het tweede roept diegene ook op als het een nieuwe oproep is, een beleid dat met de hand is gestart, een oproep vanuit Slack of Microsoft Teams of een oproep aan waarnemers, die hun mensen allemaal zelf oproepen, of als de eerste oproep al voorbij was voordat het tweede diegene bereikte: diegene had hem geëscaleerd, of het beleid ervan was gestopt. In **Tijdlijn bekijken** van het tweede beleid staat iemand die er niet opnieuw door werd opgeroepen als **Al opgeroepen**.
 :::
 
 :::details Een beleid bleef oproepen nadat het incident was bevestigd

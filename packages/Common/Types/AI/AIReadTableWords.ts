@@ -778,7 +778,8 @@ export const AI_READ_ON_CALL_PAGE_STATUSES: ReadonlyArray<string> = [
  * How a person's notification went (UserNotificationExecutionStatus), as
  * people read it: one they escalated is stored "Passed On", the Escalate
  * action's first name, and reads "Escalated", as the logs and their filters
- * say it (getOnCallPageStatusLabel).
+ * say it (getOnCallPageStatusLabel). One merged into their open page from
+ * another policy's run is "Already Paged" (OnCallPageMerge).
  */
 export const AI_READ_NOTIFICATION_STATUSES: ReadonlyArray<string> = [
   translationKey("Scheduled"),
@@ -787,6 +788,7 @@ export const AI_READ_NOTIFICATION_STATUSES: ReadonlyArray<string> = [
   translationKey("Completed"),
   translationKey("Error"),
   translationKey("Escalated"),
+  translationKey("Already Paged"),
 ];
 
 /*

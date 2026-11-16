@@ -55971,5 +55971,11 @@
   "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "इन महीनों में इस SLO की किसी भी सेवा ने अपने मेट्रिक का ऐसा कोई इवेंट नहीं भेजा जिसे OneUptime ने गिना हो। बाद की अवधि चुनें, या इसकी सेवाओं के मेट्रिक पहुँचने तक प्रतीक्षा करें।",
   "The share of the month's events of this SLO's metric that were good.": "महीने में इस SLO के मेट्रिक के इवेंट का वह हिस्सा जो अच्छे थे।",
   "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "इस SLO के पास गिनने लायक कोई मेट्रिक नहीं है, इसलिए अभी रिपोर्ट करने को कुछ नहीं है। सेटिंग्स में इसका मेट्रिक चुनें।",
-  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "यह SLO एक मेट्रिक मापता है, लेकिन कोई सेवा नहीं चुनी गई है, इसलिए अभी रिपोर्ट करने को कुछ नहीं है। सेटिंग्स में इसकी सेवाएँ चुनें।"
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "यह SLO एक मेट्रिक मापता है, लेकिन कोई सेवा नहीं चुनी गई है, इसलिए अभी रिपोर्ट करने को कुछ नहीं है। सेटिंग्स में इसकी सेवाएँ चुनें।",
+  "Already Paged": "पहले ही पेज किया गया",
+  "Already paged about this by another on-call policy, so not paged again.": "इसके लिए किसी अन्य ऑन-कॉल नीति ने पहले ही पेज कर दिया है, इसलिए दोबारा पेज नहीं किया गया।",
+  "Already paged about this by {{name}}, so not paged again.": "इसके लिए {{name}} ने पहले ही पेज कर दिया है, इसलिए दोबारा पेज नहीं किया गया।",
+  "Merged Into On-Call Log ID": "जिस ऑन-कॉल लॉग में मिलाया गया उसकी ID",
+  "Their page from another on-call policy is over, so this policy pages them now.": "किसी अन्य ऑन-कॉल नीति का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।"
 }

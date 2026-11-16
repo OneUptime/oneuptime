@@ -55971,5 +55971,11 @@
   "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "لم ترسل أي من خدمات هدف SLO هذا حدثًا من مقياسه احتسبه OneUptime في هذه الأشهر. اختر فترة لاحقة، أو انتظر وصول مقاييس خدماته.",
   "The share of the month's events of this SLO's metric that were good.": "نسبة أحداث مقياس هدف SLO هذا في الشهر التي كانت جيدة.",
   "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "لا يملك هدف SLO هذا مقياسًا يمكن عدّه، لذا لا يوجد ما يُبلَّغ عنه بعد. اختر مقياسه في «الإعدادات».",
-  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "يقيس هدف SLO هذا مقياسًا، لكن لم تُختر أي خدمات، لذا لا يوجد ما يُبلَّغ عنه بعد. اختر خدماته في «الإعدادات»."
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "يقيس هدف SLO هذا مقياسًا، لكن لم تُختر أي خدمات، لذا لا يوجد ما يُبلَّغ عنه بعد. اختر خدماته في «الإعدادات».",
+  "Already Paged": "استُدعي مسبقًا",
+  "Already paged about this by another on-call policy, so not paged again.": "استدعته سياسة مناوبة أخرى بالفعل لهذا الأمر، لذا لم يُستدعَ مرة أخرى.",
+  "Already paged about this by {{name}}, so not paged again.": "استدعاه {{name}} بالفعل لهذا الأمر، لذا لم يُستدعَ مرة أخرى.",
+  "Merged Into On-Call Log ID": "معرّف سجل المناوبة الذي دُمج فيه",
+  "Their page from another on-call policy is over, so this policy pages them now.": "انتهى استدعاء سياسة المناوبة الأخرى، لذا تستدعي هذه السياسة الآن بنفسها.",
+  "Their page from {{name}} is over, so this policy pages them now.": "انتهى استدعاء {{name}}، لذا تستدعي هذه السياسة الآن بنفسها."
 }

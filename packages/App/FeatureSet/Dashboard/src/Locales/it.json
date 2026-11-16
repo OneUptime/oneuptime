@@ -55971,5 +55971,11 @@
   "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "Nessuno dei servizi di questo SLO ha inviato un evento della sua metrica contato da OneUptime in questi mesi. Scegli un periodo successivo, o attendi che arrivino le metriche dei suoi servizi.",
   "The share of the month's events of this SLO's metric that were good.": "La quota degli eventi della metrica di questo SLO nel mese che erano buoni.",
   "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "Questo SLO non ha una metrica che possa contare, quindi non c'è ancora niente da riportare. Scegli la sua metrica in Impostazioni.",
-  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "Questo SLO misura una metrica, ma non è scelto nessun servizio, quindi non c'è ancora niente da riportare. Scegli i suoi servizi in Impostazioni."
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "Questo SLO misura una metrica, ma non è scelto nessun servizio, quindi non c'è ancora niente da riportare. Scegli i suoi servizi in Impostazioni.",
+  "Already Paged": "Già chiamato",
+  "Already paged about this by another on-call policy, so not paged again.": "Già chiamato per questo da un'altra policy di reperibilità, quindi non chiamato di nuovo.",
+  "Already paged about this by {{name}}, so not paged again.": "Già chiamato per questo da {{name}}, quindi non chiamato di nuovo.",
+  "Merged Into On-Call Log ID": "ID del log di reperibilità in cui è stato unito",
+  "Their page from another on-call policy is over, so this policy pages them now.": "La chiamata di un'altra policy di reperibilità è terminata, quindi ora chiama questa policy.",
+  "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy."
 }

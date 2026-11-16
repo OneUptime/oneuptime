@@ -55971,5 +55971,11 @@
   "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "Nenhum dos serviços deste SLO enviou um evento da métrica dele contado pelo OneUptime nestes meses. Escolha um período posterior, ou aguarde a chegada das métricas dos serviços dele.",
   "The share of the month's events of this SLO's metric that were good.": "A parte dos eventos da métrica deste SLO no mês que foram bons.",
   "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "Este SLO não tem uma métrica que possa contar, então ainda não há nada para relatar. Escolha a métrica dele em Configurações.",
-  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "Este SLO mede uma métrica, mas nenhum serviço foi escolhido, então ainda não há nada para relatar. Escolha os serviços dele em Configurações."
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "Este SLO mede uma métrica, mas nenhum serviço foi escolhido, então ainda não há nada para relatar. Escolha os serviços dele em Configurações.",
+  "Already Paged": "Já chamado",
+  "Already paged about this by another on-call policy, so not paged again.": "Já chamado sobre isto por outra política de plantão, então não foi chamado de novo.",
+  "Already paged about this by {{name}}, so not paged again.": "Já chamado sobre isto por {{name}}, então não foi chamado de novo.",
+  "Merged Into On-Call Log ID": "ID do registro de plantão em que foi mesclado",
+  "Their page from another on-call policy is over, so this policy pages them now.": "A chamada de outra política de plantão terminou, então esta política chama agora por conta própria.",
+  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria."
 }

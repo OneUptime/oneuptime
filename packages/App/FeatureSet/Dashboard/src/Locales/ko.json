@@ -55971,5 +55971,11 @@
   "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive.": "이 기간 동안 이 SLO의 서비스 중 OneUptime이 집계한 메트릭 이벤트를 보낸 서비스가 없습니다. 더 이후 기간을 선택하거나 서비스의 메트릭이 도착할 때까지 기다리세요.",
   "The share of the month's events of this SLO's metric that were good.": "이 SLO 메트릭의 한 달 이벤트 중 정상 이벤트의 비율입니다.",
   "This SLO has no metric it can count, so there is nothing to report yet. Choose its metric in Settings.": "이 SLO에는 집계할 수 있는 메트릭이 없어 아직 보고할 내용이 없습니다. 설정에서 메트릭을 선택하세요.",
-  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "이 SLO는 메트릭을 측정하지만 선택된 서비스가 없어 아직 보고할 내용이 없습니다. 설정에서 서비스를 선택하세요."
+  "This SLO measures a metric, but no services are chosen, so there is nothing to report yet. Choose its services in Settings.": "이 SLO는 메트릭을 측정하지만 선택된 서비스가 없어 아직 보고할 내용이 없습니다. 설정에서 서비스를 선택하세요.",
+  "Already Paged": "이미 호출됨",
+  "Already paged about this by another on-call policy, so not paged again.": "이 건으로 다른 온콜 정책에서 이미 호출되었으므로 다시 호출하지 않았습니다.",
+  "Already paged about this by {{name}}, so not paged again.": "이 건으로 {{name}}에서 이미 호출되었으므로 다시 호출하지 않았습니다.",
+  "Merged Into On-Call Log ID": "병합된 온콜 로그 ID",
+  "Their page from another on-call policy is over, so this policy pages them now.": "다른 온콜 정책의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}}의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다."
 }
