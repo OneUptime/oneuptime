@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}} 초대됨",
   "{{itemName}} linked": "{{itemName}} 연결됨",
   "{{itemName}} removed": "{{itemName}} 제거됨",
-  "{{itemName}} started": "{{itemName}} 시작됨"
+  "{{itemName}} started": "{{itemName}} 시작됨",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "인시던트를 삭제하면 해당 노트, 상태 타임라인, 런북 실행, OneUptime AI가 그 인시던트에 제안한 수정도 삭제되고 상태 페이지에서 빠집니다. 연결된 경고는 그대로 남습니다.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "경고를 삭제하면 해당 노트, 상태 타임라인, 런북 실행, OneUptime AI가 그 경고에 제안한 수정도 삭제됩니다. 연결된 인시던트는 그대로 남습니다.",
+  "In short": "요약",
+  "Full documentation": "전체 문서",
+  "Expand all": "모두 펼치기",
+  "Collapse all": "모두 접기",
+  "Limited to deleted records": "삭제된 레코드로 제한됨",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, {{date}}에 삭제됨.",
+  "OneUptime switched this rule off when they were deleted.": "해당 항목이 삭제될 때 OneUptime이 이 규칙을 비활성화했습니다.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "이대로 활성화하면 이 규칙은 이 목록들로 전혀 제한되지 않습니다. 규칙을 편집해 적용 대상을 선택한 다음 활성화하세요.",
+  "{{names}} and {{count}} more": "{{names}} 외 {{count}}개",
+  "{{names}} and {{count}} more_one": "{{names}} 외 {{count}}개"
 }

@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}} har bjudits in",
   "{{itemName}} linked": "{{itemName}} har länkats",
   "{{itemName}} removed": "{{itemName}} har tagits bort från listan",
-  "{{itemName}} started": "{{itemName}} har startats"
+  "{{itemName}} started": "{{itemName}} har startats",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "När du tar bort en incident tas även dess anteckningar, tillståndstidslinje, runbook-körningar och de rättningar som OneUptime AI föreslog för den bort, och den tas bort från statussidor. Länkade larm finns kvar.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "När du tar bort ett larm tas även dess anteckningar, tillståndstidslinje, runbook-körningar och de rättningar som OneUptime AI föreslog för det bort. Länkade incidenter finns kvar.",
+  "In short": "Kort sagt",
+  "Full documentation": "Fullständig dokumentation",
+  "Expand all": "Fäll ut alla",
+  "Collapse all": "Fäll ihop alla",
+  "Limited to deleted records": "Begränsad till borttagna poster",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, som togs bort {{date}}.",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime stängde av den här regeln när de togs bort.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Påslagen som den är skulle regeln inte längre begränsas av de här listorna alls. Redigera den för att välja vad den gäller, och slå sedan på den.",
+  "{{names}} and {{count}} more": "{{names}} och {{count}} till",
+  "{{names}} and {{count}} more_one": "{{names}} och {{count}} till"
 }

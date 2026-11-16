@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}} invited",
   "{{itemName}} linked": "{{itemName}} linked",
   "{{itemName}} removed": "{{itemName}} removed",
-  "{{itemName}} started": "{{itemName}} started"
+  "{{itemName}} started": "{{itemName}} started",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.",
+  "In short": "In short",
+  "Full documentation": "Full documentation",
+  "Expand all": "Expand all",
+  "Collapse all": "Collapse all",
+  "Limited to deleted records": "Limited to deleted records",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, deleted {{date}}.",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime switched this rule off when they were deleted.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.",
+  "{{names}} and {{count}} more": "{{names}} and {{count}} more",
+  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more"
 }

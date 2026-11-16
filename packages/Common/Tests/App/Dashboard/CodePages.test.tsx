@@ -2466,7 +2466,7 @@ describe("a task's conversation", () => {
 
     // Each fact is said once at any width: Details on a wide screen, the header's line below it.
     expect(CODE_TASK_DETAILS_CLASS_NAME.split(" ")).toEqual([
-      "hidden",
+      "max-xl:hidden",
       "xl:block",
     ]);
     expect(screen.getByTestId("code-task-facts").className).toBe(

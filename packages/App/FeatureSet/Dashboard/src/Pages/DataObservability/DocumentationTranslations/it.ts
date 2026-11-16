@@ -430,7 +430,7 @@ Sotto la scheda **Dati**, la pagina di un avviso disegna la sua **Derivazione**:
 
 La scheda **Servizi** di una tabella elenca i servizi visti scrivere e leggere in essa, con le istruzioni che ciascuno ha eseguito, le sue chiamate e i suoi errori nell'ultima ora, e quando è stato visto l'ultima volta. Viene dagli span di database che i tuoi servizi inviano già con OpenTelemetry: uno span client con \`db.system.name\`, \`db.namespace\` e \`db.collection.name\` (oppure \`db.sql.table\`, o uno span con un nome come \`INSERT orders\`). Niente in più da installare. Viene aggiornata ogni 15 minuti.
 
-Ogni servizio mostra anche gli endpoint che fanno le sue chiamate, ed è contrassegnato come **App AI** quando chiama anche un modello. **Errori che citano questa tabella** elenca le eccezioni aperte e i log di errore dell'ultimo giorno dei servizi che scrivono nella tabella, quando la nominano.
+Ogni servizio mostra anche gli endpoint che fanno le sue chiamate, ed è contrassegnato come **App IA** quando chiama anche un modello. **Errori che citano questa tabella** elenca le eccezioni aperte e i log di errore dell'ultimo giorno dei servizi che scrivono nella tabella, quando la nominano.
 
 Uno span viene legato a una tabella solo quando il suo database è quello letto da una raccolta e, quando due database condividono un nome, solo quando il suo \`server.address\` è uno dei loro. Quando non è sicuro, lascia fuori lo span.
 

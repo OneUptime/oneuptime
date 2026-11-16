@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}}を招待しました",
   "{{itemName}} linked": "{{itemName}}をリンクしました",
   "{{itemName}} removed": "{{itemName}}を外しました",
-  "{{itemName}} started": "{{itemName}}を開始しました"
+  "{{itemName}} started": "{{itemName}}を開始しました",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "インシデントを削除すると、そのメモ、状態タイムライン、Runbook の実行、OneUptime AI がそのインシデントに提案した修正も削除され、ステータスページから外れます。リンクされたアラートは残ります。",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "アラートを削除すると、そのメモ、状態タイムライン、Runbook の実行、OneUptime AI がそのアラートに提案した修正も削除されます。リンクされたインシデントは残ります。",
+  "In short": "要点",
+  "Full documentation": "完全なドキュメント",
+  "Expand all": "すべて展開",
+  "Collapse all": "すべて折りたたむ",
+  "Limited to deleted records": "削除されたレコードに限定",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}（{{date}} に削除）。",
+  "OneUptime switched this rule off when they were deleted.": "それらが削除されたときに、OneUptime がこのルールを無効にしました。",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "このまま有効にすると、このルールはこれらのリストでまったく制限されなくなります。編集して適用先を選んでから、有効にしてください。",
+  "{{names}} and {{count}} more": "{{names}} ほか {{count}} 件",
+  "{{names}} and {{count}} more_one": "{{names}} ほか {{count}} 件"
 }
