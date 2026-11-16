@@ -413,6 +413,36 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A PAGE MERGED INTO THE PERSON'S OPEN PAGE FROM ANOTHER POLICY'S RUN
+   * TAKES THE PAGE OVER (Types/OnCallDutyPolicy/OnCallPageMerge): that page
+   * ended without their answer, so from now on this one pages them itself.
+   * It is paging again (Executing), its line says why, and what the other
+   * page sent is written as its own sent deliveries, before any of its
+   * rules is claimed, so none of them is sent twice. Throws as the database
+   * does: the worker tries again.
+   */
+  @CaptureSpan()
+  public async takeOverMergedPage(data: {
+    userOnCallLogId: ObjectID;
+    statusMessage: string;
+    // Its own sent deliveries, with the other page's: claim keys and when.
+    executedNotificationRules: JSONObject;
+  }): Promise<void> {
+    await this.updateOneById({
+      id: data.userOnCallLogId,
+      data: {
+        status: UserNotificationExecutionStatus.Executing,
+        statusMessage: data.statusMessage,
+        executedNotificationRules: { ...data.executedNotificationRules },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
    * A PERSON'S LOG WITH NO RULE FOR ITS PAGE, THAT NEVER SENT ANYTHING, AT
    * THE PERSON'S-LOG WORKER (issues #8469, #8470).
    *

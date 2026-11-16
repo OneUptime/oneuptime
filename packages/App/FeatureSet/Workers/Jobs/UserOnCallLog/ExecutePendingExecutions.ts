@@ -1095,18 +1095,12 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
      * It takes the page over: from now on it pages the person itself, on
      * its own clock, with what the other page sent counted as sent.
      */
-    await UserOnCallLogService.updateOneById({
-      id: pendingNotificationLog.id!,
-      data: {
-        status: UserNotificationExecutionStatus.Executing,
-        statusMessage: getOnCallPageMergeTakenOverMessage({
-          policyName: mergedPageTakeOver.policyName,
-        }),
-        executedNotificationRules: executedNotificationRules,
-      },
-      props: {
-        isRoot: true,
-      },
+    await UserOnCallLogService.takeOverMergedPage({
+      userOnCallLogId: pendingNotificationLog.id!,
+      statusMessage: getOnCallPageMergeTakenOverMessage({
+        policyName: mergedPageTakeOver.policyName,
+      }),
+      executedNotificationRules: executedNotificationRules,
     });
 
     logger.info(
