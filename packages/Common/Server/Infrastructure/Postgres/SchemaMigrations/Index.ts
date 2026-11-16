@@ -1015,6 +1015,7 @@ import { AddOwnerNotificationFeedStatus1809179600000 } from "./1809179600000-Add
 import { AddOwnerNotificationFeedStatusIndex1809179610000 } from "./1809179610000-AddOwnerNotificationFeedStatusIndex";
 import { AddDataStoreWorkerContentScanIndex1809179800000 } from "./1809179800000-AddDataStoreWorkerContentScanIndex";
 import { AddServiceLevelObjectiveRequestFilter1809179900000 } from "./1809179900000-AddServiceLevelObjectiveRequestFilter";
+import { MasterApiKeyHashedColumn1809180790100 } from "./1809180790100-MasterApiKeyHashedColumn";
 
 export default [
   InitialMigration,
@@ -2034,4 +2035,5 @@ export default [
   AddOwnerNotificationFeedStatusIndex1809179610000,
   AddDataStoreWorkerContentScanIndex1809179800000,
   AddServiceLevelObjectiveRequestFilter1809179900000,
+  MasterApiKeyHashedColumn1809180790100,
 ];
