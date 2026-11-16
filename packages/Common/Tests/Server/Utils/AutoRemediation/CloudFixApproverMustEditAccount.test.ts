@@ -1,5 +1,5 @@
 import RemediationApproval from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import CommandPlanExecutor from "../../../../Server/Utils/AutoRemediation/CommandPlanExecutor";
 import WorkspaceRemediationActions from "../../../../Server/Utils/Workspace/WorkspaceRemediationActions";
 import AlertFeedService from "../../../../Server/Services/AlertFeedService";
@@ -177,6 +177,8 @@ function suggestionRow(cloud: Cloud): Record<string, unknown> {
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     resourceType: cloud.type,
     resourceId: new ObjectID(CLOUD_ACCOUNT_ID),

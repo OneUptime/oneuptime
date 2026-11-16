@@ -15,7 +15,10 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ObjectID from "../../../Types/ObjectID";
 import ModelEventType from "../../../Types/Realtime/ModelEventType";
+import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import NotOperationalMonitorQuery from "../../../Utils/Monitor/NotOperationalMonitorQuery";
+import MonitorFirstMeasured from "../../../Server/Utils/Monitor/MonitorFirstMeasured";
 import { useInMemoryTable } from "../TestingUtils/InMemoryRepository";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -46,6 +49,9 @@ jest.mock("../../../Server/Utils/Logger");
  *   - the bookkeeping a heartbeat or a probe's result stamps is written
  *     without hooks and announces nothing, so an open Monitors page is not
  *     asked to read again every minute for a change nothing on it shows;
+ *   - but a monitor's first measurement, stamped the same way, is announced
+ *     once it took (#8974): the list's row says Waiting for data until it,
+ *     and a first result that keeps the status changes nothing else;
  *   - the writes the counts follow go through the service, never around it.
  *
  * The real services and the real update pipeline, without Postgres
@@ -194,10 +200,11 @@ describe("a monitor's changes are announced, so the Monitors menu follows them",
     ).toEqual([`${ModelEventType.Update}:${MONITOR_ID}`]);
   });
 
-  test("a heartbeat's stamp is written without hooks, and announces nothing", async () => {
-    const query: MockFunction = getJestMockFunction().mockResolvedValue([]);
-
-    // What the one-statement write reads of the table: its columns and driver.
+  /*
+   * What a one-statement, hook-free write reads of the table - its columns
+   * and its driver - with `query` standing in for Postgres.
+   */
+  function withHookFreeWrites(query: MockFunction): void {
     Object.assign(table.repository as unknown as Record<string, unknown>, {
       metadata: {
         tableName: "Monitor",
@@ -222,6 +229,12 @@ describe("a monitor's changes are announced, so the Monitors menu follows them",
         query: query,
       },
     });
+  }
+
+  test("a heartbeat's stamp is written without hooks, and announces nothing", async () => {
+    const query: MockFunction = getJestMockFunction().mockResolvedValue([]);
+
+    withHookFreeWrites(query);
 
     await MonitorService.updateColumnsByIdWithoutHooks({
       id: new ObjectID(MONITOR_ID),
@@ -237,6 +250,139 @@ describe("a monitor's changes are announced, so the Monitors menu follows them",
     );
     // ...and no open page was asked to read again for it.
     expect(eventsSent()).toHaveLength(0);
+  });
+
+  /*
+   * A monitor's first measurement (#8974). Its stamp, firstMeasuredAt, is
+   * written without hooks as the heartbeat's bookkeeping is - it must never
+   * queue behind another writer of the row - and used to announce nothing
+   * like it: a first result that left the status as it was left a Monitors
+   * list open on Waiting for data. A stamp that took is announced now, once
+   * in the monitor's life.
+   */
+  describe("a monitor's first measurement", () => {
+    // Postgres's answer to the guarded stamp: written while the column is empty.
+    function guardedStamp(): MockFunction {
+      return getJestMockFunction().mockImplementation((async (
+        sql: string,
+        params: Array<unknown>,
+      ): Promise<Array<{ _id: unknown }>> => {
+        expect(sql).toContain('"firstMeasuredAt" IS NOT DISTINCT FROM $3');
+        // It yields to another writer of the row rather than queue behind it.
+        expect(sql).toContain("FOR UPDATE SKIP LOCKED");
+        expect(params[2]).toBeNull();
+
+        const row: Record<string, unknown> | undefined = table.get(
+          String(params[1]),
+        );
+
+        if (
+          !row ||
+          (row["firstMeasuredAt"] !== undefined &&
+            row["firstMeasuredAt"] !== null)
+        ) {
+          return [];
+        }
+
+        row["firstMeasuredAt"] = params[0];
+
+        return [{ _id: row["_id"] }];
+      }) as never);
+    }
+
+    // The monitor as a probe's result reads it, before anything measured it.
+    const readBeforeTheStamp: () => Monitor = (): Monitor => {
+      const monitor: Monitor = new Monitor();
+      monitor.id = new ObjectID(MONITOR_ID);
+      monitor.projectId = PROJECT_ID;
+      (monitor as unknown as Record<string, unknown>)["firstMeasuredAt"] = null;
+      return monitor;
+    };
+
+    const probeResult: ProbeMonitorResponse = {
+      projectId: PROJECT_ID,
+      monitorId: new ObjectID(MONITOR_ID),
+      isOnline: true,
+    } as unknown as ProbeMonitorResponse;
+
+    test("that keeps its status is announced, once, to whoever its own read lets in", async () => {
+      const query: MockFunction = guardedStamp();
+      withHookFreeWrites(query);
+
+      expect(
+        await MonitorFirstMeasured.stampIfFirst({
+          monitor: readBeforeTheStamp(),
+          dataToProcess: probeResult,
+        }),
+      ).toBe(true);
+
+      // Stamped, and the status left as it was: no write went through the service.
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(table.get(MONITOR_ID)!["firstMeasuredAt"]).toBeInstanceOf(Date);
+      expect(String(table.get(MONITOR_ID)!["currentMonitorStatusId"])).toBe(
+        ONLINE_STATUS_ID,
+      );
+      expect(table.updates).toHaveLength(0);
+
+      expect(eventsSent()).toHaveLength(1);
+
+      const event: EmittedEvent = eventsSent()[0]!;
+      expect(event.eventType).toBe(ModelEventType.Update);
+      expect(event.modelType).toBe(Monitor);
+      expect(event.tenantId?.toString()).toBe(PROJECT_ID.toString());
+      expect(event.modelId.toString()).toBe(MONITOR_ID);
+      // Labels, Owned and blocks count: the service's own read decides.
+      expect(event.access).toBe(MonitorService.getRealtimeReadAccess());
+    });
+
+    test("a second first result, read before the stamp landed, finds the column taken: nothing written, nothing announced", async () => {
+      withHookFreeWrites(guardedStamp());
+
+      await MonitorFirstMeasured.stampIfFirst({
+        monitor: readBeforeTheStamp(),
+        dataToProcess: probeResult,
+      });
+      emitted.mockClear();
+
+      expect(
+        await MonitorFirstMeasured.stampIfFirst({
+          monitor: readBeforeTheStamp(),
+          dataToProcess: probeResult,
+        }),
+      ).toBe(false);
+      expect(eventsSent()).toHaveLength(0);
+    });
+
+    test("a row another writer holds is skipped, and announces nothing", async () => {
+      // Locked: the sub-SELECT skips it, and nothing is written.
+      withHookFreeWrites(getJestMockFunction().mockResolvedValue([] as never));
+
+      expect(
+        await MonitorFirstMeasured.stampIfFirst({
+          monitor: readBeforeTheStamp(),
+          dataToProcess: probeResult,
+        }),
+      ).toBe(false);
+      expect(eventsSent()).toHaveLength(0);
+    });
+
+    test("a heartbeat sweep's look at what has not arrived stamps nothing and announces nothing", async () => {
+      const query: MockFunction = guardedStamp();
+      withHookFreeWrites(query);
+
+      expect(
+        await MonitorFirstMeasured.stampIfFirst({
+          monitor: readBeforeTheStamp(),
+          dataToProcess: {
+            projectId: PROJECT_ID,
+            monitorId: new ObjectID(MONITOR_ID),
+            onlyCheckRequestReceivedAt: true,
+          } as unknown as ServerMonitorResponse,
+        }),
+      ).toBe(false);
+      expect(query).not.toHaveBeenCalled();
+      expect(eventsSent()).toHaveLength(0);
+    });
   });
 
   test.each([

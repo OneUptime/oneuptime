@@ -325,7 +325,7 @@ Les correctifs ont les quatre mêmes modes que sur un cluster Kubernetes — `ON
 - **Désactivé** — l'IA ne fait qu'investiguer.
 - **Demander une approbation** — après l'analyse des causes racines, OneUptime AI établit un diagnostic avec des commandes de lecture et compose le plus petit plan qui traite la cause, par exemple `docker restart web`. Le plan apparaît sur l'incident ou l'alerte avec sa justification, son effet attendu et son retour arrière ; une personne l'approuve d'un clic, et OneUptime exécute exactement ces commandes.
 - **Automatique** — les modifications sûres (**SafeWrite**) s'exécutent d'elles-mêmes ; une modification plus risquée (**RiskyWrite**) est proposée à l'approbation, sauf si la liste d'autorisation des commandes de la ressource nomme sa forme exacte.
-- **Contourner l'approbation** — chaque modification que la politique autorise, y compris les plus risquées, s'exécute d'elle-même. Ce qui nécessite toujours une personne continue d'en attendre une.
+- **Contourner l'approbation** — chaque modification que la politique autorise, y compris les plus risquées, s'exécute d'elle-même. Ce qui nécessite toujours une personne continue d'en attendre une. Si le projet demande que deux personnes approuvent un correctif plus risqué, une modification plus risquée est proposée à leur approbation à la place.
 
 Après l'exécution d'un correctif, OneUptime surveille les moniteurs de l'incident ou de l'alerte. S'ils ne se rétablissent pas, le retour arrière du plan s'exécute et OneUptime AI compose un plan de plus, avec la tentative échouée sous les yeux — au plus deux tours par incident ou alerte. En mode **Automatique**, ce second tour demande une approbation ; en **Contourner l'approbation**, il s'exécute lui aussi de lui-même. Les correctifs sans surveillance sont limités par un disjoncteur à trois par ressource et par heure : au-delà, ou tant qu'un autre tour sans surveillance de OneUptime AI modifie ou vérifie encore la même ressource, un tour propose son plan à l'approbation au lieu de l'exécuter.
 
@@ -342,7 +342,7 @@ Un incident ou une alerte reçoit une seule voie de correctif IA. Lorsqu'il est 
 
 Certaines modifications plus risquées **nécessitent toujours une personne** dans tous les modes, Contourner l'approbation compris, et aucune entrée de la liste d'autorisation n'y change rien — elles sont signalées comme telles dans les tableaux ci-dessous.
 
-Un projet peut aussi demander que deux personnes approuvent un correctif comportant une modification plus risquée : voir [Deux personnes approuvent un correctif plus risqué](/docs/ai/ai-sre#deux-personnes-approuvent-un-correctif-plus-risqué).
+Un projet peut aussi demander que deux personnes approuvent un correctif comportant une modification plus risquée ; aucune modification plus risquée ne s'exécute alors d'elle-même, ni par la liste d'autorisation ni par Contourner l'approbation : voir [Deux personnes approuvent un correctif plus risqué](/docs/ai/ai-sre#deux-personnes-approuvent-un-correctif-plus-risqué).
 
 ### Correctifs sur les hôtes Docker et Podman
 

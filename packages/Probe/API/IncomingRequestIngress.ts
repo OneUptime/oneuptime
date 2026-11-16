@@ -13,6 +13,7 @@ import Express, {
   ExpressRouter,
   ExpressUrlEncoded,
   NextFunction,
+  OneUptimeRequest,
   RequestHandler,
   createExpressApp,
 } from "Common/Server/Utils/Express";
@@ -25,6 +26,7 @@ import URL from "Common/Types/API/URL";
 import Headers from "Common/Types/API/Headers";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { carriesIncomingRequestSignature } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import API, { APIRequestBody } from "Common/Utils/API";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Sleep from "Common/Types/Sleep";
@@ -101,8 +103,23 @@ export function getForwardUrl(secretKey: string): URL {
  * text/plain or +json body - the bytes that came, which OneUptime reads with
  * the request's own Content-Type, exactly as it would have read them
  * directly (a text as its text, JSON sent as text as its JSON).
+ *
+ * A signed request's body (carriesIncomingRequestSignature) is always the
+ * bytes that came, whatever its type, or none when it came without one: its
+ * signature was made over those bytes (issue #8500), and a body parsed and
+ * sent on re-encoded - JSON with other spacing, a form in another order - or
+ * an empty one sent on as "{}" would no longer match it, so OneUptime would
+ * refuse the request.
  */
 export function getRequestBody(req: ExpressRequest): APIRequestBody {
+  if (
+    carriesIncomingRequestSignature(
+      req.headers as Dictionary<string | Array<string> | undefined>,
+    )
+  ) {
+    return getSignedRequestBody(req);
+  }
+
   const body: unknown = req.body;
   if (body === undefined || body === null) {
     return {};
@@ -121,6 +138,48 @@ export function getRequestBody(req: ExpressRequest): APIRequestBody {
   }
   return Buffer.from(String(body), "utf8");
 }
+
+/*
+ * A signed request's bytes: kept while its JSON or form was parsed
+ * (keepSignedBodyBytes), read as they are for any other type
+ * (WebhookRequestBody.getSignedBodyReader), or the text body as it came.
+ */
+function getSignedRequestBody(req: ExpressRequest): Buffer {
+  const bytes: Buffer | undefined = (req as OneUptimeRequest).rawBodyBytes;
+
+  if (Buffer.isBuffer(bytes)) {
+    return bytes;
+  }
+
+  if (Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+
+  return Buffer.alloc(0);
+}
+
+// While a JSON or form body is parsed: a signed one's bytes, for the forward.
+const keepSignedBodyBytes: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  buf: Buffer,
+) => void = (req: ExpressRequest, _res: ExpressResponse, buf: Buffer): void => {
+  if (
+    carriesIncomingRequestSignature(
+      req.headers as Dictionary<string | Array<string> | undefined>,
+    )
+  ) {
+    (req as OneUptimeRequest).rawBodyBytes = buf;
+  }
+};
+
+const isSignedRequest: (req: ExpressRequest) => boolean = (
+  req: ExpressRequest,
+): boolean => {
+  return carriesIncomingRequestSignature(
+    req.headers as Dictionary<string | Array<string> | undefined>,
+  );
+};
 
 /*
  * Whether OneUptime's answer to a forward is a refusal it would give again:
@@ -253,12 +312,27 @@ router.get("/heartbeat/:secretkey", forwardToOneUptime);
  * empty, whatever its size. (It used to read application/octet-stream bodies
  * too, under express.raw's 100 KB default, which answered a larger one with
  * 413 instead of the promised 200; and OneUptime drops such a body anyway.)
+ *
+ * A signed request's body is also kept as the bytes that came, whatever its
+ * type, up to the same 50 MB, and forwarded as those bytes (getRequestBody),
+ * so its signature still holds when OneUptime checks it.
  */
 export function createIngressApp(): ExpressApplication {
   const app: ExpressApplication = createExpressApp();
-  app.use(ExpressJson({ limit: INGRESS_BODY_LIMIT }));
-  app.use(ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT }));
+  app.use(
+    ExpressJson({ limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes }),
+  );
+  app.use(
+    ExpressUrlEncoded({
+      extended: true,
+      limit: INGRESS_BODY_LIMIT,
+      verify: keepSignedBodyBytes,
+    }),
+  );
   app.use(WebhookRequestBody.getRawReader(INGRESS_BODY_LIMIT));
+  app.use(
+    WebhookRequestBody.getSignedBodyReader(INGRESS_BODY_LIMIT, isSignedRequest),
+  );
   app.use(router);
   return app;
 }

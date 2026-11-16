@@ -1,17 +1,25 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  MONITOR_ROW_STATUS_TONES,
+  MONITOR_ROW_STATUS_WORDS,
   getDisabledMonitorsQuery,
   getListedMonitorsQuery,
   getMonitorHealth,
   getMonitorIssuesQuery,
+  getMonitorRowStatus,
+  getMonitorRowStatusSelect,
   type MonitorHealth,
   type MonitorHealthFields,
+  type MonitorRowStatus,
 } from "./monitorHealth";
 
 /*
  * The app's copy of the web's monitor rule (issue #6475): a monitor whose
  * monitoring is turned off is Disabled and never an issue, whatever status its
- * last check left, and archived monitors are listed and counted nowhere.
+ * last check left, and archived monitors are listed and counted nowhere. And
+ * since #8961 the web's row rule: a monitor with an operational status no
+ * check stands behind - nothing has checked it yet, or no probe checks it -
+ * is Not checked, never Healthy, and its row says why in the web's words.
  *
  * Home's counts are server queries, the Monitors screen sorts the rows it was
  * sent in memory, and Home's rows open the screen's filters - so the two must
@@ -254,5 +262,341 @@ describe("Home's counts pick the monitors the screen's filters show", () => {
     expect(matches(row, getMonitorIssuesQuery())).toBe(false);
     expect(matches(row, getDisabledMonitorsQuery())).toBe(false);
     expect(matches(row, getListedMonitorsQuery())).toBe(false);
+  });
+});
+
+const NOW: Date = new Date("2026-11-16T12:00:00.000Z");
+const MINUTE: number = 60 * 1000;
+const HOUR: number = 60 * MINUTE;
+
+// A Website nothing has checked yet, as a server with firstMeasuredAt sends it.
+function neverChecked(
+  overrides: Partial<MonitorHealthFields> = {},
+): MonitorHealthFields {
+  return {
+    isArchived: false,
+    disableActiveMonitoring: false,
+    disableActiveMonitoringBecauseOfManualIncident: false,
+    disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+    isNoProbeEnabledOnThisMonitor: false,
+    isAllProbesDisconnectedFromThisMonitor: false,
+    monitorType: "Website",
+    firstMeasuredAt: null,
+    createdAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+    monitoringInterval: "*/5 * * * *",
+    currentMonitorStatus: {
+      name: "Operational",
+      isOperationalState: true,
+      isOfflineState: false,
+    },
+    ...overrides,
+  };
+}
+
+function rowOf(monitor: MonitorHealthFields): MonitorRowStatus {
+  return getMonitorRowStatus(monitor, NOW);
+}
+
+describe("getMonitorRowStatus: what a row says (#8961)", () => {
+  test("a monitor nothing has checked yet says Waiting for data, in the muted tone", () => {
+    expect(rowOf(neverChecked())).toEqual({
+      kind: "WaitingForData",
+      text: "Waiting for data",
+      isProductWords: true,
+      tone: "neutral",
+    });
+  });
+
+  test("No results yet once its first result is overdue, in the warning tone", () => {
+    expect(
+      rowOf(
+        neverChecked({
+          createdAt: new Date(NOW.getTime() - 2 * HOUR).toISOString(),
+        }),
+      ),
+    ).toEqual({
+      kind: "NoResultsYet",
+      text: "No results yet",
+      isProductWords: true,
+      tone: "warning",
+    });
+  });
+
+  test("Paused while an incident or a maintenance event holds its checks, however late", () => {
+    for (const pause of [
+      { disableActiveMonitoringBecauseOfManualIncident: true },
+      { disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true },
+    ]) {
+      expect(
+        rowOf(
+          neverChecked({
+            ...pause,
+            createdAt: new Date(NOW.getTime() - 2 * HOUR).toISOString(),
+          }),
+        ),
+      ).toEqual({
+        kind: "PausedBeforeFirstCheck",
+        text: "Paused",
+        isProductWords: true,
+        tone: "neutral",
+      });
+    }
+  });
+
+  test("why nothing checks it comes first, in the web's order", () => {
+    expect(
+      rowOf(neverChecked({ isArchived: true, disableActiveMonitoring: true }))
+        .kind,
+    ).toBe("Archived");
+    expect(
+      rowOf(
+        neverChecked({
+          disableActiveMonitoring: true,
+          isNoProbeEnabledOnThisMonitor: true,
+        }),
+      ).kind,
+    ).toBe("MonitoringOff");
+    expect(
+      rowOf(
+        neverChecked({
+          isNoProbeEnabledOnThisMonitor: true,
+          isAllProbesDisconnectedFromThisMonitor: true,
+        }),
+      ),
+    ).toEqual({
+      kind: "NoProbeEnabled",
+      text: "Probes Not Enabled",
+      isProductWords: true,
+      tone: "danger",
+    });
+    expect(
+      rowOf(neverChecked({ isAllProbesDisconnectedFromThisMonitor: true })),
+    ).toEqual({
+      kind: "ProbesDisconnected",
+      text: "Probes Disconnected",
+      isProductWords: true,
+      tone: "danger",
+    });
+  });
+
+  test("a monitor something has measured says its own status, in its own colour", () => {
+    expect(
+      rowOf(neverChecked({ firstMeasuredAt: "2026-11-16T11:00:00.000Z" })),
+    ).toEqual({
+      kind: "Status",
+      text: "Operational",
+      isProductWords: false,
+      tone: null,
+    });
+  });
+
+  test("a status something set before the first check, a manual monitor, and a row read without the column say the status", () => {
+    expect(
+      rowOf(
+        neverChecked({
+          currentMonitorStatus: {
+            name: "Offline",
+            isOperationalState: false,
+            isOfflineState: true,
+          },
+        }),
+      ).text,
+    ).toBe("Offline");
+    expect(rowOf(neverChecked({ monitorType: "Manual" })).text).toBe(
+      "Operational",
+    );
+    expect(rowOf(neverChecked({ firstMeasuredAt: undefined })).text).toBe(
+      "Operational",
+    );
+  });
+
+  test("a monitor read with no status, or a status with no name, says Unknown", () => {
+    expect(rowOf(neverChecked({ currentMonitorStatus: null }))).toEqual({
+      kind: "NoStatus",
+      text: "Unknown",
+      isProductWords: true,
+      tone: null,
+    });
+    expect(
+      rowOf(
+        neverChecked({
+          firstMeasuredAt: "2026-11-16T11:00:00.000Z",
+          currentMonitorStatus: { name: "", isOperationalState: false },
+        }),
+      ),
+    ).toEqual({
+      kind: "Status",
+      text: "Unknown",
+      isProductWords: true,
+      tone: null,
+    });
+  });
+
+  test("without a time, it is judged now", () => {
+    const young: MonitorHealthFields = neverChecked({
+      createdAt: new Date(Date.now() - MINUTE).toISOString(),
+    });
+    const old: MonitorHealthFields = neverChecked({
+      createdAt: new Date(Date.now() - 2 * HOUR).toISOString(),
+    });
+
+    expect(getMonitorRowStatus(young).text).toBe("Waiting for data");
+    expect(getMonitorRowStatus(old).text).toBe("No results yet");
+  });
+
+  test("every kind but the monitor's own status has words, and every word but Unknown a tone", () => {
+    expect(Object.keys(MONITOR_ROW_STATUS_WORDS).sort()).toEqual(
+      [
+        "Archived",
+        "MonitoringOff",
+        "NoProbeEnabled",
+        "ProbesDisconnected",
+        "PausedBeforeFirstCheck",
+        "NoResultsYet",
+        "WaitingForData",
+        "NoStatus",
+      ].sort(),
+    );
+    expect(Object.keys(MONITOR_ROW_STATUS_TONES).sort()).toEqual(
+      Object.keys(MONITOR_ROW_STATUS_WORDS)
+        .filter((kind: string): boolean => {
+          return kind !== "NoStatus";
+        })
+        .sort(),
+    );
+  });
+});
+
+describe("getMonitorHealth: an operational status no check stands behind is Not checked (#8961)", () => {
+  test.each<[string, Partial<MonitorHealthFields>, MonitorHealth]>([
+    ["nothing has checked it yet", {}, "notChecked"],
+    [
+      "its first result is overdue",
+      { createdAt: new Date(NOW.getTime() - 2 * HOUR).toISOString() },
+      "notChecked",
+    ],
+    [
+      "an incident holds its first check",
+      { disableActiveMonitoringBecauseOfManualIncident: true },
+      "notChecked",
+    ],
+    [
+      "no probe is enabled",
+      {
+        firstMeasuredAt: "2026-11-01T00:00:00.000Z",
+        isNoProbeEnabledOnThisMonitor: true,
+      },
+      "notChecked",
+    ],
+    [
+      "every probe is disconnected",
+      {
+        firstMeasuredAt: "2026-11-01T00:00:00.000Z",
+        isAllProbesDisconnectedFromThisMonitor: true,
+      },
+      "notChecked",
+    ],
+    [
+      "something has measured it",
+      { firstMeasuredAt: "2026-11-01T00:00:00.000Z" },
+      "healthy",
+    ],
+    [
+      "an incident paused it after it was measured: its status is what paused it",
+      {
+        firstMeasuredAt: "2026-11-01T00:00:00.000Z",
+        disableActiveMonitoringBecauseOfManualIncident: true,
+      },
+      "healthy",
+    ],
+    ["it is a manual monitor", { monitorType: "Manual" }, "healthy"],
+    [
+      "it was read from a server older than firstMeasuredAt",
+      { firstMeasuredAt: undefined },
+      "healthy",
+    ],
+    [
+      "no probe checks it, but its last status was Offline: an issue, as Not Operational counts it",
+      {
+        firstMeasuredAt: "2026-11-01T00:00:00.000Z",
+        isAllProbesDisconnectedFromThisMonitor: true,
+        currentMonitorStatus: {
+          name: "Offline",
+          isOperationalState: false,
+          isOfflineState: true,
+        },
+      },
+      "issue",
+    ],
+    ["its monitoring is off", { disableActiveMonitoring: true }, "disabled"],
+    ["it has no status", { currentMonitorStatus: null }, "unknown"],
+  ])(
+    "%s",
+    (
+      _name: string,
+      overrides: Partial<MonitorHealthFields>,
+      expected: MonitorHealth,
+    ) => {
+      expect(getMonitorHealth(neverChecked(overrides))).toBe(expected);
+    },
+  );
+
+  test("Not checked is exactly an operational status whose row says why no check stands behind it", () => {
+    const flags: Array<boolean> = [false, true];
+
+    for (const isNoProbeEnabledOnThisMonitor of flags) {
+      for (const isAllProbesDisconnectedFromThisMonitor of flags) {
+        for (const disableActiveMonitoringBecauseOfManualIncident of flags) {
+          for (const firstMeasuredAt of [null, "2026-11-01T00:00:00.000Z"]) {
+            const monitor: MonitorHealthFields = neverChecked({
+              isNoProbeEnabledOnThisMonitor,
+              isAllProbesDisconnectedFromThisMonitor,
+              disableActiveMonitoringBecauseOfManualIncident,
+              firstMeasuredAt,
+            });
+            const row: MonitorRowStatus = rowOf(monitor);
+
+            expect({ monitor, health: getMonitorHealth(monitor) }).toEqual({
+              monitor,
+              health: row.kind === "Status" ? "healthy" : "notChecked",
+            });
+          }
+        }
+      }
+    }
+  });
+});
+
+describe("getMonitorRowStatusSelect", () => {
+  test("reads every field the row rule reads", () => {
+    expect(getMonitorRowStatusSelect()).toEqual({
+      isArchived: true,
+      disableActiveMonitoring: true,
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      isNoProbeEnabledOnThisMonitor: true,
+      isAllProbesDisconnectedFromThisMonitor: true,
+      monitorType: true,
+      firstMeasuredAt: true,
+      createdAt: true,
+      monitoringInterval: true,
+      currentMonitorStatus: {
+        name: true,
+        color: true,
+        isOperationalState: true,
+        isOfflineState: true,
+      },
+    });
+  });
+
+  test("hands out a fresh object each time", () => {
+    const first: Record<string, unknown> = getMonitorRowStatusSelect();
+    first["projectId"] = true;
+    (first["currentMonitorStatus"] as Record<string, unknown>)["_id"] = true;
+
+    expect(getMonitorRowStatusSelect()).not.toHaveProperty("projectId");
+    expect(
+      getMonitorRowStatusSelect()["currentMonitorStatus"],
+    ).not.toHaveProperty("_id");
   });
 });

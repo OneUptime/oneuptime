@@ -124,6 +124,7 @@ import {
   SCRUB_MAX_NESTED_VALUES_PER_RECORD,
   SCRUB_MAX_VALUE_DEPTH,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
+import { MAX_JSON_TEXTS_INSIDE_STRINGS } from "Common/Utils/Telemetry/ScrubJsonText";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
@@ -2488,7 +2489,100 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       ]),
     ).toBe('{"user":"jane","password":"[REDACTED]"}');
     expect(page).toContain(
-      "A log body sent as a map or a list is stored as its JSON text: a pattern rule scrubs it like any other text, and a **Sensitive Attribute Keys** rule reads the keys inside it, as it does in a body written as JSON.",
+      "A log body sent as a map or a list is stored as its JSON text, and a **Sensitive Attribute Keys** rule reads the keys inside it, as it does in a body written as JSON.",
+    );
+
+    /*
+     * Issue #8923: the body stays JSON. An address right after a line
+     * break - written `\n` in the JSON text - is found after it, not with
+     * the escape's letter; a card number at the start of a line is found
+     * at all; and a number a rule matches becomes a string.
+     */
+    const lines: string = JSON.stringify({
+      message: "line one\njane@example.com",
+      paid: "with\n4111 1111 1111 1111",
+      phone: 5551234567,
+    });
+
+    expect(
+      JSON.parse(
+        scrubbedBody(lines, [
+          scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+          scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Redact),
+          scrubRule(LogScrubPatternType.PhoneNumber, LogScrubAction.Redact),
+        ]),
+      ),
+    ).toEqual({
+      message: "line one\n[REDACTED]",
+      paid: "with\n[REDACTED]",
+      phone: "[REDACTED]",
+    });
+
+    // So does an attribute written as JSON.
+    const messages: string = JSON.stringify([
+      { role: "user", content: "mail me\njane@example.com" },
+    ]);
+
+    expect(
+      JSON.parse(
+        scrubbedAttributes(
+          { "gen_ai.input.messages": messages } as JSONObject,
+          LogScrubPatternType.Email,
+        )["gen_ai.input.messages"] as string,
+      ),
+    ).toEqual([{ role: "user", content: "mail me\n[REDACTED]" }]);
+    expect(page).toContain(
+      "A pattern rule keeps such a body JSON, and an attribute written as JSON too, such as an AI call's messages: it reads the text as your application wrote it, an escape such as `\\n` read as the line break it stands for, and replaces what it finds only inside its texts and numbers.",
+    );
+  });
+
+  // Issue #8924: a record's own session id, which its column keeps.
+  it("keeps the session.id that holds a record's session, and hides a login session", () => {
+    const row: JSONObject = LogScrubRuleService.scrubLog(
+      {
+        body: "",
+        sessionId: "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+        attributes: {
+          "resource.session.id": "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+          session_id: "login-1",
+          sessionid: "login-2",
+          "http.request.header.cookie": "theme=dark",
+        },
+      },
+      [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ] as never,
+    );
+
+    expect(row["attributes"]).toEqual({
+      "resource.session.id": "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+      session_id: "[REDACTED]",
+      sessionid: "[REDACTED]",
+      "http.request.header.cookie": "[REDACTED]",
+    });
+
+    // An AI call's conversation id the same way.
+    const span: JSONObject = TraceScrubRuleService.scrubSpan(
+      {
+        name: "chat",
+        llmConversationId: "chat-1",
+        attributes: { "langfuse.session.id": "chat-1" },
+        events: [],
+        links: [],
+      },
+      [
+        traceScrubRule(
+          TraceScrubPatternType.SensitiveKeys,
+          TraceScrubField.All,
+        ),
+      ] as never,
+    );
+
+    expect((span["attributes"] as JSONObject)["langfuse.session.id"]).toBe(
+      "chat-1",
+    );
+    expect(page).toContain(
+      "- **A record's session id is kept.** A **Sensitive Attribute Keys** rule hides a login session, such as a `session_id`, a `sessionid` or a cookie, but keeps `session.id` when it holds the session the log or span belongs to: the random id [Session Replay](/docs/telemetry/session-replay) files the record under, which the record keeps as its session either way. An AI call's conversation id is kept the same way. Don't send a login session's secret as `session.id`.",
     );
   });
 
@@ -2565,8 +2659,95 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
       notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
     });
+    // Issue #8993: so in JSON held in a string, an attribute's.
+    expect(
+      JSON.parse(
+        scrubbedAttributes(
+          { "request.body": body } as JSONObject,
+          LogScrubPatternType.SensitiveKeys,
+        )["request.body"] as string,
+      ),
+    ).toEqual({
+      user: { password: "[REDACTED]" },
+      deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
+      notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+    });
     expect(page).toContain(
-      "In a log body, only the part past these bounds is read as text: the rest of the body is still read key by key.",
+      "In a log body, and in JSON held in a string, only the part past these bounds is read as text: the rest is still read key by key.",
+    );
+  });
+
+  // Issue #8993: the keys of a JSON text held in a string.
+  it("reads JSON held in a string, as deep as the page says, and changes nothing but the hidden values", () => {
+    const requestBody: string =
+      '{ "user": "jane", "password": "hunter2", "id": 12345678901234567890 }';
+
+    expect(
+      scrubbedAttributes(
+        { "http.request.body": requestBody } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["http.request.body"],
+    ).toBe(requestBody.replace('"hunter2"', '"[REDACTED]"'));
+
+    // A Fluentd record's log line inside a log body.
+    const record: string = JSON.stringify({
+      log: '{"level":"info","password":"hunter2"}',
+      stream: "stdout",
+    });
+
+    expect(
+      scrubbedBody(record, [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ]),
+    ).toBe(record.replace('\\"hunter2\\"', '\\"[REDACTED]\\"'));
+
+    // As deep as the page says, and deeper read as text.
+    let chain: string = '{"password":"hunter2","user":"jane"}';
+
+    for (
+      let level: number = 0;
+      level < MAX_JSON_TEXTS_INSIDE_STRINGS;
+      level++
+    ) {
+      chain = JSON.stringify({ payload: chain });
+    }
+
+    let read: unknown = JSON.parse(
+      scrubbedAttributes(
+        { chain: chain } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["chain"] as string,
+    );
+
+    for (
+      let level: number = 0;
+      level < MAX_JSON_TEXTS_INSIDE_STRINGS;
+      level++
+    ) {
+      read = JSON.parse((read as Record<string, string>)["payload"]!);
+    }
+
+    expect(read).toEqual({ password: "[REDACTED]", user: "jane" });
+
+    const deeper: string = JSON.stringify({ payload: chain });
+
+    expect(
+      scrubbedAttributes(
+        { chain: deeper } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["chain"],
+    ).not.toContain("hunter2");
+
+    // A text that only looks like JSON is left as it is.
+    expect(
+      scrubbedAttributes(
+        { note: "{token}" } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      ),
+    ).toEqual({ note: "{token}" });
+
+    expect(page).toContain(
+      `- **JSON held in a string is read too.** A text that is JSON of its own, such as an attribute \`http.request.body\` holding \`{"password":"hunter2"}\`, or a Fluentd record's \`log\` line inside a log body, is read as JSON, up to ${MAX_JSON_TEXTS_INSIDE_STRINGS} levels of JSON one inside another, and deeper as text. A **Sensitive Attribute Keys** rule hides the values under the keys in it that look secret, and nothing else: its numbers, spaces and other texts stay as your application wrote them. A text that only looks like JSON, such as \`{token}\`, is left as it is.`,
     );
   });
 

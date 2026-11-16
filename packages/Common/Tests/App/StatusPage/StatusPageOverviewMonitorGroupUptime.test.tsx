@@ -674,16 +674,48 @@ describe("Status page overview - the uptime of a monitor group", () => {
           return undefined;
         },
       },
-      {
-        name: "the server recorded nothing for either group",
-        monitorGroupMergedDowntime: (): JSONObject | undefined => {
-          return mergedDowntimeJson({
-            [EDGE_ID]: { coveredSeconds: 0, downtimeSeconds: 0 },
-            [EU_EDGE_ID]: { coveredSeconds: 0, downtimeSeconds: 0 },
-          });
-        },
-      },
     ];
+
+    /*
+     * Issue #8960: the server merged both groups and recorded nothing - their
+     * monitors not checked yet, say. The rows still hold that time, in the
+     * status a monitor is created in, and would read it as up: no figure on
+     * the page may come from them, nor read 100%.
+     */
+    test("a group the server recorded nothing for has no uptime, and lifts nothing it rolls up into", async () => {
+      serve(
+        mergedDowntimeJson({
+          [EDGE_ID]: { coveredSeconds: 0, downtimeSeconds: 0 },
+          [EU_EDGE_ID]: { coveredSeconds: 0, downtimeSeconds: 0 },
+        }),
+      );
+
+      await renderOverview();
+
+      const edgeFromTheRows: number = fromTheRows(
+        EDGE_MONITORS,
+        UptimePrecision.THREE_DECIMAL,
+      );
+
+      expect(uptimeNextToTheName(EDGE_NAME)).toContain("— uptime");
+      expect(uptimeNextToTheName(EDGE_NAME)).not.toContain(
+        `${edgeFromTheRows}%`,
+      );
+
+      // The status page group it sits in has no figure to roll up.
+      const infrastructure: HTMLElement = screen
+        .getAllByTestId("status-page-group-header")
+        .find((candidate: HTMLElement): boolean => {
+          return within(candidate).queryByText("Infrastructure") !== null;
+        })!;
+      expect(
+        within(infrastructure).queryByTestId("status-page-group-rollup"),
+      ).not.toBeInTheDocument();
+
+      expect(screen.queryByText("100.00% uptime")).not.toBeInTheDocument();
+      // and the banner says no uptime rather than 100%.
+      expect(banner().textContent).not.toContain("uptime");
+    });
 
     test.each(FALLBACK_CASES)(
       "the page still renders, every group figure taken from the rows as before, when $name",

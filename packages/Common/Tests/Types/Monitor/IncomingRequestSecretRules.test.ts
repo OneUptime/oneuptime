@@ -3,7 +3,10 @@ import IncomingRequestSecretRules, {
   INCOMING_REQUEST_SECRET_HEADER,
   INCOMING_REQUEST_SECRET_MAX_LENGTH,
   INCOMING_REQUEST_SECRET_MIN_LENGTH,
+  INCOMING_REQUEST_SIGNATURE_FORMATS,
   IncomingRequestSecretValueProblem,
+  IncomingRequestSignatureFormat,
+  carriesIncomingRequestSignature,
 } from "../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import { describe, expect, test } from "@jest/globals";
 
@@ -20,6 +23,52 @@ describe("where a sender puts the secret", () => {
   test("the header and the Authorization scheme are the documented ones", () => {
     expect(INCOMING_REQUEST_SECRET_HEADER).toBe("X-OneUptime-Secret");
     expect(INCOMING_REQUEST_SECRET_AUTHORIZATION_SCHEME).toBe("Bearer");
+  });
+});
+
+/*
+ * Whether a request is signed, by the header names a relay sees (issue
+ * #8500): a probe passes a signed request's body on as the bytes that came.
+ */
+describe("carriesIncomingRequestSignature", () => {
+  test.each(
+    INCOMING_REQUEST_SIGNATURE_FORMATS.map(
+      (format: IncomingRequestSignatureFormat): [string] => {
+        return [format.header];
+      },
+    ),
+  )("is true for a request with %s, as Node names it", (header: string) => {
+    expect(
+      carriesIncomingRequestSignature({ [header.toLowerCase()]: "t=1,v1=00" }),
+    ).toBe(true);
+    expect(
+      carriesIncomingRequestSignature({ [header.toLowerCase()]: ["v0=00"] }),
+    ).toBe(true);
+  });
+
+  test("is false for a request that sends a secret, or nothing", () => {
+    expect(
+      carriesIncomingRequestSignature({
+        "x-oneuptime-secret": "a-secret-of-the-project",
+        authorization: "Bearer a-secret-of-the-project",
+        "content-type": "application/json",
+      }),
+    ).toBe(false);
+    expect(carriesIncomingRequestSignature({})).toBe(false);
+  });
+
+  test("is false for a signature header that is empty, or only a timestamp", () => {
+    expect(
+      carriesIncomingRequestSignature({ "x-oneuptime-signature": "" }),
+    ).toBe(false);
+    expect(carriesIncomingRequestSignature({ "stripe-signature": [] })).toBe(
+      false,
+    );
+    expect(
+      carriesIncomingRequestSignature({
+        "x-slack-request-timestamp": "1800000000",
+      }),
+    ).toBe(false);
   });
 });
 

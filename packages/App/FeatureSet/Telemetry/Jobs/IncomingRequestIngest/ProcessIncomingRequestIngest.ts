@@ -207,6 +207,7 @@ export async function processIncomingRequestFromQueue(
       monitorId: monitorOfKey.monitorId,
       presentedSecretHashes: jobData.presentedSecretHashes,
       requestHeaders: requestHeaders,
+      signatureProblem: jobData.signatureProblem,
     });
 
   if (secretDecision.isRefused) {

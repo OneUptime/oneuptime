@@ -1112,3 +1112,158 @@ describe("a span's status message, its events' names and its exception's type, o
     },
   );
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * #8993: a JSON text held in a string - a span's request body, an AI call's
+ * messages with a tool call's arguments, an event's payload, a link's, and
+ * an exception's message written as JSON - is read key by key by a
+ * Sensitive Attribute Keys rule on each route. The exception row holds what
+ * the span row's exception.message holds, and its group stays the one the
+ * exception was filed under before the rule.
+ * ---------------------------------------------------------------------------
+ */
+const JSON_TEXTS_SPAN_ID_HEX: string = "aaaaaaaaaaaaaa04";
+const REQUEST_BODY: string =
+  '{ "username": "ada", "password": "hunter2", "id": 12345678901234567890 }';
+const REQUEST_BODY_HIDDEN: string =
+  '{ "username": "ada", "password": "[REDACTED]", "id": 12345678901234567890 }';
+const TOOL_CALLS: string = JSON.stringify([
+  {
+    role: "assistant",
+    tool_calls: [
+      {
+        function: {
+          name: "login",
+          arguments: JSON.stringify({ username: "ada", api_key: "key-55" }),
+        },
+      },
+    ],
+  },
+]);
+const EXCEPTION_MESSAGE: string =
+  '{"error":"declined","card_number":"4111-0000","retry":true}';
+
+function jsonTextsTraceRequest(): JSONObject {
+  return {
+    resourceSpans: [
+      {
+        resource: { attributes: pairs([["service.name", text(SERVICE_NAME)]]) },
+        scopeSpans: [
+          {
+            scope: { name: "checkout.tracer" },
+            spans: [
+              {
+                traceId: TRACE_ID_HEX,
+                spanId: JSON_TEXTS_SPAN_ID_HEX,
+                name: "POST /login",
+                kind: 2,
+                startTimeUnixNano: "1794218403000000000",
+                endTimeUnixNano: "1794218403250000000",
+                attributes: pairs([
+                  ["http.request.body", text(REQUEST_BODY)],
+                  ["gen_ai.output.messages", text(TOOL_CALLS)],
+                ]),
+                events: [
+                  {
+                    timeUnixNano: "1794218403100000000",
+                    name: "request",
+                    attributes: pairs([["payload", text(REQUEST_BODY)]]),
+                  },
+                  {
+                    timeUnixNano: "1794218403200000000",
+                    name: "exception",
+                    attributes: pairs([
+                      ["exception.type", text("LoginError")],
+                      ["exception.message", text(EXCEPTION_MESSAGE)],
+                      ["exception.stacktrace", text("at login (auth.js:3)")],
+                    ]),
+                  },
+                ],
+                links: [
+                  {
+                    traceId: LINKED_TRACE_ID_HEX,
+                    spanId: LINKED_SPAN_ID_HEX,
+                    attributes: pairs([["link.payload", text(REQUEST_BODY)]]),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function toolCallArguments(messages: string): unknown {
+  const call: JSONObject = (
+    (JSON.parse(messages) as Array<JSONObject>)[0]![
+      "tool_calls"
+    ] as Array<JSONObject>
+  )[0]!;
+
+  return JSON.parse((call["function"] as JSONObject)["arguments"] as string);
+}
+
+describe("a JSON text held in a string is read key by key on each OTLP route (#8993)", () => {
+  test.each(ROUTE_CASES)(
+    "%s: a span's, its events' and its links' JSON texts and its exception's message hide the secret under a key",
+    async (_label: string, routeIndex: number) => {
+      // Before any rule: the group the exception is filed under.
+      setupIngest([]);
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(jsonTextsTraceRequest()),
+      );
+      const fingerprint: unknown = exceptionRows[0]!["fingerprint"];
+
+      jest.restoreAllMocks();
+      spanRows = [];
+      exceptionRows = [];
+
+      setupIngest([
+        compiledRule({
+          patternType: TraceScrubPatternType.SensitiveKeys,
+          action: TraceScrubAction.Redact,
+        }),
+      ]);
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(jsonTextsTraceRequest()),
+      );
+
+      const row: JSONObject = spanRow(JSON_TEXTS_SPAN_ID_HEX);
+      const attributes: JSONObject = row["attributes"] as JSONObject;
+
+      expect(attributes["http.request.body"]).toBe(REQUEST_BODY_HIDDEN);
+      expect(
+        toolCallArguments(attributes["gen_ai.output.messages"] as string),
+      ).toEqual({ username: "ada", api_key: "[REDACTED]" });
+      expect(eventAttributes(row, "request")["payload"]).toBe(
+        REQUEST_BODY_HIDDEN,
+      );
+      expect(
+        ((row["links"] as Array<JSONObject>)[0]!["attributes"] as JSONObject)[
+          "link.payload"
+        ],
+      ).toBe(REQUEST_BODY_HIDDEN);
+
+      const hiddenMessage: string = EXCEPTION_MESSAGE.replace(
+        '"4111-0000"',
+        '"[REDACTED]"',
+      );
+
+      expect(eventAttributes(row, "exception")["exception.message"]).toBe(
+        hiddenMessage,
+      );
+      expect(exceptionRows).toHaveLength(1);
+      expect(exceptionRows[0]!["message"]).toBe(hiddenMessage);
+      expect(exceptionRows[0]!["fingerprint"]).toBe(fingerprint);
+
+      const stored: string = JSON.stringify([spanRows, exceptionRows]);
+
+      expect(stored).not.toContain("hunter2");
+      expect(stored).not.toContain("key-55");
+      expect(stored).not.toContain("4111-0000");
+    },
+  );
+});

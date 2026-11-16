@@ -1,3 +1,4 @@
+import ProjectService from "../../../../Server/Services/ProjectService";
 import RemediationCommandToolkit, {
   INLINE_COMMAND_STEP_ID_PREFIX,
   RemediationCommandNeedingApproval,
@@ -290,6 +291,14 @@ function kept(
 }
 
 beforeEach(() => {
+  /*
+   * The project does not ask two people to approve a riskier fix: what
+   * this suite pins runs as it always has (RemediationCommandToolsTwoApprovals
+   * pins the rule turned on).
+   */
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockResolvedValue({ requireTwoApprovalsForRiskierFixes: false } as never);
   mockHappyPath();
 });
 

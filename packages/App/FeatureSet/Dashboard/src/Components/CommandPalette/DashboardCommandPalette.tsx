@@ -748,8 +748,9 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
         },
       },
       /*
-       * The map of the product, from the keyboard (#6936). The dialog
-       * records that it was opened from here.
+       * The map of the product, from the keyboard (#6936): how a problem
+       * moves through OneUptime, and every product it has, by category
+       * (#8891). The dialog records that it was opened from here.
        */
       "action-how-oneuptime-works": {
         id: "action-how-oneuptime-works",
@@ -765,6 +766,10 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           "introduction",
           "tour",
           "help",
+          "features",
+          "capabilities",
+          "all products",
+          "what can oneuptime do",
         ],
         onSelect: () => {
           closePalette();

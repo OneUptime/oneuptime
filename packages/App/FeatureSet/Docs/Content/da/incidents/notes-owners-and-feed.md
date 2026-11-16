@@ -277,7 +277,7 @@ Nogle poster har ekstra detaljer — en notifikation til ejerne viser for eksemp
 Kortets hoved har også en menu **Handlinger**, så du kan handle uden at forlade tidslinjen:
 
 - **Kør runbook** — start et [runbook](/docs/runbooks/index) for denne hændelse.
-- **Udfør vagtpolitik** — tilkald en politik efter behov. En arkiveret politik tilkalder ingen: dens udførelseslog på hændelsen siger, at den ikke blev udført, fordi politikken er arkiveret. Slå **Tilkald dem som observatører** til for i stedet at holde politikkens personer orienteret: Deres svar siger kun, at de har set tilkaldet, og hændelsen bliver ikke bekræftet.
+- **Udfør vagtpolitik** — tilkald en politik efter behov. Den tilkalder politikkens personer, indtil en af dem svarer, eller hændelsen er løst, også når nogen allerede har bekræftet hændelsen. Den er slået fra på en løst hændelse, og arkiverede politikker, som ikke tilkalder nogen, tilbydes ikke. Slå **Tilkald dem som observatører** til for i stedet at holde politikkens personer orienteret: Deres svar siger kun, at de har set tilkaldet, og hændelsen bliver ikke bekræftet.
 - **Tilføj offentlig note** — siden **Offentlige noter**'s editor, i en dialog: skriv noten, og derefter **Slå opdatering op**. Skabeloner, **Udkast med AI**, vedhæftninger, **Giv abonnenter på statussiden besked** med hvem den når, og **Forhåndsvisning** er der alle. Noten slås op nu; for at tilbagedatere den vælger du **Slået op nu**.
 - **Tilføj privat note** — siden **Private noter**'s editor, i en dialog: skriv noten, og derefter **Tilføj note**.
 

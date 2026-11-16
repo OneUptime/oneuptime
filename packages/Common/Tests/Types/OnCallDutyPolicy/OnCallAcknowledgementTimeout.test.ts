@@ -11,6 +11,7 @@ import {
   getOnCallAcknowledgementTimeoutInMinutes,
   getOnCallAcknowledgementTimeoutRefusal,
   getOnCallPageAgainChatReason,
+  getOnCallPageAgainDueAt,
   getOnCallPageAgainPlace,
   getOnCallPageAgainPlaceWithLast,
   getOnCallPageAgainStatusMessage,
@@ -232,6 +233,115 @@ describe("when the clock runs out", () => {
         now: new Date("2026-10-22T02:30:00.000Z"),
       }),
     ).toBe(true);
+  });
+});
+
+/*
+ * When a page again was due, for its time to send (issue #6847): when its
+ * clock ran out, or when its policy was changed after that - a timeout cut
+ * past its moment was due from the cut.
+ */
+describe("when a page again was due, for its time to send", () => {
+  const startedAt: Date = new Date("2026-10-22T02:00:00.000Z");
+
+  test("a policy changed before the clock ran out: when it ran out", () => {
+    for (const changedAt of [
+      "2026-10-21T09:00:00.000Z",
+      "2026-10-22T01:59:59.999Z",
+      "2026-10-22T02:00:00.000Z",
+      "2026-10-22T02:10:00.000Z",
+      "2026-10-22T02:29:59.999Z",
+    ]) {
+      expect({
+        changedAt,
+        dueAt: getOnCallPageAgainDueAt({
+          startedAt: startedAt,
+          minutes: 30,
+          policyChangedAt: new Date(changedAt),
+        }).toISOString(),
+      }).toEqual({ changedAt, dueAt: "2026-10-22T02:30:00.000Z" });
+    }
+  });
+
+  test("a policy changed at the very moment it ran out: that moment", () => {
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: startedAt,
+        minutes: 30,
+        policyChangedAt: new Date("2026-10-22T02:30:00.000Z"),
+      }).toISOString(),
+    ).toBe("2026-10-22T02:30:00.000Z");
+  });
+
+  test("the issue's example: started at 10:00 with 30 minutes, cut to 10 at 10:20 - due at 10:20, not 10:10", () => {
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: new Date("2026-10-22T10:00:00.000Z"),
+        minutes: 10,
+        policyChangedAt: new Date("2026-10-22T10:20:00.000Z"),
+      }).toISOString(),
+    ).toBe("2026-10-22T10:20:00.000Z");
+  });
+
+  test("to the millisecond of the change", () => {
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: startedAt,
+        minutes: 30,
+        policyChangedAt: new Date("2026-10-22T02:30:00.001Z"),
+      }).toISOString(),
+    ).toBe("2026-10-22T02:30:00.001Z");
+  });
+
+  test("a change read back as text counts as the date it says", () => {
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: startedAt,
+        minutes: 10,
+        policyChangedAt: "2026-10-22T02:17:00.000Z",
+      }).toISOString(),
+    ).toBe("2026-10-22T02:17:00.000Z");
+  });
+
+  test("no change known, or one that is no moment: when the clock ran out", () => {
+    for (const policyChangedAt of [
+      undefined,
+      null,
+      "",
+      "not a date",
+      new Date("not a date"),
+    ]) {
+      expect(
+        getOnCallPageAgainDueAt({
+          startedAt: startedAt,
+          minutes: 30,
+          policyChangedAt: policyChangedAt,
+        }).toISOString(),
+      ).toBe(
+        getOnCallAcknowledgementTimeoutDueAt({
+          startedAt: startedAt,
+          minutes: 30,
+        }).toISOString(),
+      );
+    }
+  });
+
+  test("never changes when the clock runs out: that is the timeout's alone", () => {
+    const cut: { startedAt: Date; minutes: number; now: Date } = {
+      startedAt: startedAt,
+      minutes: 10,
+      now: new Date("2026-10-22T02:17:00.000Z"),
+    };
+
+    // Due by the timeout at 02:10, however late the policy was changed.
+    expect(isOnCallAcknowledgementTimeoutDue(cut)).toBe(true);
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: cut.startedAt,
+        minutes: cut.minutes,
+        policyChangedAt: cut.now,
+      }).toISOString(),
+    ).toBe("2026-10-22T02:17:00.000Z");
   });
 });
 

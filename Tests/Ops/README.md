@@ -64,6 +64,15 @@ Test" workflow provides both:
   the built Runner image against a stand-in OneUptime server and has it run a
   JavaScript and a Bash step. The Build workflow's Runner job builds the image
   as `oneuptime-runner:ci` and runs it so, and the suite checks that it does.
+- **docker, for the Node.js images' heap.** `NodeImageHeapLimit.test.js` runs
+  every service's start script up to node under sh, bash and (where it is
+  installed) BusyBox, against cgroup files it writes for each case. With
+  `RUN_NODE_HEAP_CONTAINER_TESTS=1` it also runs the rule in
+  `node:26-alpine3.24` containers with real `--memory` limits, in the host's
+  cgroup namespace and with a cgroup v1 tree mounted; the workflow sets it on
+  the jest step, and the suite checks that it does. `NODE_HEAP_IMAGES` (image
+  references, space-separated) adds each built image's own start script, run
+  with the image's shell and node, with and without a limit.
 - **packages/Common's and packages/Nginx's packages.**
   `PruneUnreachablePackages.test.js` walks the real certificate sidecar's
   imports, as the ingress image's build does, only where both are installed
