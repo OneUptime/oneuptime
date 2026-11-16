@@ -1738,7 +1738,7 @@ values are set. Secrets can come from an existing Kubernetes secret.
 
 {{- range $name := (list "VALKEY" "REDIS") }}
 - name: {{ $name }}_HOST
-  value: {{ $valkeyHost | quote }}
+  value: {{ include "oneuptime.envValue" $valkeyHost }}
 - name: {{ $name }}_PORT
   value: {{ $valkeyPort | quote }}
 - name: {{ $name }}_PASSWORD
@@ -1771,7 +1771,7 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: {{ $name }}_DB
   value: {{ $valkeyDb | quote }}
 - name: {{ $name }}_USERNAME
-  value: {{ $valkeyUsername | quote }}
+  value: {{ include "oneuptime.envValue" $valkeyUsername }}
 
 ## CACHE TLS BLOCK -- only an external cache can carry certificates.
 {{- if not $valkey.enabled }}

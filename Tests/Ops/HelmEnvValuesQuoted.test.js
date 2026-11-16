@@ -1407,7 +1407,11 @@ describe("every copy of a setting the chart keeps beside the pods' env holds wha
               externalClickhouse: {
                 password: OWN_PASSWORDS.clickhouse + ending,
               },
-              externalValkey: { password: OWN_PASSWORDS.valkey + ending },
+              externalValkey: {
+                password: OWN_PASSWORDS.valkey + ending,
+                // A username is used without the whitespace around it.
+                username: fromAFile("cache-user"),
+              },
             }),
           );
           const expected = {
@@ -1415,6 +1419,8 @@ describe("every copy of a setting the chart keeps beside the pods' env holds wha
             CLICKHOUSE_PASSWORD: OWN_PASSWORDS.clickhouse,
             VALKEY_PASSWORD: OWN_PASSWORDS.valkey,
             REDIS_PASSWORD: OWN_PASSWORDS.valkey,
+            VALKEY_USERNAME: "cache-user",
+            REDIS_USERNAME: "cache-user",
           };
 
           if (pgbouncer) {
