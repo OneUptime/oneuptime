@@ -27,10 +27,18 @@ jest.mock("react-i18next", () => {
   };
 });
 
+/*
+ * Global Runners keep GitLab, Forgejo, Gitea and Git repositories off
+ * themselves (Common/Types/Runner/GlobalRunnerRepositoryTokens): on OneUptime
+ * Cloud (billing on), and on a self-hosted multi-tenant install with
+ * GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY on. The component reads the combined
+ * flag; this suite turns it on.
+ */
 jest.mock("../../../UI/Config", () => {
   return {
     ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
     BILLING_ENABLED: true,
+    GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF: true,
   };
 });
 

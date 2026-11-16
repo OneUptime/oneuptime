@@ -55980,7 +55980,7 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Gamle løste hendelser med en etteranalyse i en status du velger bort, slettes innen en time. De kan ikke gjenopprettes.",
   "{{count}} attempt": "{{count}} forsøk",
   "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om påloggingsforsøket",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "På OneUptime Cloud jobber AI i et repository som ikke ligger på GitHub, på en av dine egne Runnere: tilgangstokenet gis aldri til en global Runner. Velg en av dine Runnere.",
+  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI jobber i et repository som ikke ligger på GitHub, på en av dine egne Runnere: tilgangstokenet gis aldri til en global Runner. Velg en av dine Runnere.",
   "Reads work, but changes will fail": "Lesing fungerer, men endringer vil mislykkes",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Kjør oppsettkommandoen på nytt. Den flytter endringene til en egen skriveidentitet, og agentens egen identitet beholder bare lesingen.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Kjør oppsettkommandoen på nytt. Den flytter endringene til en egen skriverolle, som agenten tar på seg for hver endring med en policy bare for den endringen.",

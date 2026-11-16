@@ -26,6 +26,7 @@ import {
   decideSandboxIsolation,
   isLiveProcessOfUser,
 } from "../../../Utils/JavaScriptSandbox/SandboxIdentity";
+import { GlobalRunnerStepUserReason } from "Common/Types/Runner/GlobalRunnerSandbox";
 import logger from "Common/Server/Utils/Logger";
 import fs from "fs";
 import path from "path";
@@ -78,6 +79,7 @@ describe("decideSandboxIsolation", () => {
     expect(await decide({ exitCode: 0, errorCode: null })).toEqual({
       isolation: SandboxIsolation.OwnUser,
       reason: null,
+      reasonCode: null,
     });
   });
 
@@ -87,6 +89,7 @@ describe("decideSandboxIsolation", () => {
     ).toEqual({
       isolation: SandboxIsolation.OwnProcess,
       reason: NO_PRIVILEGE_REASON,
+      reasonCode: GlobalRunnerStepUserReason.NoPrivilege,
     });
   });
 
@@ -94,6 +97,7 @@ describe("decideSandboxIsolation", () => {
     expect(await decide({ exitCode: null, errorCode: "EACCES" })).toEqual({
       isolation: SandboxIsolation.OwnProcess,
       reason: LAUNCHER_NOT_RUNNABLE_REASON,
+      reasonCode: GlobalRunnerStepUserReason.NotInNodeGroup,
     });
   });
 
@@ -108,6 +112,7 @@ describe("decideSandboxIsolation", () => {
       expect(decision).toEqual({
         isolation: SandboxIsolation.OwnProcess,
         reason: LAUNCHER_MISSING_REASON,
+        reasonCode: GlobalRunnerStepUserReason.NotInstalled,
       });
     }
 
@@ -126,6 +131,7 @@ describe("decideSandboxIsolation", () => {
     expect(await decide({ exitCode: 70, errorCode: null })).toEqual({
       isolation: SandboxIsolation.OwnProcess,
       reason: "the JavaScript sandbox launcher's check failed (exit code 70)",
+      reasonCode: GlobalRunnerStepUserReason.CheckFailed,
     });
     expect((await decide({ exitCode: null, errorCode: null })).reason).toBe(
       "the JavaScript sandbox launcher's check failed (it did not finish)",
