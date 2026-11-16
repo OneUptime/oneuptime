@@ -1785,7 +1785,10 @@ working mail server.
   that record's title and other fields only to those who may read it. The
   commands a Runner ran for a runbook run or a fix about a private record,
   with what they printed, are now read only by those who may read the record,
-  and those of a deleted fix only by Project Owners and Project Admins. See
+  and those of a deleted fix only by Project Owners and Project Admins. The
+  commands OneUptime AI ran for a chat are now read only by the person who
+  asked, and those of an investigation about a private record only by those
+  who may read the record. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including

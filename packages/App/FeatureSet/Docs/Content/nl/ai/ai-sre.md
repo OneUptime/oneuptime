@@ -280,7 +280,7 @@ Alles op de pagina komt uit wat OneUptime al heeft vastgelegd (de incidenten en 
 
 ### Alles wat AI op een cluster deed
 
-De pagina **AI-logboeken** van het cluster (AI → Logboeken) is het overzicht van alles wat OneUptime AI daar deed, het nieuwste eerst: elk onderzoek met zijn incident of waarschuwing en zijn samenvatting, elke fix die het voorstelde of uitvoerde met zijn status, en elke kubectl-opdracht (voor onderzoek of fix) met de opdracht, de status en wanneer ze draaide. De samenvatting van een onderzoek is de TL;DR ervan of, wanneer er geen TL;DR kon worden geschreven, de samenvatting waarmee het rapport opent. Deze pagina heette eerder AI Insights; een bladwijzer van het oude adres opent nu de pagina AI Insights, die hiernaar linkt.
+De pagina **AI-logboeken** van het cluster (AI → Logboeken) is het overzicht van alles wat OneUptime AI daar deed, het nieuwste eerst: elk onderzoek met zijn incident of waarschuwing en zijn samenvatting, elke fix die het voorstelde of uitvoerde met zijn status, en elke kubectl-opdracht (voor onderzoek of fix) met de opdracht, de status en wanneer ze draaide. De samenvatting van een onderzoek is de TL;DR ervan of, wanneer er geen TL;DR kon worden geschreven, de samenvatting waarmee het rapport opent. Deze pagina heette eerder AI Insights; een bladwijzer van het oude adres opent nu de pagina AI Insights, die hiernaar linkt. De pagina toont de kubectl-opdrachten die je mag lezen: die OneUptime AI uitvoerde voor de AI-chat van iemand anders, of over een privé-incident of -waarschuwing die je niet mag lezen, worden weggelaten, en de pagina zegt hoeveel het er zijn.
 
 ### Via de vorige Runner in het cluster
 

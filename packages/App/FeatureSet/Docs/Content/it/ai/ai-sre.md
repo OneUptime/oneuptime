@@ -280,7 +280,7 @@ Tutto ciò che c'è nella pagina proviene da ciò che OneUptime ha già registra
 
 ### Tutto ciò che l'IA ha fatto su un cluster
 
-La pagina **Log IA** del cluster (IA → Log) è il log di tutto ciò che OneUptime AI ha fatto lì, dal più recente: ogni indagine con il suo incidente o avviso e il suo riepilogo, ogni correzione proposta o eseguita con il suo stato, e ogni comando kubectl (di indagine o di correzione) con il comando, il suo stato e quando è stato eseguito. Il riepilogo di un'indagine è il suo TL;DR o, quando non è stato possibile scrivere un TL;DR, il riepilogo con cui si apre il suo report. Questa pagina si chiamava prima Insight IA; un segnalibro del suo vecchio indirizzo ora apre la pagina Insight IA, che rimanda qui.
+La pagina **Log IA** del cluster (IA → Log) è il log di tutto ciò che OneUptime AI ha fatto lì, dal più recente: ogni indagine con il suo incidente o avviso e il suo riepilogo, ogni correzione proposta o eseguita con il suo stato, e ogni comando kubectl (di indagine o di correzione) con il comando, il suo stato e quando è stato eseguito. Il riepilogo di un'indagine è il suo TL;DR o, quando non è stato possibile scrivere un TL;DR, il riepilogo con cui si apre il suo report. Questa pagina si chiamava prima Insight IA; un segnalibro del suo vecchio indirizzo ora apre la pagina Insight IA, che rimanda qui. Elenca i comandi kubectl che puoi leggere: quelli che OneUptime AI ha eseguito per la chat IA di un'altra persona, o su un incidente o un avviso privato che non puoi leggere, sono esclusi, e la pagina dice quanti sono.
 
 ### Tramite il precedente Runner nel cluster
 

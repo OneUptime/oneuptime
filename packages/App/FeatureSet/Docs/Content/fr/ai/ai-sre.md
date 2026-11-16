@@ -280,7 +280,7 @@ Tout ce qui figure sur la page provient de ce que OneUptime a déjà enregistré
 
 ### Tout ce que l'IA a fait sur un cluster
 
-La page **Journaux IA** du cluster (IA → Journaux) est le relevé de tout ce que OneUptime AI y a fait, du plus récent au plus ancien : chaque investigation avec son incident ou son alerte et son résumé, chaque correctif qu'il a proposé ou exécuté avec son statut, et chaque commande kubectl — d'investigation ou de correctif — avec la commande, son statut et le moment où elle a tourné. Le résumé d'une investigation est son TL;DR ou, quand aucun TL;DR n'a pu être écrit, le résumé par lequel s'ouvre son rapport. Cette page s'appelait auparavant Analyses IA ; un favori de son ancienne adresse ouvre désormais la page Analyses IA, qui renvoie ici.
+La page **Journaux IA** du cluster (IA → Journaux) est le relevé de tout ce que OneUptime AI y a fait, du plus récent au plus ancien : chaque investigation avec son incident ou son alerte et son résumé, chaque correctif qu'il a proposé ou exécuté avec son statut, et chaque commande kubectl — d'investigation ou de correctif — avec la commande, son statut et le moment où elle a tourné. Le résumé d'une investigation est son TL;DR ou, quand aucun TL;DR n'a pu être écrit, le résumé par lequel s'ouvre son rapport. Cette page s'appelait auparavant Analyses IA ; un favori de son ancienne adresse ouvre désormais la page Analyses IA, qui renvoie ici. Elle liste les commandes kubectl que vous pouvez lire : celles que OneUptime AI a exécutées pour le chat IA d'une autre personne, ou à propos d'un incident ou d'une alerte privés que vous ne pouvez pas lire, sont omises, et la page dit combien il y en a.
 
 ### Via l'ancien Runner du cluster
 
