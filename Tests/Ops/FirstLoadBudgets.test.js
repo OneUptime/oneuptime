@@ -20,11 +20,15 @@ const yaml = require("js-yaml");
 const {
   GZIP_LEVEL,
   PAGES,
+  WARNING_HEADROOM_SHARE,
   describe: describeResult,
+  escapeAnnotation,
   firstLoadOutputs,
   heaviest,
   measurePage,
   outputFor,
+  report,
+  warnNearCeiling,
   weightKey,
 } = require("../../packages/Common/Scripts/first-load-budgets.js");
 
@@ -135,6 +139,22 @@ function gzipped(file) {
   return zlib.gzipSync(contentsOf(file), { level: GZIP_LEVEL }).length;
 }
 
+/*
+ * Each output as 64 KiB that gzip cannot shrink, the same every run: a page
+ * large enough that 1% of its ceiling is hundreds of bytes.
+ */
+function largeContentsOf(file) {
+  const contents = Buffer.alloc(64 * 1024);
+  let seed = file.length;
+
+  for (let index = 0; index < contents.length; index++) {
+    seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+    contents[index] = seed >>> 24;
+  }
+
+  return contents;
+}
+
 describe("the outputs a page loads first", () => {
   test("are the entry, the page's chunk and what they import statically, transitively", () => {
     expect(
@@ -202,7 +222,45 @@ describe("a page's measure", () => {
       outputs: loaded,
       bytes,
       over: false,
+      headroom: 0,
+      nearCeiling: true,
       heaviest: [],
+    });
+  });
+
+  test("says what is left under the ceiling, and whether that is less than 1% of it", () => {
+    expect(WARNING_HEADROOM_SHARE).toBe(0.01);
+
+    const at = (ceiling) => {
+      return measurePage(METAFILE, { ...page, ceiling }, largeContentsOf);
+    };
+    const large = at(1).bytes;
+
+    // Half the ceiling left, and 2% of it: not close.
+    expect(at(large * 2)).toMatchObject({
+      headroom: large,
+      nearCeiling: false,
+    });
+    expect(at(Math.floor(large / 0.98)).nearCeiling).toBe(false);
+
+    // Half a per cent of it left: close, and still under it.
+    expect(at(Math.ceil(large / 0.995))).toMatchObject({
+      over: false,
+      nearCeiling: true,
+    });
+
+    // Exactly at the ceiling: nothing left, and not over it.
+    expect(at(large)).toMatchObject({
+      headroom: 0,
+      over: false,
+      nearCeiling: true,
+    });
+
+    // Over it: a failure, not a warning.
+    expect(at(large - 1)).toMatchObject({
+      headroom: -1,
+      over: true,
+      nearCeiling: false,
     });
   });
 
@@ -231,8 +289,15 @@ describe("a page's measure", () => {
       contentsOf,
     );
 
-    expect(describeResult({ ...under, bytes: 2048, outputs: loaded })).toBe(
-      "Accounts sign-in (/accounts/login): 2.0 KiB gzipped in 4 files, ceiling 10.0 KiB",
+    expect(
+      describeResult({
+        ...under,
+        bytes: 2048,
+        headroom: 8 * 1024,
+        outputs: loaded,
+      }),
+    ).toBe(
+      "Accounts sign-in (/accounts/login): 2.0 KiB gzipped in 4 files, ceiling 10.0 KiB, 8.0 KiB under it",
     );
 
     // Over a ceiling of one byte, read as 1.5 KiB against 1 KiB.
@@ -247,6 +312,90 @@ describe("a page's measure", () => {
     expect(lines[2]).toBe("         8.8 KiB  moment-timezone");
     expect(lines[lines.length - 1]).toMatch(
       /import\(\) it where it is used\), or raise the ceiling in packages\/Common\/Scripts\/first-load-budgets\.js, saying when and why\.$/,
+    );
+  });
+});
+
+describe("a page close to its ceiling", () => {
+  // As measurePage reads a page: what report and the warning are handed.
+  const result = (overrides) => {
+    return {
+      frontend: "Accounts",
+      page: "sign-up (/accounts/register)",
+      route: "src/Pages/Register.tsx",
+      ceiling: 770 * 1024,
+      outputs: ["public/dist/Index.js"],
+      heaviest: [],
+      ...overrides,
+    };
+  };
+
+  const near = result({
+    bytes: 768 * 1024,
+    headroom: 2 * 1024,
+    over: false,
+    nearCeiling: true,
+  });
+  const roomy = result({
+    page: "sign-in (/accounts/login)",
+    bytes: 700 * 1024,
+    headroom: 70 * 1024,
+    over: false,
+    nearCeiling: false,
+  });
+  const over = result({
+    frontend: "StatusPage",
+    page: "a status page",
+    bytes: 771 * 1024,
+    headroom: -1024,
+    over: true,
+    nearCeiling: false,
+    heaviest: [{ name: "moment-timezone", bytes: 9000 }],
+  });
+
+  test("warns as a GitHub annotation, saying what is left and what to do", () => {
+    expect(warnNearCeiling(near)).toBe(
+      "::warning title=First-load budget::Accounts sign-up (/accounts/register) is 2.0 KiB under its ceiling of 770.0 KiB, less than 1%25 of it: the next change that adds to what it loads first fails the Compile workflow. Keep what the page does not draw out of its static imports (import() it where it is used), as packages/Common/Scripts/first-load-budgets.js says beside its ceiling.",
+    );
+  });
+
+  test("escapes what a workflow command would read as its own: a per cent sign and a line break", () => {
+    expect(escapeAnnotation("1% of it\r\nleft, 100%")).toBe(
+      "1%25 of it%0D%0Aleft, 100%25",
+    );
+    expect(escapeAnnotation("nothing to escape")).toBe("nothing to escape");
+  });
+
+  test("the run prints a line for each page, then a warning for each page close to its ceiling, and passes", () => {
+    expect(report([roomy, near])).toEqual({
+      lines: [
+        describeResult(roomy),
+        describeResult(near),
+        warnNearCeiling(near),
+      ],
+      failed: false,
+    });
+  });
+
+  test("a page over its ceiling fails the run, and is not warned of besides", () => {
+    const run = report([near, over]);
+
+    expect(run.failed).toBe(true);
+    expect(run.lines).toEqual([
+      describeResult(near),
+      describeResult(over),
+      warnNearCeiling(near),
+    ]);
+    expect(run.lines[1]).toContain("OVER by 1.0 KiB.");
+  });
+
+  test("pages with room to spare print their lines alone", () => {
+    expect(report([roomy])).toEqual({
+      lines: [describeResult(roomy)],
+      failed: false,
+    });
+    expect(describeResult(roomy)).toBe(
+      "Accounts sign-in (/accounts/login): 700.0 KiB gzipped in 1 files, ceiling 770.0 KiB, 70.0 KiB under it",
     );
   });
 });

@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 The URL accepts both `GET` and `POST`. The caller gets a quick acknowledgement, `{"status": "Scheduled"}` — the workflow itself runs in the background, so the caller never sees what it does. A call to a workflow that is turned off or archived is refused with HTTP 400 and the reason.
 
+Azure Event Grid, Slack, Microsoft Graph and Okta check a URL before they deliver anything to it. The URL answers each check as its service expects, as an [Incoming Request monitor's URL does](/docs/monitor/incoming-request-monitor#services-that-check-the-url-first), and a check starts no run. While the workflow is turned off or archived, a check is refused like a call.
+
 ```mermaid title="What happens when something calls the webhook URL"
 sequenceDiagram
     participant Caller as Your tool
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | **Request Headers**      | Every header of the request, by name in lower case, such as `content-type`.                                     |
 | **Request Query Params** | The query string parameters in the URL, by name.                                                                |
-| **Request Body**         | The body the caller sent. A JSON body, sent with `Content-Type: application/json`, can be read field by field, and so can JSON sent as plain text, as Amazon SNS sends it. |
+| **Request Body**         | The body the caller sent. A JSON body, sent with `Content-Type: application/json` or a `+json` type such as Azure Event Grid's CloudEvents, can be read field by field, and so can JSON sent as plain text, as Amazon SNS sends it. Any other plain text is the text itself. |
 
 Read one field by adding its name to the reference, as in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

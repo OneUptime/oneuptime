@@ -43,6 +43,7 @@ import IncomingEmailMonitorRequest from "../../Types/Monitor/IncomingEmailMonito
 import IncomingMonitorRequest from "../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import { IncomingRequestSecretProblem } from "../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorStepsColumnTransformer from "../../Types/Monitor/MonitorStepsColumnTransformer";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../Types/ObjectID";
@@ -2022,7 +2023,8 @@ export default class Monitor extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
-    transformer: MonitorSteps.getDatabaseTransformer(),
+    // A browser build declares it without the monitor types (issue #8821).
+    transformer: MonitorStepsColumnTransformer,
   })
   public monitorSteps?: MonitorSteps = undefined;
 

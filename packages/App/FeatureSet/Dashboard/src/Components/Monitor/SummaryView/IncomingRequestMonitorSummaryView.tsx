@@ -95,7 +95,15 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
       key: "requestBody",
       title: "Request Body",
       description: "Request body of the request.",
-      fieldType: FieldType.JSON,
+      /*
+       * A text body (text/plain that holds no JSON, #8430) is shown as the
+       * text it is: as JSON it was neither formatted nor quiet, as the field
+       * logged that it could not parse it.
+       */
+      fieldType:
+        typeof props.incomingMonitorRequest.requestBody === "string"
+          ? FieldType.Code
+          : FieldType.JSON,
     });
   }
 
@@ -109,10 +117,14 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
       {/*
        * A request that is Amazon SNS or Azure Event Grid asking to confirm
        * a subscription leads with the link that confirms it (#7723): the
-       * one step left before the service sends anything here.
+       * one step left before the service sends anything here - unless
+       * OneUptime answered it already (#8429).
        */}
       <SubscriptionConfirmationNotice
         requestBody={props.incomingMonitorRequest?.requestBody}
+        answeredVerification={
+          props.incomingMonitorRequest?.answeredVerification
+        }
       />
 
       <SummaryFacts>
