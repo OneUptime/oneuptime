@@ -69,6 +69,31 @@ import {
  *   - in the reader's language.
  */
 
+/*
+ * react-select blurs its input after a pick on a touch screen
+ * (blurInputOnSelect, decided once as it loads), and jsdom reads as one.
+ * These picks are a keyboard's on a desktop, where the input keeps the focus
+ * a question hands back when it closes: so react-select loads as a desktop
+ * browser loads it, and is otherwise itself.
+ */
+jest.mock("react-select", () => {
+  const createEvent: Document["createEvent"] = document.createEvent;
+
+  document.createEvent = ((type: string): Event => {
+    if (type === "TouchEvent") {
+      throw new Error("No touch screen here.");
+    }
+
+    return createEvent.call(document, type);
+  }) as Document["createEvent"];
+
+  try {
+    return jest.requireActual("react-select");
+  } finally {
+    document.createEvent = createEvent;
+  }
+});
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "6a903000-2b4d-4e5f-8a9b-0c1d2e3f4a5b",
 );
@@ -452,6 +477,30 @@ describe("Resolved Incidents", () => {
     expect(updateSpy).not.toHaveBeenCalled();
     expect(picked()).toBe("Never");
     expect(postmortemSwitch()).toBeNull();
+  });
+
+  /*
+   * The question hands the keyboard back to the pick it left. Drawing the pick
+   * again by remounting it would leave the focus on nothing.
+   */
+  test("cancelled, the keyboard is back on the pick it left", async () => {
+    await renderCard();
+
+    await act(async () => {
+      thePick().focus();
+    });
+
+    expect(document.activeElement).toBe(thePick());
+
+    await pick("30 days");
+
+    expect(dialog()).not.toBeNull();
+
+    await pressInDialog("Cancel");
+
+    expect(dialog()).toBeNull();
+    expect(picked()).toBe("Never");
+    expect(document.activeElement).toBe(thePick());
   });
 
   test("a length in whole years is said in years in the question too", async () => {
@@ -1323,6 +1372,63 @@ describe("the postmortem statuses that keep an incident", () => {
     expect(dialog()).toBeNull();
     expect(updateSpy).not.toHaveBeenCalled();
     expect(chosen()).toEqual(["Completed", "Published"]);
+  });
+
+  test("cancelled, the keyboard is back on the statuses it left", async () => {
+    stored.incidentRetentionInDays = 365;
+    stored.keepIncidentsInPostmortemStatusIds = [
+      COMPLETED_STATUS,
+      PUBLISHED_STATUS,
+    ];
+
+    await renderCard();
+
+    await act(async () => {
+      statusesPick().focus();
+    });
+
+    await removeStatus("Published");
+
+    expect(dialog()).not.toBeNull();
+
+    await pressInDialog("Cancel");
+
+    expect(dialog()).toBeNull();
+    expect(chosen()).toEqual(["Completed", "Published"]);
+    expect(document.activeElement).toBe(statusesPick());
+  });
+
+  test("the last status refused, the keyboard stays on the statuses", async () => {
+    stored.incidentRetentionInDays = 365;
+
+    await renderCard();
+
+    await act(async () => {
+      statusesPick().focus();
+    });
+
+    await removeStatus("Completed");
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(chosen()).toEqual(["Completed"]);
+    expect(document.activeElement).toBe(statusesPick());
+  });
+
+  // The second try says what the first said, and still puts it back.
+  test("the last status refused twice, it is still chosen", async () => {
+    stored.incidentRetentionInDays = 365;
+
+    await renderCard();
+    await removeStatus("Completed");
+    await removeStatus("Completed");
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(chosen()).toEqual(["Completed"]);
+    expect(
+      screen.getByTestId("resolved-record-retention-kept-statuses-problem"),
+    ).toHaveTextContent(
+      "Keep at least one status, or turn off keeping incidents with a completed postmortem.",
+    );
   });
 
   test("the last status cannot be taken out: it says to turn the switch off instead", async () => {

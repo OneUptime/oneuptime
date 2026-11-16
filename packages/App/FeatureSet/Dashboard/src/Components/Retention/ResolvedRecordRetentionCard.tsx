@@ -225,7 +225,9 @@ const RetentionSetting: FunctionComponent<SettingProps> = (
 
   /*
    * The pick keeps a copy of what it shows: a cancelled question draws it
-   * again, from what the setting holds.
+   * again, from what the setting holds. A new revision hands the Dropdown
+   * its options anew, which it follows in place; remounting it instead would
+   * drop the keyboard focus the question hands back.
    */
   const [dropdownRevision, setDropdownRevision] = useState<number>(0);
 
@@ -291,7 +293,8 @@ const RetentionSetting: FunctionComponent<SettingProps> = (
         };
       },
     );
-  }, [translator, props.maximumInDays]);
+    // The revision draws them anew after a cancelled question.
+  }, [translator, props.maximumInDays, dropdownRevision]);
 
   const selectedOption: DropdownOption | undefined = options.find(
     (option: DropdownOption): boolean => {
@@ -328,7 +331,6 @@ const RetentionSetting: FunctionComponent<SettingProps> = (
       data-testid={RESOLVED_RECORD_RETENTION_SETTING_TEST_ID}
     >
       <Dropdown
-        key={dropdownRevision}
         options={options}
         value={selectedOption}
         ariaLabelledby={labelId}
@@ -492,7 +494,14 @@ const KeptPostmortemStatuses: FunctionComponent<KeptStatusesProps> = (
   const [pendingStatusIds, setPendingStatusIds] =
     useState<Array<string> | null>(null);
   const [problem, setProblem] = useState<string>("");
-  const [dropdownRevision, setDropdownRevision] = useState<number>(0);
+
+  /*
+   * Bumped to draw the pick again from what the setting holds, after a
+   * cancelled question or a refused pick, even when nothing else changed.
+   * Each render hands the Dropdown its options anew, which it follows in
+   * place; remounting it instead would drop the keyboard focus.
+   */
+  const [, setDropdownRevision] = useState<number>(0);
 
   const setting: SaveOnChange<Array<string>> = useSaveOnChange<Array<string>>({
     initialValue: initial,
@@ -599,7 +608,6 @@ const KeptPostmortemStatuses: FunctionComponent<KeptStatusesProps> = (
       data-testid={KEPT_POSTMORTEM_STATUSES_TEST_ID}
     >
       <Dropdown
-        key={dropdownRevision}
         options={options}
         value={selectedOptions}
         isMultiSelect={true}
