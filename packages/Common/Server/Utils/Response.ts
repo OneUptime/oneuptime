@@ -265,6 +265,115 @@ export default class Response {
   ): Promise<void> {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
+    Response.setFileHeaders(res, {
+      fileType: file.fileType,
+      name: file.name,
+      disposition: options?.disposition,
+    });
+
+    oneUptimeResponse.status(200);
+
+    oneUptimeResponse.send(file.file);
+  }
+
+  /*
+   * A file kept in memory, sent with its ETag and the Cache-Control its
+   * caller chose - a status page's favicon or logo (StatusPageImageCache) -
+   * with the same safe Content-Type and Content-Disposition as
+   * sendFileResponse. A request whose If-None-Match names the ETag already
+   * has these bytes: it gets 304, the same headers and no body.
+   *
+   * Any no-cache headers an earlier middleware set are taken off: a body
+   * that says both "max-age" and "no-cache" is asked for again every time.
+   */
+  @CaptureSpan()
+  public static sendCachedFileResponse(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    file: {
+      bytes: Buffer;
+      fileType: string | undefined;
+      name: string | undefined;
+      // A strong, quoted tag of the bytes.
+      etag: string;
+    },
+    cacheControl: string,
+  ): void {
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    oneUptimeResponse.removeHeader("Pragma");
+    oneUptimeResponse.removeHeader("Expires");
+    oneUptimeResponse.set("Cache-Control", cacheControl);
+    oneUptimeResponse.set("ETag", file.etag);
+
+    oneUptimeResponse.logBody = {
+      contentType: Response.getSafeFileType(file.fileType),
+      bytes: file.bytes.length,
+    };
+
+    if (Response.isETagMatched(req, file.etag)) {
+      // As res.send answers a 304: no body, so no Content-Type either.
+      oneUptimeResponse.status(304).end();
+      return;
+    }
+
+    Response.setFileHeaders(res, {
+      fileType: file.fileType,
+      name: file.name,
+      disposition: undefined,
+    });
+
+    oneUptimeResponse.status(200);
+    oneUptimeResponse.send(file.bytes);
+  }
+
+  /*
+   * Whether a request's If-None-Match names `etag`: "*", or the tag among
+   * the ones it lists, compared weakly as RFC 9110 has it for this header -
+   * W/"x" and "x" are the same tag.
+   */
+  public static isETagMatched(req: ExpressRequest, etag: string): boolean {
+    const header: unknown = req.headers?.["if-none-match"];
+
+    const value: string = (
+      Array.isArray(header) ? header.join(",") : String(header || "")
+    ).trim();
+
+    if (!value) {
+      return false;
+    }
+
+    if (value === "*") {
+      return true;
+    }
+
+    const opaqueTag: (tag: string) => string = (tag: string): string => {
+      const trimmed: string = tag.trim();
+
+      return trimmed.startsWith("W/") ? trimmed.slice(2).trim() : trimmed;
+    };
+
+    const wanted: string = opaqueTag(etag);
+
+    return value.split(",").some((tag: string): boolean => {
+      return opaqueTag(tag) === wanted;
+    });
+  }
+
+  /*
+   * The headers every file goes out with: a Content-Type made safe, and
+   * what keeps a file from being run as a page (see below).
+   */
+  private static setFileHeaders(
+    res: ExpressResponse,
+    file: {
+      fileType: string | undefined;
+      name: string | undefined;
+      disposition: "attachment" | undefined;
+    },
+  ): void {
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
     const fileType: string = Response.getSafeFileType(file.fileType);
 
     oneUptimeResponse.set("Content-Type", fileType);
@@ -295,17 +404,12 @@ export default class Response {
     oneUptimeResponse.set(
       "Content-Disposition",
       Response.getContentDisposition(
-        options?.disposition !== "attachment" &&
-          SAFE_IMAGE_MIME_TYPES.has(fileType)
+        file.disposition !== "attachment" && SAFE_IMAGE_MIME_TYPES.has(fileType)
           ? "inline"
           : "attachment",
         file.name,
       ),
     );
-
-    oneUptimeResponse.status(200);
-
-    oneUptimeResponse.send(file.file);
   }
 
   @CaptureSpan()

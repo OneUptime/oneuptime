@@ -16,9 +16,13 @@ import ts from "typescript";
  * every server route that sends a stored file's bytes and requires, for
  * each send:
  *
- *   - Response.sendFileResponse(req, res, file): `file` is a local variable
- *     set from FileOwnership.keepProjectFile / findProjectAttachment or
- *     FileViewerAccess.findReadableFile / findPublicFile, or the send sits
+ *   - Response.sendFileResponse(req, res, file), or
+ *     Response.sendCachedFileResponse(req, res, file, ...): `file` is a local
+ *     variable set from FileOwnership.keepProjectFile / findProjectAttachment
+ *     or FileViewerAccess.findReadableFile / findPublicFile - or from
+ *     StatusPageImageCache.getOrRead, whose every read goes through
+ *     StatusPageAPI.readStatusPageImage, which holds the file
+ *     (FileOwnership.keepProjectFile) before it is kept - or the send sits
  *     inside an `if` that asks FileOwnership.isFileOfProject / isFileOfUser;
  *   - DashboardAPI.getFileAsBase64JSONObject(file): `file` is
  *     FileOwnership.keepProjectFile(...).
@@ -45,9 +49,15 @@ const SCAN_ROOTS: Array<string> = [
 ];
 
 const ALLOWED_FILES: Record<string, string> = {
-  // The definition of sendFileResponse itself.
+  // The definition of sendFileResponse and sendCachedFileResponse itself.
   "packages/Common/Server/Utils/Response.ts": "defines sendFileResponse",
 };
+
+// The sends of a stored file's bytes.
+const SENDS: ReadonlyArray<string> = [
+  "sendFileResponse",
+  "sendCachedFileResponse",
+];
 
 const HOLDING_CALLS: ReadonlySet<string> = new Set<string>([
   "FileOwnership.keepProjectFile",
@@ -56,6 +66,12 @@ const HOLDING_CALLS: ReadonlySet<string> = new Set<string>([
   "FileViewerAccess.findReadableFile",
   // The id-based image route: public files only.
   "FileViewerAccess.findPublicFile",
+  /*
+   * A status page's images, kept in memory: each read through
+   * StatusPageAPI.readStatusPageImage, which keeps only a file of the page's
+   * own project (FileOwnership.keepProjectFile) - held below.
+   */
+  "StatusPageImageCache.getOrRead",
 ]);
 
 /*
@@ -286,7 +302,9 @@ function servedFilesOf(file: string): Array<ServedFile> {
   const text: string = fs.readFileSync(file, "utf8");
 
   if (
-    !text.includes("sendFileResponse(") &&
+    !SENDS.some((send: string): boolean => {
+      return text.includes(`${send}(`);
+    }) &&
     !text.includes("getFileAsBase64JSONObject(")
   ) {
     return [];
@@ -308,7 +326,12 @@ function servedFilesOf(file: string): Array<ServedFile> {
       const line: number =
         source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 
-      if (callee.endsWith("sendFileResponse") && node.arguments.length >= 3) {
+      if (
+        SENDS.some((send: string): boolean => {
+          return callee.endsWith(`.${send}`);
+        }) &&
+        node.arguments.length >= 3
+      ) {
         const argument: ts.Expression = unwrap(node.arguments[2]!);
 
         const held: boolean =
@@ -388,13 +411,14 @@ describe("every file a route serves is held to its owner first", () => {
 
     /*
      * The status page's four images (the logo, its dark theme logo, the
-     * cover image and the favicon) and five attachment routes.
+     * cover image and the favicon), all through one send of the image kept
+     * in memory (serveStatusPageImage), and five attachment routes.
      */
     expect(
       SERVED.filter((served: ServedFile): boolean => {
         return served.file === "packages/Common/Server/API/StatusPageAPI.ts";
       }).length,
-    ).toBe(9);
+    ).toBe(6);
 
     // The access-token image route and the id-based one.
     expect(
@@ -455,6 +479,31 @@ describe("every file a route serves is held to its owner first", () => {
     }
   });
 
+  test("a status page's images are kept in memory only as readStatusPageImage holds them", () => {
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, "packages/Common/Server/API/StatusPageAPI.ts"),
+      "utf8",
+    );
+
+    // Every fill of the image cache reads through readStatusPageImage...
+    const fills: Array<string> = text.split("StatusPageImageCache.getOrRead(");
+    expect(fills.length).toBeGreaterThan(1);
+
+    for (const fill of fills.slice(1)) {
+      const call: string = fill.slice(0, fill.indexOf("});"));
+      expect(call).toContain("StatusPageAPI.readStatusPageImage(");
+    }
+
+    // ...which keeps only a file of the page's own project.
+    const reader: string = text.slice(
+      text.indexOf("public static async readStatusPageImage("),
+    );
+    const body: string = reader.slice(0, reader.indexOf("\n  }\n"));
+
+    expect(body).toContain("FileOwnership.keepProjectFile(");
+    expect(body).toContain("isArchived: false");
+  });
+
   test("each send serves a file held to its owner", () => {
     expect(
       SERVED.filter((served: ServedFile): boolean => {
@@ -472,7 +521,9 @@ describe("every file a route serves is held to its owner first", () => {
 
       expect({
         allowed,
-        sendsFiles: text.includes("sendFileResponse("),
+        sendsFiles: SENDS.every((send: string): boolean => {
+          return text.includes(`${send}(`);
+        }),
       }).toEqual({ allowed, sendsFiles: true });
     }
   });
