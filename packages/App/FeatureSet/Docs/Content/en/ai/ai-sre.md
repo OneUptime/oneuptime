@@ -401,7 +401,7 @@ An investigation that fails, expires, or goes stale still releases remediation �
 
 While remediation waits, the **Remediation** step says so — **Waiting** — and shows what happened once the investigation settles.
 
-Auto-remediation depends on two switches. **Fix new incidents automatically** (or alerts), off until the project turns it on: with it off, no new incident (or alert) is fixed. And **Enable AI** (**Project Settings → AI → AI Features**), the project's master AI switch: with it off, no AI rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed.
+Auto-remediation depends on two switches. **Fix new incidents automatically** (or alerts), off until the project turns it on: with it off, no new incident (or alert) is fixed. And **Enable AI** (**Project Settings → AI → AI Features**), the project's master AI switch: with it off, no AI rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed. A Runner or an AI agent that already holds a command when **Enable AI** is turned off is told to stop on its next heartbeat: a command that has not started yet does not start.
 
 ## What auto-remediation did
 

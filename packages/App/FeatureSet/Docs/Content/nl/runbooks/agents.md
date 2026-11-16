@@ -66,7 +66,7 @@ Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaS
 
 Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt gescheiden gehouden van alle andere:
 
-- Elke stap loopt in een eigen `isolated-vm`-sandbox, gemaakt voor die stap en daarna weggegooid: geen bestanden, geen processen, geen omgevingsvariabelen en niets dat van de ene stap naar de volgende bewaard blijft.
+- Elke stap loopt in een eigen `isolated-vm`-sandbox, gemaakt voor die stap en daarna weggegooid: geen bestanden, geen processen, geen omgevingsvariabelen en niets dat van de ene stap naar de volgende bewaard blijft. De sandbox zelf loopt in een proces dat alleen voor die ene stap wordt gestart, als een eigen gebruiker: dat proces heeft niets van de sleutel, de instellingen of de bestanden van de Runner en eindigt met de stap.
 - Zijn HTTP-verzoeken bereiken alleen openbare internetadressen, nooit een privé-, loopback- of link-local-adres of een cloudmetadata-endpoint, zodat een globale Runner nooit uw netwerk bereikt.
 - Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele.
 - Een project voert hooguit drie stappen tegelijk uit op globale Runners, zodat geen project ze voor zichzelf houdt.
@@ -75,13 +75,15 @@ Een globale Runner neemt ook de codecorrecties van OneUptime AI op zich, in elke
 
 Een globale Runner die ouder is dan 14.0.94, of die is gestart met `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, pakt geen codecorrecties op, en OneUptime telt hem daarvoor niet mee. Een repository op **Globale Runner** meldt dan dat geen enkele globale Runner die online is AI-codecorrecties oppakt, en de pagina **Globale Runners** in het beheerdashboard meldt onder de status van die Runner waarom.
 
+Een hoofdbeheerder kan een globale Runner helemaal weghouden van codecorrecties: de schakelaar **Voert AI-codecorrecties uit**, onder **Meer velden** op de pagina **Globale Runners** in het beheerdashboard, staat standaard aan. Uit geeft OneUptime die Runner geen codecorrectie en geen token van een repository, zodat hij alleen JavaScript-stappen uitvoert. Op OneUptime Cloud werken globale Runners alleen in GitHub-repositories: een GitLab-, Forgejo-, Gitea- of Git-repository wordt bereikt met het eigen token van zijn verbinding, dus zijn codecorrecties draaien op een van je eigen Runners.
+
 Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, loopt dan op de standaard-Runner van het project of mislukt, als er geen is ingesteld, met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op de standaard-Runner van het project of, als er geen is ingesteld, op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
 
 ### Waar globale Runners vandaan komen
 
 Op OneUptime Cloud draait OneUptime ze. Een zelf gehoste installatie draait standaard een eigen exemplaar, zoals ze haar eigen globale sondes draait: de service `global-runner` in Docker Compose en de deployment `globalRunner` in de Helm-chart. Die heeft een eigen sleutel, `GLOBAL_RUNNER_KEY`, en verder niets van de server.
 
-Een hoofdbeheerder kan er meer toevoegen, om stappen en codecorrecties vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt.
+Een hoofdbeheerder kan er meer toevoegen, om stappen en codecorrecties vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt. Houd de standaardinstellingen van die container aan: een container die met `no-new-privileges` of zonder de capabilities `SETUID` en `SETGID` wordt gestart, kan niet elke stap als een eigen gebruiker uitvoeren, dus zijn stappen lopen als de eigen gebruiker van de Runner, nog steeds elk in een eigen proces, en zijn log zegt dat.
 
 Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `config.env` van Docker Compose in, of `globalRunner.enabled` op `false` in de Helm-chart. Zonder enige globale Runner toont **Runbooks → Runbook-agenten** alleen uw eigen Runners, en kiezen elke JavaScript-stap en elke coderepository een daarvan.
 

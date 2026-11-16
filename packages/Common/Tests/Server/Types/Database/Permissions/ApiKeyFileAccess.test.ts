@@ -120,6 +120,7 @@ const GLOBAL_PERMISSIONS_WITHOUT_MARKER: Array<Permission> = [
   Permission.CurrentUser,
 ];
 
+// An upload as FileService's create hook leaves it: private, as every upload starts.
 function newFile(): File {
   const file: File = new File();
   file.name = "screenshot.png";
@@ -128,6 +129,12 @@ function newFile(): File {
   file.isPublic = false;
   return file;
 }
+
+/*
+ * What the hook wrote: the check of the record as written takes it as the
+ * create's own (columnsSetByServer, which DatabaseService hands over).
+ */
+const WRITTEN_BY_THE_HOOK: Array<string> = ["isPublic"];
 
 /*
  * Every model that names AuthenticatedRequest anywhere in its table or column
@@ -242,6 +249,7 @@ describe("API key access to File", () => {
         File,
         newFile(),
         apiKeyProps(permission.globalPermissions),
+        WRITTEN_BY_THE_HOOK,
       );
     }).not.toThrow();
 
@@ -250,6 +258,7 @@ describe("API key access to File", () => {
         File,
         newFile(),
         apiKeyProps(GLOBAL_PERMISSIONS_WITHOUT_MARKER),
+        WRITTEN_BY_THE_HOOK,
       );
     }).not.toThrow();
   });
@@ -280,6 +289,7 @@ describe("API key access to File", () => {
         File,
         newFile(),
         userProps,
+        WRITTEN_BY_THE_HOOK,
       );
     }).not.toThrow();
   });

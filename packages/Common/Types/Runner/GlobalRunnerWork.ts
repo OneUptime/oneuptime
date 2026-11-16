@@ -16,10 +16,15 @@ import {
  *   - JavaScript steps. Each runs in an isolated-vm sandbox of its own,
  *     created for that one step and thrown away after it: no filesystem, no
  *     processes, no environment (so never the Runner's own key), nothing kept
- *     from one step to the next. Its HTTP goes through the sandbox's SSRF
- *     guard on the strict policy: public internet addresses only, never a
- *     private, loopback or link-local address or a cloud metadata endpoint -
- *     so never a project's network, nor the network the Runner sits in.
+ *     from one step to the next. The sandbox itself runs in a process started
+ *     for that step alone, as a user of its own, with none of the Runner's
+ *     environment or files (packages/Runner Utils/JavaScriptSandbox), so
+ *     even code that got out of the isolate is kept from the Runner's key
+ *     and a code fix's token and workspace. Its HTTP goes through the
+ *     sandbox's SSRF guard on the strict policy: public internet addresses
+ *     only, never a private, loopback or link-local address or a cloud
+ *     metadata endpoint - so never a project's network, nor the network the
+ *     Runner sits in.
  *   - OneUptime AI's code fixes, in every code repository on the Global
  *     Runner (Types/Runner/CodeRepositoryRunner), one at a time, each in a
  *     workspace of its own that is deleted when the fix ends. The code agent

@@ -762,9 +762,9 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    *
    * The monitor's four pause flags (MonitorPauseState: archived, switched
    * off, held by a manual incident, in a maintenance window), and the
-   * project's getActiveProjectStatusQuery: not deleted, blocked or a
-   * sample, and its subscriptions not inactive. Read through LEFT JOINs a
-   * missing monitor or project is NULL here, never true.
+   * project's getActiveProjectStatusQuery: not deleted or blocked, and its
+   * subscriptions not inactive. Read through LEFT JOINs a missing monitor
+   * or project is NULL here, never true.
    */
   private static getProbeableSql(statusesParameter: string): string {
     return [
@@ -776,7 +776,6 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
       `m."deletedAt" IS NULL`,
       `p."deletedAt" IS NULL`,
       `p."isBlocked" = false`,
-      `p."isSampleProject" = false`,
       `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
       `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
     ].join("\n          AND ");

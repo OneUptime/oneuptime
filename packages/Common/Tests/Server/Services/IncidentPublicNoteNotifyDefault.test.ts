@@ -750,6 +750,8 @@ describe("IncidentPublicNoteService create() with the notify default", () => {
       expect.anything(),
       expect.objectContaining({ userId: USER_ID }),
       DatabaseRequestType.Create,
+      // The server-set columns the create's own steps wrote.
+      expect.any(Array),
     );
   });
 

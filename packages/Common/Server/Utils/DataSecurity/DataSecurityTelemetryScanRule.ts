@@ -20,8 +20,8 @@ import { TelemetryOwnersNotScanned } from "./Telemetry/TelemetryDataScanner";
  * It read every service of every project, whatever it was told
  * (OneUptime issue #8323): a store's own Scan Content switch did nothing,
  * so someone who turned it off to stop OneUptime sampling a service's logs
- * got findings with masked samples all the same, and a suspended, blocked
- * or sample project's telemetry was read like any other.
+ * got findings with masked samples all the same, and a suspended or
+ * blocked project's telemetry was read like any other.
  *
  * Now, before it reads anything, the scan asks whether the project may be
  * read (getTelemetryProjectScannableSql: served, and its telemetry

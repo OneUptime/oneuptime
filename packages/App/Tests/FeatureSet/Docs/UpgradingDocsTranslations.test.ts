@@ -50,8 +50,8 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *
  *   - The Dashboard, Persian included: a label, a menu path segment by
  *     segment, a "Mark as <state>" button filled from its template.
- *   - The Admin Dashboard: its breadcrumbs, its OneUptime Health page and the
- *     way to its Authentication settings, the edition label's "This
+ *   - The Admin Dashboard: its breadcrumbs, its OneUptime Health page, the
+ *     ways to its Authentication and API Key settings, the edition label's "This
  *     installation" card (worded as the Dashboard words it, #6470), and the
  *     names it draws in English in every language - the Health dashboards
  *     and the Query Console, which its own translated sentences keep in
@@ -289,14 +289,15 @@ const MARK_AS_TEMPLATE: string = "Mark as {{state}}";
 
 /*
  * The Admin Dashboard's words: its breadcrumb, its OneUptime Health page and
- * the way to its Authentication settings, by the key each is drawn with
- * ("Valkey" is drawn as it is).
+ * the ways to its Authentication and API Key settings, by the key each is
+ * drawn with ("Valkey" is drawn as it is).
  */
 const ADMIN_KEYS: Record<string, string> = {
   "Admin Dashboard": "breadcrumbs.adminDashboard",
   "OneUptime Health": "OneUptime Health",
   Settings: "navbar.settings",
   Authentication: "sideMenu.settingsAuthentication",
+  "API Key": "sideMenu.settingsApiKey",
 };
 
 // The page's bold paths through the Admin Dashboard.
@@ -304,6 +305,7 @@ const ADMIN_PATHS: Array<string> = [
   "Admin Dashboard → OneUptime Health → Valkey",
   "Admin Dashboard → OneUptime Health",
   "Admin Dashboard > Settings > Authentication",
+  "Admin Dashboard > Settings > API Key",
 ];
 
 /*
@@ -392,6 +394,7 @@ const PROSE_LEADS: Array<string> = [
   "Creating a project follows the SSO rules too, and changes that let people sign in reach every app server at once.",
   "Saving Require SSO for Login on again is checked as turning it on is.",
   "The sign-in page offers an emailed sign-in link, even with no working mail server.",
+  "The master API key is stored hashed, and shown only when it is made.",
   "A record you may not read can no longer be changed or deleted, and a change by ID that reaches nothing says so.",
   "A record read through another one is created only under a record its creator may read.",
   "Owned",

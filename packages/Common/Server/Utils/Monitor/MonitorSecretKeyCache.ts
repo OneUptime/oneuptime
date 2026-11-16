@@ -18,9 +18,9 @@ import { createHash } from "crypto";
  * incident or a maintenance event inside the minute ends the same way
  * MonitorResource ends any result for one (its ExceptionMessages refusal,
  * which the ingest jobs complete without retrying -
- * isNonActionableIngestError); a project blocked or made a sample project is
- * skipped by MonitorResource as before. What the lookup alone checked - a project's subscription still
- * active - holds for at most this minute.
+ * isNonActionableIngestError); a project that was blocked is skipped by
+ * MonitorResource as before. What the lookup alone checked - a project's
+ * subscription still active - holds for at most this minute.
  *
  * Keys are hashed in the Redis key names, as IncomingRequestReceivedAtStore
  * does: a secret key never appears in Redis. Nothing here throws: a Redis

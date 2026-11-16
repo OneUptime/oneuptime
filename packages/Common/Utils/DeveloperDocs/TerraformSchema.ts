@@ -205,7 +205,9 @@ const SERVER_MANAGED_COLUMN_PATTERNS: ReadonlyArray<RegExp> = [
  * configuration the dashboard writes. A column nobody may write is no
  * attribute at all and needs no entry: an incident's or alert's episode
  * (incidentEpisodeId, alertEpisodeId), which OneUptime sets from the
- * episode's members, is one.
+ * episode's members, is one, and so is an Incoming Request monitor's latest
+ * request (incomingMonitorRequest), which the server writes from each
+ * request the monitor receives.
  */
 export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
   Record<string, ReadonlyArray<string>>
@@ -215,7 +217,6 @@ export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
     "telemetryMonitorNextMonitorAt",
     "telemetryMonitorLastMonitorAt",
     "serverMonitorRequestReceivedAt",
-    "incomingMonitorRequest",
     "serverMonitorResponse",
   ],
   Incident: ["postmortemPostedAt"],

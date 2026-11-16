@@ -127,8 +127,18 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     dayLabelWithIncidents: t("uptimeHistory.dayLabelWithIncidents"),
     dayLabelNoData: t("uptimeHistory.dayLabelNoData"),
     dayLabelNoDataWithIncidents: t("uptimeHistory.dayLabelNoDataWithIncidents"),
+    /*
+     * A day nothing checked the resource because monitoring was off (issue
+     * #7112), in the page's word for it beside a resource: Not monitored.
+     */
+    dayLabelMonitoringOff: t("uptimeHistory.dayLabelMonitoringOff"),
+    dayLabelMonitoringOffWithIncidents: t(
+      "uptimeHistory.dayLabelMonitoringOffWithIncidents",
+    ),
     uptime: t("uptimeHistory.uptime"),
     noMonitoringData: t("uptimeHistory.noMonitoringData"),
+    monitoringOffOnThisDay: t("uptimeHistory.monitoringOffOnThisDay"),
+    monitoringOffFor: t("uptimeHistory.monitoringOffFor"),
     incidents: t("uptimeHistory.incidents"),
     noIncidents: t("uptimeHistory.noIncidents"),
     noIncidentsDescription: t("uptimeHistory.noIncidentsDescription"),
@@ -418,6 +428,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           uptimePercent={selectedDaySummary?.uptimePercent}
           hasEvents={selectedDaySummary?.hasEvents}
           statusDurations={selectedDaySummary?.statusDurations}
+          monitoringOffSeconds={selectedDaySummary?.monitoringOffSeconds}
           maintenanceEvents={selectedDaySummary?.maintenanceEvents}
           onMaintenanceClick={props.onMaintenanceClick}
           labels={uptimeHistoryLabels}

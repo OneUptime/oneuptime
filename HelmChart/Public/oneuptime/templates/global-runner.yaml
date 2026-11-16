@@ -95,6 +95,10 @@ spec:
               value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
               value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}
+            {{- if $.Values.openTelemetryExporter.metricsTemporality }}
+            - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+              value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}
+            {{- end }}
             {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "global-runner")) | nindent 12 }}
             - name: ONEUPTIME_URL
               value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}

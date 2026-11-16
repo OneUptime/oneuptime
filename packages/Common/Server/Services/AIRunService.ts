@@ -27,6 +27,7 @@ import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import Model from "../../Models/DatabaseModels/AIRun";
 import { applyAIRunPrivacyFilter } from "../Utils/AI/AIRunPrivacyFilter";
+import GlobalRunnerRepositoryTokens from "../Utils/Runner/GlobalRunnerRepositoryTokens";
 import CodeFixClaimQuery, {
   CodeFixClaimQueryFacts,
   CodeFixClaimStatement,
@@ -491,6 +492,22 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The claim's facts with this install's rule for global Runners and the
+   * repositories whose token is their connection's own: on OneUptime Cloud
+   * a global Runner takes none of their runs (GlobalRunnerRepositoryTokens).
+   * The claim and the queue count read it the same way.
+   */
+  public static withRepositoryTokenRule(
+    facts: CodeFixClaimQueryFacts,
+  ): CodeFixClaimQueryFacts {
+    return {
+      ...facts,
+      keepsConnectionRepositoriesOff:
+        GlobalRunnerRepositoryTokens.keepsConnectionTokensOffGlobalRunners(),
+    };
+  }
+
+  /*
    * The id of the oldest queued code-fix run this worker may take now, or
    * null (CodeFixClaimQuery: the repository's Runner choice, read through
    * the run's repository as it is now).
@@ -500,7 +517,9 @@ export class Service extends DatabaseService<Model> {
     facts: CodeFixClaimQueryFacts,
   ): Promise<string | null> {
     const statement: CodeFixClaimStatement =
-      CodeFixClaimQuery.getNextRunStatement(facts);
+      CodeFixClaimQuery.getNextRunStatement(
+        Service.withRepositoryTokenRule(facts),
+      );
 
     const rows: Array<{ _id?: unknown }> =
       (await this.getRepository().manager.query(
@@ -523,7 +542,9 @@ export class Service extends DatabaseService<Model> {
     facts: CodeFixClaimQueryFacts,
   ): Promise<number> {
     const statement: CodeFixClaimStatement =
-      CodeFixClaimQuery.getCountStatement(facts);
+      CodeFixClaimQuery.getCountStatement(
+        Service.withRepositoryTokenRule(facts),
+      );
 
     const rows: Array<{ count?: unknown }> =
       (await this.getRepository().manager.query(

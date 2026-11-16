@@ -102,6 +102,7 @@ jest.mock("../../../UI/Utils/API/API", () => {
 
 import SettingsGlobalRunners, {
   GLOBAL_RUNNER_CODE_FIXES_COPY,
+  GLOBAL_RUNNER_CODE_FIXES_SWITCH,
   GLOBAL_RUNNER_STATUS_COLUMN_MAX_WIDTH_CLASS_NAME,
   GLOBAL_RUNNER_STATUS_COLUMN_MIN_WIDTH_CLASS_NAME,
   GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
@@ -244,6 +245,7 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
   describe("a global Runner that takes no AI code fixes says so under its status", () => {
     function withCodeFixes(data: {
       takesCodeFixes?: boolean | undefined;
+      canRunCodeFixes?: boolean | undefined;
       agentVersion: string;
       lastAlive?: Date | undefined;
     }): Runner {
@@ -252,15 +254,50 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
       if (data.takesCodeFixes !== undefined) {
         runner.takesCodeFixes = data.takesCodeFixes;
       }
+      if (data.canRunCodeFixes !== undefined) {
+        runner.canRunCodeFixes = data.canRunCodeFixes;
+      }
       return runner;
     }
 
-    test("reads what each said, and its release", async () => {
+    test("reads what each said, its release, and the switch turned here", async () => {
       await renderPage();
 
       expect(listCalls[0]!.select).toEqual(
-        expect.objectContaining({ takesCodeFixes: true, agentVersion: true }),
+        expect.objectContaining({
+          takesCodeFixes: true,
+          agentVersion: true,
+          canRunCodeFixes: true,
+        }),
       );
+    });
+
+    test("one turned off here (Runs AI Code Fixes off): says so in grey, as a choice, whatever the Runner says", async () => {
+      rows = [
+        withCodeFixes({
+          takesCodeFixes: true,
+          canRunCodeFixes: false,
+          agentVersion: "14.0.102",
+          lastAlive: new Date(),
+        }),
+      ];
+
+      await renderPage();
+
+      const line: HTMLElement = await screen.findByTestId(
+        GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
+      );
+
+      expect(line).toHaveTextContent(
+        "Takes no AI code fixes: they are turned off for this Runner.",
+      );
+      expect(line).toHaveTextContent(
+        GLOBAL_RUNNER_CODE_FIXES_COPY.turnedOffHere,
+      );
+      expect(line.className).toContain("text-gray-500");
+      expect(line.className).not.toContain("text-amber-700");
+      // The status above it still says how the Runner is doing.
+      expect(screen.getByText("Connected")).toBeInTheDocument();
     });
 
     test("one whose host turned them off: the setting that does it", async () => {
@@ -550,6 +587,71 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
     expect(created[0]!.name).toBe("global-us");
     // Nobody picks a project for it: no project owns a global Runner.
     expect(created[0]!.projectId).toBeUndefined();
+    // It takes AI code fixes, as every global Runner does until turned off.
+    expect(created[0]!.canRunCodeFixes).not.toBe(false);
+  });
+
+  test("Runs AI Code Fixes is one switch, on, folded under More fields with the words that say what off does", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      (await screen.findAllByText("Create Runner"))[0] as HTMLElement,
+    );
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    // Folded: the form shows the name and the description first.
+    expect(
+      within(dialog).queryByText(GLOBAL_RUNNER_CODE_FIXES_SWITCH.description),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      await within(dialog).findByRole("button", { name: /More fields/ }),
+    );
+
+    expect(
+      await within(dialog).findByText(GLOBAL_RUNNER_CODE_FIXES_SWITCH.title),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(GLOBAL_RUNNER_CODE_FIXES_SWITCH.description),
+    ).toBeInTheDocument();
+
+    const toggle: HTMLElement = within(dialog).getByRole("switch");
+
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("the switch's words are each language's own, in every language the Admin Dashboard speaks", () => {
+    const LOCALES: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/AdminDashboard/src/Locales",
+    );
+
+    for (const name of fs.readdirSync(LOCALES)) {
+      if (!name.endsWith(".json")) {
+        continue;
+      }
+
+      const words: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES, name), "utf8"),
+      ) as Record<string, unknown>;
+
+      for (const text of Object.values(GLOBAL_RUNNER_CODE_FIXES_SWITCH)) {
+        expect(typeof words[text]).toBe("string");
+
+        if (name === "en.json") {
+          expect(words[text]).toBe(text);
+        } else {
+          expect(words[text]).not.toBe(text);
+        }
+      }
+    }
+  });
+
+  test("the switch's description says what on does, in one short sentence pair", () => {
+    expect(
+      GLOBAL_RUNNER_CODE_FIXES_SWITCH.description.length,
+    ).toBeLessThanOrEqual(150);
   });
 
   test("with none yet, a short heading says to add one, and the line under it how to start it", async () => {

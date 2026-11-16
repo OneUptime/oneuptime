@@ -171,9 +171,8 @@ export class Service extends ProjectReferencesService<Model> {
    * Gives a dashboard being created the widgets of a template, and
    * answers them: null for a template with none of its own. A create
    * that names a template (DASHBOARD_TEMPLATE_MISC_DATA_KEY) is given
-   * them in onBeforeCreate; the sample project, which writes its
-   * dashboard without hooks, asks here. One place sets a dashboard's
-   * stored config from a template (DashboardStoredConfigReaders).
+   * them in onBeforeCreate. One place sets a dashboard's stored config
+   * from a template (DashboardStoredConfigReaders).
    */
   public applyTemplate(
     dashboard: Model,
@@ -478,23 +477,6 @@ export class Service extends ProjectReferencesService<Model> {
     } catch (err) {
       logger.error(
         `Could not tell whether the project of dashboard ${dashboard.id?.toString()} is blocked; its public link answers as usual.`,
-      );
-      logger.error(err);
-    }
-
-    /*
-     * Nor does a sample project's (issue #6808): nothing in a sample is ever
-     * public, so its dashboard's public link answers as for none, whatever
-     * a member switched on. It fails open, as above: the dashboard's own
-     * settings still decide who reads it.
-     */
-    try {
-      if (await ProjectService.isSampleProject(dashboard.projectId)) {
-        return null;
-      }
-    } catch (err) {
-      logger.error(
-        `Could not tell whether the project of dashboard ${dashboard.id?.toString()} is a sample project; its public link answers as usual.`,
       );
       logger.error(err);
     }

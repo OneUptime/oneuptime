@@ -4,6 +4,7 @@ import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
 import API from "Common/Utils/API";
 import LLMService from "Common/Server/Utils/LLM/LLMService";
+import { OUTBOUND_PROXY_ENVIRONMENT_VARIABLES } from "Common/Server/Utils/DataSource/EgressGuard";
 import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import dns from "dns";
@@ -316,4 +317,84 @@ describe("the places the paragraph names configure a Global LLM Provider no proj
     expect(page).toContain("item.isGlobalLlm = true;");
     expect(page).not.toMatch(/item\.projectId\s*=/);
   });
+});
+
+/*
+ * The section's last paragraph says which of these connections go through
+ * an outbound proxy and which connect directly (#8873). It names the proxy
+ * variables the egress guard's pinned agents read a proxy's name from, so a
+ * proxy named by host name is reached at its own address
+ * (EgressGuardedRequestsBehindProxy holds each connection to what it says).
+ */
+describe("the guide says which outbound connections go through a proxy", () => {
+  const PROXY_PARAGRAPH: string =
+    "Behind an outbound proxy, the connections made over HTTP go through it";
+
+  function proxyParagraphLine(): number {
+    return readPage("en")
+      .split("\n")
+      .findIndex((line: string): boolean => {
+        return line.startsWith(PROXY_PARAGRAPH);
+      });
+  }
+
+  test("at the end of Other outbound connections, in English", () => {
+    const markdown: string = readPage("en");
+    const section: string = markdown.slice(
+      markdown.indexOf("## Other outbound connections"),
+      markdown.indexOf("## Probes and monitors"),
+    );
+    const paragraphs: Array<string> = section.trim().split("\n\n");
+
+    expect(paragraphs[paragraphs.length - 1]!.startsWith(PROXY_PARAGRAPH)).toBe(
+      true,
+    );
+  });
+
+  test("by the variables the egress guard reads a proxy's name from", () => {
+    const paragraph: string = readPage("en").split("\n")[proxyParagraphLine()]!;
+    const named: Array<string> = Array.from(
+      paragraph.matchAll(/`([A-Z]+_PROXY)`/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(named).toEqual([
+      "HTTPS_PROXY",
+      "HTTP_PROXY",
+      "ALL_PROXY",
+      "NO_PROXY",
+    ]);
+
+    // Each proxy, in either case, as axios reads it; NO_PROXY names no proxy.
+    expect([...OUTBOUND_PROXY_ENVIRONMENT_VARIABLES].sort()).toEqual(
+      ["HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY"]
+        .flatMap((variable: string): Array<string> => {
+          return [variable, variable.toLowerCase()];
+        })
+        .sort(),
+    );
+  });
+
+  test.each(LANGUAGES_WITH_PAGE)(
+    "%s says it on the English paragraph's line, naming the same variables",
+    (language: string) => {
+      const line: string =
+        readPage(language).split("\n")[proxyParagraphLine()] || "";
+
+      for (const code of [
+        "`HTTPS_PROXY`",
+        "`HTTP_PROXY`",
+        "`ALL_PROXY`",
+        "`169.254.169.254`",
+        "`NO_PROXY`",
+      ]) {
+        expect({ language, code, said: line.includes(code) }).toEqual({
+          language,
+          code,
+          said: true,
+        });
+      }
+    },
+  );
 });

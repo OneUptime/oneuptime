@@ -365,6 +365,52 @@ const REACH_HINTS: Readonly<Record<AiResourceType, string>> = {
 };
 
 /*
+ * What a Cloud AI agent's changes run as, on each cloud, and the posture
+ * detail that names it (CloudExecutor.probePosture): the write role
+ * (ONEUPTIME_AI_AWS_WRITE_ROLE_ARN), the write identity
+ * (ONEUPTIME_AI_AZURE_WRITE_IDENTITY) or the write service account
+ * (ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT).
+ */
+export const CLOUD_WRITE_PATH_NAMES: Readonly<Record<string, string>> = {
+  [AiResourceType.AwsAccount]: "write role",
+  [AiResourceType.AzureSubscription]: "write identity",
+  [AiResourceType.GoogleCloudProject]: "write service account",
+};
+
+export const CLOUD_WRITE_PATH_DETAILS: Readonly<Record<string, string>> = {
+  [AiResourceType.AwsAccount]: "awsWriteRoleArn",
+  [AiResourceType.AzureSubscription]: "azureWriteIdentity",
+  [AiResourceType.GoogleCloudProject]: "gcpWriteServiceAccount",
+};
+
+/*
+ * Whether a Cloud AI agent says it makes its changes as the identity it
+ * reads with: it reports its cloud's details (cloudProvider), makes
+ * changes at all (allowWrites), has no setting it cannot use - a write
+ * path it cannot read refuses every change, and its posture's settings
+ * problem says so - and names no write path. An agent that says nothing
+ * of its cloud is never taken to be doing so.
+ */
+export function isChangingAsItself(data: {
+  type: AiResourceType;
+  posture: ResourceAiAgentPosture;
+}): boolean {
+  const detail: string | undefined = CLOUD_WRITE_PATH_DETAILS[data.type];
+  const details: Record<string, string | number | boolean | null> =
+    data.posture.details || {};
+  const writePath: unknown = detail ? details[detail] : undefined;
+  const settingsProblem: unknown = details["settingsProblem"];
+
+  return (
+    Boolean(detail) &&
+    typeof details["cloudProvider"] === "string" &&
+    data.posture.allowWrites === true &&
+    !(typeof settingsProblem === "string" && settingsProblem.trim()) &&
+    !(typeof writePath === "string" && writePath.trim())
+  );
+}
+
+/*
  * A kind of resource as the middle of an English sentence names it: "host",
  * "database server", "Docker host", "AWS account" - its display name cased
  * the way toSentenceTerm cases a label, never the label's "Host". These are
@@ -748,6 +794,34 @@ export class ResourceAiAccessServiceClass {
         ),
         blocksInvestigation: false,
         blocksRemediation: true,
+      });
+    }
+
+    /*
+     * A Cloud AI agent that makes its changes as the identity it reads with:
+     * one set up before its cloud's setup command made a write role,
+     * identity or account for its changes (Google Cloud's before #6148,
+     * Azure's before #6190), or one run elsewhere without one. It still
+     * works, so this blocks nothing; running the command again moves the
+     * changes to an identity of their own. Said only while the agent says
+     * so itself: it reports its cloud's details, makes changes at all, has
+     * no setting it cannot use (a write path it cannot read refuses every
+     * change, which its own line says), and names no write path.
+     */
+    if (
+      isCloudAccount &&
+      agent?.isOnline &&
+      posture &&
+      posture.resourceType === type &&
+      posture.reachable === true &&
+      isChangingAsItself({ type, posture })
+    ) {
+      gaps.push({
+        code: "cloud_agent_changes_as_itself",
+        title: `The ${info.agentDisplayName} makes its changes as the identity it reads with`,
+        nextStep: `Run its setup command again from Change on ${page}: it gives the changes a ${CLOUD_WRITE_PATH_NAMES[type] || "write identity"} of their own, and leaves the agent's own identity with the reads alone.`,
+        blocksInvestigation: false,
+        blocksRemediation: false,
       });
     }
 

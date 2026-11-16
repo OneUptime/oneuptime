@@ -202,6 +202,11 @@ describe("Master-password model metadata", () => {
     );
   });
 
+  /*
+   * The hashing mints the salt after the caller's values are asked, so the
+   * check of the record as written takes it as the create's own
+   * (columnsSetByServer, which DatabaseService hands over).
+   */
   test.each(resourceCases)(
     "$name computed salt survives create permission validation",
     ({ model }: ResourceCase) => {
@@ -213,8 +218,34 @@ describe("Master-password model metadata", () => {
           model,
           {} as DatabaseCommonInteractionProps,
           DatabaseRequestType.Create,
+          ["masterPasswordSalt"],
         );
       }).not.toThrow();
+    },
+  );
+
+  // A salt the caller sends is theirs, and nobody may create one (#6541).
+  test.each(resourceCases)(
+    "$name rejects a caller-supplied salt on create",
+    ({ model }: ResourceCase) => {
+      model.masterPasswordSalt = PasswordHash.generateSalt();
+
+      expect(() => {
+        ColumnPermissions.checkComputedColumnsSentOnCreate(
+          model instanceof Dashboard ? Dashboard : StatusPage,
+          model,
+          {} as DatabaseCommonInteractionProps,
+        );
+      }).toThrow("not allowed to create on masterPasswordSalt");
+
+      expect(() => {
+        ColumnPermissions.checkDataColumnPermissions(
+          model instanceof Dashboard ? Dashboard : StatusPage,
+          model,
+          {} as DatabaseCommonInteractionProps,
+          DatabaseRequestType.Create,
+        );
+      }).toThrow("not allowed to create on masterPasswordSalt");
     },
   );
 
