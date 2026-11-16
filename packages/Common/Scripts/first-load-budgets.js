@@ -9,8 +9,10 @@
  * metafile), follows the frontend's entry and the page's own chunk through
  * every chunk they import statically (a lazily loaded chunk waits for a
  * visit), and gzips each file as Nginx serves it (gzip_comp_level 5,
- * packages/Nginx/default.conf.template). A page over its ceiling fails the
- * run, naming the packages and folders that weigh the most in it.
+ * packages/Nginx/default.conf.template). Each page's line says how much is
+ * left under its ceiling. A page over its ceiling fails the run, naming the
+ * packages and folders that weigh the most in it, and one with less than 1%
+ * of it left warns (WARNING_HEADROOM_SHARE).
  *
  * The Compile workflow's compile-frontends job runs it once the three
  * frontends' dependencies are installed (issue #5608). It measures bytes,
@@ -37,6 +39,15 @@ const GZIP_LEVEL = 5;
 
 // How many of a page's heaviest packages and folders a failure names.
 const HEAVIEST_NAMED = 8;
+
+/*
+ * A page with less than this share of its ceiling left still passes, and
+ * warns (a GitHub annotation, on the run and on the pull request): the
+ * pages crept up to their ceilings through merges no one of which failed,
+ * until the next small change to the sign-up page would have (issue
+ * #7615). Warned, the creep shows before a pull request fails on it.
+ */
+const WARNING_HEADROOM_SHARE = 0.01;
 
 const KIB = 1024;
 
@@ -213,12 +224,18 @@ function measurePage(metafile, page, readOutput) {
     return sum + gzipBytes(readOutput(file));
   }, 0);
 
+  const over = bytes > page.ceiling;
+
   return {
     ...page,
     outputs,
     bytes,
-    over: bytes > page.ceiling,
-    heaviest: bytes > page.ceiling ? heaviest(metafile, outputs) : [],
+    over,
+    // What is left under the ceiling: below zero when over it.
+    headroom: page.ceiling - bytes,
+    nearCeiling:
+      !over && page.ceiling - bytes < page.ceiling * WARNING_HEADROOM_SHARE,
+    heaviest: over ? heaviest(metafile, outputs) : [],
   };
 }
 
@@ -230,7 +247,7 @@ function describe(result) {
   const line = `${result.frontend} ${result.page}: ${kib(result.bytes)} gzipped in ${result.outputs.length} files, ceiling ${kib(result.ceiling)}`;
 
   if (!result.over) {
-    return line;
+    return `${line}, ${kib(result.headroom)} under it`;
   }
 
   return [
@@ -241,6 +258,47 @@ function describe(result) {
     }),
     "  Keep what this page does not need out of its static imports (import() it where it is used), or raise the ceiling in packages/Common/Scripts/first-load-budgets.js, saying when and why.",
   ].join("\n");
+}
+
+/*
+ * A GitHub Actions workflow command's message, as the runner reads it: a
+ * per cent sign and a line break are escaped, or "1%" would be read as an
+ * escape of its own.
+ */
+function escapeAnnotation(message) {
+  return message
+    .replace(/%/g, "%25")
+    .replace(/\r/g, "%0D")
+    .replace(/\n/g, "%0A");
+}
+
+// The warning a page close to its ceiling gives (WARNING_HEADROOM_SHARE).
+function warnNearCeiling(result) {
+  const share = `${Math.round(WARNING_HEADROOM_SHARE * 100)}%`;
+
+  return `::warning title=First-load budget::${escapeAnnotation(
+    `${result.frontend} ${result.page} is ${kib(result.headroom)} under its ceiling of ${kib(result.ceiling)}, less than ${share} of it: the next change that adds to what it loads first fails the Compile workflow. Keep what the page does not draw out of its static imports (import() it where it is used), as packages/Common/Scripts/first-load-budgets.js says beside its ceiling.`,
+  )}`;
+}
+
+/*
+ * What the run prints for the pages it measured, and whether it fails: a
+ * line for each page, and a warning for each that is close to its ceiling.
+ */
+function report(results) {
+  return {
+    lines: [
+      ...results.map(describe),
+      ...results
+        .filter((result) => {
+          return result.nearCeiling;
+        })
+        .map(warnNearCeiling),
+    ],
+    failed: results.some((result) => {
+      return result.over;
+    }),
+  };
 }
 
 // Builds a frontend as its image does, with esbuild's metafile.
@@ -286,15 +344,13 @@ function main() {
     );
   }
 
-  for (const result of results) {
-    console.log(describe(result));
+  const { lines, failed } = report(results);
+
+  for (const line of lines) {
+    console.log(line);
   }
 
-  if (
-    results.some((result) => {
-      return result.over;
-    })
-  ) {
+  if (failed) {
     process.exitCode = 1;
   }
 }
@@ -306,10 +362,14 @@ if (require.main === module) {
 module.exports = {
   GZIP_LEVEL,
   PAGES,
+  WARNING_HEADROOM_SHARE,
   describe,
+  escapeAnnotation,
   firstLoadOutputs,
   heaviest,
   measurePage,
   outputFor,
+  report,
+  warnNearCeiling,
   weightKey,
 };
