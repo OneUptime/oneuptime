@@ -67,6 +67,8 @@ Doe een HTTP-verzoek naar elke URL. Er is één blok per methode: **API-aanroep 
 
 Hoe dan ook geeft het blok **Status van het antwoord**, **Reactieheaders** en **Antwoordlichaam** terug, plus **Fout** met de reden als het mislukte. Lees één veld van een JSON-antwoord door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Een blok leest hoogstens 10 MB van een antwoord. Een groter antwoord wordt niet gelezen: het blok neemt **Fout**, met de reden.
+
 Omleidingen worden niet gevolgd, dus richt het blok op het adres dat antwoordt. Verzoeken gaan vanuit OneUptime de deur uit: een URL die naar een privénetwerkadres verwijst, wordt geweigerd tenzij een beheerder van een zelf gehoste installatie die toestaat, en de uitvoering stopt met de reden. Zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
 
 **API-aanroep GET op ID (JSON)** leest één item op een ID dat ergens anders vandaan kwam, zoals de issuesleutel die een webhook stuurde. Zet `{id}` in de **URL** waar het ID hoort, zoals in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, en het ID in **ID**. Het blok zet het ID er alleen in als het een eenvoudig ID is, hooguit 200 letters, cijfers, streepjes en underscores, en codeert het toch met procenttekens: al het andere, zoals `x/../users`, neemt **Fout** voordat er een verzoek wordt verstuurd, zodat tekst van buiten het verzoek niet ergens anders heen kan sturen. Verder werkt het zoals **API-aanroep GET (JSON)** en geeft het dezelfde waarden terug.
@@ -242,7 +244,7 @@ Een blok dat wordt toegevoegd aan een workflow die met een incident of een waars
 
 **Succes** draait zodra ten minste één persoon is opgeroepen, of één beleid is gestart. **Fout** draait wanneer niemand is opgeroepen, en de waarde **Fout** van het blok zegt waarom, bijvoorbeeld dat niemand in het schema dienst heeft. **Samenvatting** zegt in één zin wie is opgeroepen en wie is overgeslagen, klaar om in een kanaal te plaatsen, en **Opgeroepen gebruikers** somt de opgeroepen mensen op.
 
-Iemand die afwezig is, wordt niet opgeroepen: in plaats daarvan wordt opgeroepen wie de override van die persoon als vervanger noemt. Een oproep noemt hoogstens 100 personen, teams en schema's. Zie [Hoe iedere persoon wordt bereikt](/docs/on-call/escalation-rules#hoe-iedere-persoon-wordt-bereikt).
+Iemand die afwezig is, wordt niet opgeroepen: in plaats daarvan wordt opgeroepen wie de override van die persoon als vervanger noemt. Iemand die er al door een bereikbaarheidsbeleid of een andere oproep over wordt opgeroepen, wordt niet opnieuw opgeroepen en staat toch bij **Opgeroepen gebruikers**: eindigt die oproep zonder antwoord van diegene, dan roept de oproep van het blok diegene zelf op. Een oproep noemt hoogstens 100 personen, teams en schema's. Zie [Hoe iedere persoon wordt bereikt](/docs/on-call/escalation-rules#hoe-iedere-persoon-wordt-bereikt).
 
 Een oproep zonder bereikbaarheidsbeleid erachter staat tussen de uitvoeringen van het beleid als **Directe oproep**: in de bereikbaarheidslogboeken van het incident of de waarschuwing, in de feed en het Slack- of Microsoft Teams-kanaal daarvan, en in de logboeken van elke opgeroepen persoon. Hij blijft 30 minuten open, en daarna zolang er nog oproepen uitgaan. Heeft tegen die tijd niemand bevestigd, dan eindigt hij zonder iemand anders op te roepen.
 

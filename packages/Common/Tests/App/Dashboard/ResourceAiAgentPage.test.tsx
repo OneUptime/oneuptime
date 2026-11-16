@@ -102,6 +102,7 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
+import { withPlainSpaces } from "../../../Types/NoBreakSpaces";
 
 jest.mock("react-i18next", () => {
   return {
@@ -801,8 +802,9 @@ describe("the agent card", () => {
     openAgentPage();
 
     expect(await findTestId("ai-agent-status")).toHaveTextContent("Offline");
+    // toHaveTextContent reads the sentence's held "5 minutes" with a plain space.
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
-      getResourceAiAgentSilentText(DOCKER),
+      withPlainSpaces(getResourceAiAgentSilentText(DOCKER)),
     );
     expect(codeIn(screen.getByTestId("ai-agent-logs-command"))).toBe(
       getResourceAiAgentLogsCommand(AiResourceType.DockerHost),
@@ -2962,6 +2964,135 @@ describe("Test connection", () => {
     },
   );
 
+  /*
+   * A cloud account's agent that reads, but whose every change would fail
+   * as it is set up - its write role, identity or account cannot be used:
+   * the server answers ok (the commands worked) with the problem
+   * (writePathProblem) and what fixes it. Said in amber, never "The
+   * connection works" (#6212). The other verdicts read as they always did.
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: reads that work and changes that would fail are said in amber, with what fixes them",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const fix: string =
+        "The Cloud AI agent reads this account, but every change will fail: it could not sign in as its write role. Run its setup command again from Change on this page.";
+      const running: ResourceAiAccessStatus = makeStatus({
+        resourceType: type,
+        aiSettingsSource: "agent_configuration",
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        gaps: [],
+        isRemediationReady: true,
+        agent: makeAgent({
+          posture: makePosture({ resourceType: type, allowWrites: true }),
+        }),
+      });
+
+      serve(running, {
+        test: async (): Promise<HTTPResponse<JSONObject>> => {
+          return new HTTPResponse<JSONObject>(
+            200,
+            {
+              ok: true,
+              message: fix,
+              writePathProblem: "cannot-sign-in",
+              results: [
+                {
+                  command: "cloud whoami",
+                  succeeded: true,
+                  exitCode: 0,
+                  output: "Cloud: AWS",
+                  errorMessage: null,
+                },
+              ],
+              status: running as unknown as JSONObject,
+            },
+            {},
+          );
+        },
+      });
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      await pickAgentAction(TEST_ACTION_TEST_ID);
+
+      const verdict: HTMLElement = await findTestId("ai-agent-test-verdict");
+
+      expect(verdict).toHaveTextContent("Reads work, but changes will fail");
+      expect(verdict).toHaveTextContent(fix);
+      expect(verdict).not.toHaveTextContent("The connection works");
+      // Amber: the warning alert, never the success one.
+      expect(verdict.className).toContain("bg-amber-50");
+      expect(verdict.className).not.toContain("bg-emerald-50");
+      // The command still reads as having worked.
+      expect(
+        within(await findTestId("ai-agent-test-results")).getByTestId(
+          "ai-agent-test-result-row",
+        ),
+      ).toHaveTextContent("succeeded");
+    },
+  );
+
+  test.each<[string, JSONObject, string, string]>([
+    ["changes can run", { ok: true }, "The connection works", "bg-emerald-50"],
+    [
+      "an agent too old to say",
+      { ok: true, writePathProblem: undefined },
+      "The connection works",
+      "bg-emerald-50",
+    ],
+    [
+      "a problem this page does not know",
+      { ok: true, writePathProblem: "gremlins" },
+      "The connection works",
+      "bg-emerald-50",
+    ],
+    [
+      "the commands failed, whatever else it says",
+      { ok: false, writePathProblem: "cannot-sign-in" },
+      "The connection is not working yet",
+      "bg-amber-50",
+    ],
+  ])(
+    "%s: %j reads as before",
+    async (
+      _name: string,
+      answer: JSONObject,
+      title: string,
+      background: string,
+    ) => {
+      const type: AiResourceType = AiResourceType.AzureSubscription;
+
+      serve(makeStatus({ resourceType: type }), {
+        test: async (): Promise<HTTPResponse<JSONObject>> => {
+          return new HTTPResponse<JSONObject>(
+            200,
+            {
+              message: "The answer.",
+              results: [],
+              status: makeStatus({
+                resourceType: type,
+              }) as unknown as JSONObject,
+              ...answer,
+            },
+            {},
+          );
+        },
+      });
+      openAgentPage(getResourceAiAgentDescriptor(type), cloudAccountOf(type));
+
+      await pickAgentAction(TEST_ACTION_TEST_ID);
+
+      const verdict: HTMLElement = await findTestId("ai-agent-test-verdict");
+
+      expect(verdict).toHaveTextContent(title);
+      expect(verdict).not.toHaveTextContent(
+        "Reads work, but changes will fail",
+      );
+      expect(verdict.className).toContain(background);
+    },
+  );
+
   test("another agent's test output keeps its columns: it scrolls, never wraps", async () => {
     serve(makeStatus(), {
       test: async (): Promise<HTTPResponse<JSONObject>> => {
@@ -3691,6 +3822,60 @@ describe("every resource type", () => {
       fireEvent.click(await findTestId("ai-access-change-button"));
       expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
       expect(screen.queryByTestId("agent-ai-settings-dialog")).toBeNull();
+    },
+  );
+
+  /*
+   * A Cloud AI agent set up before its cloud's setup command made a write
+   * role, identity or account still makes its changes as the identity it
+   * reads with: Needs attention says to run the command again, with Show
+   * how, which opens the setup dialog with the command (#6212).
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: an agent that makes its changes as itself is told to run its setup command again, and Show how opens it",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      serve(
+        makeStatus({
+          resourceType: type,
+          aiSettingsSource: "agent_configuration",
+          aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+          gaps: [
+            {
+              code: "cloud_agent_changes_as_itself",
+              title:
+                "The Cloud AI agent makes its changes as the identity it reads with",
+              nextStep: "Run its setup command again.",
+              blocksInvestigation: false,
+              blocksRemediation: false,
+            },
+          ],
+          isInvestigationReady: true,
+          isRemediationReady: true,
+          agent: makeAgent({
+            posture: makePosture({ resourceType: type, allowWrites: true }),
+          }),
+        }),
+      );
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      expect(await findTestId("ai-agent-attention-title")).toHaveTextContent(
+        "The Cloud AI agent makes its changes as the identity it reads with",
+      );
+
+      const step: HTMLElement = await findTestId(
+        "ai-agent-gap-cloud_agent_changes_as_itself",
+      );
+
+      expect(step).toHaveTextContent(/^Run the setup command again[.]/);
+      expect(screen.queryByTestId("cloud-ai-agent-setup")).toBeNull();
+
+      fireEvent.click(
+        within(step).getByTestId("ai-agent-gap-show-cloud-agent-setup"),
+      );
+
+      expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
     },
   );
 

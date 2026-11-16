@@ -33,6 +33,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CodeHostAccess from "./CodeHostAccess";
+import CodeRepositoryMintedTokens from "./CodeRepositoryMintedTokens";
 import CodeHostHttp, {
   CodeHostHttpError,
   CodeHostHttpErrorKind,
@@ -677,6 +678,16 @@ export default class CodeRepositoryConnector {
         refusedAt: null as unknown as Date,
       },
       props: { isRoot: true },
+    });
+
+    /*
+     * What GitLab refused the old token - a short-lived token for each fix,
+     * which only a Maintainer's token with the api scope makes - is asked
+     * of the new one at the next fix.
+     */
+    await CodeRepositoryMintedTokens.clearRefusalsOfConnection({
+      projectId: data.projectId,
+      connectionId: connection.id!,
     });
 
     return { accountLogin, credentialHint };

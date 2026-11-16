@@ -6,6 +6,7 @@ import FindBy from "../../../Server/Types/Database/FindBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import UpdateByID from "../../../Server/Types/Database/UpdateByID";
+import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -794,6 +795,12 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
     expectDefaultTakenFromOthers(PROJECT_ID, CONFIG_ID);
   });
 
+  /*
+   * What a config is the default for is OneUptime's to write (#6541). A
+   * member who may read the configs - a config read and sent back whole
+   * carries it - has the value dropped before the hooks run, and the rule
+   * says it.
+   */
   test("what a member's create says the config is the default for is not saved: the rule says it", async () => {
     configsInProject = 1;
 
@@ -807,13 +814,45 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
     const saved: ProjectCallSMSConfig =
       await ProjectCallSMSConfigService.create({
         data: config,
-        props: configCreatorProps(),
+        props: memberProps([
+          Permission.CreateProjectCallSMSConfig,
+          Permission.ReadProjectCallSMSConfig,
+        ]),
       });
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(saved.isProjectDefault).toBe(false);
     expect(saved.isProjectDefaultForSms).toBe(false);
     expect(saved.isProjectDefaultForCalls).toBe(false);
+    expect(writeCount()).toBe(0);
+  });
+
+  // One who may not even read the configs sent a value no config they read carries: refused.
+  test("a member who may create configs but not read them is refused for saying it, and nothing is saved", async () => {
+    configsInProject = 1;
+
+    const config: ProjectCallSMSConfig = buildConfig({
+      projectId: undefined,
+      isProjectDefault: false,
+    });
+    config.isProjectDefaultForSms = true;
+
+    let refusal: unknown = null;
+
+    try {
+      await ProjectCallSMSConfigService.create({
+        data: config,
+        props: configCreatorProps(),
+      });
+    } catch (error) {
+      refusal = error;
+    }
+
+    expect(refusal).toBeInstanceOf(ColumnWriteRefusedException);
+    expect((refusal as ColumnWriteRefusedException).columnName).toBe(
+      "isProjectDefaultForSms",
+    );
+    expect(save).not.toHaveBeenCalled();
     expect(writeCount()).toBe(0);
   });
 

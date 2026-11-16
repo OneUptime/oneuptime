@@ -31,6 +31,204 @@ Tests/Ops/HelmEnvValuesQuoted.test.js holds every env value of the chart to it.
 {{- end -}}
 
 {{/*
+The password of a database you run yourself (externalPostgres.password,
+externalValkey.password, externalClickhouse.password), as the chart stores it
+in the Secret the pods read it from:
+  password: {{ include "oneuptime.passwordValue" $.Values.externalPostgres.password }}
+It is written without the line ending at the end of the file it was read from
+(helm --set-file, Terraform's file()), one "\n" or "\r\n", and otherwise
+exactly as set (#7911). Stored with that line ending, the app and pgbouncer
+presented "password\n", which no database takes for "password", while the
+username beside it, read through oneuptime.envValue, worked. Only that one line
+ending goes, unlike the whitespace oneuptime.envValue leaves out of a key: a
+password may begin or end with a space on purpose, and the database knows it
+with that space. The passwords of the built-in databases are not written
+through this: their server and the pods read the same Secret, so a password
+kept with a newline works, and the server keeps the one it started with.
+Double-quoted, as YAML reads it back exactly. An unset value renders nothing.
+*/}}
+{{- define "oneuptime.passwordValue" -}}
+{{- if not (kindIs "invalid" .) -}}
+{{- regexReplaceAll `\r?\n\z` (toString .) "" | quote -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Refuses a host OneUptime cannot be opened at, with the value to set, and
+renders nothing:
+  {{- include "oneuptime.validateHost" $ }}
+host is a domain name or an IPv4 address, with or without :port, or an IPv6
+address in brackets, with or without :port after them: [2001:db8::1],
+[2001:db8::1]:8080. A web address writes an IPv6 host so, a browser names it
+so in the Host of every request, and the app builds every link from host.
+Without brackets it never worked (#8022): nginx answers 400 to a Host of
+2001:db8::1 and never takes a request for a server of that name, and every
+link read http://2001:db8::1/..., which no browser opens. Nor are the
+brackets put in here: 2001:db8::1:8080 is an address of its own, and also
+2001:db8::1 on port 8080, so both are said.
+
+The rest of the shape is refused too, as Scripts/Install/Preflight.js stops
+`npm start` on it (#8877), since every pod stops at its start on it with
+"Hostname ... is not in valid format" or "Port is not in valid format": a web
+address instead of the address alone; brackets around anything but an IPv6
+address; two colons and no IPv6 address either way; a port that is not a
+number from 1 to 65535, or one with no address before it; and a name that is
+not a domain name by the rule the app reads host by (HOST_REGEX in
+packages/Common/Types/API/Hostname.ts, which oneuptime.hostProblem holds as
+$nameRule). An empty host renders as it always did. tests/host_test.yaml
+holds it template by template, and Tests/Ops/HelmHost.test.js renders it with
+helm, holds it to npm start's checks host by host, and holds $nameRule to the
+app's.
+*/}}
+{{- define "oneuptime.validateHost" -}}
+{{- $problem := include "oneuptime.hostProblem" . -}}
+{{- if $problem -}}
+{{- fail $problem -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+What is wrong with host, as the sentence oneuptime.validateHost fails with,
+or nothing (see there).
+*/}}
+{{- define "oneuptime.hostProblem" -}}
+{{- $host := trim (toString (default "" .Values.host)) -}}
+{{- $nameRule := `^[a-zA-Z0-9_](?:[a-zA-Z0-9_-]{0,61}[a-zA-Z0-9_])?(?:\.[a-zA-Z0-9_](?:[a-zA-Z0-9_-]{0,61}[a-zA-Z0-9_])?)*\.?$` -}}
+{{- $inQuotes := "in a values file, in quotes so YAML reads it as text" -}}
+{{- $colons := sub (len (splitList ":" $host)) 1 -}}
+{{- if not $host -}}
+{{- else if regexMatch `://|[/?#\s]` $host -}}
+{{- $address := regexReplaceAll `\s+` (regexReplaceAll `(?s)[/?#].*$` (regexReplaceAll `(?s)^.*?://` $host "") "") "" -}}
+{{- $readings := list -}}
+{{- if not (hasPrefix "[" $address) -}}
+{{- $readings = include "oneuptime.hostReadings" $address | fromJsonArray -}}
+{{- end -}}
+{{- $value := printf "--set host=%s" ($address | default "oneuptime.example.com") -}}
+{{- if eq (len $readings) 2 -}}
+{{- $value = printf "--set host=%s, or --set host=%s if %s is the port people open it on" (index $readings 0).host (index $readings 1).host (index $readings 1).port -}}
+{{- else if $readings -}}
+{{- $value = printf "--set host=%s" (index $readings 0).host -}}
+{{- end -}}
+{{- printf "host is %s. Write the address alone, without http:// or a path: %s. httpProtocol says whether people use http or https." $host $value -}}
+{{- else if hasPrefix "[" $host -}}
+{{- $inside := regexReplaceAll `^\[([^\]]*)\].*$` $host "${1}" -}}
+{{- if not (and (regexMatch `^\[[^\]]*\](?::[^:]*)?$` $host) (include "oneuptime.isIpv6Address" $inside)) -}}
+{{- printf "host is %s. Brackets hold an IPv6 address and nothing else, with any port after the closing one, such as [2001:db8::1] or [2001:db8::1]:8080. A domain name or an IPv4 address goes without them." $host -}}
+{{- else if not (hasSuffix "]" $host) -}}
+{{- $port := regexReplaceAll `^\[[^\]]*\]:` $host "" -}}
+{{- if not (include "oneuptime.isPort" $port) -}}
+{{- printf "host is %s, but %s. A port is a number from 1 to 65535, such as --set host=[%s]:8080; without one, --set host=[%s]." $host (ternary (printf "%s is not a port" $port) "no port follows its last colon" (ne $port "")) $inside $inside -}}
+{{- end -}}
+{{- end -}}
+{{- else if ge $colons 2 -}}
+{{- $readings := include "oneuptime.hostReadings" $host | fromJsonArray -}}
+{{- if not $readings -}}
+{{- printf "host is %s, which is not an address: a domain name or an IPv4 address has one colon at most, before its port, and an IPv6 address goes in brackets, such as [2001:db8::1]." $host -}}
+{{- else if eq (len $readings) 2 -}}
+{{- $whole := (index $readings 0).host -}}
+{{- $split := index $readings 1 -}}
+{{- printf "host is %s, an IPv6 address without brackets, so no browser can open OneUptime at it. Write it in brackets, with any port after them: --set host=%s, or --set host=%s if %s is the port people open it on, and %s, host: \"%s\" or host: \"%s\"." $host $whole $split.host $split.port $inQuotes $whole $split.host -}}
+{{- else if (index $readings 0).port -}}
+{{- $split := (index $readings 0).host -}}
+{{- printf "host is %s, an IPv6 address and a port, without brackets around the address, so no browser can open OneUptime at it. Write the address in brackets, with the port after them: --set host=%s, or %s, host: \"%s\"." $host $split $inQuotes $split -}}
+{{- else -}}
+{{- printf "host is %s, an IPv6 address without brackets, so no browser can open OneUptime at it. Write it in brackets, with any port after them, such as [2001:db8::1]:8080: --set host=[%s], or %s, host: \"[%s]\"." $host $host $inQuotes $host -}}
+{{- end -}}
+{{- else -}}
+{{- $name := index (splitList ":" $host) 0 -}}
+{{- $port := "" -}}
+{{- if eq $colons 1 -}}
+{{- $port = index (splitList ":" $host) 1 -}}
+{{- end -}}
+{{- if and (eq $colons 1) (not $name) -}}
+{{- printf "host is %s, a port with no address before it. Write the domain name or IP address people open OneUptime at before the colon, such as --set host=oneuptime.example.com:%s." $host (ternary $port "8080" (ne (include "oneuptime.isPort" $port) "")) -}}
+{{- else if and (eq $colons 1) (not (include "oneuptime.isPort" $port)) -}}
+{{- printf "host is %s, but %s. A port is a number from 1 to 65535, such as --set host=%s:8080; without one, --set host=%s." $host (ternary (printf "%s is not a port" $port) "no port follows its colon" (ne $port "")) $name $name -}}
+{{- else if not (regexMatch $nameRule $name) -}}
+{{- $what := ternary (printf "host is %s, and %s" $host $name) (printf "host is %s, which" $host) (eq $colons 1) -}}
+{{- $strangers := regexFindAll `[^a-zA-Z0-9_.-]` $name -1 | uniq -}}
+{{- $parts := splitList "." (trimSuffix "." $name) -}}
+{{- $hyphened := "" -}}
+{{- $long := "" -}}
+{{- range $part := $parts -}}
+{{- if and (not $hyphened) (or (hasPrefix "-" $part) (hasSuffix "-" $part)) -}}
+{{- $hyphened = $part -}}
+{{- end -}}
+{{- if and (not $long) (gt (len $part) 63) -}}
+{{- $long = $part -}}
+{{- end -}}
+{{- end -}}
+{{- if $strangers -}}
+{{- $quoted := list -}}
+{{- range $stranger := $strangers -}}
+{{- $quoted = append $quoted (printf "\"%s\"" $stranger) -}}
+{{- end -}}
+{{- $listed := last $quoted -}}
+{{- if gt (len $quoted) 1 -}}
+{{- $listed = printf "%s and %s" (join ", " (initial $quoted)) (last $quoted) -}}
+{{- end -}}
+{{- $beyondAscii := ternary " Write a name with letters beyond a to z in the ASCII form DNS writes it in, whose parts with such letters start with xn--." "" (regexMatch `[^\x00-\x7F]` $name) -}}
+{{- printf "%s is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and %s %s none of them.%s" $what $listed (ternary "is" "are" (eq (len $quoted) 1)) $beyondAscii -}}
+{{- else if hasPrefix "." $name -}}
+{{- printf "%s is not a domain name: it starts with a dot." $what -}}
+{{- else if contains ".." $name -}}
+{{- printf "%s is not a domain name: it has two dots in a row." $what -}}
+{{- else if $hyphened -}}
+{{- printf "%s is not a domain name: no part of a domain name starts or ends with a hyphen, and \"%s\" does." $what $hyphened -}}
+{{- else if $long -}}
+{{- printf "%s is not a domain name: a part of a domain name between its dots is 63 characters at most, and \"%s\" has %d." $what $long (len $long) -}}
+{{- else -}}
+{{- printf "%s is not a domain name by the rule the app reads host by." $what -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The ways to write an IPv6 address given without brackets in brackets, as a
+JSON list of {host, port}: the whole as the address ({"host": "[2001:db8::1]"});
+and, when its last group is a port and the rest is an address, the rest with
+that port ({"host": "[2001:db8::1]:8080", "port": "8080"}). Empty when it is
+no IPv6 address either way. Preflight.js's bracketedReadingsOf, here.
+*/}}
+{{- define "oneuptime.hostReadings" -}}
+{{- $text := toString . -}}
+{{- $readings := list -}}
+{{- if include "oneuptime.isIpv6Address" $text -}}
+{{- $readings = append $readings (dict "host" (printf "[%s]" $text) "port" "") -}}
+{{- end -}}
+{{- $groups := splitList ":" $text -}}
+{{- $port := last $groups -}}
+{{- $address := join ":" (initial $groups) -}}
+{{- if and (gt (len $groups) 1) $address (include "oneuptime.isPort" $port) (include "oneuptime.isIpv6Address" $address) -}}
+{{- $readings = append $readings (dict "host" (printf "[%s]:%s" $address $port) "port" $port) -}}
+{{- end -}}
+{{- toJson $readings -}}
+{{- end -}}
+
+{{/*
+"true" for an IPv6 address as a web address holds one (hex digits, colons and
+dots, no zone), or nothing: the rule the app reads host's brackets by as it
+starts (isIPv6 in packages/Common/Types/IP/IP.ts, case-insensitive there too),
+which Preflight.js holds HOST to. Every text form of RFC 4291, an IPv4 address
+at the end included (2001:db8::1:192.0.2.1). Tests/Ops/HelmHost.test.js holds
+$ipv6Rule to the app's.
+*/}}
+{{- define "oneuptime.isIpv6Address" -}}
+{{- $text := toString . -}}
+{{- $ipv6Rule := `^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|(?:(?:[0-9a-fA-F]{1,4}:){6}|::(?:[0-9a-fA-F]{1,4}:){0,5}|[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:){0,4}|(?:[0-9a-fA-F]{1,4}:){2}:(?:[0-9a-fA-F]{1,4}:){0,3}|(?:[0-9a-fA-F]{1,4}:){3}:(?:[0-9a-fA-F]{1,4}:){0,2}|(?:[0-9a-fA-F]{1,4}:){4}:(?:[0-9a-fA-F]{1,4}:)?|(?:[0-9a-fA-F]{1,4}:){5}:)(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))$` -}}
+{{- if and (regexMatch `^[0-9A-Fa-f:.]+$` $text) (regexMatch (printf "(?i)%s" $ipv6Rule) $text) -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+"true" for a port, a number from 1 to 65535 in digits only, or nothing.
+*/}}
+{{- define "oneuptime.isPort" -}}
+{{- $text := toString . -}}
+{{- if and (regexMatch `^[0-9]{1,5}$` $text) (ge (atoi $text) 1) (le (atoi $text) 65535) -}}true{{- end -}}
+{{- end -}}
+
+{{/*
 The name the bundled Altinity operator chart gives its resources (its own
 "altinity-clickhouse-operator.fullname"), worked out from its values: the
 operator reads its credentials Secret by that name (its config.yaml's
@@ -423,6 +621,17 @@ or dod. Not a secret: the Dashboard reads it too, for its links to Teams.
 - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
   value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}
 {{- end }}
+{{- /*
+How OneUptime's own metrics are sent: the OTLP metric exporter reads the
+variable itself, and without it sends running totals (cumulative). delta is
+what a OneUptime project reads exactly (#6760). The probes and the global
+Runner, which take their exporter settings from their own templates, get it
+there.
+*/}}
+{{- if $.Values.openTelemetryExporter.metricsTemporality }}
+- name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+  value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}
+{{- end }}
 {{- if $.Values.openTelemetryExporter.captureAiMessageContent }}
 - name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
   value: "true"
@@ -508,6 +717,7 @@ the button when it is set; the secret is in oneuptime.env.runtime.
   value: {{ $.Values.gitHubApp.name | quote }}
 - name: GITHUB_APP_CLIENT_ID
   value: {{ $.Values.gitHubApp.clientId | quote }}
+{{- include "oneuptime.validateHost" $ }}
 - name: HOST
   value: {{ include "oneuptime.envValue" $.Values.host }}
 - name: PROVISION_SSL
@@ -1100,6 +1310,16 @@ why: ""
   value: {{ include "oneuptime.envValue" $.Values.vapid.privateKey }}
   {{- end }}
 
+{{- /*
+Malware scanning (clamav): the in-cluster ClamAV when clamav.enabled, else a
+clamd of your own at clamav.host, else none - and then nothing is scanned.
+*/}}
+- name: CLAMAV_HOST
+  value: {{ ternary (printf "%s-clamav" $.Release.Name) (default "" ($.Values.clamav).host) (($.Values.clamav).enabled | default false) | quote }}
+
+- name: CLAMAV_PORT
+  value: {{ ternary 3310 (($.Values.clamav).port | default 3310) (($.Values.clamav).enabled | default false) | toString | quote }}
+
 - name: EXPO_ACCESS_TOKEN
   value: {{ default "" $.Values.expo.accessToken | quote }}
 
@@ -1529,7 +1749,7 @@ values are set. Secrets can come from an existing Kubernetes secret.
 
 {{- range $name := (list "VALKEY" "REDIS") }}
 - name: {{ $name }}_HOST
-  value: {{ $valkeyHost | quote }}
+  value: {{ include "oneuptime.envValue" $valkeyHost }}
 - name: {{ $name }}_PORT
   value: {{ $valkeyPort | quote }}
 - name: {{ $name }}_PASSWORD
@@ -1562,7 +1782,7 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: {{ $name }}_DB
   value: {{ $valkeyDb | quote }}
 - name: {{ $name }}_USERNAME
-  value: {{ $valkeyUsername | quote }}
+  value: {{ include "oneuptime.envValue" $valkeyUsername }}
 
 ## CACHE TLS BLOCK -- only an external cache can carry certificates.
 {{- if not $valkey.enabled }}
@@ -1760,6 +1980,16 @@ values are set. Secrets can come from an existing Kubernetes secret.
 
 - name: DISABLE_INSTANCE_CHECK_IN
   value: {{ default false (($.Values.instanceCheckIn).disabled) | squote }}
+
+{{/*
+  Keep Forgejo, Gitea and Git repositories off global Runners (as OneUptime
+  Cloud does), and the GitLab ones GitLab makes no short-lived token for, for a
+  self-hosted install that serves several tenants whose code must stay apart.
+  Their AI code fixes then need one of the project's own Runners
+  (Types/Runner/GlobalRunnerRepositoryTokens).
+*/}}
+- name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
+  value: {{ ternary "true" "false" (default false (($.Values.globalRunner).codeFixGitHubOnly)) | squote }}
 
 {{/*
   Not `default 1 ...`: Helm's default treats 0 as empty, and 0 is a meaningful

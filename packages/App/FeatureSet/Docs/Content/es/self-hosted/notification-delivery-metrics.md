@@ -6,7 +6,7 @@ OneUptime registra cómo les va a las notificaciones que envía: cuántos incide
 - [Activarlas](#activarlas): Dos ajustes, y sin ellos no se registra nada.
 - [Las métricas](#las-métricas): Siete métricas, del disparador al teléfono.
 - [Cómo se mide un aviso](#cómo-se-mide-un-aviso): Desde dónde cuentan el tiempo de envío y el retraso de envío.
-- [SLO para empezar](#slo-para-empezar): Cuatro objetivos, consulta a consulta.
+- [SLO para empezar](#slo-para-empezar): Cinco objetivos, consulta a consulta.
 :::
 
 ## Cómo funciona
@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Defínelos en `config.env` y luego ejecuta `npm start`. `DISABLE_TELEMETRY_FOR_APP` es `true` de forma predeterminada, y entonces no se envía nada.
 :::
 
-OneUptime necesita tanto el endpoint como las cabeceras: sin una cabecera no envía nada. Escribe cada cabecera como `name=value` y separa varias con `;`. Un valor puede contener `=`. OneUptime añade `/v1/metrics` al endpoint por sí mismo, y los mismos ajustes envían también sus propias trazas y registros. Cada métrica aparece en cuanto OneUptime la registra por primera vez: `notification.send.count` con el primer mensaje enviado.
+OneUptime necesita tanto el endpoint como las cabeceras: sin una cabecera no envía nada. Escribe cada cabecera como `name=value` y separa varias con `;`, o con `,` como en `OTEL_EXPORTER_OTLP_HEADERS`. Un valor puede contener `=`. Sin un `;`, un valor se lee tal como lo escribe ese estándar, con un espacio como `%20`: termina el ajuste con `;` para enviarlo exactamente como está escrito. También cuentan las cabeceras definidas en el propio `OTEL_EXPORTER_OTLP_HEADERS`, o en `OTEL_EXPORTER_OTLP_METRICS_HEADERS` solo para las métricas: el exportador también las envía, y con el mismo nombre ganan las de OneUptime. OneUptime añade `/v1/metrics` al endpoint por sí mismo, y los mismos ajustes envían también sus propias trazas y registros. Cada métrica aparece en cuanto OneUptime la registra por primera vez: `notification.send.count` con el primer mensaje enviado.
 
 ### Enviar deltas a un proyecto de OneUptime
 
@@ -57,19 +57,15 @@ OneUptime envía los contadores y los histogramas como lo hace OpenTelemetry de 
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-La lista propia de un servicio sustituye a la de todo el chart: si defines `app.extraEnv` o `worker.extraEnv`, añádela también ahí.
+El chart pasa el valor, como `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`, a cada servicio que envía la telemetría propia de OneUptime.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Créalo junto a `docker-compose.yml`, o añade esto al que ya tengas, y luego ejecuta `npm start`.
+Defínelo en `config.env` y luego ejecuta `npm start`.
 :::
 
 Esto se aplica a todas las métricas que OneUptime envía sobre sí mismo. Un backend que interpreta él mismo los totales acumulados, como Prometheus, no necesita ningún cambio.
@@ -155,7 +151,7 @@ Los estados solo llegan donde el proveedor puede informarlos:
 | --- | --- |
 | `monitor_data_received` | Cuando OneUptime recibió los datos que dispararon el monitor: una solicitud entrante, el informe de un agente de servidor, un correo entrante, la comprobación de una sonda, un trap SNMP o el sondeo de un dispositivo de red. Incluye el tiempo que los datos esperaron en la cola para ser evaluados. |
 | `record_created` | Cuando se creó el incidente, la alerta o el episodio: por un monitor de telemetría, una regla o una persona, y en una comprobación de ausencia, como un heartbeat que se detuvo. |
-| `page_started` | Cuando un aviso empezó más tarde: lo inició una persona, un flujo de trabajo o una regla que ahora coincide, o es un aviso directo. Para un aviso que retuvo su regla de guardia o OneUptime AI, cuando terminó su retención, o cuando empezó si fue antes. Para un nuevo aviso, cuando venció el tiempo límite tras el reconocimiento. Así, un worker que llegó tarde a cualquiera de ellos se refleja en el tiempo. |
+| `page_started` | Cuando un aviso empezó más tarde: lo inició una persona, un flujo de trabajo o una regla que ahora coincide, o es un aviso directo. Para un aviso que retuvo su regla de guardia o OneUptime AI, cuando terminó su retención, o cuando empezó si fue antes. Para un nuevo aviso, cuando venció el tiempo límite tras el reconocimiento, o cuando se cambió su política por última vez, si fue después: un tiempo límite acortado tanto que ya había vencido se mide desde el cambio. Así, un worker que llegó tarde a cualquiera de ellos se refleja en el tiempo. |
 
 En una solicitud entrante, el tiempo cuenta desde la última solicitud que recibió el endpoint, así que puede salir algo corto.
 
@@ -187,7 +183,7 @@ Un percentil se calcula a partir de las cubetas, y se dibuja como el centro de l
 
 ## SLO para empezar
 
-Cuatro objetivos que la mayoría de las instalaciones pueden prometer, cada uno construido con una o dos consultas en el explorador de métricas del proyecto que recibe las métricas. Leen un intervalo de tiempo con exactitud una vez que las métricas llegan como deltas: consulta [Enviar deltas a un proyecto de OneUptime](#enviar-deltas-a-un-proyecto-de-oneuptime).
+Cinco objetivos que la mayoría de las instalaciones pueden prometer, cada uno construido con una o dos consultas en el explorador de métricas del proyecto que recibe las métricas. Leen un intervalo de tiempo con exactitud una vez que las métricas llegan como deltas: consulta [Enviar deltas a un proyecto de OneUptime](#enviar-deltas-a-un-proyecto-de-oneuptime).
 
 ### Crear uno en el explorador de métricas
 
@@ -210,7 +206,7 @@ Como mucho falla el 1 % de los SMS de guardia enviados a través de la cuenta de
 | `a` | `notification.send.count` | **Suma** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Suma** | Las mismas, con `outcome = failure` |
 
-La fórmula `$b / $a * 100` es la proporción que falló, y el objetivo se cumple mientras se mantenga igual o por debajo de 1. Un paso sin fallos no dibuja ningún punto, ya que `b` no tiene ninguno. `outcome != not_sent` deja fuera lo que retuvieron los ajustes propios de los proyectos, y `global` las cuentas de Twilio propias de los proyectos. En una instalación que envía los SMS por su pasarela de SMS y llamadas, las mismas consultas miden la pasarela. Para otro canal, cambia `sms`: `call`, `push` o `email`.
+La fórmula `$b / $a * 100` es la proporción que falló, y el objetivo se cumple mientras se mantenga igual o por debajo de 1. Un paso sin fallos dibuja 0, ya que `b` no contó nada en él. `outcome != not_sent` deja fuera lo que retuvieron los ajustes propios de los proyectos, y `global` las cuentas de Twilio propias de los proyectos. En una instalación que envía los SMS por su pasarela de SMS y llamadas, las mismas consultas miden la pasarela. Para otro canal, cambia `sms`: `call`, `push` o `email`.
 
 ### Los avisos salen en menos de 30 segundos
 
@@ -220,7 +216,17 @@ El 95 % de los avisos de guardia llega a su proveedor en los 30 segundos siguien
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-El objetivo se cumple mientras `a` se mantenga igual o por debajo de 30000. Los avisos iniciados más tarde se miden desde que empezaron o vencieron, no desde un disparador, así que quedan fuera. Agrupa por `notification.page.start` para ver la cola de los monitores (`monitor_data_received`) aparte del resto, o por `notification.channel` para encontrar un canal lento.
+El objetivo se cumple mientras `a` se mantenga igual o por debajo de 30000. Los avisos iniciados más tarde se miden desde que empezaron o vencieron, no desde un disparador, así que quedan fuera: el siguiente objetivo los cubre. Agrupa por `notification.page.start` para ver la cola de los monitores (`monitor_data_received`) aparte del resto, o por `notification.channel` para encontrar un canal lento.
+
+### Los avisos iniciados más tarde salen en menos de 2 minutos
+
+El 95 % de los avisos iniciados más tarde llega a su proveedor en los 2 minutos siguientes a su vencimiento: un aviso retenido, un nuevo aviso y un aviso que inició una persona, un flujo de trabajo o una regla.
+
+| Consulta | Métrica | Agregación | Condiciones |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+El objetivo se cumple mientras `a` se mantenga igual o por debajo de 120000. Un aviso retenido o un nuevo aviso espera a la siguiente ejecución de un worker que se ejecuta una vez por minuto, así que hasta un minuto de su tiempo se va en esa espera, y un worker que se quedó atrás añade más.
 
 ### Las notificaciones enviadas más tarde salen en menos de 90 segundos
 

@@ -23,12 +23,11 @@ import { describe, expect, test } from "@jest/globals";
  * reached every project's runs, exceptions and repositories at will. The
  * rule now, the one every route asks (deniesAccessToRun):
  *
- *   - a project's own Runner or agent acts for any run of its own project,
- *     as before, and never for another project's;
- *   - a global Runner acts only for the run it claimed (its id on the run,
- *     aiAgentId): what it is handed for the work only while the run is
- *     Running, what it reports about the work whatever state the run is in
- *     now;
+ *   - every identity - a global Runner, a project's own Runner and an AI
+ *     agent a project created before 12.0 - acts only for the run it claimed
+ *     (its id on the run, aiAgentId), in a project it may act in: what it is
+ *     handed for the work only while the run is Running, what it reports
+ *     about the work whatever state the run is in now;
  *   - it is never handed a repository's own commands, nor offered the code
  *     agent's command tool (getRepositoryCommands, getOfferedTools).
  */
@@ -180,23 +179,54 @@ describe("deniesAccessToRun: a global Runner", () => {
   });
 });
 
-describe("deniesAccessToRun: a project's own worker keeps its project scope", () => {
-  test("acts for any run of its own project, whoever claimed it and whatever its state", () => {
+describe("deniesAccessToRun: a project's own worker is held to the run it claimed too", () => {
+  /*
+   * A project's Runner - one a team may run on several hosts with the same
+   * key - and an AI agent a project created before 12.0 act for the run they
+   * claimed, as a global Runner does: never every run of their project.
+   */
+  test("works on the run it claimed only while the run is Running", () => {
+    for (const identity of [PROJECT_RUNNER, PROJECT_AGENT]) {
+      for (const status of EVERY_STATUS) {
+        expect(
+          CodeFixAgentAuth.deniesAccessToRun(
+            identity,
+            runOf({ projectId: PROJECT_ID, claimedBy: WORKER_ID, status }),
+            CodeFixRunAccess.Work,
+          ),
+        ).toBe(status !== AIRunStatus.Running);
+      }
+    }
+  });
+
+  test("reports on the run it claimed whatever state it is in now", () => {
+    for (const identity of [PROJECT_RUNNER, PROJECT_AGENT]) {
+      for (const status of EVERY_STATUS) {
+        expect(
+          CodeFixAgentAuth.deniesAccessToRun(
+            identity,
+            runOf({ projectId: PROJECT_ID, claimedBy: WORKER_ID, status }),
+            CodeFixRunAccess.Report,
+          ),
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("is refused the run of its own project another worker claimed, and one nobody claimed, for work and reports, in every state", () => {
     for (const identity of [PROJECT_RUNNER, PROJECT_AGENT]) {
       for (const access of Object.values(CodeFixRunAccess)) {
         for (const status of EVERY_STATUS) {
-          for (const claimedBy of [
-            WORKER_ID,
-            OTHER_WORKER_ID,
-            undefined,
-          ] as Array<ObjectID | undefined>) {
+          for (const claimedBy of [OTHER_WORKER_ID, undefined] as Array<
+            ObjectID | undefined
+          >) {
             expect(
               CodeFixAgentAuth.deniesAccessToRun(
                 identity,
                 runOf({ projectId: PROJECT_ID, claimedBy, status }),
                 access,
               ),
-            ).toBe(false);
+            ).toBe(true);
           }
         }
       }
@@ -229,24 +259,81 @@ describe("deniesAccessToRun: a project's own worker keeps its project scope", ()
     }
   });
 
-  test("answers exactly what the project check answers, for every run shape", () => {
-    for (const identity of [PROJECT_RUNNER, PROJECT_AGENT]) {
-      for (const projectId of [PROJECT_ID, OTHER_PROJECT_ID, undefined]) {
-        for (const access of Object.values(CodeFixRunAccess)) {
-          expect(
-            CodeFixAgentAuth.deniesAccessToRun(
-              identity,
-              runOf({
-                projectId,
-                claimedBy: OTHER_WORKER_ID,
-                status: AIRunStatus.Queued,
-              }),
-              access,
-            ),
-          ).toBe(CodeFixAgentAuth.deniesAccessToProject(identity, projectId));
+  test("every identity answers by the same rule: a global Runner and a project's own worker are told the same of a run of the project they share", () => {
+    for (const access of Object.values(CodeFixRunAccess)) {
+      for (const status of EVERY_STATUS) {
+        for (const claimedBy of [
+          WORKER_ID,
+          OTHER_WORKER_ID,
+          undefined,
+        ] as Array<ObjectID | undefined>) {
+          const run: CodeFixRunHoldFacts = runOf({
+            projectId: PROJECT_ID,
+            claimedBy,
+            status,
+          });
+
+          const globalAnswer: boolean = CodeFixAgentAuth.deniesAccessToRun(
+            GLOBAL_RUNNER,
+            run,
+            access,
+          );
+
+          for (const identity of [PROJECT_RUNNER, PROJECT_AGENT]) {
+            expect(
+              CodeFixAgentAuth.deniesAccessToRun(identity, run, access),
+            ).toBe(globalAnswer);
+          }
         }
       }
     }
+  });
+});
+
+describe("isRunClaimedBy", () => {
+  test("a run of a project with the identity's id on it is its claim, whatever its state", () => {
+    for (const identity of [GLOBAL_RUNNER, PROJECT_RUNNER, PROJECT_AGENT]) {
+      for (const status of EVERY_STATUS) {
+        expect(
+          CodeFixAgentAuth.isRunClaimedBy(
+            identity,
+            runOf({ projectId: PROJECT_ID, claimedBy: WORKER_ID, status }),
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  test("another worker's run, a run nobody claimed and a run of no project are not", () => {
+    for (const identity of [GLOBAL_RUNNER, PROJECT_RUNNER, PROJECT_AGENT]) {
+      expect(
+        CodeFixAgentAuth.isRunClaimedBy(
+          identity,
+          runOf({ projectId: PROJECT_ID, claimedBy: OTHER_WORKER_ID }),
+        ),
+      ).toBe(false);
+      expect(
+        CodeFixAgentAuth.isRunClaimedBy(
+          identity,
+          runOf({ projectId: PROJECT_ID }),
+        ),
+      ).toBe(false);
+      expect(
+        CodeFixAgentAuth.isRunClaimedBy(
+          identity,
+          runOf({ claimedBy: WORKER_ID }),
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("ids are compared as written, however the run's was spelled", () => {
+    expect(
+      CodeFixAgentAuth.isRunClaimedBy(PROJECT_RUNNER, {
+        projectId: PROJECT_ID,
+        aiAgentId: new ObjectID(WORKER_ID.toString()),
+      }),
+    ).toBe(true);
   });
 });
 

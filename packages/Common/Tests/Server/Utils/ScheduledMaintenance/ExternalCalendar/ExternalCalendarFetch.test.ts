@@ -53,9 +53,10 @@ const SECRET_LINK: string =
 function pinned(url: string): { url: URL } & PinnedAgents {
   return {
     url: new URL(url),
-    ...DataSourceEgressGuard.createPinnedAgents([
-      { address: "127.0.0.1", family: 4 },
-    ]),
+    ...DataSourceEgressGuard.createPinnedAgents({
+      url: new URL(url),
+      addresses: [{ address: "127.0.0.1", family: 4 }],
+    }),
   };
 }
 

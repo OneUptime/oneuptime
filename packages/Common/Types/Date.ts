@@ -1412,21 +1412,6 @@ export default class OneUptimeDate {
     return this.secondsToFormattedFriendlyTimeString(seconds);
   }
 
-  public static toTimeString(
-    date: Date | string,
-    use12HourFormat?: boolean,
-  ): string {
-    if (typeof date === "string") {
-      date = this.fromString(date);
-    }
-
-    const format: "hh:mm A" | "HH:mm" =
-      use12HourFormat || this.getUserPrefers12HourFormat()
-        ? "hh:mm A"
-        : "HH:mm";
-    return moment(date).format(format);
-  }
-
   public static isSame(date1: Date, date2: Date): boolean {
     date1 = this.fromString(date1);
     date2 = this.fromString(date2);
@@ -2189,10 +2174,6 @@ export default class OneUptimeDate {
       this.getCurrentMomentDate().toDate(),
       this.toDayCount(days),
     );
-  }
-
-  public static secondsToFormattedTimeString(seconds: number): string {
-    return moment.utc(seconds * 1000).format("HH:mm:ss");
   }
 
   public static toUnixTimestamp(date: Date): number {
@@ -3003,7 +2984,12 @@ export default class OneUptimeDate {
     return text.replace(DURATION_DECIMAL_POINT, `$1${separator}$2`);
   }
 
-  // getHumanizedDurationFromNanoseconds's English, as it always read.
+  /*
+   * getHumanizedDurationFromNanoseconds's English, as it always read, each
+   * figure held to its unit by a no-break space ("12 ms", "5 ns"), as the
+   * other languages' are, so a span's narrow cell never ends a line with
+   * "12" and starts the next with "ms" (#8826).
+   */
   private static getEnglishHumanizedDuration(data: {
     nanoseconds: number;
     maxParts?: number;
@@ -3015,7 +3001,7 @@ export default class OneUptimeDate {
     }
 
     if (reading.kind === "zero") {
-      return "0 ms";
+      return `0${NO_BREAK_SPACE}ms`;
     }
 
     const sign: string = reading.isNegative ? "-" : "";
@@ -3046,17 +3032,17 @@ export default class OneUptimeDate {
     }
 
     if (reading.kind === "nanosecond") {
-      return sign + reading.value.toString() + " ns";
+      return `${sign}${reading.value.toString()}${NO_BREAK_SPACE}ns`;
     }
 
     const symbol: string =
       reading.kind === "microsecond"
-        ? " μs"
+        ? "μs"
         : reading.kind === "millisecond"
-          ? " ms"
-          : " s";
+          ? "ms"
+          : "s";
 
-    return sign + OneUptimeDate.formatDurationValue(reading.value) + symbol;
+    return `${sign}${OneUptimeDate.formatDurationValue(reading.value)}${NO_BREAK_SPACE}${symbol}`;
   }
 
   /*

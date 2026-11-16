@@ -199,7 +199,7 @@ Utdataformat och liststorlekar sparas inte här: ge `-o` och `--limit` till varj
 :::
 
 :::details Meddelandet ”API error (400): Invalid API Key”
-Nyckeln är inte en API-nyckel till OneUptime, har gått ut eller har återställts. Kopiera den igen från dess sida under **Projektinställningar → Avancerad → API-nycklar**, där även dess datum står under **Upphör**, och logga in igen under samma kontextnamn. Kommandot avslutas med koden `2`.
+Nyckeln är inte en API-nyckel till OneUptime, har gått ut eller har återställts. Hitta den under **Projektinställningar → Avancerad → API-nycklar** på hur den slutar, och kontrollera dess datum under **Upphör**. En nyckel som du inte längre har kan inte visas igen: återställ den på dess sida, och logga in igen med den nya under samma kontextnamn. Kommandot avslutas med koden `2`.
 :::
 
 :::details Meddelandet ”API error (402): API keys need the Growth plan”

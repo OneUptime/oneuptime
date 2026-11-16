@@ -82,6 +82,8 @@ Storage scales **linearly with retention**: a 90-day window costs about three ti
 
 PostgreSQL stores your configuration and operational state, not telemetry, so it grows slowly and stays small next to ClickHouse. Even large deployments are typically in the tens of GB. The default **25 Gi** volume is fine for small installs; plan 50–100 GB for larger ones, with headroom for incident and alert history.
 
+Resolved incidents and alerts stay until each project picks how long to keep them. To hold every project to a limit, set **Keep for at most** under **Admin Dashboard → Settings → Data Retention**: see [A limit for the whole server](/docs/incidents/settings#a-limit-for-the-whole-server).
+
 With many app, worker and probe replicas, database connections can run out before storage does. Each pod opens up to 50 connections by default, and the bundled PostgreSQL allows 500. The chart includes an optional **PgBouncer** connection pooler (`pgbouncer.enabled`) for exactly this: turn it on for deployments with many replicas.
 
 ## Valkey — cache, queues, and sessions
@@ -99,6 +101,8 @@ Beyond the datastores, size the stateless workloads. Each runs with **no resourc
 | Probes | `probes` | The number of active monitors |
 | Ingress gateway | `nginx` | Request volume |
 | Telemetry writer, when turned on | `telemetryWriter` | Not with load: it batches every telemetry insert into ClickHouse, so it is sized to what ClickHouse can take |
+
+Each runs Node.js, which sizes its heap to the memory limit of its container (`resources.limits.memory`): 75% of the limit, at least 256 MB and at most 8096 MB. Without a limit, the heap can grow to 8096 MB. The rest of the limit is for the memory Node.js uses outside its heap. To choose the heap yourself, set `NODE_OPTIONS` to `--max-old-space-size=` followed by a size in MB, in the service's `extraEnv` (with Docker Compose, in the service's `environment`, in an override file). It takes precedence over the size the limit gives.
 
 The chart bundles **KEDA**, so the app, workers, probes and the global Runner can scale on their queue backlog. Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example). On a cluster that has no KEDA yet, the first install takes an extra pass: see the chart's [KEDA guide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
 

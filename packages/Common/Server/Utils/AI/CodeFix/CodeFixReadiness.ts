@@ -22,6 +22,10 @@ import {
 } from "../../../../Utils/Project/ProjectBalance";
 import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
 import {
+  GlobalRunnerKeptOffReason,
+  getGlobalRunnerKeptOffRefusal,
+} from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
+import {
   CodeTaskBlocker,
   CodeTaskBlockerType,
 } from "../../../../Types/AI/CodeTask";
@@ -134,6 +138,12 @@ export function describeRepositoryRunnerStatus(
         ? getProjectDefaultRunnerTakesNoCodeFixesDetail(status.runnerName)
         : getProjectDefaultRunnerOfflineDetail(status.runnerName);
     case CodeRepositoryRunnerChoiceKind.Global:
+      if (status.needsOwnRunnerForItsToken) {
+        return getGlobalRunnerKeptOffRefusal(
+          status.keptOffReason || GlobalRunnerKeptOffReason.ConnectionToken,
+        );
+      }
+
       return status.takesNoCodeFixes
         ? GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL
         : NO_GLOBAL_RUNNER_ONLINE_DETAIL;
@@ -166,9 +176,11 @@ export function getRepositoryRunnerBlocker(
       : CodeTaskBlockerType.RunnerNotOnline
     : status.decision.kind === CodeRepositoryRunnerChoiceKind.NoRunner
       ? CodeTaskBlockerType.GlobalRunnersOff
-      : status.takesNoCodeFixes
-        ? CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes
-        : CodeTaskBlockerType.NoAgent;
+      : status.needsOwnRunnerForItsToken
+        ? CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner
+        : status.takesNoCodeFixes
+          ? CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes
+          : CodeTaskBlockerType.NoAgent;
 
   /*
    * The Runner the repository works on is named, so Code's notice says
@@ -362,6 +374,7 @@ export default class CodeFixReadiness {
         projectId: params.projectId,
         runnerId: params.repository.runnerId,
         isGlobalRunnerPicked: params.repository.isGlobalRunnerPicked,
+        repositoryHostedAt: params.repository.repositoryHostedAt,
       });
 
     const blocker: CodeTaskBlocker | null = getRepositoryRunnerBlocker(status);

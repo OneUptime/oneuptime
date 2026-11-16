@@ -21,6 +21,14 @@ import {
   readOnCallPageAcknowledgedByMessage,
 } from "./OnCallPageEnding";
 import { NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE } from "./OnCallPageLine";
+import {
+  ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
+  OnCallPageCoverKind,
+  OnCallPageCoverName,
+  readOnCallPageMergeTakenOverDirectlyMessage,
+  readOnCallPageMergeTakenOverMessage,
+  readOnCallPageMergedLine,
+} from "./OnCallPageMerge";
 import { ON_CALL_PAGE_NAMES_NO_RECORD_MESSAGE } from "./OnCallPageRecordGone";
 import {
   isOnCallPagePassedOnSkipTimelineMessage,
@@ -156,6 +164,21 @@ export enum OnCallLogLineCode {
   EmailSentWithoutImages = "EmailSentWithoutImages",
   // A call that ended (#8576): how, how long, and its id.
   CallEnded = "CallEnded",
+  /*
+   * A person's page merged into their open page from another policy's run
+   * (OnCallPageMerge): which policy is paging them - none, when the line
+   * names none - and the page that took the page over when that one ended.
+   */
+  PageMerged = "PageMerged",
+  PageMergeTakenOver = "PageMergeTakenOver",
+  /*
+   * Merged into a direct page (#8859): one a person sent from Slack or
+   * Microsoft Teams, by who sent it, or a workflow's, by the workflow.
+   */
+  PageMergedDirectly = "PageMergedDirectly",
+  PageMergedByWorkflow = "PageMergedByWorkflow",
+  // A merged direct page that took the page over: what it stood on.
+  PageMergeTakenOverDirectly = "PageMergeTakenOverDirectly",
 }
 
 export interface OnCallLogLine {
@@ -293,6 +316,57 @@ function readSeenByObserver(message: string): OnCallLogLine | null {
     recordKind: recordKind,
     name: who,
   };
+}
+
+// The code of a merged page's line, by the kind of page it names.
+const MERGED_LINE_CODES: Readonly<
+  Record<OnCallPageCoverKind, OnCallLogLineCode>
+> = {
+  [OnCallPageCoverKind.Policy]: OnCallLogLineCode.PageMerged,
+  [OnCallPageCoverKind.PersonPage]: OnCallLogLineCode.PageMergedDirectly,
+  [OnCallPageCoverKind.WorkflowPage]: OnCallLogLineCode.PageMergedByWorkflow,
+};
+
+/*
+ * A merged page's line (OnCallPageMerge): what is paging them, as written -
+ * a policy, none when the line names no policy, which the Dashboard says in
+ * the reader's words; a person who paged them directly; a workflow (#8859) -
+ * and the line of one that took the page over.
+ */
+function readMergedPageLine(message: string): OnCallLogLine | null {
+  const merged: OnCallPageCoverName | null = readOnCallPageMergedLine(message);
+
+  if (merged) {
+    return {
+      code: MERGED_LINE_CODES[merged.kind],
+      ...(merged.name ? { name: merged.name } : {}),
+    };
+  }
+
+  const takenOver: string | null = readOnCallPageMergeTakenOverMessage(message);
+
+  if (takenOver !== null) {
+    return {
+      code: OnCallLogLineCode.PageMergeTakenOver,
+      ...(takenOver !== ON_CALL_PAGE_MERGE_UNNAMED_POLICY
+        ? { name: takenOver }
+        : {}),
+    };
+  }
+
+  const takenOverDirectly: string | null =
+    readOnCallPageMergeTakenOverDirectlyMessage(message);
+
+  if (takenOverDirectly !== null) {
+    return {
+      code: OnCallLogLineCode.PageMergeTakenOverDirectly,
+      ...(takenOverDirectly !== ON_CALL_PAGE_MERGE_UNNAMED_POLICY
+        ? { name: takenOverDirectly }
+        : {}),
+    };
+  }
+
+  return null;
 }
 
 /*
@@ -615,6 +689,12 @@ export function readOnCallLogLine(
 
   if (seenByObserver) {
     return seenByObserver;
+  }
+
+  const merged: OnCallLogLine | null = readMergedPageLine(message);
+
+  if (merged) {
+    return merged;
   }
 
   const stuckMinutes: number | null = readStuckNotificationMinutes(message);

@@ -32,7 +32,7 @@ flowchart TB
 
 No painel do OneUptime, abra **Configurações do projeto → Avançado → Chaves de API** e clique em **Criar: Chave de API**. Dê a ela um **Nome**, como `terraform`, e em **Acesso** escolha **Administrador do projeto**: o Terraform cria, lê, altera e exclui todos os tipos de registro que gerencia, e **Administrador do projeto** pode fazer tudo isso. Para uma chave mais restrita, escolha **Escolher as permissões depois** e adicione na página da chave só as permissões de que você precisa.
 
-A chave expira daqui a um ano. Para escolher outra data, abra **Mais campos** antes de criá-la, ou altere a data depois na página da chave. Depois que a chave é criada, a página dela se abre: copie a **Chave de API** do cartão **Detalhes da chave de API**.
+A chave expira daqui a um ano. Para escolher outra data, abra **Mais campos** antes de criá-la, ou altere a data depois na página da chave. Depois que a chave é criada, o OneUptime a mostra uma única vez, na caixa de diálogo **Copie sua chave de API**: copie-a antes de clicar em **Concluído**.
 
 ### Disponibilizar a chave para o Terraform
 
@@ -218,7 +218,7 @@ O provider não encontrou nenhuma chave de API. Exporte `ONEUPTIME_API_KEY` no s
 :::
 
 :::details Mensagem “the OneUptime API returned status 400: Invalid API Key”
-A chave foi digitada errado, expirou ou foi excluída, ou pertence a outro OneUptime que não aquele para o qual `oneuptime_url` aponta. Copie a chave de novo da página dela, ou crie uma nova.
+A chave foi digitada errado, expirou ou foi excluída, ou pertence a outro OneUptime que não aquele para o qual `oneuptime_url` aponta. Confira-a com o jeito como a chave termina na página dela, ou redefina-a ali para obter uma nova.
 :::
 
 :::details Mensagem “the OneUptime API returned status 402: API keys need the Growth plan”

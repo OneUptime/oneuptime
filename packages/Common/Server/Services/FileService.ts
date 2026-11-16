@@ -11,7 +11,8 @@ import Dictionary from "../../Types/Dictionary";
 import MimeType from "../../Types/File/MimeType";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
+import MalwareScanner from "../Utils/MalwareScan/MalwareScanner";
 import getUpdatedRowCount from "../Utils/Database/UpdatedRowCount";
 import FileOwnership, {
   FileOwners,
@@ -150,6 +151,30 @@ export class Service extends DatabaseService<File> {
      */
     (createBy.data as unknown as Dictionary<unknown>)["createdByUserId"] =
       createBy.props.userId || null;
+
+    /*
+     * Scanned for malware before it is stored, when the installation scans
+     * files (MalwareScanner, #6118): an upload a person or an API key makes
+     * is refused when ClamAV flags it, and while ClamAV cannot be asked. A
+     * file OneUptime makes itself (root) is not: nobody sent it, and a public
+     * form's files were scanned with their submission
+     * (FormService.storeSubmissionFiles).
+     */
+    if (!createBy.props.isRoot && createBy.data.file) {
+      await MalwareScanner.assertClean({
+        files: [
+          {
+            name: createBy.data.name || "",
+            bytes: createBy.data.file,
+          },
+        ],
+        context: "an upload",
+        logAttributes: {
+          projectId: projectId?.toString(),
+          userId: createBy.props.userId?.toString(),
+        } as LogAttributes,
+      });
+    }
 
     return { createBy, carryForward: null };
   }

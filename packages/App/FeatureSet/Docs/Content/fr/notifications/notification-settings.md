@@ -18,10 +18,10 @@ flowchart TB
     setting -->|"tout désactivé"| nothing["Rien n'est envoyé"]
 ```
 
-- Chaque ligne est un événement, et chaque colonne un canal : E-mail, SMS, Appel, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost et Webhook. Slack, Microsoft Teams et Mattermost ne sont des colonnes que si le projet les a connectés.
+- Chaque ligne est un événement, et chaque colonne un canal : E-mail, SMS, Appel, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost et Webhook. Slack, Microsoft Teams et Mattermost ne sont des colonnes que si le projet les a connectés. Un canal que vous n'avez pas encore configuré n'est pas une colonne : il est listé sous **Canaux pas encore configurés**, au-dessus des onglets, comme un lien pour le configurer.
 - Un canal activé envoie à chaque méthode vérifiée que vous avez dessus dans ce projet, pas à une seule.
-- Un canal activé sans méthode vérifiée derrière lui n'envoie rien. **Your setup checklist** le signale sous **Staying informed**.
-- Une nouvelle va aux propriétaires de l'élément : les personnes nommées comme propriétaires, et les membres de ses équipes propriétaires. Quand un élément n'a pas de propriétaire, elle va plutôt aux Propriétaires du projet. Un événement indiquant que vous avez été ajouté comme propriétaire ne va qu'à la personne ajoutée. Si OneUptime s'arrête pendant qu'il envoie une nouvelle aux propriétaires d'un élément, les personnes qu'il n'avait pas encore atteintes la reçoivent quand OneUptime revient, quelques minutes plus tard, et personne ne la reçoit deux fois.
+- Un canal activé sans méthode vérifiée derrière lui n'envoie rien. Sa colonne affiche **Configurer** sous son nom, et ses interrupteurs ne peuvent qu'être désactivés. **Your setup checklist** le signale aussi, sous **Staying informed**.
+- Une nouvelle va aux propriétaires de l'élément : les personnes nommées comme propriétaires, et les membres de ses équipes propriétaires. Quand un élément n'a pas de propriétaire, elle va plutôt aux Propriétaires du projet. Quelqu'un que l'appel d'astreinte d'un nouvel incident, d'une nouvelle alerte ou d'un nouvel épisode a déjà atteint n'est pas notifié à nouveau de sa création. Un événement indiquant que vous avez été ajouté comme propriétaire ne va qu'à la personne ajoutée. Si OneUptime s'arrête pendant qu'il envoie une nouvelle aux propriétaires d'un élément, les personnes qu'il n'avait pas encore atteintes la reçoivent quand OneUptime revient, quelques minutes plus tard, et personne ne la reçoit deux fois.
 - Les dossiers de sécurité n'ont pas de propriétaire. Un nouveau dossier va à toutes les personnes qui peuvent voir les dossiers du projet, à partir de la priorité que chacune choisit, et un dossier attribué aux personnes à qui il est attribué. Voir [Dossiers de sécurité](/docs/telemetry/security-cases#notifications).
 - Chaque e-mail aux propriétaires se termine par un lien "Manage notification preferences" qui ramène à cette page.
 
@@ -34,11 +34,11 @@ Allez dans **Paramètres utilisateur → Paramètres de notification**. Les ongl
 
 ### Trouver l'événement
 
-Chaque onglet contient une ou plusieurs cartes, comme **Épisodes d'incident** dans l'onglet **Incidents**. Chaque ligne est un événement, avec une phrase qui dit quand il est envoyé.
+Chaque onglet contient une ou plusieurs cartes, comme **Épisodes d'incident** dans l'onglet **Incidents**. Chaque ligne est un événement, avec une phrase qui dit quand il est envoyé. Au-dessus des cartes, l'onglet indique de combien de ses événements vous êtes averti, et par quels canaux.
 
 ### Cliquer sur un canal
 
-Cliquez sur le cercle d'un canal pour l'activer, et de nouveau pour le désactiver. Une coche signifie activé. Les changements sont enregistrés automatiquement.
+Cliquez sur l'interrupteur d'un canal pour l'activer, et de nouveau pour le désactiver. La première ligne d'une carte, **Tous les événements**, active ou désactive un canal pour chaque événement de la carte. Chaque changement est enregistré aussitôt, et la carte affiche **Enregistré**.
 :::
 
 ## Ce qui est activé pour un nouveau membre

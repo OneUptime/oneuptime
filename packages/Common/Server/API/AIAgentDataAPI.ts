@@ -31,6 +31,7 @@ import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import CodeFixTaskType, {
   CodeFixContextKind,
@@ -87,6 +88,30 @@ import {
   getRunRepositoryAllowance,
 } from "../Utils/AI/CodeFix/CodeFixRunRepository";
 import { CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL } from "../../Types/Runner/CodeRepositoryRunner";
+import RunnerCodeFixCapability, {
+  RunnerCodeFixCapabilityUtil,
+  SERVER_OPENS_PULL_REQUEST_FIELD,
+} from "../../Types/Runner/RunnerCodeFixCapability";
+import CodeFixPullRequestOpener, {
+  FixPullRequestRequest,
+  OpenedFixPullRequest,
+} from "../Utils/AI/CodeFix/CodeFixPullRequestOpener";
+import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import { CODE_HOST_REPOSITORY_SELECT } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
+
+/*
+ * What a GitHub repository's token handed to a Runner may do
+ * (AIAgentDataAPI.getGitHubRunnerTokenScope), and whether OneUptime opens
+ * the run's pull request.
+ */
+export interface GitHubRunnerTokenScope {
+  permissions: {
+    contents: "read" | "write";
+    pull_requests?: "write";
+    metadata: "read";
+  };
+  serverOpensPullRequest: boolean;
+}
 
 export default class AIAgentDataAPI {
   public router!: ExpressRouter;
@@ -102,36 +127,27 @@ export default class AIAgentDataAPI {
 
   /*
    * The run a repository-token request names, when it is a code-fix run of
-   * the repository's project the agent may act on - otherwise null. A
-   * global Runner may act only for the run it claimed and still holds
-   * (CodeFixAgentAuth.deniesAccessToRun), so for it this is the run it is
-   * working on, or null.
+   * the repository's project the agent may act on - otherwise null. Every
+   * worker acts only for the run it claimed and still holds
+   * (CodeFixAgentAuth.deniesAccessToRun), so this is the run it is working
+   * on, or null - and the route then refuses the token.
    *
    * `taskId` names a task; it does not assert anything about it, and a task
-   * in another project answers null exactly as a missing one does. An absent
-   * taskId also answers null, so an older worker that does not send one keeps
-   * the cap in full - and a global Runner, which always sends it, is refused
-   * the token (the route asks for its run).
+   * in another project answers null exactly as a missing one does. A request
+   * that names no run is not asked here: the route looks for a run the
+   * worker holds in the repository's project instead (holdsRunOfProject).
    */
   private static async findTokenRun(data: {
     aiAgent: CodeFixAgentIdentity;
-    taskId: string | undefined;
+    runId: ObjectID;
     projectId: ObjectID | undefined;
   }): Promise<AIRun | null> {
-    if (!data.taskId || !data.projectId) {
-      return null;
-    }
-
-    let taskId: ObjectID;
-
-    try {
-      taskId = new ObjectID(data.taskId);
-    } catch {
+    if (!data.projectId) {
       return null;
     }
 
     const run: AIRun | null = await AIRunService.findOneById({
-      id: taskId,
+      id: data.runId,
       select: {
         ...CODE_FIX_RUN_HOLD_SELECT,
         runType: true,
@@ -160,28 +176,97 @@ export default class AIAgentDataAPI {
   }
 
   /*
-   * Whether a global Runner is refused a route that names an exception
-   * (its details, the repository its code lives in): it reads only the
-   * exception of the run it holds (CodeFixAgentAuth.deniesAccessToRun), so
-   * the request must name that run (taskId) and the run must be about this
-   * exception. A project's own worker reads its project's exceptions as
-   * before (the route's project check), whether or not it names a run.
+   * Whether a request from a worker that names no run (an older Runner, or
+   * an AI agent a project created before 12.0) may be told what it asks:
+   * a project's own worker that holds a code-fix run of the project now -
+   * one it claimed (its id on the run) that is still Running - matching
+   * what it asks about. That run is what it is working on: the server finds
+   * it rather than being told, so such a worker keeps working, and a key
+   * whose worker holds nothing is told nothing. A global Runner always
+   * names its run, so it is never served this way.
    */
-  private static async deniesGlobalRunnerAccessToException(data: {
+  private static async holdsRunOfProject(data: {
     aiAgent: CodeFixAgentIdentity;
-    taskId: unknown;
-    exceptionId: ObjectID;
+    projectId: ObjectID | undefined;
+    // What the held run must also be: a fix of this exception.
+    exceptionId?: ObjectID | undefined;
+    // ...or a run in this repository, or one that has not found its own yet.
+    codeRepositoryId?: ObjectID | undefined;
   }): Promise<boolean> {
-    if (!CodeFixAgentAuth.isGlobalIdentity(data.aiAgent)) {
+    /*
+     * The project is the exception's or the repository's, which the route
+     * has already held to the worker's own (deniesAccessToProject), and a
+     * project's worker claims runs of its own project alone.
+     */
+    if (CodeFixAgentAuth.isGlobalIdentity(data.aiAgent) || !data.projectId) {
       return false;
     }
 
-    if (typeof data.taskId !== "string" || !ObjectID.isValidUUID(data.taskId)) {
-      return true;
+    const run: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        status: AIRunStatus.Running,
+        aiAgentId: data.aiAgent.id,
+        ...(data.exceptionId
+          ? { triggeredByTelemetryExceptionId: data.exceptionId }
+          : {}),
+        ...(data.codeRepositoryId
+          ? {
+              codeRepositoryId: QueryHelper.equalToOrNull(
+                data.codeRepositoryId,
+              ),
+            }
+          : {}),
+      },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    return Boolean(run);
+  }
+
+  /*
+   * The run a request names (its taskId), when that is a run id at all;
+   * null for a request that names none, or names something that is not one.
+   */
+  public static getNamedRunId(taskId: unknown): ObjectID | null {
+    return typeof taskId === "string" && ObjectID.isValidUUID(taskId)
+      ? new ObjectID(taskId)
+      : null;
+  }
+
+  /*
+   * Whether a worker is refused a route that names an exception (its
+   * details, the repository its code lives in): it reads only the exception
+   * of a run it holds (CodeFixAgentAuth.deniesAccessToRun). A request that
+   * names its run (taskId) - every Runner since global Runners took code
+   * fixes sends it - must name a code fix of this exception that it holds.
+   * One that names none is served while the worker holds a code fix of this
+   * exception (holdsRunOfProject); a global Runner always names its run, so
+   * it is refused. The route's project check comes first, so the exception
+   * is the worker's project's.
+   */
+  private static async deniesAccessToException(data: {
+    aiAgent: CodeFixAgentIdentity;
+    taskId: unknown;
+    exceptionId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<boolean> {
+    const namedRunId: ObjectID | null = AIAgentDataAPI.getNamedRunId(
+      data.taskId,
+    );
+
+    if (!namedRunId) {
+      return !(await AIAgentDataAPI.holdsRunOfProject({
+        aiAgent: data.aiAgent,
+        projectId: data.projectId,
+        exceptionId: data.exceptionId,
+      }));
     }
 
     const run: AIRun | null = await AIRunService.findOneById({
-      id: new ObjectID(data.taskId),
+      id: namedRunId,
       select: {
         ...CODE_FIX_RUN_HOLD_SELECT,
         runType: true,
@@ -253,6 +338,59 @@ export default class AIAgentDataAPI {
         task: task,
       }),
     );
+  }
+
+  /*
+   * What a GitHub repository's token for a Runner may do - for the one
+   * repository it is minted for (GitHubUtil.getRepositoryAccessToken), and
+   * never more than the run needs:
+   *
+   *   - a review (GitHubPullRequestReview) changes nothing: it clones the
+   *     repository and posts its review through OneUptime, so it reads;
+   *   - a Runner that has OneUptime open its pull requests
+   *     (RunnerCodeFixCapability.ServerOpensPullRequests) pushes its branch
+   *     and nothing more: no pull_requests (issue #8916);
+   *   - an older Runner opens its pull request with the token, as it always
+   *     did: contents and pull_requests.
+   *
+   * metadata: read for every one: GitHub requires it of an installation
+   * token.
+   */
+  public static getGitHubRunnerTokenScope(data: {
+    run: AIRun | null;
+    capabilities: ReadonlyArray<RunnerCodeFixCapability>;
+  }): GitHubRunnerTokenScope {
+    if (
+      data.run &&
+      CodeFixTaskTypeHelper.fromDatabaseValue(data.run.codeFixTaskType) ===
+        CodeFixTaskType.GitHubPullRequestReview
+    ) {
+      return {
+        permissions: { contents: "read", metadata: "read" },
+        serverOpensPullRequest: false,
+      };
+    }
+
+    if (
+      RunnerCodeFixCapabilityUtil.has(
+        data.capabilities,
+        RunnerCodeFixCapability.ServerOpensPullRequests,
+      )
+    ) {
+      return {
+        permissions: { contents: "write", metadata: "read" },
+        serverOpensPullRequest: true,
+      };
+    }
+
+    return {
+      permissions: {
+        contents: "write",
+        pull_requests: "write",
+        metadata: "read",
+      },
+      serverOpensPullRequest: false,
+    };
   }
 
   /*
@@ -475,8 +613,8 @@ export default class AIAgentDataAPI {
 
           /*
            * A project-scoped Runner only sees its own project's exceptions,
-           * and a global Runner only the exception of the run it holds —
-           * this response carries stack traces and messages.
+           * and every worker only the exception of a run it holds — this
+           * response carries stack traces and messages.
            */
           if (
             !exception ||
@@ -484,10 +622,11 @@ export default class AIAgentDataAPI {
               aiAgent,
               exception.projectId,
             ) ||
-            (await AIAgentDataAPI.deniesGlobalRunnerAccessToException({
+            (await AIAgentDataAPI.deniesAccessToException({
               aiAgent,
               taskId: data["taskId"],
               exceptionId,
+              projectId: exception.projectId,
             }))
           ) {
             return Response.sendErrorResponse(
@@ -642,8 +781,9 @@ export default class AIAgentDataAPI {
 
           /*
            * A project-scoped Runner resolves only its own project's
-           * exceptions, and a global Runner only the exception of the run it
-           * holds (it names the run, taskId).
+           * exceptions, and every worker only the exception of a run it
+           * holds (the run it names, taskId, or - from a worker that names
+           * none - one it holds of this exception).
            */
           if (
             !exception ||
@@ -652,10 +792,11 @@ export default class AIAgentDataAPI {
               aiAgent,
               exception.projectId,
             ) ||
-            (await AIAgentDataAPI.deniesGlobalRunnerAccessToException({
+            (await AIAgentDataAPI.deniesAccessToException({
               aiAgent,
               taskId: data["taskId"],
               exceptionId,
+              projectId: exception.projectId,
             }))
           ) {
             return Response.sendErrorResponse(
@@ -1375,6 +1516,15 @@ export default class AIAgentDataAPI {
             data["codeRepositoryId"] as string,
           );
 
+          /*
+           * What the Runner can do: one that has OneUptime open its pull
+           * requests is handed a token that can push and nothing more
+           * (RunnerCodeFixCapability). An older Runner declares nothing and
+           * is handed what it always was.
+           */
+          const codeFixCapabilities: Array<RunnerCodeFixCapability> =
+            RunnerCodeFixCapabilityUtil.readFromBody(data);
+
           // Get code repository
           const codeRepository: CodeRepository | null =
             await CodeRepositoryService.findOneById({
@@ -1392,6 +1542,7 @@ export default class AIAgentDataAPI {
                 maxOpenFixPullRequests: true,
                 runnerId: true,
                 isGlobalRunnerPicked: true,
+                mintedTokenRefusedAt: true,
               },
               props: {
                 isRoot: true,
@@ -1419,20 +1570,38 @@ export default class AIAgentDataAPI {
 
           /*
            * The run the token is for, when the request names one the agent
-           * may act for (findTokenRun). A global Runner serves every project,
-           * so it is handed a token only for a repository of the run it holds
-           * (CodeFixAgentAuth.deniesAccessToRun): its key never opens every
-           * repository on the Global Runner at will, only the one its work is
-           * in. Without such a run the repository reads as missing, as it
-           * does for another project's repository.
+           * may act for (findTokenRun). Every worker is handed a token only
+           * for a repository of a run it holds
+           * (CodeFixAgentAuth.deniesAccessToRun): a key never opens every
+           * repository its worker may work in at will, only the one its work
+           * is in. A worker that names no run - a Runner of a release before
+           * it sent one, or an AI agent a project created before 12.0 - is
+           * handed one while it holds a run in the repository's project
+           * (holdsRunOfProject), as its fix needs; a global Runner always
+           * names its run. Without such a run the repository reads as
+           * missing, as it does for another project's repository.
            */
-          const tokenRun: AIRun | null = await AIAgentDataAPI.findTokenRun({
-            aiAgent,
-            taskId: data["taskId"] as string | undefined,
-            projectId: codeRepository.projectId,
-          });
+          const namedRunId: ObjectID | null = AIAgentDataAPI.getNamedRunId(
+            data["taskId"],
+          );
 
-          if (CodeFixAgentAuth.isGlobalIdentity(aiAgent) && !tokenRun) {
+          const tokenRun: AIRun | null = namedRunId
+            ? await AIAgentDataAPI.findTokenRun({
+                aiAgent,
+                runId: namedRunId,
+                projectId: codeRepository.projectId,
+              })
+            : null;
+
+          const isHeldWithoutNamingIt: boolean =
+            !namedRunId &&
+            (await AIAgentDataAPI.holdsRunOfProject({
+              aiAgent,
+              projectId: codeRepository.projectId,
+              codeRepositoryId: codeRepositoryId,
+            }));
+
+          if (!tokenRun && !isHeldWithoutNamingIt) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -1482,6 +1651,9 @@ export default class AIAgentDataAPI {
                 supportedCodeHosts: CodeHostRunnerToken.readSupportedCodeHosts(
                   data[RUNNER_SUPPORTED_CODE_HOSTS_FIELD],
                 ),
+                capabilities: codeFixCapabilities,
+                // A token made for a run is made only for one the worker named and holds.
+                runId: tokenRun?.id || null,
               });
 
             if (!decision.grant) {
@@ -1627,38 +1799,46 @@ export default class AIAgentDataAPI {
            */
           if (codeHostGrant) {
             logger.debug(
-              `Handing the ${codeHostGrant.codeHost.type} access token of repository ${codeHostGrant.organizationName}/${codeHostGrant.repositoryName} to a Runner`,
+              codeHostGrant.isMintedForRun
+                ? `Handing a ${codeHostGrant.codeHost.type} token made for this run of repository ${codeHostGrant.organizationName}/${codeHostGrant.repositoryName} to a Runner`
+                : `Handing the ${codeHostGrant.codeHost.type} access token of repository ${codeHostGrant.organizationName}/${codeHostGrant.repositoryName} to a Runner`,
               getLogAttributesFromRequest(req as any),
             );
 
             return Response.sendJsonObjectResponse(req, res, {
               token: codeHostGrant.token,
-              expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+              expiresAt: codeHostGrant.expiresAt.toISOString(),
               repositoryUrl: codeHostGrant.cloneUrl,
               organizationName: codeHostGrant.organizationName,
               repositoryName: codeHostGrant.repositoryName,
               codeHost: codeHostGrant.codeHost as unknown as JSONObject,
+              ...(codeHostGrant.serverOpensPullRequest
+                ? { [SERVER_OPENS_PULL_REQUEST_FIELD]: true }
+                : {}),
             });
           }
 
           /*
-           * A GitHub installation token with write permissions, for this one
-           * repository: the Runner pushes the fix's branch and opens its pull
-           * request with it, and it reaches no other repository the
-           * installation covers (GitHubUtil.getRepositoryAccessToken). It
-           * lasts an hour at most, and the Runner revokes it when the fix
-           * ends.
+           * A GitHub installation token for this one repository, which
+           * reaches no other repository the installation covers
+           * (GitHubUtil.getRepositoryAccessToken), and does no more than the
+           * run needs (getGitHubRunnerTokenScope): the Runner pushes the
+           * fix's branch with it, and - an older Runner - opens its pull
+           * request with it too. It lasts an hour at most, and the Runner
+           * revokes it when the fix ends.
            */
+          const gitHubToken: GitHubRunnerTokenScope =
+            AIAgentDataAPI.getGitHubRunnerTokenScope({
+              run: tokenRun,
+              capabilities: codeFixCapabilities,
+            });
+
           const tokenData: GitHubInstallationToken =
             await GitHubUtil.getRepositoryAccessToken({
               installationId: codeRepository.gitHubAppInstallationId!,
               organizationName: codeRepository.organizationName || "",
               repositoryName: codeRepository.repositoryName || "",
-              permissions: {
-                contents: "write", // Required for pushing branches
-                pull_requests: "write", // Required for creating PRs
-                metadata: "read", // Required for reading repository metadata
-              },
+              permissions: gitHubToken.permissions,
             });
 
           const repositoryUrl: string = `https://github.com/${codeRepository.organizationName}/${codeRepository.repositoryName}.git`;
@@ -1674,6 +1854,9 @@ export default class AIAgentDataAPI {
             repositoryUrl: repositoryUrl,
             organizationName: codeRepository.organizationName,
             repositoryName: codeRepository.repositoryName,
+            ...(gitHubToken.serverOpensPullRequest
+              ? { [SERVER_OPENS_PULL_REQUEST_FIELD]: true }
+              : {}),
           });
         } catch (err) {
           next(err);
@@ -1787,6 +1970,259 @@ export default class AIAgentDataAPI {
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             pullRequestId: recordedPullRequest.pullRequest._id?.toString(),
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Open the pull (or merge) request of a fix the worker pushed, as
+     * OneUptime (issue #8916): a Runner that declares
+     * RunnerCodeFixCapability.ServerOpensPullRequests pushes its branch with
+     * a token that can do nothing else, and asks here. OneUptime opens it
+     * with what the repository is connected with - the GitHub App's
+     * installation, or the connection's token, which never leaves the
+     * server - and records it, as record-pull-request does.
+     *
+     * Every worker opens one only for the run it claimed and still holds
+     * (CodeFixAgentAuth.deniesAccessToRun, Work), in a repository of the
+     * run's project it may work in (its Runner setting in Code; a request
+     * from Code only in the repository it was asked in), from a branch the
+     * run made (named after it: CodeFixPullRequestOpener.isBranchOfRun) into
+     * another, and at most one per repository: asked again, it answers with
+     * the one it opened. Answered exactly like a missing run otherwise, so a
+     * probing key cannot tell another worker's run from no run.
+     *
+     * Request:  { aiAgentId, aiAgentKey, taskId, codeRepositoryId,
+     *             headRefName, baseRefName, title, body,
+     *             runnerVerificationStatus?, runnerVerificationSummary? }
+     * Response: { success, pullRequestId, pullRequestUrl, pullRequestNumber,
+     *             hostPullRequestId, title, isNew }
+     */
+    this.router.post(
+      "/ai-agent-data/open-pull-request",
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const data: JSONObject = req.body;
+
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.authenticate(req, res);
+
+          if (!aiAgent) {
+            return;
+          }
+
+          const runId: ObjectID | null = AIAgentDataAPI.getNamedRunId(
+            data["taskId"],
+          );
+
+          if (!runId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("taskId is required"),
+            );
+          }
+
+          let request: FixPullRequestRequest;
+
+          try {
+            request = CodeFixPullRequestOpener.readRequest(data);
+          } catch (error) {
+            if (error instanceof BadDataException) {
+              return Response.sendErrorResponse(req, res, error);
+            }
+
+            throw error;
+          }
+
+          const run: AIRun | null = await AIRunService.findOneById({
+            id: runId,
+            select: {
+              ...CODE_FIX_RUN_HOLD_SELECT,
+              runType: true,
+              codeFixTaskType: true,
+              codeRepositoryId: true,
+            },
+            props: { isRoot: true },
+          });
+
+          if (
+            !run ||
+            !run.projectId ||
+            run.runType !== AIRunType.CodeFix ||
+            CodeFixAgentAuth.deniesAccessToRun(
+              aiAgent,
+              run,
+              CodeFixRunAccess.Work,
+            )
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Task not found"),
+            );
+          }
+
+          const taskType: CodeFixTaskType =
+            CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType);
+
+          if (!CodeFixTaskTypeHelper.opensNewPullRequest(taskType)) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This task opens no pull request: it works on one that is open already, or changes nothing.",
+              ),
+            );
+          }
+
+          const codeRepository: CodeRepository | null =
+            await CodeRepositoryService.findOneById({
+              id: request.codeRepositoryId,
+              select: {
+                ...CODE_HOST_REPOSITORY_SELECT,
+                runnerId: true,
+                isGlobalRunnerPicked: true,
+                mintedTokenRefusedAt: true,
+              },
+              props: { isRoot: true },
+            });
+
+          if (
+            !codeRepository ||
+            !codeRepository.projectId ||
+            codeRepository.projectId.toString() !== run.projectId.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Code repository not found"),
+            );
+          }
+
+          if (
+            CodeFixTaskTypeHelper.isCodeRequest(taskType) &&
+            run.codeRepositoryId?.toString() !==
+              request.codeRepositoryId.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This task was asked in another repository, and works only there.",
+              ),
+            );
+          }
+
+          // The same rule as the token: only the repository's own worker.
+          if (
+            !(await CodeRepositoryRunnerChoice.mayWorkInRepository({
+              worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
+              repository: getCodeRepositoryRunnerFactsRow(codeRepository),
+            }))
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL),
+            );
+          }
+
+          if (
+            request.headRefName === request.baseRefName ||
+            !CodeFixPullRequestOpener.isBranchOfRun({
+              branchName: request.headRefName,
+              runId,
+            })
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "OneUptime opens a pull request only from the branch this task pushed, whose name ends with the first eight characters of the task's id, into another branch.",
+              ),
+            );
+          }
+
+          /*
+           * One per repository: asked again (an answer the worker did not
+           * get), it is answered with the one it opened; asked for another
+           * branch, it is refused.
+           */
+          const recorded: AIAgentTaskPullRequest | null =
+            await CodeFixPullRequestOpener.findRecordedPullRequest({
+              aiRunId: runId,
+              codeRepositoryId: request.codeRepositoryId,
+            });
+
+          if (recorded) {
+            if (recorded.headRefName !== request.headRefName) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  `This task opened its pull request in this repository already: ${recorded.pullRequestUrl?.toString() || ""}`,
+                ),
+              );
+            }
+
+            return Response.sendJsonObjectResponse(req, res, {
+              success: true,
+              pullRequestId: recorded._id?.toString(),
+              pullRequestUrl: recorded.pullRequestUrl?.toString() || "",
+              pullRequestNumber: recorded.pullRequestNumber || null,
+              hostPullRequestId: recorded.pullRequestId || null,
+              title: recorded.title || request.title,
+              isNew: false,
+            });
+          }
+
+          const opened: OpenedFixPullRequest =
+            await CodeFixPullRequestOpener.open({
+              repository: codeRepository,
+              request,
+            });
+
+          const recordedPullRequest: RecordedPullRequest | null =
+            await CodeFixPullRequestRecord.record({
+              aiRunId: runId,
+              projectId: run.projectId,
+              aiAgent: aiAgent,
+              fields: {
+                codeRepositoryId: request.codeRepositoryId,
+                pullRequestUrl: opened.htmlUrl,
+                pullRequestNumber: opened.number,
+                pullRequestId: opened.id,
+                title: opened.title,
+                description: request.body.substring(0, 1000),
+                headRefName: request.headRefName,
+                baseRefName: request.baseRefName,
+                runnerVerificationStatus: request.runnerVerificationStatus,
+                runnerVerificationSummary: request.runnerVerificationSummary,
+              },
+            });
+
+          logger.debug(
+            `${opened.isNew ? "Opened" : "Found open"} pull request ${opened.htmlUrl} for run ${runId.toString()}`,
+            getLogAttributesFromRequest(req as any),
+          );
+
+          return Response.sendJsonObjectResponse(req, res, {
+            success: true,
+            pullRequestId:
+              recordedPullRequest?.pullRequest._id?.toString() || null,
+            pullRequestUrl: opened.htmlUrl,
+            pullRequestNumber: opened.number,
+            hostPullRequestId: opened.id,
+            title: opened.title,
+            isNew: opened.isNew,
           });
         } catch (err) {
           next(err);

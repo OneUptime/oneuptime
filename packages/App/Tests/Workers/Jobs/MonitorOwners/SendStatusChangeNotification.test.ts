@@ -10,6 +10,7 @@ import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Timezone from "Common/Types/Timezone";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
@@ -94,8 +95,10 @@ jest.mock("Common/Server/Services/MonitorStatusTimelineService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
     },
   };
 });
@@ -113,6 +116,8 @@ jest.mock("Common/Server/Services/MonitorService", () => {
   return {
     __esModule: true,
     default: {
+      findBy: jest.fn(),
+      findOneById: jest.fn(),
       findOwners: jest.fn(),
       getMonitorLinkInDashboard: jest.fn(),
       getMonitorDestinationInfo: jest.fn(),
@@ -164,17 +169,22 @@ import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTi
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/MonitorOwners/SendStatusChangeNotification";
 
 interface TimelineServiceMock {
   findAllBy: jest.Mock;
+  findBy: jest.Mock;
   findOneBy: jest.Mock;
   updateOneById: jest.Mock;
+  compareAndSetColumnsByIdWithoutHooks: jest.Mock;
 }
 
 interface MonitorServiceMock {
+  findBy: jest.Mock;
+  findOneById: jest.Mock;
   findOwners: jest.Mock;
   getMonitorLinkInDashboard: jest.Mock;
   getMonitorDestinationInfo: jest.Mock;
@@ -261,6 +271,19 @@ function makeOwner(id: string, timezone?: Timezone | undefined): User {
   return user;
 }
 
+/*
+ * The status changes the job's page read finds - those a test hands it -
+ * until the job takes each (OwnerNotificationBacklog): the read is a page,
+ * and the take a compare-and-set that only the first to make wins. The
+ * monitor of each is read with the page, as the job reads it.
+ */
+let dueTimelines: Array<MonitorStatusTimeline> = [];
+const takenTimelineIds: Set<string> = new Set<string>();
+
+function due(timelines: Array<MonitorStatusTimeline>): void {
+  dueTimelines = timelines;
+}
+
 // The vars of each sendUserNotification call's email envelope, in call order.
 function sentVars(): Array<Dictionary<string>> {
   return notificationService.sendUserNotification.mock.calls.map(
@@ -297,9 +320,36 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
     // Real conversion, spied - call counts are the regression under test.
     markdownSpy = jest.spyOn(Markdown, "convertToHTML");
 
+    dueTimelines = [];
+    takenTimelineIds.clear();
     timelineService.findAllBy.mockResolvedValue([]);
+    timelineService.findBy.mockImplementation(async () => {
+      return dueTimelines.filter((timeline: MonitorStatusTimeline) => {
+        return !takenTimelineIds.has(timeline.id!.toString());
+      });
+    });
+    timelineService.compareAndSetColumnsByIdWithoutHooks.mockImplementation(
+      async (data: { id: ObjectID }): Promise<boolean> => {
+        if (takenTimelineIds.has(data.id.toString())) {
+          return false;
+        }
+
+        takenTimelineIds.add(data.id.toString());
+        return true;
+      },
+    );
     timelineService.findOneBy.mockResolvedValue(null);
     timelineService.updateOneById.mockResolvedValue(undefined);
+    monitorService.findBy.mockImplementation(async () => {
+      return dueTimelines
+        .map((timeline: MonitorStatusTimeline): Monitor | undefined => {
+          return timeline.monitor;
+        })
+        .filter((monitor: Monitor | undefined): monitor is Monitor => {
+          return Boolean(monitor);
+        });
+    });
+    monitorService.findOneById.mockResolvedValue(null);
     monitorStatusService.findOneById.mockResolvedValue(null);
     monitorService.findOwners.mockResolvedValue([]);
     monitorService.getMonitorLinkInDashboard.mockResolvedValue({
@@ -313,7 +363,7 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
   });
 
   test("converts description and rootCause ONCE per timeline for 3 owners - and builds the dashboard link once, not per owner", async () => {
-    timelineService.findAllBy.mockResolvedValue([
+    due([
       makeTimeline({
         id: "timeline-1",
         description: DESCRIPTION_MARKDOWN,
@@ -406,7 +456,7 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
   test("two timelines with different root causes each get their OWN conversion - the hoist is per timeline, not per tick", async () => {
     const otherRootCause: string = "A **deploy** rolled back";
 
-    timelineService.findAllBy.mockResolvedValue([
+    due([
       makeTimeline({
         id: "timeline-1",
         description: DESCRIPTION_MARKDOWN,
@@ -457,7 +507,7 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
   });
 
   test("the timezone-dependent statusChangedAt var STAYS per-user while the conversions are still shared", async () => {
-    timelineService.findAllBy.mockResolvedValue([
+    due([
       makeTimeline({
         id: "timeline-1",
         description: DESCRIPTION_MARKDOWN,
@@ -498,7 +548,7 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
   });
 
   test("a timeline with no owners at all converts NOTHING - but is still marked owner-notified", async () => {
-    timelineService.findAllBy.mockResolvedValue([
+    due([
       makeTimeline({
         id: "timeline-1",
         description: DESCRIPTION_MARKDOWN,
@@ -512,16 +562,24 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
 
     await runWorkerTick();
 
-    expect(timelineService.updateOneById).toHaveBeenCalledTimes(1);
+    // Taken all the same, by its one hook-free write.
+    expect(
+      timelineService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      timelineService.compareAndSetColumnsByIdWithoutHooks.mock.calls[0]![0],
+    ).toMatchObject({
+      data: { isOwnerNotified: true },
+      expectedData: { isOwnerNotified: false },
+    });
+    expect(timelineService.updateOneById).not.toHaveBeenCalled();
     expect(markdownSpy).not.toHaveBeenCalled();
     expect(monitorService.getMonitorLinkInDashboard).not.toHaveBeenCalled();
     expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
   });
 
   test("empty description and missing rootCause convert to the same (empty) HTML the old code produced, once each", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: "timeline-1" }),
-    ]);
+    due([makeTimeline({ id: "timeline-1" })]);
     monitorService.findOwners.mockResolvedValue([
       makeOwner("user-1"),
       makeOwner("user-2"),
@@ -563,7 +621,7 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
   test("a monitor name quoting template syntax reaches the subject as written, marked literal", async () => {
     const timeline: MonitorStatusTimeline = makeTimeline({ id: "timeline-1" });
     timeline.monitor!.name = "{{ .Release.Name }}-api";
-    timelineService.findAllBy.mockResolvedValue([timeline]);
+    due([timeline]);
     monitorService.findOwners.mockResolvedValue([makeOwner("user-1")]);
 
     await runWorkerTick();
@@ -587,9 +645,7 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
    */
   describe("status colours", () => {
     test("paints the previous and the new status in their own colours", async () => {
-      timelineService.findAllBy.mockResolvedValue([
-        makeTimeline({ id: "timeline-1" }),
-      ]);
+      due([makeTimeline({ id: "timeline-1" })]);
       const previousTimeline: MonitorStatusTimeline = new MonitorStatusTimeline(
         new ObjectID("timeline-0"),
       );
@@ -622,7 +678,7 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
       timeline.monitorStatus!.color = new Color(
         "#fff; background: url(https://evil.example/t.gif)",
       );
-      timelineService.findAllBy.mockResolvedValue([timeline]);
+      due([timeline]);
       monitorService.findOwners.mockResolvedValue([makeOwner("user-1")]);
 
       await runWorkerTick();
@@ -632,5 +688,514 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
       expect(sentVars()[0]).not.toHaveProperty("currentStatusTextColor");
       expect(JSON.stringify(sentVars()[0])).not.toContain("evil.example");
     });
+  });
+
+  /*
+   * Issue #7974. A flapping monitor writes many status changes a minute.
+   * The job read every one not yet told with the monitor's whole steps
+   * joined to it, looked up the monitor's owners for each, read the
+   * previous status for each, and marked each through updateOneById and its
+   * every hook. Now a run reads a page of status changes, the page's
+   * monitors in one query, each monitor's owners and each status once for
+   * the page, and takes each status change with one hook-free write.
+   */
+  describe("a page of status changes of a few flapping monitors", () => {
+    const MONITOR_IDS: Array<ObjectID> = [1, 2, 3, 4].map(
+      (index: number): ObjectID => {
+        return new ObjectID(`monitor-${index}`);
+      },
+    );
+
+    const ONLINE_ID: ObjectID = new ObjectID("status-online");
+    const OFFLINE_ID: ObjectID = new ObjectID("status-offline");
+    const DEGRADED_ID: ObjectID = new ObjectID("status-degraded");
+
+    // How the email words the durations: as OneUptimeDate does.
+    const ONE_MINUTE: string =
+      OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(60);
+    const HALF_A_MINUTE: string =
+      OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(30);
+
+    const STATUSES: Record<string, string> = {
+      [ONLINE_ID.toString()]: "Online",
+      [OFFLINE_ID.toString()]: "Offline",
+      [DEGRADED_ID.toString()]: "Degraded",
+    };
+
+    /*
+     * Each monitor's whole timeline: the page's status changes, the entry
+     * before them, and entries told of already - which are on no page, and
+     * which the email's "Was ... for ..." must still count (#8863).
+     */
+    let timeline: Array<MonitorStatusTimeline> = [];
+
+    function entry(data: {
+      id: string;
+      monitorId: ObjectID;
+      atMs: number;
+      statusId: ObjectID;
+    }): MonitorStatusTimeline {
+      const each: MonitorStatusTimeline = new MonitorStatusTimeline(
+        new ObjectID(data.id),
+      );
+      each.monitorId = data.monitorId;
+      each.startsAt = new Date(CHANGED_AT.getTime() + data.atMs);
+      each.createdAt = each.startsAt;
+      each.monitorStatusId = data.statusId;
+      return each;
+    }
+
+    /*
+     * Five status changes of each of the four monitors, a minute apart and
+     * interleaved, flapping Online and Offline; each monitor was Offline for
+     * a minute before the first.
+     */
+    function flapping(): Array<MonitorStatusTimeline> {
+      const timelines: Array<MonitorStatusTimeline> = [];
+
+      for (const monitorId of MONITOR_IDS) {
+        timeline.push(
+          entry({
+            id: `timeline-${monitorId.toString()}-before`,
+            monitorId: monitorId,
+            atMs: -60000,
+            statusId: OFFLINE_ID,
+          }),
+        );
+      }
+
+      for (let change: number = 0; change < 5; change++) {
+        for (const monitorId of MONITOR_IDS) {
+          const statusChange: MonitorStatusTimeline = makeTimeline({
+            id: `timeline-${monitorId.toString()}-${change}`,
+            description: DESCRIPTION_MARKDOWN,
+            rootCause: ROOT_CAUSE_MARKDOWN,
+          });
+          statusChange.monitorId = monitorId;
+          const monitor: Monitor = new Monitor(monitorId);
+          monitor.name = `Monitor ${monitorId.toString()}`;
+          monitor.description = DESCRIPTION_MARKDOWN;
+          statusChange.monitor = monitor;
+          statusChange.startsAt = new Date(
+            CHANGED_AT.getTime() + change * 60000,
+          );
+          statusChange.monitorStatusId =
+            change % 2 === 0 ? ONLINE_ID : OFFLINE_ID;
+          timelines.push(statusChange);
+          timeline.push(statusChange);
+        }
+      }
+
+      return timelines;
+    }
+
+    // The previous status and its duration each email was sent with, by monitor.
+    function previousStatusesSent(): Record<string, Array<string>> {
+      const sent: Record<string, Array<string>> = {};
+
+      for (const call of notificationService.sendUserNotification.mock.calls) {
+        const data: {
+          monitorId: ObjectID;
+          emailEnvelope: EmailEnvelope;
+          userId: ObjectID;
+        } = call[0] as {
+          monitorId: ObjectID;
+          emailEnvelope: EmailEnvelope;
+          userId: ObjectID;
+        };
+
+        // One owner's email per status change is enough.
+        if (data.userId.toString() !== "user-1") {
+          continue;
+        }
+
+        const vars: Dictionary<string> = data.emailEnvelope
+          .vars as Dictionary<string>;
+        const key: string = data.monitorId.toString();
+
+        sent[key] = [
+          ...(sent[key] || []),
+          `${vars["previousStatus"]}|${vars["previousStatusDurationText"]}`,
+        ];
+      }
+
+      return sent;
+    }
+
+    function pageReads(): number {
+      return timelineService.findBy.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return !(call[0] as { query: Record<string, unknown> }).query[
+            "monitorId"
+          ];
+        },
+      ).length;
+    }
+
+    function readsInBetween(): number {
+      return timelineService.findBy.mock.calls.length - pageReads();
+    }
+
+    beforeEach(() => {
+      timeline = [];
+
+      monitorService.findOwners.mockResolvedValue([
+        makeOwner("user-1"),
+        makeOwner("user-2"),
+      ]);
+
+      jest
+        .spyOn(QueryHelper, "lessThan")
+        .mockImplementation((value: unknown) => {
+          return { lessThan: value } as never;
+        });
+      jest
+        .spyOn(QueryHelper, "inBetween")
+        .mockImplementation((from: unknown, to: unknown) => {
+          return { inBetween: [from, to] } as never;
+        });
+
+      // A page of status changes, or a monitor's entries in between (#8863).
+      timelineService.findBy.mockImplementation(
+        async (data: { query: Record<string, unknown> }) => {
+          if (data.query["monitorId"]) {
+            const [from, to] = (
+              data.query["startsAt"] as { inBetween: [Date, Date] }
+            ).inBetween;
+
+            return timeline
+              .filter((each: MonitorStatusTimeline): boolean => {
+                return (
+                  each.monitorId!.toString() ===
+                    String(data.query["monitorId"]) &&
+                  each.startsAt!.getTime() >= from.getTime() &&
+                  each.startsAt!.getTime() <= to.getTime()
+                );
+              })
+              .sort(
+                (
+                  a: MonitorStatusTimeline,
+                  b: MonitorStatusTimeline,
+                ): number => {
+                  return (
+                    a.startsAt!.getTime() - b.startsAt!.getTime() ||
+                    a.id!.toString().localeCompare(b.id!.toString())
+                  );
+                },
+              );
+          }
+
+          return dueTimelines.filter((each: MonitorStatusTimeline) => {
+            return !takenTimelineIds.has(each.id!.toString());
+          });
+        },
+      );
+
+      // The entry before one: started latest, then first by id.
+      timelineService.findOneBy.mockImplementation(
+        async (data: { query: Record<string, unknown> }) => {
+          const before: Date = (data.query["startsAt"] as { lessThan: Date })
+            .lessThan;
+
+          return (
+            timeline
+              .filter((each: MonitorStatusTimeline): boolean => {
+                return (
+                  each.monitorId!.toString() ===
+                    String(data.query["monitorId"]) &&
+                  each.startsAt!.getTime() < before.getTime()
+                );
+              })
+              .sort(
+                (
+                  a: MonitorStatusTimeline,
+                  b: MonitorStatusTimeline,
+                ): number => {
+                  return (
+                    b.startsAt!.getTime() - a.startsAt!.getTime() ||
+                    a.id!.toString().localeCompare(b.id!.toString())
+                  );
+                },
+              )[0] || null
+          );
+        },
+      );
+
+      monitorStatusService.findOneById.mockImplementation(
+        async (data: { id: ObjectID }) => {
+          const name: string | undefined = STATUSES[data.id.toString()];
+
+          if (!name) {
+            return null;
+          }
+
+          const status: MonitorStatus = new MonitorStatus();
+          status.name = name;
+          return status;
+        },
+      );
+    });
+
+    test("reads the page's monitors in one query, and never a monitor's steps with each status change", async () => {
+      due(flapping());
+
+      await runWorkerTick();
+
+      // One page of status changes, one query for its four monitors.
+      expect(pageReads()).toBe(1);
+      expect(monitorService.findBy).toHaveBeenCalledTimes(1);
+      expect(monitorService.findOneById).not.toHaveBeenCalled();
+
+      const pageRead: { select: Record<string, unknown> } = timelineService
+        .findBy.mock.calls[0]![0] as { select: Record<string, unknown> };
+
+      expect(pageRead.select).not.toHaveProperty("monitor");
+      expect(pageRead.select["monitorId"]).toBe(true);
+
+      // Every owner of every status change told, once each.
+      expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(
+        40,
+      );
+    });
+
+    test("looks up each monitor's owners once for the page, not once per status change", async () => {
+      due(flapping());
+
+      await runWorkerTick();
+
+      // Was 20: one lookup per status change.
+      expect(monitorService.findOwners).toHaveBeenCalledTimes(4);
+      expect(
+        monitorService.findOwners.mock.calls
+          .map((call: Array<unknown>): string => {
+            return String(call[0]);
+          })
+          .sort(),
+      ).toEqual(
+        MONITOR_IDS.map((id: ObjectID): string => {
+          return id.toString();
+        }).sort(),
+      );
+    });
+
+    test("reads the project's owners once for the page, for monitors with none of their own", async () => {
+      monitorService.findOwners.mockResolvedValue([]);
+      projectService.getOwners.mockResolvedValue([makeOwner("user-9")]);
+      due(flapping());
+
+      await runWorkerTick();
+
+      // Was 20: one per status change of an ownerless monitor.
+      expect(projectService.getOwners).toHaveBeenCalledTimes(1);
+      expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(
+        20,
+      );
+    });
+
+    /*
+     * Issue #8863: the entry before each status change was read on its own,
+     * twenty reads for this page. Two reads per monitor stand for all of its
+     * status changes now: the entry before its first, and its entries in
+     * between.
+     */
+    test("reads the entries before the page's 20 status changes of 4 monitors in 8 queries, not 20", async () => {
+      due(flapping());
+
+      await runWorkerTick();
+
+      // Was 20.
+      expect(timelineService.findOneBy).toHaveBeenCalledTimes(4);
+      expect(readsInBetween()).toBe(4);
+      // Each status they were in, once for the page (was 20).
+      expect(monitorStatusService.findOneById).toHaveBeenCalledTimes(2);
+    });
+
+    test("the previous status and how long it lasted are what a read of each status change's own found", async () => {
+      due(flapping());
+
+      await runWorkerTick();
+
+      const sent: Record<string, Array<string>> = previousStatusesSent();
+
+      for (const monitorId of MONITOR_IDS) {
+        expect([monitorId.toString(), sent[monitorId.toString()]]).toEqual([
+          monitorId.toString(),
+          [
+            // Its first: the entry before the page.
+            `Offline|Was Offline for ${ONE_MINUTE}`,
+            `Online|Was Online for ${ONE_MINUTE}`,
+            `Offline|Was Offline for ${ONE_MINUTE}`,
+            `Online|Was Online for ${ONE_MINUTE}`,
+            `Offline|Was Offline for ${ONE_MINUTE}`,
+          ],
+        ]);
+      }
+    });
+
+    test("an entry between two status changes that is on no page - told of already - is still the previous one", async () => {
+      const statusChanges: Array<MonitorStatusTimeline> = flapping();
+
+      // Degraded for half a minute between the first monitor's third and fourth change.
+      timeline.push(
+        entry({
+          id: "timeline-told-already",
+          monitorId: MONITOR_IDS[0]!,
+          atMs: 2 * 60000 + 30000,
+          statusId: DEGRADED_ID,
+        }),
+      );
+      due(statusChanges);
+
+      await runWorkerTick();
+
+      expect(previousStatusesSent()[MONITOR_IDS[0]!.toString()]).toEqual([
+        `Offline|Was Offline for ${ONE_MINUTE}`,
+        `Online|Was Online for ${ONE_MINUTE}`,
+        `Offline|Was Offline for ${ONE_MINUTE}`,
+        `Degraded|Was Degraded for ${HALF_A_MINUTE}`,
+        `Offline|Was Offline for ${ONE_MINUTE}`,
+      ]);
+      // The other monitors as before.
+      expect(previousStatusesSent()[MONITOR_IDS[1]!.toString()]![3]).toBe(
+        `Online|Was Online for ${ONE_MINUTE}`,
+      );
+    });
+
+    test("a monitor's first status change ever says nothing came before it", async () => {
+      const statusChanges: Array<MonitorStatusTimeline> = flapping();
+
+      // The second monitor has no entry before the page.
+      timeline = timeline.filter((each: MonitorStatusTimeline): boolean => {
+        return (
+          each.id!.toString() !==
+          `timeline-${MONITOR_IDS[1]!.toString()}-before`
+        );
+      });
+      due(statusChanges);
+
+      await runWorkerTick();
+
+      expect(previousStatusesSent()[MONITOR_IDS[1]!.toString()]![0]).toBe("|");
+      expect(previousStatusesSent()[MONITOR_IDS[1]!.toString()]![1]).toBe(
+        `Online|Was Online for ${ONE_MINUTE}`,
+      );
+    });
+
+    test("a monitor with one status change on the page keeps its one read", async () => {
+      const statusChanges: Array<MonitorStatusTimeline> = flapping().filter(
+        (each: MonitorStatusTimeline): boolean => {
+          // Monitor 4 has its last status change on the page only.
+          return (
+            each.monitorId!.toString() !== MONITOR_IDS[3]!.toString() ||
+            each.id!.toString().endsWith("-4")
+          );
+        },
+      );
+      due(statusChanges);
+
+      await runWorkerTick();
+
+      // Three monitors with five each: two reads each; one with one: its own.
+      expect(timelineService.findOneBy).toHaveBeenCalledTimes(4);
+      expect(readsInBetween()).toBe(3);
+      // Its change before, on no page of this run, is still the previous one.
+      expect(previousStatusesSent()[MONITOR_IDS[3]!.toString()]).toEqual([
+        `Offline|Was Offline for ${ONE_MINUTE}`,
+      ]);
+    });
+
+    test("a status change with no start says nothing came before it, and is read for by nobody", async () => {
+      const statusChanges: Array<MonitorStatusTimeline> = flapping();
+      const noStart: MonitorStatusTimeline = statusChanges[0]!;
+      delete (noStart as unknown as Record<string, unknown>)["startsAt"];
+      timeline = timeline.filter((each: MonitorStatusTimeline): boolean => {
+        return each !== noStart;
+      });
+      due(statusChanges);
+
+      await runWorkerTick();
+
+      expect(previousStatusesSent()[MONITOR_IDS[0]!.toString()]![0]).toBe("|");
+      expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(
+        40,
+      );
+    });
+
+    test("takes each status change with one hook-free write, and never updateOneById", async () => {
+      due(flapping());
+
+      await runWorkerTick();
+
+      expect(
+        timelineService.compareAndSetColumnsByIdWithoutHooks,
+      ).toHaveBeenCalledTimes(20);
+      expect(timelineService.updateOneById).not.toHaveBeenCalled();
+      expect(timelineService.findAllBy).not.toHaveBeenCalled();
+    });
+
+    test("tells them in the order they happened", async () => {
+      const timelines: Array<MonitorStatusTimeline> = flapping();
+      due(timelines);
+
+      await runWorkerTick();
+
+      const toldOf: Array<string> =
+        notificationService.sendUserNotification.mock.calls
+          .map((call: Array<unknown>): string => {
+            return String((call[0] as { monitorId: ObjectID }).monitorId);
+          })
+          .filter((_: string, index: number): boolean => {
+            // Two owners each: one entry per status change.
+            return index % 2 === 0;
+          });
+
+      expect(toldOf).toEqual(
+        timelines.map((timeline: MonitorStatusTimeline): string => {
+          return timeline.monitorId!.toString();
+        }),
+      );
+      // The page is read oldest first.
+      expect(
+        (timelineService.findBy.mock.calls[0]![0] as { sort: unknown }).sort,
+      ).toEqual({ createdAt: SortOrder.Ascending });
+    });
+  });
+
+  test("a status change another run took first is not told again", async () => {
+    const timeline: MonitorStatusTimeline = makeTimeline({
+      id: "timeline-1",
+    });
+    due([timeline]);
+    monitorService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+    // The other run's take landed between this run's read and its own.
+    takenTimelineIds.add(timeline.id!.toString());
+    timelineService.findBy.mockResolvedValueOnce([timeline]);
+
+    await runWorkerTick();
+
+    expect(
+      timelineService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
+  });
+
+  test("a status change of a monitor that is gone is taken, and nobody is told", async () => {
+    const timeline: MonitorStatusTimeline = makeTimeline({
+      id: "timeline-1",
+    });
+    due([timeline]);
+    monitorService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+    // Neither the page's read nor the monitor's own finds it.
+    monitorService.findBy.mockResolvedValue([]);
+    monitorService.findOneById.mockResolvedValue(null);
+
+    await runWorkerTick();
+
+    expect(monitorService.findOneById).toHaveBeenCalledTimes(1);
+    expect(
+      timelineService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(monitorService.findOwners).not.toHaveBeenCalled();
+    expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
   });
 });

@@ -37,11 +37,42 @@
  * has a meaning of its own (a notification, the act of monitoring), so a
  * check reads the texts whose English names the thing, and only those: a
  * text whose English names the thing says the language's word and not the
- * dropped one. The Dashboard's and the Admin Dashboard's locale files and
- * the docs are held to these rules (OneWordInSentencesPerThing), and so is
- * every setup guide's words (SetupGuideDocumentationInLocale): one list,
- * so a rename reaches them all.
+ * dropped one. The Dashboard's locale files, the docs and every other app's
+ * locale folder (LOCALE_FOLDERS: the Admin Dashboard, the status pages, the
+ * sign-in pages, the public dashboards, the API reference and the server's
+ * emails and messages) are held to these rules (OneWordInSentencesPerThing),
+ * and so is every setup guide's words (SetupGuideDocumentationInLocale):
+ * one list, so a rename reaches them all.
  */
+
+/*
+ * The locale folders beside the Dashboard's that a rule reads (#8828). A
+ * thing the Dashboard names is named the same on a status page, a sign-in
+ * page or in an email, so a rule reads every folder unless it says
+ * otherwise in `folders`: a product's name, say, may rightly read otherwise
+ * on a public page than in the Dashboard. No rule narrows them yet.
+ */
+export type LocaleFolder =
+  | "Admin Dashboard"
+  | "Status page"
+  | "Sign-in pages"
+  | "Public dashboards"
+  | "API reference"
+  | "Server";
+
+// Each folder, from the packages directory.
+export const LOCALE_FOLDERS: Readonly<Record<LocaleFolder, string>> = {
+  "Admin Dashboard": "App/FeatureSet/AdminDashboard/src/Locales",
+  "Status page": "App/FeatureSet/StatusPage/src/Locales",
+  "Sign-in pages": "App/FeatureSet/Accounts/src/Locales",
+  "Public dashboards": "App/FeatureSet/PublicDashboard/src/Locales",
+  "API reference": "App/FeatureSet/APIReference/Locales",
+  Server: "Common/Server/Locales",
+};
+
+export const EVERY_LOCALE_FOLDER: ReadonlyArray<LocaleFolder> = Object.keys(
+  LOCALE_FOLDERS,
+) as Array<LocaleFolder>;
 
 export interface SentenceRule {
   language: string;
@@ -65,7 +96,20 @@ export interface SentenceRule {
    * a workflow's or a CI's runner in lower case.
    */
   docsEnglish?: RegExp;
+  /*
+   * The locale folders beside the Dashboard's it reads: every one
+   * (EVERY_LOCALE_FOLDER) unless it names fewer, with why.
+   */
+  folders?: ReadonlyArray<LocaleFolder>;
 }
+
+// The locale folders a rule reads.
+export function foldersOf(rule: SentenceRule): ReadonlyArray<LocaleFolder> {
+  return rule.folders || EVERY_LOCALE_FOLDER;
+}
+
+// English that names an ingestion key.
+const INGESTION_KEY: RegExp = /\bingestion[ -]keys?\b/i;
 
 // A Runner's English that names another agent, AWS's App Runner or the migrations' runner.
 const NOT_THE_RUNNER: RegExp = /\bagent|app runner|proxy|migration/i;
@@ -329,7 +373,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\brunners?\b/i,
     except: NOT_THE_RUNNER,
     word: /Runner/,
-    dropped: /агент|раннер/i,
+    // The AI agent is a thing of its own, named as the Dashboard names it.
+    dropped: /(?<!ИИ-)агент(?![а-яё]*\s+ИИ)|раннер/i,
     docsEnglish: /\bRunners?\b/,
   },
   {
@@ -338,7 +383,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\brunners?\b/i,
     except: NOT_THE_RUNNER,
     word: /Runner/,
-    dropped: /代理|執行器/,
+    // The AI agent (AI 代理) is a thing of its own, named as the Dashboard names it.
+    dropped: /(?<!AI )代理|執行器/,
     docsEnglish: /\bRunners?\b/,
   },
   /*
@@ -481,6 +527,88 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     dropped: /\bengine ?metri|\bengine-metrics/i,
   },
   /*
+   * An ingestion key: the Ingestion Keys page's title, its Create button and
+   * every sentence about one say the same word, the one the page's title and
+   * the docs say (#8806). Swedish titled the card Intagningsnycklar over a
+   * Skapa ingestion-nyckel button, Danish Indtagelsesnøgler over Opret
+   * ingestion-nøgle, Italian Chiavi di acquisizione over Crea chiave di
+   * ingestione. The seven other languages said one word already
+   * (INGESTION_KEY_WORDS).
+   */
+  {
+    language: "da",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /indtagelsesnøgl/i,
+    dropped:
+      /ingestion-?nøgl|ingestionsnøgl|indlæsningsnøgl|nøgle til telemetri-indtagelse/i,
+  },
+  {
+    language: "de",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /Ingestion-Schlüssel/i,
+    dropped: /Aufnahme-?schlüssel|Erfassungs-?schlüssel|Ingestion-?Key/i,
+  },
+  {
+    language: "hi",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /इंजेशन/,
+    dropped: /इन्जेशन|इनजेशन/,
+  },
+  {
+    language: "it",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /chiav[ei] di acquisizione/i,
+    dropped: /chiav[ei] di ingestione/i,
+  },
+  {
+    language: "ja",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /取り込みキー/,
+    dropped: /インジェス(?:ト|ション)キー/,
+  },
+  {
+    language: "nl",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /ingestiesleutel/i,
+    dropped: /inname-?sleutel|opnamesleutel/i,
+  },
+  {
+    language: "no",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /inntaksnøk/i,
+    dropped:
+      /ingestion-?nøk|innhentingsnøk|innsamlingsnøk|nøkkel for telemetri-inntak/i,
+  },
+  {
+    language: "ru",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /ключ\p{L}* приёма/iu,
+    dropped: /приема/i,
+  },
+  {
+    language: "sv",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /intagningsnyck/i,
+    dropped:
+      /ingestion-?nyck|inmatningsnyck|intagsnyck|nyckel för telemetriinmatning|telemetrinyckel för inmatning/i,
+  },
+  {
+    language: "zh-CN",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /摄取密钥/,
+    dropped: /引入密钥|采集密钥/,
+  },
+  /*
    * Hindi spells an event इवेंट, as its Event and Events keys, its glossary,
    * 1,059 Dashboard strings and its docs do. 18 strings (Event Labels,
    * Event Title, the trace's event attributes ...) and a few docs lines
@@ -494,3 +622,28 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     dropped: /ईवेंट/,
   },
 ];
+
+/*
+ * Each language's word for an ingestion key, in all 17: every Dashboard and
+ * Admin Dashboard string whose English names an ingestion key says it
+ * (OneWordInSentencesPerThing).
+ */
+export const INGESTION_KEY_WORDS: Readonly<Record<string, RegExp>> = {
+  ar: /استيعاب/,
+  da: /indtagelsesnøgl/i,
+  de: /Ingestion-Schlüssel/i,
+  es: /claves? de ingesta/i,
+  fa: /کلید(?:های)? دریافت/,
+  fr: /clés? d['’]ingestion/i,
+  hi: /इंजेशन/,
+  it: /chiav[ei] di acquisizione/i,
+  ja: /取り込みキー/,
+  ko: /수집 키/,
+  nl: /ingestiesleutel/i,
+  no: /inntaksnøk/i,
+  pt: /chaves? de ingestão/i,
+  ru: /ключ\p{L}* приёма/iu,
+  sv: /intagningsnyck/i,
+  "zh-CN": /摄取密钥/,
+  "zh-TW": /擷取金鑰/,
+};

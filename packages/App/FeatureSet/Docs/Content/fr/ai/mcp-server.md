@@ -144,7 +144,7 @@ Sous **Accès**, choisissez **Lecteur** pour un agent qui ne fait que lire, ou *
 
 ### Copier la clé
 
-Cliquez sur **Créer : Clé API** : la page de la clé s'ouvre. Copiez la clé depuis cette page.
+Cliquez sur **Créer : Clé API**. OneUptime n'affiche la clé qu'une seule fois, dans la boîte de dialogue **Copiez votre clé API** : copiez-la avant d'appuyer sur **Terminé**.
 :::
 
 Les clés API appartiennent à un projet : le serveur MCP prend le projet dans la clé, si bien que les outils de création n'ont jamais besoin d'un argument `projectId`.
@@ -360,6 +360,8 @@ Interrogez toujours la télémétrie avec une plage de temps. Un champ de requê
 Les opérateurs sont `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` et `Includes`. Les valeurs de tri sont `"ASC"` ou `"DESC"`.
 
 Les outils `list_` et `count_` acceptent n'importe quel champ, ce qui garde la liste des outils assez petite pour qu'un client la charge d'un seul coup. Pour voir les champs d'une ressource, ce que chacun signifie et quels opérateurs il accepte, un agent appelle `oneuptime_describe_resource` avec la ressource ou l'un de ses outils, comme `Incident` ou `list_incidents`.
+
+Les autres outils `list_`, des incidents, des moniteurs et de tout autre type d'enregistrement, trient comme le fait l'API : un champ prend une direction, ou `{ "direction": "DESC", "nulls": "LAST" }` pour placer en dernier les enregistrements sans valeur dans ce champ, et une relation vers un enregistrement trie selon un champ de l'enregistrement qu'elle nomme, comme dans `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` marque chacune de ces relations avec `sort` et nomme les champs selon lesquels elle trie sous `sortBy`.
 
 ## Sélection des champs et pagination
 

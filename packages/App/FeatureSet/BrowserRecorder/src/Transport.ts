@@ -9,6 +9,7 @@ import {
   SessionReplayPayloadEncoding,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
+import RetryAfter from "Common/Utils/RetryAfter";
 import { debugLog, debugWarn } from "./Debug";
 import OfflineStore, { OfflineChunk } from "./OfflineStore";
 
@@ -2005,38 +2006,18 @@ export default class Transport {
     return headers;
   }
 
+  /*
+   * The answer's Retry-After in seconds, as RFC 9110 writes it (Common's
+   * RetryAfter): whole seconds or an HTTP date, from one to
+   * MAX_RETRY_AFTER_SECONDS. DEFAULT_RETRY_AFTER_SECONDS for anything else:
+   * parseInt read "1.5" as 1 and "5 seconds" as 5, and Date.parse took "-5"
+   * for a day in 2001.
+   */
   public static parseRetryAfter(response: Response): number {
-    let header: string | null = null;
-
-    try {
-      header = response.headers ? response.headers.get("retry-after") : null;
-    } catch {
-      header = null;
-    }
-
-    if (!header) {
-      return DEFAULT_RETRY_AFTER_SECONDS;
-    }
-
-    const seconds: number = Number.parseInt(header, 10);
-
-    if (Number.isFinite(seconds) && seconds > 0) {
-      return Math.min(seconds, MAX_RETRY_AFTER_SECONDS);
-    }
-
-    /* Retry-After may also be an HTTP date. */
-    const asDate: number = Date.parse(header);
-
-    if (Number.isFinite(asDate)) {
-      return Math.max(
-        1,
-        Math.min(
-          MAX_RETRY_AFTER_SECONDS,
-          Math.round((asDate - Date.now()) / 1000),
-        ),
-      );
-    }
-
-    return DEFAULT_RETRY_AFTER_SECONDS;
+    return (
+      RetryAfter.secondsFromHeaders(response.headers, {
+        maxMs: MAX_RETRY_AFTER_SECONDS * 1000,
+      }) ?? DEFAULT_RETRY_AFTER_SECONDS
+    );
   }
 }

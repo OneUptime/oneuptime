@@ -35,9 +35,12 @@ import {
 import NotOperationalMonitorQuery from "../../../../Utils/Monitor/NotOperationalMonitorQuery";
 import { AI_READ_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
 import { citationSentence, countFigure } from "./ReadTableWords";
-import MonitoringOff, {
-  MONITORING_OFF_SELECT,
-} from "../../../../Utils/Monitor/MonitoringOff";
+import MonitoringOff from "../../../../Utils/Monitor/MonitoringOff";
+import MonitorFirstCheck from "../../../../Utils/Monitor/MonitorFirstCheck";
+import MonitorRowStatusUtil, {
+  MONITOR_ROW_STATUS_SELECT,
+  MonitorRowStatus,
+} from "../../../../Utils/Monitor/MonitorRowStatus";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -68,6 +71,60 @@ export const ARCHIVED_MONITOR_NOTE: string =
 export const MONITORING_OFF_MONITOR_NOTE: string =
   "This monitor's monitoring is turned off: nothing checks it, so its status is only what its last check saw before monitoring was turned off, not a live one. Turn its monitoring on to check it again.";
 
+/*
+ * A monitor nothing has checked yet (Utils/Monitor/MonitorFirstCheck, issue
+ * #8899) holds the operational status every monitor is created in: no check
+ * stands behind it. Its row says notCheckedYet, in the Monitors table's
+ * words for why (MonitorRowStatus) - Waiting for data, No results yet,
+ * Paused, Probes Not Enabled, Probes Disconnected - and the chat's table
+ * and card say those words, as the Monitors table does, never Operational.
+ * So the model never reports a monitor nothing has checked as up.
+ */
+export const NOT_CHECKED_YET_MONITOR_NOTE: string =
+  "Nothing has checked this monitor yet: its status is only the operational status every monitor is created in, not the result of a check. Do not report it as up or as down; say it has not been checked yet, and why, as notCheckedYet says (Waiting for data: its first result has not come back yet; No results yet: its first result is overdue; Paused: an incident or scheduled maintenance holds its checks; Probes Not Enabled or Probes Disconnected: no probe can check it).";
+
+export const NOT_CHECKED_YET_LIST_NOTE: string =
+  "Rows with notCheckedYet are monitors nothing has checked yet: their currentStatus is only the operational status every monitor is created in, not the result of a check. Do not report them as up or as down; say they have not been checked yet, and why, as notCheckedYet says (Waiting for data: the first result has not come back yet; No results yet: the first result is overdue; Paused: an incident or scheduled maintenance holds its checks; Probes Not Enabled or Probes Disconnected: no probe can check it).";
+
+/*
+ * Why nothing has checked a monitor yet, as the Monitors table says it,
+ * with the colour it draws it in - or undefined when something has, when
+ * its status was set some other way since, or when nothing checks it at
+ * all (archived, monitoring off: said as such). `now` decides whether its
+ * first result is overdue.
+ */
+export interface NotCheckedYet {
+  words: string;
+  color: string | undefined;
+}
+
+export function getNotCheckedYet(
+  monitor: Monitor | null | undefined,
+  now?: Date | undefined,
+): NotCheckedYet | undefined {
+  if (
+    !monitor ||
+    !MonitoringOff.isMonitored(monitor) ||
+    !MonitorFirstCheck.isStatusUnmeasured(monitor)
+  ) {
+    return undefined;
+  }
+
+  const rowStatus: MonitorRowStatus = MonitorRowStatusUtil.getRowStatus(
+    monitor,
+    now,
+  );
+
+  if (MonitorRowStatusUtil.isOwnStatus(rowStatus)) {
+    return undefined;
+  }
+
+  return {
+    words: rowStatus.text,
+    color: rowStatus.color?.toString(),
+  };
+}
+
 export const MONITORING_OFF_LIST_NOTE: string =
   "Rows with monitoringOff=true are monitors whose monitoring is turned off: nothing checks them, so their currentStatus is only what their last check saw before monitoring was turned off. Do not report them as down or as up now; say their monitoring is off. They are listed after the monitors that are checked.";
 
@@ -96,7 +153,7 @@ const resolveReadPermissions: () => Array<Permission> =
 export const QueryMonitorsTool: ObservabilityTool = {
   name: "query_monitors",
   description:
-    "List monitors in this project with their current status (name and color). Archived monitors are left out of the list - they are not monitored; pass monitorId to read one. A monitor whose monitoring is turned off is listed with monitoringOff=true: nothing checks it, so its status is stale (only what its last check saw before monitoring was turned off) - never report it as down or as up now. To answer 'which monitors are down / not operational right now?' pass problemsOnly=true — it returns only monitors whose current status is not an operational state, leaving out monitors whose monitoring is turned off. To list monitors in one specific status (e.g. 'Degraded' or 'Offline'), pass monitorStatusName (case-insensitive); it matches only monitors whose monitoring is on, too. Returned monitors are ordered problems-first (worst status first, then name), with monitors whose monitoring is turned off last; the result reports the total match count — pass skip to page through more. Pass monitorId to get one monitor's details, whether its monitoring is off, its owners (teams and users) and its recent status timeline (when it went up or down).",
+    "List monitors in this project with their current status (name and color). Archived monitors are left out of the list - they are not monitored; pass monitorId to read one. A monitor whose monitoring is turned off is listed with monitoringOff=true: nothing checks it, so its status is stale (only what its last check saw before monitoring was turned off) - never report it as down or as up now. A monitor nothing has checked yet is listed with notCheckedYet (why, e.g. 'Waiting for data' or 'No results yet'): its status is only the one it was created in - never report it as up. To answer 'which monitors are down / not operational right now?' pass problemsOnly=true — it returns only monitors whose current status is not an operational state, leaving out monitors whose monitoring is turned off. To list monitors in one specific status (e.g. 'Degraded' or 'Offline'), pass monitorStatusName (case-insensitive); it matches only monitors whose monitoring is on, too. Returned monitors are ordered problems-first (worst status first, then name), with monitors whose monitoring is turned off last; the result reports the total match count — pass skip to page through more. Pass monitorId to get one monitor's details, whether its monitoring is off, its owners (teams and users) and its recent status timeline (when it went up or down).",
   inputSchema: {
     type: "object",
     properties: {
@@ -145,16 +202,15 @@ export const QueryMonitorsTool: ObservabilityTool = {
     if (monitorId) {
       const monitor: Monitor | null = await MonitorService.findOneById({
         id: monitorId,
+        /*
+         * With what the Monitors table reads a row's status by
+         * (MonitorRowStatus): whether it is archived, its monitoring off,
+         * and whether anything has checked it yet.
+         */
         select: {
           _id: true,
           name: true,
-          monitorType: true,
-          isArchived: true,
-          ...MONITORING_OFF_SELECT,
-          currentMonitorStatus: {
-            name: true,
-            color: true,
-          },
+          ...MONITOR_ROW_STATUS_SELECT,
         },
         props: ctx.props,
       });
@@ -248,6 +304,8 @@ export const QueryMonitorsTool: ObservabilityTool = {
 
       const rows: Array<JSONObject> = [];
       const isMonitoringOff: boolean = MonitoringOff.isOff(monitor);
+      const notCheckedYet: NotCheckedYet | undefined =
+        getNotCheckedYet(monitor);
 
       if (monitor) {
         rows.push({
@@ -261,6 +319,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
           ownerUsers: ownerUserNames || undefined,
           archived: monitor.isArchived === true ? true : undefined,
           monitoringOff: isMonitoringOff ? true : undefined,
+          notCheckedYet: notCheckedYet?.words,
         });
       }
 
@@ -282,6 +341,9 @@ export const QueryMonitorsTool: ObservabilityTool = {
       }
       if (isMonitoringOff) {
         notes.push(MONITORING_OFF_MONITOR_NOTE);
+      }
+      if (notCheckedYet) {
+        notes.push(NOT_CHECKED_YET_MONITOR_NOTE);
       }
 
       return {
@@ -315,18 +377,23 @@ export const QueryMonitorsTool: ObservabilityTool = {
                 statusName: monitor.currentMonitorStatus?.name || undefined,
                 isMonitoringOff,
                 isArchived: monitor.isArchived === true,
+                notCheckedYet: notCheckedYet?.words,
                 ownerTeamNames: ownerTeamNames || undefined,
                 ownerUserNames: ownerUserNames || undefined,
               }),
               /*
                * And in its colour, as that table draws it (issue #6968):
                * gray when the status is not live - monitoring off, or
-               * archived - never the green of the status it was frozen at.
+               * archived - never the green of the status it was frozen at;
+               * the colour of why nothing has checked it yet, when nothing
+               * has, never the green it was created in.
                */
               statusColor:
                 isMonitoringOff || monitor.isArchived === true
                   ? Gray500.toString()
-                  : monitor.currentMonitorStatus?.color?.toString(),
+                  : notCheckedYet
+                    ? notCheckedYet.color
+                    : monitor.currentMonitorStatus?.color?.toString(),
               link: {
                 type: AIChatCitationTargetType.MonitorView,
                 params: { monitorId: monitorId.toString() },
@@ -459,16 +526,18 @@ export const QueryMonitorsTool: ObservabilityTool = {
 
     const monitors: Array<Monitor> = await MonitorService.findBy({
       query: query,
+      /*
+       * With what the Monitors table reads a row's status by
+       * (MonitorRowStatus), so a monitor nothing has checked yet is said
+       * to be, as the table says it.
+       */
       select: {
         _id: true,
         name: true,
-        monitorType: true,
-        ...MONITORING_OFF_SELECT,
+        ...MONITOR_ROW_STATUS_SELECT,
         currentMonitorStatus: {
-          name: true,
-          color: true,
+          ...MONITOR_ROW_STATUS_SELECT.currentMonitorStatus,
           priority: true,
-          isOperationalState: true,
         },
       },
       /*
@@ -527,6 +596,9 @@ export const QueryMonitorsTool: ObservabilityTool = {
       },
     );
 
+    // One clock for the page: each row judges an overdue first result alike.
+    const now: Date = new Date();
+
     const rows: Array<JSONObject> = sortedMonitors.map((monitor: Monitor) => {
       return {
         id: monitor.id?.toString(),
@@ -536,6 +608,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
         statusColor: monitor.currentMonitorStatus?.color?.toString(),
         isOperational: monitor.currentMonitorStatus?.isOperationalState,
         monitoringOff: MonitoringOff.isOff(monitor) ? true : undefined,
+        notCheckedYet: getNotCheckedYet(monitor, now)?.words,
       };
     });
 
@@ -556,6 +629,13 @@ export const QueryMonitorsTool: ObservabilityTool = {
     }
     if (hasMonitoringOffRow) {
       lines.push(MONITORING_OFF_LIST_NOTE);
+    }
+    if (
+      rows.some((row: JSONObject): boolean => {
+        return Boolean(row["notCheckedYet"]);
+      })
+    ) {
+      lines.push(NOT_CHECKED_YET_LIST_NOTE);
     }
     lines.push(serialized.text);
     const dataForLlm: string = lines.join("\n");
@@ -597,8 +677,10 @@ export const QueryMonitorsTool: ObservabilityTool = {
        * The chat's table, in the reader's language (issue #7394): its
        * title and order line, each monitor's type, and Disabled - as the
        * Monitors table and the card say it - for a monitor whose
-       * monitoring is off, rather than the status it was frozen at. A
-       * status filter's status is named as the project named it.
+       * monitoring is off, rather than the status it was frozen at; why
+       * nothing has checked a monitor yet, rather than the status it was
+       * created in (#8899). A status filter's status is named as the
+       * project named it.
        */
       widget:
         rows.length > 0

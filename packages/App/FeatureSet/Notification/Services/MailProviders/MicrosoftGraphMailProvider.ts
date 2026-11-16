@@ -7,10 +7,15 @@ import MailProvider, { MailProviderSendOptions } from "./MailProvider";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import URL from "Common/Types/API/URL";
 import EmailMessage from "Common/Types/Email/EmailMessage";
+import {
+  getCcAddresses,
+  getReplyToAddress,
+} from "Common/Types/Email/EmailRecipients";
 import EmailServer from "Common/Types/Email/EmailServer";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import logger from "Common/Server/Utils/Logger";
+import RetryAfter from "Common/Utils/RetryAfter";
 
 interface GraphErrorBody {
   error?: {
@@ -329,6 +334,10 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
       )}/sendMail`,
     );
 
+    // Who is copied and where a reply goes (EmailRecipients, #8893).
+    const ccAddresses: Array<string> = getCcAddresses(mail);
+    const replyToAddress: string | null = getReplyToAddress(mail);
+
     const payload: Record<string, unknown> = {
       message: {
         subject: mail.subject,
@@ -343,6 +352,16 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
             },
           },
         ],
+        ...(ccAddresses.length > 0
+          ? {
+              ccRecipients: ccAddresses.map((address: string) => {
+                return { emailAddress: { address: address } };
+              }),
+            }
+          : {}),
+        ...(replyToAddress
+          ? { replyTo: [{ emailAddress: { address: replyToAddress } }] }
+          : {}),
         from: {
           emailAddress: {
             address: senderAddress,
@@ -510,27 +529,17 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     return Math.max(0, Math.min(this.FETCH_TIMEOUT_MS, remaining));
   }
 
-  /**
-   * Parse the `Retry-After` header. Graph returns delta-seconds (a number). The
-   * HTTP-date form is uncommon here and we fall back to computed backoff for it.
+  /*
+   * Parse the `Retry-After` header as RFC 9110 writes it (Common's
+   * RetryAfter). Graph returns delta-seconds; an HTTP-date is read too. At
+   * least one second, so "0" is not a retry at once; undefined - computed
+   * backoff - for anything else: "Infinity", "1.5", "-5", "" or "  " (which
+   * Number() read as 0).
    */
   private static parseRetryAfter(
     headerValue: string | null,
   ): number | undefined {
-    if (!headerValue) {
-      return undefined;
-    }
-
-    /*
-     * Number.isFinite (not !isNaN) so non-finite values like "Infinity" fall
-     * through to computed backoff instead of pinning the wait at the 60s cap.
-     */
-    const seconds: number = Number(headerValue);
-    if (Number.isFinite(seconds) && seconds >= 0) {
-      return seconds;
-    }
-
-    return undefined;
+    return RetryAfter.parseSeconds(headerValue);
   }
 
   /**

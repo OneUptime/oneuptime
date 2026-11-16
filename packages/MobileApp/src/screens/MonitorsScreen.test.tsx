@@ -13,6 +13,7 @@ import { ListPaneProvider, PaneStateScope } from "../navigation/paneState";
 import {
   makeMonitor,
   makeNamedEntityWithColor,
+  makeNeverCheckedMonitor,
 } from "../__tests__/testSupport";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
@@ -584,7 +585,7 @@ describe("When the fleet has loaded", () => {
     await waitFor(() => {
       expect(
         screen.getByRole("button", {
-          name: "Monitor new.example.com. Status: unknown.",
+          name: "Monitor new.example.com. Status: Unknown.",
         }),
       ).toBeTruthy();
     });
@@ -1421,6 +1422,258 @@ describe("The fleet summary tiles", () => {
     await render(<MonitorsScreen />);
 
     expect(screen.queryByTestId("monitor-summary")).toBeNull();
+  });
+});
+
+describe("A monitor nothing has checked yet (#8961)", () => {
+  /*
+   * Every monitor is created in the operational status, so a monitor no
+   * probe, heartbeat, email, agent or evaluation had reached yet was filed
+   * under Healthy, counted by the Healthy tile and listed by the Healthy
+   * filter - and for good, where no probe ever connects. The web says
+   * Waiting for data of it, and its Operational filter leaves it out
+   * (#8971). So does this screen: it is Not checked, with the web's words
+   * on its row, and so is an operational monitor no probe checks.
+   */
+  function measuredHealthy(id: string, name: string): MonitorItem {
+    return {
+      ...healthyMonitor(id, name),
+      firstMeasuredAt: "2026-11-01T00:00:00.000Z",
+    };
+  }
+
+  function neverChecked(
+    id: string,
+    name: string,
+    overrides: Partial<MonitorItem> = {},
+  ): MonitorItem {
+    return makeNeverCheckedMonitor({ _id: id, name, ...overrides });
+  }
+
+  test("is listed under Not checked, not Healthy, and its row says Waiting for data", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(measuredHealthy("checked", "api.example.com")),
+        wrap(neverChecked("new", "new-api.example.com")),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(listedMonitors()).toEqual([
+      "Monitor new-api.example.com. Status: Waiting for data.",
+      "Monitor api.example.com. Status: Operational.",
+    ]);
+    expect(screen.getByTestId("monitor-section-notChecked")).toBeTruthy();
+    // The tile and the Healthy header count the checked monitor only.
+    expect(countsBesideLabel("Healthy")).toEqual(["1", "1"]);
+    expect(countsBesideLabel("Not checked")).toEqual(["1"]);
+    expect(countsBesideLabel("Has issues")).toEqual(["0"]);
+  });
+
+  test("the Healthy tile counts only the monitors a check found operational", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(measuredHealthy("checked-1", "api.example.com")),
+        wrap(measuredHealthy("checked-2", "web.example.com")),
+        wrap(neverChecked("new-1", "new-1.example.com")),
+        wrap(neverChecked("new-2", "new-2.example.com")),
+        wrap(neverChecked("new-3", "new-3.example.com")),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(countsBesideLabel("Healthy")).toEqual(["2", "2"]);
+    expect(countsBesideLabel("Not checked")).toEqual(["3"]);
+  });
+
+  test("the Healthy filter leaves it out, and says where it went", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(measuredHealthy("checked", "api.example.com")),
+        wrap(neverChecked("new", "new-api.example.com")),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Healthy" }));
+
+    expect(screen.getByText("api.example.com")).toBeTruthy();
+    expect(screen.queryByText("new-api.example.com")).toBeNull();
+    expect(screen.getByTestId("monitor-healthy-note")).toBeTruthy();
+    expect(
+      screen.getByText("Monitors that are not checked are listed under All."),
+    ).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole("button", { name: "All monitors" }));
+
+    expect(screen.getByText("new-api.example.com")).toBeTruthy();
+    expect(screen.queryByTestId("monitor-healthy-note")).toBeNull();
+  });
+
+  test("with every monitor checked, the Healthy filter carries no note: nothing was left out", async () => {
+    mockMonitors.current = stateWith({
+      items: [wrap(measuredHealthy("checked", "api.example.com"))],
+    });
+
+    await render(<MonitorsScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Healthy" }));
+
+    expect(screen.getByText("api.example.com")).toBeTruthy();
+    expect(screen.queryByTestId("monitor-healthy-note")).toBeNull();
+  });
+
+  test("Home's Monitor issues shortcut never lists it: no check said it is down either", async () => {
+    mockRoute.params = { initialFilter: "issues" };
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(offlineMonitor("down", "db.example.com")),
+        wrap(neverChecked("new", "new-api.example.com")),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(screen.getByText("db.example.com")).toBeTruthy();
+    expect(screen.queryByText("new-api.example.com")).toBeNull();
+    expect(countsBesideLabel("Has issues")).toEqual(["1"]);
+  });
+
+  test("its first result overdue, its row says No results yet", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          makeNeverCheckedMonitor(
+            { _id: "late", name: "late.example.com" },
+            { createdAgoMs: 2 * 60 * 60 * 1000 },
+          ),
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(listedMonitors()).toEqual([
+      "Monitor late.example.com. Status: No results yet.",
+    ]);
+    expect(countsBesideLabel("Not checked")).toEqual(["1"]);
+  });
+
+  test("an operational monitor no probe checks is Not checked too; one whose last status was Offline stays an issue", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap({
+          ...measuredHealthy("no-probes", "edge.example.com"),
+          isAllProbesDisconnectedFromThisMonitor: true,
+        }),
+        wrap({
+          ...offlineMonitor("down-no-probes", "db.example.com"),
+          isNoProbeEnabledOnThisMonitor: true,
+        }),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(listedMonitors()).toEqual([
+      "Monitor db.example.com. Status: Probes Not Enabled.",
+      "Monitor edge.example.com. Status: Probes Disconnected.",
+    ]);
+    expect(countsBesideLabel("Issues")).toEqual(["1"]);
+    expect(countsBesideLabel("Not checked")).toEqual(["1"]);
+    expect(countsBesideLabel("Healthy")).toEqual(["0"]);
+  });
+
+  test("read from a server older than firstMeasuredAt, a monitor is Healthy by its status, as before", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          neverChecked("old-server", "api.example.com", {
+            firstMeasuredAt: undefined,
+          }),
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(listedMonitors()).toEqual([
+      "Monitor api.example.com. Status: Operational.",
+    ]);
+    expect(countsBesideLabel("Healthy")).toEqual(["1", "1"]);
+    expect(screen.queryByTestId("monitor-section-notChecked")).toBeNull();
+  });
+
+  test("Not checked sits after the trouble and before the switched-off and the fine", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(measuredHealthy("checked", "api.example.com")),
+        wrap(
+          makeMonitor({
+            _id: "disabled",
+            name: "cache.example.com",
+            disableActiveMonitoring: true,
+          }),
+        ),
+        wrap(neverChecked("new", "new-api.example.com")),
+        wrap(offlineMonitor("down", "db.example.com")),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    const sectionTitles: string[] = [
+      "Issues",
+      "Not checked",
+      "Disabled monitors",
+      "Healthy",
+    ];
+    const headers: string[] = screen
+      .getAllByRole("header")
+      .map((header: RenderedElement): string => {
+        return String(header.props["children"]);
+      })
+      .filter((title: string) => {
+        return sectionTitles.includes(title);
+      });
+
+    expect(headers).toEqual(sectionTitles);
+  });
+
+  test("its header keeps a full-strength title and an info-toned count", async () => {
+    mockMonitors.current = stateWith({
+      items: [wrap(neverChecked("new", "new-api.example.com"))],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(
+      flatStyle(screen.getByRole("header", { name: "Not checked" })).color,
+    ).toBe(lightColors.textPrimary);
+
+    const pill: RenderedElement = screen.getByTestId(
+      "monitor-section-notChecked-count",
+    );
+    expect(pill).toHaveStyle({
+      backgroundColor: lightColors.statusInfoBg,
+      borderRadius: radius.pill,
+    });
+    expect(flatStyle(within(pill).getByText("1")).color).toBe(
+      lightColors.statusInfo,
+    );
+  });
+
+  test("a dark device tones the header from the dark palette", async () => {
+    mockMonitors.current = stateWith({
+      items: [wrap(neverChecked("new", "new-api.example.com"))],
+    });
+
+    await renderInTheme("dark");
+
+    expect(screen.getByTestId("monitor-section-notChecked-count")).toHaveStyle({
+      backgroundColor: darkColors.statusInfoBg,
+    });
   });
 });
 

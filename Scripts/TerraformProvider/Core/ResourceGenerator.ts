@@ -101,7 +101,29 @@ export class ResourceGenerator {
     attr: TerraformAttribute,
     resource?: TerraformResource,
   ): boolean {
-    return isSetAtCreate(resource?.tableName || "", attr.apiFieldName || name);
+    /*
+     * A secret answered once (shownOnce) is set by the create too, and kept
+     * in state from its answer: nothing reads it back.
+     */
+    return (
+      Boolean(attr.shownOnce) ||
+      isSetAtCreate(resource?.tableName || "", attr.apiFieldName || name)
+    );
+  }
+
+  /*
+   * The attributes OneUptime answers once, in the create's answer, and never
+   * reads back (the spec's x-oneuptime-shown-once): a project API key's
+   * api_key. Set from that answer, kept by every read and update after it.
+   */
+  public static getShownOnceAttributes(
+    resource: TerraformResource,
+  ): Array<[string, TerraformAttribute]> {
+    return Object.entries(resource.schema).filter(
+      ([name, attr]: [string, TerraformAttribute]): boolean => {
+        return name !== "id" && Boolean(attr.shownOnce);
+      },
+    );
   }
 
   /*
@@ -1978,7 +2000,7 @@ ${assignments}
     let readBackCode: string = `
     // No read endpoint for this resource: map the create response directly.
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", true)}${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`;
+${this.generateResponseMapping(resource, resourceVarName + "Response", true, true)}${this.generateKeepPlannedValuesCall(resource)}${this.generatePersonEmailsAfterWrite(resource)}`;
 
     if (resource.operations.read) {
       const readPath: string = this.buildPathExpression(
@@ -1999,6 +2021,7 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response", true)}${t
         return
     }
     data.Id = types.StringValue(createdId)
+${this.generateShownOnceMapping(resource, resourceVarName + "Response")}
 ${this.generatePersonIDsFromCreateResponse(resource, resourceVarName + "Response")}
     /*
      * The server has committed the row. Persist what we know to state BEFORE
@@ -2272,7 +2295,7 @@ func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.U
     }
 
     // Use the ID from the current state
-    data.Id = state.Id
+    data.Id = state.Id${this.generateShownOnceKeptOnUpdate(resource)}
 ${this.generateWrittenFromConfig(resource)}${hasRead ? this.generatePlanAndConfigCapture(resource, resourceTypeName) : ""}${this.generatePersonIDsForWrite(resource, false)}
     // Create API request body
     ${resourceVarName}Request := map[string]interface{}{
@@ -2693,6 +2716,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       if (!Object.prototype.hasOwnProperty.call(readSchema, name)) {
         continue;
       }
+      // Answered by the create alone: no read holds it.
+      if (attr.shownOnce) {
+        continue;
+      }
 
       const apiFieldName: string = attr.apiFieldName || name;
       selectFields.push(`        "${apiFieldName}": true,`);
@@ -2708,6 +2735,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     resource: TerraformResource,
     responseVar: string,
     isCreateMethod: boolean = false,
+    // The create's own answer, which alone holds what it answers once.
+    isCreateAnswer: boolean = false,
   ): string {
     const mappings: string[] = [];
 
@@ -2740,6 +2769,15 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
        * value the user configured is preserved instead of being nulled out.
        */
       if (!Object.prototype.hasOwnProperty.call(readSchema, name)) {
+        continue;
+      }
+
+      /*
+       * Answered once, by the create (shownOnce): a read's answer never
+       * holds it, so mapping one would clear it from state. Set from the
+       * create's answer (generateShownOnceMapping) and kept after.
+       */
+      if (attr.shownOnce && !isCreateAnswer) {
         continue;
       }
 
@@ -2784,6 +2822,68 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     mappings.push(`    }`);
 
     return mappings.join("\n");
+  }
+
+  /*
+   * What a create answers once (shownOnce), from that answer: the one time
+   * the provider is told it. Set before anything else is saved to state,
+   * so a read-back that fails cannot lose it.
+   */
+  private generateShownOnceMapping(
+    resource: TerraformResource,
+    responseVar: string,
+  ): string {
+    const shownOnce: Array<[string, TerraformAttribute]> =
+      ResourceGenerator.getShownOnceAttributes(resource);
+
+    if (shownOnce.length === 0) {
+      return "";
+    }
+
+    const mappings: string[] = [
+      ``,
+      `    // What the create answers once, and nothing reads back: kept from its answer.`,
+      `    var shownOnceMap map[string]interface{}`,
+      `    if wrapper, ok := ${responseVar}["data"].(map[string]interface{}); ok {`,
+      `        shownOnceMap = wrapper`,
+      `    } else {`,
+      `        shownOnceMap = ${responseVar}`,
+      `    }`,
+    ];
+
+    for (const [name, attr] of shownOnce) {
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
+      const apiFieldName: string = attr.apiFieldName || name;
+
+      mappings.push(
+        `    ${this.generateResponseSetter(
+          attr,
+          `data.${fieldName}`,
+          `shownOnceMap["${apiFieldName}"]`,
+          true,
+          sanitizedName,
+        )}`,
+      );
+    }
+
+    return mappings.join("\n");
+  }
+
+  /*
+   * What an update keeps of what the create answered once: its value in
+   * state, which no read can tell again - null for an imported record.
+   */
+  private generateShownOnceKeptOnUpdate(resource: TerraformResource): string {
+    return ResourceGenerator.getShownOnceAttributes(resource)
+      .map(([name]: [string, TerraformAttribute]): string => {
+        const fieldName: string = StringUtils.toPascalCase(
+          this.sanitizeAttributeName(name),
+        );
+
+        return `\n    // Answered once, by the create: kept as state holds it.\n    data.${fieldName} = state.${fieldName}`;
+      })
+      .join("");
   }
 
   private generateResponseSetter(

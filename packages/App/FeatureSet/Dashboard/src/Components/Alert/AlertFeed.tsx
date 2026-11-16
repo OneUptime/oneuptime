@@ -1,4 +1,11 @@
 import { getPageAsObserversField } from "../OnCallPolicy/ExecutePolicy/PageAsObserversField";
+import {
+  ExecuteOnCallPolicyMenuLock,
+  getExecuteOnCallPolicyDescription,
+  getExecuteOnCallPolicyMenuLock,
+} from "../OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { EventStanding } from "../../Utils/EventDuration";
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -54,6 +61,13 @@ import { getAlertPrivateNoteKind } from "../EventNotes/NoteKinds/AlertNoteKinds"
 export interface ComponentProps {
   alertId: ObjectID;
   refreshToken?: number | undefined;
+  /*
+   * Where the alert stands now (getEventStanding). Resolved, "Execute
+   * On-Call Policy" is locked with why; acknowledged, its form says the
+   * policy still pages until one of its people answers
+   * (ExecuteOnCallPolicyWords). Unknown, it is offered as before.
+   */
+  standing?: EventStanding | undefined;
 }
 
 /*
@@ -133,6 +147,13 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
   const alertIdString: string = props.alertId.toString();
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
+
+  // Execute On-Call Policy, by where the alert stands.
+  const executePolicyLock: ExecuteOnCallPolicyMenuLock =
+    getExecuteOnCallPolicyMenuLock({
+      recordType: OnCallPageRecordType.Alert,
+      standing: props.standing,
+    });
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
     React.useState<boolean>(false);
@@ -286,6 +307,8 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
               key="alert-action-execute-policy"
               text="Execute On-Call Policy"
               icon={IconProp.Call}
+              isDisabled={executePolicyLock.isDisabled}
+              tooltip={executePolicyLock.tooltip}
               onClick={() => {
                 setShowOnCallPolicyModal(true);
               }}
@@ -311,9 +334,10 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             modalWidth={ModalWidth.Normal}
             name={"execute-on-call-policy"}
             title={"Execute On-Call Policy"}
-            description={
-              "Execute the on-call policy for this alert. This will notify the on-call team members and start the on-call process."
-            }
+            description={getExecuteOnCallPolicyDescription({
+              recordType: OnCallPageRecordType.Alert,
+              standing: props.standing,
+            })}
             onClose={() => {
               setShowOnCallPolicyModal(false);
             }}
@@ -347,6 +371,12 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
                     type: OnCallDutyPolicy,
                     labelField: "name",
                     valueField: "_id",
+                    /*
+                     * Archived policies page no one, so they are not
+                     * offered (OnCallDutyPolicyArchive), as Slack and
+                     * Microsoft Teams leave them out of their own form.
+                     */
+                    query: { isArchived: false },
                   },
                   required: true,
                   placeholder: "Select On-Call Policy",

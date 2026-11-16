@@ -117,7 +117,7 @@ cp config.example.env config.env
 
 ### 設定主機名稱
 
-開啟 `config.env`，把 `HOST` 設為大家連到 OneUptime 時使用的網域名稱或 IP 位址，不要加上 `http://`。只有在自己的電腦上試用 OneUptime 時才保留 `localhost`。
+開啟 `config.env`，把 `HOST` 設為大家連到 OneUptime 時使用的網域名稱或 IP 位址，不要加上 `http://`。只有在自己的電腦上試用 OneUptime 時才保留 `localhost`。 IPv6 位址要像網址中那樣寫在方括號內，如有連接埠，寫在方括號之後：`HOST=[2001:db8::1]:8080`。
 
 ```ini title="config.env"
 HOST=oneuptime.example.com

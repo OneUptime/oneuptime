@@ -18,10 +18,10 @@ flowchart TB
     setting -->|"tudo desativado"| nothing["Nada é enviado"]
 ```
 
-- Cada linha é um evento, e cada coluna um canal: E-mail, SMS, Chamada, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e Webhook. Slack, Microsoft Teams e Mattermost só são colunas quando o projeto os conectou.
+- Cada linha é um evento, e cada coluna um canal: E-mail, SMS, Chamada, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e Webhook. Slack, Microsoft Teams e Mattermost só são colunas quando o projeto os conectou. Um canal que você ainda não configurou não é uma coluna: ele aparece em **Canais ainda não configurados**, acima das abas, como um link para configurá-lo.
 - Um canal ativado envia para cada método verificado que você tem nele neste projeto, não só para um.
-- Um canal ativado sem um método verificado por trás não envia nada. **Your setup checklist** avisa sobre isso em **Staying informed**.
-- Uma novidade vai para os proprietários do registro: as pessoas indicadas como proprietárias e os membros das equipes proprietárias dele. Quando um registro não tem proprietários, ela vai para os Proprietários do projeto. Um evento sobre ter sido adicionado como proprietário vai só para a pessoa adicionada. Se o OneUptime parar enquanto envia uma novidade aos proprietários de um registro, as pessoas a quem ele ainda não tinha chegado a recebem quando o OneUptime voltar, alguns minutos atrasada, e ninguém a recebe duas vezes.
+- Um canal ativado sem um método verificado por trás não envia nada. A coluna dele mostra **Configurar** abaixo do nome, e as chaves dele só podem ser desativadas. **Your setup checklist** também avisa sobre isso, em **Staying informed**.
+- Uma novidade vai para os proprietários do registro: as pessoas indicadas como proprietárias e os membros das equipes proprietárias dele. Quando um registro não tem proprietários, ela vai para os Proprietários do projeto. Quem já foi alcançado pelo acionamento de plantão de um novo incidente, alerta ou episódio não é notificado de novo de que ele foi criado. Um evento sobre ter sido adicionado como proprietário vai só para a pessoa adicionada. Se o OneUptime parar enquanto envia uma novidade aos proprietários de um registro, as pessoas a quem ele ainda não tinha chegado a recebem quando o OneUptime voltar, alguns minutos atrasada, e ninguém a recebe duas vezes.
 - Os casos de segurança não têm proprietários. Um caso novo vai para todos que podem ver os casos do projeto, na prioridade que cada um escolhe, e um caso atribuído vai para as pessoas a quem ele está atribuído. Veja [Casos de segurança](/docs/telemetry/security-cases#notificações).
 - Todo e-mail para proprietários termina com um link "Manage notification preferences" que leva de volta a esta página.
 
@@ -34,11 +34,11 @@ Vá até **Configurações do usuário → Configurações de notificação**. A
 
 ### Encontre o evento
 
-Cada aba tem um ou mais cartões, como **Episódios de incidentes** na aba **Incidentes**. Cada linha é um evento, com uma frase que diz quando ele é enviado.
+Cada aba tem um ou mais cartões, como **Episódios de incidentes** na aba **Incidentes**. Cada linha é um evento, com uma frase que diz quando ele é enviado. Acima dos cartões, a aba diz de quantos dos seus eventos você recebe avisos, e por quais canais.
 
 ### Clique em um canal
 
-Clique no círculo de um canal para ativá-lo, e de novo para desativá-lo. Uma marca de seleção significa ativado. As alterações são salvas automaticamente.
+Clique na chave de um canal para ativá-lo, e de novo para desativá-lo. A primeira linha de um cartão, **Todos os eventos**, ativa ou desativa um canal para todos os eventos do cartão. Cada alteração é salva na hora, e o cartão mostra **Salvo**.
 :::
 
 ## O que fica ativado para um novo membro

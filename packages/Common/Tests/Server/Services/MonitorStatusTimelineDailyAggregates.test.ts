@@ -455,6 +455,76 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
     expect(sql).not.toMatch(/ORDER BY t\."startsAt" \)/);
   });
 
+  /*
+   * Issue #6887: each period finds its days on the window's grid of local
+   * midnights with width_bucket, as the monitor group statement does,
+   * instead of a generate_series of zone conversions per row. The Postgres
+   * suite (MonitorDailyUptimeAggregatePostgres.test.ts) holds it to the old
+   * statement's buckets in nine zones.
+   */
+  test("cuts the days on the monitor group's grid of local midnights, found with width_bucket", async () => {
+    const stub: StubbedService = stubService();
+
+    await stub.service.getDailyUptimeAggregate({
+      monitorIds: [new ObjectID(MONITOR_A)],
+      startDate: WINDOW_START,
+      endDate: WINDOW_END,
+    });
+
+    const sql: string = flatten(stub.calls[0]!.sql);
+
+    // The grid, the same text as the group's: one array of local midnights.
+    expect(sql).toContain(
+      flatten(MonitorStatusTimelineServiceType.getDayGridCte()),
+    );
+    expect(
+      flatten(
+        MonitorStatusTimelineServiceType.getMonitorGroupDailyUptimeAggregateSql(
+          { levelCount: 2 },
+        ),
+      ),
+    ).toContain(flatten(MonitorStatusTimelineServiceType.getDayGridCte()));
+    expect(sql).toContain(
+      "array_agg((d AT TIME ZONE p.tz) ORDER BY d) AS starts",
+    );
+
+    expect(sql).toContain("width_bucket(src.s, g.starts) AS first_day");
+    expect(sql).toContain(
+      "width_bucket(src.e - interval '1 microsecond', g.starts) AS last_day",
+    );
+    /*
+     * A period inside one day is one segment; only one crossing midnight
+     * fans out. The days come from an integer series in the select list, so
+     * the periods are read once: two branches of a UNION over them had
+     * Postgres write every period to a temporary file first.
+     */
+    expect(sql).toContain(
+      "generate_series(pr.first_day, pr.last_day) AS day_index FROM periods pr )",
+    );
+    expect(sql).not.toContain("UNION ALL");
+    expect(sql).not.toContain("LATERAL generate_series(pr.first_day");
+    expect(sql).toContain(
+      "LEAST(sp.e, g.starts[sp.day_index + 1]) - GREATEST(sp.s, g.starts[sp.day_index])",
+    );
+    expect(sql).toContain(
+      "WHERE LEAST(sp.e, g.starts[sp.day_index + 1]) > GREATEST(sp.s, g.starts[sp.day_index])",
+    );
+    // No zone conversion is made per row any more.
+    expect(sql).not.toContain("date_trunc('day', src.s AT TIME ZONE p.tz)");
+    expect(sql).not.toContain("AT TIME ZONE p.tz) AS day_start");
+
+    // The buckets are the group's too: clipped to the window, the empty left out.
+    expect(sql).toContain(
+      flatten(MonitorStatusTimelineServiceType.getDayBucketsCte()),
+    );
+    expect(sql).toContain(
+      "LEFT JOIN agg a ON a.monitor_id = m.monitor_id AND a.day_index = d.day_index",
+    );
+    expect(sql).toContain("WHERE d.bucket_end > d.bucket_start");
+    // A monitor asked for twice is read once, never counted twice.
+    expect(sql).toContain("SELECT DISTINCT UNNEST($1::uuid[]) AS monitor_id");
+  });
+
   test("the requested zone is bound as $4, which is the zone the SQL cuts days in", async () => {
     const stub: StubbedService = stubService();
 
@@ -563,4 +633,193 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
       expect(stub.getRepositoryCalls()).toBe(0);
     },
   );
+});
+
+/*
+ * TIME WITH MONITORING OFF (issue #7112). Nothing checks a monitor while its
+ * monitoring is off, so that time is in no status and out of a day's
+ * coverage, as before (issue #6480). The statement now returns it apart,
+ * one row per day with no status and isMonitoringOff, so a day that was off
+ * says so on the bars instead of reading as a day with no data.
+ */
+describe("a monitor's time with monitoring off (issue #7112)", () => {
+  function offRow(
+    monitorId: string,
+    day: string,
+    seconds: number,
+  ): Row & { isMonitoringOff: boolean } {
+    return { ...row(monitorId, day, null, seconds), isMonitoringOff: true };
+  }
+
+  test("a day monitoring was off has no coverage, no status, and says how long it was off", () => {
+    const buckets: Array<UptimeDayBucket> = bucketsFor(
+      aggregate([offRow(MONITOR_A, "2026-07-01", 86400)]),
+      MONITOR_A,
+    );
+
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0]!.coveredSeconds).toBe(0);
+    expect(buckets[0]!.statusDurations).toEqual([]);
+    expect(buckets[0]!.monitoringOffSeconds).toBe(86400);
+  });
+
+  test("a day off in part is measured over the rest", () => {
+    const buckets: Array<UptimeDayBucket> = bucketsFor(
+      aggregate([
+        row(MONITOR_A, "2026-07-01", STATUS_UP, 18 * 3600),
+        offRow(MONITOR_A, "2026-07-01", 6 * 3600),
+      ]),
+      MONITOR_A,
+    );
+
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0]!.coveredSeconds).toBe(18 * 3600);
+    expect(buckets[0]!.statusDurations).toEqual([
+      { monitorStatusId: new ObjectID(STATUS_UP), seconds: 18 * 3600 },
+    ]);
+    expect(buckets[0]!.monitoringOffSeconds).toBe(6 * 3600);
+  });
+
+  test("an off row is never a status, even with a status on it, and its seconds never count as uptime", () => {
+    const buckets: Array<UptimeDayBucket> = bucketsFor(
+      aggregate([
+        {
+          ...row(MONITOR_A, "2026-07-01", STATUS_DOWN, 3600),
+          isMonitoringOff: true,
+        },
+      ]),
+      MONITOR_A,
+    );
+
+    expect(buckets[0]!.coveredSeconds).toBe(0);
+    expect(buckets[0]!.statusDurations).toEqual([]);
+    expect(buckets[0]!.monitoringOffSeconds).toBe(3600);
+  });
+
+  test("a day's off rows add up, and fractions are kept", () => {
+    const buckets: Array<UptimeDayBucket> = bucketsFor(
+      aggregate([
+        offRow(MONITOR_A, "2026-07-01", 1800.25),
+        offRow(MONITOR_A, "2026-07-01", 1800.5),
+      ]),
+      MONITOR_A,
+    );
+
+    expect(buckets[0]!.monitoringOffSeconds).toBeCloseTo(3600.75, 9);
+  });
+
+  test("a zero-second off row, or a day monitoring was on, carries no field: buckets read as they always did", () => {
+    const buckets: Array<UptimeDayBucket> = bucketsFor(
+      aggregate([
+        offRow(MONITOR_A, "2026-07-01", 0),
+        row(MONITOR_A, "2026-07-02", STATUS_UP, 86400),
+        row(MONITOR_A, "2026-07-03", null, 0),
+      ]),
+      MONITOR_A,
+    );
+
+    for (const bucket of buckets) {
+      expect(Object.keys(bucket)).not.toContain("monitoringOffSeconds");
+    }
+  });
+
+  test("monitors are kept apart: one monitor's time off is not another's", () => {
+    const result: UptimeDailyAggregate = aggregate([
+      offRow(MONITOR_A, "2026-07-01", 86400),
+      row(MONITOR_B, "2026-07-01", STATUS_UP, 86400),
+    ]);
+
+    expect(bucketsFor(result, MONITOR_A)[0]!.monitoringOffSeconds).toBe(86400);
+    expect(
+      bucketsFor(result, MONITOR_B)[0]!.monitoringOffSeconds,
+    ).toBeUndefined();
+    expect(bucketsFor(result, MONITOR_B)[0]!.coveredSeconds).toBe(86400);
+  });
+
+  test("survives the wire format the status page parses, and is written only for a day it was off", () => {
+    const result: UptimeDailyAggregate = aggregate([
+      offRow(MONITOR_A, "2026-07-01", 21600),
+      row(MONITOR_A, "2026-07-01", STATUS_UP, 64800),
+      row(MONITOR_A, "2026-07-02", STATUS_UP, 86400),
+    ]);
+
+    const json: ReturnType<typeof UptimeDailyAggregateUtil.toJSON> =
+      UptimeDailyAggregateUtil.toJSON(result);
+    const wireBuckets: Array<Record<string, unknown>> = (
+      json["monitors"] as unknown as Array<{
+        buckets: Array<Record<string, unknown>>;
+      }>
+    )[0]!.buckets;
+
+    expect(wireBuckets[0]!["monitoringOffSeconds"]).toBe(21600);
+    expect(Object.keys(wireBuckets[1]!)).not.toContain("monitoringOffSeconds");
+
+    const parsed: Array<UptimeDayBucket> =
+      UptimeDailyAggregateUtil.fromJSON(json).monitors[0]!.buckets;
+
+    expect(parsed[0]!.monitoringOffSeconds).toBe(21600);
+    expect(parsed[0]!.coveredSeconds).toBe(64800);
+    expect(parsed[1]!.monitoringOffSeconds).toBeUndefined();
+  });
+
+  test("the wire format reads a missing, malformed or negative value as no time off", () => {
+    const parse: (value: unknown) => number | undefined = (
+      value: unknown,
+    ): number | undefined => {
+      return UptimeDailyAggregateUtil.bucketsFromJSON([
+        {
+          bucketStart: "2026-07-01T00:00:00.000Z",
+          bucketEnd: "2026-07-02T00:00:00.000Z",
+          daySeconds: 86400,
+          coveredSeconds: 0,
+          statusDurations: [],
+          monitoringOffSeconds: value,
+        },
+      ])[0]!.monitoringOffSeconds;
+    };
+
+    expect(parse(undefined)).toBeUndefined();
+    expect(parse("not a number")).toBeUndefined();
+    expect(parse(-5)).toBeUndefined();
+    expect(parse(0)).toBeUndefined();
+    expect(parse("7200")).toBe(7200);
+  });
+
+  test("the statement keeps a row with monitoring off apart, after the LEAD, with no status", async () => {
+    const service: MonitorStatusTimelineServiceType =
+      new MonitorStatusTimelineServiceType();
+    const calls: Array<string> = [];
+
+    jest.spyOn(service, "getRepository").mockImplementation(() => {
+      return {
+        manager: {
+          query: (sql: string): Promise<Array<Row>> => {
+            calls.push(sql);
+            return Promise.resolve([]);
+          },
+        },
+      } as unknown as ReturnType<
+        MonitorStatusTimelineServiceType["getRepository"]
+      >;
+    });
+
+    await service.getDailyUptimeAggregate({
+      monitorIds: [new ObjectID(MONITOR_A)],
+      startDate: new Date("2026-07-24T12:00:00.000Z"),
+      endDate: new Date("2026-09-22T12:00:00.000Z"),
+    });
+
+    const sql: string = calls[0]!.replace(/\s+/g, " ");
+
+    expect(sql).toContain('t."isMonitoringOff" IS TRUE AS is_off');
+    expect(sql).toContain(
+      "CASE WHEN src.is_off THEN NULL ELSE src.status_id END AS status_id",
+    );
+    expect(sql).toContain(
+      "GROUP BY sp.monitor_id, sp.day_index, sp.status_id, sp.is_off",
+    );
+    expect(sql).toContain('COALESCE(a.is_off, false) AS "isMonitoringOff"');
+    // Kept, not dropped: the day says it was off instead of having no data.
+    expect(sql).not.toContain("AND NOT src.is_off");
+  });
 });

@@ -84,7 +84,7 @@ Stuur **GET**- of **POST**-verzoeken naar deze URL. HEAD wordt geaccepteerd en a
 > Iedereen die deze URL kent, kan de monitor als gezond markeren, dus behandel hem als een geheim. Lekt hij uit, open dan de pagina **Instellingen** van de monitor en klik op **Geheime sleutel voor inkomende aanvraag opnieuw instellen**, en werk daarna elke afzender bij. Het overzicht van de monitor toont het laatste verzoek zoals de logs het bewaren: met geheimen en persoonsgegevens gemaskeerd, en zonder headers of body wanneer **Verzoekinhoud bewaren** uit staat. Het maskeren herkent de namen en patronen die het kent, dus stuur geen API-sleutels of tokens naar dit endpoint.
 
 > [!IMPORTANT]
-> OneUptime antwoordt meteen `200` met een leeg JSON-object (`{}`) en verwerkt het verzoek via een wachtrij. Dat antwoord wordt geschreven vóór elke controle, dus een `200` is **geen** bevestiging dat het verzoek is aanvaard: een verkeerde geheime sleutel, een verwijderde monitor en een uitgeschakelde monitor geven ook `200` terug. Controleer de tijdlijn van de monitor om te bevestigen dat de verzoeken aankomen. De enige uitzondering is een project dat bij elke aanvraag een geheim vereist: een verzoek zonder geheim krijgt `401`.
+> OneUptime antwoordt meteen `200` met een leeg JSON-object (`{}`) en verwerkt het verzoek via een wachtrij. Dat antwoord wordt geschreven vóór elke controle, dus een `200` is **geen** bevestiging dat het verzoek is aanvaard: een verkeerde geheime sleutel, een verwijderde monitor en een uitgeschakelde monitor geven ook `200` terug. Controleer de tijdlijn van de monitor om te bevestigen dat de verzoeken aankomen. Een project dat bij elke aanvraag een geheim vereist, beantwoordt een verzoek zonder geheim met `401`, en een dienst die de URL controleert voordat hij iets aflevert, krijgt het antwoord dat hij verwacht: zie [Diensten die eerst de URL controleren](#diensten-die-eerst-de-url-controleren).
 
 ### Een verzoeklichaam sturen
 
@@ -94,7 +94,8 @@ Wilt u velden in de body aanspreken (`{{requestBody.status}}` in een incidenttit
 | --- | --- |
 | `application/json` | De geparste JSON. |
 | `application/x-www-form-urlencoded` | Het geparste formulier. Sleutels tussen vierkante haken worden genest (`alerts[0][status]=firing`), en elke waarde is een tekenreeks. |
-| `text/plain` | De geparste JSON, als de tekst een JSON-object of -array is: zo stuurt Amazon SNS zijn berichten. Elke andere tekst is een lege body. |
+| `text/plain` | De geparste JSON, als de tekst een JSON-object of -array is: zo stuurt Amazon SNS zijn berichten. Elke andere tekst is de tekst zelf, dus `backup failed: error 42` zet de monitor met de standaardcriteria offline. |
+| `application/cloudevents+json`, of een ander `+json`-type | De geparste JSON: zo levert Azure Event Grid CloudEvents af. |
 | Alles anders, of geen | Een lege body (`{}`), dus geen enkele verwijzing naar `requestBody` wordt opgelost, en een sjabloon laat die letterlijk staan. |
 
 Bodies tot 50 MB worden geaccepteerd; een grotere wordt geweigerd met een `413`. Comprimeer de body niet met `Content-Encoding: gzip`: dan wordt hij niet als JSON opgeslagen, en worden paden erin niet opgelost.
@@ -193,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Iedereen die de URL van een monitor heeft, kan er verzoeken naartoe sturen. Een Projecteigenaar of Projectbeheerder kan elke monitor voor inkomende aanvragen in het project daarnaast een van de eigen geheimen van het project laten vereisen, wie de monitor ook heeft ingesteld: zet **Bij elke aanvraag een geheim vereisen** aan. Een verzoek zonder geheim wordt geweigerd met `401` en de reden, voordat het als heartbeat telt, als laatste verzoek van de monitor wordt bewaard of criteria bereikt. Een verzoek met een geheim gaat door naar de eigen criteria van de monitor, zoals voorheen.
 
+Projecteigenaren en Projectbeheerders beheren de geheimen en de schakelaar, en dat doet ook een aangepaste rol met de rechten Create, Read, Edit en Delete Incoming Request Secret: Read toont de waarden van de geheimen, en Edit zet de schakelaar ook aan en uit.
+
 :::steps
 ### Een geheim aanmaken
 
@@ -200,7 +203,7 @@ Ga naar **Monitoren → Instellingen → Geheimen voor inkomende aanvragen** en 
 
 ### Het vanaf elke afzender versturen
 
-Stuur het geheim mee in de header `X-OneUptime-Secret`, of als Bearer-token in de header `Authorization`, afhankelijk van wat je afzender kan instellen.
+Stuur het geheim mee in de header `X-OneUptime-Secret`, of als Bearer-token in de header `Authorization`, afhankelijk van wat je afzender kan instellen. Een afzender die zelf geen header kan instellen, kan in plaats daarvan elk verzoek met het geheim ondertekenen: zie [Verzoeken ondertekenen met het geheim](#verzoeken-ondertekenen-met-het-geheim).
 
 ### De vergeten afzenders vinden
 
@@ -208,7 +211,7 @@ Zodra het project een geheim heeft, controleert OneUptime elk verzoek erop, zond
 
 ### De vereiste aanzetten
 
-Zet **Bij elke aanvraag een geheim vereisen** aan. Zolang het project geen geheim heeft, kan de vereiste niet worden aangezet, zodat geen afzender per ongeluk wordt geweigerd.
+Zet **Bij elke aanvraag een geheim vereisen** aan. Zolang het project geen geheim heeft, kan de vereiste niet worden aangezet, zodat geen afzender per ongeluk wordt geweigerd. Voordat de vereiste aangaat, zegt OneUptime hoeveel monitoren voor inkomende aanvragen in de afgelopen 24 uur een verzoek zonder geldig geheim kregen, als dat er zijn: hun afzenders worden vanaf dan geweigerd.
 :::
 
 ```bash
@@ -222,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime bewaart het geheim nooit: het haalt de header van het verzoek en maskeert een Bearer-token dat een van de geheimen van het project is, voordat het iets bewaart.
 
+Een adres dat een monitor in 15 minuten meer dan 10 verschillende verkeerde geheimen stuurt, wordt daarna geweigerd met `429` voor elk geheim dat het stuurt, goed of fout, tot de tijd die zijn header `Retry-After` noemt, hooguit 15 minuten. Afzenders op andere adressen merken er niets van, en een afzender die steeds één oud geheim stuurt, blijft de `401` krijgen die zegt wat er mis is.
+
 > [!TIP]
-> Om een geheim te vervangen zonder iemand te weigeren, maak je een tweede aan, zet je je afzenders erop over en verwijder je het oude zodra **Laatst gebruikt** niet meer verandert. Elk geheim van het project wordt geaccepteerd, en het laatste kan niet worden verwijderd zolang de vereiste aanstaat.
+> Om een geheim te vervangen zonder iemand te weigeren, maak je een tweede aan, zet je je afzenders erop over en verwijder je het oude zodra **Laatst gebruikt** niet meer verandert. Elk geheim van het project wordt geaccepteerd, tenzij het tot andere monitoren beperkt is, en het laatste dat een monitor dekt, kan niet worden verwijderd zolang de vereiste aanstaat.
+
+### Verzoeken ondertekenen met het geheim
+
+Een afzender kan elk verzoek met het geheim ondertekenen in plaats van het mee te sturen, en dat is veiliger: er gaat niets geheims over de lijn, en een verzoek dat iemand onderschepte, kan later niet opnieuw worden verstuurd. Geef er de voorkeur aan waar een afzender kan ondertekenen. OneUptime controleert deze handtekeningen, elk een HMAC-SHA256 in hex met het geheim als sleutel:
+
+| Afzender | Header | Wat wordt ondertekend |
+| --- | --- | --- |
+| Je eigen code | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub-webhooks | `X-Hub-Signature-256` | De body |
+| Slack | `X-Slack-Signature`, met `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` is het moment waarop het verzoek werd ondertekend, in seconden sinds 1970. Een handtekening die meer dan 5 minuten van de klok van OneUptime afwijkt, wordt geweigerd, en ook een ondertekend verzoek dat een tweede keer wordt verstuurd; de handtekening van GitHub bevat geen tijd, dus OneUptime onthoudt elke handtekening een dag lang. Geef bij GitHub de webhook een van de geheimen van het project als geheim. Slack en Stripe maken hun eigen ondertekeningsgeheim: maak het geheim van het project aan met die waarde, onder **Meer velden**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+Een geheim in de querystring van de URL wordt niet geaccepteerd: proxy's en toegangslogboeken bewaren hele URL's, naast de eigen sleutel van de monitor. De ingress voor inkomende verzoeken van een sonde stuurt de body van een ondertekend verzoek door zoals die binnenkwam, dus de handtekening klopt ook via die weg.
+
+### Een geheim beperken tot sommige monitoren
+
+Een geheim wordt geaccepteerd door elke monitor voor inkomende aanvragen van het project, tenzij je het beperkt, zoals een project doet waarvan elke tenant zijn eigen geheim stuurt: kies daarvoor onder **Meer velden** voor **Specifieke monitoren** of **Monitoren met labels**. Elke andere monitor weigert het met `401`, zoals hij een verkeerd geheim weigert, en **Aanvragen zonder geheim** geeft als reden **Geheim niet voor deze monitor**. Zolang de vereiste aanstaat, houdt het project minstens één geheim dat een monitor dekt.
 
 ## Bewakingscriteria
 
@@ -383,9 +418,25 @@ De volledige payload is ernaast beschikbaar, dus zowel een incidenttitel `{{aler
 
 Een volledige Alertmanager-configuratie vindt u onder [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Voor Grafana, zie [Grafana](/docs/integrations/grafana).
 
+## Diensten die eerst de URL controleren
+
+Sommige diensten controleren een nieuw endpoint voordat ze er iets aan afleveren: ze sturen het een verzoek, en leveren pas af als het antwoordt zoals zij verwachten. OneUptime beantwoordt deze controles zelf, dus u plakt alleen de **Heartbeat URL** van de monitor in de dienst.
+
+| Dienst | De controle | Wat OneUptime antwoordt |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid-schema | Een `SubscriptionValidationEvent` | Zijn `validationCode`, als `validationResponse` |
+| Azure Event Grid, CloudEvents-schema | Een `OPTIONS`-verzoek dat zijn herkomst noemt | `WebHook-Allowed-Origin`, met die herkomst |
+| Slack Events API | Een `url_verification`-verzoek | Zijn `challenge` |
+| Wijzigingsmeldingen van Microsoft Graph | Een `POST` met een `validationToken` | Het token, als `text/plain` |
+| Event hooks van Okta | Een `GET` met `X-Okta-Verification-Challenge` | De challenge, als `verification` |
+
+Een controle wordt alleen beantwoord op de eigen URL van een monitor, en alleen als het verzoek telt: in een project dat bij elke aanvraag een geheim vereist, wordt een controle zonder geheim geweigerd met `401`, zoals elk verzoek, dus de dienst moet het geheim in een header sturen. Het antwoord bevat wat de dienst stuurde om terug te krijgen, en verder niets van het verzoek, en alleen als het de vorm heeft die de dienst eraan geeft.
+
+Een controle bereikt de monitor zoals elk verzoek: zijn criteria beoordelen haar en ze verschijnt op het **Overzicht** van de monitor; de CloudEvents-controle wordt beantwoord en verder niets. De ingress voor inkomende verzoeken van een sonde beantwoordt een controle zoals elk verzoek, met `{}`, dus stuur deze diensten naar de eigen URL van OneUptime.
+
 ## Abonneren op Amazon SNS of Azure Event Grid
 
-Amazon SNS en Azure Event Grid sturen niets naar een nieuw endpoint totdat iemand het abonnement bevestigt, door een link te openen die de dienst ernaartoe stuurt. Zodra dat verzoek binnenkomt, toont de kaart **Monitorsamenvatting** op het **Overzicht** van de monitor waar de dienst op wacht, het topic, en één knop die de link in een nieuw tabblad opent.
+Amazon SNS stuurt niets naar een nieuw endpoint totdat iemand het abonnement bevestigt, door een link te openen die SNS ernaartoe stuurt. Azure Event Grid stuurt ook zo'n link, naar een endpoint dat zijn controle niet beantwoordt, en OneUptime beantwoordt die. Zodra er een link binnenkomt die nog geopend moet worden, toont de kaart **Monitorsamenvatting** op het **Overzicht** van de monitor waar de dienst op wacht, het topic, en één knop die de link in een nieuw tabblad opent.
 
 | Dienst | Het verzoek | Knop | Geldigheid van de link |
 | --- | --- | --- | --- |
@@ -411,11 +462,11 @@ Zegt de kaart dat de link niet meer kan worden geopend, selecteer dan het abonne
 ### Azure Event Grid
 
 :::steps
-1. Open in de Azure-portal de resource waarvan u de gebeurtenissen wilt ontvangen, en voeg een gebeurtenisabonnement toe. Kies **Event Grid Schema** als gebeurtenisschema, **Web Hook** als endpointtype en de **Heartbeat URL** van de monitor als endpoint.
-2. Open binnen 10 minuten het **Overzicht** van de monitor en klik op **Abonnement valideren** in de kaart **Monitorsamenvatting**.
+1. Open in de Azure-portal de resource waarvan u de gebeurtenissen wilt ontvangen, en voeg een gebeurtenisabonnement toe. Kies **Event Grid Schema** of **Cloud Event Schema v1.0** als gebeurtenisschema, **Web Hook** als endpointtype en de **Heartbeat URL** van de monitor als endpoint.
+2. Maak het gebeurtenisabonnement aan. OneUptime beantwoordt de controle van Event Grid, dus het abonnement wordt bij het aanmaken gevalideerd, en zijn gebeurtenissen beginnen binnen te komen.
 :::
 
-Event Grid valideert een endpoint dat een code naar Event Grid terugstuurt, of waarvan de eigenaar de link opent die Event Grid stuurt. OneUptime beantwoordt elk verzoek met een lege `200`, dus de link is de manier. De link wijst naar Event Grid op poort 553, die een firewall vóór uw browser moet toestaan. Verstrijken de 10 minuten eerst, dan mislukt het gebeurtenisabonnement: maak het opnieuw aan.
+Event Grid valideert een endpoint dat een code naar Event Grid terugstuurt, of waarvan de eigenaar de link opent die Event Grid stuurt. OneUptime stuurt de code terug, dus de kaart **Monitorsamenvatting** biedt **Abonnement valideren** alleen aan voor een validatie die OneUptime niet beantwoordde: open die binnen 10 minuten. De link wijst naar Event Grid op poort 553, die een firewall vóór uw browser moet toestaan. Verstrijken de 10 minuten eerst, dan mislukt het gebeurtenisabonnement: maak het opnieuw aan.
 
 ## Aanbevolen werkwijzen
 
@@ -432,7 +483,11 @@ De `200` wordt verstuurd voordat het verzoek wordt gecontroleerd, dus hij bewijs
 :::
 
 :::details Mijn afzender krijgt een 401
-Het project vereist bij elke aanvraag een geheim, en het verzoek stuurde er geen mee, of een dat niet van het project is: het antwoord zegt welke van de twee. Stuur een van de geheimen van het project mee in de header `X-OneUptime-Secret` of als Bearer-token, zoals [Bij elke aanvraag een geheim vereisen](#bij-elke-aanvraag-een-geheim-vereisen) laat zien. Een geweigerd verzoek bereikt de monitor nooit.
+Het project vereist bij elke aanvraag een geheim, en het verzoek stuurde er geen mee, of een dat niet van het project is: het antwoord zegt welke van de twee. Stuur een van de geheimen van het project mee in de header `X-OneUptime-Secret` of als Bearer-token, zoals [Bij elke aanvraag een geheim vereisen](#bij-elke-aanvraag-een-geheim-vereisen) laat zien. Een geweigerd verzoek bereikt de monitor nooit. Het krijgt ook een `401` met een van de geheimen van het project dat tot andere monitoren beperkt is, en voor een ondertekend verzoek waarvan de handtekening ouder is dan 5 minuten, al eerder is verstuurd, of met een ander geheim of over een onderweg gewijzigde body is gemaakt.
+:::
+
+:::details Mijn afzender krijgt een 429
+Zijn adres stuurde een monitor in 15 minuten meer dan 10 verschillende verkeerde geheimen of handtekeningen, dus elk verzoek met een geheim dat het naar die monitor stuurt, wordt geweigerd tot de tijd in zijn header `Retry-After`. Een afzender die met een verkeerd geheim ondertekent, maakt elke keer een nieuwe verkeerde handtekening en komt hier snel terecht: geef hem een geheim dat de monitor accepteert, zoals [Bij elke aanvraag een geheim vereisen](#bij-elke-aanvraag-een-geheim-vereisen) laat zien, en zijn verzoeken worden geaccepteerd zodra de tijd om is.
 :::
 
 :::details De monitor krijgt geen verzoeken meer sinds er een geheim vereist is
@@ -444,7 +499,11 @@ Alleen een criterium **Inkomende aanvraag** (**Niet ontvangen in minuten**) kan 
 :::
 
 :::details Een filter Verzoeklichaam komt nooit overeen
-Stuur `Content-Type: application/json`, en schrijf de waarde als compacte JSON: `"status":"firing"`, zonder spatie na de dubbele punt. Zonder JSON- of formuliercontenttype wordt de body niet geparst: alleen JSON die als `text/plain` is verstuurd, wel.
+Stuur `Content-Type: application/json`, en schrijf de waarde als compacte JSON: `"status":"firing"`, zonder spatie na de dubbele punt. Zonder JSON-, formulier- of `text/plain`-contenttype is de body leeg, en komt een filter erop nooit overeen.
+:::
+
+:::details Een dienst meldt dat de URL zijn controle niet beantwoordde
+Geef de dienst de **Heartbeat URL** van de monitor, op OneUptime zelf en niet op een sonde. Vereist het project bij elke aanvraag een geheim, dan wordt de controle geweigerd met `401`, tenzij de dienst het geheim stuurt. Laat de dienst de URL daarna opnieuw controleren: die wordt meteen beantwoord.
 :::
 
 :::details Een filter Aanvraagheader komt nooit overeen

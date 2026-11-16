@@ -14,6 +14,7 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import RunnerAPIRequest from "../Utils/RunnerAPIRequest";
+import RunnerCapabilities from "../Utils/RunnerCapabilities";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -29,6 +30,20 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      /*
+       * A Runner that takes no AI code fixes now - one the server grants
+       * none (a global Runner a master admin turned them off for, a
+       * project's Runner no repository works on), or whose host turned them
+       * off - has none waiting for it: 0, without asking OneUptime, whose
+       * code-fix routes refuse its key while it takes none. KEDA then scales
+       * it on nothing, rather than on an error.
+       */
+      if (!RunnerCapabilities.resolve().canRunCodeFixTasks) {
+        return Response.sendJsonObjectResponse(req, res, {
+          queueSize: 0,
+        });
+      }
+
       /*
        * Get the pending task count from OneUptime API
        * This is the correct metric - the number of tasks waiting to be processed

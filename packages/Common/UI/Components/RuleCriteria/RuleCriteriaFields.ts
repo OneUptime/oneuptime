@@ -14,6 +14,7 @@ import {
 import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
 import { PatternProblemReason } from "../../../Utils/LinearRegExp/PatternProblem";
 import { translationKey } from "../../Utils/TranslateTemplate";
+import { getRuleCriteriaFieldName } from "./RuleCriteriaLegacyFields";
 import type Field from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import type FormValues from "../Forms/Types/FormValues";
@@ -267,16 +268,8 @@ const NUMBER_FIELD_TYPES: ReadonlyArray<FormFieldSchemaType> = [
 // A column name's trailing "Pattern" / "Regex Pattern", never part of a title.
 const PATTERN_TITLE_SUFFIX: RegExp = /(?:\s+regex)?\s+pattern$/i;
 
-export function getRuleCriteriaFieldName<TEntity>(
-  field: Field<TEntity>,
-): string | null {
-  if (field.overrideFieldKey) {
-    return field.overrideFieldKey;
-  }
-
-  const names: Array<string> = Object.keys(field.field || {});
-  return names[0] || null;
-}
+// The column a field stores into (RuleCriteriaLegacyFields, which every form loads).
+export { getRuleCriteriaFieldName };
 
 /*
  * The name a criterion goes by: its form field's title, or, for a field

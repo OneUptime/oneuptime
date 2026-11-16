@@ -5,7 +5,7 @@ import path from "path";
 import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
-import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
+import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * An ESXi host's page inside its vCenter, in a browser, against the offline
@@ -222,6 +222,7 @@ async function expectStatus(
     return;
   }
   await expect(status).toHaveText(`${label} ${description}`);
+  // A title is read as written: its "15 minutes" held to its figure (#8811).
   await expect(status).toHaveAttribute("title", description);
 }
 
@@ -292,8 +293,9 @@ test.describe("a reporting host at a laptop's width", () => {
     await expect(tile(page, "CPU")).toContainText("of 76.80 GHz");
     await expect(tileValue(page, "Memory")).toHaveText(/^\d+(\.\d+)?%$/);
     await expect(tile(page, "Memory")).toContainText("of 512 GiB");
+    // The slowest disk's latency, held to "ms" as the Network tile's rate is (#8803).
     await expect(tileValue(page, "Disk latency")).toHaveText(
-      /^\d+(\.\d+)? ms$/,
+      new RegExp(`^\\d+(\\.\\d+)?${NO_BREAK_SPACE}ms$`),
     );
     await expect(tile(page, "Disk latency")).toContainText("slowest disk");
     /*
@@ -485,8 +487,8 @@ test.describe("a reporting host at a laptop's width", () => {
     await expect(
       devices.nth(0).getByTestId("vmware-host-latency-danger"),
     ).toHaveCount(1);
-    // The NVMe disk answers in under a millisecond.
-    await expect(devices.nth(1)).toContainText("0.4 ms");
+    // The NVMe disk answers in under a millisecond, its figure held to "ms" (#8803).
+    expect(await devices.nth(1).textContent()).toContain(withUnit("0.4", "ms"));
     await expect(
       devices.nth(1).getByTestId("vmware-host-latency-warn"),
     ).toHaveCount(0);
@@ -983,7 +985,7 @@ test.describe("the states a host can be in", () => {
     await expectStatus(
       page,
       "Not reporting",
-      "vCenter has not reported this for more than 15 minutes.",
+      `vCenter has not reported this for more than ${withUnit(15, "minutes")}.`,
     );
     const notice: Locator = page.getByTestId("vmware-host-report-notice");
     await expect(notice).toContainText(
@@ -1044,7 +1046,7 @@ test.describe("the states a host can be in", () => {
     await expectStatus(
       page,
       "Not in inventory",
-      "vCenter has not reported this for more than 15 minutes, so it left the inventory.",
+      `vCenter has not reported this for more than ${withUnit(15, "minutes")}, so it left the inventory.`,
     );
     const notice: Locator = page.getByTestId("vmware-host-report-notice");
     await expect(notice).toContainText(
@@ -1356,6 +1358,10 @@ test.describe("on a phone, in dark mode and in German", () => {
       return end <= icon.getBoundingClientRect().left;
     });
     expect(titleClear).toBe(true);
+    // The slowest disk's latency in German digits, held to its unit (#8803).
+    await expect(tileValue(page, GERMAN["Disk latency"]!)).toHaveText(
+      new RegExp(`^\\d+(,\\d+)?${NO_BREAK_SPACE}ms$`),
+    );
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expectNoSidewaysScroll(page);

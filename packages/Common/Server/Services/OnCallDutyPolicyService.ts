@@ -117,6 +117,22 @@ export interface OnDutyPolicies {
   escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule>;
 }
 
+// A project's answers are kept and handed back by its id, lower-cased.
+const projectKeyOf: (projectId: ObjectID) => string = (
+  projectId: ObjectID,
+): string => {
+  return projectId.toString().toLowerCase();
+};
+
+// What a project where nothing pages the person answers.
+const noOnDutyPolicies: () => OnDutyPolicies = (): OnDutyPolicies => {
+  return {
+    escalationRulesByUser: [],
+    escalationRulesByTeam: [],
+    escalationRulesBySchedule: [],
+  };
+};
+
 export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   public constructor() {
     super(OnCallDutyPolicy);
@@ -418,7 +434,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       const join: FirstResponderJoin = this.getFirstResponderJoin({
         key: key,
         projectId: projectId,
-        props: data.props,
       });
 
       CreatePermission.checkCreatePermissions(
@@ -517,7 +532,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         const join: FirstResponderJoin = this.getFirstResponderJoin({
           key: key,
           projectId: data.projectId,
-          props: data.props,
         });
 
         join.row.setColumnValue("onCallDutyPolicyId", data.policyId);
@@ -557,11 +571,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
    * A join row of the first rule as the rule service writes it for one kind
    * of responder (addUser, addTeam, addOnCallSchedules), with placeholder
    * ids: what the permission check reads is which columns are written.
+   *
+   * Without its creator: who created a row is OneUptime's to stamp, after
+   * the create's permission checks (DatabaseService.sanitizeCreateOrUpdate),
+   * and a create made as a person takes out any creator its row names
+   * before they are asked (UserAttribution), so its checks never ask about
+   * the column. Asked here, it would be refused to everyone: nobody may
+   * give a new record its creator.
    */
   private getFirstResponderJoin(data: {
     key: FirstResponderKey;
     projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
   }): FirstResponderJoin {
     const placeholderId: ObjectID = ObjectID.getZeroObjectID();
 
@@ -587,10 +607,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     join.row.setColumnValue("projectId", data.projectId);
     join.row.setColumnValue("onCallDutyPolicyId", placeholderId);
     join.row.setColumnValue("onCallDutyPolicyEscalationRuleId", placeholderId);
-
-    if (data.props.userId) {
-      join.row.setColumnValue("createdByUserId", data.props.userId);
-    }
 
     return join;
   }
@@ -1310,19 +1326,52 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     projectId: ObjectID;
     userId: ObjectID;
   }): Promise<OnDutyPolicies> {
-    return await OnDutyPoliciesCache.getOrBuild<OnDutyPolicies>({
-      projectId: data.projectId,
+    const answers: Map<string, OnDutyPolicies> =
+      await this.getOnCallPoliciesWhereUserIsOnCallDutyInProjects({
+        projectIds: [data.projectId],
+        userId: data.userId,
+      });
+
+    return answers.get(projectKeyOf(data.projectId)) || noOnDutyPolicies();
+  }
+
+  /*
+   * The same in each of the projects, by lower-cased project id - every
+   * project asked for has an answer, empty where nothing pages the person.
+   * My On-Call Policies asks it for every project the person may open, in
+   * one request (#8124). The projects whose answers are kept are answered
+   * from them; the rest are read together, by the same five reads one
+   * project takes - by the person and any of the projects, then by their
+   * teams' and schedules' ids - whatever the number of projects, where each
+   * project used to cost a request of its own. Each answer is then kept as
+   * the project's own request keeps it.
+   */
+  public async getOnCallPoliciesWhereUserIsOnCallDutyInProjects(data: {
+    projectIds: Array<ObjectID>;
+    userId: ObjectID;
+  }): Promise<Map<string, OnDutyPolicies>> {
+    if (data.projectIds.length === 0) {
+      return new Map<string, OnDutyPolicies>();
+    }
+
+    return await OnDutyPoliciesCache.getOrBuildMany<OnDutyPolicies>({
+      projectIds: data.projectIds,
       userId: data.userId,
-      build: (): Promise<OnDutyPolicies> => {
-        return this.readOnCallPoliciesWhereUserIsOnCallDuty(data);
+      build: (
+        projectIds: Array<ObjectID>,
+      ): Promise<Map<string, OnDutyPolicies>> => {
+        return this.readOnCallPoliciesWhereUserIsOnCallDuty({
+          projectIds: projectIds,
+          userId: data.userId,
+        });
       },
     });
   }
 
   private async readOnCallPoliciesWhereUserIsOnCallDuty(data: {
-    projectId: ObjectID;
+    projectIds: Array<ObjectID>;
     userId: ObjectID;
-  }): Promise<OnDutyPolicies> {
+  }): Promise<Map<string, OnDutyPolicies>> {
     const [
       escalationRulesByUser,
       escalationRulesByTeam,
@@ -1335,10 +1384,10 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       this.readEscalationRulesOfUser(data),
       TeamService.getTeamsUserIsAPartOf({
         userId: data.userId,
-        projectId: data.projectId,
+        projectIds: data.projectIds,
       }).then((teams: Array<Team>) => {
         return this.readEscalationRulesOfTeams({
-          projectId: data.projectId,
+          projectIds: data.projectIds,
           teams,
         });
       }),
@@ -1346,34 +1395,69 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
         data,
       ).then((onCallSchedules: Array<OnCallDutyPolicySchedule>) => {
         return this.readEscalationRulesOfSchedules({
-          projectId: data.projectId,
+          projectIds: data.projectIds,
           onCallSchedules,
         });
       }),
     ]);
 
-    return {
-      escalationRulesByUser: escalationRulesByUser,
-      escalationRulesByTeam: escalationRulesByTeam,
-      escalationRulesBySchedule: escalationRulesBySchedule.filter(
-        (escalationRule: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
-          return !escalationRule.pageNextInRotation;
-        },
-      ),
+    const answers: Map<string, OnDutyPolicies> = new Map<
+      string,
+      OnDutyPolicies
+    >();
+
+    for (const projectId of data.projectIds) {
+      answers.set(projectKeyOf(projectId), noOnDutyPolicies());
+    }
+
+    /*
+     * A row goes to the project it was read in: the one asked for, or -
+     * across several - the one it names.
+     */
+    const answerOf: (row: BaseModel) => OnDutyPolicies | undefined = (
+      row: BaseModel,
+    ): OnDutyPolicies | undefined => {
+      if (data.projectIds.length === 1) {
+        return answers.get(projectKeyOf(data.projectIds[0]!));
+      }
+
+      const projectId: unknown = (row as { projectId?: unknown }).projectId;
+
+      return projectId
+        ? answers.get(String(projectId).toLowerCase())
+        : undefined;
     };
+
+    for (const rule of escalationRulesByUser) {
+      answerOf(rule)?.escalationRulesByUser.push(rule);
+    }
+
+    for (const rule of escalationRulesByTeam) {
+      answerOf(rule)?.escalationRulesByTeam.push(rule);
+    }
+
+    for (const rule of escalationRulesBySchedule) {
+      // The rotation's next person is paged by it, not its on-call person.
+      if (!rule.pageNextInRotation) {
+        answerOf(rule)?.escalationRulesBySchedule.push(rule);
+      }
+    }
+
+    return answers;
   }
 
   // The rules that page the person by their own name.
   private async readEscalationRulesOfUser(data: {
-    projectId: ObjectID;
+    projectIds: Array<ObjectID>;
     userId: ObjectID;
   }): Promise<Array<OnCallDutyPolicyEscalationRuleUser>> {
     return await OnCallDutyPolicyEscalationRuleUserService.findBy({
       query: {
         userId: data.userId!,
-        projectId: data.projectId!,
+        projectId: QueryHelper.any(data.projectIds),
       },
       select: {
+        projectId: true,
         onCallDutyPolicyEscalationRule: {
           name: true,
           _id: true,
@@ -1394,7 +1478,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
 
   // The rules that page one of these teams; none read for no team.
   private async readEscalationRulesOfTeams(data: {
-    projectId: ObjectID;
+    projectIds: Array<ObjectID>;
     teams: Array<Team>;
   }): Promise<Array<OnCallDutyPolicyEscalationRuleTeam>> {
     if (data.teams.length === 0) {
@@ -1408,9 +1492,10 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
             return team.id!;
           }),
         ),
-        projectId: data.projectId!,
+        projectId: QueryHelper.any(data.projectIds),
       },
       select: {
+        projectId: true,
         onCallDutyPolicy: {
           name: true,
           _id: true,
@@ -1439,7 +1524,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
    * caller); none read for no schedule.
    */
   private async readEscalationRulesOfSchedules(data: {
-    projectId: ObjectID;
+    projectIds: Array<ObjectID>;
     onCallSchedules: Array<OnCallDutyPolicySchedule>;
   }): Promise<Array<OnCallDutyPolicyEscalationRuleSchedule>> {
     if (data.onCallSchedules.length === 0) {
@@ -1453,9 +1538,10 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
             return schedule.id!;
           }),
         ),
-        projectId: data.projectId!,
+        projectId: QueryHelper.any(data.projectIds),
       },
       select: {
+        projectId: true,
         onCallDutyPolicy: {
           name: true,
           _id: true,

@@ -832,6 +832,19 @@ describe("POST /status-page/login-with-magic-link/:statusPageId", () => {
     expect(session["userAgent"]).toBe("Mozilla/5.0");
   });
 
+  // Issue #6790: what the audit log's Sign In says of the reader's sign-in.
+  it("tells the session it was a sign-in link, and where the request came from", async () => {
+    await loginWithMagicLink(TOKEN);
+
+    const session: Record<string, unknown> = createSession.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(session["signIn"]).toEqual({ method: "Sign-in link" });
+    expect(session["requestOrigin"]).toEqual(
+      expect.objectContaining({ ipAddress: "203.0.113.7" }),
+    );
+  });
+
   it("sets the page's sign-in cookies for that session", async () => {
     await loginWithMagicLink(TOKEN);
 

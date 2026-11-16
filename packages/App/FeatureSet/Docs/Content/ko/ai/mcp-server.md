@@ -144,7 +144,7 @@ Enterprise Edition에서는 연결된 클라이언트가 만든 모든 변경 �
 
 ### 키 복사하기
 
-**API 키 만들기** 를 클릭하면 키 페이지가 열립니다. 거기서 키를 복사합니다.
+**API 키 만들기** 를 클릭합니다. OneUptime은 키를 **API 키 복사** 대화 상자에 한 번만 표시합니다. **완료**를 누르기 전에 복사하세요.
 :::
 
 API 키는 하나의 프로젝트에 속합니다. MCP 서버는 키에서 프로젝트를 알아내므로 생성 도구에는 `projectId` 인수가 필요하지 않습니다.
@@ -360,6 +360,8 @@ curl https://oneuptime.com/mcp/tools
 연산자는 `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes` 입니다. 정렬 값은 `"ASC"` 또는 `"DESC"` 입니다.
 
 `list_` 및 `count_` 도구는 어떤 필드든 받으므로, 도구 목록이 클라이언트가 한 번에 불러올 수 있을 만큼 작게 유지됩니다. 리소스의 필드와 각 필드의 의미, 받는 연산자를 보려면 에이전트가 리소스나 그 도구 중 하나(`Incident` 또는 `list_incidents` 등)를 지정해 `oneuptime_describe_resource` 를 호출합니다.
+
+인시던트, 모니터와 그 밖의 모든 레코드 종류에 대한 다른 `list_` 도구는 API와 같은 방식으로 정렬합니다. 필드에는 방향을 지정하거나, 값이 없는 레코드를 끝에 두려면 `{ "direction": "DESC", "nulls": "LAST" }`를 지정하며, 레코드 하나에 대한 관계는 `{ "incidentSeverity": { "order": "ASC" } }`처럼 그 관계가 가리키는 레코드의 필드로 정렬합니다. `oneuptime_describe_resource`는 그런 관계마다 `sort` 표시를 하고, 정렬에 쓸 수 있는 필드를 `sortBy` 아래에 알려 줍니다.
 
 ## 필드 선택과 페이지 나누기
 

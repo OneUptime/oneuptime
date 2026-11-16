@@ -94,6 +94,7 @@ Dienste, Hosts, Kubernetes-Cluster, Docker- und Podman-Hosts, Docker Swarm-, Pro
 | Monitor-Protokolle, eine Zeile pro Prüfung | 1 Tag, sofern nicht geändert | In einer selbst gehosteten Installation **Aufbewahrung der Überwachungsprotokolle (Tage)** im Admin Dashboard |
 | Monitor-Metriken und die Metriken, die SLOs aufzeichnen | 30 Tage, sofern nicht geändert | In einer selbst gehosteten Installation **Aufbewahrung der Überwachungsmetriken (Tage)** im Admin Dashboard |
 | [Telemetrie-Nutzung](/docs/telemetry/usage), eine Zählung pro Ressource, Signal und Tag | 120 Tage, sofern nicht geändert | In einer selbst gehosteten Installation **Aufbewahrung der Telemetrie-Nutzung (Tage)** im Admin Dashboard |
+| Behobene Vorfälle und Warnungen, mit ihren Zeitachsen, Notizen und Dateien | Bis das Projekt eine Dauer wählt | **Vorfälle → Einstellungen → Datenaufbewahrung** und **Warnungen → Einstellungen → Datenaufbewahrung**: siehe [Datenaufbewahrung](/docs/incidents/settings#datenaufbewahrung). In einer selbst gehosteten Installation bindet **Höchstens behalten** im Admin Dashboard jedes Projekt an ein Limit |
 
 ## Was Aufbewahrung kostet
 

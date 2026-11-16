@@ -43,6 +43,7 @@ import IncomingEmailMonitorRequest from "../../Types/Monitor/IncomingEmailMonito
 import IncomingMonitorRequest from "../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import { IncomingRequestSecretProblem } from "../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorStepsColumnTransformer from "../../Types/Monitor/MonitorStepsColumnTransformer";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../Types/ObjectID";
@@ -190,6 +191,26 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   icon: IconProp.AltGlobe,
   tableDescription:
     "Monitor is anything that monitors your API, Websites, IP, Network or more. You can also create static monitor that does not monitor anything.",
+  /*
+   * A monitor changes on its own: a check fails and its status moves, every
+   * probe watching it disconnects, a maintenance event turns its monitoring
+   * off. The Monitors menu counts what needs attention (Not Operational,
+   * Disabled, Probe Disconnected, Probe Disabled) beside the lists that show
+   * them, and both follow these announcements at once (UseLiveCount,
+   * UseLiveRows) instead of waiting for a reload (#6918).
+   *
+   * What is announced is what the service writes (DatabaseService): a status
+   * change, a probe's flags, an edit, an archive - and an update only when
+   * it changed the row. The bookkeeping a probe's result, a heartbeat or a
+   * telemetry sweep stamps on a monitor every minute is written without
+   * hooks (updateColumnsByIdWithoutHooks), and announces nothing: no count
+   * or list is waiting on it (HeartbeatWriteFastPathSafety).
+   */
+  enableRealtimeEventsOn: {
+    create: true,
+    update: true,
+    delete: true,
+  },
 })
 export default class Monitor extends BaseModel {
   @ColumnAccessControl({
@@ -2022,7 +2043,8 @@ export default class Monitor extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
-    transformer: MonitorSteps.getDatabaseTransformer(),
+    // A browser build declares it without the monitor types (issue #8821).
+    transformer: MonitorStepsColumnTransformer,
   })
   public monitorSteps?: MonitorSteps = undefined;
 
@@ -2357,6 +2379,60 @@ export default class Monitor extends BaseModel {
   })
   public telemetryMonitorLastMonitorAt?: Date = undefined;
 
+  /*
+   * When something first measured the monitor: a probe's check result, a
+   * heartbeat, an email or a server agent's report that arrived, or an
+   * evaluation of its telemetry, its network device or the probes it
+   * watches. Stamped once, by MonitorResourceUtil.monitorResource
+   * (Server/Utils/Monitor/MonitorFirstMeasured); a heartbeat sweep that
+   * only judges what has not arrived measures nothing and stamps nothing.
+   *
+   * NULL while nothing has. Until then the status the monitor holds is the
+   * operational one every monitor is created in (MonitorService), which no
+   * check stands behind, so the Monitors list, the Monitor List widget and
+   * status pages say it is waiting for its first check instead of
+   * Operational (Utils/Monitor/MonitorFirstCheck, issue #8899).
+   *
+   * A manual monitor holds the time it was created (MonitorService
+   * .onCreateSuccess): nothing checks it, and its status is the one a person
+   * sets, from the start. So "measured" is one column to ask a list for -
+   * the Monitor List widget's "operational" filter asks it NOT NULL - and
+   * the rule that reads a row never takes a manual monitor for one that is
+   * waiting, stamped or not.
+   *
+   * A monitor measured before this column existed was stamped by the
+   * upgrade (BackfillMonitorFirstMeasuredAt) with the time it was created:
+   * the upgrade knows it had been measured, not when first, and its first
+   * check came after that. Its history stays as measured as it always was.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "First Measured At",
+    description:
+      "When a check result, heartbeat, email, agent report or evaluation first reached this monitor. Empty while nothing has measured it yet: its status is then only the one every monitor is created in. A manual monitor, whose status a person sets, holds the time it was created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public firstMeasuredAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -2552,15 +2628,21 @@ export default class Monitor extends BaseModel {
 
   // this is for incoming request monitor.
 
+  /*
+   * The latest request as people read it: cut as the monitor's logs are,
+   * and without its headers and body when the monitor keeps no request
+   * content (LatestIncomingRequest). The request as it came is the column
+   * below, which only the server reads.
+   *
+   * Only the server writes it, from each request the monitor receives
+   * (MonitorResource, LatestIncomingRequest), so nobody may create or
+   * update it through the API: a create that carries one is refused, as an
+   * update is. It is not marked computed, and needs no exception: the
+   * server's writes of it make no create.
+   * https://github.com/OneUptime/oneuptime/issues/6541
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.CreateProjectMonitor,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2573,12 +2655,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  /*
-   * The latest request as people read it: cut as the monitor's logs are,
-   * and without its headers and body when the monitor keeps no request
-   * content (LatestIncomingRequest). The request as it came is the column
-   * below, which only the server reads.
-   */
   @TableColumn({
     type: TableColumnType.JSON,
     required: false,
@@ -2599,11 +2675,10 @@ export default class Monitor extends BaseModel {
    * reads it, so the API, exports, MCP, Terraform and the audit log leave it
    * out; people read the copy above (LatestIncomingRequest).
    *
-   * Not marked computed: the column check skips a computed column on a
-   * create (ColumnPermission.checkDataColumnPermissions), which would let a
-   * member's create set the request the heartbeat judges. Unmarked, a
-   * create that carries it is refused, as an update is. Only the server's
-   * own hook-free writes set it (MonitorResource, LatestIncomingRequest).
+   * Not marked computed: no create's steps write it, so it needs nothing
+   * of the column check but its empty lists - a create that carries it is
+   * refused, as an update is. Only the server's own hook-free writes set it
+   * (MonitorResource, LatestIncomingRequest).
    * https://github.com/OneUptime/oneuptime/issues/6402
    */
   @ColumnAccessControl({

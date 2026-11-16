@@ -7,6 +7,7 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import { statementsSentBy } from "../TestingUtils/Postgres/ClaimRowLocks";
 import { DataSource } from "typeorm";
 
 /*
@@ -174,6 +175,41 @@ describePostgres("monitor test results on Postgres", () => {
       } as unknown as ProbeMonitorResponse,
     };
   }
+
+  /*
+   * One self-committing statement (OneUptime issue #8870): it ran inside a
+   * transaction - START TRANSACTION, the UPDATE, COMMIT - three round trips
+   * for every step result of every "Test monitor" run.
+   */
+  test("a step result is one statement, with no transaction around it - written or refused", async () => {
+    const written: { result: boolean; statements: Array<string> } =
+      await statementsSentBy(() => {
+        return MonitorTestService.mergeStepProbeResponse({
+          testId,
+          probeId,
+          monitorStepProbeResponse: stepResponse(firstStepId, ""),
+        });
+      });
+
+    expect(written.result).toBe(true);
+    expect(written.statements).toHaveLength(1);
+    expect(written.statements[0]!.trim()).toMatch(/^UPDATE "MonitorTest"/);
+    expect(
+      Object.keys((await readTest(testId)).monitorStepProbeResponse || {}),
+    ).toEqual([firstStepId]);
+
+    const refused: { result: boolean; statements: Array<string> } =
+      await statementsSentBy(() => {
+        return MonitorTestService.mergeStepProbeResponse({
+          testId,
+          probeId: otherProbeId,
+          monitorStepProbeResponse: stepResponse(secondStepId, "Forged"),
+        });
+      });
+
+    expect(refused.result).toBe(false);
+    expect(refused.statements).toHaveLength(1);
+  });
 
   test("the probe the test was handed to writes its result", async () => {
     const written: boolean = await MonitorTestService.mergeStepProbeResponse({

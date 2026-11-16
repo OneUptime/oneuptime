@@ -1,9 +1,16 @@
 import Includes from "../../Types/BaseDatabase/Includes";
+import NotNull from "../../Types/BaseDatabase/NotNull";
 import { Gray500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import ObjectID from "../../Types/ObjectID";
 import { translationKey } from "../../Types/Translator";
-import MonitoringOff, { MonitoringOffFlags } from "../Monitor/MonitoringOff";
+import MonitoringOff from "../Monitor/MonitoringOff";
+import MonitorRowStatusUtil, {
+  MONITOR_ROW_STATUS_SELECT,
+  MonitorRowStatus,
+  MonitorRowStatusFields,
+  MonitorRowStatusKind,
+} from "../Monitor/MonitorRowStatus";
 import NotOperationalMonitorQuery from "../Monitor/NotOperationalMonitorQuery";
 
 /*
@@ -24,6 +31,14 @@ import NotOperationalMonitorQuery from "../Monitor/NotOperationalMonitorQuery";
  * never matches it: "non-operational" would list a monitor nobody is
  * checking as down, and "operational" one as up. The SLO List widget treats
  * a disabled SLO the same way (Utils/Slo/SloListWidgetFormat).
+ *
+ * A row says what the Monitors table's row says, from the one rule both
+ * read (Utils/Monitor/MonitorRowStatus): Disabled, Probes Not Enabled or
+ * Probes Disconnected where nothing checks the monitor, and Waiting for
+ * data, No results yet or Paused where nothing has checked it yet and it
+ * is still in the operational status it was created in (issue #8899).
+ * "operational" lists none of those last: no check stands behind their
+ * Operational, as none stands behind a turned-off monitor's.
  */
 
 export const MONITOR_LIST_STATUS_FILTER_OPERATIONAL: string = "operational";
@@ -60,8 +75,13 @@ export interface MonitorListFilter {
  * - "non-operational": NotOperationalMonitorQuery, the rule of every Not
  *   Operational list and count in the app.
  * - "operational": an operational status, among the monitors that are
- *   checked.
- * - Picked statuses: one of them, among the monitors that are checked.
+ *   checked and have been measured (Monitor.firstMeasuredAt): a monitor
+ *   nothing has checked yet holds the operational status it was created in,
+ *   and its row says Waiting for data, not Operational. A manual monitor is
+ *   stamped measured when it is created: its status is a person's word.
+ * - Picked statuses: one of them, among the monitors that are checked. It
+ *   asks for the stored status, as the Monitors list's Status filter does:
+ *   a row it lists that nothing has checked yet still says so.
  *
  * With no status setting a monitor whose monitoring is off stays listed, and
  * its row says Disabled (getMonitorListRowStatus).
@@ -97,6 +117,7 @@ export const getMonitorListQuery: GetMonitorListQueryFunction = (
   } else if (filter.statusFilter === MONITOR_LIST_STATUS_FILTER_OPERATIONAL) {
     Object.assign(query, MonitoringOff.getMonitoredQuery(), {
       currentMonitorStatus: { isOperationalState: true },
+      firstMeasuredAt: new NotNull(),
     });
   }
 
@@ -109,70 +130,55 @@ export const getMonitorListQuery: GetMonitorListQueryFunction = (
   return query;
 };
 
-export interface MonitorListRowData extends MonitoringOffFlags {
-  currentMonitorStatus?:
-    | {
-        name?: string | undefined | null;
-        color?: Color | undefined | null;
-      }
-    | undefined
-    | null;
-}
+export type MonitorListRowData = MonitorRowStatusFields;
 
-export interface MonitorListRowStatus {
+export interface MonitorListRowStatus extends MonitorRowStatus {
   /*
-   * MONITOR_LIST_MONITORING_OFF_STATUS_LABEL, a key the widget looks up in
-   * the reader's language, when monitoring is off; otherwise the project's
-   * own status name, as stored.
+   * Whether the row says Disabled because the monitor's monitoring is off
+   * (MonitorRowStatusKind.MonitoringOff), whatever status it was frozen at.
    */
-  text: string;
-  // The status's colour, or null when the monitor was read with none.
-  color: Color | null;
   isMonitoringOff: boolean;
 }
 
 /*
- * What a row (or a honeycomb tile) says a monitor's status is: Disabled, in
- * gray, for a monitor whose monitoring is off, whatever status it was frozen
- * at; otherwise its current status.
+ * What a row (or a honeycomb tile) says a monitor's status is: the rule the
+ * Monitors table's rows read too (MonitorRowStatus). Disabled, in gray, for
+ * a monitor whose monitoring is off, whatever status it was frozen at; the
+ * page's words where nothing checks it or nothing has yet; otherwise its
+ * current status. `now` decides whether a first result is overdue.
  */
 export type GetMonitorListRowStatusFunction = (
   monitor: MonitorListRowData,
+  now?: Date | undefined,
 ) => MonitorListRowStatus;
 
 export const getMonitorListRowStatus: GetMonitorListRowStatusFunction = (
   monitor: MonitorListRowData,
+  now?: Date | undefined,
 ): MonitorListRowStatus => {
-  if (MonitoringOff.isOff(monitor)) {
-    return {
-      text: MONITOR_LIST_MONITORING_OFF_STATUS_LABEL,
-      color: MONITOR_LIST_MONITORING_OFF_STATUS_COLOR,
-      isMonitoringOff: true,
-    };
-  }
+  const status: MonitorRowStatus = MonitorRowStatusUtil.getRowStatus(
+    monitor,
+    now,
+  );
 
   return {
-    text: monitor.currentMonitorStatus?.name || MONITOR_LIST_NO_STATUS_LABEL,
-    color: monitor.currentMonitorStatus?.color || null,
-    isMonitoringOff: false,
+    ...status,
+    isMonitoringOff: status.kind === MonitorRowStatusKind.MonitoringOff,
   };
 };
 
 /*
- * The fields a row draws. The public endpoint pins this same select
- * server-side (PublicDashboardResourceListPolicy), so the column that says
- * monitoring is off reaches a public page too.
+ * The fields a row draws: everything the row rule reads
+ * (MONITOR_ROW_STATUS_SELECT), beside the name and type. The public endpoint
+ * pins this same select server-side (PublicDashboardResourceListPolicy), so
+ * a public page says what the board says of each monitor.
  */
-export const MONITOR_LIST_WIDGET_SELECT: {
+export const MONITOR_LIST_WIDGET_SELECT: typeof MONITOR_ROW_STATUS_SELECT & {
   _id: true;
   name: true;
-  monitorType: true;
-  disableActiveMonitoring: true;
-  currentMonitorStatus: { name: true; color: true };
 } = {
   _id: true,
   name: true,
-  monitorType: true,
-  disableActiveMonitoring: true,
-  currentMonitorStatus: { name: true, color: true },
+  ...MONITOR_ROW_STATUS_SELECT,
+  currentMonitorStatus: { ...MONITOR_ROW_STATUS_SELECT.currentMonitorStatus },
 };

@@ -87,10 +87,16 @@ npm run compile
 
 ### Nur Ihre Dateien linten
 
-Übergeben Sie vom Stammverzeichnis des Repositorys aus die geänderten Dateien:
+Linten Sie vom Stammverzeichnis des Repositorys aus die Dateien, die Ihr Branch geändert hat, und beheben Sie, was ESLint beheben kann:
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+Das nimmt jede Datei, die sich von `origin/main` unterscheidet, ob committet oder nicht, und führt ESLint einmal für jedes TypeScript-Projekt aus, zu dem sie gehören: Einem einzigen `npx eslint` über die Dateien mehrerer Pakete geht der Speicher aus. Um andere Dateien auf dieselbe Weise zu linten, geben Sie sie nach `--` an:
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 Vermeiden Sie `npm run lint` und `npm run fix-lint`: Sie linten das gesamte Repository.

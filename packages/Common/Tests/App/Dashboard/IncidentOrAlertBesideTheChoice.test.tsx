@@ -3,8 +3,10 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
+  jest,
   test,
 } from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -32,6 +34,9 @@ import ObjectID from "../../../Types/ObjectID";
 import { DEFINED_TERM_TEST_ID } from "../../../UI/Components/Glossary/DefinedTerm";
 import { LEARN_MORE_LINK_TEST_ID } from "../../../UI/Components/Link/LearnMoreLink";
 import { DOCS_URL } from "../../../UI/Config";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
 
 /*
  * Where someone chooses between an incident and an alert, the difference is
@@ -226,6 +231,27 @@ describe("a monitor's criteria", () => {
  * and never marks them with the project's term.
  */
 describe("the rules behind How to Reach Me", () => {
+  /*
+   * The grid reads the person's notification methods, the project's
+   * severities and the custom channels that are on, and the page the
+   * server's global config: answered here, as none of each and the
+   * config's defaults, rather than over the network.
+   */
+  beforeEach(() => {
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 10,
+    } as never);
+    stubDashboardCustomNotificationChannels();
+    standInForGlobalConfig();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test("say what they are, with the word they turn on defined, and link their docs page", () => {
     render(
       <OnCallRulesTabs userPreferencesKeyPrefix="glossary-on-call-rules" />,

@@ -1,9 +1,8 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
-import { ApiComponentUtils } from "./Utils";
+import { ApiComponentUtils, SanitizedApiArgs } from "./Utils";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
+import HTTPMethod from "../../../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
-import URL from "../../../../../Types/API/URL";
-import Dictionary from "../../../../../Types/Dictionary";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ComponentMetadata, {
@@ -15,7 +14,6 @@ import {
   ApiGetByIdUrl,
   buildApiGetByIdUrl,
 } from "../../../../../Types/Workflow/Components/ApiGetById";
-import API from "../../../../../Utils/API";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -74,16 +72,19 @@ export default class ApiGetById extends ComponentCode {
 
     args["url"] = placed.url;
 
-    const result: { args: JSONObject; successPort: Port; errorPort: Port } =
-      await ApiComponentUtils.sanitizeArgs(this.getMetadata(), args, options);
+    const result: SanitizedApiArgs = await ApiComponentUtils.sanitizeArgs(
+      this.getMetadata(),
+      args,
+      options,
+    );
 
     let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null = null;
 
     try {
-      apiResult = await API.get({
-        url: result.args["url"] as unknown as URL,
-        headers: result.args["request-headers"] as Dictionary<string>,
-        options: ApiComponentUtils.requestOptions,
+      apiResult = await ApiComponentUtils.send({
+        method: HTTPMethod.GET,
+        sanitized: result,
+        withBody: false,
       });
 
       // On the server API resolves with an HTTPErrorResponse rather than throwing.

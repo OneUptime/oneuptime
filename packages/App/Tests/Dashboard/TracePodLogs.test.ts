@@ -186,10 +186,10 @@ describe("the paddings Advanced offers", () => {
   });
 
   test("a padding reads as a duration", () => {
-    expect(formatPodLogPadding(100)).toBe("100 ms");
-    expect(formatPodLogPadding(420)).toBe("420 ms");
-    expect(formatPodLogPadding(1000)).toBe("1 s");
-    expect(formatPodLogPadding(10_000)).toBe("10 s");
+    expect(formatPodLogPadding(100)).toBe("100\u00A0ms");
+    expect(formatPodLogPadding(420)).toBe("420\u00A0ms");
+    expect(formatPodLogPadding(1000)).toBe("1\u00A0s");
+    expect(formatPodLogPadding(10_000)).toBe("10\u00A0s");
     expect(formatPodLogPadding(60_000)).toBe("1m");
   });
 });
@@ -362,22 +362,22 @@ describe("where a line falls against the span", () => {
   test("the span's own lines are during it, offset from its start", () => {
     expect(timing(1.27)).toEqual({
       position: "during",
-      offsetLabel: "+1.27 ms",
+      offsetLabel: "+1.27\u00A0ms",
     });
     expect(timing(3.24)).toEqual({
       position: "during",
-      offsetLabel: "+3.24 ms",
+      offsetLabel: "+3.24\u00A0ms",
     });
   });
 
   test("its neighbours' lines are before or after it", () => {
     expect(timing(-232.59)).toEqual({
       position: "before",
-      offsetLabel: "-233 ms",
+      offsetLabel: "-233\u00A0ms",
     });
     expect(timing(221.49)).toEqual({
       position: "after",
-      offsetLabel: "+221 ms",
+      offsetLabel: "+221\u00A0ms",
     });
   });
 
@@ -458,16 +458,16 @@ describe("the lines in their groups", () => {
         ];
       }),
     ).toEqual([
-      ["before", ["-233 ms Product Type: Traces"]],
+      ["before", ["-233\u00A0ms Product Type: Traces"]],
       [
         "during",
         [
-          "+1.27 ms Product Type: Traces",
-          "+1.28 ms Is Protobuf: true",
-          "+3.24 ms Added traces ingestion job",
+          "+1.27\u00A0ms Product Type: Traces",
+          "+1.28\u00A0ms Is Protobuf: true",
+          "+3.24\u00A0ms Added traces ingestion job",
         ],
       ],
-      ["after", ["+221 ms Product Type: Logs"]],
+      ["after", ["+221\u00A0ms Product Type: Logs"]],
     ]);
   });
 
@@ -584,7 +584,7 @@ describe("the words", () => {
         paddingMs: 100,
       }),
     ).toBe(
-      "What oneuptime-app-5b9df8b796-88bzt wrote from 100 ms before this span to 100 ms after it.",
+      "What oneuptime-app-5b9df8b796-88bzt wrote from 100\u00A0ms before this span to 100\u00A0ms after it.",
     );
     expect(
       describeSpanPodLogWindow({
@@ -592,7 +592,9 @@ describe("the words", () => {
         podName: "  ",
         paddingMs: 1000,
       }),
-    ).toBe("What the pod wrote from 1 s before this span to 1 s after it.");
+    ).toBe(
+      "What the pod wrote from 1\u00A0s before this span to 1\u00A0s after it.",
+    );
   });
 
   test("the trace's pod scope counts its pods, and says when it reads only some", () => {
@@ -604,7 +606,7 @@ describe("the words", () => {
         paddingMs: 100,
       }),
     ).toBe(
-      "What this trace's pod wrote from 100 ms before the trace to 100 ms after it, not linked by trace ID.",
+      "What this trace's pod wrote from 100\u00A0ms before the trace to 100\u00A0ms after it, not linked by trace ID.",
     );
     expect(
       describeTracePodLogScope({
@@ -614,7 +616,7 @@ describe("the words", () => {
         paddingMs: 250,
       }),
     ).toBe(
-      "What this trace's 3 pods wrote from 250 ms before the trace to 250 ms after it, not linked by trace ID.",
+      "What this trace's 3 pods wrote from 250\u00A0ms before the trace to 250\u00A0ms after it, not linked by trace ID.",
     );
     expect(
       describeTracePodLogScope({
@@ -624,7 +626,7 @@ describe("the words", () => {
         paddingMs: 1000,
       }),
     ).toBe(
-      "What the first 20 of this trace's 1,234 pods wrote from 1 s before the trace to 1 s after it, not linked by trace ID.",
+      "What the first 20 of this trace's 1,234 pods wrote from 1\u00A0s before the trace to 1\u00A0s after it, not linked by trace ID.",
     );
   });
 
@@ -668,7 +670,7 @@ describe("the words", () => {
         paddingMs: 100,
       }),
     ).toBe(
-      "Was checkout-7d9f von 100 ms vor diesem Span bis 100 ms danach schrieb.",
+      "Was checkout-7d9f von 100\u00A0ms vor diesem Span bis 100\u00A0ms danach schrieb.",
     );
     expect(
       describeTracePodLogScope({
@@ -678,7 +680,7 @@ describe("the words", () => {
         paddingMs: 100,
       }),
     ).toBe(
-      "Was die 2 Pods dieses Traces von 100 ms davor bis 100 ms danach schrieben, nicht über die Trace-ID verknüpft.",
+      "Was die 2 Pods dieses Traces von 100\u00A0ms davor bis 100\u00A0ms danach schrieben, nicht über die Trace-ID verknüpft.",
     );
     expect(getPodLogGroupTitle(german, "before")).toBe("Vor dem Span");
     // A sentence the locale has not worded yet stays wholly English.
@@ -689,7 +691,7 @@ describe("the words", () => {
         paddingMs: 100,
       }),
     ).toBe(
-      "What the pod wrote from 100 ms before this span to 100 ms after it.",
+      "What the pod wrote from 100\u00A0ms before this span to 100\u00A0ms after it.",
     );
   });
 });
@@ -827,7 +829,7 @@ describe("the pod's exceptions during a span", () => {
         paddingMs: 100,
       }),
     ).toBe(
-      "Exceptions oneuptime-app-5b9df8b796-6m5pk recorded from 100 ms before this span to 100 ms after it.",
+      "Exceptions oneuptime-app-5b9df8b796-6m5pk recorded from 100\u00A0ms before this span to 100\u00A0ms after it.",
     );
     expect(
       describeSpanPodExceptionWindow({
@@ -836,7 +838,7 @@ describe("the pod's exceptions during a span", () => {
         paddingMs: 1000,
       }),
     ).toBe(
-      "Exceptions the pod recorded from 1 s before this span to 1 s after it.",
+      "Exceptions the pod recorded from 1\u00A0s before this span to 1\u00A0s after it.",
     );
     expect(describePodExceptionCut(english)).toBe(
       `Only the first ${SPAN_POD_EXCEPTION_LIMIT} exceptions of this window are shown.`,

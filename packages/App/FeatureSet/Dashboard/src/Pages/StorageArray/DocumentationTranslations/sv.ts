@@ -30,7 +30,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The command carries the platform you picked above. The script asks for:":
     "Kommandot innehåller plattformen du valde ovan. Skriptet frågar efter:",
   "- your **OneUptime URL** and **ingestion key**, both shown in step 1 (pick a key there to have them filled in here)":
-    "- din **OneUptime-URL** och din **ingestion-nyckel**, som båda visas i steg 1 (välj en nyckel där så fylls de i här)",
+    "- din **OneUptime-URL** och din **intagningsnyckel**, som båda visas i steg 1 (välj en nyckel där så fylls de i här)",
   "- an **array name** — how the array appears in OneUptime. Give every array its own and keep it stable: a new name registers a new storage array":
     "- ett **arraynamn**: hur arrayen visas i OneUptime. Ge varje array ett eget och håll det stabilt: ett nytt namn registrerar en ny lagringsarray",
   "- the FlashArray's **management address** (host name or IP, no `https://`) and the read-only user's **API token**, which it reads without echoing":
@@ -48,7 +48,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- Sätt `PURE_FA_ENDPOINT` till FlashArrays hanteringsadress (värdnamn eller IP, utan `https://`) och `PURE_FA_API_TOKEN` till den skrivskyddade användarens API-token. Kör `chmod 600 .env`: filen innehåller tokenen.",
   "Start the agent:": "Starta agenten:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Välj en ingestion-nyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
+    "Välj en intagningsnyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
   "Look for `Everything is ready. Begin running and processing data.` in the logs. The array then appears automatically in the **Storage Arrays** section after its first scrape, usually within a minute or two.":
     "Leta efter `Everything is ready. Begin running and processing data.` i loggarna. Arrayen visas sedan automatiskt i avsnittet **Lagringsarrayer** efter sin första skrapning, oftast inom ett par minuter.",
   "The install script writes these to `/opt/oneuptime-storage-array-agent/.env`; a Docker Compose install reads them from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the agent's folder.":
@@ -58,7 +58,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | URL:en till din OneUptime-instans (t.ex. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Telemetri-ingestion-nyckeln, den som valdes i steg 1 |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Telemetri-intagningsnyckeln, den som valdes i steg 1 |",
   "| `STORAGE_ARRAY_NAME` | Yes | The name this array registers under in OneUptime. Stamped on every metric as the `storage.array.name` resource attribute. Keep it stable — changing it registers a new storage array |":
     "| `STORAGE_ARRAY_NAME` | Ja | Namnet som den här arrayen registreras under i OneUptime. Sätts på varje mätvärde som resursattributet `storage.array.name`. Håll det stabilt: ändrar du det registreras en ny lagringsarray |",
   "| `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray` or `purestorage.flashblade` (default: `purestorage.flasharray`) |":
@@ -135,11 +135,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then delete the read-only user and its API token on the array if you no longer need them.":
     "Ta sedan bort den skrivskyddade användaren och dess API-token på arrayen om du inte längre behöver dem.",
   "`troubleshoot.sh` checks the whole chain — container runtime, the array endpoint exactly as the collector reaches it (the native endpoint or Pure's exporter, DNS, TLS, the API token), array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` kontrollerar hela kedjan (containerkörning, arrayens slutpunkt precis som insamlaren når den, alltså den inbyggda slutpunkten eller Pures exportör, med DNS, TLS och API-tokenen, stämplingen av arraynamnet, insamlarens egna mätvärden) och frågar OneUptime direkt om den godtar din ingestion-nyckel. Den sista kontrollen betyder mest: OneUptimes OTLP-slutpunkter avvisar en felaktig nyckel med `401` eller `422`, vilket insamlaren loggar som en enda lätt missad rad `Exporting failed` per batch, så skriptet frågar `GET /otlp/v1/validate` efter ett direkt utslag 200/401.",
+    "`troubleshoot.sh` kontrollerar hela kedjan (containerkörning, arrayens slutpunkt precis som insamlaren når den, alltså den inbyggda slutpunkten eller Pures exportör, med DNS, TLS och API-tokenen, stämplingen av arraynamnet, insamlarens egna mätvärden) och frågar OneUptime direkt om den godtar din intagningsnyckel. Den sista kontrollen betyder mest: OneUptimes OTLP-slutpunkter avvisar en felaktig nyckel med `401` eller `422`, vilket insamlaren loggar som en enda lätt missad rad `Exporting failed` per batch, så skriptet frågar `GET /otlp/v1/validate` efter ett direkt utslag 200/401.",
   "It ends with a verdict naming the most likely cause.":
     "Det avslutas med ett utslag som nämner den mest sannolika orsaken.",
   "1. Check the collector logs: `docker logs oneuptime-storage-array-agent`. `server returned HTTP status 401` means the array refused the API token, `404` means the FlashArray has no native endpoint, `x509` means TLS verification is on against the array's self-signed certificate, `no such host` or `connection refused` means a wrong `PURE_FA_ENDPOINT`, and an export `401` means a bad ingestion key.":
-    "1. Kontrollera insamlarens loggar: `docker logs oneuptime-storage-array-agent`. `server returned HTTP status 401` betyder att arrayen avvisade API-tokenen, `404` att FlashArray saknar inbyggd slutpunkt, `x509` att TLS-verifiering är på mot arrayens självsignerade certifikat, `no such host` eller `connection refused` en felaktig `PURE_FA_ENDPOINT`, och en `401` vid export en felaktig ingestion-nyckel.",
+    "1. Kontrollera insamlarens loggar: `docker logs oneuptime-storage-array-agent`. `server returned HTTP status 401` betyder att arrayen avvisade API-tokenen, `404` att FlashArray saknar inbyggd slutpunkt, `x509` att TLS-verifiering är på mot arrayens självsignerade certifikat, `no such host` eller `connection refused` en felaktig `PURE_FA_ENDPOINT`, och en `401` vid export en felaktig intagningsnyckel.",
   "2. Make sure `STORAGE_ARRAY_NAME` is set — discovery keys on the `storage.array.name` resource attribute, and the collector refuses to start without it.":
     "2. Se till att `STORAGE_ARRAY_NAME` är satt: identifieringen bygger på resursattributet `storage.array.name`, och insamlaren vägrar starta utan det.",
   "3. Make sure `STORAGE_ARRAY_COLLECTOR_CONFIG` and `COMPOSE_PROFILES` name the same platform.":
@@ -157,7 +157,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker logs oneuptime-storage-array-agent 2>&1 | grep -i error`":
     "2. Kontrollera agentens loggar efter fel: `docker logs oneuptime-storage-array-agent 2>&1 | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Bekräfta att din OneUptime-URL och ingestion-nyckel är korrekta.",
+    "3. Bekräfta att din OneUptime-URL och intagningsnyckel är korrekta.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Se till att agentens maskin når OneUptime-instansen över nätverket.",
   "The array's identity comes from `STORAGE_ARRAY_NAME`, stamped on every metric as `storage.array.name`. Fix it in `.env` and apply it with `docker compose up -d` in the agent's folder — note that a new name registers a new storage array.":
@@ -169,7 +169,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The array's identity comes from `STORAGE_ARRAY_NAME`, stamped on every metric as `storage.array.name`. This array is **`array-1`**. Fix it in `.env` and apply it with `docker compose up -d` in the agent's folder — note that a new name registers a new storage array.":
     "Arrayens identitet kommer från `STORAGE_ARRAY_NAME`, som sätts på varje mätvärde som `storage.array.name`. Den här arrayen är **`array-1`**. Rätta det i `.env` och tillämpa det med `docker compose up -d` i agentens mapp; observera att ett nytt namn registrerar en ny lagringsarray.",
   "The command already carries your OneUptime URL, ingestion key and the platform you picked above. The script asks for:":
-    "Kommandot innehåller redan din OneUptime-URL, din ingestion-nyckel och plattformen du valde ovan. Skriptet frågar efter:",
+    "Kommandot innehåller redan din OneUptime-URL, din intagningsnyckel och plattformen du valde ovan. Skriptet frågar efter:",
   "Access from that machine to `quay.io`, where Docker pulls Pure's exporter image":
     "Åtkomst från den maskinen till `quay.io`, där Docker hämtar Pures exportörimage",
   "- `COMPOSE_PROFILES=flasharray-exporter` starts `pure-fa-exporter`, Pure's exporter, next to the collector; the two must match.":

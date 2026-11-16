@@ -14,6 +14,7 @@ import Permission from "../../../Types/Permission";
 import { DEFAULT_ENTITY_RISK_CASE_THRESHOLD } from "../../../Types/SecurityCase/SecurityEntityRisk";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
 /*
  * A new project opens security cases from entity risk; a project that
@@ -196,6 +197,8 @@ describe("ProjectService.onBeforeCreate: entity risk for a new project", () => {
         created,
         userProps(),
         DatabaseRequestType.Create,
+        // Who created it is the hook's stamp: the create's own write.
+        columnsTheCreateWrote(created),
       );
     }).not.toThrow();
   });

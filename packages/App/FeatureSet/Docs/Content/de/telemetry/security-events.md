@@ -80,7 +80,7 @@ Sicherheitsdaten lesen nur die Rollen Projektinhaber und Projektadministrator so
 :::steps
 ### Einen Ingestion-Schlüssel erstellen
 
-Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Aufnahmeschlüssel erstellen**. Sicherheitsereignisse nutzen dieselben Schlüssel wie der Rest Ihrer Telemetrie.
+Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Ingestion-Schlüssel erstellen**. Sicherheitsereignisse nutzen dieselben Schlüssel wie der Rest Ihrer Telemetrie.
 
 ### Ihre Ereignisse senden
 

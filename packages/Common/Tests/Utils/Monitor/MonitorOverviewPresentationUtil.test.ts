@@ -1083,7 +1083,8 @@ describe("MonitorOverviewPresentationUtil hero", () => {
       text: "Manage probes",
       linkKey: "probes",
     });
-    expect(three.lastKnownStatus).toBe("Last recorded status: Operational");
+    // No probe has ever returned a result: nothing was recorded (#7464).
+    expect(three.lastKnownStatus).toBeUndefined();
 
     expect(switchedOff(1).explanation).toBe(
       "1 probe is attached but switched off, so nothing is checking this resource.",
@@ -1184,9 +1185,11 @@ describe("MonitorOverviewPresentationUtil hero", () => {
       "2 probes check this every 5\u00A0minutes. The first result usually arrives within a few minutes.",
     );
     expect(probeCheck.callToAction).toBeUndefined();
-    expect(probeCheck.lastKnownStatus).toBe(
-      "Last recorded status: Operational",
-    );
+    /*
+     * Nothing has been checked: Operational is only the status it was
+     * created in, never "recorded" (#7464).
+     */
+    expect(probeCheck.lastKnownStatus).toBeUndefined();
 
     expect(
       build(
@@ -1307,23 +1310,26 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     expect(presentation.headline).toEqual({
       text: "No check has completed yet",
     });
-    expect(presentation.lastKnownStatus).toBe(
-      "Last recorded status: Operational",
-    );
+    // The status it was created in was never measured (#7464).
+    expect(presentation.lastKnownStatus).toBeUndefined();
     expect(presentation.secondaryBadges).toEqual([
       { text: "Checks overdue", tone: "warning" },
     ]);
 
-    // Danger stays danger.
-    expect(
-      build(
-        running(MonitorType.API, {
-          currentStatus: OFFLINE,
-          createdAt: secondsAgo(30 * DAY),
-          probes: probes({ ...NO_RESULTS, nextCheckAt: undefined }),
-        }),
-      ).tone,
-    ).toBe("danger");
+    /*
+     * Danger stays danger, and says why: a status an incident or a person
+     * set before any check was recorded, and is still said.
+     */
+    const setOffline: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        currentStatus: OFFLINE,
+        createdAt: secondsAgo(30 * DAY),
+        probes: probes({ ...NO_RESULTS, nextCheckAt: undefined }),
+      }),
+    );
+
+    expect(setOffline.tone).toBe("danger");
+    expect(setOffline.lastKnownStatus).toBe("Last recorded status: Offline");
 
     // Overdue with results keeps leading with the status it measured.
     const late: MonitorOverviewPresentation = build(
@@ -1336,6 +1342,288 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     expect(late.headline.since).toEqual(secondsAgo(3 * DAY + 4 * 3600));
     expect(late.lastKnownStatus).toBeUndefined();
     expect(late.isNeverReported).toBe(false);
+  });
+});
+
+/*
+ * A monitor nothing has measured yet has no "last recorded" status: it holds
+ * the operational status every monitor is created in, and "Last recorded
+ * status: Operational" beside "Waiting for the first check" read as a check
+ * that had come back up (#7464). A status something else set before the
+ * first check - an incident, a person - was recorded, and is said; so is
+ * any status once a result has come back.
+ */
+describe("MonitorOverviewPresentationUtil last recorded status (#7464)", () => {
+  const DISABLED: MonitorOverviewPresentationInput["pause"] = {
+    isDisabled: true,
+    byManualIncident: false,
+    byScheduledMaintenance: false,
+  };
+
+  // A probe switched off since it returned its last result, a week ago.
+  const SWITCHED_OFF_WITH_A_RESULT: MonitorOverviewProbeRow = {
+    probeId: "11111111-1111-4111-8111-111111111111",
+    name: "London",
+    isEnabled: false,
+    isConnected: true,
+    latestResult: {
+      probeId: "11111111-1111-4111-8111-111111111111",
+      monitoredAt: secondsAgo(7 * DAY),
+      isOnline: true,
+    },
+    health: MonitorOverviewProbeHealth.TurnedOff,
+  };
+
+  it("a Website monitor waiting for its first check shows no last recorded status", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.Website, {
+        createdAt: secondsAgo(90),
+        statusSince: secondsAgo(90),
+        probes: probes({ ...NO_RESULTS, nextCheckAt: secondsAgo(-210) }),
+      }),
+    );
+
+    expect(presentation.runState).toBe(
+      MonitorOverviewRunState.AwaitingFirstData,
+    );
+    expect(presentation.badge).toEqual({
+      text: "Waiting for data",
+      tone: "info",
+    });
+    expect(presentation.headline.text).toBe("Waiting for the first check");
+    expect(presentation.lastKnownStatus).toBeUndefined();
+    expect(JSON.stringify(presentation)).not.toContain("Last recorded status");
+  });
+
+  it("every probe-check type waiting for its first check says none", () => {
+    for (const monitorType of ALL_TYPES) {
+      if (
+        MonitorOverviewFamilyUtil.getFamily(monitorType) !==
+        MonitorOverviewFamily.ProbeCheck
+      ) {
+        continue;
+      }
+
+      const presentation: MonitorOverviewPresentation = build(
+        running(monitorType, {
+          createdAt: secondsAgo(60),
+          statusSince: undefined,
+          probes: probes(NO_RESULTS),
+        }),
+      );
+
+      expect(presentation.runState).toBe(
+        MonitorOverviewRunState.AwaitingFirstData,
+      );
+      expect(presentation.lastKnownStatus).toBeUndefined();
+    }
+  });
+
+  it("monitoring turned off before the first check says no status was recorded", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        createdAt: secondsAgo(600),
+        pause: DISABLED,
+        probes: probes(NO_RESULTS),
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Paused);
+    expect(presentation.badge.text).toBe("Disabled");
+    expect(presentation.headline.text).toBe("Monitoring is turned off");
+    expect(presentation.lastKnownStatus).toBeUndefined();
+  });
+
+  it("monitoring turned off after a check says the status it recorded", () => {
+    expect(
+      build(running(MonitorType.API, { pause: DISABLED })).lastKnownStatus,
+    ).toBe("Last recorded status: Operational");
+
+    // A probe switched off since keeps the result it last returned.
+    expect(
+      build(
+        running(MonitorType.API, {
+          pause: DISABLED,
+          probes: probes({
+            ...NO_RESULTS,
+            enabledCount: 0,
+            disabledCount: 1,
+            attachedCount: 1,
+            rows: [SWITCHED_OFF_WITH_A_RESULT],
+          }),
+        }),
+      ).lastKnownStatus,
+    ).toBe("Last recorded status: Operational");
+  });
+
+  it("a monitor no probe has ever checked says none, and one whose probes were switched off later says it", () => {
+    const noProbes: MonitorOverviewPresentation = build(
+      running(MonitorType.Website, {
+        createdAt: secondsAgo(600),
+        probeFlags: { isNoProbeEnabled: true, isAllProbesDisconnected: false },
+        probes: probes({
+          ...NO_RESULTS,
+          attachedCount: 0,
+          enabledCount: 0,
+        }),
+      }),
+    );
+
+    expect(noProbes.runState).toBe(MonitorOverviewRunState.NotChecking);
+    expect(noProbes.headline.text).toBe(
+      "No probes are attached to this monitor",
+    );
+    expect(noProbes.lastKnownStatus).toBeUndefined();
+
+    const switchedOffLater: MonitorOverviewPresentation = build(
+      running(MonitorType.Website, {
+        probeFlags: { isNoProbeEnabled: true, isAllProbesDisconnected: false },
+        probes: probes({
+          ...NO_RESULTS,
+          attachedCount: 1,
+          enabledCount: 0,
+          disabledCount: 1,
+          rows: [SWITCHED_OFF_WITH_A_RESULT],
+        }),
+      }),
+    );
+
+    expect(switchedOffLater.runState).toBe(MonitorOverviewRunState.NotChecking);
+    expect(switchedOffLater.lastKnownStatus).toBe(
+      "Last recorded status: Operational",
+    );
+  });
+
+  it("a status set before any check was recorded, and is said", () => {
+    // An incident declared on the new monitor set it Offline.
+    expect(
+      build(
+        running(MonitorType.Website, {
+          createdAt: secondsAgo(90),
+          currentStatus: OFFLINE,
+          probes: probes(NO_RESULTS),
+        }),
+      ).lastKnownStatus,
+    ).toBe("Last recorded status: Offline");
+
+    expect(
+      build(
+        running(MonitorType.API, {
+          currentStatus: DEGRADED,
+          pause: DISABLED,
+          probes: probes(NO_RESULTS),
+        }),
+      ).lastKnownStatus,
+    ).toBe("Last recorded status: Degraded");
+  });
+
+  it("probes that could not be read are not taken for no results", () => {
+    expect(
+      build(
+        running(MonitorType.API, {
+          pause: DISABLED,
+          probes: null,
+        }),
+      ).lastKnownStatus,
+    ).toBe("Last recorded status: Operational");
+  });
+
+  it("a push monitor or an agent that never reported says none; one that did says it", () => {
+    expect(
+      build(
+        running(MonitorType.IncomingRequest, {
+          pause: DISABLED,
+          heartbeat: {},
+        }),
+      ).lastKnownStatus,
+    ).toBeUndefined();
+    expect(
+      build(running(MonitorType.IncomingRequest, { pause: DISABLED }))
+        .lastKnownStatus,
+    ).toBe("Last recorded status: Operational");
+
+    expect(
+      build(running(MonitorType.IncomingEmail, { pause: DISABLED, email: {} }))
+        .lastKnownStatus,
+    ).toBeUndefined();
+    expect(
+      build(running(MonitorType.IncomingEmail, { pause: DISABLED }))
+        .lastKnownStatus,
+    ).toBe("Last recorded status: Operational");
+
+    expect(
+      build(running(MonitorType.Server, { pause: DISABLED, agent: {} }))
+        .lastKnownStatus,
+    ).toBeUndefined();
+    expect(
+      build(running(MonitorType.Server, { pause: DISABLED })).lastKnownStatus,
+    ).toBe("Last recorded status: Operational");
+  });
+
+  it("an evaluated monitor says none only while its log would still hold every evaluation", () => {
+    const logs: (
+      overrides: Partial<MonitorOverviewPresentationInput>,
+    ) => string | undefined = (
+      overrides: Partial<MonitorOverviewPresentationInput>,
+    ): string | undefined => {
+      return build(running(MonitorType.Logs, { pause: DISABLED, ...overrides }))
+        .lastKnownStatus;
+    };
+
+    // Young, and its loaded log is empty: never evaluated.
+    expect(
+      logs({
+        createdAt: secondsAgo(2 * 3600),
+        latestEvaluationAt: undefined,
+        evaluationStatus: "loaded",
+      }),
+    ).toBeUndefined();
+
+    // Never queued by the worker, however old.
+    expect(
+      logs({
+        createdAt: secondsAgo(30 * DAY),
+        telemetry: {},
+        latestEvaluationAt: undefined,
+        evaluationStatus: "loaded",
+      }),
+    ).toBeUndefined();
+
+    // Older than the log keeps rows: its evaluations may have expired.
+    expect(
+      logs({
+        createdAt: secondsAgo(10 * DAY),
+        latestEvaluationAt: undefined,
+        evaluationStatus: "loaded",
+      }),
+    ).toBe("Last recorded status: Operational");
+
+    // A log that could not be read says nothing either way.
+    expect(
+      logs({
+        createdAt: secondsAgo(2 * 3600),
+        latestEvaluationAt: undefined,
+        evaluationStatus: "forbidden",
+      }),
+    ).toBe("Last recorded status: Operational");
+
+    expect(logs({})).toBe("Last recorded status: Operational");
+  });
+
+  it("an archived monitor that was checked still says its last status", () => {
+    expect(
+      build(
+        running(MonitorType.API, {
+          currentStatus: OPERATIONAL,
+          pause: {
+            isArchived: true,
+            isDisabled: false,
+            byManualIncident: false,
+            byScheduledMaintenance: false,
+          },
+        }),
+      ).lastKnownStatus,
+    ).toBe("Last recorded status: Operational");
   });
 });
 
@@ -1614,11 +1902,33 @@ describe("MonitorOverviewPresentationUtil facts", () => {
       value: "10 minutes",
       secondary: "From this monitor's criteria",
     });
+    /*
+     * Stamped 30 seconds ago: as recent as a running sweep leaves it, so the
+     * schedule, not a stamp written only every five minutes (#8123).
+     */
     expect(fact(withWindow, "heartbeat-check")).toEqual({
+      key: "heartbeat-check",
+      label: "Missing-request check",
+      value: "Every 30 seconds",
+    });
+
+    // Stamped longer ago than that: when the sweeps last reached it.
+    const lateSweep: MonitorOverviewPresentation = build(
+      running(MonitorType.IncomingRequest, {
+        monitorSteps: missingWindowSteps(CheckOn.IncomingRequest, 10),
+        heartbeat: {
+          lastReceivedAt: secondsAgo(120),
+          lastCheckedAt: secondsAgo(20 * 60),
+          requestMethod: "POST",
+        },
+      }),
+    );
+
+    expect(fact(lateSweep, "heartbeat-check")).toEqual({
       key: "heartbeat-check",
       label: "Last missing-request check",
       value: "",
-      valueDate: secondsAgo(30),
+      valueDate: secondsAgo(20 * 60),
     });
 
     const withoutWindow: MonitorOverviewPresentation = build(
@@ -2828,9 +3138,7 @@ describe("MonitorOverviewPresentationUtil network device evaluations", () => {
       tone: "info",
     });
     expect(presentation.headline.text).toBe("Waiting for the first poll");
-    expect(presentation.lastKnownStatus).toBe(
-      "Last recorded status: Operational",
-    );
+    expect(presentation.lastKnownStatus).toBeUndefined();
     expect(presentation.sections.showUptime).toBe(false);
     expect(presentation.pulse.isUnavailable).toBe(false);
   });

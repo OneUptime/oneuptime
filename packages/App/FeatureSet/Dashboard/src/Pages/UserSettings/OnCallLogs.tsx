@@ -311,6 +311,23 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     }
                   />
                 );
+              } else if (
+                /*
+                 * Another policy is paging you about this already, and its
+                 * page stands for this one (OnCallPageMerge).
+                 */
+                item["status"] === UserNotificationExecutionStatus.AlreadyPaged
+              ) {
+                return (
+                  <Pill
+                    color={Green}
+                    text={
+                      USER_ON_CALL_LOG_STATUS_LABELS[
+                        UserNotificationExecutionStatus.AlreadyPaged
+                      ]
+                    }
+                  />
+                );
               }
 
               return (

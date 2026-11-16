@@ -35,7 +35,7 @@ Open **Project Settings → Advanced → API Keys** and click **Create API Key**
 
 ### Copy the key
 
-The key's page opens. Copy the **API Key** from the **API Key Details** card, and keep it out of your code:
+OneUptime shows the key once, in the **Copy Your API Key** dialog: copy it before you press **Done**, as no page shows it again. Keep it out of your code:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -93,7 +93,9 @@ A field of a record the resource names is filtered under its relation: `"user": 
 
 A resource with owners - a monitor, an incident, an on-call policy and every other one with user and team owners - is also filtered by who owns it, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` finds the records owned by one or more of those people and teams. `match` is `AnyOf` unless you set it: `NoneOf` finds the records none of them own, records without owners included, and `AnyOwner` and `NoOwner` find the records with any owner or with none, naming no one. A team's members are not owners of what the team owns. One filter names at most 1,000 people and teams together, a resource without owners refuses it with a `400`, and filtering by owners without permission to read them is refused with a `422`.
 
-`select` names the fields to return, and `_id` always comes back. `sort` orders them, `ASC` or `DESC`; without one, the newest come first. A list returns 10 records unless you set `limit`, up to 10,000, and `skip` passes over that many first: keep raising `skip` by `limit` until you have `count` of them. Add `?output-type=csv` to a list request for CSV instead of JSON.
+`select` names the fields to return, and `_id` always comes back. `sort` orders them, `ASC` or `DESC`; without one, the newest come first. A list returns 10 records unless you set `limit`, up to 10,000, and `skip` passes over that many first: keep raising `skip` by `limit` until you have `count` of them. On a long list, counting every match takes time: add `countUpTo`, such as `10000`, and the count stops there, or at the end of the page if that is further. When more records match, `count` is where it stopped and the answer also carries `"isCountCapped": true`: with `"countUpTo": 1`, that says whether more records follow the page. Add `?output-type=csv` to a list request for CSV instead of JSON.
+
+A field's order can also say where the records with no value in it go: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` puts the latest first and those with none last, and `FIRST` puts them first. A relation of one record sorts by a field of the record it names: `{ "incidentSeverity": { "order": "ASC" } }` lists incidents in the order of their severities. A relation given only a direction, as in `{ "incidentSeverity": "DESC" }`, is refused with a `400` that names a field to sort by instead, and so is a relation of many records, such as an incident's `labels`: each incident has a list of them, and a list has no one value to put incidents in order by. Sorting by a field needs permission to read it too, through a relation as on the resource itself: a sort by a field you may not read is refused with a `422`.
 
 For example, the monitors whose name contains "checkout", created since the start of 2026, newest first:
 
@@ -339,7 +341,7 @@ Every resource, endpoint and field is listed in the [OneUptime API reference](/r
 ## Troubleshooting
 
 :::details Every request answers 400 Invalid API Key
-The `ApiKey` header is empty, is not a key, or names a key that has expired or been reset. Copy the key again from its page under **Project Settings → Advanced → API Keys**, where its **Expires** date is too.
+The `ApiKey` header is empty, is not a key, or names a key that has expired or been reset. Find the key under **Project Settings → Advanced → API Keys** by how it ends, and check its **Expires** date. A key you no longer have cannot be shown again: reset it on its page for a new one.
 :::
 
 :::details Every request answers 402 Payment Required

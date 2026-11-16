@@ -134,8 +134,6 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "a detection rule's last error, stored on the rule",
   "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts":
     "a production review posted as Markdown on the code host's pull request",
-  "packages/Common/Server/Utils/SampleProject/SampleProjectTelemetry.ts":
-    "a sample project's logs and spans, stored as telemetry data",
   "packages/Common/Server/Services/TelemetrySourceMapService.ts":
     "the source map upload API's answer to the tool that sent it",
   "packages/Common/Utils/AI/PromptText.ts": "a prompt for OneUptime AI",
@@ -165,6 +163,14 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "a pack's criteria description, stored on the monitor for an operator to edit",
   "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts":
     "an alert template's incident title, criteria name and criteria description, stored on the monitor for an operator to edit (the summary and description the picker draws are held)",
+  "packages/Common/UI/Utils/TableColumnsToCsv.ts":
+    "a table's CSV export, a cell a spreadsheet reads as written",
+  "packages/Common/Server/Services/AIBillingService.ts":
+    "a failed charge's line in the server's log (the owners' recharge email holds its amounts)",
+  "packages/Common/Server/Services/NotificationService.ts":
+    "a failed charge's line in the server's log (the owners' recharge email holds its amounts)",
+  "packages/Common/Server/Utils/Telemetry/LlmCostBudgetEvaluator.ts":
+    SERVER_LOG,
   "packages/App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName.ts":
     "a criteria's name, stored on the monitor in English and matched against what its filters give (isNameFromFilters) to tell a generated name from a typed one",
 };
@@ -176,13 +182,9 @@ const OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
     "#7301",
   "packages/App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayHealth.ts":
     "#7301",
-  "packages/App/FeatureSet/Dashboard/src/Pages/VMware/Utils/VMwareHostData.ts":
-    "#7301",
   // The request story's durations, in the Dashboard's duration words.
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventRequestStory.ts":
     "#6889",
-  // A span's humanized duration ("12 ms", "1d 2h"), in the reader's units.
-  "packages/Common/Types/Date.ts": "#8617",
 };
 
 /*
@@ -240,6 +242,14 @@ const UNITS: ReadonlyArray<string> = [
   "GHz",
   "ppm",
   "rpm",
+  // A rate of operations, a transceiver's voltage and bias current (#8823).
+  "ops",
+  "IOPS",
+  "V",
+  "mV",
+  "mA",
+  // An amount of money (#8826).
+  "USD",
 ];
 
 const UNIT: string = [...UNITS]
@@ -775,6 +785,48 @@ describe("a number code joins to its unit keeps it on its line", () => {
     }
   });
 
+  test("the figures #8803 and #8823 named, a disk's latency and the units the scan did not know, are held now", () => {
+    const { findings } = readAllFindings();
+
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Pages/VMware/Utils/VMwareHostData.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/Ceph/CephRateChart.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/TransceiverViewModel.ts",
+      "packages/Common/Utils/NetworkDevice/TransceiverHealthUtil.ts",
+    ]) {
+      expect({
+        file,
+        listed: isListed(file),
+        found: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, listed: false, found: false });
+    }
+  });
+
+  test("the amounts and durations #8826 named are held now", () => {
+    const { findings } = readAllFindings();
+
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Components/ProjectBalance/AutoRechargeCard.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviders.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Settings/UsageHistory.tsx",
+      "packages/Common/UI/Components/Table/TableRow.tsx",
+      "packages/Common/Utils/Project/ProjectBalance.ts",
+      "packages/Common/Server/Services/ProjectService.ts",
+      "packages/Common/Server/Utils/OperatorSlackNotice.ts",
+      "packages/Common/Types/Date.ts",
+    ]) {
+      expect({
+        file,
+        listed: isListed(file),
+        found: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, listed: false, found: false });
+    }
+  });
+
   test("the files the issue named are held now", () => {
     const { findings } = readAllFindings();
 
@@ -810,6 +862,12 @@ describe("negative controls: the scan catches what it is for", () => {
           "const i: string = `Collected in ${seconds}\\u2009s`;",
           "const j: string = `${value.toFixed(1)} ${units[index]}`;",
           "const k: string = `${rounded} ${BYTE_UNITS[unit] as string}`;",
+          "const l: string = `${formatReaderFigure(value)} ops/s`;",
+          "const m: string = `${value.toFixed(2)} V`;",
+          "const n: string = `${value.toFixed(2)} mA`;",
+          "const o: string = `${count} IOPS`;",
+          "const p: string = `${amount} USD`;",
+          'const q: string = (cents / 100) + " USD";',
         ].join("\n"),
       ),
     ).toEqual([
@@ -824,6 +882,12 @@ describe("negative controls: the scan catches what it is for", () => {
       "9 `Collected in ${seconds}\\u2009s`",
       "10 `${value.toFixed(1)} ${units[index]}`",
       "11 `${rounded} ${BYTE_UNITS[unit] as string}`",
+      "12 `${formatReaderFigure(value)} ops/s`",
+      "13 `${value.toFixed(2)} V`",
+      "14 `${value.toFixed(2)} mA`",
+      "15 `${count} IOPS`",
+      "16 `${amount} USD`",
+      '17 (cents / 100) + " USD"',
     ]);
   });
 
@@ -845,6 +909,11 @@ describe("negative controls: the scan catches what it is for", () => {
           "const l: string = `${count} ${unit}s`;",
           "const m: string = `systemctl ${verb} ${unitName}`;",
           "const n: string = `${value} ${units}`;",
+          "const o: string = `${value.toFixed(2)}\\u00A0V`;",
+          "const p: string = `${count} Volumes`;",
+          "const q: string = `${count} operations`;",
+          "const r: string = `${amount}\\u00A0USD`;",
+          "const s: string = `${count} USDC tokens`;",
         ].join("\n"),
       ),
     ).toEqual([]);
@@ -1772,5 +1841,647 @@ describe("negative controls: the word scan catches what it is for", () => {
         ].join("\n"),
       ),
     ).toEqual([]);
+  });
+});
+
+/*
+ * A HELPER HANDED A DURATION'S WORD HOLDS IT TO ITS FIGURE (#8823).
+ *
+ * The word scan reads a template that writes a duration's word itself
+ * (`${count} minutes`). A helper that takes the word as a parameter -
+ * `plural(count, "minute", "minutes")`, `pluralize(count, "day")` - writes
+ * `${count} ${word}` with a plain space, and the word scan saw neither the
+ * helper, which names no duration, nor the call, which writes no template.
+ *
+ * So this reads every helper that writes a figure, a plain space and one of
+ * its own parameters (`${count} ${count === 1 ? one : other}`, `count + " "
+ * + word`), and every call that hands one a duration's word: in the file
+ * that defines it, or a file that imports it by name. A call is held when
+ * withDurationWordsHeld wraps it (`withDurationWordsHeld(pluralize(30,
+ * "day"))`); a helper that holds its own space is no helper of this kind.
+ *
+ * A call whose text is no page's keeps its plain space, each file listed in
+ * PLURAL_CALLS_AS_WRITTEN with why. The list only shrinks.
+ */
+const PLURAL_CALLS_AS_WRITTEN: Readonly<Record<string, string>> = {
+  "packages/Common/Types/AI/AIAgentRunLimits.ts":
+    "a run's limit, written for OneUptime AI to read and into the API's refusal of a call past it",
+  "packages/Common/Utils/SecurityCase/SecurityCaseTargets.ts":
+    "a case's response target in the server's messages: a feed item stored as Markdown, and the SMS, push and channel posts that quote it",
+  "packages/Common/Utils/Slo/SloFeedMarkdown.ts":
+    "an SLO feed item the server writes and stores as Markdown",
+  "packages/Common/Utils/Slo/SloReleaseCheck.ts":
+    "the release check's reason: the API's answer, which a pipeline or a rollout tool writes into its log",
+};
+
+// A source that may write a figure, a plain space and a word: read through the AST only then.
+const MAY_WRITE_A_WORD_AFTER_A_FIGURE: RegExp = /\} \$\{|\+ " " \+/;
+
+// A source that may hand a helper a duration's word.
+const MAY_HAND_A_DURATION_WORD: RegExp = new RegExp(
+  `["'\`](?:${DURATION_WORD})["'\`]`,
+);
+
+const WITH_DURATION_WORDS_HELD: string = "withDurationWordsHeld";
+
+// The names of a function's parameters: `(count, one, other)`.
+const parameterNamesOf: (
+  parameters: ts.NodeArray<ts.ParameterDeclaration>,
+) => ReadonlySet<string> = (
+  parameters: ts.NodeArray<ts.ParameterDeclaration>,
+): ReadonlySet<string> => {
+  const names: Set<string> = new Set<string>();
+
+  for (const parameter of parameters) {
+    if (ts.isIdentifier(parameter.name)) {
+      names.add(parameter.name.text);
+    }
+  }
+
+  return names;
+};
+
+/*
+ * Whether `expression` writes one of `parameters` as the word it draws: the
+ * parameter itself, either side of a choice (`count === 1 ? one : other` -
+ * not the count the choice reads), or a word spelled on from it
+ * (`${singular}s`).
+ */
+const writesAParameter: (
+  expression: ts.Expression,
+  parameters: ReadonlySet<string>,
+) => boolean = (
+  expression: ts.Expression,
+  parameters: ReadonlySet<string>,
+): boolean => {
+  const inner: ts.Expression = unwrapExpression(expression);
+
+  if (ts.isIdentifier(inner)) {
+    return parameters.has(inner.text);
+  }
+
+  if (ts.isConditionalExpression(inner)) {
+    return (
+      writesAParameter(inner.whenTrue, parameters) ||
+      writesAParameter(inner.whenFalse, parameters)
+    );
+  }
+
+  if (ts.isTemplateExpression(inner)) {
+    return inner.templateSpans.some((span: ts.TemplateSpan): boolean => {
+      return writesAParameter(span.expression, parameters);
+    });
+  }
+
+  if (
+    ts.isBinaryExpression(inner) &&
+    inner.operatorToken.kind === ts.SyntaxKind.PlusToken
+  ) {
+    return (
+      writesAParameter(inner.left, parameters) ||
+      writesAParameter(inner.right, parameters)
+    );
+  }
+
+  return false;
+};
+
+// Whether a withDurationWordsHeld(...) call wraps `node`, in the statement it is part of.
+const isHeldByAWrapper: (node: ts.Node) => boolean = (
+  node: ts.Node,
+): boolean => {
+  let parent: ts.Node | undefined = node.parent;
+
+  while (parent && !ts.isStatement(parent) && !ts.isFunctionLike(parent)) {
+    if (
+      ts.isCallExpression(parent) &&
+      ts.isIdentifier(parent.expression) &&
+      parent.expression.text === WITH_DURATION_WORDS_HELD
+    ) {
+      return true;
+    }
+
+    parent = parent.parent;
+  }
+
+  return false;
+};
+
+/*
+ * Whether `body` writes a figure, a plain space and one of the function's
+ * parameters: `${count} ${word}`, `${formatCount(count)} ${count === 1 ?
+ * one : other}`, `count + " " + word`.
+ */
+const writesAFigureAndAParameter: (
+  body: ts.Node,
+  parameters: ReadonlySet<string>,
+) => boolean = (body: ts.Node, parameters: ReadonlySet<string>): boolean => {
+  let found: boolean = false;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    // A helper that holds its own result: `withDurationWordsHeld(`${count} ${word}`)`.
+    if (found || isHeldByAWrapper(node)) {
+      return;
+    }
+
+    if (
+      ts.isTemplateExpression(node) &&
+      node.templateSpans.some(
+        (span: ts.TemplateSpan, index: number): boolean => {
+          const next: ts.TemplateSpan | undefined =
+            node.templateSpans[index + 1];
+
+          return (
+            next !== undefined &&
+            LONE_BREAKING_SPACE.test(span.literal.text) &&
+            writesAParameter(next.expression, parameters)
+          );
+        },
+      )
+    ) {
+      found = true;
+      return;
+    }
+
+    // `count + " " + word`
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
+      writesAParameter(node.right, parameters) &&
+      ts.isBinaryExpression(node.left) &&
+      node.left.operatorToken.kind === ts.SyntaxKind.PlusToken &&
+      ts.isStringLiteralLike(node.left.right) &&
+      LONE_BREAKING_SPACE.test(node.left.right.text)
+    ) {
+      found = true;
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(body);
+
+  return found;
+};
+
+const parseSource: (data: {
+  file: string;
+  source: string;
+}) => ts.SourceFile = (data: {
+  file: string;
+  source: string;
+}): ts.SourceFile => {
+  return ts.createSourceFile(
+    data.file,
+    data.source,
+    ts.ScriptTarget.Latest,
+    true,
+    data.file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+};
+
+/*
+ * The helpers `source` defines that write a figure, a plain space and a
+ * word handed to them: a function, a const holding one, or a method.
+ */
+const findPluralHelpers: (data: {
+  file: string;
+  source: string;
+}) => ReadonlySet<string> = (data: {
+  file: string;
+  source: string;
+}): ReadonlySet<string> => {
+  const helpers: Set<string> = new Set<string>();
+
+  if (!MAY_WRITE_A_WORD_AFTER_A_FIGURE.test(data.source)) {
+    return helpers;
+  }
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    let name: string | undefined = undefined;
+    let fn: ts.SignatureDeclaration | undefined = undefined;
+
+    if (
+      (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) &&
+      node.name &&
+      ts.isIdentifier(node.name)
+    ) {
+      name = node.name.text;
+      fn = node;
+    }
+
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      (ts.isArrowFunction(node.initializer) ||
+        ts.isFunctionExpression(node.initializer))
+    ) {
+      name = node.name.text;
+      fn = node.initializer;
+    }
+
+    if (
+      name !== undefined &&
+      fn !== undefined &&
+      (fn as ts.FunctionLikeDeclaration).body !== undefined &&
+      writesAFigureAndAParameter(
+        (fn as ts.FunctionLikeDeclaration).body as ts.Node,
+        parameterNamesOf(fn.parameters),
+      )
+    ) {
+      helpers.add(name);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(parseSource(data));
+
+  return helpers;
+};
+
+// The repository file an import names: "./Words", "Common/Utils/Words".
+const resolveImport: (file: string, specifier: string) => string | undefined = (
+  file: string,
+  specifier: string,
+): string | undefined => {
+  let base: string | undefined = undefined;
+
+  if (specifier.startsWith(".")) {
+    base = path.posix.normalize(
+      path.posix.join(path.posix.dirname(file), specifier),
+    );
+  } else if (specifier.startsWith("Common/")) {
+    base = `packages/${specifier}`;
+  }
+
+  if (base === undefined) {
+    return undefined;
+  }
+
+  return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, base].find(
+    (candidate: string): boolean => {
+      return fs.existsSync(path.join(REPOSITORY_ROOT, candidate));
+    },
+  );
+};
+
+/*
+ * Every call in `source` that hands a plural helper a duration's word, and
+ * that withDurationWordsHeld does not wrap. `helpersOf` names the helpers
+ * a file defines.
+ */
+const findPluralHelperCalls: (data: {
+  file: string;
+  source: string;
+  helpersOf: (file: string) => ReadonlySet<string>;
+}) => Array<UnitFinding> = (data: {
+  file: string;
+  source: string;
+  helpersOf: (file: string) => ReadonlySet<string>;
+}): Array<UnitFinding> => {
+  if (!MAY_HAND_A_DURATION_WORD.test(data.source)) {
+    return [];
+  }
+
+  const sourceFile: ts.SourceFile = parseSource(data);
+  const findings: Array<UnitFinding> = [];
+  // The names a call here reaches a helper by: its own, and those it imports.
+  const callable: Set<string> = new Set<string>(data.helpersOf(data.file));
+  // A module imported whole, by the name it is read through: `Words.plural`.
+  const modules: Map<string, ReadonlySet<string>> = new Map<
+    string,
+    ReadonlySet<string>
+  >();
+
+  for (const statement of sourceFile.statements) {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      !statement.importClause
+    ) {
+      continue;
+    }
+
+    const imported: string | undefined = resolveImport(
+      data.file,
+      statement.moduleSpecifier.text,
+    );
+
+    if (imported === undefined) {
+      continue;
+    }
+
+    const helpers: ReadonlySet<string> = data.helpersOf(imported);
+
+    if (helpers.size === 0) {
+      continue;
+    }
+
+    const clause: ts.ImportClause = statement.importClause;
+
+    if (clause.name) {
+      modules.set(clause.name.text, helpers);
+    }
+
+    if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+      modules.set(clause.namedBindings.name.text, helpers);
+    }
+
+    if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+      for (const element of clause.namedBindings.elements) {
+        if (helpers.has((element.propertyName || element.name).text)) {
+          callable.add(element.name.text);
+        }
+      }
+    }
+  }
+
+  const reachesAHelper: (callee: ts.Expression) => boolean = (
+    callee: ts.Expression,
+  ): boolean => {
+    if (ts.isIdentifier(callee)) {
+      return callable.has(callee.text);
+    }
+
+    if (ts.isPropertyAccessExpression(callee)) {
+      // `this.plural`, `Words.plural`: a method here, or one of a module read whole.
+      if (
+        ts.isIdentifier(callee.expression) &&
+        modules.get(callee.expression.text)?.has(callee.name.text)
+      ) {
+        return true;
+      }
+
+      return data.helpersOf(data.file).has(callee.name.text);
+    }
+
+    return false;
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      reachesAHelper(node.expression) &&
+      node.arguments.some((argument: ts.Expression): boolean => {
+        return isDurationWordChoice(argument);
+      }) &&
+      !isHeldByAWrapper(node)
+    ) {
+      findings.push({
+        file: data.file,
+        line:
+          sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
+            .line + 1,
+        text: node
+          .getText(sourceFile)
+          .replace(WHITESPACE_RUN, " ")
+          .slice(0, 120),
+      });
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return findings;
+};
+
+interface PluralScanResult extends ScanResult {
+  helpers: Record<string, ReadonlyArray<string>>;
+}
+
+let pluralScanResult: PluralScanResult | undefined = undefined;
+
+// Every page's file read twice: for the helpers, then for the calls.
+const readAllPluralHelperCalls: () => PluralScanResult =
+  (): PluralScanResult => {
+    if (pluralScanResult) {
+      return pluralScanResult;
+    }
+
+    const sources: Map<string, string> = new Map<string, string>();
+    const filesRead: Record<string, number> = {};
+
+    for (const scope of WORD_SCAN_SCOPES) {
+      filesRead[scope] = 0;
+
+      for (const filePath of listSourceFiles(
+        path.join(REPOSITORY_ROOT, scope),
+      )) {
+        const file: string = toRelativePath(REPOSITORY_ROOT, filePath);
+
+        if (TEST_FILE.test(file)) {
+          continue;
+        }
+
+        filesRead[scope] = (filesRead[scope] || 0) + 1;
+        sources.set(file, fs.readFileSync(filePath, "utf8"));
+      }
+    }
+
+    const helpers: Map<string, ReadonlySet<string>> = new Map<
+      string,
+      ReadonlySet<string>
+    >();
+
+    for (const [file, source] of sources) {
+      const found: ReadonlySet<string> = findPluralHelpers({ file, source });
+
+      if (found.size > 0) {
+        helpers.set(file, found);
+      }
+    }
+
+    const helpersOf: (file: string) => ReadonlySet<string> = (
+      file: string,
+    ): ReadonlySet<string> => {
+      return helpers.get(file) || new Set<string>();
+    };
+
+    const findings: Array<UnitFinding> = [];
+
+    for (const [file, source] of sources) {
+      findings.push(...findPluralHelperCalls({ file, source, helpersOf }));
+    }
+
+    pluralScanResult = {
+      findings,
+      filesRead,
+      helpers: Object.fromEntries(
+        [...helpers.entries()].map(
+          ([file, names]: [string, ReadonlySet<string>]): [
+            string,
+            ReadonlyArray<string>,
+          ] => {
+            return [file, [...names].sort()];
+          },
+        ),
+      ),
+    };
+
+    return pluralScanResult;
+  };
+
+// The line and text of each call in a made-up source, its helpers its own.
+const pluralLinesOf: (source: string) => Array<string> = (
+  source: string,
+): Array<string> => {
+  const file: string = "packages/App/FeatureSet/Dashboard/src/Made.tsx";
+  const helpers: ReadonlySet<string> = findPluralHelpers({ file, source });
+
+  return findPluralHelperCalls({
+    file,
+    source,
+    helpersOf: (): ReadonlySet<string> => {
+      return helpers;
+    },
+  }).map((finding: UnitFinding): string => {
+    return `${finding.line} ${finding.text}`;
+  });
+};
+
+describe("a helper handed a duration's word holds it to its figure (#8823)", () => {
+  test("no page's call hands a plural helper a duration's word to write with a plain space", () => {
+    const { findings } = readAllPluralHelperCalls();
+
+    expect(
+      findings
+        .filter((finding: UnitFinding): boolean => {
+          return PLURAL_CALLS_AS_WRITTEN[finding.file] === undefined;
+        })
+        .map((finding: UnitFinding): string => {
+          return `${finding.file}:${finding.line} ${finding.text}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("a listed file still hands one a duration's word: the list only shrinks, each with why", () => {
+    const { findings } = readAllPluralHelperCalls();
+
+    for (const [file, reason] of Object.entries(PLURAL_CALLS_AS_WRITTEN)) {
+      expect({
+        file,
+        exists: fs.existsSync(path.join(REPOSITORY_ROOT, file)),
+        stillHands: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, exists: true, stillHands: true });
+      expect(reason.length).toBeGreaterThan(10);
+    }
+  });
+
+  test("the helpers the issue named are found, and the page's call to one is held", () => {
+    const { findings, helpers } = readAllPluralHelperCalls();
+
+    expect(helpers["packages/Common/Types/AI/AIAgentRunLimits.ts"]).toContain(
+      "plural",
+    );
+    expect(helpers["packages/Common/Utils/Slo/SloOverviewText.ts"]).toContain(
+      "pluralize",
+    );
+    expect(
+      findings.filter((finding: UnitFinding): boolean => {
+        return finding.file === "packages/Common/Utils/Slo/SloOverviewText.ts";
+      }),
+    ).toEqual([]);
+  });
+
+  test("the scan reads the pages, the shared code and Common/Types", () => {
+    const { filesRead } = readAllPluralHelperCalls();
+
+    expect(filesRead["packages/Common/Types"]).toBeGreaterThan(500);
+    expect(filesRead["packages/App/FeatureSet/Dashboard/src"]).toBeGreaterThan(
+      2000,
+    );
+  });
+});
+
+describe("negative controls: the plural helper scan catches what it is for", () => {
+  test("a helper handed a duration's word, however it is written and called", () => {
+    expect(
+      pluralLinesOf(
+        [
+          "function plural(count: number, one: string, other: string): string {",
+          "  return `${formatCount(count)} ${count === 1 ? one : other}`;",
+          "}",
+          "const pluralize = (count: number, singular: string): string => {",
+          "  return `${count} ${count === 1 ? singular : `${singular}s`}`;",
+          "};",
+          "const joined = (count: number, word: string): string => {",
+          '  return count + " " + word;',
+          "};",
+          "class Words {",
+          "  public static count(n: number, word: string): string {",
+          "    return `${n} ${word}`;",
+          "  }",
+          "  public read(): string {",
+          '    return Words.count(5, "days") + this.count(2, "hours");',
+          "  }",
+          "}",
+          'const a: string = plural(5, "minute", "minutes");',
+          'const b: string = `Every ${pluralize(30, "day")}`;',
+          'const c: string = joined(2, "weeks");',
+          'const d: string = plural(n, "second", n === 2 ? "seconds" : "secs");',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '15 Words.count(5, "days")',
+      '15 this.count(2, "hours")',
+      '18 plural(5, "minute", "minutes")',
+      '19 pluralize(30, "day")',
+      '20 joined(2, "weeks")',
+      '21 plural(n, "second", n === 2 ? "seconds" : "secs")',
+    ]);
+  });
+
+  test("a held call, another word, a held helper or no helper at all is none of this rule's", () => {
+    expect(
+      pluralLinesOf(
+        [
+          "const pluralize = (count: number, singular: string): string => {",
+          "  return `${count} ${count === 1 ? singular : `${singular}s`}`;",
+          "};",
+          "const held = (count: number, word: string): string => {",
+          "  return `${count}\\u00A0${word}`;",
+          "};",
+          "const holds = (count: number, word: string): string => {",
+          "  return withDurationWordsHeld(`${count} ${word}`);",
+          "};",
+          "const label = (name: string, word: string): string => {",
+          "  return `${name}: ${word}`;",
+          "};",
+          'const a: string = withDurationWordsHeld(pluralize(30, "day"));',
+          'const b: string = pluralize(3, "monitor");',
+          'const c: string = held(5, "minutes");',
+          'const c2: string = holds(5, "minutes");',
+          'const d: string = moment().add(5, "days").toString();',
+          'const e: string = label("Window", "days");',
+          '// const f: string = pluralize(30, "day");',
+          'const g: string = `Every ${withDurationWordsHeld(pluralize(n, "hour"))}`;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("an import is followed to the file it names", () => {
+    expect(
+      resolveImport(
+        "packages/Common/Utils/Slo/SloOverviewTextInLanguage.ts",
+        "./SloOverviewText",
+      ),
+    ).toBe("packages/Common/Utils/Slo/SloOverviewText.ts");
+    expect(
+      resolveImport(
+        "packages/App/FeatureSet/Dashboard/src/Made.tsx",
+        "Common/Types/AI/AIAgentRunLimits",
+      ),
+    ).toBe("packages/Common/Types/AI/AIAgentRunLimits.ts");
+    expect(
+      resolveImport("packages/Common/Utils/Made.ts", "react"),
+    ).toBeUndefined();
   });
 });

@@ -1,5 +1,6 @@
 import AiResourceType from "../ResourceAiAgent/AiResourceType";
 import { ResourceAiAccessStatus } from "../ResourceAiAgent/ResourceAiAccess";
+import { CloudWritePathProblem } from "../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 
 /*
  * The dashboard-facing calls behind an infrastructure resource's AI pages
@@ -53,6 +54,16 @@ export interface ResourceAiAccessTestResponse {
   results: Array<ResourceAiAccessTestCommandResult>;
   // The status after the test (it may have changed "Last verified").
   status: ResourceAiAccessStatus;
+  /*
+   * A cloud account's agent that reads, but whose every change would fail
+   * as it is set up: its write role, identity or account cannot be used
+   * (CloudWritePathProblem, from the first line of cloud whoami's output).
+   * The commands worked, so ok is true, and message says what to fix; the
+   * page says it in amber instead of "The connection works". Absent when
+   * changes can run, and for an agent too old to say, whose test reads as
+   * it always did.
+   */
+  writePathProblem?: CloudWritePathProblem | undefined;
 }
 
 // POST /resource-ai-access/reset-agent.
@@ -139,6 +150,13 @@ export interface ResourceAiLogFix {
    * a fix that waited for approval ran. Absent when nobody approved it.
    */
   approvedByName?: string | undefined;
+  /*
+   * A fix that waits for approval, and was approved once already: when the
+   * first of the two approvals a riskier fix needs was given, so the page
+   * says it waits for a second (Project.requireTwoApprovalsForRiskierFixes).
+   * Absent on every other fix.
+   */
+  firstApprovedAt?: string | undefined;
   incidentId?: string | undefined;
   alertId?: string | undefined;
 }

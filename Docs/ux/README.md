@@ -106,6 +106,10 @@ and phone summary: change the suite in the same pull request as the menu.
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
   [SettingsFoundByName](../../packages/App/Tests/Dashboard/SettingsFoundByName.test.ts).
+- **Search matches only words the page shows.** A key that names its meaning, such as `"Insights
+  (explorer analytics)"`, is searched as the word the Dashboard draws ("Insights"). Its note to
+  translators finds nothing, in any language. Enforced by
+  [PageSearchMeaningKeysAsEnglish](../../packages/App/Tests/Dashboard/PageSearchMeaningKeysAsEnglish.test.ts).
 
 ### A record's overview
 
@@ -494,13 +498,6 @@ work out, starts from a default for everything else, and folds what most people 
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
-- **A sample project says what it is on every page.** It is the one bar a project shows on every
-  page, because there the project itself is the exception: nobody may take its made-up incidents
-  for their own (#6808). One dark bar at the top says "This is a sample project. Nothing here is
-  real, and nobody is notified.", with the ways out (back to their own project, Delete Sample
-  Project) and How OneUptime works, and it is drawn for a sample alone. Enforced by
-  [SampleProjectBar](../../packages/Common/Tests/App/Dashboard/SampleProjectBar.test.tsx) and
-  [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
   cursor. Enforced by
   [HandDrawnButtonLockedLookGuard](../../packages/Common/Tests/UI/HandDrawnButtonLockedLookGuard.test.ts).
@@ -719,11 +716,23 @@ work out, starts from a default for everything else, and folds what most people 
   English key drawn as written holds its figure (a page's `translateText`, `useTranslateValue`),
   and so does an email's English - a mail client draws a no-break space as a browser does
   (`getServerTranslator(language, { readByAPerson: true })`). Danish and Norwegian hold a count
-  written as an ordinal too ("Hvert 5. minut"). Enforced by
+  written as an ordinal too ("Hvert 5. minut"). A helper handed the word
+  (`plural(count, "minute", "minutes")`, `pluralize(count, "day")`) holds what it writes on a page
+  (`withDurationWordsHeld`, #8823), and a unit's symbol a formatter writes beside a figure is held
+  however short it is: a disk's "12.5 ms", "ops/s", a transceiver's "V" and "mA" (#8803), an
+  amount of money ("20 USD") and a span's English duration ("12 ms", #8826); a CSV cell and a log
+  line keep their plain space. Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
-  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
-  and
-  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts).
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts),
+  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts),
+  [DurationWordsHeldInSentences](../../packages/Common/Tests/App/DurationWordsHeldInSentences.test.ts)
+  (a sentence built in code, #8695),
+  [TranslatedDurationWordsHeld](../../packages/Common/Tests/App/TranslatedDurationWordsHeld.test.ts)
+  (a wording and a page's English, #8770),
+  [TranslationHoldsEnglishDurations](../../packages/Common/Tests/UI/Utils/TranslationHoldsEnglishDurations.test.tsx)
+  (an English key a page draws as written, #8811) and
+  [PageEnglishDurationsHeld](../../packages/App/Tests/Notification/PageEnglishDurationsHeld.test.ts)
+  (a module's own English fallback, and an email's English, #8811).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
@@ -1104,7 +1113,8 @@ then `npm run i18n:validate` from the root.
 ## Asking people
 
 People who are lost leave quietly, so the product asks them, in five seconds, what was hard
-(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback).
+(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback), and what a
+person writes in Give Feedback also reaches whoever can answer it.
 
 - **Ask at most one question a week, once per question, and never while something is down.** A
   question OneUptime asks goes through `ProductFeedback.ask` (`Common/UI/Utils/ProductFeedback`),
@@ -1119,8 +1129,17 @@ People who are lost leave quietly, so the product asks them, in five seconds, wh
   not, so the product asks none. Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
 - **An answer carries the page as a route with no ids, and the version, and nothing else.** No
-  person, no project, no address. Say where it goes where it is given: to the server's admins on a
-  self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  person, no project, no address: the row kept names nobody. Say where it goes where it is given: to
+  the server's admins on a self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Give Feedback is a message, and reaches someone who can answer it.** The person writes to a team
+  and wants a reply, so the server emails it with their name and email address, their project, the
+  page and the version, copying them, and a reply goes to them (#8893): to the OneUptime team
+  (support@oneuptime.com) on Cloud, and to the server's Admin Notification Email on a self-hosted
+  server, never to OneUptime. A self-hosted server with none emails nothing, and the answer names
+  nobody. The dialog says to whom and with what before anything is sent, names the page as its
+  breadcrumbs do ("SLOs", never the route it sends, "/dashboard/:projectId/slos"), and once sent says
+  only what the server did: "A copy is on its way to you@example.com". Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
 - **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
   and posts what made them hesitate, guess or go back on the epic #6802:

@@ -19,6 +19,13 @@ global:
   imageRegistry: ""
 
 # Please change this to the domain name / IP where OneUptime server is hosted on.
+# An IPv6 address goes in brackets, and in quotes so YAML reads it as text,
+# with any port after the brackets: host: "[2001:db8::1]" or
+# host: "[2001:db8::1]:8080". The chart refuses a host OneUptime cannot be
+# opened at, and says what to set: an IPv6 address without brackets, a web
+# address instead of the address alone, a port that is not a number from 1 to
+# 65535, or a name with a character no domain name has, such as
+# oneuptime,example.com.
 host: localhost
 httpProtocol: http
 ssl:
@@ -57,7 +64,7 @@ image:
 
   ## Image references that replace the ones this chart builds, by image:
   ## app, nginx, probe, runner, home, test, postgres, clickhouse,
-  ## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. Each is either a full
+  ## clickhouseKeeper, valkey, pgbouncer, vllm, clamav, kubectl. Each is either a full
   ## reference, or {registry, repository, tag | digest} (registry optional).
   ## The marketplace editions of this chart point them at the marketplace's own
   ## registry; on Microsoft Marketplace, global.azure.images does the same.
@@ -1973,13 +1980,28 @@ openTelemetryExporter:
   # never serialized into a frontend env.js response.
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
-  # Write each header as name=value and separate headers with ';'. A value may
-  # hold '=', as a Basic Authorization value does. Nothing is exported without
-  # a header; one OneUptime cannot read is logged as a warning at startup.
+  # Write each header as name=value and separate headers with ';', or with ','
+  # as OTEL_EXPORTER_OTLP_HEADERS does, so a backend's example works as it is.
+  # A value may hold '=', as a Basic Authorization value does. Without a ';',
+  # values are percent-decoded as that standard says (%20 is a space); end the
+  # setting with ';' to send a value exactly as written, or one that holds ','.
+  # Nothing is exported without a header; one OneUptime cannot read is logged
+  # as a warning at startup. Headers set in OTEL_EXPORTER_OTLP_HEADERS (with
+  # extraEnv) count too: the exporters send them as well, under these.
   # The chart hands the value to every pod exactly as set. In a values file,
   # put a value that holds ': ' or ' #' in quotes: YAML reads those itself
   # before the chart sees the value.
   headers:
+  # How OneUptime's own counters and histograms are sent: empty, the
+  # OpenTelemetry default, sends running totals since each process started
+  # (as cumulative does); delta sends what happened since the last point.
+  # Set delta when they go to a OneUptime project: its metrics explorer adds
+  # up the points of each step, so it reads the counts and percentiles of a
+  # time range exactly from deltas only. Keep it empty for a backend that
+  # reads running totals itself, such as Prometheus. Every workload that sends
+  # OneUptime's own telemetry gets it, as
+  # OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE.
+  metricsTemporality:
   # Optional. Reported as k8s.cluster.name on OneUptime's own telemetry so its
   # pods group under this cluster in Topology. Pods always report their pod,
   # namespace, node and deployment names; the cluster name is not visible from
@@ -2151,6 +2173,9 @@ externalPostgres:
   host:
   port:
   username:
+  # Read from a file (helm --set-file, Terraform's file()), the password is
+  # stored without the line ending the file ends with, "\n" or "\r\n", and
+  # otherwise exactly as written: a space it begins or ends with is kept.
   password:
   # If you're using an existing secret for the password, please use this instead of password.
   existingSecret:
@@ -2178,6 +2203,8 @@ externalValkey:
   host:
   port:
   username:
+  # Read from a file, the password is stored without the line ending the file
+  # ends with, and otherwise exactly as written, as externalPostgres.password.
   password:
   ipFamily:
   # If you're using an existing secret for the password, please use this instead of password.
@@ -2206,6 +2233,8 @@ externalClickhouse:
   isHostHttps: false
   port:
   username:
+  # Read from a file, the password is stored without the line ending the file
+  # ends with, and otherwise exactly as written, as externalPostgres.password.
   password:
   ## OneUptime's analytics schema is always a sharded + replicated cluster. Set
   ## this to the name of the cluster you defined in your external ClickHouse
@@ -2306,8 +2335,8 @@ app:
   # How each app pod shares that pool, so queue jobs and probes can never take
   # every connection sign-ins and dashboards need (see "Size the Postgres
   # connections" in docs/production-checklist.md). Of a pool of 50, by
-  # default: probe scheduling - the monitors, monitor tests and network
-  # devices probes are handed, and their pending counts - runs at most 10
+  # default: probe scheduling - every request a probe makes for work, and
+  # the pending counts - runs at most 10
   # requests at once (a fifth of the pool, half of that for one probe), and
   # the queue jobs this pod runs while worker.enabled is false hold at most
   # 30 connections (the pool less a fifth kept for requests and less probe
@@ -2381,6 +2410,12 @@ app:
     http: 3002
     grpc: 4317
     mqtt: 1883
+  # Pod resources. Every Node.js service (this one, worker, probes, home,
+  # telemetryWriter, nginx's sidecar, globalRunner, migrate) sizes its heap to
+  # resources.limits.memory: three quarters of it, 256 MB to 8096 MB, and
+  # 8096 MB without a limit. A --max-old-space-size in the service's
+  # NODE_OPTIONS (extraEnv) wins: see docs/configuration.md, "Example: the
+  # Node.js heap".
   resources:
   nodeSelector: {}
   podSecurityContext: {}
@@ -2658,6 +2693,21 @@ globalRunner:
   # How many steps each replica runs at the same time. A project runs at most
   # three of its steps on global Runners at once, whatever this says.
   concurrency: 4
+  # Keep Forgejo, Gitea and Git repositories off global Runners, as OneUptime
+  # Cloud does, and the GitLab ones GitLab makes no short-lived token for.
+  # OneUptime opens an AI code fix's pull request itself, so the token a global
+  # Runner pushes with is narrow: a GitHub repository's is minted for that one
+  # repository, a GitLab repository's is a project access token made for that
+  # one fix (GitLab makes one for a connection token of someone with the
+  # Maintainer role and the api scope, on GitLab self-managed or GitLab.com
+  # Premium or Ultimate), and both are revoked when the fix ends. OneUptime
+  # cannot make such a token on Forgejo, Gitea or Git, so a global Runner
+  # would get the connection's own long-lived token. Turn this on when this
+  # install serves several tenants whose code must stay apart: those
+  # repositories' code fixes then need one of the project's own Runners.
+  # GitHub repositories, and every repository on a single-tenant install, are
+  # unchanged. (The name is from before GitLab's short-lived tokens.)
+  codeFixGitHubOnly: false
   disableTelemetryCollection: false
   enableProfiling: false
   # The global Runner's key (optional — generated and kept in the release
@@ -2678,6 +2728,26 @@ globalRunner:
   # chart-wide value (they are not merged).
   affinity: {}
   topologySpreadConstraints: []
+  # Each JavaScript step runs in a process of its own, as a user of its own
+  # and with no network of its own:
+  #   - A user of its own: the image's sandbox launcher switches the step's
+  #     process to that user. A context of your own (here, or the chart-wide
+  #     containerSecurityContext) must leave it able to: keep
+  #     allowPrivilegeEscalation true (the default) and the SETUID and SETGID
+  #     capabilities, for example
+  #       capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID"] }
+  #     Without them steps still run in their own process, but as the Runner's
+  #     user, and the Runner's log says so.
+  #   - No network of its own: the image's no-network filter sets a seccomp
+  #     filter that lets the step's process open no socket, so code that got
+  #     out of a step's sandbox reaches nothing by itself - not this cluster,
+  #     the Kubernetes API or a cloud metadata endpoint. It needs no privilege
+  #     and no capability, only a seccomp profile that lets a process filter
+  #     its own system calls (Kubernetes' RuntimeDefault, which OpenShift's
+  #     restricted SCC requires; Docker Compose's default). The step's HTTP
+  #     goes through the Runner to public addresses only either way. A profile
+  #     that forbids seccomp filters leaves the step on this pod's network;
+  #     the Runner's log and the Admin Dashboard say so.
   containerSecurityContext: {}
   # Extra env / volumes for the global Runner. Unlike every other service, it
   # never takes the chart-wide extraEnv/extraVolumes/extraVolumeMounts: those
@@ -2707,6 +2777,30 @@ globalRunner:
     fallback:
       failureThreshold: 3
       replicas: 1
+
+# Malware scanning of the files people send OneUptime - a public form's
+# files, and the files people upload while signed in or with an API key - with
+# ClamAV. Off by default: files are stored without a scan, as before. While it
+# is on, a file ClamAV flags is refused, saying which, and every file is
+# refused while ClamAV does not answer, so no file is stored unchecked.
+clamav:
+  # Run ClamAV in the cluster (a Deployment and a Service) and scan with it.
+  enabled: false
+  # Or scan with a ClamAV daemon (clamd) of your own: its address. Used only
+  # while enabled is false; empty scans nothing.
+  host: ""
+  port: 3310
+  image:
+    repository: clamav/clamav
+    tag: "1.4"
+    pullPolicy: IfNotPresent
+  # ClamAV keeps its signatures in memory: about 2 GiB, more while it reloads them.
+  resources:
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 # vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.

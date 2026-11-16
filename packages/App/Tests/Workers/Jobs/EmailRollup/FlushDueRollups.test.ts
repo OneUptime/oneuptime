@@ -21,22 +21,22 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  *      built entirely from partials.
  *
  *   3. THE TIMEOUT MUST BE EXPLICIT AND CORRECTLY ORDERED. It has to sit above
- *      the sweep's own wall-clock budget (so a healthy tick is never killed
- *      part way through a bucket, after rows are stamped and before they are
- *      sent), below JobDictionary's five-minute default (so it is a decision
- *      rather than an inheritance), and below the sweep lock (which must
- *      outlive it, because QueueWorker.runJobWithTimeout races the job body
- *      without cancelling it).
+ *      the sweep's own wall-clock budget (so a healthy tick is never stopped
+ *      part way through its buckets) and below JobDictionary's five-minute
+ *      default (so it is a decision rather than an inheritance).
  *
- *   4. THE TICK MUST AWAIT THE SWEEP. A tick that fires and forgets turns a
- *      failed sweep into a successful job, and BullMQ then records nothing at
- *      all when rollups stop going out.
+ *   4. THE TICK MUST AWAIT THE SWEEP, AND HAND IT THE RUN'S DEADLINE. A tick
+ *      that fires and forgets turns a failed sweep into a successful job, and
+ *      BullMQ then records nothing at all when rollups stop going out. The
+ *      deadline is what stops the sweep between buckets at the time limit or
+ *      once the run's lease is lost; RunCron runs one sweep at a time, so the
+ *      runner takes no lock of its own (issue #8103).
  *
  * The Cron util is mocked to CAPTURE the registration rather than enqueue it,
  * which is the recorder the other App/Tests/Workers/Jobs suites use.
  */
 
-type CronHandler = () => Promise<void>;
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 interface CronOptions {
   schedule: string;
@@ -58,7 +58,7 @@ interface CapturedJob {
  * been initialised.
  */
 const mockCapturedJobs: Array<CapturedJob> = [];
-const mockRunSweepUnderLock: jest.Mock = jest.fn();
+const mockRunSweep: jest.Mock = jest.fn();
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
@@ -118,7 +118,7 @@ jest.mock("Common/Server/Utils/EmailRollup/EmailRollupFlushRunner", () => {
   return {
     __esModule: true,
     default: {
-      runSweepUnderLock: mockRunSweepUnderLock,
+      runSweep: mockRunSweep,
     },
   };
 });
@@ -128,8 +128,9 @@ import {
   ROLLUP_JOB_NAME,
   ROLLUP_JOB_TIMEOUT_MS,
   ROLLUP_SWEEP_BUDGET_MS,
-  ROLLUP_SWEEP_LOCK_TIMEOUT_MS,
 } from "Common/Server/Utils/EmailRollup/EmailRollupConstants";
+import * as EmailRollupConstants from "Common/Server/Utils/EmailRollup/EmailRollupConstants";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import "../../../../FeatureSet/Workers/Jobs/EmailRollup/FlushDueRollups";
 
@@ -169,8 +170,8 @@ function capturedJob(): CapturedJob {
 }
 
 beforeEach(() => {
-  mockRunSweepUnderLock.mockReset();
-  mockRunSweepUnderLock.mockResolvedValue(null as never);
+  mockRunSweep.mockReset();
+  mockRunSweep.mockResolvedValue({} as never);
 });
 
 describe("FlushDueRollups - the job is wired into the worker at all", () => {
@@ -218,7 +219,7 @@ describe("FlushDueRollups - registration", () => {
     expect(capturedJob().options.runOnStartup).toBe(false);
   });
 
-  test("registers an explicit timeout that clears the budget and stays under the lock", () => {
+  test("registers an explicit timeout that clears the sweep's own budget", () => {
     const timeoutInMS: number | undefined = capturedJob().options.timeoutInMS;
 
     // Explicit, not inherited from JobDictionary's default.
@@ -227,36 +228,56 @@ describe("FlushDueRollups - registration", () => {
     expect(timeoutInMS).not.toBe(DEFAULT_JOB_TIMEOUT_IN_MS);
     expect(timeoutInMS!).toBeLessThan(DEFAULT_JOB_TIMEOUT_IN_MS);
 
-    // Above the sweep's own wall-clock budget...
+    // Above the sweep's own wall-clock budget.
     expect(timeoutInMS!).toBeGreaterThan(ROLLUP_SWEEP_BUDGET_MS);
+  });
 
-    /*
-     * ...and below the sweep lock, which has to outlive it because
-     * QueueWorker.runJobWithTimeout races the job body without cancelling it.
-     */
-    expect(ROLLUP_SWEEP_LOCK_TIMEOUT_MS).toBeGreaterThan(timeoutInMS!);
+  /*
+   * RunCron runs one sweep at a time (CronLock): the runner's own lock, and
+   * the constants that sized it, are gone (issue #8103).
+   */
+  test("leaves one sweep at a time to RunCron: there is no sweep lock to size any more", () => {
+    expect(Object.keys(EmailRollupConstants)).not.toContain(
+      "ROLLUP_SWEEP_LOCK_TIMEOUT_MS",
+    );
+    expect(Object.keys(EmailRollupConstants)).not.toContain(
+      "ROLLUP_SWEEP_LOCK_NAMESPACE",
+    );
+    expect(capturedJob().options).not.toHaveProperty("allowOverlap");
   });
 });
 
 describe("FlushDueRollups - what one tick does", () => {
-  test("delegates to EmailRollupFlushRunner.runSweepUnderLock exactly once, with no arguments", async () => {
+  test("delegates to EmailRollupFlushRunner.runSweep exactly once, handing it the run's deadline", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+
+    await capturedJob().runFunction(deadline);
+
+    expect(mockRunSweep).toHaveBeenCalledTimes(1);
+    // The runner picks `now` itself; the job hands it only its deadline.
+    expect(mockRunSweep.mock.calls[0]).toEqual([{ deadline: deadline }]);
+  });
+
+  test("run outside the queue, it hands the runner a deadline that never passes", async () => {
     await capturedJob().runFunction();
 
-    expect(mockRunSweepUnderLock).toHaveBeenCalledTimes(1);
-    // The runner picks `now` itself; the job passes nothing.
-    expect(mockRunSweepUnderLock.mock.calls[0]).toEqual([]);
+    const handed: { deadline: JobDeadline } = mockRunSweep.mock
+      .calls[0]![0] as { deadline: JobDeadline };
+
+    expect(handed.deadline).toBeInstanceOf(JobDeadline);
+    expect(handed.deadline.hasPassed()).toBe(false);
   });
 
   test("awaits the sweep, so a failed tick is a failed job rather than a silent one", async () => {
     const failure: Error = new Error("sweep failed");
 
-    mockRunSweepUnderLock.mockRejectedValue(failure as never);
+    mockRunSweep.mockRejectedValue(failure as never);
 
     await expect(capturedJob().runFunction()).rejects.toThrow(failure);
   });
 
-  test("a skipped tick (lock held, runner returns null) is a successful job", async () => {
-    mockRunSweepUnderLock.mockResolvedValue(null as never);
+  test("a sweep that stopped at its deadline is a successful job", async () => {
+    mockRunSweep.mockResolvedValue({ stoppedAtDeadline: true } as never);
 
     await expect(capturedJob().runFunction()).resolves.toBeUndefined();
   });

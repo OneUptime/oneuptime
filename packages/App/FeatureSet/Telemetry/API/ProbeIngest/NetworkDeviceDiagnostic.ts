@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
@@ -10,6 +11,7 @@ import NetworkDeviceHydrationUtil, {
   ResolvedSnmpCredentialsForBatch,
 } from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -95,7 +97,7 @@ function isJsonObject(value: unknown): value is JSONObject {
  * renders at the next poll.
  *
  * A failure to record is logged, never thrown: the rest of the batch was
- * claimed in the same transaction and must still reach the probe, or every
+ * claimed by the same statement and must still reach the probe, or every
  * diagnostic in it would sit In Progress until retention removes it.
  */
 async function failClaimedDiagnostic(data: {
@@ -313,7 +315,7 @@ function buildSnmpWalkJob(data: {
  * SNMP walks from the device's SNMP Walk page) as
  * `{ diagnostics: Array<NetworkDeviceDiagnosticJob> }`.
  *
- * Claiming is atomic (FOR UPDATE SKIP LOCKED, see
+ * Claiming is atomic (one statement, FOR NO KEY UPDATE SKIP LOCKED, see
  * NetworkDeviceDiagnosticService.claimPendingForProbe) so replicas of the
  * same probe never run the same diagnostic twice, and marks the rows
  * In Progress. A claimed row the probe could not run — no hostname, or a
@@ -329,6 +331,17 @@ function buildSnmpWalkJob(data: {
 router.post(
   "/probe/network-device-diagnostic/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  /*
+   * Under the probe scheduling limit (issue #8051); a refused request claims
+   * nothing and is answered busy (ProbeSchedulingMiddleware): the
+   * diagnostics stay Pending for the probe's next tick, ten seconds on.
+   */
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendJsonObjectResponse(req, res, { diagnostics: [] });
+    },
+    { retriesWhenBusy: ProbeCapability.RetryAllWorkWhenBusy },
+  ),
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,

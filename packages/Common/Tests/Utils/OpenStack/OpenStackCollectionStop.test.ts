@@ -248,7 +248,6 @@ const CLAUSES: Record<string, ClauseReading> = {
   },
   'p."deletedAt" IS NULL': { kind: "not shown" },
   'p."isBlocked" = false': { kind: "not shown" },
-  'p."isSampleProject" = false': { kind: "not shown" },
   '(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))':
     { kind: "not shown" },
   '(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))':

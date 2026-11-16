@@ -10,11 +10,11 @@ import { readAuditLogChange } from "Common/Utils/AuditLog/AuditLogTypedValues";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
 import { getAuditLogActionLabel } from "Common/Types/AuditLog/AuditLogActionLabel";
 import {
-  AUDIT_LOG_SESSION_FIELD_LABELS,
   AUDIT_LOG_SESSION_FIELDS,
   AUDIT_LOG_SESSION_TIME_FIELDS,
   AuditLogSessionField,
   getSessionEntryValueInLanguage,
+  getSessionFieldLabel,
   isSessionAuditLogAction,
   readSessionEntryFields,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
@@ -175,9 +175,12 @@ export interface SessionDetailRow {
 export const readSessionDetailRows: (
   changes: unknown,
   translator?: Translator | undefined,
+  // The entry's action: a failed sign-in calls some fields its own way.
+  action?: string | undefined,
 ) => Array<SessionDetailRow> = (
   changes: unknown,
   translator?: Translator | undefined,
+  action?: string | undefined,
 ): Array<SessionDetailRow> => {
   const fields: Map<AuditLogSessionField, string> =
     readSessionEntryFields(changes);
@@ -190,7 +193,7 @@ export const readSessionDetailRows: (
       continue;
     }
 
-    const label: string = AUDIT_LOG_SESSION_FIELD_LABELS[field];
+    const label: string = getSessionFieldLabel({ field, action });
 
     rows.push({
       field: field,
@@ -267,6 +270,7 @@ export const AUDIT_LOG_CHANGES_DESCRIPTIONS: Readonly<{
   deleted: string;
   downloaded: string;
   signIn: string;
+  signInFailed: string;
   sessionEnd: string;
 }> = {
   details: translationKey("Change details"),
@@ -274,6 +278,7 @@ export const AUDIT_LOG_CHANGES_DESCRIPTIONS: Readonly<{
   deleted: translationKey("Deleted snapshot"),
   downloaded: translationKey("What was downloaded"),
   signIn: translationKey("How and where they signed in"),
+  signInFailed: translationKey("Why and where the sign-in failed"),
   sessionEnd: translationKey("How the session ended"),
 };
 
@@ -299,9 +304,15 @@ export const AUDIT_LOG_NO_FIELD_CHANGES: string = translationKey(
 export const getSessionDetailsDescription: (action: string) => string = (
   action: string,
 ): string => {
-  return action === AuditLogAction.SignIn
-    ? AUDIT_LOG_CHANGES_DESCRIPTIONS.signIn
-    : AUDIT_LOG_CHANGES_DESCRIPTIONS.sessionEnd;
+  if (action === AuditLogAction.SignIn) {
+    return AUDIT_LOG_CHANGES_DESCRIPTIONS.signIn;
+  }
+
+  if (action === AuditLogAction.SignInFailed) {
+    return AUDIT_LOG_CHANGES_DESCRIPTIONS.signInFailed;
+  }
+
+  return AUDIT_LOG_CHANGES_DESCRIPTIONS.sessionEnd;
 };
 
 /*
@@ -391,6 +402,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
     const sessionRows: Array<SessionDetailRow> = readSessionDetailRows(
       props.changes,
       translator,
+      props.action,
     );
 
     return (

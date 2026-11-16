@@ -3,6 +3,7 @@ import HTTPMethod from "../../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import Dictionary from "../../../../Types/Dictionary";
+import APIException from "../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
@@ -28,13 +29,17 @@ import WorkspaceMessagePayload, {
 import WorkspaceChannelInvitationPayload from "../../../../Types/Workspace/WorkspaceChannelInvitationPayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
-import API from "../../../../Utils/API";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import { fitTextToLength } from "../../../../Utils/MessageFit";
 import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 import { AppApiClientUrl } from "../../../EnvironmentConfig";
 import logger, { LogAttributes } from "../../Logger";
-import SSRFProtection from "../../SSRFProtection";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+  WebhookAnswerTooLargeException,
+  WebhookTarget,
+} from "../../SafeWebhookRequest";
+import { WebhookTargetValidationOptions } from "../../SSRFProtection";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { NotificationProviderConfig } from "../../Telemetry/NotificationDeliveryMetrics";
@@ -224,6 +229,17 @@ export default class MattermostUtil extends WorkspaceBase {
   // How long one call to a Mattermost server may take before it is given up.
   public static readonly REQUEST_TIMEOUT_IN_MS: number = 15000;
 
+  /*
+   * The most of an answer a call to a Mattermost server reads (issue
+   * #8875). Its answers are small JSON and lists of at most 200 entries,
+   * but one is not paged at all: the channels the bot is in, on a team
+   * (listChannels), which a bot that opens a channel per incident can be in
+   * thousands of. A listing's limit, then, as a Git server's is
+   * (CODE_HOST_MAX_RESPONSE_BYTES): a larger answer is not read, and the
+   * call fails saying so.
+   */
+  public static readonly SERVER_MAX_RESPONSE_BYTES: number = 8 * 1024 * 1024;
+
   // How many channels Mattermost lists in one page.
   private static readonly CHANNELS_PER_PAGE: number = 200;
 
@@ -240,11 +256,12 @@ export default class MattermostUtil extends WorkspaceBase {
    *
    * The server's address was typed by a member of the project, so it is
    * held to what outbound requests from OneUptime may reach before every
-   * call (SSRFProtection) - eligible for the private-network exception a
-   * self-hosted operator may turn on, since Mattermost often runs on the
-   * same private network as OneUptime - and a redirect is never followed:
-   * a public server could otherwise send the call, and the bot's token,
-   * to an internal address.
+   * call (SERVER_TARGET_VALIDATION) - eligible for the private-network
+   * exception a self-hosted operator may turn on, since Mattermost often
+   * runs on the same private network as OneUptime. The call then dials an
+   * address that check approved, and a redirect is never followed
+   * (SafeWebhookRequest): a public server could otherwise send the call,
+   * and the bot's token, to an internal address.
    */
   @CaptureSpan()
   public static async callServer<T extends JSONObject | JSONArray>(data: {
@@ -258,65 +275,47 @@ export default class MattermostUtil extends WorkspaceBase {
     // Whether a call that failed may be made again: only for calls that change nothing, or change nothing twice.
     retry?: boolean | undefined;
   }): Promise<T> {
-    const url: URL = URL.fromString(`${data.serverUrl}${data.path}`);
+    if (!MattermostUtil.SERVER_METHODS.includes(data.method)) {
+      throw new BadDataException(
+        `Mattermost is not called with ${data.method}.`,
+      );
+    }
 
-    await MattermostUtil.assertServerIsReachable(data.serverUrl);
+    const target: WebhookTarget = await MattermostUtil.resolveServerTarget(
+      `${data.serverUrl}${data.path}`,
+    );
 
-    const requestOptions: {
-      url: URL;
-      headers: Dictionary<string>;
-      params?: Dictionary<string>;
-      data?: JSONObject | JSONArray;
-      options: {
-        retries: number;
-        exponentialBackoff: boolean;
-        retryOnlyOnRetryableErrors: boolean;
-        timeout: number;
-        doNotFollowRedirects: boolean;
-      };
-    } = {
-      url: url,
-      headers: {
-        Authorization: `Bearer ${data.accessToken}`,
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      options: {
+    /*
+     * The call dials an address the check approved and no other
+     * (SafeWebhookRequest), so the server's name cannot resolve somewhere
+     * else - with the bot's token on the request - between the check and
+     * the connection. An answer larger than SERVER_MAX_RESPONSE_BYTES is
+     * not read, nor asked for again.
+     */
+    let response: HTTPResponse<T> | HTTPErrorResponse;
+
+    try {
+      response = await SafeWebhookRequest.send<T>(target, {
+        method: data.method,
+        headers: {
+          Authorization: `Bearer ${data.accessToken}`,
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        params: data.query,
+        data: data.body,
         retries: data.retry ? 2 : 0,
         exponentialBackoff: true,
         retryOnlyOnRetryableErrors: true,
         timeout: MattermostUtil.REQUEST_TIMEOUT_IN_MS,
-        doNotFollowRedirects: true,
-      },
-    };
+        maxContentLength: MattermostUtil.SERVER_MAX_RESPONSE_BYTES,
+      });
+    } catch (err) {
+      if (err instanceof WebhookAnswerTooLargeException) {
+        throw new APIException(err.describe("Mattermost's answer"), err);
+      }
 
-    if (data.query) {
-      requestOptions.params = data.query;
-    }
-
-    if (data.body !== undefined) {
-      requestOptions.data = data.body;
-    }
-
-    let response: HTTPResponse<T> | HTTPErrorResponse;
-
-    switch (data.method) {
-      case HTTPMethod.GET:
-        response = await API.get<T>(requestOptions);
-        break;
-      case HTTPMethod.POST:
-        response = await API.post<T>(requestOptions);
-        break;
-      case HTTPMethod.PUT:
-        response = await API.put<T>(requestOptions);
-        break;
-      case HTTPMethod.DELETE:
-        response = await API.delete<T>(requestOptions);
-        break;
-      default:
-        throw new BadDataException(
-          `Mattermost is not called with ${data.method}.`,
-        );
+      throw err;
     }
 
     if (response instanceof HTTPErrorResponse) {
@@ -326,19 +325,37 @@ export default class MattermostUtil extends WorkspaceBase {
     return response.jsonData as T;
   }
 
+  // The methods the server is called with: what Mattermost's API needs.
+  private static readonly SERVER_METHODS: ReadonlyArray<HTTPMethod> = [
+    HTTPMethod.GET,
+    HTTPMethod.POST,
+    HTTPMethod.PUT,
+    HTTPMethod.DELETE,
+  ];
+
   /*
-   * The server's address, refused when OneUptime may not call it: an
-   * address on this machine, the cloud metadata service, or - unless the
-   * operator allowed it - a private network.
+   * The policy the server's address is held to: an address a member of the
+   * project typed, so a private one is allowed where the operator allows
+   * private networks (Mattermost often runs on the same network as
+   * OneUptime), and an address on this machine or the cloud metadata
+   * service never is.
    */
-  public static async assertServerIsReachable(
-    serverUrl: string,
-  ): Promise<void> {
+  public static readonly SERVER_TARGET_VALIDATION: WebhookTargetValidationOptions =
+    {
+      allowPrivateNetworkTargets: true,
+      targetLabel: "Mattermost server address",
+    };
+
+  /*
+   * A URL on the server, checked and resolved: refused, with why, when
+   * OneUptime may not call it (SERVER_TARGET_VALIDATION).
+   */
+  public static async resolveServerTarget(url: string): Promise<WebhookTarget> {
     try {
-      await SSRFProtection.validateWebhookTargetIsSafe(serverUrl, {
-        allowPrivateNetworkTargets: true,
-        targetLabel: "Mattermost server address",
-      });
+      return await SafeWebhookRequest.resolveTarget(
+        url,
+        MattermostUtil.SERVER_TARGET_VALIDATION,
+      );
     } catch (err) {
       throw new BadDataException(WorkspaceBase.getSendErrorMessage(err));
     }
@@ -2130,14 +2147,23 @@ export default class MattermostUtil extends WorkspaceBase {
   }
 
   /*
+   * The rule an incoming webhook's address is held to: strict, public
+   * addresses only, since nothing says a member of the project typed it.
+   */
+  public static readonly INCOMING_WEBHOOK_TARGET_VALIDATION: WebhookTargetValidationOptions =
+    {
+      targetLabel: "Mattermost webhook URL",
+    };
+
+  /*
    * Posts Markdown to an incoming webhook a Mattermost admin made: the
    * message a status page subscriber or a workflow sends. The webhook's
    * address was typed by a person, so it is held to what OneUptime may
-   * reach (SSRFProtection), strictly unless the caller says it was typed by
-   * a member of the project, and a redirect is never followed. Recorded for
-   * the platform's operator (WorkspaceDeliveryMetrics): a success when
-   * Mattermost took it, a failure when it did not, or the address was
-   * refused.
+   * reach (INCOMING_WEBHOOK_TARGET_VALIDATION), the post dials an address
+   * that check approved and no other, and a redirect is never followed
+   * (SafeWebhookRequest). Recorded for the platform's operator
+   * (WorkspaceDeliveryMetrics): a success when Mattermost took it, a
+   * failure when it did not, or the address was refused.
    */
   @CaptureSpan()
   public static override async sendMessageToChannelViaIncomingWebhook(data: {
@@ -2155,21 +2181,19 @@ export default class MattermostUtil extends WorkspaceBase {
         isNotification: data.isNotification,
       },
       async (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
-        await SSRFProtection.validateWebhookTargetIsSafe(data.url.toString(), {
-          targetLabel: "Mattermost webhook URL",
-        });
-
-        return await API.post<JSONObject>({
-          url: data.url,
-          data: {
+        return await SafeWebhookRequest.post<JSONObject>(
+          data.url,
+          {
             text: MattermostUtil.getMessageText(data.text),
           },
-          options: {
+          {
+            validation: MattermostUtil.INCOMING_WEBHOOK_TARGET_VALIDATION,
             retries: 3,
             exponentialBackoff: true,
-            doNotFollowRedirects: true,
+            // Mattermost answers "ok": an endless answer is a failure, unread.
+            maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
           },
-        });
+        );
       },
     );
   }

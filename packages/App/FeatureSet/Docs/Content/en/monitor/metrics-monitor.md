@@ -97,7 +97,7 @@ The longer the window, the wider each time bucket, so one data point stands for 
 ## How it is evaluated
 
 - **Every minute.** A Metrics monitor is not checked by probes, so it has no interval to set and no **Probes & Interval** page.
-- **Queries, then formulas.** Each query returns one data point per time bucket of the time range, using its **Aggregate by**. Formulas are worked out for each bucket from the queries' data points.
+- **Queries, then formulas.** Each query returns one data point per time bucket of the time range, using its **Aggregate by**. Formulas are worked out for each bucket from the queries' data points. A query that counts what happened, the sum or the count of a counter or a histogram, counts 0 in a bucket it has no data point in, once the bucket has been over for a minute, so a failure share reads 0% where nothing failed. A gauge, an average or a percentile with no data point is unknown, and the formula leaves that bucket out.
 - **Then the rule's measure.** The rule reduces the data points of its metric to what it compares with its value, as **Measured as** says:
 
 | Measured as | In the custom criteria | The condition is checked against… |

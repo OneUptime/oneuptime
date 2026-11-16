@@ -1015,6 +1015,22 @@ import { AddOwnerNotificationFeedStatus1809179600000 } from "./1809179600000-Add
 import { AddOwnerNotificationFeedStatusIndex1809179610000 } from "./1809179610000-AddOwnerNotificationFeedStatusIndex";
 import { AddDataStoreWorkerContentScanIndex1809179800000 } from "./1809179800000-AddDataStoreWorkerContentScanIndex";
 import { AddServiceLevelObjectiveRequestFilter1809179900000 } from "./1809179900000-AddServiceLevelObjectiveRequestFilter";
+import { AddNetworkEndpointAttachmentSeenAt1809180000000 } from "./1809180000000-AddNetworkEndpointAttachmentSeenAt";
+import { AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000 } from "./1809180100000-AddIsSnmpReachableToNetworkDeviceStatusIndex";
+import { AddUserOnCallLogMergedInto1809180370000 } from "./1809180370000-AddUserOnCallLogMergedInto";
+import { MasterApiKeyHashedColumn1809180790100 } from "./1809180790100-MasterApiKeyHashedColumn";
+import { RemoveSampleProject1809180800000 } from "./1809180800000-RemoveSampleProject";
+import { AddRunnerCanRunCodeFixes1809180900000 } from "./1809180900000-AddRunnerCanRunCodeFixes";
+import { AddResolvedRecordRetentionServerLimits1809181000000 } from "./1809181000000-AddResolvedRecordRetentionServerLimits";
+import { AddMonitorFirstMeasuredAt1809181100000 } from "./1809181100000-AddMonitorFirstMeasuredAt";
+import { ApiKeyHashedColumn1809181200000 } from "./1809181200000-ApiKeyHashedColumn";
+import { AddMasterApiKeyCreatedByAndHint1809181300000 } from "./1809181300000-AddMasterApiKeyCreatedByAndHint";
+import { AddFirstApprovedPlanFingerprint1809181730000 } from "./1809181730000-AddFirstApprovedPlanFingerprint";
+import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "./1809181830000-AddIncomingRequestSecretMonitorAccess";
+import { DropOnCallExecutionLogStepIndexes1809182000000 } from "./1809182000000-DropOnCallExecutionLogStepIndexes";
+import { AddScheduleRosterRefreshDueAt1809182100000 } from "./1809182100000-AddScheduleRosterRefreshDueAt";
+import { AddScheduleRosterRefreshDueAtIndex1809182110000 } from "./1809182110000-AddScheduleRosterRefreshDueAtIndex";
+import { AddCodeRepositoryMintedToken1809182200000 } from "./1809182200000-AddCodeRepositoryMintedToken";
 
 export default [
   InitialMigration,
@@ -2034,4 +2050,20 @@ export default [
   AddOwnerNotificationFeedStatusIndex1809179610000,
   AddDataStoreWorkerContentScanIndex1809179800000,
   AddServiceLevelObjectiveRequestFilter1809179900000,
+  AddNetworkEndpointAttachmentSeenAt1809180000000,
+  AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000,
+  AddUserOnCallLogMergedInto1809180370000,
+  MasterApiKeyHashedColumn1809180790100,
+  RemoveSampleProject1809180800000,
+  AddRunnerCanRunCodeFixes1809180900000,
+  AddResolvedRecordRetentionServerLimits1809181000000,
+  AddMonitorFirstMeasuredAt1809181100000,
+  ApiKeyHashedColumn1809181200000,
+  AddMasterApiKeyCreatedByAndHint1809181300000,
+  AddFirstApprovedPlanFingerprint1809181730000,
+  AddIncomingRequestSecretMonitorAccess1809181830000,
+  DropOnCallExecutionLogStepIndexes1809182000000,
+  AddScheduleRosterRefreshDueAt1809182100000,
+  AddScheduleRosterRefreshDueAtIndex1809182110000,
+  AddCodeRepositoryMintedToken1809182200000,
 ];

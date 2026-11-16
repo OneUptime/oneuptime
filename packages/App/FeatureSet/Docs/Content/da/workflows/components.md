@@ -67,6 +67,8 @@ Lav en HTTP-forespørgsel til enhver URL. Der er én blok pr. metode: **API-kald
 
 Uanset hvad returnerer blokken **Svarstatus**, **Svar-headere** og **Svarets brødtekst**, plus **Fejl** med årsagen, når den mislykkedes. Læs et felt i et JSON-svar ved at tilføje dets navn til referencen, som i `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+En blok læser højst 10 MB af et svar. Et større svar bliver ikke læst: blokken tager **Fejl**, med årsagen.
+
 Omdirigeringer følges ikke, så peg blokken på den adresse, der svarer. Forespørgsler sendes fra OneUptime: en URL, der peger på en privat netværksadresse, afvises, medmindre en administrator af en selvhostet installation tillader det, og kørslen stopper med årsagen. Se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 
 **API-kald GET efter ID (JSON)** læser ét element ud fra et ID, der kom et andet sted fra, for eksempel den issue-nøgle, som et webhook sendte. Sæt `{id}` i dens **URL**, hvor ID'et skal stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, og ID'et i **ID**. Blokken sætter kun ID'et ind, når det er et rent ID, højst 200 bogstaver, cifre, bindestreger og understregninger, og procentkoder det alligevel: alt andet, for eksempel `x/../users`, tager **Fejl**, før nogen forespørgsel sendes, så tekst udefra ikke kan sende forespørgslen et andet sted hen. Ellers virker den som **API-kald GET (JSON)** og returnerer de samme værdier.
@@ -242,7 +244,7 @@ En blok, der føjes til en arbejdsgang, som starter på en hændelse eller en ad
 
 **Succes** kører, så snart mindst én person er tilkaldt, eller én politik er startet. **Fejl** kører, når ingen blev tilkaldt, og blokkens værdi **Fejl** siger hvorfor, for eksempel at ingen har vagt i vagtplanen. **Oversigt** siger i én sætning, hvem der blev tilkaldt, og hvem der blev udeladt, klar til at slå op i en kanal, og **Tilkaldte brugere** oplister de tilkaldte personer.
 
-En person, der er fraværende, tilkaldes ikke: i stedet tilkaldes den, personens brugeroverride nævner som dækning. Et tilkald nævner højst 100 personer, teams og vagtplaner. Se [Sådan nås hver person](/docs/on-call/escalation-rules#sådan-nås-hver-person).
+En person, der er fraværende, tilkaldes ikke: i stedet tilkaldes den, personens brugeroverride nævner som dækning. En person, som en vagtpolitik eller et andet tilkald allerede tilkalder om det samme, tilkaldes ikke igen og står stadig under **Tilkaldte brugere**: ender det tilkald uden vedkommendes svar, tilkalder blokkens tilkald selv vedkommende. Et tilkald nævner højst 100 personer, teams og vagtplaner. Se [Sådan nås hver person](/docs/on-call/escalation-rules#sådan-nås-hver-person).
 
 Et tilkald uden en vagtpolitik bag sig står sammen med politikkernes kørsler som **Direkte tilkald**: i vagtloggene for hændelsen eller advarslen, i dens feed og dens Slack- eller Microsoft Teams-kanal og i loggene hos hver tilkaldt person. Det står åbent i 30 minutter, og derefter så længe der stadig går tilkald ud. Har ingen kvitteret til den tid, slutter det uden at tilkalde andre.
 

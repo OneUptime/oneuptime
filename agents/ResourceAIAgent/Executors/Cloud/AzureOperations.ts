@@ -25,6 +25,7 @@ import {
   showCloudId,
   withArticle,
 } from "./CloudChange";
+import RetryAfter from "../../Common/Utils/RetryAfter";
 import {
   AzureManagedIdentityToken,
   AzureTokenProvider,
@@ -33,9 +34,11 @@ import {
 import {
   AzureWriteIdentity,
   describeAzureWriteIdentityElsewhere,
+  parseCloudAgentSettings,
 } from "./CloudSettings";
 import {
   RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
 } from "../../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
@@ -302,6 +305,8 @@ export default class AzureCloud {
    * names as the caller of the agent's changes.
    */
   private writePrincipal: string | null = null;
+  // The object id a token named that its setting did not: said once.
+  private warnedWritePrincipal: string | null = null;
 
   public constructor(private readonly options: AzureCloudOptions) {
     this.tokens = new AzureTokenProvider(options.env, options.runtime.nowMs);
@@ -316,9 +321,21 @@ export default class AzureCloud {
     return this.tokens.principalId();
   }
 
-  // The write identity's object id, once the agent was given a token of it.
+  /*
+   * The write identity's object id: what Azure said in the last token of
+   * it the agent was given, else what its setup command read from Azure
+   * (ONEUPTIME_AI_AZURE_WRITE_PRINCIPAL_ID), so the posture names it from
+   * the start - before the first change or Test connection, and after a
+   * restart. Null when neither says.
+   */
   public writePrincipalId(): string | null {
-    return this.writePrincipal;
+    return this.writePrincipal || this.configuredWritePrincipalId();
+  }
+
+  // The object id its setup command passed, when it is one beside a write identity.
+  private configuredWritePrincipalId(): string | null {
+    return parseCloudAgentSettings(this.options.env, "azure")
+      .azureWritePrincipalId;
   }
 
   /*
@@ -337,6 +354,25 @@ export default class AzureCloud {
     });
 
     if (answer.principalId) {
+      /*
+       * Azure's token names the identity it was made for: when its setting
+       * says another object id, the token is right, and the agent says so
+       * once (for each object id a token names), so a setting typed by hand
+       * can be put right.
+       */
+      const configured: string | null = this.configuredWritePrincipalId();
+
+      if (
+        configured &&
+        configured !== answer.principalId &&
+        this.warnedWritePrincipal !== answer.principalId
+      ) {
+        this.warnedWritePrincipal = answer.principalId;
+        this.options.runtime.logger.warn(
+          `Azure's token of the write identity names object id ${answer.principalId}, but ${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV} says ${configured}: the agent goes by what Azure says. Run the setup command again to set it right.`,
+        );
+      }
+
       this.writePrincipal = answer.principalId;
     }
 
@@ -485,12 +521,14 @@ export default class AzureCloud {
     const settings: CloudCommandRun["settings"] = run.settings;
 
     if (settings.azureWriteIdentityProblem) {
+      run.writePath = { state: "unusable", problem: "unreadable-setting" };
       return `Write identity: ${settings.azureWriteIdentityProblem}`;
     }
 
     const identity: AzureWriteIdentity | null = settings.azureWriteIdentity;
 
     if (!identity) {
+      run.writePath = { state: "unset" };
       return `Write identity: none (${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV} is not set): changes use the agent's own identity, with whatever it allows`;
     }
 
@@ -500,6 +538,7 @@ export default class AzureCloud {
     });
 
     if (elsewhere) {
+      run.writePath = { state: "unusable", problem: "another-account" };
       return `Write identity: ${elsewhere}`;
     }
 
@@ -519,16 +558,29 @@ export default class AzureCloud {
       const answer: AzureManagedIdentityToken =
         await this.signInAsWriteIdentity(run.send.bind(run), identity);
       const own: string | null = this.tokens.principalId();
+      const configured: string | null = settings.azureWritePrincipalId;
 
       check = `the agent can sign in as it${
         answer.principalId ? `, as object id ${answer.principalId}` : ""
       }`;
 
+      // A setting that names another object id: Azure's token is right.
+      if (
+        answer.principalId &&
+        configured &&
+        configured !== answer.principalId
+      ) {
+        check = `${check}; ${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV} says ${configured}, which is not its object id, so the agent goes by what Azure says`;
+      }
+
       // Where only the write identity is attached, the agent reads with it too.
       if (answer.principalId && own && answer.principalId === own) {
         check = `${check}, which is the agent's own identity as well: give the agent an identity of its own that only reads`;
       }
+
+      run.writePath = { state: "usable" };
     } catch (err: unknown) {
+      run.writePath = { state: "unusable", problem: "cannot-sign-in" };
       check = `the agent can NOT sign in as it, so every change fails: ${
         err instanceof Error ? err.message : String(err)
       }`;
@@ -726,18 +778,17 @@ class AzureChange {
       return "Azure accepted the change and carries it out in the background.";
     }
 
-    let interval: number = DEFAULT_CLOUD_POLL_INTERVAL_MS;
-    const retryAfter: number | null = readInteger(
-      answer.headers,
-      "retry-after",
-    );
-
-    if (retryAfter !== null) {
-      interval = Math.max(
-        1_000,
-        Math.min(MAX_CLOUD_POLL_INTERVAL_MS, retryAfter * 1000),
-      );
-    }
+    /*
+     * How often to look: Azure's Retry-After, as RFC 9110 writes it
+     * (Common's RetryAfter, copied into Common/) - whole seconds or an HTTP
+     * date - from a second to MAX_CLOUD_POLL_INTERVAL_MS. "-5" was read as a
+     * second, and a date as nothing.
+     */
+    const interval: number =
+      RetryAfter.msFromHeaders(answer.headers, {
+        nowMs: this.run.runtime.nowMs(),
+        maxMs: MAX_CLOUD_POLL_INTERVAL_MS,
+      }) ?? DEFAULT_CLOUD_POLL_INTERVAL_MS;
 
     for (let poll: number = 0; poll < MAX_CLOUD_POLLS; poll++) {
       if (!(await this.run.pause(interval))) {

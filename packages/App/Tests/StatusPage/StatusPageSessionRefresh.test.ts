@@ -10,8 +10,10 @@ import StatusPageAPI from "../../FeatureSet/StatusPage/src/Utils/API";
 import StatusPageUtil from "../../FeatureSet/StatusPage/src/Utils/StatusPage";
 import StatusPageUser from "../../FeatureSet/StatusPage/src/Utils/User";
 import FakeAxiosServer, {
+  FakeReply,
   FakeTransport,
   Gate,
+  RENEWED_STATUS_PAGE_SESSION,
   SentRequest,
   createGate,
   settle,
@@ -138,7 +140,7 @@ describe("Status page: a lapsed session is refreshed on the page's own origin", 
         { status: 401 },
         { status: 200, data: { incidents: [] } },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_STATUS_PAGE_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await StatusPageAPI.post<JSONObject>({
@@ -172,8 +174,46 @@ describe("Status page: a lapsed session is refreshed on the page's own origin", 
     expect(navigateSpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * A 200 without the reader's new token renewed nothing (issue #8838):
+   * the request that needed it rejects and is not replayed, nobody is
+   * signed out, and the page is not marked refreshed.
+   */
+  test.each<[string, FakeReply]>([
+    ["no body", { status: 200 }],
+    ["the fixtures' { data: [] }", { status: 200, data: { data: [] } }],
+    [
+      "the Dashboard's answer",
+      { status: 200, data: { accessToken: "a", refreshToken: "r" } },
+    ],
+  ])(
+    "a refresh answered 200 with %s renewed nothing: the request rejects, nobody is signed out",
+    async (_label: string, answer: FakeReply) => {
+      StatusPageUtil.setIsPrivateStatusPage(true);
+
+      server
+        .on(HTTPMethod.POST, STATUS_PAGE_API_URL, [{ status: 401 }])
+        .on(HTTPMethod.POST, REFRESH_URL, [answer]);
+
+      await expect(
+        StatusPageAPI.post<JSONObject>({
+          url: URL.fromString(STATUS_PAGE_API_URL),
+        }),
+      ).rejects.toThrow("The answer was not a renewed session.");
+
+      expect(postsTo(STATUS_PAGE_API_URL)).toHaveLength(1);
+      expect(postsTo(LOGOUT_URL)).toHaveLength(0);
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(
+        localStorage.getItem(
+          `session-refreshed-at:status-page-${STATUS_PAGE_ID}`,
+        ),
+      ).toBeNull();
+    },
+  );
+
   test("the session is named after the page: its stamp is 'session-refreshed-at:status-page-<id>'", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_STATUS_PAGE_SESSION]);
 
     await expect(StatusPageAPI.refreshSession()).resolves.toBe(true);
 
@@ -199,7 +239,7 @@ describe("Status page: a lapsed session is refreshed on the page's own origin", 
       },
     });
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_STATUS_PAGE_SESSION]);
 
     await expect(StatusPageAPI.refreshSession()).resolves.toBe(true);
 
@@ -224,7 +264,7 @@ describe("Status page: a lapsed session is refreshed on the page's own origin", 
     }
 
     server.on(HTTPMethod.POST, REFRESH_URL, [
-      { status: 200, gate: refreshGate.promise },
+      { ...RENEWED_STATUS_PAGE_SESSION, gate: refreshGate.promise },
     ]);
 
     const pending: Promise<
@@ -268,8 +308,8 @@ describe("Status page: a lapsed session is refreshed on the page's own origin", 
     );
 
     server
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }])
-      .on(HTTPMethod.POST, otherRefreshUrl, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_STATUS_PAGE_SESSION])
+      .on(HTTPMethod.POST, otherRefreshUrl, [RENEWED_STATUS_PAGE_SESSION]);
 
     await expect(StatusPageAPI.refreshSession()).resolves.toBe(true);
 
@@ -480,7 +520,7 @@ describe("Status page: the preview on the OneUptime host", () => {
   test("a 401 refreshes on the preview host's origin and replays", async () => {
     server
       .on(HTTPMethod.POST, PREVIEW_API_URL, [{ status: 401 }, { status: 200 }])
-      .on(HTTPMethod.POST, PREVIEW_REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, PREVIEW_REFRESH_URL, [RENEWED_STATUS_PAGE_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await previewAPI.post<JSONObject>({

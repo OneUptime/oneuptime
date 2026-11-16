@@ -115,12 +115,76 @@ export const getDocsPageAddress: (
 
 export interface AskAiAnswerPageLink {
   citationId: string;
-  // The page's English title, as Search names it; translated where it is drawn.
+  // The page's English title, as Search names it.
   title: string;
+  /*
+   * The locale key the button draws its title by, in the reader's
+   * language: the citation's titleKey, where the page's key names its
+   * meaning ("Insights (explorer analytics)", #8817), or its title.
+   */
+  titleKey: string;
+  /*
+   * Where titleKey is a template, what fills it once it is translated:
+   * another product's name, as written ("Import from {{tool}}" with {
+   * tool: "PagerDuty" }, #8834).
+   */
+  titleValues?: Record<string, string> | undefined;
   target: AIChatCitationTarget;
 }
 
 const CITATION_MARK: RegExp = /\[(C\d+)\]/g;
+
+// The most values a title's template takes, and how long each may be.
+const MAX_TITLE_VALUES: number = 5;
+const MAX_TITLE_VALUE_CHARS: number = 100;
+// A value's name, as a template's {{placeholder}} names it.
+const TITLE_VALUE_NAME: RegExp = /^\w+$/;
+
+/*
+ * The values a citation's titleValues names, as JSON, when it is an
+ * object of a few short texts; otherwise none, and the button draws the
+ * English title.
+ */
+export const readTitleValues: (
+  json: string | undefined,
+) => Record<string, string> | undefined = (
+  json: string | undefined,
+): Record<string, string> | undefined => {
+  if (!json || json.length > 1024) {
+    return undefined;
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return undefined;
+  }
+
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return undefined;
+  }
+
+  const entries: Array<[string, unknown]> = Object.entries(parsed);
+
+  if (
+    entries.length === 0 ||
+    entries.length > MAX_TITLE_VALUES ||
+    !entries.every((entry: [string, unknown]): boolean => {
+      return (
+        TITLE_VALUE_NAME.test(entry[0]) &&
+        typeof entry[1] === "string" &&
+        entry[1].trim().length > 0 &&
+        entry[1].length <= MAX_TITLE_VALUE_CHARS
+      );
+    })
+  ) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries) as Record<string, string>;
+};
 
 /*
  * The Dashboard pages an answer sends the reader to: each DashboardPage
@@ -151,9 +215,18 @@ export const getAnswerPageLinks: (
     }
 
     seenPaths.add(path);
+
+    const title: string = citation.target?.params?.["title"] || citation.label;
+    const titleKey: string | undefined = citation.target?.params?.["titleKey"];
+    const titleValues: Record<string, string> | undefined = titleKey
+      ? readTitleValues(citation.target?.params?.["titleValues"])
+      : undefined;
+
     links.push({
       citationId: citation.id,
-      title: citation.target?.params?.["title"] || citation.label,
+      title,
+      titleKey: titleKey || title,
+      ...(titleValues ? { titleValues } : {}),
       target: citation.target!,
     });
   }

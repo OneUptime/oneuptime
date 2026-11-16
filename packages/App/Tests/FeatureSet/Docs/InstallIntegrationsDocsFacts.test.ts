@@ -113,6 +113,7 @@ const SOURCES: Record<string, string> = {
   configure: "Scripts/Install/configure.sh",
   mergeEnvTemplate: "Scripts/Install/MergeEnvTemplate.js",
   installModules: "Scripts/Dev/install-node-modules.sh",
+  lintByProject: "Scripts/Lint/LintByProject.js",
   devCompose: "Scripts/Dev/docker-compose.dev.yml",
   baseCompose: "docker-compose.base.yml",
   compose: "docker-compose.yml",
@@ -1151,12 +1152,36 @@ describe("Local Development, against the scripts it runs", () => {
 
     for (const script of ["lint", "fix-lint"]) {
       expect(scripts[script]).toContain("node ./Scripts/Lint/LintByProject.js");
+      expect(scripts[script]).not.toContain("--changed");
     }
 
     expect(page).toContain(
       "Avoid `npm run lint` and `npm run fix-lint`: they lint the whole repository.",
     );
-    expect(page).toContain("npx eslint --fix packages/App/path/to/File.ts");
+  });
+
+  it("fix-lint:changed lints and fixes what the branch changed since origin/main, one ESLint process per project, as the page says", () => {
+    const scripts: Record<string, string> = scriptsOf("rootPackage");
+    const lintByProject: string = readSource("lintByProject");
+
+    // One `npx eslint` over several packages' files ran out of memory (#6848).
+    expect(scripts["fix-lint:changed"]).toContain(
+      "node ./Scripts/Lint/LintByProject.js --changed --fix",
+    );
+    expect(lintByProject).toContain('const DEFAULT_BASE = "origin/main";');
+    expect(page).toContain("```bash\nnpm run fix-lint:changed\n```");
+    expect(page).toContain(
+      "It takes every file that differs from `origin/main`, committed or not, and runs ESLint once for each TypeScript project they belong to",
+    );
+
+    // Paths after --: the files of your choice, grouped the same way.
+    expect(lintByProject).toContain(
+      "node Scripts/Lint/LintByProject.js [eslint options...] -- <path>...",
+    );
+    expect(page).toContain(
+      "```bash\nnode Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts\n```",
+    );
+    expect(page).not.toContain("npx eslint --fix");
   });
 
   it("a PostgreSQL migration is generated into the folder the page names, and runs once Index.ts lists it", () => {
@@ -2087,6 +2112,44 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     );
     expect(page).toContain(
       "with one replica, except the telemetry writer, which runs two",
+    );
+  });
+
+  it("each workload sizes its Node.js heap to its container's memory limit as its start script does, and NODE_OPTIONS in extraEnv still wins", () => {
+    const start: string = scriptsOf("appPackage")["start"] as string;
+
+    /*
+     * The rule every image's start script opens with (Tests/Ops/
+     * NodeImageHeapLimit runs it): 8096 MB without a limit, three quarters of
+     * one, between 256 MB and 8096 MB.
+     */
+    expect(start).toMatch(/^heap=8096; /);
+    expect(start).toContain("/sys/fs/cgroup/memory.max");
+    expect(start).toContain("heap=$((limit / 1048576 * 3 / 4))");
+    expect(start).toContain("[ $heap -ge 256 ] || heap=256");
+    expect(start).toContain("[ $heap -le 8096 ] || heap=8096");
+    // An operator's NODE_OPTIONS comes after the rule's heap: node takes the last.
+    expect(start).toContain(
+      'export NODE_OPTIONS="--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}"',
+    );
+    // Each workload of the compute table takes extraEnv of its own.
+    for (const key of [
+      "app",
+      "worker",
+      "probes.one",
+      "nginx",
+      "telemetryWriter",
+    ]) {
+      expect({ key, extraEnv: valueAt(values, `${key}.extraEnv`) }).toEqual({
+        key,
+        extraEnv: [],
+      });
+    }
+    expect(page).toContain(
+      "sizes its heap to the memory limit of its container (`resources.limits.memory`): 75% of the limit, at least 256 MB and at most 8096 MB. Without a limit, the heap can grow to 8096 MB.",
+    );
+    expect(page).toContain(
+      "set `NODE_OPTIONS` to `--max-old-space-size=` followed by a size in MB, in the service's `extraEnv`",
     );
   });
 
@@ -4287,17 +4350,24 @@ describe("Twilio Integration, against the notification server and the forms", ()
         projectConfigUse: TwilioConfigUse.CallsOnly,
       });
 
+      // Only the project's default for the message was read (#6603).
       expect(call).toContain(
-        "This project's Twilio config is used for SMS only",
+        "This project's default Twilio config is used for SMS only",
       );
       expect(sms).toContain(
-        "This project's Twilio config is used for calls only",
+        "This project's default Twilio config is used for calls only",
+      );
+
+      // A config for that kind only made the default for it, in the table's words - or this one used for both.
+      expect(call).toContain(
+        `make a config used for calls only the project default for calls (${TwilioConfigDefaultCopy.setCallsDefaultTitle} in its row's menu)`,
+      );
+      expect(sms).toContain(
+        `make a config used for SMS only the project default for SMS (${TwilioConfigDefaultCopy.setSmsDefaultTitle} in its row's menu)`,
       );
 
       for (const message of [call, sms]) {
-        expect(message).toContain(
-          "can use this project's config for calls and SMS",
-        );
+        expect(message).toContain("or use this config for calls and SMS");
       }
     });
 

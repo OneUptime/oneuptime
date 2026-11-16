@@ -18,8 +18,6 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
-import ProjectService from "./ProjectService";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -45,6 +43,10 @@ import { CustomDomainCertificate } from "../../Types/CustomDomain/CustomDomainCe
 import CustomDomainConflicts, {
   CustomDomainKind,
 } from "../Utils/CustomDomain/CustomDomainConflicts";
+import UploadedCertificate, {
+  UPLOADED_CERTIFICATE_SELECT,
+  UploadedCertificateColumns,
+} from "../Utils/CustomDomain/UploadedCertificate";
 
 const STATUS_PAGE_DOMAIN_EGRESS_LABEL: string = "Status page domain";
 
@@ -139,6 +141,21 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
       );
     }
 
+    /*
+     * A domain left serving its own certificate serves a pair nginx can
+     * use: the half the edit leaves blank - the key, which is never shown
+     * again - is read from the row (UploadedCertificate).
+     */
+    await UploadedCertificate.assertUpdateIsServable({
+      data: updateBy.data as UploadedCertificateColumns,
+      readRows: async (): Promise<Array<UploadedCertificateColumns>> => {
+        return await this.findRowsAndHoldUpdateToThem(
+          updateBy,
+          UPLOADED_CERTIFICATE_SELECT,
+        );
+      },
+    });
+
     return { updateBy, carryForward: null };
   }
 
@@ -147,21 +164,6 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
     createBy: CreateBy<StatusPageDomain>,
   ): Promise<OnCreate<StatusPageDomain>> {
     await super.onBeforeCreate(createBy);
-
-    /*
-     * A sample project's status page (issue #6808) is never public, so it
-     * takes no custom domain: one would ask for a certificate and answer on
-     * an address of its own.
-     */
-    const sampleProjectId: ObjectID | undefined =
-      createBy.props.tenantId || createBy.data.projectId;
-
-    if (
-      sampleProjectId &&
-      (await ProjectService.isSampleProject(sampleProjectId))
-    ) {
-      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.statusPageDomain);
-    }
 
     /*
      * The domain under either of its names (the two must agree), kept in
@@ -220,16 +222,25 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
 
     createBy.data.cnameVerificationToken = ObjectID.generate().toString();
 
-    if (createBy.data.isCustomCertificate) {
-      if (
-        !createBy.data.customCertificate ||
-        !createBy.data.customCertificateKey
-      ) {
-        throw new BadDataException(
-          "Custom certificate or private key is missing",
-        );
-      }
-    }
+    /*
+     * A new domain starts with nothing ordered, provisioned or reissued,
+     * whatever the request said, as a form's does: the sweeps and Check now
+     * find out. Nobody may create those columns, so a person's value never
+     * gets this far (#8907); this holds for OneUptime's own creates and a
+     * server admin's too. Its CNAME check is not written here: nobody may
+     * create that column either, and the create's column check refuses a
+     * value in it that the caller sent.
+     */
+    createBy.data.isSslOrdered = false;
+    createBy.data.isSslProvisioned = false;
+    delete (createBy.data as unknown as Record<string, unknown>)[
+      "certificateReissueRequestedAt"
+    ];
+
+    // An uploaded certificate comes with a key that is its own (UploadedCertificate).
+    UploadedCertificate.assertCreateIsServable(
+      createBy.data as UploadedCertificateColumns,
+    );
 
     return { createBy, carryForward: null };
   }

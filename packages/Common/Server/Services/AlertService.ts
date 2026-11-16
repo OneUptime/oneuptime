@@ -443,6 +443,14 @@ export class Service extends ProjectReferencesService<Model> {
     return { findBy, carryForward: null };
   }
 
+  /*
+   * The read hook keeps a private alert to its owners, by its private
+   * switch (its owners are rows of their own). See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return ["isPrivate"];
+  }
+
   @CaptureSpan()
   public override async countBy(
     countBy: CountBy<Model>,
@@ -945,8 +953,7 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * The next alert number of this project, with the project's prefix for
    * it: the one way an alert is numbered. A create takes it in
-   * onBeforeCreate; the sample project, which writes its alerts without
-   * hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   * onBeforeCreate (RecordNumbersTakenInOnePlaceGuard).
    */
   @CaptureSpan()
   public async takeNextAlertNumber(

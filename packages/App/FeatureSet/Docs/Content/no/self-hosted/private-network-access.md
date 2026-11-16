@@ -50,7 +50,7 @@ Blokkerte mål faller i to nivåer.
 
 Endepunktet for skymetadata `169.254.169.254` ligger i det forbudte nivået av en grunn. På en sky-VM deler det ut instansens IAM-påloggingsdetaljer til alt som kan gjøre en HTTP-forespørsel fra maskinen, så ingen generell innstilling vil noen gang åpne det.
 
-IPv6-skrivemåter som bærer et IPv4-mål inni seg – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – klassifiseres etter IPv4-adressen de når, så de kan ikke brukes til å smugle en forbudt adresse forbi en tillatelse for det private nivået.
+IPv6-skrivemåter som bærer et IPv4-mål inni seg – IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo – klassifiseres etter IPv4-adressen de når, uansett hvordan de er skrevet, så de kan ikke brukes til å smugle en forbudt adresse forbi en tillatelse for det private nivået.
 
 ## Webhooks og arbeidsflyter
 
@@ -142,6 +142,8 @@ På Docker Compose har `config.env` en linje `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSE
 
 Når den er på, rapporteres et avvist vertsnavn uten å si hva det ble slått opp til, for eksempel _"LLM provider host ollama.internal could not be reached."_ Et navn som ikke kan slås opp i det hele tatt, får samme melding, slik at prosjektmedlemmer ikke kan bruke disse feltene til å finne ut hvilke interne navn som finnes. En adresse skrevet som IP nevnes fortsatt sammen med årsaken, for eksempel _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Med `LOG_LEVEL=DEBUG` logger appen adressen hvert avvist navn ble slått opp til.
 
+Bak en utgående proxy går tilkoblingene over HTTP gjennom den, slik webhooks gjør: datakilder og tilkoblinger for sikkerhetshendelser som leses over HTTP, threat intel-feeder, LLM-leverandører, OAuth-token-URL-er, enkel pålogging med OIDC, eksterne kalendere, MCP-servere, sikkerhetskopier, verifisering av egne domener, HTTP-trinn i runbooks og Grafana OnCall-importen bruker proxyen satt i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY`, enten den er oppgitt med en adresse eller et vertsnavn. OneUptime kontrollerer fortsatt adressen først og følger aldri en omdirigering, men det er proxyen som slår opp navnet og kobler til, så avvis link-local-mål på selve proxyen, særlig `169.254.169.254`. En vert i `NO_PROXY` kobles til direkte, på adressen OneUptime kontrollerte: før opp de interne vertene dine der. Database- og SMTP-tilkoblinger og Git-servere kobler alltid til direkte, uten proxy.
+
 ## Sonder og monitorer
 
 Fire monitortyper berøres: **API**, **Nettsted**, **Ekstern statusside** og **Egendefinert JavaScript-kode**. På en standardsonde kan de nå offentlige HTTP(S)-mål, men avviser privat adresserom. Monitorer av typen API, Website og Ekstern statusside validerer og fester DNS-resultater for hver tilkobling og validerer hver omdirigering på nytt; Egendefinert JavaScript-kode bruker den samme adressepolicyen i broen til sandkassen sin.
@@ -201,6 +203,8 @@ Kjør arbeidsflyten eller monitoren på nytt. Hvis den fortsatt avvises, nevner 
 - **Alle som kan opprette en arbeidsflyt eller en monitor av typen API, Website, External Status Page eller Custom JavaScript Code, eller legge til en abonnent på en statusside, kan nå alt du har tillatt.** Behandle medlemskap i de prosjektene deretter.
 - **Svarinnholdet kommer tilbake.** En API-komponent i en arbeidsflyt returnerer status, hoder og body i arbeidsflytloggen, så en tillatt vert kan leses, ikke bare skrives til.
 - **Omdirigeringer følges aldri** for webhook-forespørsler, så en tillatt offentlig vert kan ikke sende serveren videre til en intern vert i et nytt hopp.
+- **OneUptime kobler til adressen den kontrollerte.** Vertsnavnet til en webhook slås opp én gang, når URL-en kontrolleres, og forespørselen går til en adresse det oppslaget godkjente, så et navn som svarer annerledes et øyeblikk senere (DNS-rebinding), får aldri forbindelsen. TLS kontrollerer fortsatt sertifikatet mot navnet i URL-en.
+- **Gjennom en utgående proxy er det proxyen som kobler til.** Hvis API-serveren sender gjennom en proxy satt i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY` (unntatt vertene i `NO_PROXY`), går webhooks fortsatt gjennom den: OneUptime kontrollerer fortsatt adressen først og følger aldri en omdirigering, men det er proxyen som slår opp navnet og kobler til. Avvis private og link-local-mål på selve proxyen, særlig `169.254.169.254`.
 - **Avgrens per sonde i stedet for for hele instansen der du kan.** En sonde rullet ut inne i ett nettverk er en smalere tillatelse enn å åpne den utgående trafikken til API-serveren.
 
 ## Neste steg

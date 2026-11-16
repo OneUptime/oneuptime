@@ -117,6 +117,46 @@ describe("Telemetry.getHeaders: the issue's cases", () => {
     expect(Telemetry.getHeaders()).toEqual({ a: "1", b: "2" });
   });
 
+  // Issue #7162: the form OTEL_EXPORTER_OTLP_HEADERS and setup guides use.
+  test("'a=1,b=2' gives two headers too, and nobody is warned", () => {
+    process.env[SETTING] = "a=1,b=2";
+
+    expect(Telemetry.getHeaders()).toEqual({ a: "1", b: "2" });
+    expect(warnings()).toEqual([]);
+  });
+
+  test("a value copied percent-encoded, as OTEL_EXPORTER_OTLP_HEADERS writes it, is sent decoded", () => {
+    process.env[SETTING] =
+      "Authorization=Basic%20dXNlcjpwYXNzd29yZA==,x-oneuptime-token=key";
+
+    expect(Telemetry.getHeaders()).toEqual({
+      Authorization: BASIC_AUTHORIZATION,
+      "x-oneuptime-token": "key",
+    });
+  });
+
+  test("with a ';', a ',' and a '%' in a value are sent as written", () => {
+    process.env[SETTING] = "x-list=a,b%20c;x-oneuptime-token=key";
+
+    expect(Telemetry.getHeaders()).toEqual({
+      "x-list": "a,b%20c",
+      "x-oneuptime-token": "key",
+    });
+  });
+
+  test("a part written the standard way that cannot be sent is warned about by its place among the commas", () => {
+    process.env[SETTING] = "x-oneuptime-token=key,x-bad=%0Asecret";
+
+    expect(Telemetry.getHeaders()).toEqual({ "x-oneuptime-token": "key" });
+    expect(warnings()).toEqual([
+      "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
+        "OneUptime cannot read header 2 of 2, so it does not send it. " +
+        "Header 2 has a value with a character no header value may hold, such as a line break. " +
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
+    ]);
+    expect(warnings()[0]).not.toContain("secret");
+  });
+
   test("a trailing ';' or an empty part is skipped, and nobody is warned", () => {
     process.env[SETTING] = "a=1;";
     expect(Telemetry.getHeaders()).toEqual({ a: "1" });
@@ -145,7 +185,7 @@ describe("Telemetry.getHeaders: the issue's cases", () => {
       "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
         "OneUptime cannot read header 2 of 2, so it does not send it. " +
         "Header 2 has no '=' between a name and a value. " +
-        "Write each header as name=value, and separate headers with ';'.",
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
     ]);
     expect(warnings()[0]).not.toContain("sk-live-the-secret-part");
     expect(warnings()[0]).not.toContain("key");

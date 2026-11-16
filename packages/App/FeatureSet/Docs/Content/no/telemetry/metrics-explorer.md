@@ -86,6 +86,8 @@ Klikk på **Legg til formel** og skriv **Formel** med variablene til spørringen
 
 En variabel kan skrives med eller uten `$`, med store eller små bokstaver. En formel som nevner en spørring du ikke har definert, sier fra i stedet for å tegne.
 
+En spørring som teller det som skjedde, summen eller antallet av en teller eller et histogram, har ikke noe datapunkt i et trinn der ingenting skjedde, så en formel leser den som 0 der: `$b / $a * 100` tegner 0 i et trinn uten feil. En måler, et gjennomsnitt eller en persentil uten datapunkt er ukjent, og formelen utelater det trinnet. Den utelater også et trinn der ingen av spørringene har et datapunkt, og et som sluttet for mindre enn et minutt siden, der de siste datapunktene fortsatt kan være på vei.
+
 ## Utforsk rundt et diagram
 
 Knappene over diagrammene jobber med tidsintervallet du ser på:

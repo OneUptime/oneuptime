@@ -144,7 +144,7 @@ Under **Åtkomst** väljer du **Tittare** för en agent som bara läser, eller *
 
 ### Kopiera nyckeln
 
-Klicka på **Skapa API-nyckel**: nyckelns sida öppnas. Kopiera nyckeln därifrån.
+Klicka på **Skapa API-nyckel**. OneUptime visar nyckeln en gång, i dialogrutan **Kopiera din API-nyckel**: kopiera den innan du trycker på **Klar**.
 :::
 
 API-nycklar hör till ett projekt: MCP-servern tar projektet från nyckeln, så att skapandeverktyg aldrig behöver ett `projectId`-argument.
@@ -360,6 +360,8 @@ Fråga alltid efter telemetri med ett tidsintervall. Ett frågefält tar ett vä
 Operatorerna är `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` och `Includes`. Sorteringsvärden är `"ASC"` eller `"DESC"`.
 
 Verktygen `list_` och `count_` tar vilket fält som helst, så att listan över verktyg är liten nog för att en klient ska kunna läsa in den på en gång. För att se en resurs fält, vad varje fält betyder och vilka operatorer det tar anropar en agent `oneuptime_describe_resource` med resursen eller ett av dess verktyg, till exempel `Incident` eller `list_incidents`.
+
+De andra `list_`-verktygen, för incidenter, monitorer och alla andra sorters poster, sorterar som API:et gör: ett fält tar en riktning, eller `{ "direction": "DESC", "nulls": "LAST" }` för att sätta posterna utan värde i det sist, och en relation till en post sorterar efter ett fält i posten den namnger, som i `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` markerar varje sådan relation med `sort` och namnger fälten den sorterar efter under `sortBy`.
 
 ## Fältval och sidindelning
 

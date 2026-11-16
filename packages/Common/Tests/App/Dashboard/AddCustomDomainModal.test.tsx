@@ -154,6 +154,10 @@ import {
   CustomDomainReadinessOutcome,
   CustomDomainReadinessWords,
 } from "../../../Types/CustomDomain/CustomDomainServerReadiness";
+import {
+  UPLOADED_CERTIFICATE_UNREADABLE_MESSAGE,
+  UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE,
+} from "../../../Types/CustomDomain/UploadedCertificateRefusals";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "10000000-0000-4000-8000-000000000001",
@@ -308,6 +312,69 @@ function createdOf<T extends BaseModel>(type: { new (): T }): Array<T> {
   return createdModels.filter((model: BaseModel) => {
     return model instanceof type;
   }) as Array<T>;
+}
+
+const WHY_THE_KEY: string =
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.";
+
+// Opens More fields, switches the upload on and pastes the two halves.
+async function uploadPair(certificate: string, key: string): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(dialog()).getByText("More fields"));
+  });
+  await act(async (): Promise<void> => {
+    fireEvent.click(
+      within(dialog()).getByRole("switch", {
+        name: /Upload Custom Certificate/,
+      }),
+    );
+  });
+  await act(async (): Promise<void> => {
+    fireEvent.change(
+      within(dialog()).getByPlaceholderText(/BEGIN CERTIFICATE/),
+      {
+        target: { value: certificate },
+      },
+    );
+    fireEvent.change(
+      within(dialog()).getByPlaceholderText(/BEGIN PRIVATE KEY/),
+      {
+        target: { value: key },
+      },
+    );
+  });
+}
+
+function certificateBox(): HTMLTextAreaElement {
+  return within(dialog()).getByPlaceholderText(
+    /BEGIN CERTIFICATE/,
+  ) as HTMLTextAreaElement;
+}
+
+function keyBox(): HTMLTextAreaElement {
+  return within(dialog()).getByPlaceholderText(
+    /BEGIN PRIVATE KEY/,
+  ) as HTMLTextAreaElement;
+}
+
+// The server refuses the next custom domain it is asked to add, and only it.
+function refuseCustomDomainOnce(message: string): void {
+  const add: ((data: { model: BaseModel }) => Promise<unknown>) | undefined =
+    create.getMockImplementation() as
+      | ((data: { model: BaseModel }) => Promise<unknown>)
+      | undefined;
+  let isRefused: boolean = false;
+
+  create.mockImplementation((async (data: {
+    model: BaseModel;
+  }): Promise<unknown> => {
+    if (!(data.model instanceof Domain) && !isRefused) {
+      isRefused = true;
+      throw new Error(message);
+    }
+
+    return await add!(data);
+  }) as never);
 }
 
 beforeEach(() => {
@@ -493,9 +560,18 @@ describe.each(KINDS)(
         .compareDocumentPosition(screen.getByTestId(DNS_SETUP_TEST_IDS.record));
       expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(create).not.toHaveBeenCalled();
+      /*
+       * As the page draws it: a duration's figure held to its word by a
+       * no-break space ("every 15 minutes" on one line, #8770).
+       */
       expect(
         screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext).textContent,
-      ).toBe(CustomDomainCopy.dnsSetupWhatHappensNextTwoRecords);
+      ).toBe(
+        CustomDomainCopy.dnsSetupWhatHappensNextTwoRecords.replace(
+          "every 15 minutes",
+          "every 15 minutes",
+        ),
+      );
     });
 
     test("one Check now: the TXT first, then the domain is added and its CNAME checked, each with its own status", async () => {
@@ -738,6 +814,144 @@ describe.each(KINDS)(
       expect(created["isCustomCertificate"]).toBe(true);
       expect(created["customCertificate"]).toBe("CERT");
       expect(created["customCertificateKey"]).toBe("KEY");
+    });
+
+    test("the key says why it is needed and that it is never shown again", async () => {
+      renderDialog(kindCase);
+
+      await typeAddress(kindCase, "status.acme.com");
+      await uploadPair("CERT", "KEY");
+
+      expect(dialog().textContent).toContain(WHY_THE_KEY);
+    });
+
+    test("a pair the server refuses on a verified domain is said under its half, and nothing is added", async () => {
+      projectDomains = [projectDomain(true)];
+
+      const rendered: Rendered = renderDialog(kindCase);
+
+      await typeAddress(kindCase, "status.acme.com");
+      await uploadPair("CERT", "KEY");
+      refuseCustomDomainOnce(UPLOADED_CERTIFICATE_UNREADABLE_MESSAGE);
+
+      await clickButton(CustomDomainCopy.addSubmit);
+
+      await waitFor(() => {
+        expect(certificateBox()).toHaveAttribute("aria-invalid", "true");
+      });
+
+      expect(keyBox()).not.toHaveAttribute("aria-invalid");
+      // Once, under the certificate: not again above the form.
+      expect(
+        within(dialog()).getAllByText(UPLOADED_CERTIFICATE_UNREADABLE_MESSAGE),
+      ).toHaveLength(1);
+      expect(rendered.onAdded).not.toHaveBeenCalled();
+    });
+
+    test("a pair refused once the TXT record is found goes back to the form, with what was typed and why under its half", async () => {
+      projectDomains = [projectDomain(false)];
+
+      const rendered: Rendered = renderDialog(kindCase);
+
+      await typeAddress(kindCase, "status.acme.com");
+      await uploadPair("CERT", "KEY-OF-ANOTHER");
+      await clickButton(CustomDomainCopy.addSubmit);
+
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      });
+
+      // The TXT is found, and the server refuses the pair as it adds the domain.
+      mockApiAnswers = {
+        "/domain/check-txt/": [
+          ok({
+            isVerified: true,
+            records: [record(DnsRecordType.TXT, DnsRecordCheckOutcome.Found)],
+          }),
+        ],
+      };
+      refuseCustomDomainOnce(UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE);
+
+      await clickButton(CustomDomainCopy.dnsSetupCheckNow);
+
+      await waitFor(() => {
+        expect(keyBox()).toHaveAttribute("aria-invalid", "true");
+      });
+
+      // The form again, as it was typed, saying why under the key.
+      expect(screen.queryByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeNull();
+      expect(
+        (
+          within(dialog()).getByPlaceholderText(
+            kindCase.placeholder,
+          ) as HTMLInputElement
+        ).value,
+      ).toBe("status.acme.com");
+      expect(
+        within(dialog()).getByRole("switch", {
+          name: /Upload Custom Certificate/,
+        }),
+      ).toHaveAttribute("aria-checked", "true");
+      expect(certificateBox().value).toBe("CERT");
+      expect(keyBox().value).toBe("KEY-OF-ANOTHER");
+      expect(
+        within(dialog()).getAllByText(UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE),
+      ).toHaveLength(1);
+      expect(createdOf(kindCase.kind.modelType)).toHaveLength(0);
+
+      // The domain is verified now: the right key adds it at once.
+      projectDomains[0]!.isVerified = true;
+
+      await act(async (): Promise<void> => {
+        fireEvent.change(keyBox(), { target: { value: "KEY" } });
+      });
+      await clickButton(CustomDomainCopy.addSubmit);
+
+      await waitFor(() => {
+        expect(rendered.onAdded).toHaveBeenCalledTimes(1);
+      });
+
+      const created: Record<string, unknown> = createdOf(
+        kindCase.kind.modelType,
+      )[0] as unknown as Record<string, unknown>;
+
+      expect(created["customCertificate"]).toBe("CERT");
+      expect(created["customCertificateKey"]).toBe("KEY");
+    });
+
+    test("a refusal at Check now that is not about the pair stays in DNS Setup", async () => {
+      projectDomains = [projectDomain(false)];
+
+      renderDialog(kindCase);
+
+      await typeAddress(kindCase, "status.acme.com");
+      await uploadPair("CERT", "KEY");
+      await clickButton(CustomDomainCopy.addSubmit);
+
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      });
+
+      mockApiAnswers = {
+        "/domain/check-txt/": [
+          ok({
+            isVerified: true,
+            records: [record(DnsRecordType.TXT, DnsRecordCheckOutcome.Found)],
+          }),
+        ],
+      };
+      refuseCustomDomainOnce(
+        "status.acme.com is already in use: a domain can show only one status page, dashboard or form.",
+      );
+
+      await clickButton(CustomDomainCopy.dnsSetupCheckNow);
+
+      await waitFor(() => {
+        expect(dialog().textContent).toContain(
+          "status.acme.com is already in use",
+        );
+      });
+      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
     });
   },
 );

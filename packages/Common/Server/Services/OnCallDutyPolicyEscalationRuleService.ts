@@ -81,6 +81,10 @@ import {
   SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
 } from "../../Types/OnCallDutyPolicy/OnCallPageLine";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
+import OnCallPageMerge, {
+  OnCallPageCover,
+} from "../Utils/OnCall/OnCallPageMerge";
+import { getOnCallPageMergedLine } from "../../Types/OnCallDutyPolicy/OnCallPageMerge";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
@@ -216,6 +220,13 @@ export interface OnCallPagedTarget {
    * as its on-call person. Absent otherwise.
    */
   isNextInRotation?: true;
+  /*
+   * Present when their page was merged into their open page from another
+   * run about the same record (OnCallPageMerge) - a policy's, or a direct
+   * page's (#8859): that run, whose page reaches them for this one. Absent
+   * when this run paged them itself.
+   */
+  alreadyPagedByExecutionLogId?: ObjectID;
 }
 
 // One person, team or schedule a set of targets did not page, and why.
@@ -1066,7 +1077,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
    * somebody away with nobody named to cover (the global overrides only -
    * another policy's own never apply here); nobody who is not a member of
    * the project is paged; nobody is paged twice; and every target gets a
-   * line on the run's timeline, paged or not.
+   * line on the run's timeline, paged or not. A workflow's page of somebody
+   * another run is paging about the record already is merged into that
+   * page, as a policy's level is (OnCallPageMerge, #8859): its line says
+   * Already Paged, and they are among those paged.
    *
    * The run - an execution log with no policy - is written by its caller
    * (OnCallDutyPolicyExecutionLogService.startDirectPage), which is told who
@@ -1366,6 +1380,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       teamId: ObjectID | null,
       scheduleId: ObjectID | null,
       isNextInRotation: boolean,
+      /*
+       * Their open page from another policy's run about the same record,
+       * which their page here is merged into (OnCallPageMerge): nothing is
+       * sent, and the line says who is paging them. None: they are paged.
+       */
+      cover: OnCallPageCover | null,
     ) => Promise<void>;
 
     /*
@@ -1418,6 +1438,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         teamId: ObjectID | null,
         scheduleId: ObjectID | null,
         isNextInRotation: boolean,
+        cover: OnCallPageCover | null,
       ): Promise<void> => {
         /*
          * This is where user is notified. alertSentToUserId is already resolved
@@ -1428,15 +1449,30 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           alertSentToUserId.toString() !== originalUserId.toString();
 
         logger.debug(
-          `Starting notification rule execution for userId: ${alertSentToUserId.toString()}`,
+          cover
+            ? `Merging the page of userId: ${alertSentToUserId.toString()} into their open page ${cover.userOnCallLogId.toString()} from execution log ${cover.executionLogId.toString()}.`
+            : `Starting notification rule execution for userId: ${alertSentToUserId.toString()}`,
           {
             ...logAttributes,
             userId: alertSentToUserId.toString(),
           } as LogAttributes,
         );
+
+        /*
+         * A merged page's line says who is paging them already
+         * (OnCallPageMerge): the policy, or who or which workflow paged them
+         * directly (#8859).
+         */
+        const mergedMessage: string | null = cover
+          ? getOnCallPageMergedLine(cover.by)
+          : null;
+
         let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-        log.statusMessage = SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE;
-        log.status = OnCallDutyExecutionLogTimelineStatus.Executing;
+        log.statusMessage =
+          mergedMessage || SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE;
+        log.status = mergedMessage
+          ? OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
+          : OnCallDutyExecutionLogTimelineStatus.Executing;
         log.alertSentToUserId = alertSentToUserId;
 
         if (wasOverridden) {
@@ -1471,6 +1507,20 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
         if (unpagedLineId) {
           log.id = unpagedLineId;
+
+          // A merged page says so on the line it takes up.
+          if (mergedMessage) {
+            await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+              id: unpagedLineId,
+              data: {
+                status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+                statusMessage: mergedMessage,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          }
         } else {
           log = await OnCallDutyPolicyExecutionLogTimelineService.create({
             data: log,
@@ -1482,6 +1532,37 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
         if (log?.id) {
           pagedLineIds.push(log.id);
+        }
+
+        /*
+         * Merged: the person's log of this page says so, and sends nothing
+         * while the page it stands on is open (OnCallPageMerge).
+         */
+        if (cover && mergedMessage) {
+          await UserNotificationRuleService.recordMergedPage(
+            alertSentToUserId,
+            {
+              userNotificationEventType: options.userNotificationEventType!,
+              triggeredByIncidentId: options.triggeredByIncidentId || undefined,
+              triggeredByAlertId: options.triggeredByAlertId || undefined,
+              triggeredByAlertEpisodeId:
+                options.triggeredByAlertEpisodeId || undefined,
+              triggeredByIncidentEpisodeId:
+                options.triggeredByIncidentEpisodeId || undefined,
+              onCallPolicyExecutionLogId: options.onCallPolicyExecutionLogId,
+              onCallPolicyId: options.onCallPolicyId,
+              onCallPolicyEscalationRuleId: ruleId || undefined,
+              userBelongsToTeamId: teamId || undefined,
+              onCallDutyPolicyExecutionLogTimelineId: log.id!,
+              projectId: options.projectId,
+              onCallScheduleId: scheduleId || undefined,
+              overridedByUserId: wasOverridden ? originalUserId : undefined,
+              mergedIntoUserOnCallLogId: cover.userOnCallLogId,
+              statusMessage: mergedMessage,
+            },
+          );
+
+          return;
         }
 
         await UserNotificationRuleService.startUserNotificationRulesExecution(
@@ -1788,6 +1869,31 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       return passedOnUserIds.has(userId.toString().toLowerCase());
     };
 
+    /*
+     * The open pages these people have from another run about the same
+     * record (OnCallPageMerge): their page here is merged into it, so they
+     * are told once. One read for the whole rule - or the whole direct page:
+     * a workflow's is merged too (#8859). Nobody for a run whose pages are
+     * never merged (a page again, a policy started by hand, a page sent from
+     * a chat, an observer's page, a test page), or a read that failed.
+     */
+    const covers: Map<string, OnCallPageCover> =
+      await OnCallPageMerge.findCovers({
+        projectId: options.projectId,
+        executionLogId: options.onCallPolicyExecutionLogId,
+        userNotificationEventType: options.userNotificationEventType,
+        record: options,
+        userIds: targets
+          .filter((target: RuleTarget): target is RecipientRuleTarget => {
+            return (
+              target.kind === RuleTargetKind.Recipient && !target.awayUntil
+            );
+          })
+          .flatMap((target: RecipientRuleTarget): Array<ObjectID> => {
+            return [target.recipientUserId, target.originalUserId];
+          }),
+      });
+
     for (const target of targets) {
       if (target.kind === RuleTargetKind.ScheduleGap) {
         hadScheduleGap = true;
@@ -2018,12 +2124,17 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
       if (!alreadyNotified(pagedUserId)) {
         uniqueUserIds.push(pagedUserId);
+
+        const cover: OnCallPageCover | null =
+          covers.get(OnCallPageMerge.getUserKey(pagedUserId)) || null;
+
         await startUserNotificationRuleExecution(
           onBehalfOfUserId,
           pagedUserId,
           target.teamId,
           target.scheduleId,
           target.isNextInRotation,
+          cover,
         );
 
         // A sign of life of the level, after each person it pages.
@@ -2041,6 +2152,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           scheduleId: target.scheduleId,
           ...(target.isNextInRotation
             ? { isNextInRotation: true as const }
+            : {}),
+          ...(cover
+            ? { alreadyPagedByExecutionLogId: cover.executionLogId }
             : {}),
         });
       } else {

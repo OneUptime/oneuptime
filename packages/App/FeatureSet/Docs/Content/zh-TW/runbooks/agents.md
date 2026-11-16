@@ -66,14 +66,16 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 全域 Runner 會執行許多專案的步驟，因此每個步驟都與其他所有步驟彼此隔離：
 
-- 每個步驟都在自己的 `isolated-vm` 沙箱中執行，這個沙箱為該步驟建立，並在步驟結束後丟棄：沒有檔案、沒有處理程序、沒有環境變數，也不會從一個步驟保留任何東西到下一個步驟。
+- 每個步驟都在自己的 `isolated-vm` 沙箱中執行，這個沙箱為該步驟建立，並在步驟結束後丟棄：沒有檔案、沒有處理程序、沒有環境變數，也不會從一個步驟保留任何東西到下一個步驟。沙箱本身在只為該步驟啟動的獨立處理程序中執行，並以獨立的使用者身分執行：該處理程序不持有 Runner 的金鑰、設定或檔案，並隨步驟一同結束。 此外，步驟的行程沒有自己的網路——它無法開啟任何通訊端——所以即使程式碼逃出了沙箱，它自己也觸達不到任何東西，既不是你的叢集，也不是你的 Docker Compose 網路、Kubernetes API 或雲端中繼資料端點；由 Runner 經過同樣的檢查代它發出步驟的 HTTP 請求。這在 Docker Compose 和 Kubernetes 上都成立，包括 OpenShift 的受限安全情境，而且無需任何額外的 capability。
 - 它的 HTTP 請求只能到達公用網際網路位址，絕不會到達私人、回送或鏈路本機位址或雲端中繼資料端點，因此全域 Runner 永遠無法存取您的網路。
 - 只有當機密變數的 **全域 Runner 可以使用** 開關開啟時，它才會收到該變數，而且只用於該變數所屬專案的步驟。
 - 一個專案在全域 Runner 上同時最多執行三個步驟，因此沒有專案能獨占它們。
 
-全域 Runner 也負責 OneUptime AI 的程式碼修復，涵蓋每個在 **全域 Runner** 上工作的程式碼儲存庫。它撰寫每個修復並開啟拉取請求，但不執行任何指令，連儲存庫的設定、建置與測試指令也不執行，因此拉取請求會說明其驗證已略過。它只透過 HTTPS 存取網際網路上的 Git 伺服器；但在自行託管的 OneUptime 上，它也可以存取伺服器本身可以存取的私有 Git 伺服器。它只為自己接手的修復工作，並且只在為某個儲存庫處理修復期間取得該儲存庫的權杖。GitHub 儲存庫的權杖只能存取那一個儲存庫，並會在修復結束時被撤銷。
+全域 Runner 也負責 OneUptime AI 的程式碼修復，涵蓋每個在 **全域 Runner** 上工作的程式碼儲存庫。它撰寫每個修復並推送其分支，由 OneUptime 開啟拉取請求，但它不執行任何指令，連儲存庫的設定、建置與測試指令也不執行，因此拉取請求會說明其驗證已略過。它只透過 HTTPS 存取網際網路上的 Git 伺服器；但在自行託管的 OneUptime 上，它也可以存取伺服器本身可以存取的私有 Git 伺服器。它只為自己接手的修復工作，並且只在為某個儲存庫處理修復期間取得該儲存庫的權杖。GitHub 儲存庫的權杖只能存取並推送到那一個儲存庫，不能開啟拉取請求；在 GitLab 允許 OneUptime 建立的情況下，GitLab 儲存庫的權杖是 OneUptime 只為這一個修復建立的專案存取權杖，只能存取那一個專案，只能推送而不能呼叫任何 API，並最遲於 UTC 次日結束時自動過期。兩者都會在修復結束時被撤銷。
 
 早於 14.0.94 的全域 Runner，或以 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` 啟動的全域 Runner，不接受程式碼修復，OneUptime 也不會將它計入。此時，在 **全域 Runner** 上工作的儲存庫會提示沒有在線的全域 Runner 接受 AI 程式碼修復，而 Admin Dashboard 的 **全域 Runner** 頁面會在該 Runner 的狀態下方說明原因。
+
+主管理員可以讓某個全域 Runner 完全不參與程式碼修正：Admin Dashboard 的 **全域 Runner** 頁面上 **更多欄位** 中的開關 **執行 AI 程式碼修正** 預設為開啟。關閉後，OneUptime 不再交給該 Runner 任何程式碼修正，也不交給它任何儲存庫的權杖，因此它只執行 JavaScript 步驟。在 OneUptime Cloud 上，全域 Runner 只在 GitHub 和 GitLab 儲存庫中工作，使用為每個修正建立的權杖：Forgejo、Gitea 或 Git 儲存庫要用其連線自己的權杖存取，因此它的程式碼修正會在你自己的 Runner 上執行；當 GitLab 不允許 OneUptime 建立該權杖時，GitLab 儲存庫的程式碼修正也是如此。GitLab 只為具有 Maintainer 角色和 `api` 範圍的使用者的權杖建立這種權杖，並且僅限自行管理的 GitLab 或 GitLab.com Premium 或 Ultimate。 為多個租戶提供服務、且其程式碼必須保持隔離的自我託管安裝，可以用 `GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY=true` 啟用同樣的規則；單租戶安裝保持不變。
 
 對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runner** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在專案預設 Runner 上工作，沒有設定預設 Runner 時在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 
@@ -81,7 +83,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 在 OneUptime Cloud 上，由 OneUptime 執行它們。自行託管的安裝預設會執行一個自己的全域 Runner，就像它執行自己的全域探測器一樣：Docker Compose 中的 `global-runner` 服務，以及 Helm chart 中的 `globalRunner` 部署。它持有自己的金鑰 `GLOBAL_RUNNER_KEY`，不持有伺服器的任何其他東西。
 
-主管理員可以新增更多全域 Runner，以便從其他主機執行步驟與程式碼修復：在 Admin Dashboard 中依序開啟 **設定** 、 **全域 Runner** ，建立一個，然後在可以存取網際網路的主機上執行其 **顯示 ID 和金鑰** 提供的命令。
+主管理員可以新增更多全域 Runner，以便從其他主機執行步驟與程式碼修復：在 Admin Dashboard 中依序開啟 **設定** 、 **全域 Runner** ，建立一個，然後在可以存取網際網路的主機上執行其 **顯示 ID 和金鑰** 提供的命令。請保留該容器的預設設定：以 `no-new-privileges` 啟動，或移除了 `SETUID` 和 `SETGID` 能力的容器，無法讓每個步驟以獨立的使用者身分執行，因此其步驟會以 Runner 自己的使用者身分執行（每個步驟仍在獨立的處理程序中），其記錄也會說明這一點。
 
 若要關閉內建的全域 Runner，請在 Docker Compose 的 `config.env` 中設定 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中將 `globalRunner.enabled` 設為 `false`。完全沒有全域 Runner 時， **運行手冊 → Runner** 只會列出您自己的 Runner，每個 JavaScript 步驟與每個程式碼儲存庫都要選擇其中一個。
 

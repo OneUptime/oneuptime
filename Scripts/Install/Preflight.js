@@ -7,6 +7,7 @@ const fs = require("fs");
 const net = require("net");
 const os = require("os");
 const path = require("path");
+const url = require("url");
 const { spawnSync } = require("child_process");
 const { readSettings } = require("./ReplacePlaceholderSecrets");
 const { HEADING, ok, warn, stop, listed } = require("./StartOutput");
@@ -31,13 +32,16 @@ const { HEADING, ok, warn, stop, listed } = require("./StartOutput");
  *     and --services included), is free or held by this install's own
  *     containers.
  *   - HOST, HTTP_PROTOCOL and PROVISION_SSL: the shapes that break sign-in or
- *     certificates, and HOST's DNS.
+ *     certificates, an IPv6 HOST without brackets, a name with a character
+ *     no domain name has, and HOST's DNS.
  *
  * Only what would certainly stop OneUptime stops `npm start` (marked ✗): no
  * Docker, a Docker this user cannot use, no Compose v2, a port another
- * program holds, a HOST no browser can open. The rest is said and OneUptime
- * starts. A check that cannot tell says nothing. ONEUPTIME_SKIP_PREFLIGHT=true
- * skips every check, and a fault of this script's own never stops a start.
+ * program holds, a HOST no browser can open (such as 2001:db8::1, which a web
+ * address writes as [2001:db8::1]) or the app stops at (such as
+ * oneuptime,example.com). The rest is said and OneUptime starts. A check
+ * that cannot tell says nothing. ONEUPTIME_SKIP_PREFLIGHT=true skips every
+ * check, and a fault of this script's own never stops a start.
  *
  * It is the first command of the start script in package.json (not a
  * prestart hook: npm skips those when ignore-scripts is set), and
@@ -223,8 +227,314 @@ const isLoopbackHost = (hostname) => {
   return LOOPBACK_HOSTS.indexOf(String(hostname).toLowerCase()) !== -1;
 };
 
+// An IPv4 address, or an IPv6 address with or without brackets.
 const isIpAddress = (hostname) => {
   return IPV4_ADDRESS.test(hostname) || String(hostname).indexOf(":") !== -1;
+};
+
+/*
+ * HOST'S SHAPE: AN IPv6 ADDRESS GOES IN BRACKETS
+ *
+ * HOST is a domain name or an IPv4 address, with or without ":port", or an
+ * IPv6 address in brackets, with or without ":port" after them:
+ * HOST=[2001:db8::1], HOST=[2001:db8::1]:8080. A web address writes an IPv6
+ * host so (RFC 3986), a browser shows it so and names it so in the Host of
+ * every request, and so the ingress names its primary server by it and the
+ * app builds every link from it.
+ *
+ * Without brackets it never worked (#8022): nginx answers 400 to a Host of
+ * 2001:db8::1 and never takes a request for a server of that name, so every
+ * request fell to the status pages; and the app's links read
+ * http://2001:db8::1/..., which no browser opens. Nor can the brackets be put
+ * in for the person: 2001:db8::1:8080 is an IPv6 address of its own, and also
+ * 2001:db8::1 with port 8080, and only they know which they meant. So the
+ * start stops and shows the line to write, both lines when it can be read
+ * either way.
+ *
+ * The rest of the shape, from the same rule: brackets hold an IPv6 address
+ * and nothing else, closed, with nothing after them but ":port"; only an IPv6
+ * address has two colons; a port is a number from 1 to 65535, after an
+ * address. The app refuses most other HOSTs as it starts ("Hostname ... is
+ * not in valid format", "Port is not in valid format"), and builds no link
+ * that opens from the rest (":8080" is http://:8080/...).
+ *
+ * And a name is a domain name, by the rule the app reads HOST by as it starts
+ * (HOST_REGEX in packages/Common/Types/API/Hostname.ts): the letters a to z,
+ * digits, '-' and '_', in parts of 1 to 63 characters between single dots
+ * that neither start nor end with '-', and one final dot at most. An IPv4
+ * address is such a name too. A name the rule refuses got past npm start,
+ * and every service then stopped as it started, with "Hostname
+ * oneuptime,example.com is not in valid format" in logs only `npm run doctor`
+ * showed, while npm start waited for a status check that never answered
+ * (#8877). HOST_NAME is that rule, and Tests/Ops/HelmHost.test.js holds the
+ * app's copy, this one and the Helm chart's (oneuptime.validateHost) to one
+ * another.
+ */
+
+const HOST_NAME =
+  /^[a-zA-Z0-9_](?:[a-zA-Z0-9_-]{0,61}[a-zA-Z0-9_])?(?:\.[a-zA-Z0-9_](?:[a-zA-Z0-9_-]{0,61}[a-zA-Z0-9_])?)*\.?$/;
+// What a part of a name between its dots may hold, one character at a time.
+const NAME_CHARACTER = /^[a-zA-Z0-9_-]$/;
+const MAX_NAME_PART_LENGTH = 63;
+// A character beyond ASCII: a letter of a name DNS keeps in its xn-- form.
+const BEYOND_ASCII = /[^\u0000-\u007f]/;
+
+/*
+ * An IPv6 address by the rule the app reads HOST's brackets by as it starts
+ * (isIPv6 in packages/Common/Types/IP/IP.ts, which Hostname asks): every
+ * text form of RFC 4291, an IPv4 address at the end included
+ * (::ffff:192.0.2.1, 64:ff9b::192.0.2.1, 1:2:3:4:5:6:192.0.2.1,
+ * 2001:db8::1:192.0.2.1), the forms Node's net.isIPv6 takes. The app's rule
+ * once took an IPv4 address only after "::", "::ffff:" or up to four groups
+ * and "::", and this copy held HOST to it (#8877) until the app took them
+ * all (#8927). Tests/Ops/HelmHost.test.js holds this copy to the app's and
+ * the chart's.
+ */
+const IPV6_ADDRESS =
+  /^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|(?:(?:[0-9a-fA-F]{1,4}:){6}|::(?:[0-9a-fA-F]{1,4}:){0,5}|[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:){0,4}|(?:[0-9a-fA-F]{1,4}:){2}:(?:[0-9a-fA-F]{1,4}:){0,3}|(?:[0-9a-fA-F]{1,4}:){3}:(?:[0-9a-fA-F]{1,4}:){0,2}|(?:[0-9a-fA-F]{1,4}:){4}:(?:[0-9a-fA-F]{1,4}:)?|(?:[0-9a-fA-F]{1,4}:){5}:)(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))$/i;
+
+// An IPv6 address, written as a web address can hold one: hex digits, colons and dots, no zone.
+const isIpv6Address = (text) => {
+  return /^[0-9A-Fa-f:.]+$/.test(text) && IPV6_ADDRESS.test(text);
+};
+
+const isPort = (text) => {
+  return PORT_NUMBER.test(text) && Number(text) >= 1 && Number(text) <= 65535;
+};
+
+const colonsIn = (text) => {
+  return (String(text).match(/:/g) || []).length;
+};
+
+/*
+ * The ways to read an IPv6 HOST written without brackets, each { host, port }
+ * as HOST is written then: the whole as the address ({ host: "[2001:db8::1]" });
+ * and, when its last group is a number and the rest is an address, the rest
+ * with that port ({ host: "[2001:db8::1]:8080", port: "8080" }).
+ * Empty when it is no IPv6 address either way.
+ */
+const bracketedReadingsOf = (text) => {
+  const readings = [];
+
+  if (isIpv6Address(text)) {
+    readings.push({ host: `[${text}]`, port: null });
+  }
+
+  const colon = text.lastIndexOf(":");
+  const address = text.slice(0, colon);
+  const port = text.slice(colon + 1);
+
+  if (colon > 0 && isPort(port) && isIpv6Address(address)) {
+    readings.push({ host: `[${address}]:${port}`, port: port });
+  }
+
+  return readings;
+};
+
+/*
+ * The HOST lines to write for a HOST written as `text` (without a scheme, a
+ * path or spaces): "HOST=[2001:db8::1]", or both readings of one that has
+ * two. `text` itself when it is not an IPv6 address without brackets.
+ */
+const hostLinesFor = (text) => {
+  const readings =
+    !text.startsWith("[") && colonsIn(text) >= 2
+      ? bracketedReadingsOf(text)
+      : [];
+
+  if (readings.length === 0) {
+    return `HOST=${text}`;
+  }
+
+  return readings
+    .map((reading) => {
+      return reading.port && readings.length > 1
+        ? `HOST=${reading.host} if ${reading.port} is the port people open it on`
+        : `HOST=${reading.host}`;
+    })
+    .join(", or ");
+};
+
+/*
+ * Quoted, as a character or a part of a name reads in a sentence: "," for
+ * one, "," and "!" for two, ",", "!" and "?" for more.
+ */
+const quotedList = (items) => {
+  const quoted = items.map((item) => {
+    return `"${item}"`;
+  });
+
+  if (quoted.length <= 1) {
+    return quoted.join("");
+  }
+
+  return `${quoted.slice(0, -1).join(", ")} and ${quoted[quoted.length - 1]}`;
+};
+
+/*
+ * Pure: why `name`, HOST without its port, is no domain name the app takes,
+ * as the end of a sentence, or null when HOST_NAME takes it. The first
+ * reason only: the characters no name has, then an empty part, then a part
+ * that starts or ends with '-', then one longer than 63 characters.
+ */
+const nameProblemOf = (name) => {
+  if (HOST_NAME.test(name)) {
+    return null;
+  }
+
+  const strangers = [];
+
+  for (const character of Array.from(name)) {
+    if (
+      character !== "." &&
+      !NAME_CHARACTER.test(character) &&
+      strangers.indexOf(character) === -1
+    ) {
+      strangers.push(character);
+    }
+  }
+
+  if (strangers.length > 0) {
+    return `a domain name has the letters a to z, digits, hyphens and dots only, and ${quotedList(strangers)} ${strangers.length === 1 ? "is" : "are"} none of them`;
+  }
+
+  if (name.charAt(0) === ".") {
+    return "it starts with a dot";
+  }
+
+  if (name.indexOf("..") !== -1) {
+    return "it has two dots in a row";
+  }
+
+  // Its parts, without the one final dot a name may end with.
+  const parts = name.replace(/\.$/, "").split(".");
+
+  for (const part of parts) {
+    if (part.charAt(0) === "-" || part.charAt(part.length - 1) === "-") {
+      return `no part of a domain name starts or ends with a hyphen, and "${part}" does`;
+    }
+  }
+
+  for (const part of parts) {
+    if (part.length > MAX_NAME_PART_LENGTH) {
+      return `a part of a domain name between its dots is ${MAX_NAME_PART_LENGTH} characters at most, and "${part}" has ${part.length}`;
+    }
+  }
+
+  return "it is not one by the rule the app reads HOST by";
+};
+
+/*
+ * A name with letters beyond ASCII (bücher.example) in the ASCII form DNS
+ * writes it in (xn--bcher-kva.example), which is what a browser asks for; or
+ * null when it has no such letters or no such form. url.domainToASCII is in
+ * Node.js 12.
+ */
+const asciiNameOf = (name) => {
+  if (!BEYOND_ASCII.test(name)) {
+    return null;
+  }
+
+  let ascii = "";
+
+  try {
+    ascii = url.domainToASCII(name);
+  } catch (error) {
+    ascii = "";
+  }
+
+  return ascii && HOST_NAME.test(ascii) ? ascii : null;
+};
+
+/*
+ * Pure: what is wrong with the shape of HOST (a value with no scheme, path or
+ * spaces left), as a stop finding, or null when it is a name or an IPv4
+ * address, or an IPv6 address in brackets, each with or without a port.
+ */
+const hostShapeFinding = (host) => {
+  const fromLine = `HOST in config.env is ${host}`;
+
+  if (host.startsWith("[")) {
+    const match = /^\[([^\]]*)\](?::([^:]*))?$/.exec(host);
+
+    if (match && isIpv6Address(match[1])) {
+      if (match[2] === undefined || isPort(match[2])) {
+        return null;
+      }
+
+      return {
+        level: "stop",
+        message: `${fromLine}, but ${match[2] ? `${match[2]} is not a port` : "no port follows its last colon"}. A port is a number from 1 to 65535, such as HOST=[${match[1]}]:8080; without one, write HOST=[${match[1]}].`,
+      };
+    }
+
+    return {
+      level: "stop",
+      message: `${fromLine}. Brackets hold an IPv6 address and nothing else, with any port after the closing one, such as HOST=[2001:db8::1] or HOST=[2001:db8::1]:8080. A domain name or an IPv4 address goes without them.`,
+    };
+  }
+
+  const colons = colonsIn(host);
+
+  if (colons >= 2) {
+    const readings = bracketedReadingsOf(host);
+
+    if (readings.length === 0) {
+      return {
+        level: "stop",
+        message: `${fromLine}, which is not an address: a domain name or an IPv4 address has one colon at most, before its port, and an IPv6 address goes in brackets, such as HOST=[2001:db8::1].`,
+      };
+    }
+
+    const what =
+      readings.length === 1 && readings[0].port
+        ? "an IPv6 address and a port, without the brackets a web address needs around the address"
+        : "an IPv6 address without the brackets a web address needs around one";
+
+    return {
+      level: "stop",
+      message: `${fromLine}, ${what}, so no browser can open OneUptime at it. Write ${hostLinesFor(host)}.`,
+    };
+  }
+
+  // One colon at most from here: the name, and the port after the colon.
+  const colon = host.indexOf(":");
+  const name = colon === -1 ? host : host.slice(0, colon);
+  const port = colon === -1 ? null : host.slice(colon + 1);
+
+  if (port !== null && !name) {
+    return {
+      level: "stop",
+      message: `${fromLine}, a port with no address before it. Write the domain name or IP address people open OneUptime at before the colon, such as HOST=oneuptime.example.com:${isPort(port) ? port : "8080"}.`,
+    };
+  }
+
+  if (port !== null && !isPort(port)) {
+    return {
+      level: "stop",
+      message: `${fromLine}, but ${port ? `${port} is not a port` : "no port follows its colon"}. A port is a number from 1 to 65535, such as HOST=${name}:8080; without one, write HOST=${name}.`,
+    };
+  }
+
+  const problem = nameProblemOf(name);
+
+  if (!problem) {
+    return null;
+  }
+
+  const ascii = asciiNameOf(name);
+
+  if (ascii) {
+    return {
+      level: "stop",
+      message: `${fromLine}, a domain name with letters beyond a to z, which OneUptime takes only in the ASCII form DNS writes it in. Write HOST=${ascii}${port === null ? "" : `:${port}`}.`,
+    };
+  }
+
+  return {
+    level: "stop",
+    message: `${port === null ? `${fromLine}, which` : `${fromLine}, and ${name}`} is not a domain name: ${problem}.`,
+  };
 };
 
 /*
@@ -308,7 +618,7 @@ const hostFindings = (settings, interfaces) => {
   if (cleaned !== host) {
     findings.push({
       level: "stop",
-      message: `HOST in config.env is ${host}. Write the address alone, without http:// or a path: HOST=${cleaned || exampleHost}. HTTP_PROTOCOL says whether people use http or https.`,
+      message: `HOST in config.env is ${host}. Write the address alone, without http:// or a path: ${hostLinesFor(cleaned || exampleHost)}. HTTP_PROTOCOL says whether people use http or https.`,
     });
     return findings;
   }
@@ -320,6 +630,13 @@ const hostFindings = (settings, interfaces) => {
       level: "stop",
       message: `HOST in config.env is ${host}, an address servers listen on rather than one people open. Set it to this server's domain name or IP address, such as HOST=${exampleHost}${port ? `:${port}` : ""}.`,
     });
+    return findings;
+  }
+
+  const shape = hostShapeFinding(host);
+
+  if (shape) {
+    findings.push(shape);
     return findings;
   }
 
@@ -922,7 +1239,12 @@ const defaultLookup = (hostname) => {
 const dnsFindings = async (settings, lookup) => {
   const host = String(settings.get("HOST") || "").trim();
 
-  if (!host || cleanedHost(host) !== host) {
+  /*
+   * A HOST whose shape stops the start (hostShapeFinding) is said there, with
+   * the line to write: a name that is not one, such as oneuptime,example.com,
+   * would only be said again here as a name that "does not resolve yet".
+   */
+  if (!host || cleanedHost(host) !== host || hostShapeFinding(host)) {
     return [];
   }
 
@@ -1152,6 +1474,13 @@ module.exports = {
   parsePortSetting,
   splitHost,
   cleanedHost,
+  isIpAddress,
+  bracketedReadingsOf,
+  HOST_NAME,
+  IPV6_ADDRESS,
+  nameProblemOf,
+  asciiNameOf,
+  hostShapeFinding,
   exampleAddress,
   hostFindings,
   dockerFailureOf,

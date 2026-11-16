@@ -67,6 +67,8 @@ Faça uma requisição HTTP para qualquer URL. Há um bloco por método: **Chama
 
 Nos dois casos, o bloco devolve **Status da resposta**, **Cabeçalhos da resposta** e **Corpo da Resposta**, além de **Erro** com o motivo quando falhou. Leia um campo de uma resposta JSON acrescentando o nome dele à referência, como em `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Um bloco lê no máximo 10 MB de uma resposta. Uma resposta maior não é lida: o bloco segue por **Erro**, com o motivo.
+
 Redirecionamentos não são seguidos, então aponte o bloco para o endereço que responde. As requisições saem do OneUptime: uma URL que resolve para um endereço de rede privada é recusada, a menos que um administrador self-hosted a permita, e a execução para com o motivo. Veja [Acesso de rede para fora](/docs/workflows/configuration#acesso-de-rede-para-fora).
 
 **Chamada de API GET por ID (JSON)** lê um item por um ID que veio de outro lugar, como a chave de issue que um webhook enviou. Coloque `{id}` na **URL** dele onde vai o ID, como em `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, e o ID em **ID**. O bloco só coloca o ID quando ele é um ID simples, com no máximo 200 letras, dígitos, hífens e sublinhados, e mesmo assim o codifica com porcentagem: qualquer outra coisa, como `x/../users`, toma **Erro** antes de qualquer requisição sair, então um texto de fora não consegue apontar a requisição para outro lugar. De resto, funciona como **Chamada de API GET (JSON)** e devolve os mesmos valores.
@@ -242,7 +244,7 @@ Um bloco adicionado a um workflow que começa em um incidente ou em um alerta j�
 
 **Sucesso** roda assim que pelo menos uma pessoa é acionada, ou uma política começou. **Erro** roda quando ninguém foi acionado, e o valor **Erro** do bloco diz por quê, por exemplo que não há ninguém de plantão no agendamento. **Resumo** diz em uma frase quem foi acionado e quem ficou de fora, pronta para publicar em um canal, e **Usuários acionados** lista as pessoas acionadas.
 
-Quem está ausente não é acionado: é acionado no lugar quem a substituição de usuário dessa pessoa nomeia para cobri-la. Um acionamento indica no máximo 100 pessoas, equipes e agendamentos. Veja [Como cada pessoa é contatada](/docs/on-call/escalation-rules#como-cada-pessoa-é-contatada).
+Quem está ausente não é acionado: é acionado no lugar quem a substituição de usuário dessa pessoa nomeia para cobri-la. Quem uma política de plantão ou outro acionamento já está acionando sobre isso não é acionado de novo, e continua em **Usuários acionados**: se esse acionamento terminar sem a resposta dessa pessoa, o acionamento do bloco a aciona por conta própria. Um acionamento indica no máximo 100 pessoas, equipes e agendamentos. Veja [Como cada pessoa é contatada](/docs/on-call/escalation-rules#como-cada-pessoa-é-contatada).
 
 Um acionamento sem política de plantão por trás aparece junto às execuções das políticas como **Acionamento direto**: nos logs de plantão do incidente ou do alerta, no feed e no canal do Slack ou do Microsoft Teams dele, e nos logs de cada pessoa acionada. Ele fica aberto por 30 minutos, e depois enquanto ainda houver acionamentos saindo. Se até lá ninguém tiver confirmado, ele termina sem acionar mais ninguém.
 

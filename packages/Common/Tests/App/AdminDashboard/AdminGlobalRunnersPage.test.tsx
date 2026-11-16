@@ -102,10 +102,21 @@ jest.mock("../../../UI/Utils/API/API", () => {
 
 import SettingsGlobalRunners, {
   GLOBAL_RUNNER_CODE_FIXES_COPY,
+  GLOBAL_RUNNER_CODE_FIXES_SWITCH,
+  GLOBAL_RUNNER_SANDBOX_COPY,
+  GLOBAL_RUNNER_SANDBOX_SHORTFALL_TEST_ID,
   GLOBAL_RUNNER_STATUS_COLUMN_MAX_WIDTH_CLASS_NAME,
   GLOBAL_RUNNER_STATUS_COLUMN_MIN_WIDTH_CLASS_NAME,
   GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index";
+import {
+  GLOBAL_RUNNER_SANDBOX_HOST_INFO_KEY,
+  GlobalRunnerSandboxShortfall,
+  GlobalRunnerStepNetwork,
+  GlobalRunnerStepNetworkReason,
+  GlobalRunnerStepUser,
+  GlobalRunnerStepUserReason,
+} from "../../../Types/Runner/GlobalRunnerSandbox";
 import { RUNNER_CODE_FIXES_OFF_SETTING } from "../../../Types/Runner/RunnerCodeFixes";
 import { RUNNER_CODE_FIXES_OFF_SETTING_TEST_ID } from "../../../UI/Components/Runner/RunnerCodeFixesOffSetting";
 import PageMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/PageMap";
@@ -244,6 +255,7 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
   describe("a global Runner that takes no AI code fixes says so under its status", () => {
     function withCodeFixes(data: {
       takesCodeFixes?: boolean | undefined;
+      canRunCodeFixes?: boolean | undefined;
       agentVersion: string;
       lastAlive?: Date | undefined;
     }): Runner {
@@ -252,15 +264,52 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
       if (data.takesCodeFixes !== undefined) {
         runner.takesCodeFixes = data.takesCodeFixes;
       }
+      if (data.canRunCodeFixes !== undefined) {
+        runner.canRunCodeFixes = data.canRunCodeFixes;
+      }
       return runner;
     }
 
-    test("reads what each said, and its release", async () => {
+    test("reads what each said, its release, the switch turned here, and its sandbox", async () => {
       await renderPage();
 
       expect(listCalls[0]!.select).toEqual(
-        expect.objectContaining({ takesCodeFixes: true, agentVersion: true }),
+        expect.objectContaining({
+          takesCodeFixes: true,
+          agentVersion: true,
+          canRunCodeFixes: true,
+          // How it keeps each project's JavaScript steps apart (#8911).
+          hostInfo: true,
+        }),
       );
+    });
+
+    test("one turned off here (Runs AI Code Fixes off): says so in grey, as a choice, whatever the Runner says", async () => {
+      rows = [
+        withCodeFixes({
+          takesCodeFixes: true,
+          canRunCodeFixes: false,
+          agentVersion: "14.0.102",
+          lastAlive: new Date(),
+        }),
+      ];
+
+      await renderPage();
+
+      const line: HTMLElement = await screen.findByTestId(
+        GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID,
+      );
+
+      expect(line).toHaveTextContent(
+        "Takes no AI code fixes: they are turned off for this Runner.",
+      );
+      expect(line).toHaveTextContent(
+        GLOBAL_RUNNER_CODE_FIXES_COPY.turnedOffHere,
+      );
+      expect(line.className).toContain("text-gray-500");
+      expect(line.className).not.toContain("text-amber-700");
+      // The status above it still says how the Runner is doing.
+      expect(screen.getByText("Connected")).toBeInTheDocument();
     });
 
     test("one whose host turned them off: the setting that does it", async () => {
@@ -417,6 +466,127 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
   });
 
   /*
+   * A global Runner says how it keeps each project's JavaScript steps apart
+   * on its heartbeat (Common/Types/Runner/GlobalRunnerSandbox, #8911, #8910):
+   * when a step runs as the Runner's own user, or shares its network, an
+   * amber line under the Runner's status says so and what to change. Nothing
+   * when each step gets a user of its own and no network.
+   */
+  describe("a global Runner whose steps get less than a user of their own and no network says so", () => {
+    function withSandbox(hostInfo: Record<string, unknown>): Runner {
+      const runner: Runner = globalRunner(new Date());
+      runner.hostInfo = {
+        [GLOBAL_RUNNER_SANDBOX_HOST_INFO_KEY]: hostInfo,
+      };
+      return runner;
+    }
+
+    async function shortfallLines(): Promise<Array<string>> {
+      await renderPage();
+      // The rows load asynchronously; wait for this one before reading it.
+      await screen.findByText(translate("common.connected"));
+      return screen
+        .queryAllByTestId(
+          new RegExp(`^${GLOBAL_RUNNER_SANDBOX_SHORTFALL_TEST_ID}-\\d+$`),
+        )
+        .map((line: HTMLElement): string => {
+          return line.textContent || "";
+        });
+    }
+
+    test("a step that runs as the Runner's own user: one amber line, with what to change", async () => {
+      rows = [
+        withSandbox({
+          user: GlobalRunnerStepUser.RunnerUser,
+          userReason: GlobalRunnerStepUserReason.NoPrivilege,
+          network: GlobalRunnerStepNetwork.None,
+        }),
+      ];
+
+      expect(await shortfallLines()).toEqual([
+        GLOBAL_RUNNER_SANDBOX_COPY[
+          GlobalRunnerSandboxShortfall.OwnUserNoPrivilege
+        ],
+      ]);
+
+      const line: HTMLElement = screen.getByTestId(
+        `${GLOBAL_RUNNER_SANDBOX_SHORTFALL_TEST_ID}-0`,
+      );
+      expect(line.className).toContain("text-amber-700");
+      // Still connected: it runs the steps, just as its own user.
+      expect(document.body).toHaveTextContent(translate("common.connected"));
+    });
+
+    test("a step whose process shares the Runner's network: one amber line, with what to change", async () => {
+      rows = [
+        withSandbox({
+          user: GlobalRunnerStepUser.OwnUser,
+          network: GlobalRunnerStepNetwork.Shared,
+          networkReason: GlobalRunnerStepNetworkReason.NoSeccomp,
+        }),
+      ];
+
+      expect(await shortfallLines()).toEqual([
+        GLOBAL_RUNNER_SANDBOX_COPY[
+          GlobalRunnerSandboxShortfall.SharedNetworkNoSeccomp
+        ],
+      ]);
+    });
+
+    test("a Runner run from its sources (both): one line that names both", async () => {
+      rows = [
+        withSandbox({
+          user: GlobalRunnerStepUser.RunnerUser,
+          userReason: GlobalRunnerStepUserReason.NotInstalled,
+          network: GlobalRunnerStepNetwork.Shared,
+          networkReason: GlobalRunnerStepNetworkReason.NotInstalled,
+        }),
+      ];
+
+      expect(await shortfallLines()).toEqual([
+        GLOBAL_RUNNER_SANDBOX_COPY[GlobalRunnerSandboxShortfall.NotInstalled],
+      ]);
+    });
+
+    test("the user and the network together: a line for each, user first", async () => {
+      rows = [
+        withSandbox({
+          user: GlobalRunnerStepUser.RunnerUser,
+          userReason: GlobalRunnerStepUserReason.NoPrivilege,
+          network: GlobalRunnerStepNetwork.Shared,
+          networkReason: GlobalRunnerStepNetworkReason.NoSeccomp,
+        }),
+      ];
+
+      expect(await shortfallLines()).toEqual([
+        GLOBAL_RUNNER_SANDBOX_COPY[
+          GlobalRunnerSandboxShortfall.OwnUserNoPrivilege
+        ],
+        GLOBAL_RUNNER_SANDBOX_COPY[
+          GlobalRunnerSandboxShortfall.SharedNetworkNoSeccomp
+        ],
+      ]);
+    });
+
+    test("a step with a user of its own and no network: no line", async () => {
+      rows = [
+        withSandbox({
+          user: GlobalRunnerStepUser.OwnUser,
+          network: GlobalRunnerStepNetwork.None,
+        }),
+      ];
+
+      expect(await shortfallLines()).toEqual([]);
+    });
+
+    test("a Runner of a release that says nothing (no hostInfo): no line", async () => {
+      rows = [globalRunner(new Date())];
+
+      expect(await shortfallLines()).toEqual([]);
+    });
+  });
+
+  /*
    * Both lines are whole sentences each Admin Dashboard locale words, as
    * English keys - the setting a value no translation writes out.
    */
@@ -478,6 +648,35 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
         expect(runners["takesNoCodeFixesTurnedOff"]).toBeUndefined();
       },
     );
+
+    /*
+     * The sandbox-shortfall lines (#8911, #8910): a whole sentence each
+     * Admin Dashboard locale words, as English keys.
+     */
+    test.each(LANGUAGES)(
+      "%s words every sandbox-shortfall line",
+      (language: string) => {
+        const words: Record<string, unknown> = read(language);
+
+        for (const sentence of Object.values(GLOBAL_RUNNER_SANDBOX_COPY)) {
+          const worded: unknown = words[sentence];
+
+          expect(typeof worded).toBe("string");
+
+          if (language === "en") {
+            expect(worded).toBe(sentence);
+          } else {
+            expect(worded).not.toBe(sentence);
+          }
+        }
+      },
+    );
+
+    test("there is a sentence for every shortfall", () => {
+      expect(Object.keys(GLOBAL_RUNNER_SANDBOX_COPY).sort()).toEqual(
+        Object.values(GlobalRunnerSandboxShortfall).sort(),
+      );
+    });
   });
 
   test("Show ID and Key is in the row's menu, and gives the ID, the key and the one command that starts it", async () => {
@@ -550,6 +749,71 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
     expect(created[0]!.name).toBe("global-us");
     // Nobody picks a project for it: no project owns a global Runner.
     expect(created[0]!.projectId).toBeUndefined();
+    // It takes AI code fixes, as every global Runner does until turned off.
+    expect(created[0]!.canRunCodeFixes).not.toBe(false);
+  });
+
+  test("Runs AI Code Fixes is one switch, on, folded under More fields with the words that say what off does", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      (await screen.findAllByText("Create Runner"))[0] as HTMLElement,
+    );
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    // Folded: the form shows the name and the description first.
+    expect(
+      within(dialog).queryByText(GLOBAL_RUNNER_CODE_FIXES_SWITCH.description),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      await within(dialog).findByRole("button", { name: /More fields/ }),
+    );
+
+    expect(
+      await within(dialog).findByText(GLOBAL_RUNNER_CODE_FIXES_SWITCH.title),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(GLOBAL_RUNNER_CODE_FIXES_SWITCH.description),
+    ).toBeInTheDocument();
+
+    const toggle: HTMLElement = within(dialog).getByRole("switch");
+
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("the switch's words are each language's own, in every language the Admin Dashboard speaks", () => {
+    const LOCALES: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/AdminDashboard/src/Locales",
+    );
+
+    for (const name of fs.readdirSync(LOCALES)) {
+      if (!name.endsWith(".json")) {
+        continue;
+      }
+
+      const words: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES, name), "utf8"),
+      ) as Record<string, unknown>;
+
+      for (const text of Object.values(GLOBAL_RUNNER_CODE_FIXES_SWITCH)) {
+        expect(typeof words[text]).toBe("string");
+
+        if (name === "en.json") {
+          expect(words[text]).toBe(text);
+        } else {
+          expect(words[text]).not.toBe(text);
+        }
+      }
+    }
+  });
+
+  test("the switch's description says what on does, in one short sentence pair", () => {
+    expect(
+      GLOBAL_RUNNER_CODE_FIXES_SWITCH.description.length,
+    ).toBeLessThanOrEqual(150);
   });
 
   test("with none yet, a short heading says to add one, and the line under it how to start it", async () => {

@@ -6,7 +6,7 @@ O OneUptime registra como foram as notificações que envia: quantos incidentes 
 - [Ativá-las](#ativá-las): Duas configurações, e sem elas nada é registrado.
 - [As métricas](#as-métricas): Sete métricas, do gatilho ao telefone.
 - [Como um acionamento é cronometrado](#como-um-acionamento-é-cronometrado): De onde partem o tempo de envio e o atraso de envio.
-- [SLOs para começar](#slos-para-começar): Quatro objetivos, consulta por consulta.
+- [SLOs para começar](#slos-para-começar): Cinco objetivos, consulta por consulta.
 :::
 
 ## Como funciona
@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Defina-as em `config.env` e depois execute `npm start`. `DISABLE_TELEMETRY_FOR_APP` é `true` por padrão, e então nada é enviado.
 :::
 
-O OneUptime precisa tanto do endpoint quanto dos cabeçalhos: sem um cabeçalho, ele não envia nada. Escreva cada cabeçalho como `name=value` e separe vários com `;`. Um valor pode conter `=`. O OneUptime acrescenta `/v1/metrics` ao endpoint por conta própria, e as mesmas configurações também enviam os traces e logs dele. Cada métrica aparece assim que o OneUptime a registra pela primeira vez: `notification.send.count` com a primeira mensagem enviada.
+O OneUptime precisa tanto do endpoint quanto dos cabeçalhos: sem um cabeçalho, ele não envia nada. Escreva cada cabeçalho como `name=value` e separe vários com `;`, ou com `,` como em `OTEL_EXPORTER_OTLP_HEADERS`. Um valor pode conter `=`. Sem um `;`, um valor é lido como esse padrão o escreve, com um espaço como `%20`: termine a configuração com `;` para enviá-lo exatamente como está escrito. Também contam os cabeçalhos definidos no próprio `OTEL_EXPORTER_OTLP_HEADERS`, ou em `OTEL_EXPORTER_OTLP_METRICS_HEADERS` só para as métricas: o exportador também os envia, e com o mesmo nome prevalecem os do OneUptime. O OneUptime acrescenta `/v1/metrics` ao endpoint por conta própria, e as mesmas configurações também enviam os traces e logs dele. Cada métrica aparece assim que o OneUptime a registra pela primeira vez: `notification.send.count` com a primeira mensagem enviada.
 
 ### Enviar deltas para um projeto do OneUptime
 
@@ -57,19 +57,15 @@ O OneUptime envia contadores e histogramas como o OpenTelemetry faz por padrão:
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-A lista própria de um serviço substitui a do chart inteiro: se você definir `app.extraEnv` ou `worker.extraEnv`, adicione-a lá também.
+O chart repassa o valor, como `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`, a cada serviço que envia a telemetria do próprio OneUptime.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Crie-o ao lado de `docker-compose.yml`, ou acrescente isto ao que você já tem, e depois execute `npm start`.
+Defina-a em `config.env` e depois execute `npm start`.
 :::
 
 Isso vale para toda métrica que o OneUptime envia sobre si mesmo. Um backend que interpreta sozinho os totais acumulados, como o Prometheus, não precisa de nenhuma mudança.
@@ -155,7 +151,7 @@ Os status só chegam onde o provedor consegue informá-los:
 | --- | --- |
 | `monitor_data_received` | Quando o OneUptime recebeu os dados que dispararam o monitor: uma requisição de entrada, o relatório de um agente de servidor, um e-mail de entrada, a verificação de uma sonda, um trap SNMP ou a consulta a um dispositivo de rede. Inclui o tempo que os dados esperaram na fila para serem avaliados. |
 | `record_created` | Quando o incidente, o alerta ou o episódio foi criado: por um monitor de telemetria, uma regra ou uma pessoa, e numa verificação de ausência, como um heartbeat que parou. |
-| `page_started` | Quando um acionamento começou mais tarde: uma pessoa, um fluxo de trabalho ou uma regra que agora corresponde o iniciou, ou é um acionamento direto. Para um acionamento retido pela regra de plantão dele ou pela OneUptime AI, quando a retenção terminou, ou quando ele começou, se foi antes. Para um novo acionamento, quando o tempo limite após a confirmação se esgotou. Assim, um worker que chegou atrasado a qualquer um deles aparece no tempo. |
+| `page_started` | Quando um acionamento começou mais tarde: uma pessoa, um fluxo de trabalho ou uma regra que agora corresponde o iniciou, ou é um acionamento direto. Para um acionamento retido pela regra de plantão dele ou pela OneUptime AI, quando a retenção terminou, ou quando ele começou, se foi antes. Para um novo acionamento, quando o tempo limite após a confirmação se esgotou, ou quando a política dele foi alterada pela última vez, se isso foi depois: um tempo limite encurtado a ponto de já ter se esgotado é cronometrado a partir da mudança. Assim, um worker que chegou atrasado a qualquer um deles aparece no tempo. |
 
 Numa requisição de entrada, o tempo parte da última requisição que o endpoint recebeu, então pode ficar um pouco curto.
 
@@ -187,7 +183,7 @@ Um percentil é calculado a partir dos buckets, e desenhado como o meio do bucke
 
 ## SLOs para começar
 
-Quatro objetivos que a maioria das instalações pode prometer, cada um montado com uma ou duas consultas no explorador de métricas do projeto que recebe as métricas. Eles leem um intervalo de tempo com exatidão assim que as métricas chegam como deltas: veja [Enviar deltas para um projeto do OneUptime](#enviar-deltas-para-um-projeto-do-oneuptime).
+Cinco objetivos que a maioria das instalações pode prometer, cada um montado com uma ou duas consultas no explorador de métricas do projeto que recebe as métricas. Eles leem um intervalo de tempo com exatidão assim que as métricas chegam como deltas: veja [Enviar deltas para um projeto do OneUptime](#enviar-deltas-para-um-projeto-do-oneuptime).
 
 ### Montar um no explorador de métricas
 
@@ -210,7 +206,7 @@ No máximo 1% dos SMS de plantão enviados pela conta do Twilio da própria inst
 | `a` | `notification.send.count` | **Soma** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Soma** | As mesmas, com `outcome = failure` |
 
-A fórmula `$b / $a * 100` é a parcela que falhou, e o objetivo se mantém enquanto ela ficar igual ou abaixo de 1. Um passo sem falha não desenha nenhum ponto, já que `b` não tem nenhum. `outcome != not_sent` deixa de fora o que as configurações próprias dos projetos seguraram, e `global` as contas do Twilio dos próprios projetos. Em uma instalação que envia os SMS pelo seu gateway de SMS e chamadas, as mesmas consultas medem o gateway. Para outro canal, troque `sms`: `call`, `push` ou `email`.
+A fórmula `$b / $a * 100` é a parcela que falhou, e o objetivo se mantém enquanto ela ficar igual ou abaixo de 1. Um passo sem falha desenha 0, já que `b` não contou nada nele. `outcome != not_sent` deixa de fora o que as configurações próprias dos projetos seguraram, e `global` as contas do Twilio dos próprios projetos. Em uma instalação que envia os SMS pelo seu gateway de SMS e chamadas, as mesmas consultas medem o gateway. Para outro canal, troque `sms`: `call`, `push` ou `email`.
 
 ### Acionamentos saem em até 30 segundos
 
@@ -220,7 +216,17 @@ A fórmula `$b / $a * 100` é a parcela que falhou, e o objetivo se mantém enqu
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-O objetivo se mantém enquanto `a` ficar igual ou abaixo de 30000. Acionamentos iniciados mais tarde são cronometrados a partir do início ou do vencimento deles, não de um gatilho, por isso ficam de fora. Agrupe por `notification.page.start` para ver a fila dos monitores (`monitor_data_received`) separada do resto, ou por `notification.channel` para encontrar um canal lento.
+O objetivo se mantém enquanto `a` ficar igual ou abaixo de 30000. Acionamentos iniciados mais tarde são cronometrados a partir do início ou do vencimento deles, não de um gatilho, por isso ficam de fora: o próximo objetivo cobre esses acionamentos. Agrupe por `notification.page.start` para ver a fila dos monitores (`monitor_data_received`) separada do resto, ou por `notification.channel` para encontrar um canal lento.
+
+### Acionamentos iniciados mais tarde saem em até 2 minutos
+
+95% dos acionamentos iniciados mais tarde chegam ao seu provedor em até 2 minutos depois do vencimento: um acionamento retido, um novo acionamento e um acionamento que uma pessoa, um fluxo de trabalho ou uma regra iniciou.
+
+| Consulta | Métrica | Agregação | Condições |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+O objetivo se mantém enquanto `a` ficar igual ou abaixo de 120000. Um acionamento retido ou um novo acionamento espera a próxima execução de um worker que roda uma vez por minuto, então até um minuto do seu tempo vai nessa espera, e um worker que ficou para trás acrescenta mais.
 
 ### Notificações enviadas mais tarde saem em até 90 segundos
 

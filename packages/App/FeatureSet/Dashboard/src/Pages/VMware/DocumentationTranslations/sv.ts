@@ -30,7 +30,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "In the next step, use the host itself as the endpoint (`https://esxi01.example.com`) with this local user. Everything the host knows is collected — the host, its VMs, datastores and resource pools; a standalone host has no datacenter or cluster object, so those pages stay empty.":
     "I nästa steg använder du själva värden som slutpunkt (`https://esxi01.example.com`) med den här lokala användaren. Allt värden känner till samlas in — värden, dess VM:ar, datalager och resurspooler; en fristående värd har inget datacenter- eller klusterobjekt, så de sidorna förblir tomma.",
   "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:":
-    "Skriptet frågar efter din OneUptime-URL och din ingestion-nyckel, som båda visas i steg 1 (välj en nyckel där så fylls de i här), och sedan efter:",
+    "Skriptet frågar efter din OneUptime-URL och din intagningsnyckel, som båda visas i steg 1 (välj en nyckel där så fylls de i här), och sedan efter:",
   "- **vCenter name** — how the vCenter appears in OneUptime. Give every vCenter its own and keep it stable: a new name registers a new vCenter.":
     "- **vCenter-namn**: hur vCentern visas i OneUptime. Ge varje vCenter ett eget och håll det stabilt: ett nytt namn registrerar en ny vCenter.",
   "- **vCenter endpoint** — scheme and host, without `/sdk`, e.g. `https://vcsa.example.com`.":
@@ -56,7 +56,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | URL:en till din OneUptime-instans (t.ex. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Telemetri-ingestion-nyckeln, den som valdes i steg 1 |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Telemetri-intagningsnyckeln, den som valdes i steg 1 |",
   "| `VMWARE_VCENTER_NAME` | Yes | The name this vCenter registers under in OneUptime. Stamped on every metric as the `vmware.vcenter.name` resource attribute. Keep it stable — changing it registers a new vCenter (default: `vmware-vcenter`) |":
     "| `VMWARE_VCENTER_NAME` | Ja | Namnet som den här vCentern registreras under i OneUptime. Sätts på varje mätvärde som resursattributet `vmware.vcenter.name`. Håll det stabilt — att ändra det registrerar en ny vCenter (standard: `vmware-vcenter`) |",
   "| `VCENTER_ENDPOINT` | Yes | Scheme + host of vCenter Server or a standalone ESXi host, **without** `/sdk`, e.g. `https://vcsa.example.com` |":
@@ -133,7 +133,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then remove the `oneuptime` user's permission in vCenter (and the OneUptime AI fixes user's, if you created one) if you no longer need it.":
     "Ta sedan bort `oneuptime`-användarens behörighet i vCenter (och OneUptime AI:s korrigeringsanvändares, om du skapade en) om du inte längre behöver den.",
   "`troubleshoot.sh` checks the whole chain — container runtime, vCenter reachability and credentials, vCenter-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` kontrollerar hela kedjan — containerkörning, vCenters nåbarhet och inloggningsuppgifter, att vCenter-namnet sätts, tokenets form, insamlarens egna mätvärden — och frågar OneUptime direkt om den godtar din ingestion-nyckel. Den sista kontrollen är viktigast: OneUptimes OTLP-slutpunkter avvisar en felaktig nyckel med `401` eller `422`, vilket insamlaren loggar som en enda `Exporting failed`-rad per batch som är lätt att missa, så skriptet ber `GET /otlp/v1/validate` om ett direkt 200/401-utslag.",
+    "`troubleshoot.sh` kontrollerar hela kedjan — containerkörning, vCenters nåbarhet och inloggningsuppgifter, att vCenter-namnet sätts, tokenets form, insamlarens egna mätvärden — och frågar OneUptime direkt om den godtar din intagningsnyckel. Den sista kontrollen är viktigast: OneUptimes OTLP-slutpunkter avvisar en felaktig nyckel med `401` eller `422`, vilket insamlaren loggar som en enda `Exporting failed`-rad per batch som är lätt att missa, så skriptet ber `GET /otlp/v1/validate` om ett direkt 200/401-utslag.",
   "It ends with a verdict naming the most likely cause.":
     "Det avslutas med ett utslag som nämner den mest sannolika orsaken.",
   "1. Check that the agent is running (in `/opt/oneuptime-vmware-agent`): `docker compose ps`":
@@ -141,7 +141,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker compose logs oneuptime-vmware-agent | grep -i error`":
     "2. Kontrollera agentens loggar efter fel: `docker compose logs oneuptime-vmware-agent | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Bekräfta att din OneUptime-URL och ingestion-nyckel är korrekta.",
+    "3. Bekräfta att din OneUptime-URL och intagningsnyckel är korrekta.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Se till att agentens maskin når OneUptime-instansen över nätverket.",
   "1. Check the collector logs: a login error (`incorrect user name or password`, `InvalidLogin`) means bad credentials — or a password containing `$`, `#`, spaces or quotes that is not single-quoted in `.env` (Docker Compose expands `$VAR` and treats a space followed by `#` as a comment otherwise), `x509: certificate signed by unknown authority` means TLS verification is on against a self-signed certificate (set `VCENTER_INSECURE_SKIP_VERIFY=true`), `connection refused` / `no such host` means a wrong `VCENTER_ENDPOINT`.":
@@ -169,7 +169,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The vCenter identity comes from `VMWARE_VCENTER_NAME`, stamped on every metric as `vmware.vcenter.name`. This vCenter is **`vcenter-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-vmware-agent` — note that a new name registers a new vCenter.":
     "vCenterns identitet kommer från `VMWARE_VCENTER_NAME`, som sätts på varje mätvärde som `vmware.vcenter.name`. Den här vCentern är **`vcenter-1`**. Rätta det i `.env` och tillämpa det med `docker compose up -d` i `/opt/oneuptime-vmware-agent` — tänk på att ett nytt namn registrerar en ny vCenter.",
   "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:":
-    "Kommandot innehåller redan din OneUptime-URL och ingestion-nyckel. Resten frågar skriptet efter:",
+    "Kommandot innehåller redan din OneUptime-URL och intagningsnyckel. Resten frågar skriptet efter:",
   "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:":
     "Ladda ned `docker-compose.yml` och `otel-collector-config.yaml` från den här OneUptime till en ny mapp:",
   "Create a `.env` file next to them:": "Skapa en `.env`-fil bredvid dem:",
@@ -184,7 +184,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "It holds a password, so make it private, then start the agent:":
     "Den innehåller ett lösenord, så gör den privat och starta sedan agenten:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Välj en ingestion-nyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
+    "Välj en intagningsnyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":
     "Agenten läser dessa från `.env`-filen bredvid `docker-compose.yml`. När du har ändrat en tillämpar du den med `docker compose up -d` i mappen med `docker-compose.yml`.",
   "| `VCENTER_PASSWORD` | Yes | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` — see **vCenter rejects the login** under Troubleshooting |":
@@ -255,9 +255,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check its log for errors: `sudo journalctl -u oneuptime-vmware-agent | grep -i error`":
     "2. Kontrollera dess logg efter fel: `sudo journalctl -u oneuptime-vmware-agent | grep -i error`",
   '3. Ask OneUptime whether it takes your ingestion key. `"valid":true` with `"keyType":"Server"` means it does; anything else says what is wrong with the key:':
-    '3. Fråga OneUptime om den godtar din ingestion-nyckel. `"valid":true` med `"keyType":"Server"` betyder ja; alla andra svar berättar vad som är fel med nyckeln:',
+    '3. Fråga OneUptime om den godtar din intagningsnyckel. `"valid":true` med `"keyType":"Server"` betyder ja; alla andra svar berättar vad som är fel med nyckeln:',
   "1. Check the log (`sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager`): a login error (`incorrect user name or password`, `InvalidLogin`) means bad credentials — or a user name or password that is not double-quoted, backslashes doubled, in `.env`; `x509: certificate signed by unknown authority` means TLS verification is on against a certificate this machine does not trust (see **x509 or other TLS errors**); `connection refused` / `no such host` means a wrong `VCENTER_ENDPOINT`; `Exporting failed` with a `401` or `422` means OneUptime refuses the ingestion key.":
-    "1. Kontrollera loggen (`sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager`): ett inloggningsfel (`incorrect user name or password`, `InvalidLogin`) betyder felaktiga inloggningsuppgifter — eller ett användarnamn eller lösenord som inte står inom dubbla citattecken med dubblerade omvända snedstreck i `.env`; `x509: certificate signed by unknown authority` betyder att TLS-verifieringen är på mot ett certifikat som den här maskinen inte litar på (se **x509- eller andra TLS-fel**); `connection refused` / `no such host` betyder fel `VCENTER_ENDPOINT`; `Exporting failed` med `401` eller `422` betyder att OneUptime avvisar ingestion-nyckeln.",
+    "1. Kontrollera loggen (`sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager`): ett inloggningsfel (`incorrect user name or password`, `InvalidLogin`) betyder felaktiga inloggningsuppgifter — eller ett användarnamn eller lösenord som inte står inom dubbla citattecken med dubblerade omvända snedstreck i `.env`; `x509: certificate signed by unknown authority` betyder att TLS-verifieringen är på mot ett certifikat som den här maskinen inte litar på (se **x509- eller andra TLS-fel**); `connection refused` / `no such host` betyder fel `VCENTER_ENDPOINT`; `Exporting failed` med `401` eller `422` betyder att OneUptime avvisar intagningsnyckeln.",
   "2. Verify the endpoint is reachable. The collector runs on this machine, not in a container, so a plain `curl` takes its path — you should see an XML document advertising `urn:vim25`:":
     "2. Bekräfta att slutpunkten kan nås. Insamlaren körs på den här maskinen, inte i en container, så ett vanligt `curl` tar samma väg — du ska se ett XML-dokument som annonserar `urn:vim25`:",
   "3. Read the collector's own counters: `otelcol_receiver_accepted_metric_points` grows while vCenter answers, `otelcol_exporter_sent_metric_points` while OneUptime takes the data, and `otelcol_exporter_send_failed_metric_points` appears when it does not:":

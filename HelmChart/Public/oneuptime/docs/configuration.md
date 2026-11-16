@@ -11,7 +11,7 @@ up-to-date list see [`values.yaml`](../values.yaml).
 | Parameter          | Description                                                                                     | Default         | Change |
 |--------------------|-------------------------------------------------------------------------------------------------|-----------------|:------:|
 | `global.storageClass` | Storage class used for all persistent volumes.                                               | `nil`           | 🚨 |
-| `host`             | Primary hostname served by OneUptime (used for routing and certificates).                       | `localhost`     | 🚨 |
+| `host`             | Primary hostname served by OneUptime (used for routing and certificates): a domain name or an IP address, with `:port` when people open it on one. An IPv6 address goes in brackets, and in a values file in quotes too: `host: "[2001:db8::1]"`, or `"[2001:db8::1]:8080"`. The chart refuses a host OneUptime cannot be opened at, with the value to set: an IPv6 address without brackets, a web address instead of the address alone, a port that is not a number from 1 to 65535, or a name with a character no domain name has, such as `oneuptime,example.com`. | `localhost`     | 🚨 |
 | `httpProtocol`     | Set to `https` when people reach OneUptime over HTTPS (TLS at the chart's nginx or at a proxy in front of it), otherwise `http`. See [HTTPS](#https). | `http`          | 🚨 |
 | `ssl.provision`    | Auto-provision a Let's Encrypt certificate for the primary host (needs public ports 80 & 443).  | `false`         |    |
 | `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`, the cluster key OneUptime's own services present to each other. Leave it empty for a generated one, or set a long random string. A value the repository ships (`secret`, a `please-change-this` placeholder) is refused. The bundled global Runner never holds it. | `nil`           |    |
@@ -103,6 +103,14 @@ first upgrade that still sets the inline key stores it without. If you plan to
 take an inline key out of your values, do it on a later upgrade: otherwise the
 pods switch to the copy stored with the newline, which is a different key (for
 `encryptionSecret`, one that cannot read your encrypted data).
+
+The password of a database you run yourself (`externalPostgres.password`,
+`externalValkey.password` and `externalClickhouse.password`) works from a file
+too: it is stored without the line ending the file ends with (`\n`, or `\r\n`
+from Windows), and otherwise exactly as written, so a password that begins or
+ends with a space keeps it. Older charts stored it with that line ending, which
+the database refused. The passwords of the built-in databases are stored as
+written: their server and the pods read the same Secret.
 
 ### Probe and Runner identity keys
 
@@ -503,6 +511,35 @@ Confirm what an upgrade would actually change before you run it:
 helm template my-oneuptime oneuptime/oneuptime -f values.yaml | grep -c NODE_EXTRA_CA_CERTS
 ```
 
+### Example: the Node.js heap
+
+Every Node.js service (app, worker, every probe, home, telemetry-writer, the
+nginx pod's sidecar, test-server, the global Runner and the migrate Job) sizes
+its heap to its container's memory limit when it starts: three quarters of
+`<service>.resources.limits.memory`, at least 256 MB and at most 8096 MB, and
+8096 MB when the container has no limit. The quarter left is for the memory
+Node.js uses outside its heap. So to give a service more heap, raise its memory
+limit, and the heap follows.
+
+To choose the heap yourself, set `--max-old-space-size` (in MB) in the
+service's `NODE_OPTIONS`. It comes after the one the service derives from its
+limit, and Node.js takes the last one, so yours wins:
+
+```yaml
+app:
+  resources:
+    limits:
+      memory: 4Gi
+  extraEnv:
+    - name: NODE_OPTIONS
+      value: --max-old-space-size=2048
+```
+
+The probe and Runner images set `NODE_OPTIONS=--use-openssl-ca` themselves (so
+Node.js trusts the system's certificate store), and a `NODE_OPTIONS` you set
+replaces it: keep it in your value for them, as in
+`--use-openssl-ca --max-old-space-size=2048`.
+
 ## Migration Job annotations
 
 The Job that runs the database migrations takes annotations of its own, for the
@@ -872,6 +909,22 @@ not the only thing guarding the token.
 | `onCallCalendarFeed.rateLimit.windowSeconds` | Length of the fixed rate-limit window.                                                  | `60`    |
 | `onCallCalendarFeed.rateLimit.perTokenPerWindow` | Requests one token may make from one client address per window.                     | `60`    |
 | `onCallCalendarFeed.rateLimit.perIpPerWindow` | Requests one client address may make across all tokens per window.                    | `3000`  |
+
+## OneUptime's own telemetry
+
+OneUptime can send its own traces, metrics and logs to a OneUptime project, or
+to any backend that takes OTLP over HTTP. Every workload that sends them (the
+app, the worker, the probes, the global Runner and the rest) gets these
+settings. See
+[Notification Delivery Metrics](https://oneuptime.com/docs/self-hosted/notification-delivery-metrics).
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `openTelemetryExporter.endpoint` | The OTLP endpoint, such as `https://oneuptime.example.com/otlp`. OneUptime adds `/v1/traces`, `/v1/metrics` and `/v1/logs` itself. | `nil` |
+| `openTelemetryExporter.headers` | The headers it is sent with, each `name=value`, separated by `;`, or by `,` as in `OTEL_EXPORTER_OTLP_HEADERS`, such as `x-oneuptime-token=<a Server ingestion key>`. A signal is sent only with a header: one set here, or one set in `OTEL_EXPORTER_OTLP_HEADERS` or that signal's `OTEL_EXPORTER_OTLP_<SIGNAL>_HEADERS` (with `extraEnv`), which the exporters send as well. | `nil` |
+| `openTelemetryExporter.metricsTemporality` | How its counters and histograms are sent: empty, the OpenTelemetry default, for running totals; `delta` for what happened since the last point, which a OneUptime project reads exactly. Sets `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`. Keep it empty for a backend that reads running totals itself, such as Prometheus. | `nil` |
+| `openTelemetryExporter.kubernetesClusterName` | Reported as `k8s.cluster.name`, so its pods group under this cluster in Topology. | `nil` |
+| `openTelemetryExporter.captureAiMessageContent` | Record what OneUptime AI's own calls said, prompts and answers included (`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`). | `false` |
 
 ## Other
 

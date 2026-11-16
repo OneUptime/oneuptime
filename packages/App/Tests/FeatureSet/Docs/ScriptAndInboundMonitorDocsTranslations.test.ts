@@ -156,8 +156,9 @@ const THIRD_PARTY_IN_ENGLISH: Record<string, Array<string>> = {
     "Create subscription",
     "Pending confirmation",
     "Request confirmation",
-    // The Azure portal's event schema and endpoint type.
+    // The Azure portal's event schemas and endpoint type.
     "Event Grid Schema",
+    "Cloud Event Schema v1.0",
     "Web Hook",
   ],
   [INCOMING_EMAIL_MONITOR]: ["Resend", "Test", "Confirm subscription"],

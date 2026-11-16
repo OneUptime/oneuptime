@@ -34,7 +34,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * row stays until the monitor's steps change, which is what lets the stale
  * poll check find monitors that watch a device that no longer exists.
  *
- * Internal: no API, no permission reads it. Root reads only.
+ * Internal: no API, no permission reads it. Root reads only. The device
+ * page's Monitors card asks which monitors watch a device through
+ * NetworkDeviceWatchingMonitorsAPI, which reads it as root once the caller
+ * may read the device, and answers only the monitors the caller may read.
  */
 @TenantColumn("projectId")
 @Index(["monitorId", "networkDeviceId"], { unique: true })

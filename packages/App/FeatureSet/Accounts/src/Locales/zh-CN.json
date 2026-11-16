@@ -91,8 +91,8 @@
       "lostAccessSecurityKey": "无法使用安全密钥？"
     },
     "twoFactorEnrolment": {
-      "title": "设置双重身份验证",
-      "subtitle": "您的管理员要求此账户使用双重身份验证。请立即设置以完成登录。",
+      "title": "设置双因素身份验证",
+      "subtitle": "您的管理员要求此账户使用双因素身份验证。请立即设置以完成登录。",
       "scanInstruction": "请使用 Google Authenticator、Microsoft Authenticator 或 1Password 等身份验证器应用扫描此二维码。",
       "codeFieldDescription": "请输入身份验证器应用显示的六位数验证码。",
       "submitButton": "验证并登录",
@@ -572,6 +572,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "此表单没有设置严重程度，因此无法创建事件。请告知分享此表单的团队。",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "目前无法接受提交。请几分钟后重试。",
   "This form is receiving too many files right now. Please try again later.": "此表单目前收到的文件过多。请稍后重试。",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "目前无法检查文件是否含有病毒，因此文件未被接受。请几分钟后重试。",
   "A response can carry at most 10 files.": "一份回复最多可包含 10 个文件。",
   "The files of a response can be at most 20 MB together.": "一份回复中的文件总大小最多为 20 MB。",
   "Your response could not be submitted. Please try again in a few minutes.": "无法提交您的回复。请几分钟后重试。",

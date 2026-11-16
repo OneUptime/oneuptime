@@ -87,7 +87,7 @@ AI エージェントのページでエージェントの状態の隣にある *
 
 Docker Swarm のワーカーでは `docker node ls` が失敗します。Docker Swarm AI エージェントはマネージャーノードで実行する必要があります。ワーカーで起動したエージェントは、そのノードがマネージャーになるまでクラスターに登録されず、Docker Swarm のインストーラーはマネージャーでないノードにはエージェントを含めません。
 
-クラウド アカウントでは、`cloud whoami` が、クラウド AI エージェントが動作するアカウントとサインインしている ID、何かを変更してよいかどうか、行える変更、必要なタグ(ある場合)を表示します。Azure と Google Cloud では、変更を実行する ID と、エージェントがその ID でサインインできるかどうかも表示します。
+クラウド アカウントでは、`cloud whoami` が、クラウド AI エージェントが動作するアカウントとサインインしている ID、何かを変更してよいかどうか、行える変更、必要なタグ(ある場合)を表示します。Azure と Google Cloud では、変更を実行する ID と、エージェントがその ID でサインインできるかどうかも表示します。エージェントが読み取りはできても、変更の実行に使う ID としてサインインできない場合、テストは警告として、読み取りは機能するものの変更は失敗することと、直すべき点を示します。
 
 ## AI エージェントのインストール
 
@@ -154,7 +154,7 @@ AWS アカウント、Azure サブスクリプション、Google Cloud プロジ
 | クラウド | 実行する場所 | コマンドが作成するもの |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AWS アカウント | AWS CloudShell | ECS Fargate タスクを一つ実行する CloudFormation スタック `oneuptime-ai-agent`。そのタスク ロールが引き受けられるのは書き込みロール `OneUptimeAiAgentWrite` だけで、このロールが有効にした変更の権限を持ちます。接続に使うキーは Secrets Manager に保管され、それを読むのは ECS だけです。 |
-| Azure サブスクリプション | Azure Cloud Shell | リソース グループ `oneuptime-ai-agent` 内の Container App `oneuptime-ai-agent`。その独自のマネージド ID は読み取りしかできません。変更はそれぞれ、もう一つのユーザー割り当てマネージド ID `oneuptime-ai-agent-write` として実行されます。この ID は有効にした変更の権限を持つカスタム ロールをサブスクリプションに対して持ち、エージェントの Container App だけに割り当てられます。エージェントは変更のたびにそのトークンを要求します。接続に使うキーは Container Apps のシークレットとして保管されます。 |
+| Azure サブスクリプション | Azure Cloud Shell | リソース グループ `oneuptime-ai-agent` 内の Container App `oneuptime-ai-agent`。その独自のマネージド ID は読み取りしかできません。変更はそれぞれ、もう一つのユーザー割り当てマネージド ID `oneuptime-ai-agent-write` として実行されます。この ID は有効にした変更の権限を持つカスタム ロールをサブスクリプションに対して持ち、エージェントの Container App だけに割り当てられます。エージェントは変更のたびにそのトークンを要求します。接続に使うキーは Container Apps のシークレットとして保管されます。**その他の項目** の **エージェントの実行場所** では、Container Apps を使えないサブスクリプション向けに、代わりに小さな VM `oneuptime-ai-agent`（サイズ `Standard_B1s`、Ubuntu）を選べます。セキュリティ グループが何も受け入れない専用ネットワークに置かれます。その独自の ID は読み取りだけを行い、書き込み ID はこの VM だけに割り当てられ、キーは起動のたびに、この ID だけが読める専用の Key Vault から読み込みます。 |
 | Google Cloud プロジェクト | Google Cloud Shell | Container-Optimized OS 上で動く `e2-micro` タイプの Compute Engine VM `oneuptime-ai-agent`。ファイアウォール ルールのない専用ネットワーク内にあるため、外部から接続できるものはありません。サービス アカウント `oneuptime-ai-agent` として動作し、このサービス アカウントは読み取りしかできません。変更はそれぞれ二つ目のサービス アカウント `oneuptime-ai-agent-write` として実行されます。このアカウントは有効にした変更の権限を持つカスタム ロールをプロジェクトに対して持ち、エージェントはその変更一つのためだけに、15 分間有効なトークンを要求します。接続に使うキーは Secret Manager に保管され、それを読めるのはエージェント自身のサービス アカウントだけで、コマンドを再実行するとキーの古いバージョンは破棄されます。VM は起動のたびにキーを読み取り、ディスクやメタデータに保存することはありません。**その他の項目** の **エージェントの実行場所** では、代わりに CPU を常に割り当てた Cloud Run サービスを選べます。VM に外部 IP アドレスを持たせられないプロジェクト向けです。 |
 
 エージェントを別の場所で実行するには、**その他の項目** に表示される変数を使ってそのイメージをデプロイし、コマンドが与えるものと同じものを与えます:
@@ -325,7 +325,7 @@ OneUptime は、AWS アカウント、Azure サブスクリプション、Google
 - **オフ** — AI は調査だけを行います。
 - **承認を求める** — 根本原因分析の後、OneUptime AI は読み取りコマンドで診断し、原因に対処する最小の計画を作成します。たとえば `docker restart web` です。計画は根拠、期待される効果、ロールバックとともにインシデントやアラートに表示され、人がワンクリックで承認すると、OneUptime はまさにそのコマンドを実行します。
 - **自動** — 安全な変更(**SafeWrite**)は自動で実行され、よりリスクの高い変更(**RiskyWrite**)は、リソースのコマンド許可リストがその正確な形を指定していない限り、承認用に提案されます。
-- **承認をバイパス** — ポリシーが許可するすべての変更が、よりリスクの高いものも含めて自動で実行されます。常に人を必要とするものは、引き続き人を待ちます。
+- **承認をバイパス** — ポリシーが許可するすべての変更が、よりリスクの高いものも含めて自動で実行されます。常に人を必要とするものは、引き続き人を待ちます。プロジェクトがリスクの高い修正を 2 人に承認してもらうように求めている場合、リスクの高い変更は代わりに 2 人の承認用に提案されます。
 
 修正の実行後、OneUptime はインシデントやアラートのモニターを監視します。回復しない場合は計画のロールバックが実行され、OneUptime AI は失敗した試みを踏まえてもう一つ計画を作成します。インシデントやアラートごとに最大で二ラウンドです。**自動** モードではその二ラウンド目は承認を求め、**承認をバイパス** ではそれも自動で実行されます。無人の修正にはリソースごと一時間あたり三件のサーキットブレーカーがあり、それを超えた場合や、OneUptime AI の別の無人ラウンドが同じリソースをまだ変更または検証している間は、ラウンドは計画を実行せずに承認用に提案します。
 
@@ -342,7 +342,7 @@ OneUptime は、AWS アカウント、Azure サブスクリプション、Google
 
 よりリスクの高い変更の一部は、承認をバイパスを含むすべてのモードで **常に人を必要とし**、許可リストのエントリでもそれは変わりません。下の表ではそのように示しています。
 
-プロジェクトでは、リスクの高い変更を含む修正を 2 人に承認してもらうように求めることもできます。[リスクの高い修正は 2 人が承認する](/docs/ai/ai-sre#リスクの高い修正は-2-人が承認する) を参照してください。
+プロジェクトでは、リスクの高い変更を含む修正を 2 人に承認してもらうように求めることもできます。その場合、許可リストや承認をバイパスがあっても、リスクの高い変更は自動では実行されません。[リスクの高い修正は 2 人が承認する](/docs/ai/ai-sre#リスクの高い修正は-2-人が承認する) を参照してください。
 
 ### Docker と Podman のホストでの修正
 
@@ -583,7 +583,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 リソースのコンテナ名を使ってください: `oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`(`docker` の代わりに `podman` を使用)、`oneuptime-docker-swarm-ai-agent`、`oneuptime-openstack-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。データベースエージェントのサービスには固定のコンテナ名がないため、`/opt/oneuptime-database-agent` で `docker compose logs --tail=100 oneuptime-database-ai-agent` と `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` を使います。ホスト AI エージェントはホストのネットワークを使うため、`curl -s http://127.0.0.1:3877/status` はホスト上でそのまま動作します。
 
-クラウド AI エージェントはクラウドで動作するため、`exec` で入れるコンテナはありません。ログはクラウドのシェルで `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100`、または `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（Cloud Run の場合は `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） を使って読み、状態はアカウントの **AI エージェント** ページで確認します。このページにも同じコマンドが表示されます。
+クラウド AI エージェントはクラウドで動作するため、`exec` で入れるコンテナはありません。ログはクラウドのシェルで `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100`（専用 VM の場合は `az vm run-command invoke --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --command-id RunShellScript --scripts "docker logs --tail 100 oneuptime-ai-agent" --query "value[0].message" --output tsv`）、または `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（Cloud Run の場合は `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） を使って読み、状態はアカウントの **AI エージェント** ページで確認します。このページにも同じコマンドが表示されます。
 
 設定が不足していてもエージェントはクラッシュしません。正常に動作し続け、不足しているものをログと `/status` に示し、それ以外は何もしないため、コンテナが再起動を繰り返すことはありません。
 

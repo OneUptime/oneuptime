@@ -209,7 +209,8 @@ const ENGLISH: Record<string, string> = {
   "days, hours and minutes": "2\u00A0days, 3\u00A0hours, 0\u00A0minutes",
   "a friendly time":
     "1\u00A0year 1\u00A0month 4\u00A0days 3\u00A0hours 5\u00A0mins 6\u00A0secs",
-  "a span's duration": "1.72 s",
+  // Its figure held to its unit, as every other language's is (#8826).
+  "a span's duration": "1.72\u00A0s",
 };
 
 const GERMAN: Record<string, string> = {
@@ -633,6 +634,42 @@ describe("a 12-hour time's half of the day", () => {
         use12HourFormat: true,
       }),
     ).toBe("10 AM");
+  });
+});
+
+/*
+ * Two helpers wrote a time by hand with moment, in English and Latin digits
+ * whatever the reader's language: toTimeString ("hh:mm A" or "HH:mm", with
+ * English AM and PM) and secondsToFormattedTimeString ("HH:mm:ss"). Nothing
+ * called them, and a caller would have brought back the exception
+ * breadcrumbs' bug (#7856), so they are gone (#7913). A time of day is
+ * written with getLocalTimeString, in the reader's words and digits.
+ */
+describe("no time of day is written by hand", () => {
+  test("OneUptimeDate has no toTimeString or secondsToFormattedTimeString", () => {
+    const helpers: Record<string, unknown> = OneUptimeDate as unknown as Record<
+      string,
+      unknown
+    >;
+
+    expect(helpers["toTimeString"]).toBeUndefined();
+    expect(helpers["secondsToFormattedTimeString"]).toBeUndefined();
+  });
+
+  test("getLocalTimeString writes what they wrote in the reader's half of the day and digits", () => {
+    setDateDisplayLanguage("fa");
+
+    const twelveHour: string = OneUptimeDate.getLocalTimeString(INSTANT, {
+      use12HourFormat: true,
+    });
+    const withSeconds: string = OneUptimeDate.getLocalTimeString(INSTANT, {
+      includeSeconds: true,
+    });
+
+    expect(spaced(twelveHour)).toBe("۱۰:۰۵ ق.ظ.");
+    expect(twelveHour).not.toMatch(/AM|PM|[0-9]/);
+    expect(withSeconds).toBe("۱۰:۰۵:۰۷");
+    expect(withSeconds).not.toMatch(/[0-9]/);
   });
 });
 

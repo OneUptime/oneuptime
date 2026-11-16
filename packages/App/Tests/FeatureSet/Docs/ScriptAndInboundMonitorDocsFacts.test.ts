@@ -25,7 +25,15 @@ import {
   EVENT_GRID_VALIDATION_VALID_FOR_MS,
   SNS_CONFIRMATION_VALID_FOR_MS,
 } from "Common/Utils/Monitor/IncomingRequestSubscriptionConfirmation";
-import { TEXT_BODY_CONTENT_TYPE } from "Common/Server/Middleware/PlainTextJsonBody";
+import WebhookRequestBody, {
+  JSON_SUFFIX_CONTENT_TYPE,
+  TEXT_BODY_CONTENT_TYPE,
+} from "Common/Server/Middleware/WebhookRequestBody";
+import WebhookVerification, {
+  WebhookVerificationAnswer,
+  WebhookVerificationRequest,
+} from "Common/Server/Utils/WebhookVerification";
+import WebhookVerificationProvider from "Common/Types/Monitor/IncomingMonitor/WebhookVerificationProvider";
 import {
   CheckOn,
   CriteriaFilter,
@@ -123,6 +131,8 @@ const SYNTHETIC_BROKER_FILE: string =
 const SYNTHETIC_RPC_FILE: string =
   "Probe/Utils/Monitors/SyntheticRuntime/RpcProtocol.ts";
 const VM_RUNNER_FILE: string = "Common/Server/Utils/VM/VMRunner.ts";
+// The sandbox's HTTP, as the host makes it: VMRunner runs one per run.
+const VM_HTTP_BRIDGE_FILE: string = "Common/Server/Utils/VM/VMHttpBridge.ts";
 const METRIC_UTIL_FILE: string =
   "Common/Server/Utils/Monitor/MonitorMetricUtil.ts";
 const ATTRIBUTE_UTIL_FILE: string =
@@ -588,6 +598,7 @@ describe("the type picker, on every page that names it", () => {
 describe("Custom Code Monitor", () => {
   const page: string = englishPage(CUSTOM_CODE_PAGE);
   const vmRunner: string = readRepoFile(VM_RUNNER_FILE);
+  const vmHttpBridge: string = readRepoFile(VM_HTTP_BRIDGE_FILE);
 
   it("lists the criteria filters the form offers a custom code monitor", () => {
     const criteria: string = section(page, "## Criteria");
@@ -719,10 +730,10 @@ describe("Custom Code Monitor", () => {
     expect(numberConstant(vmRunner, "MAX_LOG_MESSAGES")).toBe(1000);
     expect(page).toContain("The **Log Messages**, up to 1,000 per run.");
 
-    expect(numberConstant(vmRunner, "MAX_HTTP_RESPONSE_BYTES")).toBe(
+    expect(numberConstant(vmHttpBridge, "MAX_HTTP_RESPONSE_BYTES")).toBe(
       10 * 1024 * 1024,
     );
-    expect(numberConstant(vmRunner, "MAX_HTTP_REQUEST_BYTES")).toBe(
+    expect(numberConstant(vmHttpBridge, "MAX_HTTP_REQUEST_BYTES")).toBe(
       10 * 1024 * 1024,
     );
     expect(page).toContain(
@@ -731,8 +742,8 @@ describe("Custom Code Monitor", () => {
   });
 
   it("says axios follows no redirect and uses no proxy, as the bridge forces", () => {
-    expect(vmRunner).toContain('safeConfig["maxRedirects"] = 0;');
-    expect(vmRunner).toContain('safeConfig["proxy"] = false;');
+    expect(vmHttpBridge).toContain('safeConfig["maxRedirects"] = 0;');
+    expect(vmHttpBridge).toContain('safeConfig["proxy"] = false;');
     expect(page).toContain(
       "`axios` in this sandbox does not follow redirects, and its requests do not go through a proxy configured on the probe.",
     );
@@ -1717,12 +1728,13 @@ describe("Incoming Request Monitor", () => {
     );
   });
 
-  it("reads JSON sent as text/plain, as the page's content type table says", () => {
+  it("reads JSON sent as text/plain, other text, and +json bodies, as the page's content type table says", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "### Sending a request body"),
     );
 
     expect(TEXT_BODY_CONTENT_TYPE).toBe("text/plain");
+    expect(JSON_SUFFIX_CONTENT_TYPE).toBe("application/*+json");
     expect(
       rows.map((row: Array<string>): string => {
         return row[0] as string;
@@ -1731,10 +1743,157 @@ describe("Incoming Request Monitor", () => {
       "`application/json`",
       "`application/x-www-form-urlencoded`",
       `\`${TEXT_BODY_CONTENT_TYPE}\``,
+      "`application/cloudevents+json`, or another `+json` type",
       "Anything else, or none",
     ]);
     expect(readRepoFile(INCOMING_REQUEST_API_FILE)).toContain(
-      "PlainTextJsonBody.getReader(TEXT_BODY_LIMIT)",
+      "WebhookRequestBody.getReader(TEXT_BODY_LIMIT)",
+    );
+
+    // The text row's example, run through the reader and the default criteria.
+    const example: string = "backup failed: error 42";
+
+    expect(WebhookRequestBody.fromText(example)).toBe(example);
+    expect(example).toContain(
+      MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+    );
+    expect(rows[2]![1]).toContain(
+      `Any other text is the text itself, so \`${example}\` takes the monitor offline under the default criteria.`,
+    );
+  });
+
+  /*
+   * https://github.com/OneUptime/oneuptime/issues/8429: the page's table of
+   * the checks OneUptime answers, each run through the recognizer the
+   * endpoint answers with (WebhookVerification): what each answer holds is
+   * what the row names.
+   */
+  it("lists the checks OneUptime answers, and what it answers each with, as the endpoint answers them", () => {
+    const rows: Array<Array<string>> = tableRows(
+      section(page, "## Services that check the URL first"),
+    );
+    const byService: Map<string, Array<string>> = new Map(
+      rows.map((row: Array<string>): [string, Array<string>] => {
+        return [row[0] as string, row];
+      }),
+    );
+
+    const answers: Array<{
+      service: string;
+      request: WebhookVerificationRequest;
+      provider: WebhookVerificationProvider;
+      // What the answer holds, as the row's third cell names it.
+      answered: (answer: WebhookVerificationAnswer) => string;
+    }> = [
+      {
+        service: "Azure Event Grid, Event Grid schema",
+        request: {
+          method: "POST",
+          headers: { "aeg-event-type": "SubscriptionValidation" },
+          query: {},
+          body: [
+            {
+              eventType: "Microsoft.EventGrid.SubscriptionValidationEvent",
+              data: { validationCode: "512d38b6-c7b8-40c8-89fe-f46f9e9622b6" },
+            },
+          ],
+        },
+        provider: WebhookVerificationProvider.AzureEventGrid,
+        answered: (answer: WebhookVerificationAnswer): string => {
+          return Object.keys(answer.json || {}).join();
+        },
+      },
+      {
+        service: "Azure Event Grid, CloudEvents schema",
+        request: {
+          method: "OPTIONS",
+          headers: { "webhook-request-origin": "eventgrid.azure.net" },
+          query: {},
+          body: {},
+        },
+        provider: WebhookVerificationProvider.CloudEvents,
+        answered: (answer: WebhookVerificationAnswer): string => {
+          return Object.keys(answer.headers)[0] as string;
+        },
+      },
+      {
+        service: "Slack Events API",
+        request: {
+          method: "POST",
+          headers: {},
+          query: {},
+          body: { type: "url_verification", challenge: "3eZbrw1aBm2rZgRN" },
+        },
+        provider: WebhookVerificationProvider.Slack,
+        answered: (answer: WebhookVerificationAnswer): string => {
+          return Object.keys(answer.json || {}).join();
+        },
+      },
+      {
+        service: "Microsoft Graph change notifications",
+        request: {
+          method: "POST",
+          headers: {},
+          query: { validationToken: "Validation: Testing reachability" },
+          body: {},
+        },
+        provider: WebhookVerificationProvider.MicrosoftGraph,
+        answered: (answer: WebhookVerificationAnswer): string => {
+          return answer.text === "Validation: Testing reachability"
+            ? "text/plain"
+            : "";
+        },
+      },
+      {
+        service: "Okta event hooks",
+        request: {
+          method: "GET",
+          headers: { "x-okta-verification-challenge": "6NWv4uK3PE5xL3x" },
+          query: {},
+          body: {},
+        },
+        provider: WebhookVerificationProvider.Okta,
+        answered: (answer: WebhookVerificationAnswer): string => {
+          return Object.keys(answer.json || {}).join();
+        },
+      },
+    ];
+
+    expect(sorted(Array.from(byService.keys()))).toEqual(
+      sorted(
+        answers.map((entry: { service: string }): string => {
+          return entry.service;
+        }),
+      ),
+    );
+    expect(
+      answers.map((entry: { provider: WebhookVerificationProvider }) => {
+        return entry.provider;
+      }),
+    ).toEqual(Object.values(WebhookVerificationProvider));
+
+    for (const entry of answers) {
+      const answer: WebhookVerificationAnswer | null =
+        WebhookVerification.recognize(entry.request);
+
+      expect({ service: entry.service, provider: answer?.provider }).toEqual({
+        service: entry.service,
+        provider: entry.provider,
+      });
+      expect({
+        service: entry.service,
+        named: (byService.get(entry.service)![2] as string).includes(
+          `\`${entry.answered(answer!)}\``,
+        ),
+      }).toEqual({ service: entry.service, named: true });
+    }
+
+    // Answered at the edge only once the project's secret requirement decided.
+    const api: string = readRepoFile(INCOMING_REQUEST_API_FILE);
+
+    expect(api).toContain("placeUntrackedKey: Boolean(verification),");
+    expect(api.indexOf("throw new NotAuthenticatedException(")).toBeLessThan(
+      api.indexOf("WebhookVerification.send(res, answeredVerification);"),
     );
   });
 

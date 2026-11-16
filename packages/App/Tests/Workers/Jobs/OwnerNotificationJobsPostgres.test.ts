@@ -101,6 +101,7 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       findCreatedNotificationsDue: jest.fn(),
       takeCreatedNotification: jest.fn(),
@@ -124,6 +125,7 @@ function mockAnyService(): unknown {
       findOneById: jest.fn(),
       findOneBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
       findOwners: jest.fn(),
       getMonitorLinkInDashboard: jest.fn(),
       getMonitorDestinationInfo: jest.fn(),
@@ -178,9 +180,11 @@ jest.mock("Common/Server/Services/IncidentStateTimelineService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       findOneBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
     },
   };
 });
@@ -273,6 +277,22 @@ jest.mock("Common/Server/Utils/WhatsAppTemplateUtil", () => {
     createWhatsAppMessageFromTemplate: jest.fn(() => {
       return { templateVariables: {} };
     }),
+  };
+});
+
+/*
+ * The notifications on-call pages sent, which the Created job reads to leave
+ * out an owner the incident's page reached already (#7987): nobody was paged
+ * here, so every owner is told, as the delivery table's stops are about.
+ */
+jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
   };
 });
 
@@ -416,6 +436,26 @@ async function takeOrStop(): Promise<void> {
   world.takes++;
 }
 
+/*
+ * The state change jobs' take (OwnerNotificationBacklog, #7974): one
+ * compare-and-set, which only the first run to make it wins.
+ */
+async function compareAndSetTake(): Promise<boolean> {
+  if (world.takeStops) {
+    world.takeStops = false;
+    world.stoppedAt.push("take");
+    return await NEVER;
+  }
+
+  if (world.isTaken) {
+    return false;
+  }
+
+  world.isTaken = true;
+  world.takes++;
+  return true;
+}
+
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const START: Date = new Date();
 
@@ -462,20 +502,24 @@ const CASES: Array<JobCase> = [
       return IncidentFeedService.createIncidentFeedItem;
     },
     arrange: (): void => {
-      asMock(IncidentStateTimelineService.findAllBy).mockImplementation(
+      // Read a page at a time, and taken by one compare-and-set.
+      asMock(IncidentStateTimelineService.findBy).mockImplementation(
         async () => {
           return world.isTaken ? [] : [timeline()];
         },
       );
+      asMock(IncidentService.findBy).mockImplementation(async () => {
+        return [incident()];
+      });
       asMock(IncidentStateTimelineService.findOneById).mockImplementation(
         async () => {
           return timeline();
         },
       );
       asMock(IncidentStateTimelineService.findOneBy).mockResolvedValue(null);
-      asMock(IncidentStateTimelineService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
+      asMock(
+        IncidentStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -522,7 +566,7 @@ const CASES: Array<JobCase> = [
       };
 
       asMock(
-        ScheduledMaintenanceStateTimelineService.findAllBy,
+        ScheduledMaintenanceStateTimelineService.findBy,
       ).mockImplementation(async () => {
         return world.isTaken ? [] : [stateChange()];
       });
@@ -535,8 +579,8 @@ const CASES: Array<JobCase> = [
         ScheduledMaintenanceStateTimelineService.findOneBy,
       ).mockResolvedValue(null);
       asMock(
-        ScheduledMaintenanceStateTimelineService.updateOneById,
-      ).mockImplementation(takeOrStop);
+        ScheduledMaintenanceStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
       asMock(ScheduledMaintenanceService.findOwners).mockImplementation(
         async () => {
           return world.owners;
@@ -562,27 +606,32 @@ const CASES: Array<JobCase> = [
           projectId: PROJECT_ID,
           project: { name: "Acme" },
           monitorId: world.incidentId,
-          monitor: monitor(),
           monitorStatus: { name: "Offline" },
           createdAt: START,
           rootCause: "Connection refused",
         });
       };
 
-      asMock(MonitorStatusTimelineService.findAllBy).mockImplementation(
+      asMock(MonitorStatusTimelineService.findBy).mockImplementation(
         async () => {
           return world.isTaken ? [] : [statusChange()];
         },
       );
+      asMock(MonitorService.findBy).mockImplementation(async () => {
+        return [monitor()];
+      });
+      asMock(MonitorService.findOneById).mockImplementation(async () => {
+        return monitor();
+      });
       asMock(MonitorStatusTimelineService.findOneById).mockImplementation(
         async () => {
           return statusChange();
         },
       );
       asMock(MonitorStatusTimelineService.findOneBy).mockResolvedValue(null);
-      asMock(MonitorStatusTimelineService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
+      asMock(
+        MonitorStatusTimelineService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
       asMock(MonitorService.findOwners).mockImplementation(async () => {
         return world.owners;
       });
@@ -602,23 +651,26 @@ const CASES: Array<JobCase> = [
     kind: OwnerNotificationKind.StatusPageOwnerAdded,
     eventIdIsTheIncident: false,
     arrange: (): void => {
-      asMock(StatusPageOwnerTeamService.findAllBy).mockImplementation(
-        async () => {
-          return world.isTaken
-            ? []
-            : [
-                plain({
-                  id: world.eventId,
-                  statusPageId: world.incidentId,
-                  teamId: ObjectID.generate(),
-                }),
-              ];
-        },
-      );
-      asMock(StatusPageOwnerTeamService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
-      asMock(StatusPageOwnerUserService.findAllBy).mockResolvedValue([]);
+      /*
+       * Read a page at a time with the status page's other owner rows, and
+       * taken by one compare-and-set that one run alone wins (#8862).
+       */
+      const teamId: ObjectID = ObjectID.generate();
+      asMock(StatusPageOwnerTeamService.findBy).mockImplementation(async () => {
+        return world.isTaken
+          ? []
+          : [
+              plain({
+                id: world.eventId,
+                statusPageId: world.incidentId,
+                teamId: teamId,
+              }),
+            ];
+      });
+      asMock(
+        StatusPageOwnerTeamService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
+      asMock(StatusPageOwnerUserService.findBy).mockResolvedValue([]);
       asMock(TeamMemberService.getUsersInTeams).mockImplementation(async () => {
         return world.owners;
       });
@@ -627,6 +679,8 @@ const CASES: Array<JobCase> = [
           return data.users;
         },
       );
+      // Read with the page's other status pages, or on its own.
+      asMock(StatusPageService.findBy).mockResolvedValue([]);
       asMock(StatusPageService.findOneById).mockImplementation(async () => {
         return plain({
           id: world.incidentId,
@@ -816,6 +870,8 @@ describePostgres("the owner notification jobs, against Postgres", () => {
       asMock(IncidentService.findCreatedNotificationsDue).mockResolvedValue([]);
       asMock(IncidentService.findAllBy).mockResolvedValue([]);
       asMock(IncidentStateTimelineService.findAllBy).mockResolvedValue([]);
+      asMock(IncidentStateTimelineService.findBy).mockResolvedValue([]);
+      asMock(IncidentService.findBy).mockResolvedValue([]);
       for (const service of [
         ScheduledMaintenanceStateTimelineService,
         MonitorStatusTimelineService,
@@ -823,6 +879,7 @@ describePostgres("the owner notification jobs, against Postgres", () => {
         StatusPageOwnerUserService,
       ]) {
         asMock(service.findAllBy).mockResolvedValue([]);
+        asMock(service.findBy).mockResolvedValue([]);
       }
       asMock(IncidentService.findOneById).mockImplementation(async () => {
         return incident();

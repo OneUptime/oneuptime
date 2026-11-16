@@ -456,7 +456,8 @@ describe.each(
       "The project's time limit",
     ]);
     expect(dialog.textContent || "").toMatch(
-      /Leave empty for no limit\. Queued ones wait for a free slot for up to 30 minutes\./,
+      // The page holds the figure to its duration's word (#8811).
+      /Leave empty for no limit\. Queued ones wait for a free slot for up to 30\u00A0minutes\./,
     );
     /*
      * An empty time limit is not "no time limit" (issue #6440): it falls
@@ -464,7 +465,7 @@ describe.each(
      * description names as runs have it.
      */
     expect(dialog.textContent || "").toContain(
-      `Leave empty for the project's time limit: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes by default.`,
+      `Leave empty for the project's time limit: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES}\u00A0minutes by default.`,
     );
     expect(dialog.textContent || "").not.toMatch(/no time limit/i);
     expectNoRetiredDefault(dialog.textContent || "");

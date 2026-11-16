@@ -140,7 +140,7 @@ Hver post er ét JSON-objekt, med nøglerne altid i denne rækkefølge:
 | `id` | Postens id. Den samme post, sendt to gange, har det samme id. |
 | `createdAt` | Hvornår ændringen blev registreret, i UTC. |
 | `projectId` | Det projekt, ændringen blev foretaget i. |
-| `action` | `Create`, `Update`, `Delete` eller `Download`, eller for en session `SignIn`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` eller `Download`, eller for et login eller en session `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Hvad der blev ændret. |
 | `rootResourceType`, `rootResourceId` | Den ressource, den hører til, som et SLO for dets regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Hvem der foretog ændringen. |
@@ -173,7 +173,7 @@ En ny eksport sender version 2. En eksport, der blev gemt før version 2, bliver
 
 ## Når en destination fejler
 
-En batch forsøges tre gange med få sekunders mellemrum, og derefter venter eksporten, før den prøver igen: et minut, så to, fire og så videre, op til en time. Dens række siger **Fejler**, og **Vis fejl** viser, hvad destinationen svarede, og hvornår næste forsøg kommer.
+En batch forsøges tre gange med få sekunders mellemrum, og derefter venter eksporten, før den prøver igen: et minut, så to, fire og så videre, op til en time. Dens række siger **Fejler**, og **Vis fejl** viser, hvad destinationen svarede, hvornår næste forsøg kommer, og fra hvornår de poster, der venter på at blive sendt, begynder at blive slettet, eller, når det tidspunkt er passeret, siden hvornår de bliver slettet.
 
 Intet springes over: Posterne venter i auditloggen, og den næste levering, der lykkes, indhenter fra den ældste. Hver post slettes dog, når den er ældre end den opbevaring, den blev registreret med, sendt eller ej, så ret en eksport, der fejler, inden for den tid. En længere opbevaring gælder kun de poster, der registreres, efter at du ændrer den.
 

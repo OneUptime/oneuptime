@@ -37,6 +37,16 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 import AiRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable";
 import { AiLane } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * A read the AI rules table makes that these tests leave unanswered: the
+ * project's LLM providers, for its rules' LLM Provider field
+ * (RuleLlmProviderField). Refused at once, as the network refused it, and
+ * taken as a read the table could not make
+ * (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/ai-chat/providers"]);
 
 /*
  * The retired switches, however the copy might spell them. Rule copy that

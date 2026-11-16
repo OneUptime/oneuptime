@@ -144,7 +144,7 @@ Under **Access**, pick **Viewer** for an agent that only reads, or **Project Adm
 
 ### Copy the key
 
-Click **Create API Key**: the key's page opens. Copy the key from there.
+Click **Create API Key**. OneUptime shows the key once, in the **Copy Your API Key** dialog: copy it before you press **Done**.
 :::
 
 API keys belong to one project: the MCP server takes the project from the key, so create tools never need a `projectId` argument.
@@ -360,6 +360,8 @@ Always query telemetry with a time range. A query field takes a value, or an ope
 The operators are `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` and `Includes`. Sort values are `"ASC"` or `"DESC"`.
 
 The `list_` and `count_` tools take any field, which keeps the list of tools small enough for a client to load at once. To see a resource's fields, what each one means and which operators it takes, an agent calls `oneuptime_describe_resource` with the resource or one of its tools, such as `Incident` or `list_incidents`.
+
+The other `list_` tools, of incidents, monitors and every other kind of record, sort the way the API does: a field takes a direction, or `{ "direction": "DESC", "nulls": "LAST" }` to put the records with no value in it last, and a relation of one record sorts by a field of the record it names, as in `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` marks each such relation `sort`, and names the fields it sorts by under `sortBy`.
 
 ## Field Selection and Pagination
 

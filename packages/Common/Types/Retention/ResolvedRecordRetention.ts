@@ -138,6 +138,315 @@ export function doesResolvedRecordRetentionDeleteMore(data: {
   return data.to < data.from;
 }
 
+/*
+ * THE SERVER'S LIMITS (issue #6941): Admin Dashboard -> Settings -> Data
+ * Retention, for a self-hosted server whose database must not grow without
+ * bound, whatever each project picks.
+ *
+ *   - A maximum (GlobalConfig.maxIncidentRetentionInDays,
+ *     maxAlertRetentionInDays): no project keeps a resolved incident (alert)
+ *     longer. A project set to Never, or to a longer length, is held to it.
+ *     Empty - where every server starts - is no maximum.
+ *   - A default (GlobalConfig.defaultIncidentRetentionInDays,
+ *     defaultAlertRetentionInDays): the length a new project starts with.
+ *     Empty is Never, as before. Projects that exist keep their own.
+ *
+ * Both are one of the project choices. The maximum is applied where records
+ * are deleted (getEffectiveResolvedRecordRetentionInDays): a project's own
+ * setting is never rewritten, so lifting the maximum gives every project
+ * back what it picked. Incidents with a completed postmortem stay under the
+ * maximum too, while their project keeps them: that switch is the project's
+ * way to keep what it learned.
+ */
+export interface ResolvedRecordRetentionServerLimits {
+  // The longest a project keeps resolved records of the kind; undefined for no maximum.
+  maximumInDays?: number | undefined;
+  // Where a new project starts; KEEP_EVERY_RESOLVED_RECORD (0) for Never.
+  defaultInDays: number;
+}
+
+// Where every server starts: no maximum, and new projects at Never.
+export const NO_RESOLVED_RECORD_RETENTION_SERVER_LIMITS: Readonly<ResolvedRecordRetentionServerLimits> =
+  {
+    maximumInDays: undefined,
+    defaultInDays: KEEP_EVERY_RESOLVED_RECORD,
+  };
+
+/*
+ * A server maximum as GlobalConfig holds it, read: one of the choices, or
+ * undefined for none. Anything else - empty, 0, a number that is not a
+ * choice - is no maximum: a value that cannot be read must never delete
+ * what a project keeps.
+ */
+export function readResolvedRecordRetentionMaximumInDays(
+  value: unknown,
+): number | undefined {
+  const days: number | null = toNumber(value);
+
+  return days !== null &&
+    RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS.includes(days)
+    ? days
+    : undefined;
+}
+
+/*
+ * A new project's starting length as GlobalConfig holds it, read: one of the
+ * choices, or 0 (Never) for anything else, empty included.
+ */
+export function readResolvedRecordRetentionDefaultInDays(
+  value: unknown,
+): number {
+  const days: number | null = toNumber(value);
+
+  return days !== null &&
+    RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS.includes(days)
+    ? days
+    : KEEP_EVERY_RESOLVED_RECORD;
+}
+
+// The server's limits for a kind, from the values GlobalConfig holds.
+export function readResolvedRecordRetentionServerLimits(data: {
+  maximumInDays: unknown;
+  defaultInDays: unknown;
+}): ResolvedRecordRetentionServerLimits {
+  return {
+    maximumInDays: readResolvedRecordRetentionMaximumInDays(data.maximumInDays),
+    defaultInDays: readResolvedRecordRetentionDefaultInDays(data.defaultInDays),
+  };
+}
+
+/*
+ * How long a project's resolved records are kept: its own setting, held to
+ * the server's maximum - Never, or a longer length, is the maximum.
+ */
+export function getEffectiveResolvedRecordRetentionInDays(data: {
+  projectRetentionInDays: number;
+  maximumInDays?: number | undefined;
+}): number {
+  if (data.maximumInDays === undefined) {
+    return data.projectRetentionInDays;
+  }
+
+  if (!isResolvedRecordRetentionOn(data.projectRetentionInDays)) {
+    return data.maximumInDays;
+  }
+
+  return Math.min(data.projectRetentionInDays, data.maximumInDays);
+}
+
+/*
+ * Whether a project's pick means anything under the server's maximum: a
+ * length up to it. Never and the longer lengths read as the maximum, so the
+ * card offers them locked. The API still takes them, so a project's
+ * automation keeps working: they apply again once the maximum is lifted.
+ */
+export function isResolvedRecordRetentionWithinMaximum(data: {
+  retentionInDays: number;
+  maximumInDays?: number | undefined;
+}): boolean {
+  if (data.maximumInDays === undefined) {
+    return true;
+  }
+
+  return (
+    isResolvedRecordRetentionOn(data.retentionInDays) &&
+    data.retentionInDays <= data.maximumInDays
+  );
+}
+
+// The words both server settings refuse with, for the kind.
+function getServerRetentionNoun(kind: ResolvedRecordKind): string {
+  return kind === ResolvedRecordKind.Incident ? "incident" : "alert";
+}
+
+// A server setting left empty: no maximum, or Never.
+function isEmptyServerValue(value: unknown): boolean {
+  return (
+    value === null ||
+    value === undefined ||
+    (typeof value === "string" && value.trim() === "")
+  );
+}
+
+/*
+ * What is wrong with a server maximum written to GlobalConfig, or null when
+ * it is one of the choices, or empty (null, "", or 0) for no maximum.
+ */
+export function getResolvedRecordRetentionMaximumProblem(
+  value: unknown,
+  kind: ResolvedRecordKind,
+): string | null {
+  if (isEmptyServerValue(value)) {
+    return null;
+  }
+
+  const days: number | null = toNumber(value);
+
+  if (
+    days === KEEP_EVERY_RESOLVED_RECORD ||
+    (days !== null && RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS.includes(days))
+  ) {
+    return null;
+  }
+
+  const noun: string = getServerRetentionNoun(kind);
+
+  return `Pick the longest a project keeps a resolved ${noun}: ${RETENTION_CHOICES_TEXT} days, or leave it empty for no maximum.`;
+}
+
+/*
+ * What is wrong with a new project's starting length written to
+ * GlobalConfig, or null when it is one of the choices, or empty (null, or
+ * 0) for Never - and no longer than the server's maximum, which a new
+ * project could never use.
+ */
+export function getResolvedRecordRetentionDefaultProblem(data: {
+  value: unknown;
+  kind: ResolvedRecordKind;
+  maximumInDays?: number | undefined;
+}): string | null {
+  if (isEmptyServerValue(data.value)) {
+    return null;
+  }
+
+  const days: number | null = toNumber(data.value);
+  const noun: string = getServerRetentionNoun(data.kind);
+
+  if (
+    days !== KEEP_EVERY_RESOLVED_RECORD &&
+    (days === null || !RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS.includes(days))
+  ) {
+    return `Pick how long a new project keeps a resolved ${noun}: ${RETENTION_CHOICES_TEXT} days, or leave it empty for Never.`;
+  }
+
+  if (
+    data.maximumInDays !== undefined &&
+    days !== KEEP_EVERY_RESOLVED_RECORD &&
+    days > data.maximumInDays
+  ) {
+    return `A new project can keep a resolved ${noun} for at most ${data.maximumInDays} days, the server's maximum. Pick that or less.`;
+  }
+
+  return null;
+}
+
+/*
+ * A server setting as GlobalConfig stores it: the choice, or null for empty
+ * (no maximum, or Never). Call the setting's problem function first.
+ */
+export function toResolvedRecordRetentionServerValue(
+  value: unknown,
+): number | null {
+  const days: number | null = toNumber(value);
+
+  return days !== null &&
+    RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS.includes(days)
+    ? days
+    : null;
+}
+
+/*
+ * Whether moving the server's maximum from `from` to `to` (undefined: no
+ * maximum) deletes records some project kept: setting one, or lowering it.
+ * The Admin Dashboard asks first, saying how many projects it reaches.
+ */
+export function doesResolvedRecordRetentionMaximumDeleteMore(data: {
+  from?: number | undefined;
+  to?: number | undefined;
+}): boolean {
+  if (data.to === undefined) {
+    return false;
+  }
+
+  if (data.from === undefined) {
+    return true;
+  }
+
+  return data.to < data.from;
+}
+
+/*
+ * WHICH POSTMORTEM STATUSES KEEP AN INCIDENT (issue #6945).
+ *
+ * While Project.keepIncidentsWithCompletedPostmortem is on, an incident whose
+ * postmortem is in one of the project's chosen statuses stays, however long
+ * ago it was resolved (Project.keepIncidentsInPostmortemStatusIds). Empty -
+ * where every project starts - is the project's Completed status, as it was:
+ * an upgrade keeps exactly what it kept. A Project Owner or Admin adds the
+ * project's own statuses (a "Published" placed below Completed), or takes
+ * Completed out.
+ *
+ * Why chosen, and not worked out from where a status sits: the statuses at
+ * and below Completed all count as done, but done means two things - a
+ * postmortem written ("Published") and one not needed ("Not Needed", "Won't
+ * Do"). Keeping every done status would keep every Not Needed incident,
+ * usually most of them; keeping done ones with a note would too wherever
+ * OneUptime AI drafts a note for every resolved incident. Only the team
+ * knows which of its statuses mean "written", so it says.
+ */
+export const MAX_KEPT_POSTMORTEM_STATUSES: number = 50;
+
+// A list of status ids as a reader of a response or a row takes it: undefined when empty or not a list.
+export function readKeptPostmortemStatusIds(
+  value: unknown,
+): Array<string> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const ids: Array<string> = [];
+
+  for (const item of value) {
+    const id: string =
+      typeof item === "string" ? item.trim().toLowerCase() : "";
+
+    if (UUID.test(id) && !ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+
+  return ids.length > 0 ? ids : undefined;
+}
+
+/*
+ * What is wrong with the statuses written to
+ * Project.keepIncidentsInPostmortemStatusIds, or null for empty (the
+ * Completed status) or a list of up to MAX_KEPT_POSTMORTEM_STATUSES ids.
+ * Whether each is one of the project's own statuses is the server's to
+ * check (ProjectService).
+ */
+export function getKeptPostmortemStatusIdsProblem(
+  value: unknown,
+): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (!Array.isArray(value)) {
+    return "Pick the postmortem statuses that keep an incident as a list of their ids, or leave it empty for the Completed status.";
+  }
+
+  if (value.length === 0) {
+    return "Pick at least one postmortem status that keeps an incident, or turn off keeping incidents with a completed postmortem.";
+  }
+
+  if (value.length > MAX_KEPT_POSTMORTEM_STATUSES) {
+    return `Pick at most ${MAX_KEPT_POSTMORTEM_STATUSES} postmortem statuses that keep an incident.`;
+  }
+
+  for (const item of value) {
+    if (typeof item !== "string" || !UUID.test(item.trim().toLowerCase())) {
+      return "Each postmortem status that keeps an incident is named by its id.";
+    }
+  }
+
+  return null;
+}
+
+// An id as the statuses' rows hold it.
+const UUID: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 // Days as a form or an API client may send them: as text.
 const DAYS_AS_TEXT: RegExp = /^\d{1,4}$/;
 

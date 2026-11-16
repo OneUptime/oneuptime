@@ -84,7 +84,7 @@ Envie requisições **GET** ou **POST** para essa URL. HEAD é aceito e tratado 
 > Qualquer pessoa que conheça essa URL pode marcar o monitor como saudável, então trate-a como um segredo. Se ela vazar, abra a página **Configurações** do monitor e clique em **Redefinir chave secreta de requisição recebida**, depois atualize cada remetente. A visão geral do monitor mostra a última requisição como os registros dele a guardam: com segredos e dados pessoais mascarados, e sem cabeçalhos nem corpo quando **Manter o conteúdo da solicitação** está desligado. O mascaramento reconhece os nomes e padrões que conhece, então não envie chaves de API nem tokens para esse endpoint.
 
 > [!IMPORTANT]
-> O OneUptime responde `200` com um objeto JSON vazio (`{}`) na hora e processa a requisição em uma fila. Essa resposta é escrita antes de qualquer validação, então um `200` **não** confirma que a requisição foi aceita: uma chave secreta errada, um monitor excluído e um monitor desativado também retornam `200`. Confira a linha do tempo do monitor para confirmar que as requisições estão chegando. A única exceção é um projeto que exige um segredo em toda requisição: uma requisição sem nenhum recebe `401`.
+> O OneUptime responde `200` com um objeto JSON vazio (`{}`) na hora e processa a requisição em uma fila. Essa resposta é escrita antes de qualquer validação, então um `200` **não** confirma que a requisição foi aceita: uma chave secreta errada, um monitor excluído e um monitor desativado também retornam `200`. Confira a linha do tempo do monitor para confirmar que as requisições estão chegando. Um projeto que exige um segredo em toda requisição responde `401` a uma requisição sem nenhum, e um serviço que verifica a URL antes de entregar algo recebe a resposta que espera: veja [Serviços que verificam a URL primeiro](#serviços-que-verificam-a-url-primeiro).
 
 ### Enviar um corpo de requisição
 
@@ -94,7 +94,8 @@ Se você quiser acessar campos dentro do corpo (`{{requestBody.status}}` em um t
 | --- | --- |
 | `application/json` | O JSON analisado. |
 | `application/x-www-form-urlencoded` | O formulário analisado. Chaves entre colchetes são aninhadas (`alerts[0][status]=firing`), e cada valor é uma string. |
-| `text/plain` | O JSON analisado, quando o texto é um objeto ou um array JSON: o Amazon SNS envia suas mensagens assim. Qualquer outro texto é um corpo vazio. |
+| `text/plain` | O JSON analisado, quando o texto é um objeto ou um array JSON: o Amazon SNS envia suas mensagens assim. Qualquer outro texto é o próprio texto, então `backup failed: error 42` deixa o monitor offline com os critérios padrão. |
+| `application/cloudevents+json`, ou outro tipo `+json` | O JSON analisado: o Azure Event Grid entrega CloudEvents assim. |
 | Qualquer outro, ou nenhum | Um corpo vazio (`{}`), então nenhuma referência a `requestBody` é resolvida, e um modelo a imprime literalmente. |
 
 Corpos de até 50 MB são aceitos; um maior é recusado com um `413`. Não comprima o corpo com `Content-Encoding: gzip`: ele não é armazenado como JSON, e os caminhos dentro dele não serão resolvidos.
@@ -193,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Qualquer pessoa que tenha a URL de um monitor pode enviar requisições a ele. Um Proprietário do projeto ou Administrador do projeto pode fazer cada monitor de requisições recebidas do projeto exigir também um dos segredos do próprio projeto, não importa quem configurou o monitor: ative **Exigir um segredo em toda requisição**. Uma requisição sem nenhum é recusada com `401` e o motivo, antes de contar como heartbeat, de ser guardada como a última requisição do monitor ou de chegar a qualquer critério. Uma requisição com um segue para os critérios do próprio monitor, como antes.
 
+Os Proprietários do projeto e os Administradores do projeto gerenciam os segredos e o interruptor, assim como uma função personalizada com as permissões Create, Read, Edit e Delete Incoming Request Secret: Read mostra os valores dos segredos, e Edit também liga e desliga o interruptor.
+
 :::steps
 ### Crie um segredo
 
@@ -200,7 +203,7 @@ Vá em **Monitores → Configurações → Segredos de requisição recebida** e
 
 ### Envie-o de cada remetente
 
-Envie o segredo no cabeçalho `X-OneUptime-Secret`, ou como token Bearer no cabeçalho `Authorization`, conforme o que seu remetente conseguir definir.
+Envie o segredo no cabeçalho `X-OneUptime-Secret`, ou como token Bearer no cabeçalho `Authorization`, conforme o que seu remetente conseguir definir. Um remetente que não consegue definir um cabeçalho próprio pode, em vez disso, assinar cada requisição com o segredo: veja [Assinar as requisições com o segredo](#assinar-as-requisições-com-o-segredo).
 
 ### Encontre os remetentes que faltam
 
@@ -208,7 +211,7 @@ Assim que o projeto tem um segredo, o OneUptime verifica cada requisição, aind
 
 ### Ative a exigência
 
-Ative **Exigir um segredo em toda requisição**. A exigência não pode ser ativada enquanto o projeto não tiver nenhum segredo, para que nenhum remetente seja recusado por engano.
+Ative **Exigir um segredo em toda requisição**. A exigência não pode ser ativada enquanto o projeto não tiver nenhum segredo, para que nenhum remetente seja recusado por engano. Antes de ativar, ela diz quantos monitores de requisições recebidas receberam uma requisição sem um segredo válido nas últimas 24 horas, se houver: os remetentes deles são recusados a partir de então.
 :::
 
 ```bash
@@ -222,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 O OneUptime nunca guarda o segredo: ele tira o cabeçalho da requisição e mascara um token Bearer que seja um dos segredos do projeto antes de guardar qualquer coisa.
 
+Um endereço que envia a um monitor mais de 10 segredos errados diferentes em 15 minutos é recusado em seguida com `429` para qualquer segredo que envie, certo ou errado, até a hora que o cabeçalho `Retry-After` indicar, no máximo 15 minutos. Remetentes em outros endereços não são afetados, e um remetente que continua enviando um segredo antigo continua recebendo o `401` que diz o que está errado.
+
 > [!TIP]
-> Para substituir um segredo sem recusar ninguém, crie um segundo, passe seus remetentes para ele e depois exclua o antigo quando o **Último uso** dele parar de mudar. Qualquer segredo do projeto é aceito, e o último não pode ser excluído enquanto a exigência estiver ativa.
+> Para substituir um segredo sem recusar ninguém, crie um segundo, passe seus remetentes para ele e depois exclua o antigo quando o **Último uso** dele parar de mudar. Qualquer segredo do projeto é aceito, a menos que esteja limitado a outros monitores, e o último que cobre um monitor não pode ser excluído enquanto a exigência estiver ativa.
+
+### Assinar as requisições com o segredo
+
+Um remetente pode assinar cada requisição com o segredo em vez de enviá-lo, o que é mais seguro: nada secreto trafega, e uma requisição que alguém capturou não pode ser enviada de novo depois. Prefira isso sempre que um remetente souber assinar. O OneUptime verifica estas assinaturas, cada uma um HMAC-SHA256 em hexadecimal com o segredo como chave:
+
+| Remetente | Cabeçalho | O que é assinado |
+| --- | --- | --- |
+| Seu próprio código | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| Webhooks do GitHub | `X-Hub-Signature-256` | O corpo |
+| Slack | `X-Slack-Signature`, com `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` é o momento em que a requisição foi assinada, em segundos desde 1970. Uma assinatura a mais de 5 minutos do relógio do OneUptime é recusada, assim como uma requisição assinada enviada uma segunda vez; a assinatura do GitHub não tem horário, então o OneUptime lembra cada uma por um dia. Para o GitHub, dê ao webhook um dos segredos do projeto como segredo dele. Slack e Stripe criam o próprio segredo de assinatura: crie o segredo do projeto com esse valor, em **Mais campos**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+Um segredo na query string da URL não é aceito: proxies e logs de acesso guardam as URLs inteiras, ao lado da chave do próprio monitor. O ingress de requisições recebidas de uma sonda encaminha o corpo de uma requisição assinada como ele chegou, então a assinatura vale também por esse caminho.
+
+### Limitar um segredo a alguns monitores
+
+Um segredo é aceito por todo monitor de requisições recebidas do projeto, a menos que você o limite, como faz um projeto cujos inquilinos enviam cada um o próprio segredo: em **Mais campos**, escolha **Monitores específicos** ou **Monitores com rótulos**. Qualquer outro monitor o recusa com `401`, como recusa um segredo errado, e **Requisições sem segredo** dá o motivo como **Segredo não vale para este monitor**. Enquanto a exigência estiver ativa, o projeto mantém pelo menos um segredo que cobre um monitor.
 
 ## Critérios de monitoramento
 
@@ -383,9 +418,25 @@ O payload completo fica disponível ao lado dela, então funcionam tanto um tít
 
 Para uma configuração completa do Alertmanager, veja [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Para o Grafana, veja [Grafana](/docs/integrations/grafana).
 
+## Serviços que verificam a URL primeiro
+
+Alguns serviços verificam um novo endpoint antes de entregar algo a ele: enviam uma requisição e só entregam quando ele responde do jeito que esperam. O OneUptime responde a essas verificações sozinho, então basta colar a **Heartbeat URL** do monitor no serviço.
+
+| Serviço | A verificação | O que o OneUptime responde |
+| --- | --- | --- |
+| Azure Event Grid, esquema Event Grid | Um `SubscriptionValidationEvent` | O `validationCode` dele, como `validationResponse` |
+| Azure Event Grid, esquema CloudEvents | Uma requisição `OPTIONS` que nomeia sua origem | `WebHook-Allowed-Origin`, com essa origem |
+| API de eventos do Slack | Uma requisição `url_verification` | O `challenge` dela |
+| Notificações de alteração do Microsoft Graph | Um `POST` com um `validationToken` | O token, como `text/plain` |
+| Event hooks do Okta | Um `GET` com `X-Okta-Verification-Challenge` | O desafio, como `verification` |
+
+Uma verificação só é respondida na URL do próprio monitor, e só quando a requisição conta: em um projeto que exige um segredo em toda requisição, uma verificação que não envia nenhum é recusada com `401`, como qualquer requisição, então o serviço precisa enviar o segredo em um cabeçalho. A resposta contém o que o serviço enviou para ser devolvido, e nada mais da requisição, e só quando tem a forma que o serviço lhe dá.
+
+Uma verificação chega ao monitor como qualquer requisição, então os critérios dele a avaliam e ela aparece na **Visão geral** do monitor; a verificação do CloudEvents é respondida e nada mais. O ingress de requisições recebidas de uma sonda responde a uma verificação como responde a toda requisição, com `{}`, então envie esses serviços para a URL do próprio OneUptime.
+
 ## Assinar o Amazon SNS ou o Azure Event Grid
 
-O Amazon SNS e o Azure Event Grid não enviam nada a um novo endpoint até que alguém confirme a assinatura, abrindo um link que o serviço envia a ele. Quando essa requisição chega, o cartão **Resumo do monitor** na **Visão geral** do monitor mostra o que o serviço está esperando, o tópico e um único botão que abre o link em uma nova aba.
+O Amazon SNS não envia nada a um novo endpoint até que alguém confirme a assinatura, abrindo um link que ele envia para lá. O Azure Event Grid também envia um link assim, a um endpoint que não responde à sua verificação, e o OneUptime responde a ela. Quando chega um link que ainda precisa ser aberto, o cartão **Resumo do monitor** na **Visão geral** do monitor mostra o que o serviço está esperando, o tópico e um único botão que abre o link em uma nova aba.
 
 | Serviço | A requisição | Botão | O link funciona por |
 | --- | --- | --- | --- |
@@ -411,11 +462,11 @@ Se o cartão disser que o link não pode mais ser aberto, selecione a assinatura
 ### Azure Event Grid
 
 :::steps
-1. No portal do Azure, abra o recurso cujos eventos você quer receber e adicione uma assinatura de evento. Escolha **Event Grid Schema** como esquema de evento, **Web Hook** como tipo de endpoint e a **Heartbeat URL** do monitor como endpoint.
-2. Em até 10 minutos, abra a **Visão geral** do monitor e clique em **Validar assinatura** no cartão **Resumo do monitor**.
+1. No portal do Azure, abra o recurso cujos eventos você quer receber e adicione uma assinatura de evento. Escolha **Event Grid Schema** ou **Cloud Event Schema v1.0** como esquema de evento, **Web Hook** como tipo de endpoint e a **Heartbeat URL** do monitor como endpoint.
+2. Crie a assinatura de evento. O OneUptime responde à verificação do Event Grid, então a assinatura é validada ao ser criada, e os eventos dela começam a chegar.
 :::
 
-O Event Grid valida um endpoint que lhe devolve um código, ou cujo dono abre o link que ele envia. O OneUptime responde a toda requisição com um `200` vazio, então o caminho é o link. O link aponta para o Event Grid na porta 553, que um firewall na frente do seu navegador precisa permitir. Se os 10 minutos passarem antes, a assinatura de evento falha: crie-a de novo.
+O Event Grid valida um endpoint que lhe devolve um código, ou cujo dono abre o link que ele envia. O OneUptime devolve o código, então o cartão **Resumo do monitor** oferece **Validar assinatura** só para uma validação que o OneUptime não respondeu: abra-o em até 10 minutos. O link aponta para o Event Grid na porta 553, que um firewall na frente do seu navegador precisa permitir. Se os 10 minutos passarem antes, a assinatura de evento falha: crie-a de novo.
 
 ## Boas práticas
 
@@ -432,7 +483,11 @@ O `200` é enviado antes de a requisição ser validada, então não prova que e
 :::
 
 :::details Meu remetente recebe um 401
-O projeto exige um segredo em toda requisição, e a requisição não enviou nenhum, ou enviou um que não é do projeto: a resposta diz qual dos dois. Envie um dos segredos do projeto no cabeçalho `X-OneUptime-Secret` ou como token Bearer, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Uma requisição recusada nunca chega ao monitor.
+O projeto exige um segredo em toda requisição, e a requisição não enviou nenhum, ou enviou um que não é do projeto: a resposta diz qual dos dois. Envie um dos segredos do projeto no cabeçalho `X-OneUptime-Secret` ou como token Bearer, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Uma requisição recusada nunca chega ao monitor. Ela também recebe `401` com um dos segredos do projeto limitado a outros monitores, e uma requisição assinada cuja assinatura tem mais de 5 minutos, já foi enviada antes, ou foi feita com outro segredo ou sobre um corpo que mudou no caminho.
+:::
+
+:::details Meu remetente recebe um 429
+O endereço dele enviou a um monitor mais de 10 segredos ou assinaturas errados diferentes em 15 minutos, então toda requisição com um segredo que ele envia a esse monitor é recusada até a hora do cabeçalho `Retry-After`. Um remetente que assina com um segredo errado gera uma nova assinatura errada a cada vez e chega aqui rápido: dê a ele um segredo que o monitor aceite, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição), e as requisições dele são aceitas quando o tempo acabar.
 :::
 
 :::details O monitor parou de receber requisições depois que um segredo passou a ser exigido
@@ -444,7 +499,11 @@ Só um critério **Requisição recebida** (**Não recebido em minutos**) conseg
 :::
 
 :::details Um filtro Corpo da Requisição nunca corresponde
-Envie `Content-Type: application/json`, e escreva o valor como JSON compacto: `"status":"firing"`, sem espaço depois dos dois-pontos. Sem um tipo de conteúdo JSON ou de formulário, o corpo não é analisado: só o JSON enviado como `text/plain` é.
+Envie `Content-Type: application/json`, e escreva o valor como JSON compacto: `"status":"firing"`, sem espaço depois dos dois-pontos. Sem um tipo de conteúdo JSON, de formulário ou `text/plain`, o corpo fica vazio, e um filtro sobre ele nunca corresponde.
+:::
+
+:::details Um serviço diz que a URL não respondeu à verificação dele
+Dê ao serviço a **Heartbeat URL** do monitor, no próprio OneUptime e não em uma sonda. Se o projeto exige um segredo em toda requisição, a verificação é recusada com `401`, a menos que o serviço envie o segredo. Depois peça ao serviço que verifique a URL de novo: ela é respondida na hora.
 :::
 
 :::details Um filtro Cabeçalho da requisição nunca corresponde

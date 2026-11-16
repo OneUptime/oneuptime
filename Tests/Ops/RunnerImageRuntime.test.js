@@ -125,9 +125,10 @@ function sleep(milliseconds) {
 /*
  * The part of the OneUptime server a project's Runner talks to: registration
  * and heartbeats, claiming a job, a job's heartbeat and its result. Each job
- * is handed out once; every request is recorded.
+ * is handed out once; every request is recorded. With isGlobalRunner, every
+ * heartbeat says the Runner is a global Runner, as the server says to one.
  */
-function standInServer({ runnerId, runnerKey, jobs }) {
+function standInServer({ runnerId, runnerKey, jobs, isGlobalRunner = false }) {
   const requests = [];
   const results = new Map();
   const pending = [...jobs];
@@ -163,7 +164,8 @@ function standInServer({ runnerId, runnerKey, jobs }) {
           canRunCodeFixTasks: false,
           canRunAiCommands: false,
         },
-        isGlobalRunner: false,
+        isGlobalRunner,
+        ...(isGlobalRunner ? { globalStepTypes: ["JavaScript"] } : {}),
       });
       return;
     }
@@ -343,3 +345,326 @@ describeRuntime("the Runner image", () => {
     ).toBe("true");
   });
 });
+
+/*
+ * The same image as a global Runner: the stand-in says so on every
+ * heartbeat, and the Runner runs each JavaScript step in a process of its
+ * own (packages/Runner/Utils/JavaScriptSandbox) - by default as a user of its
+ * own, through the launcher the image installs setuid, running the worker's
+ * bundle. While a step runs, a process of a sandbox user is in the
+ * container, and the Runner's log says each step gets a user of its own.
+ *
+ * Started with no-new-privileges (what Kubernetes' allowPrivilegeEscalation:
+ * false sets), the launcher may not switch users: the step still runs in a
+ * process of its own, as the Runner's user, and the log says why and what to
+ * change.
+ */
+
+// SandboxIdentity.ts's range, the launcher's too.
+const SANDBOX_IDENTITY_MIN = 61000;
+const SANDBOX_IDENTITY_MAX = 64999;
+
+const OWN_USER_LOG =
+  "JavaScript steps run each in a process of its own, as a user of its own, with no network and none of this Runner's environment or files.";
+
+const NO_NETWORK_LOG =
+  "JavaScript steps run each with no network: their processes may open no socket, and this Runner makes their HTTP requests, to public addresses only.";
+
+const OWN_PROCESS_LOG =
+  "JavaScript steps run each in a process of its own, with none of this Runner's environment, but as this Runner's own user: the container does not let the Runner switch users";
+
+// The real users of the container's processes, as /proc reads them.
+function processUsersIn(containerName) {
+  const listed = docker([
+    "exec",
+    containerName,
+    "sh",
+    "-c",
+    "cat /proc/[0-9]*/status 2>/dev/null | grep '^Uid:'",
+  ]);
+
+  return listed.stdout
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      return Number(line.split(/\s+/)[1]);
+    });
+}
+
+function startGlobalRunner({ securityOptions }) {
+  const containerName = `oneuptime-global-runner-runtime-${crypto.randomBytes(4).toString("hex")}`;
+  const runnerId = crypto.randomUUID();
+  const runnerKey = crypto.randomBytes(24).toString("hex");
+  const slowJob = {
+    jobId: crypto.randomUUID(),
+    runbookExecutionId: crypto.randomUUID(),
+    origin: "Runbook",
+    stepId: crypto.randomUUID(),
+    stepType: "JavaScript",
+    script: [
+      "await sleep(8000);",
+      'console.log("ran for " + args.inputs.project);',
+      "return { answer: 6 * 7 };",
+    ].join("\n"),
+    timeoutInMs: 60000,
+    inputs: { project: "every project" },
+    trigger: "Manual",
+  };
+
+  const state = {
+    containerName,
+    slowJob,
+    stand: null,
+    logs: "",
+    usersWhileRunning: [],
+  };
+
+  state.start = async () => {
+    expect(docker(["image", "inspect", IMAGE]).status).toBe(0);
+
+    state.stand = standInServer({
+      runnerId,
+      runnerKey,
+      jobs: [slowJob],
+      isGlobalRunner: true,
+    });
+    const serverPort = await freePort();
+    await new Promise((resolve) => {
+      state.stand.server.listen(serverPort, "127.0.0.1", resolve);
+    });
+
+    const started = docker([
+      "run",
+      "-d",
+      "--name",
+      containerName,
+      "--network",
+      "host",
+      ...securityOptions,
+      "-e",
+      `ONEUPTIME_URL=http://127.0.0.1:${serverPort}`,
+      "-e",
+      `ONEUPTIME_RUNNER_ID=${runnerId}`,
+      "-e",
+      `ONEUPTIME_RUNNER_KEY=${runnerKey}`,
+      "-e",
+      `PORT=${await freePort()}`,
+      "-e",
+      "ONEUPTIME_RUNNER_POLL_INTERVAL_MS=1000",
+      IMAGE,
+    ]);
+    expect(started.stderr).toBe("");
+    expect(started.status).toBe(0);
+
+    const deadline = Date.now() + WAIT_FOR_RESULTS_MS;
+    while (Date.now() < deadline && !state.stand.results.has(slowJob.jobId)) {
+      const running = docker([
+        "inspect",
+        "--format",
+        "{{.State.Running}}",
+        containerName,
+      ]);
+      if (running.stdout.trim() !== "true") {
+        break;
+      }
+      state.usersWhileRunning.push(...processUsersIn(containerName));
+      await sleep(500);
+    }
+
+    const logRun = docker(["logs", containerName]);
+    state.logs = `${logRun.stdout}\n${logRun.stderr}`;
+  };
+
+  state.stop = async () => {
+    docker(["rm", "-f", "-v", containerName]);
+    if (state.stand) {
+      await new Promise((resolve) => {
+        state.stand.server.close(resolve);
+      });
+    }
+  };
+
+  return state;
+}
+
+function isSandboxUser(uid) {
+  return uid >= SANDBOX_IDENTITY_MIN && uid <= SANDBOX_IDENTITY_MAX;
+}
+
+describeRuntime("the Runner image, as a global Runner", () => {
+  const runner = startGlobalRunner({ securityOptions: [] });
+
+  beforeAll(async () => {
+    await runner.start();
+  });
+
+  afterAll(async () => {
+    await runner.stop();
+  });
+
+  test("it runs the JavaScript step and reports its result", () => {
+    const result = runner.stand.results.get(runner.slowJob.jobId);
+
+    expect({ result: result || null, logs: result ? "" : runner.logs }).toEqual(
+      {
+        result: expect.objectContaining({ success: true }),
+        logs: "",
+      },
+    );
+    expect(result.output).toContain("ran for every project");
+    expect(result.output).toContain('"answer": 42');
+  });
+
+  test("the step ran as a user of its own, with no network, never the Runner's", () => {
+    // The combined line names both the user and the no-network sandbox.
+    expect(runner.logs).toContain(OWN_USER_LOG);
+    expect(OWN_USER_LOG).toContain("no network");
+    expect(runner.usersWhileRunning.some(isSandboxUser)).toBe(true);
+    // The Runner itself stays the node user.
+    expect(runner.usersWhileRunning).toContain(1000);
+  });
+
+  test("nothing of the step's user is left once it ended", () => {
+    expect(processUsersIn(runner.containerName).some(isSandboxUser)).toBe(
+      false,
+    );
+  });
+});
+
+describeRuntime(
+  "the Runner image, as a global Runner whose container forbids switching users",
+  () => {
+    const runner = startGlobalRunner({
+      securityOptions: ["--security-opt", "no-new-privileges"],
+    });
+
+    beforeAll(async () => {
+      await runner.start();
+    });
+
+    afterAll(async () => {
+      await runner.stop();
+    });
+
+    test("it still runs the step, in a process of its own, and says why it runs as the Runner's user", () => {
+      const result = runner.stand.results.get(runner.slowJob.jobId);
+
+      expect({
+        result: result || null,
+        logs: result ? "" : runner.logs,
+      }).toEqual({
+        result: expect.objectContaining({ success: true }),
+        logs: "",
+      });
+      expect(result.output).toContain('"answer": 42');
+      expect(runner.logs).toContain(OWN_PROCESS_LOG);
+      expect(runner.usersWhileRunning.some(isSandboxUser)).toBe(false);
+    });
+
+    /*
+     * The no-network filter needs only no_new_privs (which it sets) and
+     * seccomp - no privilege - so it still keeps each step off the network
+     * even where the container forbids switching users. The Runner says so.
+     */
+    test("but each step still runs with no network of its own, and the Runner says so", () => {
+      expect(runner.logs).toContain(NO_NETWORK_LOG);
+    });
+  },
+);
+
+/*
+ * What a step's process can reach if its code got out of its isolate, in
+ * the image as it ships: RunnerSide.js plays the Runner (a key in its
+ * environment, a private file and directory, as during a code fix) and
+ * starts EscapedStep.js - plain Node.js, no isolate, no permission model -
+ * through the image's launcher and its no-network filter, as the Runner runs
+ * a step. It reports what it could reach; the kernel must have refused it
+ * all, the network included. Then a process the step left behind is reaped,
+ * and a step whose launcher is killed dies with it.
+ */
+const SANDBOX_HELPERS = path.join(
+  REPO_ROOT,
+  "packages/Runner/Tests/Utils/JavaScriptSandbox/Helpers",
+);
+
+function runRunnerSide(scenario) {
+  const run = docker([
+    "run",
+    "--rm",
+    "-e",
+    "ONEUPTIME_RUNNER_KEY=the-runner-key",
+    "-v",
+    `${SANDBOX_HELPERS}:/helpers:ro`,
+    IMAGE,
+    "node",
+    "/helpers/RunnerSide.js",
+    scenario,
+  ]);
+
+  expect({ status: run.status, stderr: run.stderr }).toEqual({
+    status: 0,
+    stderr: "",
+  });
+
+  return JSON.parse(run.stdout);
+}
+
+describeRuntime(
+  "the Runner image's JavaScript sandbox, against a step that got out of its isolate",
+  () => {
+    test("the step's process is a sandbox user, with no privilege, no group and none of the Runner's environment", () => {
+      const { report } = runRunnerSide("escape");
+
+      expect(isSandboxUser(report.uid)).toBe(true);
+      expect(report.gid).toBe(report.uid);
+      expect(report.groups).toEqual([report.uid]);
+      expect(report.environmentNames).toEqual(["LANG", "PATH"]);
+      expect(report.cwd).toBe("/");
+      expect(report.noNewPrivs).toEqual({ ok: true, value: "1" });
+      expect(report.capEff).toEqual({ ok: true, value: "0000000000000000" });
+    });
+
+    test("it can read neither the Runner's environment nor its memory, files or directories, signal it, or start the launcher again", () => {
+      const { report } = runRunnerSide("escape");
+
+      for (const attempt of [
+        "readRunnerEnvironment",
+        "readRunnerMemoryMap",
+        "readRunnerFile",
+        "listRunnerDirectory",
+        "runLauncher",
+      ]) {
+        expect({ attempt, result: report[attempt] }).toEqual({
+          attempt,
+          result: { ok: false, code: "EACCES" },
+        });
+      }
+      expect(report.signalRunner).toEqual({ ok: false, code: "EPERM" });
+      expect(report.writeFile).toEqual({ ok: false, code: "EFBIG" });
+    });
+
+    test("it may open no socket of its own: the no-network filter refuses every one", () => {
+      const { report } = runRunnerSide("escape");
+
+      // A seccomp filter is set (mode 2), and it refuses a socket of any kind.
+      expect(report.seccomp).toEqual({ ok: true, value: "2" });
+      expect(report.openTcpSocket).toEqual({ ok: false, code: "EACCES" });
+      expect(report.openUdpSocket).toEqual({ ok: false, code: "EACCES" });
+    });
+
+    test("a process the step left behind is gone once the step's user is reaped", () => {
+      const reap = runRunnerSide("reap");
+
+      expect(reap.before.length).toBeGreaterThan(0);
+      expect(reap.reapStatus).toBe(0);
+      expect(reap.after).toEqual([]);
+    });
+
+    test("a step whose launcher is killed dies with it", () => {
+      const ended = runRunnerSide("pdeathsig");
+
+      expect(ended.before.length).toBeGreaterThan(0);
+      expect(ended.after).toEqual([]);
+    });
+  },
+);

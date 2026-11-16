@@ -26,6 +26,8 @@ import {
   GlobalRunnerCodeFixAvailability,
   doesRunnerTakeCodeFixes,
 } from "../../../../Types/Runner/RunnerCodeFixes";
+import GlobalRunnerRepositoryTokens from "../../Runner/GlobalRunnerRepositoryTokens";
+import { GlobalRunnerKeptOffReason } from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 
 /*
  * Where AI works in a repository, on the server: the facts the repository's
@@ -54,6 +56,15 @@ export interface CodeRepositoryRunnerStatus {
    */
   takesNoCodeFixes?: boolean | undefined;
   /*
+   * Why it is not, when the repository works on the Global Runner and no
+   * global Runner may be handed its token: on OneUptime Cloud, a Forgejo,
+   * Gitea or Git repository, or a GitLab one GitLab made no token for
+   * (Types/Runner/GlobalRunnerRepositoryTokens) - and which of the two
+   * (keptOffReason).
+   */
+  needsOwnRunnerForItsToken?: boolean | undefined;
+  keptOffReason?: GlobalRunnerKeptOffReason | undefined;
+  /*
    * The name of the Runner the repository picked, or of the project's
    * default Runner it follows, for the words that name it; absent for a
    * global Runner, and for a pick that is not one of the project's Runners
@@ -73,19 +84,36 @@ export interface CodeRepositoryRunnerFactsRow {
   projectId: ObjectID | undefined;
   runnerId: ObjectID | string | null | undefined;
   isGlobalRunnerPicked: boolean | null | undefined;
+  /*
+   * Where it is hosted, for whether a global Runner may be handed its token
+   * (GlobalRunnerRepositoryTokens). Left out, it is not asked: the token
+   * route refuses such a token all the same.
+   */
+  repositoryHostedAt?: string | null | undefined;
+  /*
+   * When GitLab last refused to make the short-lived token a fix pushes
+   * with: a GitLab repository works on global Runners until it does.
+   */
+  mintedTokenRefusedAt?: Date | null | undefined;
 }
 
 // The facts row of a repository read with the rule's columns.
 export function getCodeRepositoryRunnerFactsRow(
   repository: Pick<
     CodeRepository,
-    "projectId" | "runnerId" | "isGlobalRunnerPicked"
+    | "projectId"
+    | "runnerId"
+    | "isGlobalRunnerPicked"
+    | "repositoryHostedAt"
+    | "mintedTokenRefusedAt"
   >,
 ): CodeRepositoryRunnerFactsRow {
   return {
     projectId: repository.projectId,
     runnerId: repository.runnerId,
     isGlobalRunnerPicked: repository.isGlobalRunnerPicked,
+    repositoryHostedAt: repository.repositoryHostedAt,
+    mintedTokenRefusedAt: repository.mintedTokenRefusedAt,
   };
 }
 
@@ -94,10 +122,14 @@ export const CODE_REPOSITORY_RUNNER_SELECT: {
   projectId: true;
   runnerId: true;
   isGlobalRunnerPicked: true;
+  repositoryHostedAt: true;
+  mintedTokenRefusedAt: true;
 } = {
   projectId: true,
   runnerId: true,
   isGlobalRunnerPicked: true,
+  repositoryHostedAt: true,
+  mintedTokenRefusedAt: true,
 };
 
 export default class CodeRepositoryRunnerChoice {
@@ -360,6 +392,27 @@ export default class CodeRepositoryRunnerChoice {
     }
 
     if (decision.kind === CodeRepositoryRunnerChoiceKind.Global) {
+      /*
+       * On OneUptime Cloud no global Runner is handed a connection's own
+       * token - a Forgejo, Gitea or Git repository's, or a GitLab one's
+       * GitLab made no token for - so none is there to do its work,
+       * whoever is online.
+       */
+      const keptOffReason: GlobalRunnerKeptOffReason | null =
+        GlobalRunnerRepositoryTokens.getKeptOffReason({
+          repositoryHostedAt: repository.repositoryHostedAt,
+          mintedTokenRefusedAt: repository.mintedTokenRefusedAt,
+        });
+
+      if (keptOffReason) {
+        return {
+          decision,
+          isOnline: false,
+          needsOwnRunnerForItsToken: true,
+          keptOffReason,
+        };
+      }
+
       const availability: GlobalRunnerCodeFixAvailability =
         await RunnerService.getGlobalRunnerCodeFixAvailability();
 
@@ -392,14 +445,6 @@ export default class CodeRepositoryRunnerChoice {
       return true;
     }
 
-    if (
-      (await GlobalRunnerChoice.doesProjectUseGlobalRunners(projectId)) &&
-      (await RunnerService.getGlobalRunnerCodeFixAvailability()) ===
-        GlobalRunnerCodeFixAvailability.Online
-    ) {
-      return true;
-    }
-
     const picked: Array<CodeRepository> = await CodeRepositoryService.findBy({
       query: {
         projectId: projectId,
@@ -407,11 +452,39 @@ export default class CodeRepositoryRunnerChoice {
       select: {
         _id: true,
         runnerId: true,
+        repositoryHostedAt: true,
+        mintedTokenRefusedAt: true,
       },
       limit: 100,
       skip: 0,
       props: { isRoot: true },
     });
+
+    /*
+     * A global Runner counts for a project with no repository yet, or one
+     * a global Runner may work in: on OneUptime Cloud, a Forgejo, Gitea or
+     * Git repository - or a GitLab one GitLab made no token for - needs one
+     * of the project's own Runners (GlobalRunnerRepositoryTokens), so a
+     * project of only such repositories gets nothing done by a global
+     * Runner online.
+     */
+    const mayUseGlobalRunners: boolean =
+      picked.length === 0 ||
+      picked.some((repository: CodeRepository): boolean => {
+        return !GlobalRunnerRepositoryTokens.isRepositoryKeptOff({
+          repositoryHostedAt: repository.repositoryHostedAt,
+          mintedTokenRefusedAt: repository.mintedTokenRefusedAt,
+        });
+      });
+
+    if (
+      mayUseGlobalRunners &&
+      (await GlobalRunnerChoice.doesProjectUseGlobalRunners(projectId)) &&
+      (await RunnerService.getGlobalRunnerCodeFixAvailability()) ===
+        GlobalRunnerCodeFixAvailability.Online
+    ) {
+      return true;
+    }
 
     const runnerIds: Array<string> = Array.from(
       new Set<string>(

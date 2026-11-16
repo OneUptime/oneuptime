@@ -506,8 +506,9 @@ describe("an escalation chain, as words (#8313)", () => {
       true,
     ],
     [
+      // Stored "Passed On": escalated, as the logs say it.
       { name: "Bo", status: "Passed On", isAcknowledged: false },
-      "Bo: Passed On",
+      "Bo: Escalated",
       true,
     ],
     [

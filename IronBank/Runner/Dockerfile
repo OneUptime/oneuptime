@@ -42,6 +42,18 @@ USER root
 COPY --from=release /usr/local/share/ca-certificates /usr/local/share/ca-certificates
 COPY --from=release /usr/local/bin/kubectl /usr/local/bin/kubectl
 
+# A global Runner's JavaScript sandbox, as the release builds it: the launcher
+# that starts each step's process as a user of its own (setuid root, run by
+# the node group alone), the no-network filter that keeps that process off
+# every socket (root's, runnable by all, never setuid) and the bundle that
+# process runs. Their owners and modes are set again here, as the release's
+# last stage sets them.
+COPY --from=release /usr/lib/oneuptime-runner /usr/lib/oneuptime-runner
+RUN chown 0:1000 /usr/lib/oneuptime-runner/javascript-sandbox \
+    && chmod 4750 /usr/lib/oneuptime-runner/javascript-sandbox \
+    && chown 0:0 /usr/lib/oneuptime-runner/javascript-sandbox-no-network \
+    && chmod 0755 /usr/lib/oneuptime-runner/javascript-sandbox-no-network
+
 # The release's Debian packages: what runbook steps run with (bash, curl, git,
 # wget, ssh, archive tools) and tini, the entrypoint. Iron Bank's pipeline
 # reaches Debian's package repositories through its proxy and nothing else, so
@@ -85,5 +97,7 @@ WORKDIR /usr/src/app
 
 USER node
 
-# The release's start command: sh execs node under tini.
-CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+# The release's start command: sh sizes node's heap to the container's memory
+# limit and execs node under tini (see packages/App/Dockerfile.tpl). It needs
+# nothing from the release's files, so it runs as written on any release.
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]

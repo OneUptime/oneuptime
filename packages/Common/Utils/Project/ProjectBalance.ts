@@ -202,7 +202,7 @@ export const getProjectBalanceTooLowMessage: (
  */
 export const INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE: string = `Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall)}`;
 
-// An amount of money, as the balance pages show it: "0.05 USD".
+// An amount of money, as the balance pages show it: "0.05 USD", held to its unit (#8826).
 export const formatProjectBalanceAmount: (
   amountInUSDCents: number,
 ) => string = (amountInUSDCents: number): string => {
@@ -210,7 +210,7 @@ export const formatProjectBalanceAmount: (
     ? amountInUSDCents
     : 0;
 
-  return `${(cents / 100).toFixed(2)} USD`;
+  return `${(cents / 100).toFixed(2)}\u00A0USD`;
 };
 
 /*

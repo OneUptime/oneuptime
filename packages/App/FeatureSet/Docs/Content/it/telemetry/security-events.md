@@ -54,7 +54,7 @@ Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha u
 | **Entità protette** | Playbooks | Gli utenti e gli host a cui nessun playbook applica il contenimento |
 | **Impostazioni** | IA | Se OneUptime AI classifica ogni nuovo caso |
 | **Connessioni** | Connections | I tuoi log, i prodotti di sicurezza che OneUptime interroga e i SIEM a cui invia |
-| **Guida alla configurazione** | Connections | Frammenti per inviare eventi, compilati con la tua chiave di ingestione |
+| **Guida alla configurazione** | Connections | Frammenti per inviare eventi, compilati con la tua chiave di acquisizione |
 | **Priorità dei casi** | Impostazioni | Quanto è urgente un caso: le priorità del progetto, la più urgente prima |
 | **Obiettivi di risposta** | Impostazioni | Quanto in fretta un caso di ogni priorità deve essere preso in carico e contenuto |
 | **Stati dei casi** | Impostazioni | I passaggi che un caso attraversa, e come conta un caso in ciascuno |
@@ -78,9 +78,9 @@ I dati di sicurezza li leggono solo i ruoli Proprietario del progetto e Amminist
 ## Inviare eventi di sicurezza
 
 :::steps
-### Crea una chiave di ingestione
+### Crea una chiave di acquisizione
 
-Apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di ingestione**. Gli eventi di sicurezza usano le stesse chiavi del resto della tua telemetria.
+Apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di acquisizione**. Gli eventi di sicurezza usano le stesse chiavi del resto della tua telemetria.
 
 ### Invia i tuoi eventi
 

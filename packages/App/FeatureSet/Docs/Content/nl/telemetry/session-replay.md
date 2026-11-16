@@ -54,7 +54,7 @@ Voeg één scripttag toe aan elke pagina die je wilt opnemen.
 :::steps
 ### Een Browser-sleutel aanmaken
 
-Klik onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** op **Inname-sleutel aanmaken**, kies **Browser** als **Sleuteltype** en geef de origins van je site op onder **Toegestane origins**. Kopieer daarna de **Geheime sleutel** van de sleutel. [Browserconfiguratie](/docs/rum/browser-setup#instellen) toont elk scherm.
+Klik onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** op **Ingestiesleutel aanmaken**, kies **Browser** als **Sleuteltype** en geef de origins van je site op onder **Toegestane origins**. Kopieer daarna de **Geheime sleutel** van de sleutel. [Browserconfiguratie](/docs/rum/browser-setup#instellen) toont elk scherm.
 
 ### De scripttag toevoegen
 

@@ -99,6 +99,16 @@ command palette.
   Upcoming maintenance runs down to its end while Your project keeps its rows' height; below xl
   (1024px, 768px, 390px) the cards stack, each as tall as what it holds.
 
+`HowOneUptimeWorks.spec.ts` (How OneUptime works, #6819 and #8891):
+
+- **Help** starts with the ways to learn, and opens How OneUptime works from any page.
+- **The dialog**: the four steps a problem moves through, with the products that do each; the
+  definitions of Detect's "telemetry" and "infrastructure" on hover, focus and tap; the focus
+  starting on the first section, the arrow keys, Home, End and Next walking the sections; a
+  category with every product it holds; a product opening its page and closing the dialog; on a
+  phone, the sections in a row that scrolls sideways inside the dialog, never the page; dark,
+  German, and Persian with the sections on the right and Left going on to the next.
+
 `afterEach` fails a test on an uncaught page error, on any request the fixture does not model,
 and on any request the network fence had to abort.
 

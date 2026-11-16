@@ -138,11 +138,12 @@ describe("POST /ai-agent-task/update-task-status", () => {
 
     projectId = ObjectID.generate();
     runId = ObjectID.generate();
+    const workerId: ObjectID = ObjectID.generate();
     storedContext = { github: githubContext() };
 
     jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
       credentialCheckProving({
-        id: ObjectID.generate(),
+        id: workerId,
         projectId: projectId,
         source: CodeFixAgentSource.Runner,
       }),
@@ -157,6 +158,8 @@ describe("POST /ai-agent-task/update-task-status", () => {
         const run: AIRun = new AIRun();
         run.id = runId;
         run.projectId = projectId;
+        // The worker's own run: it claimed it.
+        run.aiAgentId = workerId;
         run.status = AIRunStatus.Running;
 
         if (select["taskContext"] && storedContext) {

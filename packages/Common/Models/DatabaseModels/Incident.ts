@@ -1886,6 +1886,15 @@ export default class Incident extends BaseModel {
   })
   public labels?: Array<Label> = undefined;
 
+  /*
+   * The state the incident is in now. OneUptime moves it as the incident's
+   * state changes, but the state a new incident starts in is its declarer's to
+   * pick: the declare form's Initial State sends it under this name, the API
+   * under currentIncidentStateId, and IncidentService.onBeforeCreate checks
+   * that it is one of the project's states before it stamps it under both. So
+   * whoever may declare an incident may create it, as they may its ID column:
+   * the two names of one reference take one create list (#8907).
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2165,15 +2174,18 @@ export default class Incident extends BaseModel {
   })
   public changeMonitorStatusToId?: ObjectID = undefined;
 
+  /*
+   * Whether the subscribers of the incident's status pages were told it was
+   * declared, and how it went (subscriberNotificationStatusMessage below):
+   * OneUptime's record of the notification, so nobody may give a new incident
+   * either (#8907). The create decides it from
+   * shouldStatusPageSubscribersBeNotifiedOnIncidentCreated - queued, or
+   * skipped saying why - and the job that sends it writes the rest. Editors
+   * may still write it back to Pending: that is how the dashboard sends it
+   * again.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2213,14 +2225,7 @@ export default class Incident extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2285,15 +2290,15 @@ export default class Incident extends BaseModel {
   })
   public subscriberNotificationClaimedAtOnIncidentCreated?: Date = undefined;
 
+  /*
+   * Whether the subscribers were told the incident's postmortem was published,
+   * and how it went (subscriberNotificationStatusMessageOnPostmortemPublished
+   * below): OneUptime's record of the notification, which the job that sends
+   * it writes, so nobody may give a new incident either (#8907). Editors may
+   * still write it back to Pending: that is how the dashboard sends it again.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2333,14 +2338,7 @@ export default class Incident extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3623,10 +3621,13 @@ export default class Incident extends BaseModel {
    * so it is hidden everywhere rather than widened to every page its monitors
    * reach.
    *
-   * Computed, so a client cannot set it on create. Its update access control
-   * matches statusPages all the same: the service writes it into the caller's
-   * own update, and the column check that runs after the hook exempts computed
-   * columns only on create.
+   * Nobody may create it (#8907): a create's value is dropped before the
+   * hooks run (refused, to a caller who may not even read it), and the
+   * value the service writes is the create's own, which the column check
+   * takes as such. Its update access control matches statusPages all the
+   * same: the service writes it into the caller's own update, and the
+   * column check that runs after the hook takes a computed column as the
+   * create's own only on create.
    *
    * Not indexed. It is false on nearly every row, so an index cannot help the
    * unscoped half of those queries, and the scoped half reaches its incidents
@@ -3635,14 +3636,7 @@ export default class Incident extends BaseModel {
    * Incident - reads included - for as long as it took on a large table.
    */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

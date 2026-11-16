@@ -22,6 +22,12 @@ import CodeRepositoryConnectionService, {
   Service as CodeRepositoryConnectionServiceClass,
 } from "../../../../../Server/Services/CodeRepositoryConnectionService";
 import { CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import {
+  GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_REFUSAL,
+  GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL,
+  GLOBAL_RUNNER_TOO_OLD_FOR_GITLAB_REFUSAL,
+} from "../../../../../Types/Runner/GlobalRunnerRepositoryTokens";
+import RunnerCodeFixCapability from "../../../../../Types/Runner/RunnerCodeFixCapability";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
 import CodeRepositoryConnection from "../../../../../Models/DatabaseModels/CodeRepositoryConnection";
 import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
@@ -49,6 +55,7 @@ const CONNECTION_ID: ObjectID = new ObjectID(
   "b1b2c3d4-0000-4000-8000-000000000002",
 );
 const TOKEN: string = "glpat-runner-token-000000001";
+const RUN_ID: ObjectID = new ObjectID("b1b2c3d4-0000-4000-8000-000000000003");
 
 const PROJECT_RUNNER: CodeWorker = {
   kind: CodeWorkerKind.ProjectRunner,
@@ -61,6 +68,7 @@ const GLOBAL_RUNNER: CodeWorker = {
 
 let connection: CodeRepositoryConnection | undefined;
 let savedBilling: string | undefined;
+let savedGitHubOnly: string | undefined;
 
 function makeConnection(
   overrides: Partial<CodeRepositoryConnection> = {},
@@ -131,7 +139,9 @@ function serverAnswering(status: number): {
 beforeEach(() => {
   connection = makeConnection();
   savedBilling = process.env["BILLING_ENABLED"];
+  savedGitHubOnly = process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"];
   delete process.env["BILLING_ENABLED"];
+  delete process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"];
 
   jest
     .spyOn(CodeHostAccess, "readConnections")
@@ -157,6 +167,12 @@ afterEach(() => {
     process.env["BILLING_ENABLED"] = savedBilling;
   }
 
+  if (savedGitHubOnly === undefined) {
+    delete process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"];
+  } else {
+    process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"] = savedGitHubOnly;
+  }
+
   jest.restoreAllMocks();
 });
 
@@ -177,9 +193,16 @@ describe("handing a Runner the token of a repository off GitHub", () => {
     expect(decision.refusal).toBeUndefined();
     expect(decision.grant).toEqual({
       token: TOKEN,
+      expiresAt: expect.any(Date),
       cloneUrl: "https://gitlab.example.com/acme/backend/checkout.git",
       organizationName: "acme/backend",
       repositoryName: "checkout",
+      /*
+       * A Runner that declares nothing opens its merge request itself, with
+       * the connection's token, as it always did.
+       */
+      serverOpensPullRequest: false,
+      isMintedForRun: false,
       codeHost: {
         type: CodeRepositoryType.GitLab,
         hostUrl: "https://gitlab.example.com",
@@ -331,7 +354,7 @@ describe("handing a Runner the token of a repository off GitHub", () => {
     );
   });
 
-  test("a global Runner may reach a private network on a self-hosted OneUptime, never on OneUptime Cloud", async () => {
+  test("a global Runner may reach a private network on a self-hosted OneUptime, and never where the server blocks private addresses", async () => {
     const selfHosted: CodeHostRunnerDecision = await CodeHostRunnerToken.decide(
       {
         repository: makeRepository(),
@@ -343,26 +366,182 @@ describe("handing a Runner the token of a repository off GitHub", () => {
 
     expect(selfHosted.grant!.codeHost.isPrivateNetworkAllowed).toBe(true);
 
-    process.env["BILLING_ENABLED"] = "true";
+    const savedBlock: string | undefined =
+      process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"];
+    process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"] = "true";
 
-    const cloud: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
-      repository: makeRepository(),
+    try {
+      const blocked: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+        repository: makeRepository(),
+        worker: GLOBAL_RUNNER,
+        supportedCodeHosts: [CodeRepositoryType.GitLab],
+        transport: serverAnswering(200).transport,
+      });
+
+      expect(blocked.grant!.codeHost.isPrivateNetworkAllowed).toBe(false);
+
+      // A project's own Runner always may: it runs on the project's network.
+      const own: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+        repository: makeRepository(),
+        worker: PROJECT_RUNNER,
+        supportedCodeHosts: [CodeRepositoryType.GitLab],
+        transport: serverAnswering(200).transport,
+      });
+
+      expect(own.grant!.codeHost.isPrivateNetworkAllowed).toBe(true);
+    } finally {
+      if (savedBlock === undefined) {
+        delete process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"];
+      } else {
+        process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"] = savedBlock;
+      }
+    }
+  });
+});
+
+/*
+ * On OneUptime Cloud a global Runner runs every customer's JavaScript steps,
+ * so it is never handed a connection's own token (#6115,
+ * Types/Runner/GlobalRunnerRepositoryTokens): a Forgejo, Gitea or Git
+ * repository works on a Runner of its project's own there, and a GitLab one
+ * only with the token OneUptime makes for each run (#8912, the suite
+ * below).
+ */
+describe("a global Runner on OneUptime Cloud", () => {
+  test.each([CodeRepositoryType.Forgejo, CodeRepositoryType.Git])(
+    "is handed no %s repository's token, and the connection is never read for it",
+    async (type: CodeRepositoryType) => {
+      process.env["BILLING_ENABLED"] = "true";
+      const server: {
+        transport: CodeHostTransport;
+        seen: Array<CodeHostHttpRequest>;
+      } = serverAnswering(200);
+
+      const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide(
+        {
+          repository: makeRepository({ repositoryHostedAt: type }),
+          worker: GLOBAL_RUNNER,
+          supportedCodeHosts: [type],
+          // Even one that has OneUptime open its pull requests.
+          capabilities: [RunnerCodeFixCapability.ServerOpensPullRequests],
+          runId: RUN_ID,
+          transport: server.transport,
+        },
+      );
+
+      expect(decision.grant).toBeUndefined();
+      expect(decision.refusal).toBe(GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL);
+      expect(CodeHostAccess.readConnections).not.toHaveBeenCalled();
+      expect(server.seen).toHaveLength(0);
+    },
+  );
+
+  test("is handed no GitLab repository's token when it is older than the tokens made for each run, and the connection is never read for it", async () => {
+    process.env["BILLING_ENABLED"] = "true";
+    const server: {
+      transport: CodeHostTransport;
+      seen: Array<CodeHostHttpRequest>;
+    } = serverAnswering(200);
+
+    for (const asked of [
+      // A Runner that declares nothing.
+      { capabilities: [], runId: RUN_ID },
+      // One that names no run: nothing would be made for it.
+      {
+        capabilities: [RunnerCodeFixCapability.ServerOpensPullRequests],
+        runId: null,
+      },
+    ]) {
+      const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide(
+        {
+          repository: makeRepository(),
+          worker: GLOBAL_RUNNER,
+          supportedCodeHosts: [CodeRepositoryType.GitLab],
+          capabilities: asked.capabilities,
+          runId: asked.runId,
+          transport: server.transport,
+        },
+      );
+
+      expect(decision.grant).toBeUndefined();
+      expect(decision.refusal).toBe(GLOBAL_RUNNER_TOO_OLD_FOR_GITLAB_REFUSAL);
+    }
+
+    expect(CodeHostAccess.readConnections).not.toHaveBeenCalled();
+    expect(server.seen).toHaveLength(0);
+  });
+
+  test("is handed no token for a GitLab repository GitLab refused to make one for, and GitLab is not asked again", async () => {
+    process.env["BILLING_ENABLED"] = "true";
+    const server: {
+      transport: CodeHostTransport;
+      seen: Array<CodeHostHttpRequest>;
+    } = serverAnswering(200);
+
+    const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+      repository: makeRepository({ mintedTokenRefusedAt: new Date() }),
       worker: GLOBAL_RUNNER,
       supportedCodeHosts: [CodeRepositoryType.GitLab],
-      transport: serverAnswering(200).transport,
+      capabilities: [RunnerCodeFixCapability.ServerOpensPullRequests],
+      runId: RUN_ID,
+      transport: server.transport,
     });
 
-    expect(cloud.grant!.codeHost.isPrivateNetworkAllowed).toBe(false);
+    expect(decision.grant).toBeUndefined();
+    expect(decision.refusal).toBe(
+      GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_REFUSAL,
+    );
+    expect(CodeHostAccess.readConnections).not.toHaveBeenCalled();
+    expect(server.seen).toHaveLength(0);
+  });
 
-    // A project's own Runner always may: it runs on the project's network.
-    const own: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+  test("a project's own Runner is handed the token there as before", async () => {
+    process.env["BILLING_ENABLED"] = "true";
+
+    const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
       repository: makeRepository(),
       worker: PROJECT_RUNNER,
       supportedCodeHosts: [CodeRepositoryType.GitLab],
       transport: serverAnswering(200).transport,
     });
 
-    expect(own.grant!.codeHost.isPrivateNetworkAllowed).toBe(true);
+    expect(decision.grant!.token).toBe(TOKEN);
+  });
+
+  test("on a single-tenant self-hosted OneUptime a global Runner is handed it as before", async () => {
+    const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+      repository: makeRepository(),
+      worker: GLOBAL_RUNNER,
+      supportedCodeHosts: [CodeRepositoryType.GitLab],
+      transport: serverAnswering(200).transport,
+    });
+
+    expect(decision.grant!.token).toBe(TOKEN);
+  });
+
+  /*
+   * #8915: a self-hosted multi-tenant install turns the same rule on with
+   * GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY, billing off.
+   */
+  test("a self-hosted multi-tenant install (the setting on) is handed no connection token either", async () => {
+    process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"] = "true";
+    const server: {
+      transport: CodeHostTransport;
+      seen: Array<CodeHostHttpRequest>;
+    } = serverAnswering(200);
+
+    const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+      repository: makeRepository({
+        repositoryHostedAt: CodeRepositoryType.Forgejo,
+      }),
+      worker: GLOBAL_RUNNER,
+      supportedCodeHosts: [CodeRepositoryType.Forgejo],
+      transport: server.transport,
+    });
+
+    expect(decision.grant).toBeUndefined();
+    expect(decision.refusal).toBe(GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL);
+    expect(server.seen).toHaveLength(0);
   });
 });
 

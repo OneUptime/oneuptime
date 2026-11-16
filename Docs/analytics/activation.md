@@ -84,6 +84,7 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `home/member_step_started` | An invited member opens one of their own first steps on Home: their setup checklist (`reach`), a test page to themselves (`test_page`), their shifts (`on_call`) or the mobile app (`mobile_app`) | `step` | `MemberFirstSteps` |
 | `home/member_steps_dismissed` | An invited member hides their own first steps on Home | `open_count` | `MemberFirstSteps` |
 | `how_it_works/opened` | A product's "How it works" is opened, or How OneUptime works (`product` is `oneuptime`) | `product`, and for How OneUptime works `source` (`help`, `home`) | `ProductAboutButton`, `HowOneUptimeWorksDialog` |
+| `how_it_works/product_opened` | A product is opened from How OneUptime works (#8891): from one of the four steps a problem moves through, or from its category's list. Which products people open there says what they came to find | `product` (its key, such as `logs`), `place` (`loop` or `category`) | `HowOneUptimeWorksOverview` |
 | `search/no_results` | A command palette search settles with nothing found. Only searches of 2 characters or more count, after one second, or when the palette closes on them | `source`, `query_length`, and on Cloud `query` (40 characters at most) | `DashboardCommandPalette` |
 | `ask_ai/question_asked` | Ask AI takes a question. The question itself is never sent | `is_new_conversation`, `permission_mode` | `useAiChat` |
 | `ask_ai/answer_rated` | An answer is rated, or its rating cleared | `rating` (`up`, `down`, `cleared`) | `useAiChat` |
@@ -109,8 +110,6 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `paging_ladder/saved` | A paging ladder is saved on How to Reach Me (#6820), by the person (`is_own`) or for a member. Whether people save one, and whether they replace differences, says whether the ladder is the view most people need | `is_own`, `step_count`, `replaced_card_count` (the cards that differed and now use the ladder) | `HowToReachMe` |
 | `paging_ladder/grid_opened` | Somebody opens the per-severity grid behind the ladder with "Different for Some Severities" | `is_own`, `differing_card_count` | `HowToReachMe` |
 | `used_by/list_opened` | The full list of what refers to a record is opened (#6813): a relation's "See all" on a record's Used by card, or a label's Used by on Settings > Labels. Whether people open it says whether the card's three rows are enough | `record_kind` (`monitor`, `on-call-schedule`, `service`, `status-page`, `team`, `label`), `relation` (the relation, or `all` for a label's whole list) | `UsedByDialog` |
-| `sample_project/started` | **Explore Sample Project** is pressed (#6808): a sample project is made, or the person's existing one opened again. A sample counts as no activation: it reaches no milestone, sends no `server/project_created`, and nothing done inside it sends an event but these two | `from` (`welcome`, `goals`, `home`), `is_new` | `ExploreSampleProject` |
-| `sample_project/deleted` | A sample project is deleted from its bar | `days_kept` (whole days since it was made) | `SampleProjectBar` |
 
 ### The Welcome checklist and its goals
 

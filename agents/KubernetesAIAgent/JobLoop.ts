@@ -23,6 +23,12 @@ import {
  * is to never act on a job the server has already given up on, and to get
  * the result of a command that did run recorded — with its exit code and
  * output — even when the first delivery is lost.
+ *
+ * A job heartbeat may also say to stop ({ status: "ok", stop: true,
+ * reason }: OneUptime AI was turned off for the project after the claim).
+ * A command that has not started then never starts, and one that is
+ * running is left to finish; the lease is still renewed, so either way the
+ * result is reported.
  */
 
 /*
@@ -67,6 +73,36 @@ export const NOT_RUN_LEASE_LOST_MESSAGE: string =
 // Reported for a job the agent claimed while it was already shutting down.
 export const NOT_RUN_SHUTTING_DOWN_MESSAGE: string =
   "The Kubernetes AI agent did not run this command: it was shutting down (a restart or a chart upgrade). Try again in a minute.";
+
+/*
+ * Reported instead of running the command when the server answers the
+ * pre-spawn heartbeat that it must stop: OneUptime AI was turned off for
+ * the project (Enable AI) after the agent claimed the job. No exit code:
+ * it did not run.
+ */
+export const NOT_RUN_STOPPED_MESSAGE: string =
+  "The Kubernetes AI agent did not run this command: when it was about to start, OneUptime said to stop";
+
+/*
+ * What the server's job heartbeat answers about stopping, when it says to:
+ * { status: "ok", stop: true, reason }, an answer that also renewed the
+ * lease. A server that predates the stop never says it.
+ */
+export function readStopReason(response: IngestResponse): string | null {
+  if (response.kind !== "ok" || !response.body) {
+    return null;
+  }
+
+  if (response.body["stop"] !== true) {
+    return null;
+  }
+
+  const reason: unknown = response.body["reason"];
+
+  return typeof reason === "string" && reason.trim()
+    ? reason.trim().slice(0, 500)
+    : "OneUptime said to stop this command.";
+}
 
 export const KUBECTL_STEP_TYPE: string = "Kubectl";
 
@@ -131,6 +167,13 @@ interface JobLease {
   isLost: boolean;
   // The job is done here; a heartbeat answered after this is ignored.
   isFinished: boolean;
+  /*
+   * Why OneUptime said to stop the command (a job heartbeat answered
+   * stop: true), or null. Kept from the first heartbeat that says it.
+   */
+  stopReason: string | null;
+  // kubectl was started: a stop from now on leaves it to finish.
+  hasStarted: boolean;
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -388,6 +431,8 @@ export default class JobLoop {
       confirmedUntilMs: Date.now() + this.timings.leaseMs,
       isLost: false,
       isFinished: false,
+      stopReason: null,
+      hasStarted: false,
     };
 
     this.deps.status.runningJobId = job.jobId;
@@ -474,6 +519,24 @@ export default class JobLoop {
         };
       }
 
+      /*
+       * Told to stop before it started - by that heartbeat, or one before
+       * it: OneUptime AI was turned off for the project since the claim.
+       * kubectl does not run; the result says why, with no exit code.
+       */
+      if (data.lease.stopReason) {
+        Logger.warn("OneUptime said to stop a kubectl command before it ran", {
+          jobId: job.jobId,
+          reason: data.lease.stopReason,
+        });
+
+        return {
+          success: false,
+          output: "",
+          errorMessage: `${NOT_RUN_STOPPED_MESSAGE}: ${data.lease.stopReason}`,
+        };
+      }
+
       Logger.info("Running a kubectl command", {
         jobId: job.jobId,
         origin: job.origin,
@@ -483,6 +546,13 @@ export default class JobLoop {
         jobId: job.jobId,
         command: prepared.displayCommand,
       });
+
+      /*
+       * One kubectl process, started now: a stop that arrives while it runs
+       * leaves it to finish, as a resource AI agent does with a command it
+       * started, and its result is reported.
+       */
+      data.lease.hasStarted = true;
 
       return await prepared.run();
     } catch (err: unknown) {
@@ -506,7 +576,8 @@ export default class JobLoop {
    * transient one) and the command runs anyway. Only an answer that the
    * job is no longer this agent's stops it: the server has already given
    * up on the job, so running it now would act on the cluster behind the
-   * platform's back.
+   * platform's back. An answer that renews the lease may also say to stop
+   * (noteStop): the caller then does not start the command.
    */
   private async markStepStarting(data: {
     identity: AgentIdentity;
@@ -522,6 +593,7 @@ export default class JobLoop {
 
     if (response.kind === "ok") {
       this.renewLease(data.lease, sentAtMs);
+      this.noteStop(data.job, data.lease, response);
       return true;
     }
 
@@ -535,6 +607,32 @@ export default class JobLoop {
       { jobId: data.job.jobId, answer: response.message },
     );
     return true;
+  }
+
+  /*
+   * A heartbeat that says to stop: kept, the first reason given. Said once
+   * kubectl is running, it is left to finish and its result reported - the
+   * log says so, since nothing else will.
+   */
+  private noteStop(
+    job: ClaimedJob,
+    lease: JobLease,
+    response: IngestResponse,
+  ): void {
+    const reason: string | null = readStopReason(response);
+
+    if (!reason || lease.stopReason) {
+      return;
+    }
+
+    lease.stopReason = reason;
+
+    if (lease.hasStarted) {
+      Logger.warn(
+        "OneUptime said to stop a kubectl command that had already started; it is left to finish, and its result is reported.",
+        { jobId: job.jobId, reason },
+      );
+    }
   }
 
   private renewLease(lease: JobLease, sentAtMs: number): void {
@@ -581,6 +679,7 @@ export default class JobLoop {
 
         if (response.kind === "ok") {
           this.renewLease(data.lease, sentAtMs);
+          this.noteStop(data.job, data.lease, response);
           return;
         }
 

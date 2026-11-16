@@ -82,6 +82,8 @@ Lagringen växer **linjärt med lagringstiden**: ett fönster på 90 dagar kosta
 
 PostgreSQL lagrar din konfiguration och ditt driftstillstånd, inte telemetri, så det växer långsamt och förblir litet bredvid ClickHouse. Även stora installationer ligger oftast på några tiotal GB. Standardvolymen på **25 Gi** räcker för små installationer; planera 50–100 GB för större, med utrymme för historiken över incidenter och larm.
 
+Lösta incidenter och larm finns kvar tills varje projekt väljer hur länge de ska sparas. För att hålla alla projekt inom en gräns ställer du in **Behåll i högst** under **Admin Dashboard → Inställningar → Databevarande**: se [En gräns för hela servern](/docs/incidents/settings#en-gräns-för-hela-servern).
+
 Med många repliker av app, workers och sonder kan databasanslutningarna ta slut före lagringen. Varje podd öppnar som standard upp till 50 anslutningar, och den medföljande PostgreSQL tillåter 500. Just därför innehåller charten en valfri connection pooler, **PgBouncer** (`pgbouncer.enabled`): slå på den för installationer med många repliker.
 
 ## Valkey – cache, köer och sessioner
@@ -99,6 +101,8 @@ Utöver datalagren dimensionerar du de tillståndslösa arbetslasterna. Var och 
 | Sonder | `probes` | Antalet aktiva monitorer |
 | Ingress-gateway | `nginx` | Mängden förfrågningar |
 | Telemetry writer, när den är påslagen | `telemetryWriter` | Inte med lasten: den samlar varje telemetri-insert i ClickHouse, så den dimensioneras efter vad ClickHouse klarar |
+
+Var och en kör Node.js, som anpassar sin heap efter containerns minnesgräns (`resources.limits.memory`): 75 % av gränsen, minst 256 MB och högst 8096 MB. Utan gräns kan heapen växa till 8096 MB. Resten av gränsen är till för minnet som Node.js använder utanför sin heap. Vill du välja heapen själv, sätt `NODE_OPTIONS` till `--max-old-space-size=` följt av en storlek i MB i tjänstens `extraEnv` (med Docker Compose i tjänstens `environment` i en override-fil). Det går före storleken som gränsen ger.
 
 Charten innehåller **KEDA**, så att appen, workers, sonder och den globala Runnern kan skala efter sin köeftersläpning. Slå på `keda.enabled` tillsammans med varje tjänsts egen `keda.enabled` (till exempel `app.keda.enabled`). På ett kluster som ännu inte har KEDA behöver den första installationen en extra omgång: se chartens [KEDA-guide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Tjänster som KEDA inte hanterar kan i stället använda en autoskalare baserad på CPU eller minne (`autoscaling`).
 

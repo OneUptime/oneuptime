@@ -144,7 +144,7 @@ En **Acceso**, elige **Visor** para un agente que solo lee, o **Administrador de
 
 ### Copia la clave
 
-Haz clic en **Crear Clave de API**: se abre la página de la clave. Copia la clave desde ahí.
+Haz clic en **Crear Clave de API**. OneUptime muestra la clave una sola vez, en el diálogo **Copia tu clave de API**: cópiala antes de pulsar **Hecho**.
 :::
 
 Las claves de API pertenecen a un proyecto: el servidor MCP toma el proyecto de la clave, así que las herramientas de creación nunca necesitan un argumento `projectId`.
@@ -360,6 +360,8 @@ Consulta siempre la telemetría con un rango de tiempo. Un campo de consulta ace
 Los operadores son `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` e `Includes`. Los valores de ordenación son `"ASC"` o `"DESC"`.
 
 Las herramientas `list_` y `count_` aceptan cualquier campo, lo que mantiene la lista de herramientas lo bastante pequeña para que un cliente la cargue de una vez. Para ver los campos de un recurso, qué significa cada uno y qué operadores acepta, un agente llama a `oneuptime_describe_resource` con el recurso o una de sus herramientas, como `Incident` o `list_incidents`.
+
+Las demás herramientas `list_`, de incidentes, monitores y cualquier otro tipo de registro, ordenan como lo hace la API: un campo recibe una dirección, o `{ "direction": "DESC", "nulls": "LAST" }` para poner al final los registros sin valor en él, y una relación con un registro ordena por un campo del registro que nombra, como en `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` marca cada una de esas relaciones con `sort` y nombra los campos por los que ordena en `sortBy`.
 
 ## Selección de campos y paginación
 

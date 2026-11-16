@@ -23,8 +23,17 @@ import HTTPResponseBodyReader, {
   HTTPResponseBodyBudget,
 } from "./HTTPResponseBodyReader";
 import { getSameServerRedirectCheck } from "./SameServerRedirect";
+import ResponseTooLarge from "./ResponseTooLarge";
+import RetryAfter from "./RetryAfter";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
+
+/*
+ * What a request sends: JSON (an object or an array), or bytes sent as they
+ * are, with whatever Content-Type the caller names - how a probe passes on a
+ * text body it relays (Probe/API/IncomingRequestIngress).
+ */
+export type APIRequestBody = JSONObject | JSONArray | Buffer;
 
 /*
  * Diagnostic summary of one settled fetch() call, retries included. Handed
@@ -117,6 +126,14 @@ export interface RequestOptions {
   // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
   httpAgent?: HttpAgent | undefined;
   httpsAgent?: HttpsAgent | undefined;
+  /*
+   * Send with Node's http adapter, whichever adapter axios would pick on its
+   * own. It is the only one that uses httpAgent / httpsAgent, so a caller
+   * whose agents dial only the address it validated (SafeWebhookRequest)
+   * asks for it: any other adapter would dial whatever the name resolves to
+   * by then.
+   */
+  useNodeHttpAdapter?: boolean | undefined;
   skipAuthRefresh?: boolean | undefined;
   hasAttemptedAuthRefresh?: boolean | undefined;
   onUploadProgress?: ((event: AxiosProgressEvent) => void) | undefined;
@@ -130,7 +147,7 @@ export interface RequestOptions {
 
 export interface APIRequestOptions {
   url: URL;
-  data?: JSONObject | JSONArray;
+  data?: APIRequestBody;
   headers?: Headers;
   params?: Dictionary<string>;
   options?: RequestOptions;
@@ -139,7 +156,7 @@ export interface APIRequestOptions {
 export interface APIFetchOptions {
   method: HTTPMethod;
   url: URL;
-  data?: JSONObject | JSONArray;
+  data?: APIRequestBody;
   headers?: Headers;
   params?: Dictionary<string>;
   options?: RequestOptions;
@@ -172,7 +189,7 @@ export interface AuthRetryContext {
   request: {
     method: HTTPMethod;
     url: URL;
-    data?: JSONObject | JSONArray;
+    data?: APIRequestBody;
     headers?: Headers;
     params?: Dictionary<string>;
     options?: RequestOptions;
@@ -509,7 +526,7 @@ export default class API {
   >(
     method: HTTPMethod,
     url: URL,
-    data?: JSONObject | JSONArray,
+    data?: APIRequestBody,
     headers?: Headers,
     params?: Dictionary<string>,
     options?: RequestOptions,
@@ -561,7 +578,7 @@ export default class API {
   >(
     method: HTTPMethod,
     url: URL,
-    data?: JSONObject | JSONArray,
+    data?: APIRequestBody,
     headers?: Headers,
     params?: Dictionary<string>,
     options?: RequestOptions,
@@ -572,6 +589,16 @@ export default class API {
       url.addQueryParams(params);
     }
 
+    /*
+     * The query parameters go on the URL that is sent. A dispatch URL used to
+     * leave them on the reporting URL alone, so a guarded caller's parameters
+     * never reached the server.
+     */
+    const dispatchUrl: string | undefined =
+      options?.dispatchUrl === undefined
+        ? undefined
+        : API.addQueryParamsToDispatchUrl(options.dispatchUrl, params);
+
     const requestStartedAtInMs: number = Date.now();
     let attempts: number = 0;
 
@@ -581,8 +608,7 @@ export default class API {
         ...headers,
       };
 
-      let finalBody: JSONObject | JSONArray | URLSearchParams | undefined =
-        data;
+      let finalBody: APIRequestBody | URLSearchParams | undefined = data;
 
       // if content-type is form-url-encoded, then stringify the data
 
@@ -604,7 +630,7 @@ export default class API {
       // Identical on every attempt, so build it once.
       const axiosOptions: AxiosRequestConfig = {
         method: method,
-        url: options?.dispatchUrl ?? url.toString(),
+        url: dispatchUrl ?? url.toString(),
         headers: finalHeaders,
         data: finalBody,
       };
@@ -619,7 +645,7 @@ export default class API {
 
       if (options?.sameServerRedirectsOnly) {
         axiosOptions.beforeRedirect = getSameServerRedirectCheck(
-          options?.dispatchUrl ?? url.toString(),
+          dispatchUrl ?? url.toString(),
         );
       }
 
@@ -658,6 +684,10 @@ export default class API {
       }
       if (options?.httpsAgent) {
         axiosOptions.httpsAgent = options.httpsAgent;
+      }
+
+      if (options?.useNodeHttpAdapter) {
+        axiosOptions.adapter = "http";
       }
 
       if (options?.onUploadProgress) {
@@ -887,6 +917,30 @@ export default class API {
     }
   }
 
+  /*
+   * A dispatch URL with the request's query parameters set on it, each one
+   * replacing a parameter of the same name, as URL.addQueryParams does. The
+   * rest of the URL - its host above all - is the one the caller validated.
+   */
+  private static addQueryParamsToDispatchUrl(
+    dispatchUrl: string,
+    params: Dictionary<string> | undefined,
+  ): string {
+    const names: Array<string> = Object.keys(params || {});
+
+    if (!params || names.length === 0) {
+      return dispatchUrl;
+    }
+
+    const withParams: globalThis.URL = new globalThis.URL(dispatchUrl);
+
+    for (const name of names) {
+      withParams.searchParams.set(name, params[name] ?? "");
+    }
+
+    return withParams.href;
+  }
+
   private static async readBudgetedResponseBody(
     response: AxiosResponse,
     budget: HTTPResponseBodyBudget,
@@ -957,6 +1011,14 @@ export default class API {
       return false;
     }
 
+    /*
+     * The answer was larger than the request reads: the server answered,
+     * and asking again only reads as much of the same answer again.
+     */
+    if (ResponseTooLarge.isError(axiosError)) {
+      return false;
+    }
+
     const statusCode: number | undefined = axiosError.response?.status;
 
     /*
@@ -992,13 +1054,16 @@ export default class API {
      * could pick — coming back early just spends another attempt on the same
      * 429. Still capped: the caller's budget is what bounds the total wait,
      * and an unbounded Retry-After would hand that control to the server.
+     * And never less than a second (RetryAfter's floor): "0" or a date gone
+     * by would otherwise spend every retry at once.
      */
     const retryAfterInMs: number | undefined = API.getRetryAfterInMs(
       data.error,
+      ceilingInMs,
     );
 
     if (retryAfterInMs !== undefined) {
-      return Math.min(retryAfterInMs, ceilingInMs);
+      return retryAfterInMs;
     }
 
     if (!data.exponentialBackoff) {
@@ -1020,51 +1085,25 @@ export default class API {
     return Math.round(backoffInMs / 2 + Math.random() * (backoffInMs / 2));
   }
 
-  /**
-   * Read a Retry-After header off a failed response. Returns undefined unless
-   * the header is present and names a sane, non-negative wait.
+  /*
+   * The Retry-After of a failed response, as RFC 9110 writes it (see
+   * RetryAfter), held between a second and `ceilingInMs`. Undefined unless
+   * the header is there and is delay-seconds or an HTTP-date: "1.5", "-5"
+   * or "5 seconds" are none (Date.parse took them for days in 2001, a wait
+   * long over, and every retry went at once - issue #8928), so the backoff
+   * applies.
    */
-  private static getRetryAfterInMs(error: unknown): number | undefined {
+  private static getRetryAfterInMs(
+    error: unknown,
+    ceilingInMs: number,
+  ): number | undefined {
     if (!axios.isAxiosError(error)) {
       return undefined;
     }
 
-    const headers: unknown = error.response?.headers;
-
-    if (!headers || typeof headers !== "object") {
-      return undefined;
-    }
-
-    const rawHeader: unknown =
-      (headers as Dictionary<unknown>)["retry-after"] ??
-      (headers as Dictionary<unknown>)["Retry-After"];
-
-    if (rawHeader === undefined || rawHeader === null) {
-      return undefined;
-    }
-
-    const headerValue: string = String(rawHeader).trim();
-
-    if (!headerValue) {
-      return undefined;
-    }
-
-    // Form 1: delta-seconds.
-    const deltaSecondsRegex: RegExp = /^\d+$/;
-
-    if (deltaSecondsRegex.test(headerValue)) {
-      return Number(headerValue) * 1000;
-    }
-
-    // Form 2: an HTTP-date to wait until.
-    const retryAtInMs: number = Date.parse(headerValue);
-
-    if (Number.isNaN(retryAtInMs)) {
-      return undefined;
-    }
-
-    // A date already in the past means "retry now", not "retry in the past".
-    return Math.max(0, retryAtInMs - Date.now());
+    return RetryAfter.msFromHeaders(error.response?.headers, {
+      maxMs: ceilingInMs,
+    });
   }
 
   private static getErrorResponse(error: AxiosError): HTTPErrorResponse {

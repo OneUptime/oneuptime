@@ -466,13 +466,26 @@ describe("getRetryAfterSecondsFromError", () => {
     ).toBe(MAX_VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS);
   });
 
-  test("treats a value too long to be a number as no wait (the caller's default applies)", () => {
-    // 400 nines is Infinity once parsed: not a finite wait, so not believed.
+  test("caps a value too long to be a number at one day, as any other huge one", () => {
+    /*
+     * 400 nines is Infinity once parsed. Common's RetryAfter reads digits
+     * too many for a number as the longest wait it allows, as it reads 12
+     * nines - here a day.
+     */
     expect(
       getRetryAfterSecondsFromError(
         errorWithHeaders(429, { "retry-after": "9".repeat(400) }),
       ),
-    ).toBe(0);
+    ).toBe(MAX_VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS);
+  });
+
+  test("reads the header through get() too, as fetch's Headers and AxiosHeaders hand it", () => {
+    const error: HTTPErrorResponse = errorWithHeaders(429, {});
+    error.headers = new globalThis.Headers({
+      "Retry-After": "40",
+    }) as unknown as Headers;
+
+    expect(getRetryAfterSecondsFromError(error)).toBe(40);
   });
 
   test("is 0 when a 429 names no wait", () => {

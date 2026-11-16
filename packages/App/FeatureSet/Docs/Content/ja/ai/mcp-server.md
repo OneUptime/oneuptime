@@ -144,7 +144,7 @@ Enterprise Edition では、接続したクライアントが行った変更は�
 
 ### キーをコピーする
 
-**API キーを作成** をクリックすると、キーのページが開きます。そこからキーをコピーします。
+**API キーを作成** をクリックします。OneUptime はキーを一度だけ **API キーをコピー** ダイアログに表示します。**完了** を押す前にコピーしてください。
 :::
 
 API キーは一つのプロジェクトに属します。MCP サーバーはキーからプロジェクトを特定するため、作成ツールに `projectId` 引数は不要です。
@@ -360,6 +360,8 @@ curl https://oneuptime.com/mcp/tools
 演算子は `EqualTo`、`NotEqual`、`IsNull`、`NotNull`、`EqualToOrNull`、`GreaterThan`、`LessThan`、`GreaterThanOrEqual`、`LessThanOrEqual`、`InBetween`、`Search`、`Includes` です。並べ替えの値は `"ASC"` か `"DESC"` です。
 
 `list_` と `count_` のツールはどのフィールドでも受け付けるため、ツールの一覧はクライアントが一度に読み込める大きさに収まります。リソースのフィールド、それぞれの意味、使える演算子を知るには、エージェントがリソースかそのツールのひとつ(`Incident` や `list_incidents` など)を指定して `oneuptime_describe_resource` を呼び出します。
+
+インシデント、モニター、その他あらゆる種類のレコードの、ほかの `list_` ツールは、API と同じように並べ替えます。フィールドには方向を指定するか、値のないレコードを末尾に置くには `{ "direction": "DESC", "nulls": "LAST" }` を指定します。1 件のレコードへのリレーションは、`{ "incidentSeverity": { "order": "ASC" } }` のように、それが指すレコードのフィールドで並べ替えます。`oneuptime_describe_resource` はそうしたリレーションそれぞれに `sort` の印を付け、並べ替えに使えるフィールドを `sortBy` の下に示します。
 
 ## フィールドの選択とページング
 

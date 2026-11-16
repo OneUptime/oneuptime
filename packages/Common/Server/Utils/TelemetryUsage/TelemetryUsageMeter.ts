@@ -47,7 +47,10 @@ export interface TelemetryUsageMeterSummary {
 export default class TelemetryUsageMeter {
   public static async meterAllProjects(options: {
     deadline: Date;
-    // False once the run should stop - its lock was lost.
+    /*
+     * False once the run should stop - it lost its lock or its lease, or
+     * ran out of its time limit (RunCron's deadline).
+     */
     shouldContinue: () => boolean;
   }): Promise<TelemetryUsageMeterSummary> {
     const summary: TelemetryUsageMeterSummary = {
@@ -61,15 +64,9 @@ export default class TelemetryUsageMeter {
       return summary;
     }
 
-    /*
-     * Oldest first, the same order every run: no project waits on its name.
-     * Never a sample project (issue #6808): what it holds was written once
-     * when it was made, and it is in nobody's usage.
-     */
+    // Oldest first, the same order every run: no project waits on its name.
     const projects: Array<Project> = await ProjectService.findAllBy({
-      query: {
-        isSampleProject: false,
-      },
+      query: {},
       select: {
         _id: true,
       },

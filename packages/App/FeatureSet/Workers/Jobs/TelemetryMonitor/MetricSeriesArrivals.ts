@@ -21,6 +21,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import MetricSeriesArrivalUtil from "Common/Utils/Metrics/MetricSeriesArrivalUtil";
+import { MetricZeroFillOptions } from "Common/Utils/Metrics/MetricZeroFill";
 import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
 
 /*
@@ -288,20 +289,25 @@ export const readQueryArrivals: (input: {
 /*
  * One series' arrivals, aligned with its aggregated results: a query's are
  * its own, a formula's are those of the queries and formulas it reads,
- * combined (MetricSeriesArrivalUtil.combine). `fingerprint` names the series
- * of a grouped monitor; left out, the queries' one series. Undefined when no
- * arrival was read at all.
+ * combined (MetricSeriesArrivalUtil.combine) - all but the queries counting
+ * what happened that it reads as 0 where they have no point (`zeroFill`):
+ * their silence is nothing happening, not the formula going stale
+ * (MetricSeriesArrivalUtil.combineForFormula). `fingerprint` names the
+ * series of a grouped monitor; left out, the queries' one series. Undefined
+ * when no arrival was read at all.
  */
 export const getSlotArrivals: (input: {
   perQueryArrivals: Array<QueryArrivals | null> | undefined;
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData> | undefined;
   fingerprint?: string | undefined;
+  zeroFill?: MetricZeroFillOptions | undefined;
 }) => Array<MetricSeriesArrival | null> | undefined = (input: {
   perQueryArrivals: Array<QueryArrivals | null> | undefined;
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData> | undefined;
   fingerprint?: string | undefined;
+  zeroFill?: MetricZeroFillOptions | undefined;
 }): Array<MetricSeriesArrival | null> | undefined => {
   const perQueryArrivals: Array<QueryArrivals | null> =
     input.perQueryArrivals || [];
@@ -347,13 +353,33 @@ export const getSlotArrivals: (input: {
     const formula: string =
       formulaConfig.metricFormulaData?.metricFormula || "";
 
-    const arrival: MetricSeriesArrival | null = MetricSeriesArrivalUtil.combine(
-      MetricFormulaEvaluator.getReferencedVariables(formula).map(
-        (variable: string): MetricSeriesArrival | null => {
-          return byVariable.get(variable) || null;
-        },
-      ),
-    );
+    const countingVariables: Array<string> =
+      MetricFormulaEvaluator.getCountingVariablesOfFormula({
+        formula: formula,
+        queryConfigs: queryConfigs,
+        zeroFill: input.zeroFill,
+      });
+
+    const arrivalOf: (variable: string) => MetricSeriesArrival | null = (
+      variable: string,
+    ): MetricSeriesArrival | null => {
+      return byVariable.get(variable) || null;
+    };
+
+    const referencedVariables: Array<string> =
+      MetricFormulaEvaluator.getReferencedVariables(formula);
+
+    const arrival: MetricSeriesArrival | null =
+      countingVariables.length > 0
+        ? MetricSeriesArrivalUtil.combineForFormula({
+            read: referencedVariables
+              .filter((variable: string): boolean => {
+                return !countingVariables.includes(variable);
+              })
+              .map(arrivalOf),
+            filled: countingVariables.map(arrivalOf),
+          })
+        : MetricSeriesArrivalUtil.combine(referencedVariables.map(arrivalOf));
 
     slots.push(arrival);
 

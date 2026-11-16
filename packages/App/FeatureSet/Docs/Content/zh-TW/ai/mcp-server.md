@@ -144,7 +144,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### 複製金鑰
 
-按一下 **建立API 金鑰**：金鑰的頁面會開啟。從那裡複製金鑰。
+按一下 **建立API 金鑰**。OneUptime 會在 **複製你的 API 金鑰** 對話方塊中顯示一次金鑰：請在按下 **完成** 之前複製它。
 :::
 
 API 金鑰屬於一個專案：MCP 伺服器從金鑰取得專案，因此建立工具從不需要 `projectId` 參數。
@@ -360,6 +360,8 @@ curl https://oneuptime.com/mcp/tools
 運算子有 `EqualTo`、`NotEqual`、`IsNull`、`NotNull`、`EqualToOrNull`、`GreaterThan`、`LessThan`、`GreaterThanOrEqual`、`LessThanOrEqual`、`InBetween`、`Search` 和 `Includes`。排序值為 `"ASC"` 或 `"DESC"`。
 
 `list_` 和 `count_` 工具接受任意欄位，這樣工具清單就小到用戶端可以一次載入。要查看資源的欄位、每個欄位的意義以及它接受的運算子，代理程式會以資源或它的某個工具（例如 `Incident` 或 `list_incidents`）呼叫 `oneuptime_describe_resource`。
+
+事件、監測器以及其他各類記錄的其餘 `list_` 工具，排序方式與 API 相同：欄位接受一個方向，或接受 `{ "direction": "DESC", "nulls": "LAST" }`，把該欄位沒有值的記錄放在最後；指向一筆記錄的關聯依其所指定記錄的某個欄位排序，如 `{ "incidentSeverity": { "order": "ASC" } }`。`oneuptime_describe_resource` 會把每個這樣的關聯標記為 `sort`，並在 `sortBy` 下列出可用來排序的欄位。
 
 ## 欄位選擇和分頁
 

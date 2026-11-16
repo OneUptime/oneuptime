@@ -1,17 +1,15 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
-import { ApiComponentUtils } from "./Utils";
+import { ApiComponentUtils, SanitizedApiArgs } from "./Utils";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
+import HTTPMethod from "../../../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
 import Dictionary from "../../../../../Types/Dictionary";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
-import ComponentMetadata, {
-  Port,
-} from "../../../../../Types/Workflow/Component";
+import ComponentMetadata from "../../../../../Types/Workflow/Component";
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import APIComponents from "../../../../../Types/Workflow/Components/API";
-import API from "../../../../../Utils/API";
 import logger, { LogAttributes } from "../../../../Utils/Logger";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
@@ -37,8 +35,11 @@ export default class ApiPost extends ComponentCode {
     args: JSONObject,
     options: RunOptions,
   ): Promise<RunReturnType> {
-    const result: { args: JSONObject; successPort: Port; errorPort: Port } =
-      await ApiComponentUtils.sanitizeArgs(this.getMetadata(), args, options);
+    const result: SanitizedApiArgs = await ApiComponentUtils.sanitizeArgs(
+      this.getMetadata(),
+      args,
+      options,
+    );
 
     let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null = null;
 
@@ -73,11 +74,9 @@ export default class ApiPost extends ComponentCode {
     );
 
     try {
-      apiResult = await API.post({
-        url: args["url"] as URL,
-        data: args["request-body"] as JSONObject,
-        headers: args["request-headers"] as Dictionary<string>,
-        options: ApiComponentUtils.requestOptions,
+      apiResult = await ApiComponentUtils.send({
+        method: HTTPMethod.POST,
+        sanitized: result,
       });
 
       logger.debug("API Post Component is done.", workflowLogAttributes);

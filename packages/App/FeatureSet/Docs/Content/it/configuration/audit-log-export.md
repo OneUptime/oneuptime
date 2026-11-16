@@ -140,7 +140,7 @@ Ogni voce è un oggetto JSON, con le chiavi sempre in quest'ordine:
 | `id` | L'id della voce. La stessa voce inviata due volte ha lo stesso id. |
 | `createdAt` | Quando è stata registrata la modifica, in UTC. |
 | `projectId` | Il progetto in cui è stata fatta la modifica. |
-| `action` | `Create`, `Update`, `Delete` o `Download`, oppure per una sessione `SignIn`, `SignOut`, `SessionTimeout` o `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` o `Download`, oppure per un accesso o una sessione `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` o `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Che cosa è stato modificato. |
 | `rootResourceType`, `rootResourceId` | La risorsa a cui appartiene, come uno SLO per la sua regola. |
 | `userId`, `userName`, `userEmail`, `userType` | Chi ha fatto la modifica. |
@@ -173,7 +173,7 @@ Una nuova esportazione invia la versione 2. Un'esportazione salvata prima della 
 
 ## Quando una destinazione non risponde
 
-Un lotto viene tentato tre volte, a pochi secondi di distanza, poi l'esportazione aspetta prima di riprovare: un minuto, poi due, quattro e così via, fino a un'ora. La sua riga dice **In errore**, e **Visualizza errore** mostra cosa ha risposto la destinazione e quando verrà ritentata.
+Un lotto viene tentato tre volte, a pochi secondi di distanza, poi l'esportazione aspetta prima di riprovare: un minuto, poi due, quattro e così via, fino a un'ora. La sua riga dice **In errore**, e **Visualizza errore** mostra cosa ha risposto la destinazione, quando verrà ritentata e da quando le voci in attesa di invio iniziano a essere eliminate, oppure, una volta passato quel momento, da quando vengono eliminate.
 
 Nulla viene saltato: le voci aspettano nel log di audit, e la prossima consegna che riesce recupera dalla più vecchia. Ogni voce viene comunque eliminata appena è più vecchia della conservazione con cui è stata registrata, inviata o no, quindi correggi un'esportazione in errore entro quel tempo. Una conservazione più lunga trattiene più a lungo solo le voci registrate dopo averla cambiata.
 

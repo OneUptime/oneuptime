@@ -67,6 +67,8 @@ Faites une requête HTTP vers n'importe quelle URL. Il y a un bloc par méthode 
 
 Dans les deux cas, le bloc renvoie **Statut de la réponse**, **En-têtes de réponse** et **Corps de la réponse**, plus **Erreur** avec la raison en cas d'échec. Lisez un champ d'une réponse JSON en ajoutant son nom à la référence, comme dans `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Un bloc lit au plus 10 Mo d'une réponse. Une réponse plus grande n'est pas lue : le bloc prend **Erreur**, avec la raison.
+
 Les redirections ne sont pas suivies : pointez donc le bloc vers l'adresse qui répond. Les requêtes partent de OneUptime : une URL qui se résout vers une adresse de réseau privé est refusée, sauf si un administrateur auto-hébergé l'autorise, et l'exécution s'arrête avec la raison. Voir [Accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
 
 **Appel d'API GET par ID (JSON)** lit un élément par un ID venu d'ailleurs, comme la clé de ticket qu'un webhook a envoyée. Mettez `{id}` dans son **URL** à l'endroit de l'ID, comme dans `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, et l'ID dans **ID**. Le bloc n'insère l'ID que s'il s'agit d'un ID simple, au plus 200 lettres, chiffres, tirets et tirets bas, et l'encode tout de même en pourcentage : tout le reste, comme `x/../users`, prend **Erreur** avant qu'aucune requête ne parte, si bien qu'un texte venu de l'extérieur ne peut pas diriger la requête ailleurs. Pour le reste, il fonctionne comme **Appel d'API GET (JSON)** et renvoie les mêmes valeurs.
@@ -242,7 +244,7 @@ Un bloc ajouté à un flux de travail qui commence par un incident ou une alerte
 
 **Succès** s'exécute dès qu'au moins une personne est alertée, ou qu'une politique a démarré. **Erreur** s'exécute quand personne ne l'a été, et la valeur **Erreur** du bloc dit pourquoi, par exemple que personne n'est d'astreinte dans le planning. **Résumé** dit en une phrase qui a été alerté et qui a été laissé de côté, prête à être publiée dans un canal, et **Utilisateurs appelés** liste les personnes alertées.
 
-Une personne absente n'est pas alertée : c'est celle que son remplacement d'utilisateur désigne pour la remplacer qui l'est. Une alerte nomme au plus 100 personnes, équipes et plannings. Voir [Comment chaque personne est jointe](/docs/on-call/escalation-rules#comment-chaque-personne-est-jointe).
+Une personne absente n'est pas alertée : c'est celle que son remplacement d'utilisateur désigne pour la remplacer qui l'est. Une personne déjà alertée à ce sujet par une politique d'astreinte ou par une autre alerte n'est pas alertée de nouveau, et figure tout de même dans **Utilisateurs appelés** : si cette alerte prend fin sans sa réponse, le bloc l'alerte lui-même. Une alerte nomme au plus 100 personnes, équipes et plannings. Voir [Comment chaque personne est jointe](/docs/on-call/escalation-rules#comment-chaque-personne-est-jointe).
 
 Une alerte sans politique d'astreinte derrière elle figure avec les exécutions des politiques sous le nom **Appel direct** : dans les journaux d'astreinte de l'incident ou de l'alerte, dans son fil et son canal Slack ou Microsoft Teams, et dans les journaux de chaque personne alertée. Elle reste ouverte 30 minutes, puis aussi longtemps que des alertes partent encore. Si personne n'a accusé réception d'ici là, elle se termine sans alerter personne d'autre.
 

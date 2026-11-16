@@ -108,6 +108,7 @@ On-call schedules are the `/api/on-call-duty-policy-schedule` resource; their la
 - Creating a schedule with `firstLayerUsers` (a list of user ids, in the order they take turns) in its `miscDataProps` gives it its first layer, as the dashboard does: **Layer 1**, on call from now, around the clock. `firstLayerRotation` says how long each turn lasts, as a rotation such as `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; without it, a week. Every user must be a member of the project and the caller must be allowed to create layers, or the schedule is not created.
 - A schedule created without them has no layers, as before; Terraform's schedule resource does not send them.
 - A layer created without a `rotation` hands off daily, as it always has.
+- A change to a schedule's layers and the people in them, made through the API or Terraform, is told as one change: who is on call is worked out once the layers have had no change for half a minute, and someone who goes on or off call, or is next, hears it once, not once for each layer or person written. Pages go to whoever the layers put on call as soon as each change is saved.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

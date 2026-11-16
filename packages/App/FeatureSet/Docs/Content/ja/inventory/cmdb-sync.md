@@ -63,7 +63,7 @@ flowchart TB
 
 ### キーをコピーする
 
-キーのページから **API キー** をコピーし、ジョブで使えるようにします。
+作成したときに OneUptime が一度だけ表示したキーを使い、ジョブで使えるようにします。
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

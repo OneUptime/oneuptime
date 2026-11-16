@@ -35,11 +35,11 @@ Vi serve una chiave di acquisizione della telemetria di tipo **Server**. Se non 
 
 Andate in **Prodotti → Impostazioni del progetto**, aprite **Telemetria e APM** nel menu laterale e selezionate **Chiavi di acquisizione**.
 
-![L'elenco «Chiavi di acquisizione», con «Crea chiave di ingestione» evidenziato](screen:ingestion-keys)
+![L'elenco «Chiavi di acquisizione», con «Crea chiave di acquisizione» evidenziato](screen:ingestion-keys)
 
 ### Creare una chiave
 
-Fate clic su **Crea chiave di ingestione**. La finestra di dialogo ha già il nome della chiave compilato e **Server** selezionato (il tipo di chiave con cui invia un'applicazione o un collector), quindi fate clic su **Crea chiave di ingestione** per crearla, oppure rinominatela prima.
+Fate clic su **Crea chiave di acquisizione**. La finestra di dialogo ha già il nome della chiave compilato e **Server** selezionato (il tipo di chiave con cui invia un'applicazione o un collector), quindi fate clic su **Crea chiave di acquisizione** per crearla, oppure rinominatela prima.
 
 ### Copiare il segreto
 

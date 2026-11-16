@@ -1,5 +1,11 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import PreviousTimelineEntries, {
+  TimelineOf,
+} from "../../Utils/PreviousTimelineEntries";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -14,6 +20,7 @@ import MonitorService, {
 } from "Common/Server/Services/MonitorService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
@@ -23,16 +30,23 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
+import ObjectID from "Common/Types/ObjectID";
+import User from "Common/Models/DatabaseModels/User";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
 
-// What each status change is read with: its monitor and status too.
+/*
+ * What each status change is read with: its status too. Not its monitor -
+ * a monitor's steps are a large jsonb, and a flapping monitor has many
+ * status changes on a page: each monitor of a page is read once, in one
+ * query for the page (readMonitorsOfPage), issue #7974.
+ */
 const STATUS_TIMELINE_SELECT: Select<MonitorStatusTimeline> = {
   _id: true,
   projectId: true,
@@ -43,13 +57,6 @@ const STATUS_TIMELINE_SELECT: Select<MonitorStatusTimeline> = {
   project: {
     name: true,
   },
-  monitor: {
-    _id: true,
-    name: true,
-    description: true,
-    monitorType: true,
-    monitorSteps: true,
-  },
   monitorStatus: {
     name: true,
     color: true,
@@ -57,10 +64,34 @@ const STATUS_TIMELINE_SELECT: Select<MonitorStatusTimeline> = {
   rootCause: true,
 };
 
+// What the monitor of a status change is read with.
+const MONITOR_SELECT: Select<Monitor> = {
+  _id: true,
+  name: true,
+  description: true,
+  monitorType: true,
+  // For its destination (MonitorService.getMonitorDestinationInfo).
+  monitorSteps: true,
+};
+
+/*
+ * The entries a status change's previous one is read from, and what it is read
+ * with: for "Was ... for ..." in its email (PreviousTimelineEntries).
+ */
+const TIMELINE: TimelineOf<MonitorStatusTimeline> = {
+  service: MonitorStatusTimelineService,
+  recordIdColumn: "monitorId",
+  select: {
+    monitorStatusId: true,
+    startsAt: true,
+    createdAt: true,
+  },
+};
+
 RunCron(
   "MonitorOwner:SendStatusChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -78,95 +109,223 @@ RunCron(
             },
           });
 
-        if (!monitorStatusTimeline?.monitor) {
+        const monitor: Monitor | null = monitorStatusTimeline?.monitorId
+          ? await readMonitor(monitorStatusTimeline.monitorId)
+          : null;
+
+        if (!monitorStatusTimeline || !monitor) {
           await delivery.giveUp("the monitor or its status change is gone");
           return;
         }
 
-        await notifyOwnersOfStatusChange(monitorStatusTimeline, delivery);
+        await notifyOwnersOfStatusChange({
+          monitorStatusTimeline: monitorStatusTimeline,
+          monitor: monitor,
+          delivery: delivery,
+          page: new OwnerNotificationPage(),
+        });
       },
     });
 
-    // get all scheduled events of all the projects.
+    /*
+     * Every status change nobody has been told about yet, a page at a time,
+     * oldest first, each taken by one run alone and told by the run that
+     * took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #7974).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<MonitorStatusTimeline>({
+      jobName: "MonitorOwner:SendStatusChangeEmail",
+      service: MonitorStatusTimelineService,
+      notYetNotified: {
+        isOwnerNotified: false,
+      },
+      notified: {
+        isOwnerNotified: true,
+      },
+      select: STATUS_TIMELINE_SELECT,
+      deadline: deadline,
+      readPage: readPageOfStateChanges,
+      notify: async (input: {
+        record: MonitorStatusTimeline;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        const monitorStatusTimeline: MonitorStatusTimeline = input.record;
+        const page: OwnerNotificationPage = input.page;
 
-    const monitorStatusTimelines: Array<MonitorStatusTimeline> =
-      await MonitorStatusTimelineService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: STATUS_TIMELINE_SELECT,
-      });
+        const monitor: Monitor | null = monitorStatusTimeline.monitorId
+          ? await page.once(
+              monitorKey(monitorStatusTimeline.monitorId),
+              (): Promise<Monitor | null> => {
+                return readMonitor(monitorStatusTimeline.monitorId!);
+              },
+            )
+          : null;
 
-    for (const monitorStatusTimeline of monitorStatusTimelines) {
-      const monitor: Monitor | undefined = monitorStatusTimeline.monitor;
+        /*
+         * Whom it is to tell - the monitor's owners, or the project's when
+         * it has none - written before the take: a worker stopped from here
+         * on leaves them to be told by a later run, and one stopped before
+         * the take leaves the status change to be read again. Each read
+         * once for every status change of the page.
+         */
+        const delivery: OwnerNotificationDelivery | null = monitor
+          ? await OwnerNotificationDeliveries.planForOwnersOf({
+              notification: {
+                kind: OwnerNotificationKind.MonitorStatusChanged,
+                projectId: monitorStatusTimeline.projectId!,
+                resourceId: monitor.id!,
+                eventId: monitorStatusTimeline.id!,
+              },
+              findOwners: (): Promise<Array<User>> => {
+                return page.once(`owners:${monitor.id!.toString()}`, () => {
+                  return MonitorService.findOwners(monitor.id!);
+                });
+              },
+              findProjectOwners: (): Promise<Array<User>> => {
+                return page.once(
+                  `projectOwners:${monitorStatusTimeline.projectId!.toString()}`,
+                  () => {
+                    return ProjectService.getOwners(
+                      monitorStatusTimeline.projectId!,
+                    );
+                  },
+                );
+              },
+              writesFeedItem: false,
+            })
+          : null;
 
-      /*
-       * Whom it is to tell - the monitor's owners, or the project's when it
-       * has none - written before the take: a worker stopped from here on
-       * leaves them to be told by a later run, and one stopped before the
-       * take leaves the status change to be read again.
-       */
-      const delivery: OwnerNotificationDelivery | null = monitor
-        ? await OwnerNotificationDeliveries.planForOwnersOf({
-            notification: {
-              kind: OwnerNotificationKind.MonitorStatusChanged,
-              projectId: monitorStatusTimeline.projectId!,
-              resourceId: monitor.id!,
-              eventId: monitorStatusTimeline.id!,
-            },
-            findOwners: () => {
-              return MonitorService.findOwners(monitor.id!);
-            },
-            writesFeedItem: false,
-          })
-        : null;
+        // Taken by another run first, or gone: that run tells the owners.
+        if (!(await input.take())) {
+          return;
+        }
 
-      await MonitorStatusTimelineService.updateOneById({
-        id: monitorStatusTimeline.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+        if (!delivery || !monitor) {
+          return;
+        }
 
-      if (!delivery) {
-        continue;
-      }
-
-      try {
-        await notifyOwnersOfStatusChange(monitorStatusTimeline, delivery);
-      } catch (e) {
-        logger.error("Error in sending monitor status change notification", {
-          projectId: monitorStatusTimeline.projectId?.toString(),
-          monitorId: monitor?.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: monitorStatusTimeline.projectId?.toString(),
-          monitorId: monitor?.id?.toString(),
-        });
-      }
-    }
+        try {
+          await notifyOwnersOfStatusChange({
+            monitorStatusTimeline: monitorStatusTimeline,
+            monitor: monitor,
+            delivery: delivery,
+            page: page,
+          });
+        } catch (e) {
+          logger.error("Error in sending monitor status change notification", {
+            projectId: monitorStatusTimeline.projectId?.toString(),
+            monitorId: monitor.id?.toString(),
+          });
+          logger.error(e, {
+            projectId: monitorStatusTimeline.projectId?.toString(),
+            monitorId: monitor.id?.toString(),
+          });
+        }
+      },
+    });
   },
 );
+
+function monitorKey(monitorId: ObjectID): string {
+  return `monitor:${monitorId.toString()}`;
+}
+
+async function readMonitor(monitorId: ObjectID): Promise<Monitor | null> {
+  return await MonitorService.findOneById({
+    id: monitorId,
+    select: MONITOR_SELECT,
+    props: {
+      isRoot: true,
+    },
+  });
+}
+
+/*
+ * What every status change of a page needs, read once for the page: the
+ * monitors they are of (readMonitorsOfPage), and the entry before each
+ * (PreviousTimelineEntries: two reads per monitor with more than one of
+ * them on the page, instead of one per status change).
+ */
+async function readPageOfStateChanges(
+  entries: Array<MonitorStatusTimeline>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  await readMonitorsOfPage(entries, page);
+
+  await PreviousTimelineEntries.readForPage({
+    ...TIMELINE,
+    entries: entries,
+    page: page,
+  });
+}
+
+/*
+ * The monitors of a page's status changes, in one query: each is read once
+ * however many of its status changes the page has.
+ */
+async function readMonitorsOfPage(
+  monitorStatusTimelines: Array<MonitorStatusTimeline>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  const monitorIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const monitorStatusTimeline of monitorStatusTimelines) {
+    if (monitorStatusTimeline.monitorId) {
+      monitorIds.set(
+        monitorStatusTimeline.monitorId.toString(),
+        monitorStatusTimeline.monitorId,
+      );
+    }
+  }
+
+  if (monitorIds.size === 0) {
+    return;
+  }
+
+  const monitors: Array<Monitor> = await MonitorService.findBy({
+    query: {
+      _id: QueryHelper.any(Array.from(monitorIds.values())),
+    },
+    select: MONITOR_SELECT,
+    limit: monitorIds.size,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * One not found - gone since its state change was read - is read on its
+   * own when a record asks for it, as it would be without the page.
+   */
+  for (const each of monitors) {
+    if (each.id) {
+      page.prime<Monitor | null>(monitorKey(each.id), each);
+    }
+  }
+}
 
 /*
  * Tells the delivery's owners that the monitor's status changed, each once
  * (OwnerNotificationDelivery.tell).
  */
-async function notifyOwnersOfStatusChange(
-  monitorStatusTimeline: MonitorStatusTimeline,
-  delivery: OwnerNotificationDelivery,
-): Promise<void> {
+async function notifyOwnersOfStatusChange(data: {
+  monitorStatusTimeline: MonitorStatusTimeline;
+  monitor: Monitor;
+  delivery: OwnerNotificationDelivery;
+  // What the status changes of one page read once, for all of them.
+  page: OwnerNotificationPage;
+}): Promise<void> {
+  const monitorStatusTimeline: MonitorStatusTimeline =
+    data.monitorStatusTimeline;
+  const delivery: OwnerNotificationDelivery = data.delivery;
+
   if (!delivery.hasWorkToDo) {
     return;
   }
 
-  const monitor: Monitor = monitorStatusTimeline.monitor!;
+  const monitor: Monitor = data.monitor;
   const monitorStatus: MonitorStatus = monitorStatusTimeline.monitorStatus!;
 
   // Fetch the previous status timeline entry
@@ -175,35 +334,32 @@ async function notifyOwnersOfStatusChange(
 
   if (monitorStatusTimeline.monitorId && monitorStatusTimeline.startsAt) {
     const previousTimeline: MonitorStatusTimeline | null =
-      await MonitorStatusTimelineService.findOneBy({
-        query: {
-          monitorId: monitorStatusTimeline.monitorId,
-          startsAt: QueryHelper.lessThan(monitorStatusTimeline.startsAt),
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          monitorStatusId: true,
-          startsAt: true,
-          createdAt: true,
-        },
+      // Read with the page's other status changes of the monitor, or on its own (#8863).
+      await PreviousTimelineEntries.of({
+        ...TIMELINE,
+        entry: monitorStatusTimeline,
+        page: data.page,
       });
 
     if (previousTimeline?.monitorStatusId) {
-      previousStatus = await MonitorStatusService.findOneById({
-        id: previousTimeline.monitorStatusId,
-        props: {
-          isRoot: true,
+      const previousStatusId: ObjectID = previousTimeline.monitorStatusId;
+
+      // A project's few statuses, each read once for the page.
+      previousStatus = await data.page.once(
+        `monitorStatus:${previousStatusId.toString()}`,
+        (): Promise<MonitorStatus | null> => {
+          return MonitorStatusService.findOneById({
+            id: previousStatusId,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              name: true,
+              color: true,
+            },
+          });
         },
-        select: {
-          name: true,
-          color: true,
-        },
-      });
+      );
 
       /*
        * Calculate how long the monitor was in the previous status

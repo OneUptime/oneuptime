@@ -159,8 +159,11 @@ import StatusPageSubscriberNotificationTemplateService, {
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
 import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
 import FrozenMonitorResources, {
+  MONITOR_NOT_MONITORED_YET_SELECT,
   NOT_MONITORED_STATUS_COLOR,
   NOT_MONITORED_STATUS_NAME,
+  NOT_MONITORED_YET_STATUS_NAME,
+  StartingStatusIds,
 } from "../../Utils/StatusPage/FrozenMonitorResources";
 import { MONITORING_OFF_SELECT } from "../../Utils/Monitor/MonitoringOff";
 import IncidentStatusPageScope, {
@@ -778,6 +781,8 @@ export default class StatusPageAPI extends BaseAPI<
                     currentMonitorStatusId: true,
                     isArchived: true,
                     ...MONITORING_OFF_SELECT,
+                    // Nor may a status no check stands behind (#8899).
+                    ...MONITOR_NOT_MONITORED_YET_SELECT,
                   },
                   monitorGroupId: true,
                 },
@@ -834,19 +839,35 @@ export default class StatusPageAPI extends BaseAPI<
 
           /*
            * The resources the page draws as Not monitored: nothing checks
-           * them, so they color nothing - and a page of nothing else has no
-           * status to show but that.
+           * them, or nothing has yet, so they color nothing - and a page of
+           * nothing else has no status to show but that.
            */
+          const startingStatusIds: StartingStatusIds =
+            FrozenMonitorResources.getStartingStatusIds(monitorStatuses);
+
           const notMonitoredResourceIds: Array<string> =
             FrozenMonitorResources.getNotMonitoredResourceIds({
               statusPageResources,
               monitorGroupResources,
+              startingStatusIds,
             });
 
           const isNothingMonitored: boolean =
             FrozenMonitorResources.isEveryResourceNotMonitored(
               statusPageResources,
               notMonitoredResourceIds,
+            );
+
+          // Nothing on the page has been checked yet: it says so.
+          const isNothingMonitoredYet: boolean =
+            isNothingMonitored &&
+            FrozenMonitorResources.isEveryResourceNotMonitored(
+              statusPageResources,
+              FrozenMonitorResources.getNotMonitoredYetResourceIds({
+                statusPageResources,
+                monitorGroupResources,
+                startingStatusIds,
+              }),
             );
 
           // Calculate overall status
@@ -861,7 +882,9 @@ export default class StatusPageAPI extends BaseAPI<
           // Generate SVG badge
           const statusName: string = escapeXml(
             isNothingMonitored
-              ? NOT_MONITORED_STATUS_NAME
+              ? isNothingMonitoredYet
+                ? NOT_MONITORED_YET_STATUS_NAME
+                : NOT_MONITORED_STATUS_NAME
               : overallStatus?.name || "Unknown",
           );
           const statusColor: string = escapeXml(
@@ -1862,8 +1885,9 @@ export default class StatusPageAPI extends BaseAPI<
             /*
              * False when nothing checks the resource right now - its
              * monitor's monitoring is off, or every monitor of its monitor
-             * group has it off - so the page draws it as Not monitored and
-             * its currentStatus is null (FrozenMonitorResources).
+             * group has it off - or nothing has checked it yet (#8899), so
+             * the page draws it as Not monitored (yet) and its currentStatus
+             * is null (FrozenMonitorResources).
              */
             isMonitored: boolean;
           };
@@ -2035,8 +2059,15 @@ export default class StatusPageAPI extends BaseAPI<
                           })
                         : null;
 
-                      // nothing recorded: fall back to the rows, as a monitor does.
-                      if (uptimePercent === null) {
+                      /*
+                       * Merged and nothing recorded - its monitors not
+                       * checked yet, or off the whole range - is no uptime
+                       * (null), never the 100% the rows read that time as
+                       * (issue #8960). Only a group the merge left out falls
+                       * back to its rows, as a monitor the aggregate has
+                       * nothing for does.
+                       */
+                      if (!merged) {
                         const resourceStatusTimelines: Array<MonitorStatusTimeline> =
                           StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
                             {
@@ -5583,11 +5614,17 @@ export default class StatusPageAPI extends BaseAPI<
     uptimeDailyAggregate: UptimeDailyAggregate;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
     /*
-     * The ids of the resources the page draws as Not monitored
+     * The ids of the resources the page draws as not monitored
      * (FrozenMonitorResources.getNotMonitoredResourceIds): a monitor whose
-     * monitoring is off, a monitor group whose monitors all have it off.
+     * monitoring is off or that nothing has checked yet, a monitor group
+     * whose monitors all are one or the other.
      */
     notMonitoredResourceIds: Array<string>;
+    /*
+     * Of those, the ones it words Not monitored yet: nothing has checked
+     * them yet (FrozenMonitorResources.getNotMonitoredYetResourceIds).
+     */
+    notMonitoredYetResourceIds: Array<string>;
     statusPageGroups: StatusPageGroup[];
     statusPage: StatusPage;
     monitorsOnStatusPage: ObjectID[];
@@ -5747,6 +5784,12 @@ export default class StatusPageAPI extends BaseAPI<
               currentMonitorStatusId: true,
               isArchived: true,
               ...MONITORING_OFF_SELECT,
+              /*
+               * And whether anything has checked it yet: one nothing has is
+               * drawn as Not monitored yet (FrozenMonitorResources, #8899).
+               * Read for that alone, and taken off before the page is sent.
+               */
+              ...MONITOR_NOT_MONITORED_YET_SELECT,
             },
             monitorGroupId: true,
             showUptimePercent: true,
@@ -5764,6 +5807,10 @@ export default class StatusPageAPI extends BaseAPI<
           },
         }),
       );
+
+    // The statuses a monitor can start in, which no check stands behind.
+    const startingStatusIds: StartingStatusIds =
+      FrozenMonitorResources.getStartingStatusIds(monitorStatuses);
 
     const monitorGroupIds: Array<ObjectID> = statusPageResources
       .map((resource: StatusPageResource) => {
@@ -5812,9 +5859,10 @@ export default class StatusPageAPI extends BaseAPI<
       );
 
     /*
-     * A group whose monitors all have monitoring off is left out: nothing
-     * checks it, so the status it is left at says nothing. The page draws
-     * it as Not monitored, with each monitor whose monitoring is off.
+     * A group whose monitors all have monitoring off, or are not monitored
+     * yet, is left out: nothing checks it, so the status it is left at says
+     * nothing. The page draws it as Not monitored (or Not monitored yet),
+     * with each monitor whose monitoring is off or that nothing has checked.
      */
     const monitorGroupStatuses: Dictionary<MonitorStatus> =
       FrozenMonitorResources.withoutNotMonitoredMonitorGroups({
@@ -5825,13 +5873,25 @@ export default class StatusPageAPI extends BaseAPI<
             monitorGroupResources: monitorGroupResourcesByGroupId,
           }),
         monitorGroupResources: monitorGroupResourcesByGroupId,
+        startingStatusIds: startingStatusIds,
       });
 
     const notMonitoredResourceIds: Array<string> =
       FrozenMonitorResources.getNotMonitoredResourceIds({
         statusPageResources: statusPageResources,
         monitorGroupResources: monitorGroupResourcesByGroupId,
+        startingStatusIds: startingStatusIds,
       });
+
+    const notMonitoredYetResourceIds: Array<string> =
+      FrozenMonitorResources.getNotMonitoredYetResourceIds({
+        statusPageResources: statusPageResources,
+        monitorGroupResources: monitorGroupResourcesByGroupId,
+        startingStatusIds: startingStatusIds,
+      });
+
+    // What told a monitor nothing has checked is not the page's to show.
+    FrozenMonitorResources.forgetNotMonitoredYetFields(statusPageResources);
 
     for (const monitorGroupId of monitorGroupIds) {
       // get current status of monitors in the group.
@@ -5930,6 +5990,7 @@ export default class StatusPageAPI extends BaseAPI<
       monitorStatuses,
       monitorGroupCurrentStatuses,
       notMonitoredResourceIds,
+      notMonitoredYetResourceIds,
       statusPageGroups: groups,
       monitorStatusTimelines,
       uptimeDailyAggregate,
@@ -6181,6 +6242,7 @@ export default class StatusPageAPI extends BaseAPI<
       monitorStatuses,
       monitorGroupCurrentStatuses,
       notMonitoredResourceIds,
+      notMonitoredYetResourceIds,
       statusPageResources,
       statusPage,
       monitorsOnStatusPage,
@@ -7155,9 +7217,12 @@ export default class StatusPageAPI extends BaseAPI<
       ),
       /*
        * The resources the page draws as Not monitored, in gray, in place of
-       * a status: nothing checks them right now (FrozenMonitorResources).
+       * a status: nothing checks them right now, or nothing has yet
+       * (FrozenMonitorResources).
        */
       notMonitoredResourceIds: notMonitoredResourceIds,
+      // Of those, the ones nothing has checked yet: Not monitored yet.
+      notMonitoredYetResourceIds: notMonitoredYetResourceIds,
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
       timelineIncidents:
         this.serializeIncidentsForStatusPage(timelineIncidents),

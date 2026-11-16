@@ -17,6 +17,7 @@ import UserType from "../../Types/UserType";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import User from "../../Models/DatabaseModels/User";
 import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
+import MasterApiKey from "../Utils/MasterApiKey";
 import PlanCutoffCredentialAccess from "../Utils/Billing/PlanCutoffCredentialAccess";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
@@ -85,11 +86,12 @@ export default class ProjectMiddleware {
     const apiKey: string = rawHeader.trim();
 
     /*
-     * `ApiKey.apiKey` is a Postgres `uuid` column, so a non-UUID value makes
-     * the lookup raise "invalid input syntax for type uuid" down in the query
-     * layer. A raw QueryFailedError is not a OneUptime Exception, so it slips
-     * past the error translator and answers 500 to what is really a malformed
-     * request. Reject the shape here and let the caller get `Invalid API Key`.
+     * Every API key is a uuid (Utils/APIKey/HashedApiKey), so a value that
+     * is not one is no key: rejected here, with `Invalid API Key`, before
+     * anything is hashed or read for it. `ApiKey.apiKey` was a Postgres
+     * `uuid` column, where a non-UUID value made the lookup raise "invalid
+     * input syntax for type uuid" and answer 500; it holds the key's hash
+     * now (#8902), and the shape is still the one a key has.
      */
     if (!ObjectID.isValidUUID(apiKey)) {
       return null;
@@ -130,35 +132,48 @@ export default class ProjectMiddleware {
    * The master key has root/master-admin access, so this is shared with
    * MasterAdminAuthorization to let the key reach master-admin-only endpoints
    * (e.g. OneUptime Health) as well.
+   *
+   * The key is stored hashed (#7901), so the server's settings row is read
+   * by its id, and the key presented is compared with what it holds by
+   * MasterApiKey.matches: its hash against the hash stored, in constant
+   * time - or, for a key stored before keys were hashed and not hashed yet
+   * by the HashMasterApiKey data migration, the key against the key. The
+   * key never goes into a query, so no query log can hold it.
    */
   @CaptureSpan()
   public static async isMasterApiKey(apiKey: ObjectID): Promise<boolean> {
     /*
-     * masterApiKey is a Postgres `uuid` column, so a non-UUID header value would
-     * make the lookup raise an "invalid input syntax for type uuid" error on
-     * every request. Reject it cleanly up front — a malformed key is never the
-     * master key anyway — so callers can safely fall through to other auth.
+     * A value that is not a uuid is never the master key - no key ever was
+     * one - so callers can safely fall through to other auth, and nothing is
+     * read for it.
      */
-    if (!ObjectID.isValidUUID(apiKey.toString())) {
+    if (!MasterApiKey.normalize(apiKey)) {
       return false;
     }
 
-    const masterKeyGlobalConfig: GlobalConfig | null =
+    const globalConfig: GlobalConfig | null =
       await GlobalConfigService.findOneBy({
         query: {
           _id: ObjectID.getZeroObjectID().toString(),
-          isMasterApiKeyEnabled: true,
-          masterApiKey: apiKey,
         },
         props: {
           isRoot: true,
         },
         select: {
           _id: true,
+          isMasterApiKeyEnabled: true,
+          masterApiKey: true,
         },
       });
 
-    return Boolean(masterKeyGlobalConfig);
+    if (!globalConfig || globalConfig.isMasterApiKeyEnabled !== true) {
+      return false;
+    }
+
+    return MasterApiKey.matches({
+      presentedKey: apiKey,
+      storedValue: globalConfig.masterApiKey?.toString(),
+    });
   }
 
   @CaptureSpan()

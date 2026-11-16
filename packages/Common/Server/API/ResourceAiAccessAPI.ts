@@ -74,6 +74,7 @@ import {
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
+import { getWaitingFirstApprovedAt } from "../../Types/AutoRemediation/RemediationApprovals";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../Models/DatabaseModels/Incident";
 import ResourceAiAgent from "../../Models/DatabaseModels/ResourceAiAgent";
@@ -86,7 +87,13 @@ import AlertService from "../Services/AlertService";
 import AutoRemediationSuggestionService from "../Services/AutoRemediationSuggestionService";
 import CephClusterService from "../Services/CephClusterService";
 import CloudAccountService from "../Services/CloudAccountService";
-import { getCloudCatalogProvider } from "../../Utils/AiRemediation/Resource/CloudOperationCatalog";
+import {
+  CloudWritePath,
+  CloudWritePathProblem,
+  getCloudCatalogProvider,
+  readCloudWritePath,
+  withoutCloudWritePath,
+} from "../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import DatabaseServerService from "../Services/DatabaseServerService";
 import DatabaseService from "../Services/DatabaseService";
 import DockerHostService from "../Services/DockerHostService";
@@ -971,6 +978,61 @@ function describeFailure(error: unknown): string {
 }
 
 /*
+ * What a cloud account's Test connection says when its agent reads but
+ * every change would fail as it is set up - its write role, identity or
+ * account cannot be used (CloudWritePathProblem, from the first line of
+ * `cloud whoami`): that the reads work, what stops the changes, and what
+ * fixes it. The command's output, shown under it, says what the cloud
+ * answered.
+ */
+const WRITE_PATH_NAMES: Readonly<
+  Record<string, { writePath: string; account: string }>
+> = {
+  [AiResourceType.AwsAccount]: { writePath: "write role", account: "account" },
+  [AiResourceType.AzureSubscription]: {
+    writePath: "write identity",
+    account: "subscription",
+  },
+  [AiResourceType.GoogleCloudProject]: {
+    writePath: "write service account",
+    account: "project",
+  },
+};
+
+// What the setup command does that fixes an agent that could not sign in as it.
+const WRITE_PATH_SIGN_IN_FIXES: Readonly<Record<string, string>> = {
+  [AiResourceType.AwsAccount]:
+    "it makes the write role and lets the agent's own role assume it",
+  [AiResourceType.AzureSubscription]:
+    "it makes the write identity and attaches it where the agent runs",
+  [AiResourceType.GoogleCloudProject]:
+    "it makes the write service account and lets the agent's own service account ask for its token. A grant made a few minutes ago can still be on its way",
+};
+
+export function getAccessTestWritePathMessage(data: {
+  resourceType: AiResourceType;
+  problem: CloudWritePathProblem;
+  agentName: string;
+}): string {
+  const names: { writePath: string; account: string } = WRITE_PATH_NAMES[
+    data.resourceType
+  ] || { writePath: "write role", account: "account" };
+  const rerun: string = "Run its setup command again from Change on this page";
+
+  switch (data.problem) {
+    case "unreadable-setting":
+      return `The ${data.agentName} reads this ${names.account}, but it makes no change: the ${names.writePath} it is set up with is not one it can use. ${rerun}, which sets it. The output below says what is wrong.`;
+    case "another-account":
+      return `The ${data.agentName} reads this ${names.account}, but it makes no change: its ${names.writePath} belongs to another ${names.account}. ${rerun}, in this ${names.account}. The output below says which.`;
+    default:
+      return `The ${data.agentName} reads this ${names.account}, but every change will fail: it could not sign in as its ${names.writePath}. ${rerun}: ${
+        WRITE_PATH_SIGN_IN_FIXES[data.resourceType] ||
+        "it makes what changes run as"
+      }. The output below says what the cloud answered.`;
+  }
+}
+
+/*
  * The gap that stops the access test before anything is enqueued: one that
  * blocks both capabilities and is about the transport — no agent, or an
  * offline one — never one about the project's AI.
@@ -1093,6 +1155,11 @@ router.post(
           AI_RESOURCE_TYPE_INFO[resource.resourceType].testCommands;
         const results: Array<ResourceAiAccessTestCommandResult> = [];
         let allSucceeded: boolean = true;
+        const isCloudAccount: boolean = isCloudAiResourceType(
+          resource.resourceType,
+        );
+        // What cloud whoami said of the changes' write path (null: nothing).
+        let writePath: CloudWritePath | null = null;
 
         const start: {
           outcome?: ResourceCommandJobOutcome | undefined;
@@ -1144,11 +1211,22 @@ router.post(
 
           allSucceeded = allSucceeded && outcome.succeeded;
 
+          /*
+           * A cloud account's cloud whoami starts with the line that says
+           * whether its changes can run (CLOUD_WRITE_PATH_PREFIX): read
+           * here, and taken out of what a person reads.
+           */
+          if (isCloudAccount && writePath === null) {
+            writePath = readCloudWritePath(outcome.output);
+          }
+
           results.push({
             command: outcome.displayCommand || command,
             succeeded: outcome.succeeded,
             exitCode: outcome.exitCode ?? null,
-            output: outcome.output,
+            output: isCloudAccount
+              ? withoutCloudWritePath(outcome.output)
+              : outcome.output,
             errorMessage: outcome.errorMessage ?? null,
           });
 
@@ -1164,13 +1242,31 @@ router.post(
             resourceId: resource.id,
           });
 
+        /*
+         * Reads that work, and changes that cannot run as the agent is set
+         * up: the commands worked (ok), and the message says what stops the
+         * changes and what fixes it, which the page draws in amber. An
+         * agent too old to say reads as it always did.
+         */
+        const writePathProblem: CloudWritePathProblem | undefined =
+          allSucceeded && writePath?.state === "unusable"
+            ? writePath.problem
+            : undefined;
+
         Response.sendJsonObjectResponse(req, res, {
           ok: allSucceeded,
-          message: allSucceeded
-            ? `OneUptime AI can run commands on "${resource.name}" through the ${agentName}.`
-            : `The ${agentName} could not run the test commands successfully — see the command output below.`,
+          message: writePathProblem
+            ? getAccessTestWritePathMessage({
+                resourceType: resource.resourceType,
+                problem: writePathProblem,
+                agentName,
+              })
+            : allSucceeded
+              ? `OneUptime AI can run commands on "${resource.name}" through the ${agentName}.`
+              : `The ${agentName} could not run the test commands successfully — see the command output below.`,
           results: results as unknown as Array<JSONObject>,
           status: (refreshed || status) as unknown as JSONObject,
+          ...(writePathProblem ? { writePathProblem } : {}),
         });
         return;
       } finally {
@@ -2062,6 +2158,8 @@ const LOG_FIX_SELECT: Select<AutoRemediationSuggestion> = {
     name: true,
     email: true,
   },
+  // A fix that waits for its second approval says so (getWaitingFirstApprovedAt).
+  firstApprovedAt: true,
   incidentId: true,
   alertId: true,
 };
@@ -2163,6 +2261,7 @@ async function getLogFixes(data: {
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
         approvedByName: describeApprover(suggestion.approvedByUser),
+        firstApprovedAt: toIsoString(getWaitingFirstApprovedAt(suggestion)),
         incidentId: suggestion.incidentId?.toString(),
         alertId: suggestion.alertId?.toString(),
       };

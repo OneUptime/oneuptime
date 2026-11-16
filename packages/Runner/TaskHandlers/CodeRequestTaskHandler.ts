@@ -349,31 +349,21 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
         CodeRequestTaskHandler.buildPullRequestBody(details, summary) +
         BuildVerification.buildPullRequestBodySection(verification);
 
-      const prResult: PullRequestResult = await new PullRequestOpener(
-        context.logger,
-      ).open({
+      /*
+       * Opened by OneUptime where the token's answer says so - the token
+       * may only push - or with the token, by an older server's rules.
+       */
+      const prResult: PullRequestResult = await this.openPullRequest(context, {
+        repositoryId: details.repository.id,
         token: tokenData,
         baseBranch: cloneResult.baseBranch,
         headBranch: branchName,
         title: CodeRequestTaskHandler.buildPullRequestTitle(details),
         body: prBody,
+        verification,
       });
 
       await this.log(context, `Pull request opened: ${prResult.htmlUrl}`);
-
-      await this.recordOpenedPullRequest(context, {
-        taskId: context.taskId.toString(),
-        codeRepositoryId: details.repository.id,
-        pullRequestUrl: prResult.htmlUrl,
-        pullRequestNumber: prResult.number,
-        pullRequestId: prResult.id,
-        title: prResult.title,
-        description: prBody.substring(0, 1000),
-        headRefName: branchName,
-        baseRefName: cloneResult.baseBranch,
-        runnerVerificationStatus: verification.status,
-        runnerVerificationSummary: verification.summary,
-      });
 
       outcome.pullRequestNumber = prResult.number;
       outcome.pullRequestUrl = prResult.htmlUrl;

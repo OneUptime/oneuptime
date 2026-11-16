@@ -18,10 +18,10 @@ flowchart TB
     setting -->|"alles uit"| nothing["Er wordt niets verstuurd"]
 ```
 
-- Elke rij is een gebeurtenis, en elke kolom een kanaal: E-mail, SMS, Oproep, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost en Webhook. Slack, Microsoft Teams en Mattermost zijn alleen kolommen als het project ze heeft gekoppeld.
+- Elke rij is een gebeurtenis, en elke kolom een kanaal: E-mail, SMS, Oproep, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost en Webhook. Slack, Microsoft Teams en Mattermost zijn alleen kolommen als het project ze heeft gekoppeld. Een kanaal dat u nog niet hebt ingesteld, is geen kolom: het staat boven de tabbladen onder **Kanalen die nog niet zijn ingesteld**, als link om het in te stellen.
 - Een kanaal dat aanstaat, stuurt naar elke geverifieerde methode die je erop hebt in dit project, niet naar één.
-- Een kanaal dat aanstaat zonder geverifieerde methode erachter, stuurt niets. **Your setup checklist** meldt dat onder **Staying informed**.
-- Nieuws gaat naar de eigenaren van het item: de mensen die als eigenaar zijn genoemd, en de leden van de eigenaarsteams ervan. Heeft een item geen eigenaren, dan gaat het in plaats daarvan naar de Projecteigenaren. Een gebeurtenis over het toegevoegd worden als eigenaar gaat alleen naar de toegevoegde persoon. Stopt OneUptime terwijl het nieuws naar de eigenaren van een item verstuurt, dan krijgen de mensen bij wie het nog niet was aangekomen het zodra OneUptime terug is, een paar minuten later, en niemand krijgt het twee keer.
+- Een kanaal dat aanstaat zonder geverifieerde methode erachter, stuurt niets. Zijn kolom toont **Instellen** onder de naam, en zijn schakelaars kunnen alleen uit. **Your setup checklist** meldt dat ook, onder **Staying informed**.
+- Nieuws gaat naar de eigenaren van het item: de mensen die als eigenaar zijn genoemd, en de leden van de eigenaarsteams ervan. Heeft een item geen eigenaren, dan gaat het in plaats daarvan naar de Projecteigenaren. Wie al door de dienstoproep van een nieuw incident, een nieuwe waarschuwing of een nieuwe episode is bereikt, krijgt geen tweede melding dat het item is aangemaakt. Een gebeurtenis over het toegevoegd worden als eigenaar gaat alleen naar de toegevoegde persoon. Stopt OneUptime terwijl het nieuws naar de eigenaren van een item verstuurt, dan krijgen de mensen bij wie het nog niet was aangekomen het zodra OneUptime terug is, een paar minuten later, en niemand krijgt het twee keer.
 - Beveiligingszaken hebben geen eigenaren. Een nieuwe zaak gaat naar iedereen die de zaken van het project kan zien, op de prioriteit die ieder van hen kiest, en een toegewezen zaak naar de mensen aan wie ze is toegewezen. Zie [Beveiligingszaken](/docs/telemetry/security-cases#meldingen).
 - Elke e-mail aan eigenaren eindigt met een link "Manage notification preferences" die terugleidt naar deze pagina.
 
@@ -34,11 +34,11 @@ Ga naar **Gebruikersinstellingen → Meldingsinstellingen**. De tabbladen zijn *
 
 ### De gebeurtenis vinden
 
-Elk tabblad bevat een of meer kaarten, zoals **Incidentepisodes** op het tabblad **Incidenten**. Elke rij is een gebeurtenis, met een regel die zegt wanneer ze wordt verstuurd.
+Elk tabblad bevat een of meer kaarten, zoals **Incidentepisodes** op het tabblad **Incidenten**. Elke rij is een gebeurtenis, met een regel die zegt wanneer ze wordt verstuurd. Boven de kaarten zegt het tabblad over hoeveel van zijn gebeurtenissen u hoort, en via welke kanalen.
 
 ### Op een kanaal klikken
 
-Klik op de cirkel van een kanaal om het aan te zetten, en nog eens om het uit te zetten. Een vinkje betekent aan. Wijzigingen worden automatisch opgeslagen.
+Klik op de schakelaar van een kanaal om het aan te zetten, en nog eens om het uit te zetten. De eerste rij van een kaart, **Alle gebeurtenissen**, zet een kanaal aan of uit voor elke gebeurtenis van de kaart. Elke wijziging wordt meteen opgeslagen, en de kaart toont **Opgeslagen**.
 :::
 
 ## Wat er aanstaat voor een nieuw lid

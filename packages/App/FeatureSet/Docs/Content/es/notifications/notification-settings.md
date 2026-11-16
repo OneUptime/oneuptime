@@ -18,10 +18,10 @@ flowchart TB
     setting -->|"todo desactivado"| nothing["No se envía nada"]
 ```
 
-- Cada fila es un evento, y cada columna un canal: Correo electrónico, SMS, Llamada, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost y Webhook. Slack, Microsoft Teams y Mattermost solo son columnas cuando el proyecto los ha conectado.
+- Cada fila es un evento, y cada columna un canal: Correo electrónico, SMS, Llamada, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost y Webhook. Slack, Microsoft Teams y Mattermost solo son columnas cuando el proyecto los ha conectado. Un canal que aún no has configurado no es una columna: aparece en **Canales aún sin configurar**, encima de las pestañas, como un enlace para configurarlo.
 - Un canal activado envía a cada método verificado que tengas en él en este proyecto, no solo a uno.
-- Un canal activado sin un método verificado detrás no envía nada. **Tu lista de configuración** lo indica en **Mantenerse informado**.
-- Una novedad va a los propietarios del registro: las personas nombradas como propietarias y los miembros de sus equipos propietarios. Cuando un registro no tiene propietarios, va en cambio a los Propietarios del proyecto. Un evento sobre haber sido añadido como propietario solo va a la persona añadida. Si OneUptime se detiene mientras envía una novedad a los propietarios de un registro, las personas a las que aún no había llegado la reciben cuando OneUptime vuelve, unos minutos tarde, y nadie la recibe dos veces.
+- Un canal activado sin un método verificado detrás no envía nada. Su columna muestra **Configurar** bajo su nombre, y sus interruptores solo se pueden desactivar. **Tu lista de configuración** también lo indica, en **Mantenerse informado**.
+- Una novedad va a los propietarios del registro: las personas nombradas como propietarias y los miembros de sus equipos propietarios. Cuando un registro no tiene propietarios, va en cambio a los Propietarios del proyecto. A quien ya le haya llegado el aviso de guardia de un nuevo incidente, alerta o episodio no se le vuelve a notificar que se creó. Un evento sobre haber sido añadido como propietario solo va a la persona añadida. Si OneUptime se detiene mientras envía una novedad a los propietarios de un registro, las personas a las que aún no había llegado la reciben cuando OneUptime vuelve, unos minutos tarde, y nadie la recibe dos veces.
 - Los casos de seguridad no tienen propietarios. Un caso nuevo va a todas las personas que pueden ver los casos del proyecto, a partir de la prioridad que elige cada una, y un caso asignado, a las personas a las que está asignado. Consulta [Casos de seguridad](/docs/telemetry/security-cases#notificaciones).
 - Cada correo a los propietarios termina con un enlace "Manage notification preferences" que lleva de vuelta a esta página.
 
@@ -34,11 +34,11 @@ Ve a **Ajustes de usuario → Ajustes de notificaciones**. Las pestañas son **I
 
 ### Busca el evento
 
-Cada pestaña contiene una o más tarjetas, como **Episodios de incidente** en la pestaña **Incidentes**. Cada fila es un evento, con una línea que dice cuándo se envía.
+Cada pestaña contiene una o más tarjetas, como **Episodios de incidente** en la pestaña **Incidentes**. Cada fila es un evento, con una línea que dice cuándo se envía. Encima de las tarjetas, la pestaña indica de cuántos de sus eventos recibes avisos, y por qué canales.
 
 ### Haz clic en un canal
 
-Haz clic en el círculo de un canal para activarlo, y otra vez para desactivarlo. Una marca de verificación significa activado. Los cambios se guardan automáticamente.
+Haz clic en el interruptor de un canal para activarlo, y otra vez para desactivarlo. La primera fila de una tarjeta, **Todos los eventos**, activa o desactiva un canal para cada evento de la tarjeta. Cada cambio se guarda al instante, y la tarjeta muestra **Guardado**.
 :::
 
 ## Qué está activado para un miembro nuevo

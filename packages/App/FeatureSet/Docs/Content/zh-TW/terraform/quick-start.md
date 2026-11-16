@@ -32,7 +32,7 @@ flowchart TB
 
 在 OneUptime 儀表板中，開啟 **專案設定 → 進階 → API 金鑰**，然後點選 **建立API 金鑰**。為它填寫 **名稱**，例如 `terraform`，並在 **存取** 下選擇 **專案管理員**：Terraform 會建立、讀取、更改和刪除它管理的每種記錄，而 **專案管理員** 可以完成所有這些操作。如果想要權限更窄的金鑰，請選擇 **稍後選擇權限**，然後在金鑰頁面上只新增你需要的權限。
 
-金鑰從今天起一年後過期。要選擇其他日期，請在建立前展開 **更多欄位**，或稍後在金鑰頁面上更改日期。金鑰建立後會開啟它的頁面：從 **API 金鑰詳細資訊** 卡片中複製 **API 金鑰**。
+金鑰從今天起一年後過期。要選擇其他日期，請在建立前展開 **更多欄位**，或稍後在金鑰頁面上更改日期。金鑰建立後，OneUptime 會在 **複製你的 API 金鑰** 對話方塊中顯示一次金鑰：請在按下 **完成** 之前複製它。
 
 ### 讓 Terraform 能使用金鑰
 
@@ -218,7 +218,7 @@ terraform destroy
 :::
 
 :::details 訊息「the OneUptime API returned status 400: Invalid API Key」
-金鑰輸入有誤、已過期或已刪除，或者它屬於另一個 OneUptime，而不是 `oneuptime_url` 指向的那個。請從金鑰頁面重新複製金鑰，或建立一個新金鑰。
+金鑰輸入有誤、已過期或已刪除，或者它屬於另一個 OneUptime，而不是 `oneuptime_url` 指向的那個。請將它與金鑰頁面上顯示的結尾字元核對，或在那裡重設它以取得一個新金鑰。
 :::
 
 :::details 訊息「the OneUptime API returned status 402: API keys need the Growth plan」

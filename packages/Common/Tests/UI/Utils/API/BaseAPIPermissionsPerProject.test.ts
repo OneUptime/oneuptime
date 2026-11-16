@@ -1,6 +1,7 @@
 // Must stay the first import: the client's URLs are built from HOST on load.
 import { DASHBOARD_ORIGIN } from "./DashboardHost";
 import FakeAxiosServer, {
+  RENEWED_SESSION,
   FakeTransport,
   Gate,
   SentRequest,
@@ -782,7 +783,7 @@ describe("the hash a request sends", () => {
         { status: 401, data: { message: "Authentication required." } },
         { status: 200, data: {}, headers: VIEWER_HEADERS },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await getAbout(VIEWED_PROJECT_ID);

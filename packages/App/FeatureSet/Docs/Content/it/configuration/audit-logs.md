@@ -65,10 +65,10 @@ Una modifica di queste impostazioni vale entro un minuto.
 | Colonna | Che cosa mostra |
 | --- | --- |
 | **Quando** | Quanto tempo fa, con data e ora. |
-| **Azione** | `Create`, `Update` o `Delete`, `Download` per un file di cattura dei pacchetti che qualcuno ha scaricato, oppure `Sign In`, `Sign Out`, `Session Timeout` o `Session Revoked` per una sessione. |
+| **Azione** | `Create`, `Update` o `Delete`, `Download` per un file di cattura dei pacchetti che qualcuno ha scaricato, oppure `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` o `Session Revoked` per un accesso o una sessione. |
 | **Risorsa** | Il nome della risorsa, che la apre finché esiste, e il suo tipo. |
 | **Attore** | Chi ha fatto la modifica: una persona, una chiave API, un flusso di lavoro, oppure `System` per una modifica che OneUptime ha fatto da solo. La modifica di una persona fatta tramite un client MCP indica quale. |
-| **Modifiche** | Quanti campi sono cambiati, o sono stati acquisiti in una creazione o un'eliminazione. Per una sessione, come è stato fatto l'accesso o perché è finita. Fai clic per vedere ogni campo. |
+| **Modifiche** | Quanti campi sono cambiati, o sono stati acquisiti in una creazione o un'eliminazione. Per un accesso o una sessione, come è stato fatto l'accesso, perché non è riuscito o perché la sessione è finita. Fai clic per vedere ogni campo. |
 
 Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email utente** o **Ora**. Una modifica elenca solo i campi cambiati, prima e dopo, e un salvataggio che non cambia nulla non aggiunge alcuna voce.
 
@@ -86,7 +86,7 @@ Viene registrato tutto ciò che le persone creano, modificano o eliminano in un 
 | Tracce delle esecuzioni | Ognuna è già la traccia di un'esecuzione del flusso di lavoro, un'escalation di reperibilità, una scansione, un'importazione o un'esecuzione di IA. |
 | Ciò che riportano agenti e telemetria | Le risorse scoperte, le letture e l'utilizzo cambiano a ogni rapporto, non perché qualcuno li abbia modificati. |
 | Feed di attività | Un feed mostra modifiche che il log di audit registra già. |
-| Lo stato di lavoro di OneUptime | Sessioni dei lettori delle pagine di stato, job in coda e altri stati che OneUptime conserva mentre lavora. |
+| Lo stato di lavoro di OneUptime | Job in coda e altri stati che OneUptime conserva mentre lavora. |
 | La configurazione delle notifiche di una persona | Gli indirizzi, i numeri e le regole di reperibilità personali di ogni persona sono solo suoi. |
 | Le preferenze di una persona | I prodotti che ogni persona fissa nella propria barra in alto sono solo suoi, e solo quella persona li vede. |
 
@@ -114,11 +114,16 @@ Ogni volta che un membro del progetto accede a OneUptime, il log di audit lo ann
 | Azione | Quando viene registrata |
 | --- | --- |
 | `Sign In` | Qualcuno accede: con una password o un link di accesso, una passkey, Google, Microsoft, Vercel o il single sign-on. |
+| `Sign-In Failed` | Qualcuno prova ad accedere a un account esistente e non ci riesce: una password, un codice di autenticazione, un codice di backup o una chiave di sicurezza errati, un account bloccato o non verificato, oppure un single sign-on che OneUptime ha rifiutato. |
 | `Sign Out` | La persona si disconnette. |
 | `Session Timeout` | OneUptime chiude la sessione alla sua scadenza: il tempo di inattività o la durata della sessione impostati da un amministratore del server, oppure 30 giorni senza utilizzo. |
 | `Session Revoked` | OneUptime chiude la sessione perché la password è cambiata, l'account è stato bloccato, oppure un amministratore del server ha reimpostato o reso obbligatoria l'autenticazione a due fattori. |
 
 La **Risorsa** di una voce è la sessione, che prende il nome dal dispositivo da cui è stato fatto l'accesso, ad esempio `Chrome 130 on macOS`. Il suo **Attore** è la persona a cui appartiene la sessione, quindi filtrando per **Email utente** si trovano tutti i suoi accessi e tutte le sue sessioni. I suoi dettagli dicono come la persona ha effettuato l'accesso e con quale secondo fattore, l'indirizzo IP e la località, e, per una sessione finita, quando è stato fatto l'accesso, quando è stata usata l'ultima volta e quando è scaduta. Il provider SSO proprio di un progetto viene nominato solo nel log di audit di quel progetto.
+
+Una voce `Sign-In Failed` riguarda il tentativo e prende il nome dal dispositivo da cui è arrivato. Il suo **Attore** è l'account su cui è stato fatto il tentativo: chi l'ha fatto non ha dimostrato di essere quella persona. I suoi dettagli dicono perché non è riuscito, come si è provato ad accedere, l'indirizzo IP e la località, mai cosa è stato digitato. Un tentativo con un indirizzo email che non appartiene a nessun account non viene registrato, e registrare un tentativo non cambia né cosa risponde la pagina di accesso né quanto in fretta. Perché un'ondata di tentativi non possa riempire il log di audit, i primi 10 tentativi non riusciti su un account in un'ora vengono registrati uno per uno. Gli altri vengono contati, e la voce successiva dell'account dice quanti tentativi rappresenta e quando è stato fatto il primo di essi.
+
+Vengono registrati anche i lettori di una pagina di stato privata, solo nel progetto della pagina di stato: ogni accesso con una password, un link di accesso o il single sign-on della pagina di stato, ogni disconnessione, e ogni sessione che OneUptime chiude perché la password del lettore è cambiata o la pagina di stato non accetta più il modo in cui è stato fatto l'accesso. Le loro voci sono anche nella pagina **Log di audit** propria della pagina di stato. Il loro **Attore** è il lettore, con il suo indirizzo email, e la loro **Risorsa** è la sessione del lettore.
 
 Accessi e sessioni vengono registrati che il progetto memorizzi o no gli eventi di sistema. Una durata della sessione o 30 giorni senza utilizzo vengono registrati entro pochi minuti dalla scadenza. Un tempo di inattività nel browser, o in una versione dell'app mobile successiva alla 1.6.0, viene registrato entro 35 minuti dalla scadenza, che la persona torni o no. Nella versione 1.6.0 e precedenti dell'app mobile viene registrato quando l'app raggiunge di nuovo OneUptime.
 

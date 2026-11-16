@@ -35,11 +35,11 @@ U hebt een telemetrie-ingestiesleutel van het type **Server** nodig. Hebt u er n
 
 Ga naar **Producten → Projectinstellingen**, open **Telemetrie & APM** in het zijmenu en kies **Ingestiesleutels**.
 
-![De lijst "Ingestiesleutels", met "Inname-sleutel aanmaken" omcirkeld](screen:ingestion-keys)
+![De lijst "Ingestiesleutels", met "Ingestiesleutel aanmaken" omcirkeld](screen:ingestion-keys)
 
 ### Een sleutel aanmaken
 
-Klik op **Inname-sleutel aanmaken**. In het dialoogvenster is de naam van de sleutel al ingevuld en **Server** gekozen (het soort sleutel waarmee een applicatie of een collector verstuurt), dus klik op **Inname-sleutel aanmaken** om hem aan te maken, of geef hem eerst een andere naam.
+Klik op **Ingestiesleutel aanmaken**. In het dialoogvenster is de naam van de sleutel al ingevuld en **Server** gekozen (het soort sleutel waarmee een applicatie of een collector verstuurt), dus klik op **Ingestiesleutel aanmaken** om hem aan te maken, of geef hem eerst een andere naam.
 
 ### Het geheim kopiëren
 

@@ -18,6 +18,10 @@ import {
 } from "Common/Types/PacketCapture/PacketCaptureLimits";
 import PacketCaptureStatus from "Common/Types/PacketCapture/PacketCaptureStatus";
 import { PacketCaptureCapability } from "Common/Types/PacketCapture/PacketCaptureCapability";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
+import ProbeSchedulingLimiterInstance, {
+  ProbeSchedulingBusyError,
+} from "Common/Server/Utils/Probe/ProbeSchedulingLimiter";
 import ProbeAuthorization from "../../FeatureSet/Telemetry/Middleware/ProbeAuthorization";
 import {
   ExpressRequest,
@@ -26,7 +30,14 @@ import {
 } from "Common/Server/Utils/Express";
 import fs from "fs";
 import path from "path";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 jest.mock("Common/Server/Utils/Express", () => {
   return {
@@ -160,15 +171,57 @@ function makeRequest(data: {
 
 type NextSpy = ReturnType<typeof jest.fn>;
 
+type RouteStep = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => void | Promise<void>;
+
+/*
+ * Runs a route as Express does, after the probe is authenticated (stood in
+ * for here): each function in turn while the one before passes the request
+ * on, and an error passed on goes to `next`. The list route answers in two
+ * steps - its running captures are heard from before the probe scheduling
+ * limit, the claim after it.
+ */
 async function call(
   uri: string,
   req: ExpressRequest,
 ): Promise<{ next: NextSpy }> {
   const next: NextSpy = jest.fn();
+  const route: {
+    middlewares: Array<RouteStep>;
+    handlerFunction: RouteStep;
+  } = mockRouter.match("post", uri);
 
-  await mockRouter
-    .match("post", uri)
-    .handlerFunction(req, mockResponse, next as unknown as NextFunction);
+  const steps: Array<RouteStep> = [
+    ...route.middlewares.filter((step: RouteStep): boolean => {
+      return (
+        step !==
+        (ProbeAuthorization.isAuthorizedServiceMiddleware as unknown as RouteStep)
+      );
+    }),
+    route.handlerFunction,
+  ];
+
+  for (const step of steps) {
+    let passedOn: boolean = false;
+    let passedError: unknown = undefined;
+
+    await step(req, mockResponse, ((error?: unknown): void => {
+      passedOn = true;
+      passedError = error;
+    }) as NextFunction);
+
+    if (!passedOn) {
+      return { next };
+    }
+
+    if (passedError !== undefined) {
+      next(passedError);
+      return { next };
+    }
+  }
 
   return { next };
 }
@@ -593,6 +646,134 @@ describe("POST /probe/packet-capture/list", () => {
 
     expect(next).toHaveBeenCalledWith(failure);
     expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("a heartbeat that fails is passed on, and nothing is claimed", async () => {
+    const failure: Error = new Error("database unavailable");
+    service.findCapturesToStop.mockRejectedValue(failure as never);
+
+    const { next } = await call(
+      LIST_URI,
+      makeRequest({
+        body: { limit: 2, runningPacketCaptureIds: [CAPTURE_ID] },
+      }),
+    );
+
+    expect(next).toHaveBeenCalledWith(failure);
+    expect(service.claimPendingForProbe).not.toHaveBeenCalled();
+    expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The claim runs under the probe scheduling limit (issue #8051); the
+ * running captures' heartbeat, and the stops it answers, do not. A capture
+ * no probe names for two minutes is failed by the sweep, and a busy answer
+ * must not do that to the ones a probe is running, nor keep a Stop from it.
+ */
+describe("POST /probe/packet-capture/list when the server is busy", () => {
+  const EVERY_RETRY_CAPABILITY: Array<string> = [
+    ProbeCapability.RetryWhenBusy,
+    ProbeCapability.RetryAllWorkWhenBusy,
+  ];
+
+  function busy(): ReturnType<typeof jest.spyOn> {
+    return jest
+      .spyOn(ProbeSchedulingLimiterInstance, "acquire")
+      .mockRejectedValue(new ProbeSchedulingBusyError() as never);
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the heartbeat runs after probe authentication and before the limit, the claim after it", () => {
+    const route: { middlewares: Array<unknown> } = mockRouter.match(
+      "post",
+      LIST_URI,
+    );
+
+    expect(route.middlewares).toHaveLength(3);
+    expect(route.middlewares[0]).toBe(
+      ProbeAuthorization.isAuthorizedServiceMiddleware,
+    );
+    expect((route.middlewares[1] as { name: string }).name).toBe(
+      "recordRunningCaptures",
+    );
+  });
+
+  test.each([
+    [
+      "a probe that reads a 429 from all its work fetches",
+      EVERY_RETRY_CAPABILITY,
+    ],
+    ["an older probe", [ProbeCapability.NetworkDevicePing]],
+  ])(
+    "%s is answered with the stops alone: its captures are heard from, nothing is claimed, never a 429",
+    async (_label: string, capabilities: Array<string>) => {
+      busy();
+      service.findCapturesToStop.mockResolvedValue([
+        SECOND_CAPTURE_ID,
+      ] as never);
+
+      const { next } = await call(
+        LIST_URI,
+        makeRequest({
+          body: {
+            limit: 1,
+            runningPacketCaptureIds: [CAPTURE_ID, SECOND_CAPTURE_ID],
+            probeCapabilities: capabilities,
+          },
+        }),
+      );
+
+      expect(service.findCapturesToStop).toHaveBeenCalledTimes(1);
+      expect(service.claimPendingForProbe).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+      expect(sentBody()).toEqual({
+        packetCaptures: [],
+        stopPacketCaptureIds: [SECOND_CAPTURE_ID],
+      });
+    },
+  );
+
+  test("a probe with no capture slot free is answered without waiting for a scheduling slot", async () => {
+    const acquire: ReturnType<typeof jest.spyOn> = busy();
+    service.findCapturesToStop.mockResolvedValue([CAPTURE_ID] as never);
+
+    await call(
+      LIST_URI,
+      makeRequest({
+        body: {
+          limit: 0,
+          runningPacketCaptureIds: [CAPTURE_ID, SECOND_CAPTURE_ID],
+          probeCapabilities: EVERY_RETRY_CAPABILITY,
+        },
+      }),
+    );
+
+    expect(acquire).not.toHaveBeenCalled();
+    expect(service.claimPendingForProbe).not.toHaveBeenCalled();
+    expect(sentBody()).toEqual({
+      packetCaptures: [],
+      stopPacketCaptureIds: [CAPTURE_ID],
+    });
+  });
+
+  test("with a slot, the claim waits for it, under the probe's own key", async () => {
+    const acquire: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ProbeSchedulingLimiterInstance,
+      "acquire",
+    );
+    service.claimPendingForProbe.mockResolvedValue([job()] as never);
+
+    await call(LIST_URI, makeRequest({ body: { limit: 1 } }));
+
+    expect(acquire).toHaveBeenCalledTimes(1);
+    expect(acquire.mock.calls[0]![0]).toBe(PROBE_ID.toString());
+    expect(sentBody()["packetCaptures"]).toEqual([job()]);
+    // The bare test response has no events: the slot is given back at once.
+    expect(ProbeSchedulingLimiterInstance.runningCount()).toBe(0);
   });
 });
 

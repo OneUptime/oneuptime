@@ -7,7 +7,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -145,11 +145,28 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         entries,
       } satisfies JSONObject;
 
-      Response.sendEmptySuccessResponse(req, res);
+      /*
+       * Acknowledge only after queue admission, as the OTLP endpoints do.
+       * This answered 200 first and queued after, so a batch the queue then
+       * refused was lost behind a success: Fluentd drops a chunk it was
+       * answered 200 for, and it retries a 503. The queue service logs the
+       * failure; the sender is told nothing of the backend or its payload.
+       */
+      try {
+        await FluentLogsQueueService.addFluentLogIngestJob(
+          req as TelemetryRequest,
+        );
+      } catch {
+        return Response.sendCustomResponse(
+          req,
+          res,
+          503,
+          { message: "Telemetry queue unavailable. Please retry." },
+          {},
+        );
+      }
 
-      await FluentLogsQueueService.addFluentLogIngestJob(
-        req as TelemetryRequest,
-      );
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (error) {
@@ -235,15 +252,19 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
 
       const dbLogs: Array<JSONObject> = [];
       let processed: number = 0;
-      let entryCounter: number = 0;
+      /*
+       * Handed back by the time the work took, not every so many entries,
+       * so a large batch doesn't starve the health probes: an entry's work
+       * grows with what it carries - a record can be a map of thousands of
+       * values, each read by every scrub rule (Common/Server/Utils/EventLoop.ts).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
       for (const entry of entries) {
         try {
-          // Yield periodically so a large batch doesn't starve the health probes.
-          if (entryCounter % 500 === 0) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
-          entryCounter++;
           const ingestionDate: Date = OneUptimeDate.getCurrentDate();
           const ingestionDateTime: string =
             OneUptimeDate.toClickhouseDateTime(ingestionDate);

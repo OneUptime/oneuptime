@@ -39,7 +39,7 @@ and several agents are collector configuration plus shell installers.
 | `app` | `packages/App`, `packages/Common`, `ee/` | The API (`/api`), sign-in and SSO (`/identity`), MCP (`/mcp`), workflows, notifications, telemetry ingestion (OTLP over HTTP and gRPC, Fluent, syslog, MQTT, Pyroscope, session replay), background workers, the docs, and every UI: Dashboard, Accounts, Admin Dashboard, Status Page, Public Dashboard. In Kubernetes the same image also runs as the `worker` and `telemetry-writer` roles. | Internet, through `ingress` |
 | `ingress` | `packages/Nginx` | nginx in front of everything: TLS, routing, custom domains for status pages and dashboards, and the ACME certificates for them. | Internet |
 | `probe-1` | `packages/Probe` | A global probe: runs monitors (HTTP, ping, port, DNS, SSL, SNMP, SQL, custom JavaScript, synthetic browser checks, ...) and reports results to `app` with a probe key. | Outbound to monitored targets |
-| `global-runner` | `packages/Runner` | The bundled global Runner: the Runner image started with a fixed id and its own key (`GLOBAL_RUNNER_KEY`), and nothing else (no cluster key, none of the server's settings). It runs the runbook JavaScript steps of every project that uses global Runners, each in its own isolated-vm sandbox that reaches public addresses only, and the AI code fixes of every repository on the Global Runner, each in its own workspace, written with the code agent's file tools alone: no repository command and no model-composed command ever runs on it. Never Bash, SSH or Kubernetes steps, a credential or an AI command. Any global Runner a master admin adds is held to the same. | Outbound only; Git servers on public addresses unless the installation is self-hosted |
+| `global-runner` | `packages/Runner` | The bundled global Runner: the Runner image started with a fixed id and its own key (`GLOBAL_RUNNER_KEY`), and nothing else (no cluster key, none of the server's settings). It runs the runbook JavaScript steps of every project that uses global Runners, each in its own isolated-vm sandbox that reaches public addresses only, inside a process started for that step alone as a user of its own (a setuid launcher the image installs, run by the Runner's group alone; `packages/Runner/Utils/JavaScriptSandbox`), and the AI code fixes of every repository on the Global Runner, each in its own workspace, written with the code agent's file tools alone: no repository command and no model-composed command ever runs on it. Never Bash, SSH or Kubernetes steps, a credential or an AI command. Any global Runner a master admin adds is held to the same. | Outbound only; Git servers on public addresses unless the installation is self-hosted |
 | `postgres` | schema in `packages/Common/Server/Infrastructure/Postgres` | Projects, users, configuration, incidents: everything but telemetry. | Internal only |
 | `clickhouse` | `Clickhouse/`, `packages/Common/Server/Utils/AnalyticsDatabase` | Telemetry: logs, traces, metrics, profiles, monitor results. | Internal only |
 | `valkey` | `packages/Common/Server/Infrastructure` | Cache, queues (BullMQ), locks and rate limits. | Internal only |
@@ -163,11 +163,15 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
    process, its environment, its files or credentials, other checks, other
    steps, or other projects. A global Runner is handed a step's script with
    only the runbook secrets that step's own project let global Runners use,
-   and never a credential. The same process works on code fixes for every
-   project on the Global Runner and, for each, holds a token that can push
-   branches to that repository: the isolated-vm boundary around every
-   project's JavaScript steps is what keeps a step from reaching it, and a
-   fix runs none of the repository's commands beside them (the server never
+   and never a credential, and runs each step in a process started for that
+   step alone, as a user of its own, with none of the Runner's environment
+   and under Node's permission model (`packages/Runner/Utils/JavaScriptSandbox`;
+   where its container forbids switching users, as the Runner's own user,
+   which its log says). The Runner works on code fixes for every project on
+   the Global Runner and, for each, holds a token that can push branches to
+   that repository, in a workspace only the Runner's user may enter: the
+   isolate, and around it the step's own process and user, keep a step from
+   reaching it, and a fix runs none of the repository's commands beside them (the server never
    hands a global Runner those commands, nor offers its model a command
    tool). What a global Runner's key reaches is held to the run it claimed
    (`CodeFixAgentAuth.deniesAccessToRun`): that run's details, exception,

@@ -798,6 +798,8 @@ const PUBLIC_PAGE_MESSAGES: Record<string, Array<PublicPageMessage>> = {
     { key: FormMessage.FormBusy },
     // A form's hourly allowance of files, used up.
     { key: FormMessage.FilesBusy },
+    // Files scanned for malware, and the scanner not answering (#6118).
+    { key: FormMessage.FilesNotChecked },
     { key: FormMessage.SubmissionsUnavailable },
     { key: FormMessage.CaptchaFailed },
     { key: "form.successTitle" },

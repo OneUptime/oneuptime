@@ -8,7 +8,7 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -117,9 +117,26 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         messages,
       } satisfies JSONObject;
 
-      Response.sendEmptySuccessResponse(req, res);
+      /*
+       * Acknowledge only after queue admission, as the OTLP endpoints do.
+       * This answered 200 first and queued after, so messages the queue then
+       * refused were lost behind a success; a relay retries a 503. The queue
+       * service logs the failure; the sender is told nothing of the backend
+       * or its payload.
+       */
+      try {
+        await SyslogQueueService.addSyslogIngestJob(req as TelemetryRequest);
+      } catch {
+        return Response.sendCustomResponse(
+          req,
+          res,
+          503,
+          { message: "Telemetry queue unavailable. Please retry." },
+          {},
+        );
+      }
 
-      await SyslogQueueService.addSyslogIngestJob(req as TelemetryRequest);
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (error) {
@@ -192,15 +209,18 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         logger.error(loadError);
       }
 
-      let messageCounter: number = 0;
+      /*
+       * Handed back by the time the work took, not every so many messages:
+       * a message's work grows with its scrub rules and what they read
+       * (Common/Server/Utils/EventLoop.ts).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
       for (const rawMessage of messages) {
         try {
-          if (messageCounter % 500 === 0) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
-
-          messageCounter++;
 
           const parsed: ParsedSyslogMessage | null =
             parseSyslogMessage(rawMessage);

@@ -1,5 +1,5 @@
 import { storedAttributesOf } from "Common/Server/Utils/CloudConnection/CloudMetricPayload";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import {
   AWS_KEY_METRICS,
   AwsKeyMetric,
@@ -605,9 +605,6 @@ export class StreamedSeriesMemory {
 export const STREAMED_SERIES_MEMORY: StreamedSeriesMemory =
   new StreamedSeriesMemory();
 
-// Datapoints read between two yields to the event loop.
-const POINTS_PER_YIELD: number = 2000;
-
 interface StreamedPointPlace {
   // The connection, the resource and the metric: null for a resource no rule knows.
   seriesKey: string | null;
@@ -736,7 +733,11 @@ export async function shapeStreamedMetrics(data: {
   >();
   // The fewest dimensions of each resource's metric in this delivery.
   const deliveryFewest: Map<string, number> = new Map<string, number>();
-  let read: number = 0;
+  /*
+   * Handed back by the time the work took, not every 2,000 datapoints
+   * (Common/Server/Utils/EventLoop.ts, #8925).
+   */
+  const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
   // First: which resource each summary datapoint is about.
   for (const resourceMetrics of data.resources) {
@@ -760,10 +761,8 @@ export async function shapeStreamedMetrics(data: {
         for (const rawPoint of readArray(
           readObject(metric["summary"])["dataPoints"],
         )) {
-          read++;
-
-          if (read % POINTS_PER_YIELD === 0) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
 
           const point: JSONObject = readObject(rawPoint);

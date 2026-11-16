@@ -21,6 +21,13 @@ import Telemetry, {
   TelemetryHistogram,
 } from "Common/Server/Utils/Telemetry";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import {
+  describeSignalsExportedWithoutAHeader,
+  hasOtlpHeadersFor,
+  NOTHING_EXPORTED_WITHOUT_A_HEADER,
+  OTLP_SIGNALS,
+  OtlpSignal,
+} from "Common/Server/Utils/Telemetry/OtlpExporterHeaders";
 import NotificationDeliveryMetrics, {
   MAX_CUSTOM_CHANNEL_NAME_LENGTH,
   NotificationDeliveryChannel,
@@ -43,7 +50,10 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
-import { getOnCallAcknowledgementTimeoutDueAt } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import {
+  getOnCallAcknowledgementTimeoutDueAt,
+  getOnCallPageAgainDueAt,
+} from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { getOnCallPolicyRunPagingDueAt } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -52,6 +62,8 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import SmsStatus from "Common/Types/SmsStatus";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricZeroFill from "Common/Utils/Metrics/MetricZeroFill";
+import { AggregationTemporality } from "Common/Models/AnalyticsModels/Metric";
 import {
   afterAll,
   afterEach,
@@ -1328,7 +1340,7 @@ describe("how a page is timed", () => {
       "For a page held by its on-call rule or by OneUptime AI, when its hold ran out, or when it started if that was sooner.",
     );
     expect(pageStarted).toContain(
-      "For a page again, when its acknowledgement timeout ran out.",
+      "For a page again, when its acknowledgement timeout ran out, or when its policy was last changed if that came later: a timeout cut so short that it had already run out is timed from the cut.",
     );
     expect(pageStarted).toContain(
       "So a worker that got to either late shows in the time.",
@@ -1355,6 +1367,25 @@ describe("how a page is timed", () => {
         minutes: 30,
       }),
     ).toEqual(holdRanOut);
+    /*
+     * Issue #6847: its policy changed later than that - a timeout cut so
+     * short it had run out already - when it was changed. One changed
+     * before, as a timeout never changed: when it ran out.
+     */
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: new Date("2026-11-11T08:30:00.000Z"),
+        minutes: 10,
+        policyChangedAt: new Date("2026-11-11T08:50:00.000Z"),
+      }),
+    ).toEqual(new Date("2026-11-11T08:50:00.000Z"));
+    expect(
+      getOnCallPageAgainDueAt({
+        startedAt: new Date("2026-11-11T08:30:00.000Z"),
+        minutes: 30,
+        policyChangedAt: new Date("2026-11-10T08:00:00.000Z"),
+      }),
+    ).toEqual(holdRanOut);
 
     // Outside a record's creation, a page started with when it was due.
     expect(OnCallPageTiming.startPage({ dueAt: holdRanOut })).toEqual({
@@ -1370,12 +1401,18 @@ describe("how a page is timed", () => {
     ).toContain(
       "dueAt: getOnCallPolicyRunPagingDueAt({ pagingStartsAt: run.pagingStartsAt, now: data.now, }),",
     );
-    expect(
-      readCommonSource(
-        "Server/Utils/OnCall/OnCallAcknowledgementTimeout.ts",
-      ).replace(WHITESPACE_RUN, " "),
-    ).toContain(
-      "dueAt: getOnCallAcknowledgementTimeoutDueAt({ startedAt: startedAt, minutes: minutes, }),",
+    const pageAgainWorker: string = readCommonSource(
+      "Server/Utils/OnCall/OnCallAcknowledgementTimeout.ts",
+    ).replace(WHITESPACE_RUN, " ");
+
+    // Read once, with the minutes the worker decides by and the policy's change...
+    expect(pageAgainWorker).toContain(
+      "const pageAgainDueAt: Date = getOnCallPageAgainDueAt({ startedAt: startedAt, minutes: minutes, policyChangedAt: run.onCallDutyPolicy.updatedAt, });",
+    );
+    // ...and handed to the page again and to what is kept in flight for it.
+    expect(pageAgainWorker.split("dueAt: pageAgainDueAt,").length - 1).toBe(2);
+    expect(pageAgainWorker).not.toContain(
+      "dueAt: getOnCallAcknowledgementTimeoutDueAt(",
     );
 
     // Neither is in send lag: their notifications are due as the page starts.
@@ -1538,7 +1575,7 @@ describe("turning them on", () => {
 
     for (const signal of ["Traces", "Metrics", "Logs"]) {
       expect(telemetry).toContain(
-        `if (this.getOltp${signal}Endpoint() && hasHeaders) {`,
+        `if (this.getOltp${signal}Endpoint() && hasHeadersFor(OtlpSignal.${signal})) {`,
       );
     }
 
@@ -1546,11 +1583,53 @@ describe("turning them on", () => {
     expect(Telemetry.getHeaders()).toEqual({});
   });
 
-  it("writes each header as name=value, several separated by ';', a value holding '=' as the exporter reads them", () => {
+  /*
+   * Issue #8884: the exporters read OTEL_EXPORTER_OTLP_HEADERS, and
+   * OTEL_EXPORTER_OTLP_METRICS_HEADERS for metrics, on their own, and send
+   * them under OneUptime's headers; Telemetry.init counts them for the gate,
+   * as the page says.
+   */
+  it("counts headers set in OTEL_EXPORTER_OTLP_HEADERS, or in OTEL_EXPORTER_OTLP_METRICS_HEADERS for metrics alone, as the page says", () => {
     const turnOn: string = section("## Turn them on");
 
     expect(turnOn).toContain(
-      "Write each header as `name=value`, and separate several with `;`. A value may hold `=`.",
+      "Headers set in `OTEL_EXPORTER_OTLP_HEADERS` itself, or in `OTEL_EXPORTER_OTLP_METRICS_HEADERS` for metrics alone, count too: the exporter sends them as well, and OneUptime's own win by name.",
+    );
+
+    const exports: (
+      environment: NodeJS.ProcessEnv,
+    ) => Record<string, boolean> = (
+      environment: NodeJS.ProcessEnv,
+    ): Record<string, boolean> => {
+      return Object.fromEntries(
+        OTLP_SIGNALS.map((signal: OtlpSignal): [string, boolean] => {
+          return [
+            signal,
+            hasOtlpHeadersFor({ ownHeaders: {}, environment, signal }),
+          ];
+        }),
+      );
+    };
+
+    expect(
+      exports({ OTEL_EXPORTER_OTLP_HEADERS: "x-oneuptime-token=key" }),
+    ).toEqual({ TRACES: true, METRICS: true, LOGS: true });
+    expect(
+      exports({ OTEL_EXPORTER_OTLP_METRICS_HEADERS: "x-oneuptime-token=key" }),
+    ).toEqual({ TRACES: false, METRICS: true, LOGS: false });
+    expect(exports({})).toEqual({
+      TRACES: false,
+      METRICS: false,
+      LOGS: false,
+    });
+    expect(telemetry).toContain("return hasOtlpHeadersFor({");
+  });
+
+  it("writes each header as name=value, several separated by ';' or ',', a value holding '=' as the exporter reads them", () => {
+    const turnOn: string = section("## Turn them on");
+
+    expect(turnOn).toContain(
+      "Write each header as `name=value`, and separate several with `;`, or with `,` as in `OTEL_EXPORTER_OTLP_HEADERS`. A value may hold `=`. Without a `;`, a value is read as that standard writes it, a space as `%20`: end the setting with `;` to send it exactly as written.",
     );
 
     /*
@@ -1564,6 +1643,26 @@ describe("turning them on", () => {
     expect(Telemetry.getHeaders()).toEqual({
       Authorization: "Basic dXNlcjpwYXNzd29yZA==",
       "x-oneuptime-token": "key",
+    });
+
+    /*
+     * The same two headers as OTEL_EXPORTER_OTLP_HEADERS writes them (issue
+     * #7162): ',' between them, the space in the value written %20.
+     */
+    process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"] =
+      "Authorization=Basic%20dXNlcjpwYXNzd29yZA==,x-oneuptime-token=key";
+
+    expect(Telemetry.getHeaders()).toEqual({
+      Authorization: "Basic dXNlcjpwYXNzd29yZA==",
+      "x-oneuptime-token": "key",
+    });
+
+    // With a ';' at its end, a value is sent exactly as written.
+    process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"] =
+      "x-signature=abc%2Bdef%3D;";
+
+    expect(Telemetry.getHeaders()).toEqual({
+      "x-signature": "abc%2Bdef%3D",
     });
 
     delete process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"];
@@ -1629,7 +1728,11 @@ describe("turning them on", () => {
     ]);
 
     delete process.env[setting];
-    expect(PAGE.split(setting).length - 1).toBe(2);
+    // Named once, as what the chart's value sets.
+    expect(PAGE.split(setting).length - 1).toBe(1);
+    expect(
+      tabPanel(section("### Send deltas to a OneUptime project"), "Kubernetes"),
+    ).toContain(`\`${setting}\``);
   });
 
   it("names the chart's exporter values, which reach the app and worker deployments", () => {
@@ -1716,32 +1819,116 @@ describe("turning them on", () => {
     expect(app).toContain("DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}");
   });
 
-  it("sends deltas from the chart's extraEnv, which a service's own list replaces, and from a compose override of the app service", () => {
+  /*
+   * Issue #6760: one setting next to the exporter's endpoint and headers,
+   * which every service that sends OneUptime's own telemetry gets, instead of
+   * an extraEnv entry a service's own list replaced, or a compose override.
+   */
+  it("sends deltas with the chart's openTelemetryExporter.metricsTemporality, which every service that exports gets", () => {
     const values: string = readRepoFile(
       "HelmChart/Public/oneuptime/values.yaml",
     );
-    const deltas: string = section("### Send deltas to a OneUptime project");
+    const schema: {
+      properties: Record<
+        string,
+        { properties: Record<string, { enum?: Array<unknown> }> }
+      >;
+    } = JSON.parse(
+      readRepoFile("HelmChart/Public/oneuptime/values.schema.json"),
+    );
+    const helpers: string = readRepoFile(
+      "HelmChart/Public/oneuptime/templates/_helpers.tpl",
+    );
+    const common: string = helpers.slice(
+      helpers.indexOf('{{- define "oneuptime.env.common" }}'),
+      helpers.indexOf(
+        "{{- define",
+        helpers.indexOf('"oneuptime.env.common"') + 1,
+      ),
+    );
+    const kubernetes: string = tabPanel(
+      section("### Send deltas to a OneUptime project"),
+      "Kubernetes",
+    );
+    const rendered: string = [
+      "{{- if $.Values.openTelemetryExporter.metricsTemporality }}",
+      "- name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+      '  value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}',
+      "{{- end }}",
+    ].join("\n");
 
-    expect(values).toMatch(/^extraEnv: \[\]$/m);
+    expect(kubernetes).toContain(
+      "```yaml\nopenTelemetryExporter:\n  metricsTemporality: delta\n```",
+    );
+    expect(kubernetes).not.toContain("extraEnv");
+    expect(yamlBlock(values, "openTelemetryExporter")).toMatch(
+      /^ {2}metricsTemporality:$/m,
+    );
+    expect(
+      schema.properties["openTelemetryExporter"]?.properties[
+        "metricsTemporality"
+      ]?.enum,
+    ).toEqual(["", "cumulative", "delta", null]);
+    // app, worker and the rest, through the common env...
+    expect(common).toContain(rendered);
 
     for (const service of ["app", "worker"]) {
       expect(
         readRepoFile(`HelmChart/Public/oneuptime/templates/${service}.yaml`),
-      ).toContain(
-        `{{- with (default $.Values.extraEnv $.Values.${service}.extraEnv) }}`,
-      );
-      expect(yamlBlock(values, service)).toMatch(/^ {2}extraEnv: \[\]$/m);
-      expect(deltas).toContain(`\`${service}.extraEnv\``);
+      ).toContain('{{- include "oneuptime.env.common" . ');
     }
 
-    expect(tabPanel(deltas, "Kubernetes")).toContain(
-      "extraEnv:\n  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\n    value: delta",
+    // ...and the probes and the global Runner, which write their own.
+    for (const template of ["probe.yaml", "global-runner.yaml"]) {
+      expect(
+        readRepoFile(`HelmChart/Public/oneuptime/templates/${template}`)
+          .split("\n")
+          .map((line: string): string => {
+            return line.trim();
+          })
+          .join("\n"),
+      ).toContain(
+        rendered
+          .split("\n")
+          .map((line: string): string => {
+            return line.trim();
+          })
+          .join("\n"),
+      );
+    }
+  });
+
+  it("sends deltas with config.env's OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY, which Docker Compose hands every service that exports", () => {
+    const example: string = readRepoFile("config.example.env");
+    const base: string = readRepoFile("docker-compose.base.yml");
+    const compose: string = tabPanel(
+      section("### Send deltas to a OneUptime project"),
+      "Docker Compose",
     );
-    expect(tabPanel(deltas, "Docker Compose")).toContain(
-      "services:\n  app:\n    environment:\n      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta",
+    const mapping: string =
+      "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: ${OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY:-}";
+
+    expect(compose).toContain(
+      "```bash\nOPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta\n```",
     );
-    // The app service runs the workers too, and is the one compose file's.
-    expect(readRepoFile("docker-compose.yml")).toMatch(/^ {2}app:$/m);
+    expect(compose).toContain("`config.env`");
+    expect(compose).toContain("`npm start`");
+    // Shipped empty, which leaves the exporter's default, cumulative.
+    expect(example).toMatch(
+      /^OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=$/m,
+    );
+    expect(yamlBlock(base, "x-common-variables")).toContain(`  ${mapping}`);
+
+    const services: string = yamlBlock(base, "services");
+
+    // The app service runs the workers too, and has the common variables.
+    expect(nestedYamlBlock(services, "app")).toContain(
+      "<<: *common-runtime-variables",
+    );
+
+    for (const service of ["probe-1", "probe-2", "global-runner"]) {
+      expect(nestedYamlBlock(services, service)).toContain(`      ${mapping}`);
+    }
   });
 });
 
@@ -1749,6 +1936,7 @@ describe("the objectives", () => {
   const objectives: Array<string> = [
     "### On-call SMS reach Twilio",
     "### Pages go out within 30 seconds",
+    "### Pages started later go out within 2 minutes",
     "### Notifications sent later go out within 90 seconds",
     "### On-call SMS reach the phone",
   ];
@@ -1790,13 +1978,26 @@ describe("the objectives", () => {
     });
   });
 
-  it("are the four the page's opening promises, each under its own heading", () => {
+  it("are the five the page's opening promises, each under its own heading", () => {
     for (const heading of objectives) {
       expect(PAGE.split("\n")).toContain(heading);
     }
 
+    expect(
+      PAGE.split("\n").filter((line: string): boolean => {
+        return (
+          line.startsWith("### ") &&
+          PAGE.indexOf(line) > PAGE.indexOf("## SLOs to start from") &&
+          PAGE.indexOf(line) < PAGE.indexOf("## Troubleshooting") &&
+          line !== "### Build one in the metrics explorer"
+        );
+      }),
+    ).toEqual(objectives);
     expect(section("## SLOs to start from")).toContain(
-      "Four objectives most installations can promise",
+      "Five objectives most installations can promise",
+    );
+    expect(PAGE).toContain(
+      "- [SLOs to start from](#slos-to-start-from): Five objectives, query by query.",
     );
   });
 
@@ -1871,6 +2072,11 @@ describe("the objectives", () => {
         30000,
       ],
       [
+        "### Pages started later go out within 2 minutes",
+        "notification.time_to_send",
+        120000,
+      ],
+      [
         "### Notifications sent later go out within 90 seconds",
         "notification.send.lag",
         90000,
@@ -1889,7 +2095,92 @@ describe("the objectives", () => {
     );
   });
 
-  it("write a failure share the formula evaluator reads, which draws no point for a step with no failures", () => {
+  /*
+   * Issue #6847: a page a once-a-minute worker starts when it comes due - a
+   * held page, a page again - is timed from when it was due (page_started),
+   * and left out of the 30-second objective. Its own objective reads only
+   * those, at the first edge of time to send past the minute such a worker
+   * waits between its runs: a worker on time keeps it, one that fell behind
+   * does not.
+   */
+  it("read the pages started later alone, at the first bucket edge past the minute their workers wait", () => {
+    const later: string = "### Pages started later go out within 2 minutes";
+    const row: Array<string> = onlyTable(later)[0] as Array<string>;
+    const triggered: Array<string> = onlyTable(
+      "### Pages go out within 30 seconds",
+    )[0] as Array<string>;
+
+    // Every page is in one of the two: timed from its trigger, or started later.
+    expect(codeIn(triggered[3] as string)).toEqual([
+      `notification.page.start != ${OnCallPageStart.PageStarted}`,
+    ]);
+    expect(codeIn(row[3] as string)).toEqual([
+      `notification.page.start = ${OnCallPageStart.PageStarted}`,
+    ]);
+    expect(codeIn(row[1] as string)).toEqual(["notification.time_to_send"]);
+    expect((row[2] as string).replace(/\*\*/g, "")).toBe(
+      MetricsAggregationType.P95,
+    );
+
+    // The edge: the first of time to send past a worker's minute.
+    const firstEdgePastAMinute: number | undefined = (
+      instrument("notification.time_to_send").buckets || []
+    ).find((edge: number): boolean => {
+      return edge > 60 * 1000;
+    });
+
+    expect(firstEdgePastAMinute).toBe(120000);
+    expect(section(later)).toContain(
+      `The objective holds while \`a\` stays at or below ${firstEdgePastAMinute}.`,
+    );
+    expect(section(later)).toContain(
+      "95% of the pages started later reach their provider within 2 minutes of being due",
+    );
+    expect(section(later)).toContain(
+      "A held page or a page again waits for the next run of a worker that runs once a minute, so up to a minute of its time is spent on that wait, and a worker that fell behind adds more.",
+    );
+
+    // The workers that start them: held runs, and pages again, once a minute each.
+    for (const job of [
+      "FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+      "FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/PageAgainAfterAcknowledgementTimeout.ts",
+    ]) {
+      const source: string = readAppSource(job);
+      const schedule: string | undefined = source.match(
+        /RunCron\(\s*"[^"]+",\s*\{\s*schedule:\s*([^,]+),/,
+      )?.[1];
+
+      expect({ job, schedule: schedule?.trim() }).toEqual({
+        job,
+        schedule: expect.stringMatching(/EVERY_MINUTE$/),
+      });
+    }
+
+    expect(
+      readAppSource(
+        "FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+      ),
+    ).toContain("OnCallDutyPolicyExecutionLogService.startWaitingRun(");
+    expect(
+      readAppSource(
+        "FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/PageAgainAfterAcknowledgementTimeout.ts",
+      ),
+    ).toContain("await OnCallAcknowledgementTimeout.run();");
+
+    // The 30-second objective says where they went.
+    expect(section("### Pages go out within 30 seconds")).toContain(
+      "so they are left out: the next objective covers them.",
+    );
+  });
+
+  /*
+   * Issue #6761: `b` has no point in a step with no failure - a delta
+   * counter sends nothing for an attribute set that saw nothing - and a
+   * formula reads a counter's Sum with no point as 0 (MetricZeroFill), from
+   * what the metric catalog says of it: a counter, with the temporality the
+   * page has OneUptime send, or the running totals it sends by default.
+   */
+  it("write a failure share the formula evaluator reads, which draws 0 for a step with no failures", () => {
     const formula: string = "$b / $a * 100";
     const queryConfig: (variable: string) => MetricQueryConfigData = (
       variable: string,
@@ -1919,25 +2210,43 @@ describe("the objectives", () => {
         }),
       };
     };
-    const shares: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
-      formula: formula,
-      queryConfigs: [queryConfig("a"), queryConfig("b")],
-      formulaConfigs: [],
-      results: [
-        result([
-          ["2026-11-01T00:00:00Z", 200],
-          ["2026-11-01T00:01:00Z", 100],
-        ]),
-        // No failure in the first step: b has no point there.
-        result([["2026-11-01T00:01:00Z", 2]]),
-      ],
-    });
+    // notification.send.count is a counter: an OpenTelemetry monotonic Sum.
+    expect(instrument("notification.send.count").kind).toBe("Counter");
 
-    expect(
-      shares.data.map((point: { value: number }): number => {
-        return point.value;
-      }),
-    ).toEqual([2]);
+    for (const aggregationTemporality of [
+      AggregationTemporality.Delta,
+      AggregationTemporality.Cumulative,
+    ]) {
+      const shares: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: formula,
+        queryConfigs: [queryConfig("a"), queryConfig("b")],
+        formulaConfigs: [],
+        results: [
+          result([
+            ["2026-11-01T00:00:00Z", 200],
+            ["2026-11-01T00:01:00Z", 100],
+          ]),
+          // No failure in the first step: b has no point there.
+          result([["2026-11-01T00:01:00Z", 2]]),
+        ],
+        zeroFill: {
+          semanticsByMetricName: MetricZeroFill.getSemanticsByMetricName([
+            {
+              name: "notification.send.count",
+              isMonotonic: true,
+              aggregationTemporality: aggregationTemporality,
+            },
+          ]),
+        },
+      });
+
+      expect({
+        aggregationTemporality,
+        shares: shares.data.map((point: { value: number }): number => {
+          return point.value;
+        }),
+      }).toEqual({ aggregationTemporality, shares: [0, 2] });
+    }
 
     for (const heading of [
       "### On-call SMS reach Twilio",
@@ -1947,8 +2256,9 @@ describe("the objectives", () => {
     }
 
     expect(section("### On-call SMS reach Twilio")).toContain(
-      "A step with no failure draws no point, as `b` has none.",
+      "A step with no failure draws 0, as `b` counted nothing in it.",
     );
+    expect(PAGE).not.toContain("draws no point");
   });
 
   it("name channels and statuses that exist when they say what to change", () => {
@@ -2101,9 +2411,12 @@ describe("the page's words", () => {
     expect(telemetry).toContain("logger.error(unreadable, EXTERNAL_FAULT);");
 
     // ...and says so when an endpoint is set but nothing is sent.
-    expect(init).toContain("if (this.getOtlpEndpoint() && !hasHeaders) {");
-    expect(init).toContain(
-      "logger.error(NOTHING_EXPORTED_WITHOUT_A_HEADER, EXTERNAL_FAULT);",
+    expect(init).toContain("if (this.getOtlpEndpoint()) {");
+    expect(init).toContain("describeSignalsExportedWithoutAHeader(");
+    expect(init).toContain("return !hasHeadersFor(signal);");
+    expect(init).toContain("logger.error(notExported, EXTERNAL_FAULT);");
+    expect(describeSignalsExportedWithoutAHeader(OTLP_SIGNALS)).toBe(
+      NOTHING_EXPORTED_WITHOUT_A_HEADER,
     );
   });
 });

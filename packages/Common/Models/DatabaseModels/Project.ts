@@ -99,7 +99,8 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * enableCallNotifications, enableWhatsAppNotifications,
    * enableTelegramNotifications), and nothing else: every other column's own
    * update list leaves them out, and the server checks both lists on every
-   * update.
+   * update. Edit Incoming Request Secret is here for one column alone,
+   * requireIncomingRequestSecret (issue #8502), the same way.
    */
   update: [
     Permission.ProjectOwner,
@@ -108,6 +109,7 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.BillingMember,
     Permission.ManageProjectBilling,
     Permission.EditProject,
+    Permission.EditIncomingRequestSecret,
   ],
 })
 @TableMetadata({
@@ -545,10 +547,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -603,10 +602,7 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
   })
@@ -3051,6 +3047,44 @@ export default class Project extends TenantModel {
   public keepIncidentsWithCompletedPostmortem?: boolean = undefined;
 
   /*
+   * Which postmortem statuses keep an incident while
+   * keepIncidentsWithCompletedPostmortem is on (issue #6945): their ids,
+   * or empty - where every project starts - for the project's Completed
+   * status, as before. A Project Owner or Admin adds the project's own
+   * statuses (a "Published" below Completed) on Incidents -> Settings ->
+   * Data Retention. Chosen, not worked out from where a status sits: the
+   * statuses at and below Completed all count as done, and "Not Needed" is
+   * one of them (Types/Retention/ResolvedRecordRetention says why).
+   * ProjectService refuses an empty list, and any id that is not one of
+   * the project's postmortem statuses.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Postmortem Statuses That Keep an Incident",
+    description:
+      "The ids of the postmortem statuses whose incidents the incident retention never deletes while Keep Incidents With a Completed Postmortem is on. Empty (the default) is the project's Completed status.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public keepIncidentsInPostmortemStatusIds?: Array<string> = undefined;
+
+  /*
    * How long a resolved alert stays (issue #6903), as
    * incidentRetentionInDays is for incidents: one of the choices, or 0 to
    * keep every alert - the default. Deleted by the Workers job
@@ -4794,9 +4828,11 @@ export default class Project extends TenantModel {
    * it sends one of the project's incoming request secrets
    * (IncomingRequestSecret; Types/Monitor/IncomingMonitor/IncomingRequestSecret
    * says how). Everyone in the project reads it, so a monitor's page can say
-   * its senders need a secret; only owners and admins change it, as only they
-   * manage the secrets. It cannot be turned on while the project has no
-   * secret (ProjectService), so turning it on never refuses every sender at
+   * its senders need a secret; those who manage the secrets change it:
+   * owners, admins and a custom role given Edit Incoming Request Secret
+   * (issue #8502), the one column of the project that permission opens. It
+   * cannot be turned on while the project has no secret that covers a
+   * monitor (ProjectService), so turning it on never refuses every sender at
    * once by mistake.
    */
   @ColumnAccessControl({
@@ -4810,7 +4846,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncomingRequestSecret,
+    ],
   })
   @TableColumn({
     required: false,
@@ -5621,49 +5661,4 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public productSettings?: JSONObject = undefined;
-
-  /*
-   * A sample project (issue #6808): "Sample: Acme Shop", made in one click
-   * for a person to look around in, filled with made-up monitors,
-   * incidents, an on-call policy, a status page and telemetry
-   * (SampleProjectService). It can never notify anyone, be seen by the
-   * public or be billed: every reader that keeps it so asks
-   * ProjectService.isSampleProject, and SampleProjectReadersGuard lists
-   * them, so a new channel cannot forget it.
-   *
-   * Set once, by the server, when the sample is made, and never changed:
-   * nobody writes it through the API, and a project never becomes or
-   * stops being a sample. Every member reads it, with the project
-   * (ProjectAPI's list-user-projects), so every page says what it is.
-   */
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.Boolean,
-    isDefaultValueColumn: true,
-    defaultValue: false,
-    title: "Is Sample Project",
-    description:
-      "A sample project made for looking around: nothing in it is real, it notifies nobody, its status page is never public and it is never billed. Set by OneUptime when the sample is made.",
-    example: "false",
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    unique: false,
-    default: false,
-  })
-  public isSampleProject?: boolean = undefined;
 }

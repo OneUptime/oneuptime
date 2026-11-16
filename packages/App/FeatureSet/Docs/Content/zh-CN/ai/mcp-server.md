@@ -144,7 +144,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### 复制密钥
 
-点击 **创建API 密钥**：密钥的页面会打开。从那里复制密钥。
+点击 **创建API 密钥**。OneUptime 会在 **复制你的 API 密钥** 对话框中显示一次密钥：请在点击 **完成** 之前复制它。
 :::
 
 API 密钥属于一个项目：MCP 服务器从密钥中获取项目，因此创建工具从不需要 `projectId` 参数。
@@ -360,6 +360,8 @@ curl https://oneuptime.com/mcp/tools
 运算符有 `EqualTo`、`NotEqual`、`IsNull`、`NotNull`、`EqualToOrNull`、`GreaterThan`、`LessThan`、`GreaterThanOrEqual`、`LessThanOrEqual`、`InBetween`、`Search` 和 `Includes`。排序值为 `"ASC"` 或 `"DESC"`。
 
 `list_` 和 `count_` 工具接受任意字段，这样工具列表就小到客户端可以一次加载。要查看资源的字段、每个字段的含义以及它接受的运算符，代理会用资源或它的某个工具（例如 `Incident` 或 `list_incidents`）调用 `oneuptime_describe_resource`。
+
+事件、监视器以及其他各类记录的其余 `list_` 工具，排序方式与 API 相同：字段接受一个方向，或接受 `{ "direction": "DESC", "nulls": "LAST" }`，把该字段没有值的记录放在最后；指向一条记录的关系按其所指定记录的某个字段排序，如 `{ "incidentSeverity": { "order": "ASC" } }`。`oneuptime_describe_resource` 会把每个这样的关系标记为 `sort`，并在 `sortBy` 下列出可用来排序的字段。
 
 ## 字段选择和分页
 
