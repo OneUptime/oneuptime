@@ -13,6 +13,7 @@ import { sortLabels } from "../../../Utils/LabelOrder";
 import { getNumberedRecordName } from "../../../Utils/Project/RecordNumber";
 import useTranslateValue from "../../Utils/Translation";
 import { getProductName } from "../../Utils/ProductBranding";
+import { publishPageTrail } from "../../Utils/PageTrail";
 import PageTrailEndContext from "./PageTrailEnd";
 import { getCrumbTitle, getRecordCrumbName } from "./RecordNameInTrail";
 import { PAGE_RECORD_TITLE_SENTENCE } from "./PageRecordTitle";
@@ -315,6 +316,9 @@ const Page: FunctionComponent<ComponentProps> = (
       // The installation's own name when it goes by one (ProductBranding).
       document.title = `${getProductName()} | ${pageTitle}`;
     }
+
+    // What names this page from outside it: Give Feedback's "this page (SLOs)".
+    publishPageTrail(breadcrumbLinks);
   }, [translatedTitle, recordHeadingText, breadcrumbLinks]);
 
   if (props.error) {

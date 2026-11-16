@@ -57,8 +57,12 @@ import { useTranslation } from "react-i18next";
  * Where every answer lands: "How easy was that?" at the end of a guided
  * setup, Give feedback in Help, "Was this clear?" under an explanation and
  * the first-week check-in. On a self-hosted server the master admins who
- * read this are the server's own, and nothing ever left it. On OneUptime
- * Cloud they are the OneUptime team.
+ * read this are the server's own, and nothing ever went to OneUptime. On
+ * OneUptime Cloud they are the OneUptime team. Give feedback is a message
+ * as well as an answer (#8893): it is also emailed, with who sent it, to
+ * support@oneuptime.com on OneUptime Cloud and to the Admin Notification
+ * Email, when one is set, on a self-hosted server. The row here still
+ * names nobody.
  *
  *   - Ask people for feedback: the server's switch (GlobalConfig.
  *     disableProductFeedback). Off, nobody is asked and Help offers no Give
@@ -418,12 +422,17 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
         modelAPI={AdminModelAPI}
         cardTitle={translationKey("Ask People for Feedback")}
         cardDescription={
+          /*
+           * Give feedback is also emailed (#8893): on OneUptime Cloud to the
+           * OneUptime team, on a self-hosted server to its Admin
+           * Notification Email when one is set, never to OneUptime.
+           */
           BILLING_ENABLED
             ? translationKey(
-                "Answers are kept on this server and read here by its master admins. The score, never the words, also goes to product analytics.",
+                "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.",
               )
             : translationKey(
-                "Answers are kept on this server and read here by its master admins. Nothing is sent anywhere else.",
+                "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.",
               )
         }
         title="Ask people how things went"
