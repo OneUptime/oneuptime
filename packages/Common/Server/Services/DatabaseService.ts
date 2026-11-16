@@ -201,6 +201,7 @@ import RelatedFileAccess, {
   RelatedFileReader,
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
+import AttachedFiles, { hasAttachedFiles } from "../Utils/File/AttachedFiles";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
@@ -1126,9 +1127,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The files a write or a delete let go of are deleted once nothing holds
-   * them (CustomFieldFiles.deleteUnheldFiles). Best-effort: a failure is
-   * logged, and never fails the write that is done already.
+   * The files a write or a delete let go of - held in custom fields, or
+   * attached to the deleted rows and their notes (AttachedFiles) - are
+   * deleted once nothing holds them (CustomFieldFiles.deleteUnheldFiles).
+   * Best-effort: a failure is logged, and never fails the write that is
+   * done already.
    */
   private async deleteReleasedCustomFieldFiles(
     releasedFileIds: Map<string, Set<string>>,
@@ -1145,7 +1148,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
     } catch (err) {
       logger.error(
-        `Could not delete the custom field files ${this.model.tableName} records let go of: ${String(err)}`,
+        `Could not delete the files ${this.model.tableName} records let go of: ${String(err)}`,
       );
     }
   }
@@ -1383,6 +1386,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * with these (the notes of an incident, the groups of a status page),
    * read while they are still there. See PublishedImages.
    */
+  /*
+   * The files attached to rows about to be deleted - to them, and to the
+   * notes their delete takes with it - by the project each was uploaded in,
+   * for deleteReleasedCustomFieldFiles once the DELETE is done (issue
+   * #6944). Nothing is read for a table that lists no attachments.
+   */
+  private async readAttachedFilesOfRowsDeleted(
+    items: Array<TBaseModel>,
+  ): Promise<Map<string, Set<string>>> {
+    if (!hasAttachedFiles(this.model.tableName)) {
+      return new Map();
+    }
+
+    return await AttachedFiles.readFilesOfRowsDeleted({
+      tableName: this.model.tableName,
+      ids: items.map((item: TBaseModel) => {
+        return item.id!;
+      }),
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        return await this.getRepository().manager.query(sql, parameters);
+      },
+    });
+  }
+
   private async readRowsDeletedWith(
     items: Array<TBaseModel>,
   ): Promise<Array<CascadedRow>> {
@@ -7798,6 +7828,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         const cascaded: Array<CascadedRow> =
           await this.readRowsDeletedWith(items);
 
+        // The files attached to them and to their notes. See AttachedFiles.
+        const attachedFiles: Map<
+          string,
+          Set<string>
+        > = await this.readAttachedFilesOfRowsDeleted(items);
+
         // The DELETE itself, committed on its own.
         numberOfDocsAffected =
           (
@@ -7805,6 +7841,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               return await this.getRepository().delete(query as any);
             })
           ).affected || 0;
+
+        /*
+         * Their attached files go with them - a retention purge included -
+         * unless something still holds them. See AttachedFiles.
+         */
+        await this.deleteReleasedCustomFieldFiles(attachedFiles);
 
         /*
          * Their images are private again, unless another record still shows
@@ -8170,6 +8212,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           deleteBy.props,
         );
 
+        // The files attached to them and to their notes. See AttachedFiles.
+        const attachedFiles: Map<
+          string,
+          Set<string>
+        > = await this.readAttachedFilesOfRowsDeleted(items);
+
         // The DELETE itself, committed on its own.
         numberOfDocsAffected =
           (
@@ -8177,6 +8225,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               return await this.getRepository().delete(query as any);
             })
           ).affected || 0;
+
+        /*
+         * Their attached files go with them, unless something still holds
+         * them. See AttachedFiles.
+         */
+        await this.deleteReleasedCustomFieldFiles(attachedFiles);
 
         /*
          * The images the deleted rows - and the rows deleted with them -
