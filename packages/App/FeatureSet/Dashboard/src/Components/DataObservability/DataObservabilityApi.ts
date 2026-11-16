@@ -44,6 +44,7 @@ import {
   DataLineageExpandRequest,
   DataLineageExpansion,
 } from "Common/Types/DataObservability/DataLineageExpansion";
+import { DataLineageMap } from "Common/Types/DataObservability/DataLineageMap";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -315,6 +316,14 @@ export default class DataObservabilityApi {
       DATA_OBSERVABILITY_API_ROUTES.pipelineLineage,
       request as unknown as JSONObject,
     )) as unknown as DataTableLineage;
+  }
+
+  // The project's lineage map: who writes and reads which tables, and what feeds what.
+  public static async getLineageMap(): Promise<DataLineageMap> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.lineageMap,
+      {},
+    )) as unknown as DataLineageMap;
   }
 
   // The next tables a card of a lineage diagram does not draw: what pressing its count asks.

@@ -1138,6 +1138,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]: "bi-dashboards",
   [PageMap.DATA_OBSERVABILITY_SPEND]: "spend",
+  [PageMap.DATA_OBSERVABILITY_LINEAGE_MAP]: "lineage",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]: `data-products/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS]: `data-products/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS]: `data-products/${RouteParams.ModelID}/audit-logs`,
@@ -9038,6 +9039,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_SPEND]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SPEND]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_LINEAGE_MAP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_LINEAGE_MAP]
     }`,
   ),
 
