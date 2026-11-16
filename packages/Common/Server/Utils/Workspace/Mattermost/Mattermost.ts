@@ -41,6 +41,7 @@ import SafeWebhookRequest, {
 } from "../../SafeWebhookRequest";
 import { WebhookTargetValidationOptions } from "../../SSRFProtection";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
+import WorkspaceMentions from "../WorkspaceMentions";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { NotificationProviderConfig } from "../../Telemetry/NotificationDeliveryMetrics";
 import WorkspaceBase, {
@@ -183,7 +184,12 @@ export class MattermostRequestError extends BadRequestException {
  * reads as OneUptime writes it - with the buttons in an attachment under it.
  */
 type MattermostPiece =
-  | { piece: "markdown"; text: string }
+  | {
+      piece: "markdown";
+      text: string;
+      // The usernames its text mentions on purpose (issue #7968).
+      mentions?: Array<string> | undefined;
+    }
   | {
       piece: "actions";
       buttons: Array<MattermostButtonPiece>;
@@ -2218,15 +2224,23 @@ export default class MattermostUtil extends WorkspaceBase {
    *
    * It is cut first and its mentions broken after, in one pass each, so a
    * text of any length is handled in time linear in what is posted.
+   *
+   * A mention OneUptime makes on purpose - the person who comes on call, on
+   * a rule that asks for it (issue #7968) - is kept whole: `keepMentionsOf`
+   * names its usernames. Every other "@" is broken as before, "@channel"
+   * included.
    */
-  public static getMessageText(markdown: string): string {
+  public static getMessageText(
+    markdown: string,
+    keepMentionsOf?: Array<string> | undefined,
+  ): string {
     const cut: string = fitTextToLength(
       WorkspaceMessageTime.toPlainText(markdown || ""),
       MattermostUtil.MESSAGE_MAX_LENGTH,
     );
 
     return fitTextToLength(
-      MattermostUtil.neutralizeMentions(cut),
+      MattermostUtil.neutralizeMentions(cut, keepMentionsOf),
       MattermostUtil.MESSAGE_MAX_LENGTH,
     );
   }
@@ -2236,9 +2250,13 @@ export default class MattermostUtil extends WorkspaceBase {
    * invisible word joiner: "@" at the start of a word, before a letter or a
    * digit. "alice@example.com" is no mention and keeps its characters, and
    * so does an "@" in a web address ("https://example.com/@alice"), which a
-   * joiner would break. Scanned with a loop: the text can be long.
+   * joiner would break. Scanned with a loop: the text can be long. A
+   * mention of one of `keepMentionsOf`, whole, is kept.
    */
-  public static neutralizeMentions(text: string): string {
+  public static neutralizeMentions(
+    text: string,
+    keepMentionsOf?: Array<string> | undefined,
+  ): string {
     // What a request sent may be anything: only a string's length bounds the loop.
     if (typeof text !== "string") {
       return "";
@@ -2280,7 +2298,16 @@ export default class MattermostUtil extends WorkspaceBase {
       if (
         next !== undefined &&
         MattermostUtil.isLetterOrDigit(next) &&
-        !MattermostUtil.isWordCharacter(previous || "")
+        !MattermostUtil.isWordCharacter(previous || "") &&
+        !(
+          keepMentionsOf &&
+          keepMentionsOf.length > 0 &&
+          WorkspaceMentions.isMattermostMentionAt({
+            text: text,
+            index: index,
+            usernames: keepMentionsOf,
+          })
+        )
       ) {
         result += text.slice(copiedUpTo, index + 1) + WORD_JOINER;
         copiedUpTo = index + 1;
@@ -2337,6 +2364,8 @@ export default class MattermostUtil extends WorkspaceBase {
     directMessageChannelId?: string | undefined;
   }): JSONObject {
     const texts: Array<string> = [];
+    // The usernames the post mentions on purpose: kept whole (issue #7968).
+    const mentions: Array<string> = [];
     const actions: Array<JSONObject> = [];
     const links: Array<string> = [];
     const integrationUrl: string = MattermostUtil.getIntegrationUrl(
@@ -2349,6 +2378,7 @@ export default class MattermostUtil extends WorkspaceBase {
       if (piece.piece === "markdown") {
         if (piece.text) {
           texts.push(piece.text);
+          mentions.push(...(piece.mentions || []));
         }
 
         continue;
@@ -2418,7 +2448,10 @@ export default class MattermostUtil extends WorkspaceBase {
       }
     }
 
-    let message: string = MattermostUtil.getMessageText(texts.join("\n\n"));
+    let message: string = MattermostUtil.getMessageText(
+      texts.join("\n\n"),
+      mentions,
+    );
 
     if (!message.trim() && data.text) {
       message = MattermostUtil.getMessageText(data.text);
@@ -2463,7 +2496,12 @@ export default class MattermostUtil extends WorkspaceBase {
   public static override getMarkdownBlock(data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
-    return MattermostUtil.markdownPiece(data.payloadMarkdownBlock.text || "");
+    return MattermostUtil.markdownPiece(
+      data.payloadMarkdownBlock.text || "",
+      WorkspaceMentions.getMattermostUsernames(
+        data.payloadMarkdownBlock.mentions,
+      ),
+    );
   }
 
   @CaptureSpan()
@@ -2550,8 +2588,13 @@ export default class MattermostUtil extends WorkspaceBase {
     };
   }
 
-  private static markdownPiece(text: string): JSONObject {
-    return { piece: "markdown", text: text } as unknown as JSONObject;
+  private static markdownPiece(
+    text: string,
+    mentions?: Array<string> | undefined,
+  ): JSONObject {
+    return (mentions && mentions.length > 0
+      ? { piece: "markdown", text: text, mentions: mentions }
+      : { piece: "markdown", text: text }) as unknown as JSONObject;
   }
 
   /*

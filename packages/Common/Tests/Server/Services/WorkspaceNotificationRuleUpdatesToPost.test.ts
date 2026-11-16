@@ -692,4 +692,84 @@ describe("saving a rule's updates through the API", () => {
 
     expect(heldRowsRead).not.toHaveBeenCalled();
   });
+
+  /*
+   * Whether a hand-off mentions the person who comes on call (#7968): true
+   * or false, and true only on an on-call policy's rule. A rule saved with
+   * it some other way is told what it takes.
+   */
+  describe("whether it mentions the person who comes on call (#7968)", () => {
+    test("an on-call rule is saved with it on or off, or without it", async () => {
+      for (const shouldMentionWhoIsOnCall of [true, false, undefined]) {
+        await expect(
+          create(
+            NotificationRuleEventType.OnCallDutyPolicy,
+            baseRule({ shouldMentionWhoIsOnCall }),
+          ),
+        ).resolves.toBeTruthy();
+      }
+    });
+
+    test("anything but true or false is refused, with what it takes", async () => {
+      await expect(
+        create(NotificationRuleEventType.OnCallDutyPolicy, {
+          ...baseRule({}),
+          shouldMentionWhoIsOnCall: "yes",
+        }),
+      ).rejects.toThrow(
+        new BadDataException(
+          "shouldMentionWhoIsOnCall is true or false: whether a hand-off's line mentions the person who comes on call.",
+        ),
+      );
+    });
+
+    test("on, on a rule of anything but an on-call policy, is refused", async () => {
+      await expect(
+        create(
+          NotificationRuleEventType.Incident,
+          baseRule({ shouldMentionWhoIsOnCall: true }),
+        ),
+      ).rejects.toThrow(
+        "Incident rules do not mention who is on call: leave shouldMentionWhoIsOnCall out.",
+      );
+
+      // Off says nothing an incident rule cannot hold.
+      await expect(
+        create(
+          NotificationRuleEventType.Incident,
+          baseRule({ shouldMentionWhoIsOnCall: false }),
+        ),
+      ).resolves.toBeTruthy();
+    });
+
+    test("an update that writes it is judged by the rule's kind - read when it does not send it", async () => {
+      heldEventTypes = [NotificationRuleEventType.Incident];
+
+      await expect(
+        update({
+          notificationRule: baseRule({ shouldMentionWhoIsOnCall: true }),
+        }),
+      ).rejects.toThrow("Incident rules do not mention who is on call");
+
+      expect(heldRowsRead).toHaveBeenCalledTimes(1);
+
+      heldEventTypes = [NotificationRuleEventType.OnCallDutyPolicy];
+
+      await expect(
+        update({
+          notificationRule: baseRule({ shouldMentionWhoIsOnCall: true }),
+        }),
+      ).resolves.toBeTruthy();
+
+      await expect(
+        update({
+          eventType: NotificationRuleEventType.OnCallDutyPolicy,
+          notificationRule: baseRule({ shouldMentionWhoIsOnCall: true }),
+        }),
+      ).resolves.toBeTruthy();
+
+      // Sent with the update: not read again.
+      expect(heldRowsRead).toHaveBeenCalledTimes(2);
+    });
+  });
 });

@@ -1,8 +1,11 @@
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
+import { WorkspacePayloadMention } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
+import User from "../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import FeedMarkdown, {
   MarkdownText,
@@ -11,8 +14,10 @@ import FeedMarkdown, {
 import OnCallDutyPolicyEscalationRuleScheduleService from "../../Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import UserService from "../../Services/UserService";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
 import logger, { LogAttributes } from "../Logger";
 import WorkspaceUtil from "../Workspace/Workspace";
+import WorkspaceMentions from "../Workspace/WorkspaceMentions";
 import WorkspaceMessageTime from "../Workspace/WorkspaceMessageTime";
 import { OnCallMomentText } from "./OnCallChatText";
 
@@ -40,6 +45,13 @@ import { OnCallMomentText } from "./OnCallChatText";
  * .neutralizeMentions), so "@ana.lee" there pings nobody. The policy's feed
  * in OneUptime keeps OneUptime's names: these lines are for chat only.
  *
+ * A name pings nobody. A hand-off's line, on a rule that asks for it, may
+ * instead mention the person who comes on call (mentionOf, issue #7968):
+ * a real mention in each workspace where they connected their account -
+ * "<@U0123ABC>", "<at>Ana Lee</at>", "@ana.lee" (WorkspaceMentions) - and
+ * their name, as above, everywhere they did not. Nobody who did not
+ * connect an account is ever mentioned.
+ *
  * One of these per change: the project's connected workspaces are read
  * once, and each person's name in each of them asked once, however many
  * lines name them. It never throws: a line it cannot write for a workspace
@@ -54,12 +66,30 @@ export interface OnCallChatWriter {
   workspaceType: WorkspaceType;
   nameOf: OnCallNameOf;
   moment: OnCallMomentText;
+  /*
+   * A person mentioned - notified - by the account they connected in the
+   * workspace (issue #7968); where they connected none, named as nameOf
+   * names them. Only for a line that asks for it: a hand-off's person on
+   * call, on a rule that wants them mentioned.
+   */
+  mentionOf: OnCallNameOf;
 }
 
 // A line for each connected workspace, as Markdown.
 export type OnCallChatTextByWorkspaceType = Partial<
   Record<WorkspaceType, string>
 >;
+
+// The people each workspace's line mentions, as its text writes them.
+export type OnCallChatMentionsByWorkspaceType = Partial<
+  Record<WorkspaceType, Array<WorkspacePayloadMention>>
+>;
+
+// A line for each connected workspace, and whom each mentions.
+export interface OnCallChatLines {
+  lines: OnCallChatTextByWorkspaceType;
+  mentions: OnCallChatMentionsByWorkspaceType;
+}
 
 // Who a line names when OneUptime has no name for them.
 export const ON_CALL_CHAT_NOBODY_NAMED: string = "Somebody";
@@ -73,6 +103,10 @@ export default class OnCallChatByWorkspace {
     string,
     Promise<MarkdownText>
   >();
+  private readonly mentions: Map<
+    string,
+    Promise<WorkspacePayloadMention | null>
+  > = new Map<string, Promise<WorkspacePayloadMention | null>>();
 
   public constructor(data: {
     projectId: ObjectID;
@@ -130,6 +164,30 @@ export default class OnCallChatByWorkspace {
   }
 
   /*
+   * How a person is mentioned in a workspace - notified - by the account
+   * they connected there (WorkspaceUserAuthToken), as that workspace writes
+   * a mention (WorkspaceMentions); null where they connected none, or what
+   * it holds is no account of that workspace's. Asked once for each person
+   * in each workspace. Never throws: a mention it cannot read is none.
+   */
+  public mentionIn(
+    workspaceType: WorkspaceType,
+  ): (userId: ObjectID) => Promise<WorkspacePayloadMention | null> {
+    return (userId: ObjectID): Promise<WorkspacePayloadMention | null> => {
+      const key: string = `${workspaceType}:${userId.toString().toLowerCase()}`;
+      let mention: Promise<WorkspacePayloadMention | null> | undefined =
+        this.mentions.get(key);
+
+      if (!mention) {
+        mention = this.readMention(workspaceType, userId);
+        this.mentions.set(key, mention);
+      }
+
+      return mention;
+    };
+  }
+
+  /*
    * How a line for a workspace says a moment: in Mattermost, on the clock
    * of the line's zone, read once.
    */
@@ -171,18 +229,55 @@ export default class OnCallChatByWorkspace {
   public async write(
     line: (writer: OnCallChatWriter) => Promise<MarkdownText> | MarkdownText,
   ): Promise<OnCallChatTextByWorkspaceType> {
+    return (await this.writeWithMentions(line)).lines;
+  }
+
+  /*
+   * As write, and whom each workspace's line mentions (mentionOf): what its
+   * message carries for the workspace to notify them (issue #7968).
+   */
+  public async writeWithMentions(
+    line: (writer: OnCallChatWriter) => Promise<MarkdownText> | MarkdownText,
+  ): Promise<OnCallChatLines> {
     const lines: OnCallChatTextByWorkspaceType = {};
+    const mentionsByWorkspaceType: OnCallChatMentionsByWorkspaceType = {};
 
     for (const workspaceType of await this.getWorkspaceTypes()) {
       try {
+        const nameOf: OnCallNameOf = this.nameIn(workspaceType);
+        const mentioned: Array<WorkspacePayloadMention> = [];
+
         const markdown: MarkdownText = await line({
           workspaceType: workspaceType,
-          nameOf: this.nameIn(workspaceType),
+          nameOf: nameOf,
           moment: await this.getMomentIn(workspaceType),
+          mentionOf: async (userId: ObjectID): Promise<MarkdownText> => {
+            const mention: WorkspacePayloadMention | null =
+              await this.mentionIn(workspaceType)(userId);
+
+            if (!mention) {
+              return await nameOf(userId);
+            }
+
+            if (
+              !mentioned.some((known: WorkspacePayloadMention): boolean => {
+                return known.text === mention.text;
+              })
+            ) {
+              mentioned.push(mention);
+            }
+
+            // Written by OneUptime from the account's own id: no escaping.
+            return FeedMarkdown.asMarkdown(mention.text);
+          },
         });
 
         if (!markdown.isEmpty()) {
           lines[workspaceType] = markdown.toString();
+
+          if (mentioned.length > 0) {
+            mentionsByWorkspaceType[workspaceType] = mentioned;
+          }
         }
       } catch (err) {
         logger.error(`Could not write an on-call line for ${workspaceType}.`, {
@@ -194,7 +289,7 @@ export default class OnCallChatByWorkspace {
       }
     }
 
-    return lines;
+    return { lines: lines, mentions: mentionsByWorkspaceType };
   }
 
   /*
@@ -289,6 +384,74 @@ export default class OnCallChatByWorkspace {
 
       return [];
     }
+  }
+
+  private async readMention(
+    workspaceType: WorkspaceType,
+    userId: ObjectID,
+  ): Promise<WorkspacePayloadMention | null> {
+    try {
+      const connection: WorkspaceUserAuthToken | null =
+        await WorkspaceUserAuthTokenService.getUserAuth({
+          projectId: this.projectId,
+          userId: userId,
+          workspaceType: workspaceType,
+        });
+
+      if (!connection?.workspaceUserId) {
+        return null;
+      }
+
+      const stored: (field: string) => string = (field: string): string => {
+        const value: unknown = connection.miscData?.[field];
+
+        return typeof value === "string" ? value.trim() : "";
+      };
+
+      /*
+       * The name the mention shows: Mattermost's is the username it reads
+       * the mention by; a Teams card's, the display name the account had
+       * when it was connected; else OneUptime's, as a log names them.
+       */
+      const name: string =
+        workspaceType === WorkspaceType.Mattermost
+          ? stored("username")
+          : (workspaceType === WorkspaceType.MicrosoftTeams
+              ? stored("displayName")
+              : "") || (await this.readOneUptimeName(userId));
+
+      return WorkspaceMentions.getMention({
+        workspaceType: workspaceType,
+        workspaceUserId: connection.workspaceUserId,
+        name: name,
+      });
+    } catch (err) {
+      logger.error(
+        `Could not read the ${workspaceType} account to mention somebody on call.`,
+        { projectId: this.projectId.toString() } as LogAttributes,
+      );
+      logger.error(err, {
+        projectId: this.projectId.toString(),
+      } as LogAttributes);
+
+      return null;
+    }
+  }
+
+  // A person's name in OneUptime: their name, else their email address.
+  private async readOneUptimeName(userId: ObjectID): Promise<string> {
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: {
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return user?.name?.toString() || user?.email?.toString() || "";
   }
 
   private async readName(

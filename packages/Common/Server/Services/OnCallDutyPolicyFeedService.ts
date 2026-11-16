@@ -19,6 +19,7 @@ import FeedUpdateKinds, {
 } from "../Utils/Feed/FeedUpdateKinds";
 import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import { WorkspacePayloadMention } from "../../Types/Workspace/WorkspaceMessagePayload";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
@@ -228,6 +229,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
     markdownByWorkspaceType?:
       | Partial<Record<WorkspaceType, string>>
       | undefined;
+    /*
+     * The person on call each workspace's line mentions, on a rule that
+     * asks for it (issue #7968, OnCallHandoffPosts)...
+     */
+    mentionsByWorkspaceType?:
+      | Partial<Record<WorkspaceType, Array<WorkspacePayloadMention>>>
+      | undefined;
+    /*
+     * ...posted only where a rule that wants the line asks to mention them
+     * (true), or, the line without, only where none does (false).
+     */
+    mentioning?: boolean | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -237,6 +250,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
         markdownByWorkspaceType: data.markdownByWorkspaceType,
+        ...(data.mentionsByWorkspaceType
+          ? { mentionsByWorkspaceType: data.mentionsByWorkspaceType }
+          : {}),
         notificationText: data.workspaceNotification.notificationText,
         workspaceNotification: {
           ...FeedWorkspaceNotificationUtil.toWorkspaceNotification({
@@ -249,6 +265,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
             : {}),
           ...(data.notWantedUpdateKinds
             ? { notWantedUpdateKinds: data.notWantedUpdateKinds }
+            : {}),
+          ...(data.mentioning !== undefined
+            ? { mentioning: data.mentioning }
             : {}),
         },
       },

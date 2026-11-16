@@ -17,6 +17,8 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
 import WorkspaceMessageTime from "../Workspace/WorkspaceMessageTime";
 import OnCallChatByWorkspace, {
+  OnCallChatLines,
+  OnCallChatMentionsByWorkspaceType,
   OnCallChatTextByWorkspaceType,
   OnCallChatWriter,
   OnCallNameOf,
@@ -56,6 +58,15 @@ import OnCallChatText, { OnCallMomentText } from "./OnCallChatText";
  * schedule's zone in Mattermost ("until Sat, Nov 14 at 5:50 PM EST", issue
  * #7970) - UTC for a schedule set in none - and in the schedule's zone in
  * the policy's feed.
+ *
+ * A name pings nobody, so a channel that hears every hand-off is not
+ * pinged by each one. A rule can ask to mention the person who comes on
+ * call instead (issue #7968, NotificationRuleUpdates
+ * .isMentioningWhoIsOnCall): the lines that name who is on call now are
+ * then said twice - with a real mention where they connected their
+ * account (WorkspaceMentions), to the channels whose rules ask for it, and
+ * as before to every other channel - so no channel gets both. Who is next
+ * is never mentioned, and nobody who connected no account is.
  *
  * Never throws: the roster refresh that calls this must go on to store the
  * new roster.
@@ -238,6 +249,12 @@ export default class OnCallHandoffPosts {
     policy: MarkdownText;
     nameOf: OnCallNameOf;
     moment: OnCallMomentText;
+    /*
+     * How the person on call now is named, where it is not nameOf: a
+     * mention, on a rule that asks for one (issue #7968). Who is next is
+     * always nameOf's.
+     */
+    nameOfPersonOnCall?: OnCallNameOf | undefined;
   }): Promise<MarkdownText> {
     const handoff: OnCallHandoff = data.handoff;
     const nextUserId: ObjectID | null = this.getNextToName(handoff);
@@ -267,7 +284,9 @@ export default class OnCallHandoffPosts {
     }
 
     return OnCallChatText.nowOnCall({
-      person: await data.nameOf(handoff.currentUserId),
+      person: await (data.nameOfPersonOnCall || data.nameOf)(
+        handoff.currentUserId,
+      ),
       policy: data.policy,
       until: handoff.handoffAt,
       next:
@@ -469,18 +488,74 @@ export default class OnCallHandoffPosts {
           continue;
         }
 
-        await OnCallDutyPolicyFeedService.sendWorkspaceNotification({
-          projectId: handoff.projectId,
-          onCallDutyPolicyId: handoff.onCallDutyPolicyId,
-          feedInfoInMarkdown: line.toString(),
-          markdownByWorkspaceType: markdownByWorkspaceType,
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-          },
-          updateKinds: post.updateKinds,
-          alsoWantedUpdateKinds: post.alsoWantedUpdateKinds,
-          notWantedUpdateKinds: post.notWantedUpdateKinds,
-        });
+        /*
+         * The line again with the person on call mentioned, for the
+         * channels whose rules ask for it (issue #7968) - none when they
+         * connected no workspace's account, and nobody can be mentioned.
+         */
+        const mentioned: OnCallChatLines | null =
+          await this.getLinesMentioningPersonOnCall({
+            chat: chat,
+            post: post,
+            handoff: handoff,
+            policy: data.policy,
+          });
+
+        const send: (message: {
+          markdownByWorkspaceType: OnCallChatTextByWorkspaceType;
+          mentionsByWorkspaceType?:
+            | OnCallChatMentionsByWorkspaceType
+            | undefined;
+          mentioning?: boolean | undefined;
+        }) => Promise<void> = async (message: {
+          markdownByWorkspaceType: OnCallChatTextByWorkspaceType;
+          mentionsByWorkspaceType?:
+            | OnCallChatMentionsByWorkspaceType
+            | undefined;
+          mentioning?: boolean | undefined;
+        }): Promise<void> => {
+          await OnCallDutyPolicyFeedService.sendWorkspaceNotification({
+            projectId: handoff.projectId,
+            onCallDutyPolicyId: handoff.onCallDutyPolicyId,
+            feedInfoInMarkdown: line.toString(),
+            markdownByWorkspaceType: message.markdownByWorkspaceType,
+            ...(message.mentionsByWorkspaceType
+              ? { mentionsByWorkspaceType: message.mentionsByWorkspaceType }
+              : {}),
+            ...(message.mentioning !== undefined
+              ? { mentioning: message.mentioning }
+              : {}),
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+            updateKinds: post.updateKinds,
+            alsoWantedUpdateKinds: post.alsoWantedUpdateKinds,
+            notWantedUpdateKinds: post.notWantedUpdateKinds,
+          });
+        };
+
+        if (!mentioned) {
+          await send({ markdownByWorkspaceType: markdownByWorkspaceType });
+          continue;
+        }
+
+        /*
+         * Said both ways, each to its own channels - never both to one: the
+         * mention where a rule that posts it there asks for it, the name
+         * everywhere else.
+         */
+        try {
+          await send({
+            markdownByWorkspaceType: mentioned.lines,
+            mentionsByWorkspaceType: mentioned.mentions,
+            mentioning: true,
+          });
+        } finally {
+          await send({
+            markdownByWorkspaceType: markdownByWorkspaceType,
+            mentioning: false,
+          });
+        }
       } catch (err) {
         logger.error("Could not post an on-call handoff to its channels.", {
           projectId: handoff.projectId?.toString(),
@@ -492,5 +567,41 @@ export default class OnCallHandoffPosts {
         } as LogAttributes);
       }
     }
+  }
+
+  /*
+   * A post's line in each workspace with the person on call now mentioned
+   * where they connected that workspace's account (issue #7968), or null
+   * when the post names nobody on call now - who is next and nobody on
+   * call are never mentioned - or nobody can be mentioned anywhere.
+   */
+  private static async getLinesMentioningPersonOnCall(data: {
+    chat: OnCallChatByWorkspace;
+    post: OnCallChatPost;
+    handoff: OnCallHandoff;
+    policy: MarkdownText;
+  }): Promise<OnCallChatLines | null> {
+    if (
+      !data.handoff.currentUserId ||
+      (data.post.line !== OnCallChatLine.NowOnCall &&
+        data.post.line !== OnCallChatLine.NowOnCallThenNext)
+    ) {
+      return null;
+    }
+
+    const mentioned: OnCallChatLines = await data.chat.writeWithMentions(
+      (writer: OnCallChatWriter): Promise<MarkdownText> => {
+        return this.getLine({
+          line: data.post.line,
+          handoff: data.handoff,
+          policy: data.policy,
+          nameOf: writer.nameOf,
+          moment: writer.moment,
+          nameOfPersonOnCall: writer.mentionOf,
+        });
+      },
+    );
+
+    return Object.keys(mentioned.mentions).length > 0 ? mentioned : null;
   }
 }
