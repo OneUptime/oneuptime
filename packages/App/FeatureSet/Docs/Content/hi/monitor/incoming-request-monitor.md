@@ -95,7 +95,7 @@ Self-hosted होने पर `https://oneuptime.com` को अपने OneU
 | `application/json` | Parse किया गया JSON। |
 | `application/x-www-form-urlencoded` | Parse किया गया फ़ॉर्म। कोष्ठक वाली keys nest होती हैं (`alerts[0][status]=firing`), और हर मान एक string होता है। |
 | `text/plain` | Parse किया गया JSON, जब text कोई JSON object या array हो: Amazon SNS अपने संदेश इसी तरह भेजता है। कोई भी दूसरा text खाली body माना जाता है। |
-| कुछ और, या कुछ नहीं | खाली body (`{}`), इसलिए `requestBody` का हर संदर्भ कुछ नहीं देता। |
+| कुछ और, या कुछ नहीं | खाली body (`{}`), इसलिए `requestBody` का कोई संदर्भ हल नहीं होता, और टेम्पलेट उसे जैसा का तैसा छोड़ देता है। |
 
 50 MB तक की bodies स्वीकार की जाती हैं; इससे बड़ी `413` के साथ अस्वीकार होती है। Body को `Content-Encoding: gzip` से compress न करें: तब वह JSON के रूप में संग्रहीत नहीं होती, और उसके अंदर के पथ हल नहीं होंगे।
 

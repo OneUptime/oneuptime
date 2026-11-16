@@ -95,7 +95,7 @@ Hvis du vil bruke felt inne i forespørselsteksten — `{{requestBody.status}}` 
 | `application/json` | Den tolkede JSON-en. |
 | `application/x-www-form-urlencoded` | Det tolkede skjemaet. Nøkler i hakeparenteser nestes (`alerts[0][status]=firing`), og alle verdier er strenger. |
 | `text/plain` | Den tolkede JSON-en, når teksten er et JSON-objekt eller en JSON-matrise: slik sender Amazon SNS meldingene sine. All annen tekst gir en tom forespørselstekst. |
-| Alt annet, eller ingen | En tom tekst (`{}`), så hver henvisning til `requestBody` blir til ingenting. |
+| Alt annet, eller ingen | En tom tekst (`{}`), så ingen henvisning til `requestBody` løses opp, og en mal skriver den ordrett. |
 
 Tekster på opptil 50 MB godtas; en større avvises med en `413`. Ikke komprimer teksten med `Content-Encoding: gzip`: da lagres den ikke som JSON, og stier inn i den blir ikke løst opp.
 

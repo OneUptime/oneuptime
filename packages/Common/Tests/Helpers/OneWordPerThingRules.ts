@@ -565,6 +565,19 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /摄取密钥/,
     dropped: /引入密钥|采集密钥/,
   },
+  /*
+   * Hindi spells an event इवेंट, as its Event and Events keys, its glossary,
+   * 1,059 Dashboard strings and its docs do. 18 strings (Event Labels,
+   * Event Title, the trace's event attributes ...) and a few docs lines
+   * spelled it ईवेंट (#8824).
+   */
+  {
+    language: "hi",
+    thing: "Events",
+    english: /\bevents?\b/i,
+    word: /इवेंट/,
+    dropped: /ईवेंट/,
+  },
 ];
 
 /*
