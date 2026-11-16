@@ -179,6 +179,8 @@ const announce: (eventType: string) => void = (eventType: string): void => {
 type TableOptions = {
   modelType?: { new (): BaseModel } | undefined;
   isLive?: boolean | undefined;
+  // A list across projects: the projects it reads.
+  liveProjectIds?: Array<ObjectID> | undefined;
   // The reader's own narrowing: the server answers with the login incident.
   isNarrowedToLogin?: boolean | undefined;
 };
@@ -275,6 +277,12 @@ const makeProps: (options?: TableOptions) => BaseModelTableProps<Incident> = (
       ],
     },
     ...(options?.isLive !== undefined ? { isLive: options.isLive } : {}),
+    ...(options?.liveProjectIds
+      ? {
+          liveProjectIds: options.liveProjectIds,
+          fetchRequestOptions: { isMultiTenantRequest: true },
+        }
+      : {}),
     ...(options?.isNarrowedToLogin ? { query: { title: "Login" } } : {}),
   } as unknown as BaseModelTableProps<Incident>;
 };
@@ -644,6 +652,59 @@ describe("a row a live read brought in is marked for a moment", () => {
     expect(await screen.findByText(LOGIN.title)).toBeInTheDocument();
 
     expect(document.querySelector("[data-row-arrived]")).toBeNull();
+  });
+});
+
+/*
+ * Active Incidents lists every project the person belongs to, and a change
+ * is announced in its own project: the list hears each project it reads,
+ * so an incident opened in another project shows up too (#6917).
+ */
+describe("a list across projects keeps itself current", () => {
+  const OTHER_PROJECT_ID: string = "11111111-2222-4333-8444-555555555555";
+
+  test("it listens in every project it reads, not only the open one", async () => {
+    await renderTable({
+      liveProjectIds: [
+        new ObjectID(PROJECT_ID),
+        new ObjectID(OTHER_PROJECT_ID),
+      ],
+    });
+
+    expect(
+      Array.from(
+        new Set(
+          active().map((subscription: Subscription): string => {
+            return subscription.tenantId;
+          }),
+        ),
+      ).sort(),
+    ).toEqual([PROJECT_ID, OTHER_PROJECT_ID].sort());
+    expect(active()).toHaveLength(6);
+  });
+
+  test("an incident opened in another project shows up without Refresh", async () => {
+    await renderTable({
+      liveProjectIds: [
+        new ObjectID(PROJECT_ID),
+        new ObjectID(OTHER_PROJECT_ID),
+      ],
+    });
+
+    serverRows = [LOGIN, CHECKOUT, STOREFRONT];
+
+    act((): void => {
+      for (const subscription of active()) {
+        if (
+          subscription.tenantId === OTHER_PROJECT_ID &&
+          subscription.eventType === "Create"
+        ) {
+          subscription.onEvent(LOGIN._id);
+        }
+      }
+    });
+
+    expect(await screen.findByText(LOGIN.title)).toBeInTheDocument();
   });
 });
 

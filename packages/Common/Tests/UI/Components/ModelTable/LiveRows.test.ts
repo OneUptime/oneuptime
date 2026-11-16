@@ -8,10 +8,12 @@ import {
   LiveRowsHold,
   getArrivedRowIds,
   getLiveRowEventTypes,
+  getLiveRowTenantIds,
   isDialogOrMenuOpen,
   isLiveRowsHeld,
   isPointerAtWorkOnRows,
 } from "../../../../UI/Components/ModelTable/LiveRows";
+import ObjectID from "../../../../Types/ObjectID";
 import * as fs from "fs";
 import * as path from "path";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
@@ -148,6 +150,46 @@ describe("which lists keep themselves current", () => {
         "ServiceLevelObjective",
       ].sort(),
     );
+  });
+});
+
+/*
+ * A change is announced in its own project. A list that reads several
+ * projects at once (Active Incidents: every project the person belongs to)
+ * hears each of them; any other list, the project it is drawn in (#6917).
+ */
+describe("which projects a list hears", () => {
+  const OPEN: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
+  const OTHER: string = "11111111-2222-4333-8444-555555555555";
+  const THIRD: string = "99999999-8888-4777-8666-555555555555";
+
+  test("a list of one project: the project it is drawn in", () => {
+    expect(getLiveRowTenantIds(new ObjectID(OPEN))).toEqual([OPEN]);
+    expect(getLiveRowTenantIds(new ObjectID(OPEN), [])).toEqual([OPEN]);
+  });
+
+  test("a list across projects: each project it was given, in place of the open one", () => {
+    expect(
+      getLiveRowTenantIds(new ObjectID(OPEN), [
+        new ObjectID(OTHER),
+        new ObjectID(THIRD),
+      ]),
+    ).toEqual([OTHER, THIRD]);
+  });
+
+  test("each project once, as the server names its rooms", () => {
+    expect(
+      getLiveRowTenantIds(null, [
+        new ObjectID(OTHER.toUpperCase()),
+        new ObjectID(OTHER),
+        OPEN,
+      ]),
+    ).toEqual([OTHER, OPEN]);
+  });
+
+  test("no project at all: nothing is heard", () => {
+    expect(getLiveRowTenantIds(null)).toEqual([]);
+    expect(getLiveRowTenantIds(undefined, [])).toEqual([]);
   });
 });
 
