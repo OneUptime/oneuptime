@@ -437,6 +437,9 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "deiner",
     "deines",
     "man",
+    // someone, nobody: "Wie eskaliere ich, wenn niemand antwortet?" (#8775)
+    "jemand",
+    "niemand",
     // a, an, the
     "der",
     "die",
@@ -2268,6 +2271,11 @@ export interface DocsWordEndings {
   // Words whose forms no ending meets, read as one (DocsWordForms).
   forms?: DocsWordForms | undefined;
   /*
+   * Where a compound word is joined, by its first word and the rest: each
+   * is also read as a word of its own, beside the compound (#8775).
+   */
+  compoundJoint?: RegExp | undefined;
+  /*
    * Endings come off one after another, not one alone (#8335): a Persian
    * word ending in "م" loses it as if it were "my" ("تنظیم", set up, is
    * "تنظی"), so "تنظیمات" (settings) must lose "ات" and then "م" to meet it,
@@ -2349,11 +2357,69 @@ const NORDIC_ENDINGS: ReadonlyArray<string> = [
 // "opret" (create) is not "opr" with a definite "-et"; "webstedet" is "websted".
 const NORDIC_LONGER_STEMS: Readonly<Record<string, number>> = { et: 4 };
 
+// A German verb's endings in "-ieren", and its nouns' (#8775).
+const GERMAN_VERB_ENDINGS: ReadonlyArray<string> = [
+  "ierungen",
+  "ierung",
+  "ierten",
+  "ierte",
+  "ieren",
+  "ierst",
+  "iert",
+  "iere",
+  "ationen",
+  "ation",
+];
+const GERMAN_VERB_LONGER_STEMS: Readonly<Record<string, number>> =
+  Object.fromEntries(
+    GERMAN_VERB_ENDINGS.map((ending: string): [string, number] => {
+      return [ending, 4];
+    }),
+  );
+const GERMAN_VERB_KEPT_AFTER: Readonly<Record<string, RegExp>> =
+  Object.fromEntries(
+    GERMAN_VERB_ENDINGS.filter((ending: string): boolean => {
+      return ending.startsWith("ier");
+    }).map((ending: string): [string, RegExp] => {
+      return [ending, /^(?:pass|prob)$/];
+    }),
+  );
+
 export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
   Record<string, DocsWordEndings>
 > = {
   en: ENGLISH_ENDINGS,
-  de: ENGLISH_ENDINGS,
+  /*
+   * English's eight, as every German word had (#7875), and the forms of a
+   * verb in "-ieren" with the nouns it makes (#8775): "eskaliere",
+   * "eskalieren" and "eskaliert" are "eskal", as "Eskalation" is;
+   * "konfigurieren" and "Konfiguration" are "konfigur", "aktivieren" and
+   * "Aktivierung" "aktiv". They met nowhere before: "-en" left
+   * "eskalier", and "Eskalation" kept its "-ation".
+   */
+  de: {
+    endings: [...ENGLISH_ENDINGS.endings, ...GERMAN_VERB_ENDINGS],
+    shortestStem: 3,
+    /*
+     * Four letters before them, or "Rotation" would be "rot" (red), and
+     * "datiert" (dated) would meet "Daten" (data) as "dat".
+     */
+    longerStems: GERMAN_VERB_LONGER_STEMS,
+    /*
+     * "passiert" (happens) is not "passen" (fits), nor "probieren" (to try)
+     * a Probe.
+     */
+    keptAfter: GERMAN_VERB_KEPT_AFTER,
+    script: LATIN_SCRIPT_WORD,
+    /*
+     * A compound joined at the "s" after "-ung", "-tion", "-heit", "-keit",
+     * "-schaft" or "-ität" is also read as its two words: the Escalation
+     * Rules page, "Eskalationsregeln", holds "Eskalation" (so "eskal") and
+     * "Regeln", and "Benachrichtigungsmethoden" holds "Benachrichtigung".
+     */
+    compoundJoint:
+      /^(\p{L}{3,}?(?:ung|tion|heit|keit|schaft|ität))s(\p{L}{3,})$/u,
+  },
   // "maak", "maakt" and "maken"; "stel" and "stellen"; "instellingen".
   nl: {
     endings: [...ENGLISH_ENDINGS.endings, "ingen"],

@@ -372,6 +372,14 @@ describe("the words a question and a page are compared by", () => {
     ["pt", ["stream", "streams"]],
     ["pt", ["program", "programs"]],
     ["pt", ["problem", "problems"]],
+    // A German verb in "-ieren" and the nouns it makes (#8775).
+    [
+      "de",
+      ["eskaliere", "eskalieren", "eskaliert", "eskalation", "eskalationen"],
+    ],
+    ["de", ["konfiguriere", "konfigurieren", "konfiguriert", "konfiguration"]],
+    ["de", ["aktiviere", "aktivieren", "aktivierung", "aktivierungen"]],
+    ["de", ["installiere", "installieren", "installation"]],
   ] as Array<[string, Array<string>]>)(
     "%s: %p are one word (#7875)",
     (language: string, forms: Array<string>) => {
@@ -392,6 +400,17 @@ describe("the words a question and a page are compared by", () => {
     ["pt", "estado", "este"],
     // A list is not a notification: "सूची" keeps its vowel apart from "सूचना" (#8335).
     ["hi", "सूची", "सूचना"],
+    /*
+     * A German verb's "-ieren" and "-ation" come off four letters or more
+     * (#8775): a rotation is not red, nor "datiert" (dated) data;
+     * "passiert" (happens) is not "passen" (fits), nor "probieren" (to
+     * try) a Probe.
+     */
+    ["de", "rotation", "rot"],
+    ["de", "rotieren", "rote"],
+    ["de", "datiert", "daten"],
+    ["de", "passiert", "passen"],
+    ["de", "probieren", "probe"],
     // Persian "داده" (data) is not "داد" (gave); a host is not a desk, nor a guest important.
     ["fa", "داده", "داد"],
     ["fa", "میزبان", "میز"],
@@ -436,6 +455,26 @@ describe("the words a question and a page are compared by", () => {
     expect(stemDocsWord("監視", "ja")).toBe("監視");
     // A language the docs do not have reads as English.
     expect(stemDocsWord("monitoring", "xx")).toBe("monitor");
+  });
+
+  test("reads a German compound joined at its 's' as its two words too (#8775)", () => {
+    // The Escalation Rules page is named "Eskalationsregeln": a question's "eskaliere" is its first word.
+    expect(tokenizeForDocs("Eskalationsregeln", "de")).toEqual([
+      "eskalationsregeln",
+      "eskal",
+      "regeln",
+    ]);
+    expect(tokenizeForDocs("Benachrichtigungsmethoden", "de")).toEqual(
+      expect.arrayContaining(["benachrichtigungsmethod", "benachrichtigung"]),
+    );
+    expect(
+      tokenizeQueryForDocs("Wie eskaliere ich, wenn niemand antwortet?", "de"),
+    ).toEqual(["eskal", "antwortet"]);
+    // No other word is cut, and no other language's.
+    expect(tokenizeForDocs("Versionsnummer", "de")).toEqual(["versionsnumm"]);
+    expect(tokenizeForDocs("Eskalationsregeln", "en")).toEqual([
+      "eskalationsregeln",
+    ]);
   });
 
   test("reads a page in its index's language: Norwegian's Website Monitor is named for the website", () => {
@@ -560,7 +599,13 @@ describe("the words a question and a page are compared by", () => {
         "Wie kann man einen Bereitschaftsplan für unser Team einrichten?",
         "de",
       ),
-    ).toEqual(["bereitschaftsplan", "team", "einricht"]);
+    ).toEqual([
+      "bereitschaftsplan",
+      "bereitschaft",
+      "plan",
+      "team",
+      "einricht",
+    ]);
     // A page keeps them: "Wie ich erreichbar bin" is a page's name.
     expect(tokenizeForDocs("Wie ich erreichbar bin")).toEqual([
       "wie",

@@ -60,12 +60,12 @@ const BUILD_TIMEOUT_MS: number = 600000;
  * show a page for in its first ten, each with why. Ask AI's search finds
  * each in the six it shows the model. This list only shrinks: a question
  * the box finds fails its test until it is deleted here. #8698 found the
- * two-factor questions (a section of Your Account) in five languages, and
- * #8700 the Spanish and Portuguese subscribers.
+ * two-factor questions (a section of Your Account) in five languages,
+ * #8700 the Spanish and Portuguese subscribers, and #8775 German's
+ * escalation: Escalation Rules ("Eskalationsregeln") is named for
+ * "eskaliere" now.
  */
 const NOT_IN_THE_BOX_FIRST_TEN: Record<string, string> = {
-  "de Wie eskaliere ich, wenn niemand antwortet?":
-    'Escalation Rules ("Eskalationsregeln") is named for none of its words, nor is a heading: "eskaliere" is "eskalier", the name one word of its own. The box lifts only a page or a heading named for half a question\'s words; Ask AI finds it first.',
   "zh-TW 如何安排維護？":
     "The maintenance pages say 排定 (schedule), never 安排 (arrange): the box reads 安排維護 as 安排, 排維 and 維護, and they hold one of the three, while Home, OpenStack and Declaring an Incident say 安排維護 in passing.",
 };
@@ -516,6 +516,35 @@ describe("docs search, on the real docs", () => {
         found: expect.stringMatching(
           new RegExp(`^/docs/${language}/introduction/your-account#`),
         ),
+      });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
+   * A German verb in "-ieren" meets the noun a page is named with
+   * (#8775): "eskaliere" and "konfiguriere" are Escalation Rules'
+   * ("Eskalationsregeln") "Eskalation", read as a word of the compound.
+   */
+  test.each([
+    ["Wie eskaliere ich, wenn niemand antwortet?", "on-call/escalation-rules"],
+    ["Wie konfiguriere ich die Eskalation?", "on-call/escalation-rules"],
+    [
+      "Wie aktiviere ich die Zwei-Faktor-Authentifizierung?",
+      "introduction/your-account",
+    ],
+  ] as Array<[string, string]>)(
+    'de: "%s" opens %s first (#8775)',
+    async (question: string, page: string) => {
+      const first: Array<string> = urls(await search("de", question)).slice(
+        0,
+        1,
+      );
+
+      expect({ question, first, opens: opensPage(first, "de", page) }).toEqual({
+        question,
+        first,
+        opens: true,
       });
     },
     BUILD_TIMEOUT_MS,
