@@ -574,7 +574,9 @@ describePostgres(
     describe.each(PARTS)("$name", (part: Part) => {
       test("names private records by the columns its read hook narrows by", () => {
         expect(columnsOf(part).length).toBeGreaterThan(0);
-        expect(part.service.getColumnsReadHooksNarrowBy().sort()).toEqual(
+        expect(
+          (part.service.getColumnsReadHooksNarrowBy() || []).sort(),
+        ).toEqual(
           columnsOf(part)
             .map((column: PrivateRecordColumn): string => {
               return column.column;

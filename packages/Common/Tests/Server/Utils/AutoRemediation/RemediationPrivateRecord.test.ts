@@ -22,6 +22,10 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import {
+  RemediationPlanFingerprintInput,
+  getRemediationPlanFingerprint,
+} from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -294,11 +298,16 @@ describe("a fix for a private record, pressed by a member whose owning team may 
   });
 
   test("a press from Slack or Microsoft Teams is refused the same way", async () => {
+    // The fix as its message showed it: what the press is held to first.
+    const fingerprint: string = getRemediationPlanFingerprint(
+      row as unknown as RemediationPlanFingerprintInput,
+    );
+
     for (const from of [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]) {
       await expect(
         WorkspaceRemediationActions.approve({
           props: member,
-          value: { suggestionId: SUGGESTION_ID },
+          value: { suggestionId: SUGGESTION_ID, fingerprint: fingerprint },
           from: from,
         }),
       ).rejects.toThrow(PRIVATE_INCIDENT_REASON);
@@ -306,7 +315,7 @@ describe("a fix for a private record, pressed by a member whose owning team may 
       await expect(
         WorkspaceRemediationActions.dismiss({
           props: member,
-          value: { suggestionId: SUGGESTION_ID },
+          value: { suggestionId: SUGGESTION_ID, fingerprint: fingerprint },
           from: from,
         }),
       ).rejects.toThrow(PRIVATE_INCIDENT_REASON);

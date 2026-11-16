@@ -363,8 +363,8 @@ describe("what is done about INC-17 follows Team 2 too", () => {
     const gate: PermissionGateResult = PermissionGate.checkPermissions(
       RUNBOOK_RUN_PERMISSIONS,
       {
-        sentence: FIX_SENTENCE,
         ...privateRecordOptions({ owningTeamIds: [TEAM_2] }),
+        sentence: FIX_SENTENCE,
       },
     );
 
@@ -385,8 +385,8 @@ describe("what is done about INC-17 follows Team 2 too", () => {
     const gate: PermissionGateResult = PermissionGate.checkPermissions(
       RUNBOOK_RUN_PERMISSIONS,
       {
-        sentence: FIX_SENTENCE,
         ...privateRecordOptions({ owningTeamIds: [TEAM_2] }),
+        sentence: FIX_SENTENCE,
       },
     );
     const anywhere: PermissionGateResult = PermissionGate.checkPermissions(
@@ -424,8 +424,8 @@ describe("what is done about INC-17 follows Team 2 too", () => {
     ).toBe(true);
     expect(
       PermissionGate.checkPermissions(RUNBOOK_RUN_PERMISSIONS, {
-        sentence: FIX_SENTENCE,
         ...options,
+        sentence: FIX_SENTENCE,
       }).isAllowed,
     ).toBe(true);
   });
@@ -436,11 +436,11 @@ describe("what is done about INC-17 follows Team 2 too", () => {
     ).toBeUndefined();
     expect(
       PermissionGate.checkPermissions(RUNBOOK_RUN_PERMISSIONS, {
-        sentence: FIX_SENTENCE,
         ...privateRecordOptions({
           owningTeamIds: [TEAM_2],
           isOwnedByReader: true,
         }),
+        sentence: FIX_SENTENCE,
       }).isAllowed,
     ).toBe(true);
   });

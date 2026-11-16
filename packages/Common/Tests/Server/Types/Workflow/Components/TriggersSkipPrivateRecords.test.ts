@@ -80,6 +80,9 @@ class MonitorReads extends DatabaseService<Monitor> {
 
 type AnyService = DatabaseService<BaseModel>;
 
+// A spy on a service's method, as the suites' spy helper makes it.
+type Spy = ReturnType<typeof getJestSpyOn>;
+
 function options(log: Array<string>): RunOptions {
   return {
     log: ((message: unknown): void => {
@@ -127,8 +130,10 @@ describe("DatabaseService.onTriggerWorkflow", () => {
     "posts no event for %s that is private or part of a private record",
     async (_name: string, Service: { new (): AnyService }) => {
       const service: AnyService = new Service();
-      const isAbout: jest.SpiedFunction<AnyService["isAboutPrivateRecord"]> =
-        jest.spyOn(service, "isAboutPrivateRecord").mockResolvedValue(true);
+      const isAbout: Spy = getJestSpyOn(
+        service,
+        "isAboutPrivateRecord",
+      ).mockResolvedValue(true);
 
       for (const type of ["on-create", "on-update", "on-delete"] as const) {
         await service.onTriggerWorkflow(
@@ -161,9 +166,10 @@ describe("DatabaseService.onTriggerWorkflow", () => {
     isListening = false;
 
     const service: AnyService = new IncidentReads() as unknown as AnyService;
-    const isAbout: jest.SpiedFunction<AnyService["isAboutPrivateRecord"]> = jest
-      .spyOn(service, "isAboutPrivateRecord")
-      .mockResolvedValue(true);
+    const isAbout: Spy = getJestSpyOn(
+      service,
+      "isAboutPrivateRecord",
+    ).mockResolvedValue(true);
 
     await service.onTriggerWorkflow(
       new ObjectID(RECORD_ID),
@@ -322,9 +328,10 @@ describe("the trigger step", () => {
     async (_name: string, Service: { new (): AnyService }, noun: string) => {
       const service: AnyService = new Service();
       jest.spyOn(service, "isAboutPrivateRecord").mockResolvedValue(true);
-      const findOneById: jest.SpiedFunction<AnyService["findOneById"]> = jest
-        .spyOn(service, "findOneById")
-        .mockResolvedValue(null);
+      const findOneById: Spy = getJestSpyOn(
+        service,
+        "findOneById",
+      ).mockResolvedValue(null);
 
       const trigger: OnTriggerBaseModel<BaseModel> =
         new OnTriggerBaseModel<BaseModel>(service, "on-update");
