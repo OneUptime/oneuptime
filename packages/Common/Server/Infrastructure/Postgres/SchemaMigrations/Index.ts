@@ -1034,6 +1034,8 @@ import { AddCodeRepositoryMintedToken1809182200000 } from "./1809182200000-AddCo
 import { ProjectCredentialsEncryptedColumns1809182300000 } from "./1809182300000-ProjectCredentialsEncryptedColumns";
 import { DropGreenlockTables1809182470000 } from "./1809182470000-DropGreenlockTables";
 import { AddCustomFieldsAndRemindersToUpdatesToPost1809182480026 } from "./1809182480026-AddCustomFieldsAndRemindersToUpdatesToPost";
+import { CascadeRunsAndFixesWithTheirRecord1809182600000 } from "./1809182600000-CascadeRunsAndFixesWithTheirRecord";
+import { DeleteRunsAndFixesOfDeletedRecords1809182610000 } from "./1809182610000-DeleteRunsAndFixesOfDeletedRecords";
 
 export default [
   InitialMigration,
@@ -2072,4 +2074,6 @@ export default [
   ProjectCredentialsEncryptedColumns1809182300000,
   DropGreenlockTables1809182470000,
   AddCustomFieldsAndRemindersToUpdatesToPost1809182480026,
+  CascadeRunsAndFixesWithTheirRecord1809182600000,
+  DeleteRunsAndFixesOfDeletedRecords1809182610000,
 ];
