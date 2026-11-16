@@ -139,6 +139,35 @@ export const notOptOutRuleQuery: NotOptOutRuleQueryFunction =
     return QueryHelper.notInOrNull(["true"]);
   };
 
+/*
+ * Whether an `UPDATE ... RETURNING` sent through TypeORM's query() wrote a
+ * row. TypeORM's postgres query() answers a top-level UPDATE with
+ * [rows, rowCount] - an array of two whether or not anything matched - so
+ * reading that array's length as the rows made every claim of a
+ * notification (claimNotificationExecution) a win and every give-back of
+ * one (releaseNotificationRuleClaim) a success: two overlapping runs of the
+ * person's-log worker both sent the same notification, and a rule whose
+ * claim was not given back was sent again. A plain array is read as the
+ * rows (a driver that answers with them, or a statement that is a SELECT);
+ * anything else wrote nothing. A row is an object, never an array, so the
+ * two shapes cannot be mistaken for each other.
+ */
+export function updateReturnedARow(result: unknown): boolean {
+  if (!Array.isArray(result)) {
+    return false;
+  }
+
+  if (
+    result.length === 2 &&
+    Array.isArray(result[0]) &&
+    typeof result[1] === "number"
+  ) {
+    return result[0].length > 0;
+  }
+
+  return result.length > 0;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -191,7 +220,7 @@ export class Service extends DatabaseService<Model> {
    * so sending it again pages nobody twice. Only the claim taken at
    * `claimedAt` - the one the caller took - is given back: one UPDATE that
    * removes the key while it still holds that moment. Returns whether it
-   * did; throws as the database does.
+   * did (updateReturnedARow); throws as the database does.
    */
   @CaptureSpan()
   public async releaseNotificationRuleClaim(data: {
@@ -199,23 +228,22 @@ export class Service extends DatabaseService<Model> {
     claimKey: string;
     claimedAt: Date;
   }): Promise<boolean> {
-    const rows: Array<{ _id: string }> =
-      await this.getRepository().manager.query(
-        `UPDATE "UserOnCallLog"
+    const result: unknown = await this.getRepository().manager.query(
+      `UPDATE "UserOnCallLog"
            SET "executedNotificationRules" = (
                  COALESCE("executedNotificationRules", '{}')::jsonb - $2::text
                )::json
          WHERE "_id" = $1::uuid
            AND (COALESCE("executedNotificationRules", '{}')::jsonb ->> $2::text) = $3::text
          RETURNING "_id"`,
-        [
-          data.userOnCallLogId.toString(),
-          data.claimKey,
-          data.claimedAt.toISOString(),
-        ],
-      );
+      [
+        data.userOnCallLogId.toString(),
+        data.claimKey,
+        data.claimedAt.toISOString(),
+      ],
+    );
 
-    return Array.isArray(rows) && rows.length > 0;
+    return updateReturnedARow(result);
   }
 
   /*
@@ -325,7 +353,9 @@ export class Service extends DatabaseService<Model> {
    * mirrors OnCallDutyPolicyExecutionLogService.claimEscalationAdvance: a single
    * conditional UPDATE that sets executedNotificationRules[key] only when the
    * key is absent and RETURNs the affected row, so exactly one concurrent run
-   * wins and the loser skips.
+   * wins and the loser skips. Its answer is read with updateReturnedARow:
+   * TypeORM answers an UPDATE with [rows, rowCount], which read as the rows
+   * made every claim a win.
    *
    * The key is a string rather than a rule id because not every delivery attempt
    * has a rule behind it. The verified-method fallback runs precisely BECAUSE no
@@ -354,9 +384,8 @@ export class Service extends DatabaseService<Model> {
     ).toISOString();
 
     try {
-      const rows: Array<{ _id: string }> =
-        await this.getRepository().manager.query(
-          `UPDATE "UserOnCallLog"
+      const result: unknown = await this.getRepository().manager.query(
+        `UPDATE "UserOnCallLog"
              SET "executedNotificationRules" = jsonb_set(
                    COALESCE("executedNotificationRules", '{}')::jsonb,
                    ARRAY[$2::text],
@@ -366,10 +395,10 @@ export class Service extends DatabaseService<Model> {
            WHERE "_id" = $1::uuid
              AND NOT (COALESCE("executedNotificationRules", '{}')::jsonb ? $2::text)
            RETURNING "_id"`,
-          [data.userOnCallLogId.toString(), ruleKey, nowIso],
-        );
+        [data.userOnCallLogId.toString(), ruleKey, nowIso],
+      );
 
-      return Array.isArray(rows) && rows.length > 0;
+      return updateReturnedARow(result);
     } catch (err) {
       logger.error(
         "claimNotificationRuleExecution atomic claim failed; falling back to non-atomic marking.",
@@ -1469,6 +1498,22 @@ export class Service extends DatabaseService<Model> {
         `On-call notification fallback failed for UserOnCallLog ${createdItem.id?.toString()}`,
       );
       logger.error(err);
+    }
+
+    /*
+     * Another run holds the fallback's claim on this log: it fell back for
+     * it at the same moment, and is sending. It owns what happens next - the
+     * log's status, its line, any alert to the owners - so nothing is
+     * written over its page here: an Error would say a page that is going
+     * out reached nobody, and stop the try again that run may ask for.
+     * (While a claim always read as won, two runs both sent the fallback.)
+     */
+    if (fallbackResult?.isHeldByAnotherRun) {
+      logger.info(
+        `On-call fallback for UserOnCallLog ${createdItem.id?.toString()} is being sent by another run; this one leaves the log to it.`,
+      );
+
+      return;
     }
 
     /*

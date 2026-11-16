@@ -400,6 +400,8 @@ export enum FallbackNotificationOutcome {
    * holds the fallback claim on this log and owns the outcome. All three are
    * transient from the caller's point of view — none of them is evidence that
    * the responder is unreachable, so none of them justifies a terminal status.
+   * The last is told apart by isHeldByAnotherRun: the run holding the claim
+   * is sending, and writes the log's outcome itself.
    */
   DeliveryFailed = "DeliveryFailed",
 
@@ -427,6 +429,13 @@ export interface FallbackNotificationResult {
    * again (issue #8469). What it failed with.
    */
   toTryAgainAfter?: unknown;
+  /*
+   * Another run holds the fallback's claim on this log: it fell back for it
+   * at the same moment, and owns what happens next - its send, the log's
+   * status, any alert. Nothing was sent by this one, and its caller writes
+   * nothing over that run's page (DeliveryFailed).
+   */
+  isHeldByAnotherRun?: boolean | undefined;
 }
 
 /*
@@ -4621,6 +4630,7 @@ export class Service extends ProjectReferencesService<Model> {
         outcome: FallbackNotificationOutcome.DeliveryFailed,
         notified: false,
         channelsUsed: [],
+        isHeldByAnotherRun: true,
       };
     }
 

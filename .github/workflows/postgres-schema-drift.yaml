@@ -2927,6 +2927,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/OnCall/OnCallStuckNotificationsPostgres.test.ts --forceExit
 
+      # Clones the migrated UserOnCallLog table into an isolated schema. A
+      # person's on-call notification is claimed with one UPDATE ...
+      # RETURNING, which TypeORM answers with [rows, rowCount]: a claim wins
+      # once (of runs claiming it at once, exactly one), and is given back
+      # only by the moment it was taken at, once.
+      - name: Test on-call notification claims on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ONCALL_CLAIMS_TESTS: "true"
+          ONCALL_CLAIMS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ONCALL_CLAIMS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ONCALL_CLAIMS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserOnCallLogClaimsPostgres.test.ts --forceExit
+
       # Clones the migrated PacketCapture, File and Probe tables into an
       # isolated schema and runs packet capture's hand-written SQL: a probe
       # claims only its own Pending captures (FOR UPDATE SKIP LOCKED), hears
