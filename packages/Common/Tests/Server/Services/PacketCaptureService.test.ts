@@ -224,8 +224,9 @@ interface RecordedStatement {
 }
 
 /*
- * A fake EntityManager that records every statement and answers each with
- * the next scripted result. The service only ever calls `query`.
+ * A fake EntityManager, in a transaction, that records every statement and
+ * answers each with the next scripted result. The service only ever calls
+ * `query`. Only the retention sweep's batches are transactions now.
  */
 function stubTransaction(
   service: PacketCaptureServiceType,
@@ -257,6 +258,40 @@ function stubTransaction(
         );
       },
     );
+
+  return statements;
+}
+
+/*
+ * The service's own connection, for its writes that are each one
+ * self-committing statement (OneUptime issue #8870): records every
+ * statement sent on getRepository().manager, answers each with the next
+ * scripted result, and makes executeTransaction throw - a write that opens
+ * a transaction again fails here.
+ */
+function stubStatements(
+  service: PacketCaptureServiceType,
+  results: Array<unknown>,
+): Array<RecordedStatement> {
+  const statements: Array<RecordedStatement> = [];
+  const queue: Array<unknown> = [...results];
+
+  jest
+    .spyOn(service, "executeTransaction")
+    .mockImplementation((async (): Promise<never> => {
+      throw new Error(
+        "This write is one statement: it must not open a transaction.",
+      );
+    }) as never);
+
+  jest.spyOn(service, "getRepository").mockReturnValue({
+    manager: {
+      query: async (sql: string, params: Array<unknown>): Promise<unknown> => {
+        statements.push({ sql, params });
+        return queue.length > 0 ? queue.shift() : [];
+      },
+    },
+  } as never);
 
   return statements;
 }
@@ -1050,7 +1085,7 @@ describe("claimPendingForProbe", () => {
 describe("findCapturesToStop", () => {
   test("marks this probe's Running captures as heard from, and keeps them running", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [
         [
           { _id: CAPTURE_ID.toString(), stopRequestedAt: null },
@@ -1089,7 +1124,7 @@ describe("findCapturesToStop", () => {
 
   test("names the ones someone stopped from the dashboard", async () => {
     const { service } = buildService();
-    stubTransaction(service, [
+    stubStatements(service, [
       [
         [
           { _id: CAPTURE_ID.toString(), stopRequestedAt: new Date() },
@@ -1112,7 +1147,7 @@ describe("findCapturesToStop", () => {
 
   test("names the ones the server no longer has for this probe: deleted, failed, or never its own", async () => {
     const { service } = buildService();
-    stubTransaction(service, [[{ _id: CAPTURE_ID.toString() }]]);
+    stubStatements(service, [[{ _id: CAPTURE_ID.toString() }]]);
 
     expect(
       await service.findCapturesToStop({
@@ -1127,7 +1162,7 @@ describe("findCapturesToStop", () => {
 
   test("ids are read once each, in lower case, and one that is not an id is never put to the database", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
     ]);
 
@@ -1147,7 +1182,7 @@ describe("findCapturesToStop", () => {
 
   test("no ids, no statement", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, []);
+    const statements: Array<RecordedStatement> = stubStatements(service, []);
 
     expect(
       await service.findCapturesToStop({
@@ -1160,7 +1195,7 @@ describe("findCapturesToStop", () => {
 
   test("an answer it cannot read keeps nothing running", async () => {
     const { service } = buildService();
-    stubTransaction(service, ["unexpected"]);
+    stubStatements(service, ["unexpected"]);
 
     expect(
       await service.findCapturesToStop({
@@ -1174,7 +1209,7 @@ describe("findCapturesToStop", () => {
 describe("recordFailure", () => {
   test("fails this probe's Running capture with the probe's reason", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
     ]);
 
@@ -1205,7 +1240,7 @@ describe("recordFailure", () => {
 
   test("with no reason, says the probe could not run it", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
     ]);
 
@@ -1222,7 +1257,7 @@ describe("recordFailure", () => {
 
   test("a reason longer than the column is cut to fit, so the capture never stays Running", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
     ]);
 
@@ -1240,7 +1275,7 @@ describe("recordFailure", () => {
 
   test("false when there is no such Running capture of this probe", async () => {
     const { service } = buildService();
-    stubTransaction(service, [[[], 0]]);
+    stubStatements(service, [[[], 0]]);
 
     expect(
       await service.recordFailure({
@@ -1320,7 +1355,7 @@ describe("recordCompletion", () => {
     stubCapture(service, runningCapture());
     const create: Spy = stubFileCreate();
     const remove: Spy = stubFileDelete();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
     ]);
     const pcap: Buffer = makePcap({ packetLengths: [60, 1514, 98] });
@@ -1369,7 +1404,7 @@ describe("recordCompletion", () => {
     const { service } = buildService();
     stubCapture(service, runningCapture());
     const create: Spy = stubFileCreate();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
     ]);
     const whole: Buffer = makePcap({ packetLengths: [60, 70] });
@@ -1398,7 +1433,7 @@ describe("recordCompletion", () => {
     const create: Spy = stubFileCreate();
 
     for (const pcap of [null, Buffer.alloc(0), makePcapHeader()]) {
-      const statements: Array<RecordedStatement> = stubTransaction(service, [
+      const statements: Array<RecordedStatement> = stubStatements(service, [
         [[{ _id: CAPTURE_ID.toString() }], 1],
       ]);
 
@@ -1457,7 +1492,7 @@ describe("recordCompletion", () => {
     const { service } = buildService();
     stubCapture(service, runningCapture({ maxFileSizeInMB: undefined }));
     stubFileCreate();
-    stubTransaction(service, [[[{ _id: CAPTURE_ID.toString() }], 1]]);
+    stubStatements(service, [[[{ _id: CAPTURE_ID.toString() }], 1]]);
 
     expect(
       await service.recordCompletion({
@@ -1475,7 +1510,7 @@ describe("recordCompletion", () => {
     const { service } = buildService();
     stubCapture(service, runningCapture());
     stubFileCreate();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
     ]);
 
@@ -1498,7 +1533,7 @@ describe("recordCompletion", () => {
     stubCapture(service, runningCapture());
     stubFileCreate();
     const remove: Spy = stubFileDelete();
-    stubTransaction(service, [[[], 0]]);
+    stubStatements(service, [[[], 0]]);
 
     expect(
       await service.recordCompletion({
@@ -1536,7 +1571,7 @@ describe("requestStop", () => {
   test("asks a Running capture of the project to stop, once", async () => {
     const { service } = buildService();
     const read: Spy = stubCaptureStatus(service, PacketCaptureStatus.Running);
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
     ]);
 
@@ -1617,7 +1652,7 @@ describe("requestStop", () => {
   test("one that finished between the read and the write says so", async () => {
     const { service } = buildService();
     stubCaptureStatus(service, PacketCaptureStatus.Running);
-    stubTransaction(service, [[[], 0]]);
+    stubStatements(service, [[[], 0]]);
 
     expect(
       await refusal(
@@ -1650,7 +1685,7 @@ describe("requestStop", () => {
       const { service } = buildService();
       const read: Spy = stubCaptureStatus(service, PacketCaptureStatus.Running);
       const stoppedAt: Date = new Date("2026-11-07T10:00:00.000Z");
-      const statements: Array<RecordedStatement> = stubTransaction(service, [
+      const statements: Array<RecordedStatement> = stubStatements(service, [
         [[{ _id: CAPTURE_ID.toString(), stopRequestedAt: stoppedAt }], 1],
       ]);
       const record: Spy = stubRecord();
@@ -1695,7 +1730,7 @@ describe("requestStop", () => {
 
       const refused: PacketCaptureServiceType = buildService().service;
       stubCaptureStatus(refused, PacketCaptureStatus.Running);
-      stubTransaction(refused, [[[], 0]]);
+      stubStatements(refused, [[[], 0]]);
 
       await refusal(
         refused.requestStop({
@@ -1708,7 +1743,7 @@ describe("requestStop", () => {
       jest.restoreAllMocks();
       const unnamed: PacketCaptureServiceType = buildService().service;
       stubCaptureStatus(unnamed, PacketCaptureStatus.Running);
-      stubTransaction(unnamed, [[[{ _id: CAPTURE_ID.toString() }], 1]]);
+      stubStatements(unnamed, [[[{ _id: CAPTURE_ID.toString() }], 1]]);
       const recordAfter: Spy = stubRecord();
 
       await unnamed.requestStop({
@@ -1725,7 +1760,7 @@ describe("requestStop", () => {
 describe("failStaleCaptures", () => {
   test("fails what was not picked up, what ran past its deadline and what its probe stopped naming, with the reason", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       [[{ _id: CAPTURE_ID.toString() }], 1],
       [[], 0],
       [[{ _id: SECOND_CAPTURE_ID.toString() }, { _id: "x" }], 2],
@@ -1797,7 +1832,7 @@ describe("failStaleCaptures", () => {
 
     try {
       const { service } = buildService();
-      const statements: Array<RecordedStatement> = stubTransaction(service, [
+      const statements: Array<RecordedStatement> = stubStatements(service, [
         [[], 0],
         [[], 0],
         [[{ _id: CAPTURE_ID.toString() }], 1],
@@ -1974,7 +2009,7 @@ describe("recordProbeCapability", () => {
   test("keeps a project probe's report, written only when it changed", async () => {
     const { service } = buildService();
     stubProbe(probeRow());
-    const statements: Array<RecordedStatement> = stubTransaction(service, [[]]);
+    const statements: Array<RecordedStatement> = stubStatements(service, [[]]);
 
     expect(
       await service.recordProbeCapability({
@@ -2017,7 +2052,7 @@ describe("recordProbeCapability", () => {
       jest.restoreAllMocks();
       const { service } = buildService();
       stubProbe(probe);
-      const statements: Array<RecordedStatement> = stubTransaction(service, []);
+      const statements: Array<RecordedStatement> = stubStatements(service, []);
 
       expect(
         await service.recordProbeCapability({
