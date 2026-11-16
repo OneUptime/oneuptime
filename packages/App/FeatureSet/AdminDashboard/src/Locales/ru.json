@@ -636,12 +636,6 @@
         "usageCardDescription": "Как долго хранятся ежедневные данные об использовании телеметрии каждого проекта — при включённом или выключенном биллинге.",
         "usageEditButton": "Изменить хранение данных об использовании телеметрии"
       },
-      "apiKey": {
-        "cardTitle": "Настройки мастер API-ключа",
-        "cardDescription": "Имеет root-доступ ко всем проектам на этом сервере.",
-        "editButton": "Изменить настройки API-ключа",
-        "apiKeyNotGenerated": "API-ключ ещё не сгенерирован."
-      },
       "llmProviders": {
         "bannerTitle": "Нужна помощь с настройкой LLM-провайдеров?",
         "bannerDescription": "LLM-провайдеры включают функции AI. Вы можете настроить глобальных LLM-провайдеров, доступных для всех проектов.",
@@ -752,7 +746,6 @@
   "Edit Server": "Редактировать сервер",
   "Edit SMTP Config": "Редактировать конфигурацию SMTP",
   "Edit API Key": "Редактировать ключ API",
-  "Edit API Key Settings": "Редактировать настройки ключа API",
   "Edit Twilio Config": "Редактировать конфигурацию Twilio",
   "Edit Telegram Config": "Редактировать конфигурацию Telegram",
   "Edit Meta WhatsApp Config": "Редактировать конфигурацию Meta WhatsApp",
@@ -4017,5 +4010,15 @@
   "### Setup Steps": "### Шаги настройки",
   "### Required WhatsApp Templates": "### Нужные шаблоны WhatsApp",
   "### Template Bodies": "### Содержимое шаблонов",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Создавая каждый шаблон в Meta, скопируйте его содержимое ниже в точности — со всеми знаками препинания и пробелами. В списке переменных показан каждый заполнитель, который нужно настроить в WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Создавая каждый шаблон в Meta, скопируйте его содержимое ниже в точности — со всеми знаками препинания и пробелами. В списке переменных показан каждый заполнитель, который нужно настроить в WhatsApp Manager.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "Ключа пока нет. Создайте его для скриптов и инструментов, которые вызывают API от имени главного администратора.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "Ключ задан. Он был показан один раз, когда его создали: хранится только его хеш, поэтому показать его снова нельзя. Если вы его потеряли, сбросьте его.",
+  "Create Key": "Создать ключ",
+  "Reset Key": "Сбросить ключ",
+  "Requests with the key are accepted.": "Запросы с этим ключом принимаются.",
+  "Reset Master API Key?": "Сбросить главный API-ключ?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "Текущий ключ сразу перестанет работать во всех скриптах и инструментах, которые его используют. Новый ключ будет показан один раз.",
+  "Copy Your Master API Key": "Скопируйте главный API-ключ",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Скопируйте его сейчас и храните в надёжном месте, например в менеджере секретов. Он показывается только в этот раз: OneUptime хранит только его хеш.",
+  "The server did not answer with the master API key. Try again.": "Сервер не вернул главный API-ключ. Повторите попытку."
 }
