@@ -141,6 +141,8 @@ interface RunResult {
 }
 
 let incidentRead: RecordedSpy;
+// Whether the incident is private, or part of a private record (#8914).
+let isPrivateIncident: boolean = false;
 
 const runWith: (startedWith: JSONObject) => Promise<RunResult> = async (
   startedWith: JSONObject,
@@ -237,6 +239,13 @@ beforeEach(() => {
   incidentRead = jest
     .spyOn(IncidentService, "findOneById")
     .mockResolvedValue(incident) as unknown as RecordedSpy;
+
+  isPrivateIncident = false;
+  jest
+    .spyOn(IncidentService, "isAboutPrivateRecord")
+    .mockImplementation(async (): Promise<boolean> => {
+      return isPrivateIncident;
+    });
 });
 
 afterEach(() => {
@@ -312,6 +321,31 @@ describe("a run of On Create or Update", () => {
     });
 
     expect(ran(result.trace)).toEqual([TRIGGER, "switch-1", "log-created"]);
+  });
+
+  /*
+   * A workflow does not act on a private incident (#8914): a run started on
+   * one - by Run Workflow, or by an event that waited while the incident was
+   * made private - stops at the trigger, saying why, and reads nothing of it.
+   */
+  test("on a private incident, the run stops at the trigger, saying why, and reads nothing of it", async () => {
+    isPrivateIncident = true;
+
+    for (const startedWith of [
+      { data: { _id: INCIDENT_ID }, [WHAT_HAPPENED_ID]: "created" },
+      { _id: INCIDENT_ID, select: { title: true } },
+    ] as Array<JSONObject>) {
+      const result: RunResult = await runWith(startedWith);
+
+      expect(result.persisted["workflowStatus"]).toBe(WorkflowStatus.Error);
+      expect(ran(result.trace)).toEqual([TRIGGER]);
+      expect(result.logs).toContain(
+        "Workflows don't act on private incidents, alerts or episodes, or on anything that belongs to one.",
+      );
+      expect(result.logs).not.toContain("Database is down");
+    }
+
+    expect(incidentRead.mock.calls).toHaveLength(0);
   });
 
   test("asked something else, the run stops at the trigger and says why", async () => {

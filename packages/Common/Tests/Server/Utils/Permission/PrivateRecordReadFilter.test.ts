@@ -20,7 +20,12 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
-import { describe, expect, test } from "@jest/globals";
+import {
+  clearPrivateRecords,
+  rowMatchesWhere,
+  setPrivateRecords,
+} from "../../TestingUtils/InMemoryRepository";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
 /*
@@ -353,5 +358,69 @@ describe("PrivateRecordReadFilter.keepToNotPrivate: what Run Workflow offers", (
 
   test("a monitor is offered as it was", () => {
     expect(PrivateRecordReadFilter.keepToNotPrivate({}, Monitor)).toEqual({});
+  });
+});
+
+/*
+ * The suites that drive a service over rows kept in memory
+ * (TestingUtils/InMemoryRepository) answer the rule from the private records
+ * they say there are, as Postgres answers its SQL
+ * (PrivateRecordActionsPostgres): this holds the two to the same SQL.
+ */
+describe("the in-memory repository answers the rule as Postgres does", () => {
+  const PRIVATE_INCIDENT: string = "0b0a0a0a-0a0a-4a0a-8a0a-0a0a0a0a0b01";
+  const PUBLIC_INCIDENT: string = "0b0a0a0a-0a0a-4a0a-8a0a-0a0a0a0a0b02";
+  const OTHER_USER: ObjectID = new ObjectID(
+    "0b0a0a0a-0a0a-4a0a-8a0a-0a0a0a0a0b03",
+  );
+
+  afterEach(() => {
+    clearPrivateRecords();
+  });
+
+  function readsAs(
+    props: DatabaseCommonInteractionProps,
+    incidentId: string | null,
+  ): boolean {
+    return rowMatchesWhere(
+      { incidentId: incidentId, alertId: null },
+      PrivateRecordReadFilter.apply({}, props, EmailLog),
+    );
+  }
+
+  test("a log about a private incident is read by those who see it, and no one else", () => {
+    setPrivateRecords({
+      table: "Incident",
+      records: [{ id: PRIVATE_INCIDENT, seenBy: [USER_ID] }],
+    });
+
+    expect(readsAs(person(Permission.Viewer), PRIVATE_INCIDENT)).toBe(true);
+    expect(
+      readsAs(
+        { ...person(Permission.Viewer), userId: OTHER_USER },
+        PRIVATE_INCIDENT,
+      ),
+    ).toBe(false);
+    expect(readsAs(workflowStep, PRIVATE_INCIDENT)).toBe(false);
+
+    // One about a public incident, or none, is read by every reader.
+    for (const incidentId of [PUBLIC_INCIDENT, null]) {
+      expect(
+        readsAs(
+          { ...person(Permission.Viewer), userId: OTHER_USER },
+          incidentId,
+        ),
+      ).toBe(true);
+      expect(readsAs(workflowStep, incidentId)).toBe(true);
+    }
+  });
+
+  test("with no private records said, every log is read as before", () => {
+    expect(
+      readsAs(
+        { ...person(Permission.Viewer), userId: OTHER_USER },
+        PRIVATE_INCIDENT,
+      ),
+    ).toBe(true);
   });
 });
