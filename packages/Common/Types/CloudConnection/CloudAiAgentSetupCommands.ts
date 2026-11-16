@@ -21,7 +21,12 @@ import {
   AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
   AZURE_CLOUD_AI_AGENT_ROLE_NAME,
+  AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+  AZURE_CLOUD_AI_AGENT_HOSTS,
+  AZURE_CLOUD_AI_AGENT_NETWORK_NAME,
+  AZURE_CLOUD_AI_AGENT_VM_NAME,
   AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
+  AzureCloudAiAgentHost,
   CLOUD_AI_AGENT_NAME,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
@@ -33,6 +38,7 @@ import {
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
   GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
   GcpCloudAiAgentHost,
+  getAzureCloudAiAgentKeyVaultName,
   getAzureCloudAiAgentWriteIdentityId,
   getCloudAiAgentOwnTargets,
   getGcpServiceAccountEmail,
@@ -46,7 +52,9 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
+  RESOURCE_AI_AZURE_HOST_ENV,
   RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
@@ -190,6 +198,8 @@ export interface CloudAiAgentSetupOptions {
   region?: string | undefined;
   // Google Cloud only: what runs it (GCP_CLOUD_AI_AGENT_DEFAULT_HOST when absent).
   gcpHost?: GcpCloudAiAgentHost | undefined;
+  // Azure only: what runs it (AZURE_CLOUD_AI_AGENT_DEFAULT_HOST when absent).
+  azureHost?: AzureCloudAiAgentHost | undefined;
   // The image's tag (CLOUD_AI_AGENT_IMAGE_TAG when absent).
   imageTag?: string | undefined;
 }
@@ -672,6 +682,7 @@ interface CloudAiAgentSetup {
   region: string | null;
   image: string;
   gcpHost: GcpCloudAiAgentHost;
+  azureHost: AzureCloudAiAgentHost;
 }
 
 function readSetup(
@@ -795,6 +806,17 @@ function readSetup(
     return "Pick where the Google Cloud agent runs: a small VM, or Cloud Run.";
   }
 
+  const azureHost: unknown =
+    options.azureHost === undefined
+      ? AZURE_CLOUD_AI_AGENT_DEFAULT_HOST
+      : options.azureHost;
+
+  if (
+    !(AZURE_CLOUD_AI_AGENT_HOSTS as ReadonlyArray<unknown>).includes(azureHost)
+  ) {
+    return "Pick where the Azure agent runs: Container Apps, or a small VM.";
+  }
+
   return {
     provider,
     oneuptimeUrl: url,
@@ -810,6 +832,7 @@ function readSetup(
     region: regionSetting || CLOUD_AI_AGENT_DEFAULT_REGIONS[provider],
     image: getCloudAiAgentImage(imageTag),
     gcpHost: gcpHost as GcpCloudAiAgentHost,
+    azureHost: azureHost as AzureCloudAiAgentHost,
   };
 }
 
@@ -977,6 +1000,18 @@ function environmentOf(
         ? variable(CLOUD_AI_AGENT_HEALTH_HOST_ENV, "0.0.0.0")
         : variable(RESOURCE_AI_GCP_HOST_ENV, setup.gcpHost),
     );
+  }
+
+  /*
+   * On its own VM the Azure agent says where it runs, as a Container App
+   * says so itself (CONTAINER_APP_NAME): its posture reports it, so the
+   * command written from Change keeps it there.
+   */
+  if (
+    setup.provider === CloudProvider.Azure &&
+    setup.azureHost === "virtual-machine"
+  ) {
+    environment.push(variable(RESOURCE_AI_AZURE_HOST_ENV, setup.azureHost));
   }
 
   return environment;
@@ -2126,37 +2161,282 @@ export function getAzureCloudAiAgentSetupCommand(
   return writeAzureCommand(checkedSetup(options, CloudProvider.Azure));
 }
 
-function writeAzureCommand(setup: CloudAiAgentSetup): string {
-  const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[CloudProvider.Azure];
-  const location: string = setup.region as string;
-  const subscription: string = '--subscription "$SUBSCRIPTION"';
-  const group: string = `--resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}`;
-  const scope: string = '--scope "/subscriptions/$SUBSCRIPTION"';
-  const writeIdentity: string = `--name ${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME} ${group}`;
-  const variables: Array<string> = environmentOf(setup).map(
-    (variable: CloudAiAgentEnvironmentVariable): string => {
-      return variable.isSecret
-        ? `${variable.name}=secretref:${AZURE_CLOUD_AI_AGENT_SECRET_NAME}`
-        : `${variable.name}=${shellQuote(variable.value)}`;
+/*
+ * The write identity's object id, as the command reads it from Azure when
+ * it makes or finds the identity (WRITE_PRINCIPAL): what the Activity Log
+ * names as the caller of the agent's changes. The agent reports it from
+ * the start, so the Changes page marks its changes before its first change
+ * or Test connection, and after a restart. A shell variable, written as a
+ * double-quoted expansion; the app is only written once it holds a value.
+ * Not among the variables for running the agent elsewhere: Azure makes the
+ * id when it makes the identity, and the agent learns it from the
+ * identity's first token without it.
+ */
+const AZURE_WRITE_PRINCIPAL_VARIABLE: string = `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}="$WRITE_PRINCIPAL"`;
+
+/*
+ * The Azure VM host: the VM's start script, written to its user data at
+ * every run of the command and run as root at every boot (by a systemd
+ * service its first boot sets up, AZURE_CLOUD_AI_AGENT_CLOUD_INIT). It
+ * holds no secret: anyone who may read the VM reads its user data. The
+ * agent's variables and the key reader go to memory (/run), the image is
+ * pulled until the network answers, the key is read from the VM's Key Vault
+ * in the image itself - tried again for a few minutes, while the access the
+ * command gave the VM's new identity is still on its way - and the agent
+ * starts read-only, its /tmp in memory, on the VM's own network (where IMDS
+ * answers its tokens), started again by Docker should it stop. The file
+ * with the key is removed once Docker has read it.
+ *
+ * The write identity's object id is the command's (WRITE_PRINCIPAL), read
+ * from Azure: the command writes the script in two parts around that one
+ * variable line, so the script itself is written where no shell expands
+ * it.
+ */
+export const AZURE_CLOUD_AI_AGENT_VM_SIZE: string = "Standard_B1s";
+export const AZURE_CLOUD_AI_AGENT_VM_IMAGE: string = "Ubuntu2404";
+export const AZURE_CLOUD_AI_AGENT_OS_DISK_GB: number = 30;
+export const AZURE_CLOUD_AI_AGENT_OS_DISK_SKU: string = "Standard_LRS";
+// The VM's one admin user, whose only key the command throws away.
+export const AZURE_CLOUD_AI_AGENT_VM_ADMIN: string = "oneuptime";
+// Its network: one of its own, so any range does; 16 addresses.
+export const AZURE_CLOUD_AI_AGENT_VNET_RANGE: string = "10.251.0.0/28";
+// What the command writes in the shell's directory, each removed once used.
+export const AZURE_CLOUD_AI_AGENT_START_FILE: string = `${CLOUD_AI_AGENT_NAME}.start.sh`;
+export const AZURE_CLOUD_AI_AGENT_CLOUD_INIT_FILE: string = `${CLOUD_AI_AGENT_NAME}.cloud-init.yaml`;
+export const AZURE_CLOUD_AI_AGENT_KEY_FILE: string = `${CLOUD_AI_AGENT_NAME}.key`;
+export const AZURE_CLOUD_AI_AGENT_SSH_KEY_FILE: string = `${CLOUD_AI_AGENT_NAME}.ssh`;
+// Where the VM keeps what its start script writes: memory, never its disk.
+export const AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY: string = `/run/${CLOUD_AI_AGENT_NAME}`;
+// How many times the start script reads the key, 15 seconds apart.
+export const AZURE_CLOUD_AI_AGENT_KEY_READ_ATTEMPTS: number = 40;
+export const AZURE_CLOUD_AI_AGENT_KEY_READ_RETRY_SECONDS: number = 15;
+/*
+ * What the command says when the VM could not be made, and what to do.
+ * Echoed in double quotes: it holds none, and no $, ` or backslash.
+ */
+export const AZURE_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE: string =
+  "The agent's VM could not be started: the lines above say what Azure answered. If a policy of the subscription allows no VM a public IP address, or this region does not offer Standard_B1s, choose Container Apps under More fields, or another region, and run the command again.";
+
+/*
+ * How the start script reads the key: a small Node.js program run in the
+ * agent's own image (the VM has no az), which asks IMDS for a Key Vault
+ * token of the VM's own identity and the vault for the key's secret, and
+ * prints it. The key passes through memory only. Written without a $ or a
+ * backtick, and without a ! - an interactive shell expands one even inside
+ * a here-document, and the command is pasted into one.
+ */
+export const AZURE_CLOUD_AI_AGENT_KEY_READER: string = [
+  'const vault = process.argv[2] || "";',
+  "const imds =",
+  '  "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fvault.azure.net";',
+  "async function readKey() {",
+  "  const token = await (",
+  '    await fetch(imds, { headers: { Metadata: "true" } })',
+  "  ).json();",
+  "  const answer = await fetch(",
+  `    vault + "/secrets/${AZURE_CLOUD_AI_AGENT_SECRET_NAME}?api-version=7.4",`,
+  '    { headers: { Authorization: "Bearer " + token.access_token } },',
+  "  );",
+  "  if (answer.ok === false) {",
+  '    throw new Error("Key Vault answered HTTP " + answer.status + " for " + vault);',
+  "  }",
+  "  const secret = await answer.json();",
+  '  const key = String(secret.value || "").trim();',
+  "  if (key.length === 0) {",
+  '    throw new Error(vault + " holds no key");',
+  "  }",
+  "  process.stdout.write(key);",
+  "}",
+  "readKey().catch((error) => {",
+  '  console.error("Could not read the agent key: " + String(error && error.message ? error.message : error));',
+  "  process.exit(1);",
+  "});",
+].join("\n");
+
+/*
+ * The VM's first boot (its custom data, which cloud-init reads once):
+ * Docker, and a systemd service that runs at every boot what the VM's user
+ * data holds - the start script, which every run of the command writes
+ * anew. Fixed: it holds nothing of one setup, and no secret.
+ */
+export const AZURE_CLOUD_AI_AGENT_CLOUD_INIT: string = [
+  "#cloud-config",
+  "package_update: true",
+  "packages:",
+  "  - docker.io",
+  "write_files:",
+  `  - path: /usr/local/lib/${CLOUD_AI_AGENT_NAME}/boot.sh`,
+  '    permissions: "0700"',
+  "    content: |",
+  `      mkdir -p ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}`,
+  `      chmod 700 ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}`,
+  `      until curl -sf -H Metadata:true "http://169.254.169.254/metadata/instance/compute/userData?api-version=2021-01-01&format=text" -o ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}/start.b64; do sleep 10; done`,
+  `      base64 -d ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}/start.b64 > ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}/start.sh`,
+  `      rm -f ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}/start.b64`,
+  `      bash ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}/start.sh`,
+  `  - path: /etc/systemd/system/${CLOUD_AI_AGENT_NAME}.service`,
+  "    content: |",
+  "      [Unit]",
+  "      Description=OneUptime Cloud AI agent",
+  "      Wants=network-online.target",
+  "      After=network-online.target docker.service",
+  "      Requires=docker.service",
+  "      [Service]",
+  "      Type=simple",
+  `      ExecStart=/bin/bash /usr/local/lib/${CLOUD_AI_AGENT_NAME}/boot.sh`,
+  "      [Install]",
+  "      WantedBy=multi-user.target",
+  "runcmd:",
+  "  - [systemctl, daemon-reload]",
+  `  - [systemctl, enable, --now, ${CLOUD_AI_AGENT_NAME}.service]`,
+].join("\n");
+
+// The start script before and after the line with the write identity's object id.
+function azureStartScriptParts(setup: CloudAiAgentSetup): {
+  head: Array<string>;
+  tail: Array<string>;
+} {
+  const variables: Array<CloudAiAgentEnvironmentVariable> =
+    environmentOf(setup);
+  const keyVariable: string =
+    variables.find((variable: CloudAiAgentEnvironmentVariable): boolean => {
+      return variable.isSecret;
+    })?.name || CLOUD_AI_AGENT_KEY_ENV;
+  const run: string = AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY;
+  const attempts: string = Array.from(
+    { length: AZURE_CLOUD_AI_AGENT_KEY_READ_ATTEMPTS },
+    (_: unknown, index: number): string => {
+      return String(index + 1);
     },
-  );
+  ).join(" ");
+
+  return {
+    head: [
+      "# The OneUptime Cloud AI agent, started by bash on every boot. Written by its setup command; it holds no secret.",
+      `IMAGE=${setup.image}`,
+      `VAULT=https://${getAzureCloudAiAgentKeyVaultName(setup.accountId)}.vault.azure.net`,
+      "umask 077",
+      `mkdir -p ${run}`,
+      `cat > ${run}/agent.env <<'ENV'`,
+      ...variables
+        .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
+          return !variable.isSecret;
+        })
+        .map((variable: CloudAiAgentEnvironmentVariable): string => {
+          return `${variable.name}=${variable.value}`;
+        }),
+    ],
+    tail: [
+      "ENV",
+      `cat > ${run}/key.js <<'KEYJS'`,
+      AZURE_CLOUD_AI_AGENT_KEY_READER,
+      "KEYJS",
+      // The image runs as its own user, which reads the key reader.
+      `chmod 755 ${run}`,
+      `chmod 644 ${run}/key.js`,
+      'until docker pull "$IMAGE" > /dev/null; do sleep 10; done',
+      /*
+       * The VM's identity is new on a first run, and the vault's access for
+       * it is given once the VM is there: read until it reaches the vault.
+       */
+      'KEY=""',
+      `for ATTEMPT in ${attempts}; do KEY=$(docker run --rm --network host -v ${run}/key.js:/key.js:ro --entrypoint node "$IMAGE" /key.js "$VAULT") && break; KEY=""; sleep ${AZURE_CLOUD_AI_AGENT_KEY_READ_RETRY_SECONDS}; done`,
+      `[ -n "$KEY" ] || { rm -f ${run}/agent.env; exit 1; }`,
+      `printf '%s=%s\\n' ${keyVariable} "$KEY" >> ${run}/agent.env`,
+      `docker rm -f ${AZURE_CLOUD_AI_AGENT_VM_NAME} > /dev/null 2>&1`,
+      `docker run -d --name ${AZURE_CLOUD_AI_AGENT_VM_NAME} --restart unless-stopped --network host --read-only --tmpfs /tmp --env-file ${run}/agent.env "$IMAGE" > /dev/null`,
+      `rm -f ${run}/agent.env`,
+    ],
+  };
+}
+
+/*
+ * The VM's start script, as the command writes it to the VM's user data,
+ * with the write identity's object id Azure gave (its principalId).
+ */
+export function getAzureCloudAiAgentStartScript(
+  options: CloudAiAgentSetupOptions,
+  writePrincipalId: string,
+): string {
+  const parts: { head: Array<string>; tail: Array<string> } =
+    azureStartScriptParts(checkedSetup(options, CloudProvider.Azure));
+
+  return [
+    ...parts.head,
+    `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=${writePrincipalId}`,
+    ...parts.tail,
+  ].join("\n");
+}
+
+// The flags both hosts' commands use.
+const AZURE_SUBSCRIPTION_FLAG: string = '--subscription "$SUBSCRIPTION"';
+const AZURE_GROUP_FLAG: string = `--resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}`;
+const AZURE_SCOPE_FLAG: string = '--scope "/subscriptions/$SUBSCRIPTION"';
+
+/*
+ * What both hosts share: the two roles, the providers, the resource group
+ * and the write identity, whose object id is WRITE_PRINCIPAL.
+ */
+function writeAzureCommandStart(setup: CloudAiAgentSetup): Array<string> {
+  const location: string = setup.region as string;
+  const subscription: string = AZURE_SUBSCRIPTION_FLAG;
+  const writeIdentity: string = `--name ${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME} ${AZURE_GROUP_FLAG}`;
   // The same flags whether a role is created or updated.
   const role: (definition: string) => string = (definition: string): string => {
     return `${subscription} --role-definition "$${definition}" --query name --output tsv`;
   };
+  const providers: Array<string> =
+    setup.azureHost === "virtual-machine"
+      ? [
+          "Microsoft.Compute",
+          "Microsoft.Network",
+          "Microsoft.KeyVault",
+          "Microsoft.ManagedIdentity",
+        ]
+      : ["Microsoft.App", "Microsoft.ManagedIdentity"];
 
   return [
     `SUBSCRIPTION=${setup.accountId}`,
     `DEFINITION=${shellQuote(JSON.stringify(azureRoleDefinitionOf(setup)))}`,
     `READER_DEFINITION=${shellQuote(JSON.stringify(azureReaderRoleDefinitionOf(setup)))}`,
-    "az extension add --name containerapp --upgrade -y --only-show-errors",
+    ...(setup.azureHost === "virtual-machine"
+      ? []
+      : [
+          "az extension add --name containerapp --upgrade -y --only-show-errors",
+        ]),
     `ROLE=$(az role definition create ${role("DEFINITION")} 2> /dev/null || az role definition update ${role("DEFINITION")})`,
     `READER_ROLE=$(az role definition create ${role("READER_DEFINITION")} 2> /dev/null || az role definition update ${role("READER_DEFINITION")})`,
-    `az provider register ${subscription} --namespace Microsoft.App --wait`,
-    `az provider register ${subscription} --namespace Microsoft.ManagedIdentity --wait`,
+    ...providers.map((provider: string): string => {
+      return `az provider register ${subscription} --namespace ${provider} --wait`;
+    }),
     `az group show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} > /dev/null 2>&1 || az group create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} --location ${location} --output none`,
     // The identity each change runs as: made the first time, the same one every time after.
     `WRITE_PRINCIPAL=$(az identity show ${subscription} ${writeIdentity} --query principalId --output tsv 2> /dev/null || az identity create ${subscription} ${writeIdentity} --location ${location} --query principalId --output tsv)`,
+  ];
+}
+
+// The agent as a Container App, as before; the VM an earlier run made goes.
+function writeAzureContainerAppCommand(
+  setup: CloudAiAgentSetup,
+): Array<string> {
+  const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[CloudProvider.Azure];
+  const location: string = setup.region as string;
+  const subscription: string = AZURE_SUBSCRIPTION_FLAG;
+  const group: string = AZURE_GROUP_FLAG;
+  const scope: string = AZURE_SCOPE_FLAG;
+  const vm: string = `--name ${AZURE_CLOUD_AI_AGENT_VM_NAME} ${group}`;
+  const variables: Array<string> = [
+    ...environmentOf(setup).map(
+      (variable: CloudAiAgentEnvironmentVariable): string => {
+        return variable.isSecret
+          ? `${variable.name}=secretref:${AZURE_CLOUD_AI_AGENT_SECRET_NAME}`
+          : `${variable.name}=${shellQuote(variable.value)}`;
+      },
+    ),
+    AZURE_WRITE_PRINCIPAL_VARIABLE,
+  ];
+
+  return [
     `az containerapp env show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} ${group} > /dev/null 2>&1 || az containerapp env create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} ${group} --location ${location} --logs-destination none --output none`,
     /*
      * The app with its own identity and the write identity, their roles,
@@ -2177,7 +2457,114 @@ function writeAzureCommand(setup: CloudAiAgentSetup): string {
     `  az role assignment create ${subscription} --assignee-object-id "$WRITE_PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$ROLE" ${scope} --output none &&`,
     // An agent set up before held the changes' role itself: no longer.
     `  { az role assignment delete ${subscription} --assignee "$PRINCIPAL" --role "$ROLE" ${scope} --output none 2> /dev/null || true; } &&`,
-    `  echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"`,
+    "  STARTED=1",
+    // One agent per subscription: the VM an earlier run started goes, its disk and network card with it.
+    `if [ -n "$STARTED" ] && az vm show ${subscription} ${vm} > /dev/null 2>&1; then`,
+    `  az vm delete ${subscription} ${vm} --yes --output none && { az network public-ip delete ${subscription} ${vm} --output none 2> /dev/null || true; }`,
+    "fi",
+    `if [ -n "$STARTED" ]; then echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"; fi`,
+  ];
+}
+
+/*
+ * The agent on a VM of its own, in a network of its own that lets nothing
+ * in (an NSG with no rule that allows anything in, and no SSH key anyone
+ * keeps): Standard_B1s on Ubuntu, Trusted Launch, its own system-assigned
+ * identity reading with the reads' role, the write identity attached to it
+ * alone, and the key in a Key Vault of its own whose one access policy lets
+ * the VM's identity get its secrets - nothing else. Older versions of the
+ * key's secret are disabled once the new one is in. Run again, the command
+ * writes the start script anew to the VM's user data and restarts it, which
+ * starts the agent the new way; the Container App an earlier run made goes.
+ */
+function writeAzureVmCommand(setup: CloudAiAgentSetup): Array<string> {
+  const location: string = setup.region as string;
+  const subscription: string = AZURE_SUBSCRIPTION_FLAG;
+  const group: string = AZURE_GROUP_FLAG;
+  const scope: string = AZURE_SCOPE_FLAG;
+  const vault: string = getAzureCloudAiAgentKeyVaultName(setup.accountId);
+  const vaultFlags: string = `${subscription} --name ${vault}`;
+  const secret: string = `${subscription} --vault-name ${vault} --name ${AZURE_CLOUD_AI_AGENT_SECRET_NAME}`;
+  const vm: string = `--name ${AZURE_CLOUD_AI_AGENT_VM_NAME} ${group}`;
+  const network: string = AZURE_CLOUD_AI_AGENT_NETWORK_NAME;
+  const start: string = AZURE_CLOUD_AI_AGENT_START_FILE;
+  const sshKey: string = AZURE_CLOUD_AI_AGENT_SSH_KEY_FILE;
+  const writeIdentityId: string = getAzureCloudAiAgentWriteIdentityId(
+    setup.accountId,
+  );
+  const parts: { head: Array<string>; tail: Array<string> } =
+    azureStartScriptParts(setup);
+  const create: string = [
+    `az vm create ${subscription} ${vm} --location ${location}`,
+    `--image ${AZURE_CLOUD_AI_AGENT_VM_IMAGE} --size ${AZURE_CLOUD_AI_AGENT_VM_SIZE}`,
+    `--os-disk-size-gb ${AZURE_CLOUD_AI_AGENT_OS_DISK_GB} --storage-sku ${AZURE_CLOUD_AI_AGENT_OS_DISK_SKU} --os-disk-delete-option Delete --nic-delete-option Delete`,
+    "--security-type TrustedLaunch --enable-secure-boot true --enable-vtpm true",
+    `--assign-identity [system] ${writeIdentityId}`,
+    `--vnet-name ${network} --subnet ${network} --vnet-address-prefix ${AZURE_CLOUD_AI_AGENT_VNET_RANGE} --subnet-address-prefix ${AZURE_CLOUD_AI_AGENT_VNET_RANGE}`,
+    `--nsg ${network} --nsg-rule NONE --public-ip-address ${network} --public-ip-sku Standard`,
+    `--admin-username ${AZURE_CLOUD_AI_AGENT_VM_ADMIN} --authentication-type ssh --ssh-key-values ${sshKey}.pub`,
+    `--custom-data ${AZURE_CLOUD_AI_AGENT_CLOUD_INIT_FILE} --user-data ${start} --output none`,
+  ].join(" ");
+
+  return [
+    // The key: a secret of a vault of its own, which only the VM's identity may read.
+    `az keyvault show ${vaultFlags} > /dev/null 2>&1 || az keyvault create ${vaultFlags} ${group} --location ${location} --enable-rbac-authorization false --output none 2> /dev/null || az keyvault recover ${vaultFlags} --output none`,
+    `cat > ${AZURE_CLOUD_AI_AGENT_KEY_FILE} <<'${GCP_CLOUD_AI_AGENT_KEY_FILE_END}'`,
+    setup.agentKey,
+    GCP_CLOUD_AI_AGENT_KEY_FILE_END,
+    `KEY_VERSION=$(az keyvault secret set ${secret} --file ${AZURE_CLOUD_AI_AGENT_KEY_FILE} --query id --output tsv)`,
+    `rm ${AZURE_CLOUD_AI_AGENT_KEY_FILE}`,
+    /*
+     * Every older version of the secret is disabled once the new one is in:
+     * the VM reads the current one, and an older one holds a key that no
+     * longer connects anything. Only when the new version was added.
+     */
+    `if [ -n "$KEY_VERSION" ]; then for VERSION in $(az keyvault secret list-versions ${subscription} --vault-name ${vault} --name ${AZURE_CLOUD_AI_AGENT_SECRET_NAME} --query "[?attributes.enabled].id" --output tsv); do [ "$VERSION" = "$KEY_VERSION" ] || az keyvault secret set-attributes ${subscription} --id "$VERSION" --enabled false --output none; done; fi`,
+    // The VM's first boot, and the start script its every boot runs.
+    `cat > ${AZURE_CLOUD_AI_AGENT_CLOUD_INIT_FILE} <<'CLOUDINIT'`,
+    AZURE_CLOUD_AI_AGENT_CLOUD_INIT,
+    "CLOUDINIT",
+    `cat > ${start} <<'STARTUP'`,
+    ...parts.head,
+    "STARTUP",
+    // The write identity's object id, as Azure answered for it.
+    `printf '%s=%s\\n' ${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV} "$WRITE_PRINCIPAL" >> ${start}`,
+    `cat >> ${start} <<'STARTUP'`,
+    ...parts.tail,
+    "STARTUP",
+    // The VM an earlier run made: its identities, the start script anew, and a restart.
+    `if [ -n "$KEY_VERSION" ] && az vm show ${subscription} ${vm} > /dev/null 2>&1; then`,
+    `  az vm identity assign ${subscription} ${vm} --identities [system] ${writeIdentityId} --output none && az vm update ${subscription} ${vm} --user-data ${start} --output none && az vm restart ${subscription} ${vm} --output none && STARTED=1`,
+    "else",
+    // A key nobody keeps: the VM takes no SSH login, and its network lets nothing in anyway.
+    `  [ -n "$WRITE_PRINCIPAL" ] && [ -n "$KEY_VERSION" ] && ssh-keygen -q -t ed25519 -N "" -C ${CLOUD_AI_AGENT_NAME} -f ${sshKey} > /dev/null && ${create} && STARTED=1`,
+    `  rm -f ${sshKey} ${sshKey}.pub`,
+    "fi",
+    `rm ${AZURE_CLOUD_AI_AGENT_CLOUD_INIT_FILE} ${start}`,
+    /*
+     * The VM's own identity reads its key and the subscription; the write
+     * identity holds the changes. Each only when the one before worked.
+     */
+    'if [ -n "$STARTED" ]; then',
+    `  PRINCIPAL=$(az vm show ${subscription} ${vm} --query identity.principalId --output tsv) &&`,
+    `  az keyvault set-policy ${vaultFlags} --object-id "$PRINCIPAL" --secret-permissions get --output none &&`,
+    `  az role assignment create ${subscription} --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$READER_ROLE" ${scope} --output none &&`,
+    `  az role assignment create ${subscription} --assignee-object-id "$WRITE_PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$ROLE" ${scope} --output none || STARTED=""`,
+    "fi",
+    // One agent per subscription: the Container App an earlier run started goes.
+    `if [ -n "$STARTED" ] && az containerapp show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group} > /dev/null 2>&1; then`,
+    `  az containerapp delete ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group} --yes --output none`,
+    "fi",
+    `if [ -n "$STARTED" ]; then echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"; else echo "${AZURE_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE}"; fi`,
+  ];
+}
+
+function writeAzureCommand(setup: CloudAiAgentSetup): string {
+  return [
+    ...writeAzureCommandStart(setup),
+    ...(setup.azureHost === "virtual-machine"
+      ? writeAzureVmCommand(setup)
+      : writeAzureContainerAppCommand(setup)),
   ].join("\n");
 }
 

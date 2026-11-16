@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import logger from "Common/Server/Utils/Logger";
+import ResponseTooLarge from "Common/Utils/ResponseTooLarge";
 import {
   BashStepConfig,
   HttpRequestStepConfig,
@@ -91,6 +92,15 @@ export interface StepExecutionContext {
 }
 
 const MAX_OUTPUT_BYTES: number = 50_000;
+
+/*
+ * The most of an answer an HTTP step reads: 10 MB, as a workflow's API steps
+ * do (API_COMPONENT_MAX_RESPONSE_BYTES). Its output keeps only the first
+ * MAX_OUTPUT_BYTES, but axios holds the whole answer first, so without a cap
+ * a step pointed at an endpoint that streams forever fills the worker's
+ * memory. A larger answer fails the step, unread, and says so.
+ */
+export const HTTP_STEP_MAX_RESPONSE_BYTES: number = 10 * 1024 * 1024;
 
 export function truncate(s: string): string {
   if (Buffer.byteLength(s, "utf8") <= MAX_OUTPUT_BYTES) {
@@ -555,26 +565,41 @@ export async function runHttpStep(
      * redirects — pinning covers only the host that was validated, so a 3xx
      * would walk around it. maxRedirects rather than doNotFollowRedirects
      * because this is raw axios, not Common's API wrapper. The URL checked is
-     * the one sent: its variables filled in.
+     * the one sent - its variables filled in - as the guard read it, so its
+     * host name is the one the agents dial. Behind an outbound proxy
+     * (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY) the request goes through it, as
+     * every other request of the worker does, whether the proxy is named by
+     * address or by host name; a host in NO_PROXY is dialled directly, at
+     * the address the guard checked.
      */
-    const { httpAgent, httpsAgent } =
+    const { url, httpAgent, httpsAgent } =
       await DataSourceEgressGuard.assertUrlAllowedAndPin(config.url || "", {
         targetLabel: "Runbook HTTP step",
       });
 
-    const response: AxiosResponse = await axios.request({
-      url: config.url,
-      method: config.method,
-      headers,
-      data: parsedBody,
-      timeout,
-      maxRedirects: 0,
-      httpAgent,
-      httpsAgent,
-      validateStatus: () => {
-        return true;
-      },
-    });
+    let response: AxiosResponse;
+
+    try {
+      response = await axios.request({
+        // Only Node's http adapter uses the pinned agents.
+        adapter: "http",
+        url: url.href,
+        method: config.method,
+        headers,
+        data: parsedBody,
+        timeout,
+        maxRedirects: 0,
+        maxContentLength: HTTP_STEP_MAX_RESPONSE_BYTES,
+        httpAgent,
+        httpsAgent,
+        validateStatus: () => {
+          return true;
+        },
+      });
+    } finally {
+      httpAgent.destroy();
+      httpsAgent.destroy();
+    }
 
     const body: string =
       typeof response.data === "string"
@@ -599,6 +624,15 @@ export async function runHttpStep(
       errorMessage: `HTTP ${response.status}`,
     };
   } catch (err) {
+    // "The answer was larger than 10 MB, so it was not read."
+    if (ResponseTooLarge.isError(err)) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: ResponseTooLarge.getMessage(HTTP_STEP_MAX_RESPONSE_BYTES),
+      };
+    }
+
     return {
       success: false,
       output: "",

@@ -84,7 +84,7 @@ import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 import OnCallPageMerge, {
   OnCallPageCover,
 } from "../Utils/OnCall/OnCallPageMerge";
-import { getOnCallPageMergedMessage } from "../../Types/OnCallDutyPolicy/OnCallPageMerge";
+import { getOnCallPageMergedLine } from "../../Types/OnCallDutyPolicy/OnCallPageMerge";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
@@ -222,8 +222,9 @@ export interface OnCallPagedTarget {
   isNextInRotation?: true;
   /*
    * Present when their page was merged into their open page from another
-   * policy's run about the same record (OnCallPageMerge): that run, whose
-   * page reaches them for this one. Absent when this run paged them itself.
+   * run about the same record (OnCallPageMerge) - a policy's, or a direct
+   * page's (#8859): that run, whose page reaches them for this one. Absent
+   * when this run paged them itself.
    */
   alreadyPagedByExecutionLogId?: ObjectID;
 }
@@ -1076,7 +1077,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
    * somebody away with nobody named to cover (the global overrides only -
    * another policy's own never apply here); nobody who is not a member of
    * the project is paged; nobody is paged twice; and every target gets a
-   * line on the run's timeline, paged or not.
+   * line on the run's timeline, paged or not. A workflow's page of somebody
+   * another run is paging about the record already is merged into that
+   * page, as a policy's level is (OnCallPageMerge, #8859): its line says
+   * Already Paged, and they are among those paged.
    *
    * The run - an execution log with no policy - is written by its caller
    * (OnCallDutyPolicyExecutionLogService.startDirectPage), which is told who
@@ -1454,9 +1458,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           } as LogAttributes,
         );
 
-        // A merged page's line says who is paging them already (OnCallPageMerge).
+        /*
+         * A merged page's line says who is paging them already
+         * (OnCallPageMerge): the policy, or who or which workflow paged them
+         * directly (#8859).
+         */
         const mergedMessage: string | null = cover
-          ? getOnCallPageMergedMessage({ policyName: cover.policyName })
+          ? getOnCallPageMergedLine(cover.by)
           : null;
 
         let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
@@ -1862,29 +1870,29 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     };
 
     /*
-     * The open pages this rule's people have from another policy's run about
-     * the same record (OnCallPageMerge): their page here is merged into it,
-     * so they are told once. One read for the whole rule; nobody for a
-     * direct page, a run whose pages are never merged (a page again, a
-     * policy started by hand, an observer's page), or a read that failed.
+     * The open pages these people have from another run about the same
+     * record (OnCallPageMerge): their page here is merged into it, so they
+     * are told once. One read for the whole rule - or the whole direct page:
+     * a workflow's is merged too (#8859). Nobody for a run whose pages are
+     * never merged (a page again, a policy started by hand, a page sent from
+     * a chat, an observer's page, a test page), or a read that failed.
      */
-    const covers: Map<string, OnCallPageCover> = ruleId
-      ? await OnCallPageMerge.findCovers({
-          projectId: options.projectId,
-          executionLogId: options.onCallPolicyExecutionLogId,
-          userNotificationEventType: options.userNotificationEventType,
-          record: options,
-          userIds: targets
-            .filter((target: RuleTarget): target is RecipientRuleTarget => {
-              return (
-                target.kind === RuleTargetKind.Recipient && !target.awayUntil
-              );
-            })
-            .flatMap((target: RecipientRuleTarget): Array<ObjectID> => {
-              return [target.recipientUserId, target.originalUserId];
-            }),
-        })
-      : new Map<string, OnCallPageCover>();
+    const covers: Map<string, OnCallPageCover> =
+      await OnCallPageMerge.findCovers({
+        projectId: options.projectId,
+        executionLogId: options.onCallPolicyExecutionLogId,
+        userNotificationEventType: options.userNotificationEventType,
+        record: options,
+        userIds: targets
+          .filter((target: RuleTarget): target is RecipientRuleTarget => {
+            return (
+              target.kind === RuleTargetKind.Recipient && !target.awayUntil
+            );
+          })
+          .flatMap((target: RecipientRuleTarget): Array<ObjectID> => {
+            return [target.recipientUserId, target.originalUserId];
+          }),
+      });
 
     for (const target of targets) {
       if (target.kind === RuleTargetKind.ScheduleGap) {

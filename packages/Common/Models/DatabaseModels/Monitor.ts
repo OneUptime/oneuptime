@@ -43,6 +43,7 @@ import IncomingEmailMonitorRequest from "../../Types/Monitor/IncomingEmailMonito
 import IncomingMonitorRequest from "../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import { IncomingRequestSecretProblem } from "../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorStepsColumnTransformer from "../../Types/Monitor/MonitorStepsColumnTransformer";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../Types/ObjectID";
@@ -2022,7 +2023,8 @@ export default class Monitor extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
-    transformer: MonitorSteps.getDatabaseTransformer(),
+    // A browser build declares it without the monitor types (issue #8821).
+    transformer: MonitorStepsColumnTransformer,
   })
   public monitorSteps?: MonitorSteps = undefined;
 
@@ -2552,15 +2554,21 @@ export default class Monitor extends BaseModel {
 
   // this is for incoming request monitor.
 
+  /*
+   * The latest request as people read it: cut as the monitor's logs are,
+   * and without its headers and body when the monitor keeps no request
+   * content (LatestIncomingRequest). The request as it came is the column
+   * below, which only the server reads.
+   *
+   * Only the server writes it, from each request the monitor receives
+   * (MonitorResource, LatestIncomingRequest), so nobody may create or
+   * update it through the API: a create that carries one is refused, as an
+   * update is. It is not marked computed, and needs no exception: the
+   * server's writes of it make no create.
+   * https://github.com/OneUptime/oneuptime/issues/6541
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.CreateProjectMonitor,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2573,12 +2581,6 @@ export default class Monitor extends BaseModel {
     ],
     update: [],
   })
-  /*
-   * The latest request as people read it: cut as the monitor's logs are,
-   * and without its headers and body when the monitor keeps no request
-   * content (LatestIncomingRequest). The request as it came is the column
-   * below, which only the server reads.
-   */
   @TableColumn({
     type: TableColumnType.JSON,
     required: false,
@@ -2599,11 +2601,10 @@ export default class Monitor extends BaseModel {
    * reads it, so the API, exports, MCP, Terraform and the audit log leave it
    * out; people read the copy above (LatestIncomingRequest).
    *
-   * Not marked computed: the column check skips a computed column on a
-   * create (ColumnPermission.checkDataColumnPermissions), which would let a
-   * member's create set the request the heartbeat judges. Unmarked, a
-   * create that carries it is refused, as an update is. Only the server's
-   * own hook-free writes set it (MonitorResource, LatestIncomingRequest).
+   * Not marked computed: no create's steps write it, so it needs nothing
+   * of the column check but its empty lists - a create that carries it is
+   * refused, as an update is. Only the server's own hook-free writes set it
+   * (MonitorResource, LatestIncomingRequest).
    * https://github.com/OneUptime/oneuptime/issues/6402
    */
   @ColumnAccessControl({

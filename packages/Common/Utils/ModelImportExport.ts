@@ -63,8 +63,11 @@ const EXCLUDED_COLUMN_TYPES: Array<TableColumnType> = [
  */
 const EXCLUDED_COLUMNS_BY_TABLE: Dictionary<Array<string>> = {
   StatusPage: ["embeddedOverallStatusToken"],
+  /*
+   * An Incoming Request monitor's latest request needs no entry: nobody may
+   * create it (#6541), which the generic filters below already leave out.
+   */
   Monitor: [
-    "incomingMonitorRequest",
     "serverMonitorResponse",
     "incomingRequestMonitorHeartbeatCheckedAt",
     "serverMonitorRequestReceivedAt",

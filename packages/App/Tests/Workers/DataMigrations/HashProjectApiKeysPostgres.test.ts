@@ -2,8 +2,8 @@ import HashProjectApiKeys from "../../../FeatureSet/Workers/DataMigrations/HashP
 import { digestOfValueRead } from "../../../FeatureSet/Workers/DataMigrations/HashMasterApiKey";
 import Entities from "Common/Models/DatabaseModels/Index";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
-import { ApiKeyHashedColumn1809180790200 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809180790200-ApiKeyHashedColumn";
-import { AddMasterApiKeyCreatedByAndHint1809180790300 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809180790300-AddMasterApiKeyCreatedByAndHint";
+import { ApiKeyHashedColumn1809181100000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809181100000-ApiKeyHashedColumn";
+import { AddMasterApiKeyCreatedByAndHint1809181200000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809181200000-AddMasterApiKeyCreatedByAndHint";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import ProjectMiddleware from "Common/Server/Middleware/ProjectAuthorization";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -40,7 +40,7 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  *
  * A project's API keys were stored as they were written, in a uuid column.
  * The upgrade turns the column into a varchar and adds a hint column
- * (1809180790200-ApiKeyHashedColumn), and the HashProjectApiKeys data
+ * (1809181100000-ApiKeyHashedColumn), and the HashProjectApiKeys data
  * migration writes each key's hash and hint in place of the key. Every
  * script, integration and Terraform configuration that uses a key must
  * keep working throughout, with the key as it was written. On the ApiKey
@@ -259,7 +259,7 @@ describePostgres(
 
       // The keys table as it was before the upgrade: a uuid column, no hint.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new ApiKeyHashedColumn1809180790200().down(queryRunner);
+        await new ApiKeyHashedColumn1809181100000().down(queryRunner);
       });
 
       // A key as the Dashboard made it then, and one deleted since.
@@ -369,7 +369,7 @@ describePostgres(
 
     test("the schema migration keeps every key, as its text, and its index; the API still takes the key", async () => {
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new ApiKeyHashedColumn1809180790200().up(queryRunner);
+        await new ApiKeyHashedColumn1809181100000().up(queryRunner);
       });
 
       expect(await stored()).toEqual({
@@ -542,7 +542,7 @@ describePostgres(
 
       // Rolled back, the three columns go, and come back empty.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new AddMasterApiKeyCreatedByAndHint1809180790300().down(
+        await new AddMasterApiKeyCreatedByAndHint1809181200000().down(
           queryRunner,
         );
       });
@@ -550,7 +550,7 @@ describePostgres(
       expect(await columnsOf("GlobalConfig")).not.toContain("masterApiKeyHint");
 
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new AddMasterApiKeyCreatedByAndHint1809180790300().up(
+        await new AddMasterApiKeyCreatedByAndHint1809181200000().up(
           queryRunner,
         );
       });
@@ -568,7 +568,7 @@ describePostgres(
       );
 
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new ApiKeyHashedColumn1809180790200().down(queryRunner);
+        await new ApiKeyHashedColumn1809181100000().down(queryRunner);
       });
 
       const afterRollback: StoredKey = await stored();
@@ -584,7 +584,7 @@ describePostgres(
 
       // Left as the schema stands now, for whoever reads the schema next.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new ApiKeyHashedColumn1809180790200().up(queryRunner);
+        await new ApiKeyHashedColumn1809181100000().up(queryRunner);
       });
     });
   },

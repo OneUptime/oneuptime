@@ -84,7 +84,7 @@ Senden Sie **GET**- oder **POST**-Anfragen an diese URL. HEAD wird angenommen un
 > Jeder, der diese URL kennt, kann den Monitor als gesund markieren, behandeln Sie sie also als Geheimnis. Wird sie bekannt, öffnen Sie die Seite **Einstellungen** des Monitors und klicken Sie auf **Geheimen Schlüssel für eingehende Anfragen zurücksetzen**, und aktualisieren Sie dann jeden Absender. Die Übersicht des Monitors zeigt die letzte Anfrage so, wie seine Protokolle sie behalten: mit maskierten Geheimnissen und personenbezogenen Daten, und ohne Header und Body, wenn **Anfrageinhalt behalten** ausgeschaltet ist. Die Maskierung erkennt nur die Namen und Muster, die sie kennt — senden Sie an diesen Endpunkt also keine API-Schlüssel oder Tokens.
 
 > [!IMPORTANT]
-> OneUptime antwortet sofort mit `200` und einem leeren JSON-Objekt (`{}`) und verarbeitet die Anfrage über eine Warteschlange. Diese Antwort wird geschrieben, bevor irgendeine Prüfung stattfindet, ein `200` ist also **keine** Bestätigung, dass die Anfrage angenommen wurde — ein falscher geheimer Schlüssel, ein gelöschter Monitor und ein deaktivierter Monitor liefern ebenfalls `200`. Prüfen Sie in der Zeitleiste des Monitors, ob Anfragen ankommen. Die einzige Ausnahme ist ein Projekt, das bei jeder Anfrage ein Geheimnis verlangt: Eine Anfrage ohne Geheimnis wird mit `401` beantwortet.
+> OneUptime antwortet sofort mit `200` und einem leeren JSON-Objekt (`{}`) und verarbeitet die Anfrage über eine Warteschlange. Diese Antwort wird geschrieben, bevor irgendeine Prüfung stattfindet, ein `200` ist also **keine** Bestätigung, dass die Anfrage angenommen wurde — ein falscher geheimer Schlüssel, ein gelöschter Monitor und ein deaktivierter Monitor liefern ebenfalls `200`. Prüfen Sie in der Zeitleiste des Monitors, ob Anfragen ankommen. Ein Projekt, das bei jeder Anfrage ein Geheimnis verlangt, beantwortet eine Anfrage ohne Geheimnis mit `401`, und ein Dienst, der die URL prüft, bevor er etwas zustellt, bekommt die Antwort, die er erwartet: siehe [Dienste, die die URL zuerst prüfen](#dienste-die-die-url-zuerst-prüfen).
 
 ### Einen Anfragetext senden
 
@@ -94,7 +94,8 @@ Wenn Sie Felder im Body ansprechen wollen — `{{requestBody.status}}` in einem 
 | --- | --- |
 | `application/json` | Das geparste JSON. |
 | `application/x-www-form-urlencoded` | Das geparste Formular. Schlüssel in eckigen Klammern werden verschachtelt (`alerts[0][status]=firing`), und jeder Wert ist eine Zeichenkette. |
-| `text/plain` | Das geparste JSON, wenn der Text ein JSON-Objekt oder -Array ist: So sendet Amazon SNS seine Nachrichten. Jeder andere Text ergibt einen leeren Body. |
+| `text/plain` | Das geparste JSON, wenn der Text ein JSON-Objekt oder -Array ist: So sendet Amazon SNS seine Nachrichten. Jeder andere Text ist der Text selbst, sodass `backup failed: error 42` den Monitor mit den Standardkriterien offline setzt. |
+| `application/cloudevents+json` oder ein anderer `+json`-Typ | Das geparste JSON: So stellt Azure Event Grid CloudEvents zu. |
 | Alles andere oder keiner | Ein leerer Body (`{}`), sodass kein Verweis auf `requestBody` aufgelöst wird, und eine Vorlage gibt ihn wörtlich aus. |
 
 Bodys bis 50 MB werden angenommen; ein größerer wird mit `413` abgelehnt. Komprimieren Sie den Body nicht mit `Content-Encoding: gzip`: Er wird dann nicht als JSON gespeichert, und Pfade darin werden nicht aufgelöst.
@@ -383,9 +384,25 @@ Die ganze Nutzlast steht daneben zur Verfügung, ein Vorfalltitel `{{alertname}}
 
 Eine vollständige Alertmanager-Konfiguration finden Sie unter [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Für Grafana siehe [Grafana](/docs/integrations/grafana).
 
+## Dienste, die die URL zuerst prüfen
+
+Manche Dienste prüfen einen neuen Endpunkt, bevor sie ihm etwas zustellen: Sie senden ihm eine Anfrage und stellen erst zu, wenn er so antwortet, wie sie es erwarten. OneUptime beantwortet diese Prüfungen selbst, Sie fügen also nur die **Heartbeat-URL** des Monitors in den Dienst ein.
+
+| Dienst | Die Prüfung | Was OneUptime antwortet |
+| --- | --- | --- |
+| Azure Event Grid, Event-Grid-Schema | Ein `SubscriptionValidationEvent` | Sein `validationCode`, als `validationResponse` |
+| Azure Event Grid, CloudEvents-Schema | Eine `OPTIONS`-Anfrage, die ihren Ursprung nennt | `WebHook-Allowed-Origin`, mit diesem Ursprung |
+| Slack Events API | Eine `url_verification`-Anfrage | Ihre `challenge` |
+| Änderungsbenachrichtigungen von Microsoft Graph | Ein `POST` mit einem `validationToken` | Das Token, als `text/plain` |
+| Event-Hooks von Okta | Ein `GET` mit `X-Okta-Verification-Challenge` | Die Challenge, als `verification` |
+
+Eine Prüfung wird nur an der eigenen URL eines Monitors beantwortet, und nur wenn die Anfrage zählt: In einem Projekt, das bei jeder Anfrage ein Geheimnis verlangt, wird eine Prüfung ohne Geheimnis mit `401` abgelehnt, wie jede Anfrage, der Dienst muss das Geheimnis also in einem Header senden. Die Antwort enthält, was der Dienst zum Zurückschicken gesendet hat, und sonst nichts aus der Anfrage, und das nur, wenn es die Form hat, die der Dienst ihm gibt.
+
+Eine Prüfung erreicht den Monitor wie jede Anfrage: Seine Kriterien werten sie aus, und sie erscheint in der **Übersicht** des Monitors; die CloudEvents-Prüfung wird beantwortet und sonst nichts. Der Eingehende-Anfrage-Ingress einer Sonde beantwortet eine Prüfung wie jede Anfrage, mit `{}`, senden Sie diese Dienste also an die eigene URL von OneUptime.
+
 ## Amazon SNS oder Azure Event Grid abonnieren
 
-Amazon SNS und Azure Event Grid senden an einen neuen Endpunkt nichts, bis jemand das Abonnement bestätigt, indem er einen Link öffnet, den der Dienst an den Endpunkt sendet. Trifft diese Anfrage ein, zeigt die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors, worauf der Dienst wartet, das Thema und eine Schaltfläche, die den Link in einem neuen Tab öffnet.
+Amazon SNS sendet an einen neuen Endpunkt nichts, bis jemand das Abonnement bestätigt, indem er einen Link öffnet, den SNS dorthin sendet. Azure Event Grid sendet einen solchen Link ebenfalls, an einen Endpunkt, der seine Prüfung nicht beantwortet, und OneUptime beantwortet sie. Trifft ein Link ein, der noch zu öffnen ist, zeigt die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors, worauf der Dienst wartet, das Thema und eine Schaltfläche, die den Link in einem neuen Tab öffnet.
 
 | Dienst | Die Anfrage | Schaltfläche | Gültigkeit des Links |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ Sagt die Karte, dass sich der Link nicht mehr öffnen lässt, markieren Sie das 
 ### Azure Event Grid
 
 :::steps
-1. Öffnen Sie im Azure-Portal die Ressource, deren Ereignisse Sie erhalten wollen, und fügen Sie ein Ereignisabonnement hinzu. Wählen Sie **Event Grid Schema** als Ereignisschema, **Web Hook** als Endpunkttyp und die **Heartbeat-URL** des Monitors als Endpunkt.
-2. Öffnen Sie innerhalb von 10 Minuten die **Übersicht** des Monitors und klicken Sie in der Karte **Monitor-Zusammenfassung** auf **Abonnement validieren**.
+1. Öffnen Sie im Azure-Portal die Ressource, deren Ereignisse Sie erhalten wollen, und fügen Sie ein Ereignisabonnement hinzu. Wählen Sie **Event Grid Schema** oder **Cloud Event Schema v1.0** als Ereignisschema, **Web Hook** als Endpunkttyp und die **Heartbeat-URL** des Monitors als Endpunkt.
+2. Erstellen Sie das Ereignisabonnement. OneUptime beantwortet die Prüfung von Event Grid, das Abonnement wird also beim Erstellen validiert, und seine Ereignisse beginnen einzutreffen.
 :::
 
-Event Grid validiert einen Endpunkt, der ihm einen Code zurückschickt oder dessen Besitzer den Link öffnet, den Event Grid sendet. OneUptime beantwortet jede Anfrage mit einem leeren `200`, also führt der Weg über den Link. Der Link zeigt auf Event Grid an Port 553, den eine Firewall vor Ihrem Browser zulassen muss. Vergehen vorher 10 Minuten, schlägt das Ereignisabonnement fehl: Legen Sie es neu an.
+Event Grid validiert einen Endpunkt, der ihm einen Code zurückschickt oder dessen Besitzer den Link öffnet, den Event Grid sendet. OneUptime schickt den Code zurück, die Karte **Monitor-Zusammenfassung** bietet **Abonnement validieren** also nur für eine Validierung an, die OneUptime nicht beantwortet hat: Öffnen Sie sie innerhalb von 10 Minuten. Der Link zeigt auf Event Grid an Port 553, den eine Firewall vor Ihrem Browser zulassen muss. Vergehen vorher 10 Minuten, schlägt das Ereignisabonnement fehl: Legen Sie es neu an.
 
 ## Bewährte Vorgehensweisen
 
@@ -444,7 +461,11 @@ Nur ein Kriterium **Eingehende Anfrage** (**Nicht empfangen in Minuten**) bemerk
 :::
 
 :::details Ein Filter Anfragetext trifft nie zu
-Senden Sie `Content-Type: application/json` und schreiben Sie den Wert als kompaktes JSON — `"status":"firing"`, ohne Leerzeichen nach dem Doppelpunkt. Ohne JSON- oder Formular-Content-Type wird der Body nicht geparst, mit Ausnahme von JSON, das als `text/plain` gesendet wird.
+Senden Sie `Content-Type: application/json` und schreiben Sie den Wert als kompaktes JSON — `"status":"firing"`, ohne Leerzeichen nach dem Doppelpunkt. Ohne JSON-, Formular- oder `text/plain`-Content-Type ist der Body leer, und ein Filter darauf trifft nie zu.
+:::
+
+:::details Ein Dienst meldet, dass die URL seine Prüfung nicht beantwortet hat
+Geben Sie dem Dienst die **Heartbeat-URL** des Monitors, bei OneUptime selbst statt bei einer Sonde. Verlangt das Projekt bei jeder Anfrage ein Geheimnis, wird die Prüfung mit `401` abgelehnt, sofern der Dienst das Geheimnis nicht sendet. Lassen Sie den Dienst die URL dann erneut prüfen: Sie wird sofort beantwortet.
 :::
 
 :::details Ein Filter Anfrage-Header trifft nie zu

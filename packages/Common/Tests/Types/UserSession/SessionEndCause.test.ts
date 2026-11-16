@@ -36,6 +36,8 @@ describe("the words each cause is revoked with", () => {
       [SessionEndCause.AccountBlocked]: "User blocked",
       [SessionEndCause.TwoFactorRequired]: "Two factor auth required by admin",
       [SessionEndCause.TwoFactorReset]: "Two factor auth reset by admin",
+      // New in #6116: a master admin signing out everyone who signed in without SSO.
+      [SessionEndCause.SignedInWithoutSso]: "Signed in without SSO",
     });
   });
 

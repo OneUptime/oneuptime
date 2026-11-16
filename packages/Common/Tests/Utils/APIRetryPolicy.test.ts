@@ -240,6 +240,23 @@ describe("API.isRetryableError", () => {
       isRetryable: false,
     },
     {
+      // Asking again only reads as much of the same answer again (#8875).
+      name: "an answer larger than the request reads",
+      error: createAxiosError({
+        code: "ERR_BAD_RESPONSE",
+        message: "maxContentLength size of 1048576 exceeded",
+      }),
+      isRetryable: false,
+    },
+    {
+      name: "a stream that broke off, which mentions no limit",
+      error: createAxiosError({
+        code: "ERR_BAD_RESPONSE",
+        message: "stream has been aborted",
+      }),
+      isRetryable: true,
+    },
+    {
       name: "a non-axios error thrown while building the request",
       error: new Error("cannot serialize body"),
       isRetryable: false,
@@ -579,6 +596,27 @@ describe("Retry-After", () => {
 });
 
 describe("retryOnlyOnRetryableErrors", () => {
+  test("spends nothing on an answer too large to read", async () => {
+    alwaysFailWith(
+      createAxiosError({
+        code: "ERR_BAD_RESPONSE",
+        message: "maxContentLength size of 1048576 exceeded",
+      }),
+    );
+
+    await expect(
+      post({
+        retries: 9,
+        exponentialBackoff: true,
+        retryOnlyOnRetryableErrors: true,
+        maxContentLength: 1048576,
+      }),
+    ).rejects.toThrow("maxContentLength size of 1048576 exceeded");
+
+    expect(mockedAxios).toHaveBeenCalledTimes(1);
+    expect(sleptForInMs).toEqual([]);
+  });
+
   test("spends nothing on a rejection that repeating cannot fix", async () => {
     alwaysFailWith(createAxiosError({ status: 400 }));
 

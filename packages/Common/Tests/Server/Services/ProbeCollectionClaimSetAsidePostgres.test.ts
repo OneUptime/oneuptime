@@ -233,8 +233,8 @@ describePostgres(
 
     async function insertProject(id: ObjectID): Promise<void> {
       await database.query(
-        `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked", "isSampleProject")
-         VALUES ($1, $2, false, false)`,
+        `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked")
+         VALUES ($1, $2, false)`,
         [id.toString(), `Project ${id.toString()}`],
       );
     }

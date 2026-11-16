@@ -84,7 +84,7 @@ Envoyez des requêtes **GET** ou **POST** à cette URL. HEAD est accepté et tra
 > Quiconque connaît cette URL peut marquer le moniteur comme sain : traitez-la donc comme un secret. Si elle fuit, ouvrez la page **Paramètres** du moniteur et cliquez sur **Réinitialiser la clé secrète des requêtes entrantes**, puis mettez à jour chaque expéditeur. La vue d'ensemble du moniteur montre la dernière requête telle que ses journaux la conservent : avec les secrets et les données personnelles masqués, et sans en-têtes ni corps quand **Conserver le contenu de la requête** est désactivé. Le masquage repère les noms et les motifs qu'il connaît, alors n'envoyez pas de clés d'API ni de jetons vers ce point de terminaison.
 
 > [!IMPORTANT]
-> OneUptime répond immédiatement `200` avec un objet JSON vide (`{}`) et traite la requête dans une file d'attente. Cette réponse est écrite avant toute validation : un `200` n'est donc **pas** la confirmation que la requête a été acceptée — une clé secrète erronée, un moniteur supprimé et un moniteur désactivé renvoient aussi `200`. Vérifiez la chronologie du moniteur pour confirmer que les requêtes arrivent. La seule exception est un projet qui exige un secret à chaque requête : une requête sans secret reçoit la réponse `401`.
+> OneUptime répond immédiatement `200` avec un objet JSON vide (`{}`) et traite la requête dans une file d'attente. Cette réponse est écrite avant toute validation : un `200` n'est donc **pas** la confirmation que la requête a été acceptée — une clé secrète erronée, un moniteur supprimé et un moniteur désactivé renvoient aussi `200`. Vérifiez la chronologie du moniteur pour confirmer que les requêtes arrivent. Un projet qui exige un secret à chaque requête répond `401` à une requête qui n'en a pas, et un service qui vérifie l'URL avant d'envoyer quoi que ce soit reçoit la réponse qu'il attend : voir [Services qui vérifient d'abord l'URL](#services-qui-vérifient-dabord-lurl).
 
 ### Envoyer un corps de requête
 
@@ -94,7 +94,8 @@ Si vous voulez atteindre des champs du corps — `{{requestBody.status}}` dans u
 | --- | --- |
 | `application/json` | Le JSON analysé. |
 | `application/x-www-form-urlencoded` | Le formulaire analysé. Les clés entre crochets s'imbriquent (`alerts[0][status]=firing`), et chaque valeur est une chaîne. |
-| `text/plain` | Le JSON analysé, quand le texte est un objet ou un tableau JSON : c'est ainsi qu'Amazon SNS envoie ses messages. Tout autre texte donne un corps vide. |
+| `text/plain` | Le JSON analysé, quand le texte est un objet ou un tableau JSON : c'est ainsi qu'Amazon SNS envoie ses messages. Tout autre texte est le texte lui-même : `backup failed: error 42` met donc le moniteur hors ligne avec les critères par défaut. |
+| `application/cloudevents+json`, ou un autre type `+json` | Le JSON analysé : c'est ainsi qu'Azure Event Grid envoie les CloudEvents. |
 | Tout autre, ou aucun | Un corps vide (`{}`) : aucune référence à `requestBody` ne se résout donc, et un modèle la laisse telle quelle. |
 
 Les corps jusqu'à 50 Mo sont acceptés ; un corps plus grand est refusé avec un `413`. Ne compressez pas le corps avec `Content-Encoding: gzip` : il ne serait pas stocké comme JSON, et les chemins vers son contenu ne se résoudraient pas.
@@ -383,9 +384,25 @@ La charge utile complète est disponible à côté : un titre d'incident `{{aler
 
 Pour une configuration Alertmanager complète, voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Pour Grafana, voir [Grafana](/docs/integrations/grafana).
 
+## Services qui vérifient d'abord l'URL
+
+Certains services vérifient un nouveau point de terminaison avant de lui envoyer quoi que ce soit : ils lui envoient une requête, et n'envoient rien tant qu'il ne répond pas comme ils l'attendent. OneUptime répond lui-même à ces vérifications : il suffit de coller l'**URL de heartbeat** du moniteur dans le service.
+
+| Service | La vérification | Ce que OneUptime répond |
+| --- | --- | --- |
+| Azure Event Grid, schéma Event Grid | Un `SubscriptionValidationEvent` | Son `validationCode`, en `validationResponse` |
+| Azure Event Grid, schéma CloudEvents | Une requête `OPTIONS` qui nomme son origine | `WebHook-Allowed-Origin`, avec cette origine |
+| API Events de Slack | Une requête `url_verification` | Son `challenge` |
+| Notifications de modification de Microsoft Graph | Un `POST` avec un `validationToken` | Le jeton, en `text/plain` |
+| Event hooks d'Okta | Un `GET` avec `X-Okta-Verification-Challenge` | Le défi, en `verification` |
+
+Une vérification n'obtient de réponse que sur l'URL propre d'un moniteur, et seulement quand la requête compte : dans un projet qui exige un secret à chaque requête, une vérification qui n'en envoie pas est refusée avec `401`, comme toute requête, et le service doit donc envoyer le secret dans un en-tête. La réponse contient ce que le service a envoyé pour qu'on le lui renvoie, et rien d'autre de la requête, et seulement si cela a la forme que le service lui donne.
+
+Une vérification parvient au moniteur comme toute requête : ses critères l'évaluent et elle apparaît dans la **Vue d'ensemble** du moniteur ; la vérification CloudEvents reçoit sa réponse, sans plus. L'ingress de requêtes entrantes d'une sonde répond à une vérification comme à toute requête, avec `{}` : envoyez donc ces services vers l'URL propre de OneUptime.
+
 ## S'abonner à Amazon SNS ou à Azure Event Grid
 
-Amazon SNS et Azure Event Grid n'envoient rien à un nouveau point de terminaison tant que quelqu'un n'a pas confirmé l'abonnement, en ouvrant un lien que le service lui envoie. Quand cette requête arrive, la carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur indique ce qu'attend le service, la rubrique, et un bouton qui ouvre le lien dans un nouvel onglet.
+Amazon SNS n'envoie rien à un nouveau point de terminaison tant que quelqu'un n'a pas confirmé l'abonnement, en ouvrant un lien qu'il y envoie. Azure Event Grid envoie aussi un tel lien, à un point de terminaison qui ne répond pas à sa vérification, et OneUptime y répond. Quand arrive un lien encore à ouvrir, la carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur indique ce qu'attend le service, la rubrique, et un bouton qui ouvre le lien dans un nouvel onglet.
 
 | Service | La requête | Bouton | Durée de validité du lien |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ Si la carte indique que le lien ne peut plus être ouvert, sélectionnez l'abonn
 ### Azure Event Grid
 
 :::steps
-1. Dans le portail Azure, ouvrez la ressource dont vous voulez les événements et ajoutez un abonnement aux événements. Choisissez **Event Grid Schema** comme schéma d'événement, **Web Hook** comme type de point de terminaison, et l'**URL de heartbeat** du moniteur comme point de terminaison.
-2. Dans les 10 minutes, ouvrez la **Vue d'ensemble** du moniteur et cliquez sur **Valider l'abonnement** dans la carte **Résumé du moniteur**.
+1. Dans le portail Azure, ouvrez la ressource dont vous voulez les événements et ajoutez un abonnement aux événements. Choisissez **Event Grid Schema** ou **Cloud Event Schema v1.0** comme schéma d'événement, **Web Hook** comme type de point de terminaison, et l'**URL de heartbeat** du moniteur comme point de terminaison.
+2. Créez l'abonnement aux événements. OneUptime répond à la vérification d'Event Grid : l'abonnement est donc validé dès sa création, et ses événements commencent à arriver.
 :::
 
-Event Grid valide un point de terminaison qui lui renvoie un code, ou dont le propriétaire ouvre le lien qu'il envoie. OneUptime répond à chaque requête par un `200` vide : c'est donc le lien qui permet la validation. Le lien pointe vers Event Grid sur le port 553, qu'un pare-feu placé devant votre navigateur doit autoriser. Si 10 minutes passent avant, l'abonnement aux événements échoue : recréez-le.
+Event Grid valide un point de terminaison qui lui renvoie un code, ou dont le propriétaire ouvre le lien qu'il envoie. OneUptime renvoie le code : la carte **Résumé du moniteur** ne propose donc **Valider l'abonnement** que pour une validation à laquelle OneUptime n'a pas répondu, à ouvrir dans les 10 minutes. Le lien pointe vers Event Grid sur le port 553, qu'un pare-feu placé devant votre navigateur doit autoriser. Si 10 minutes passent avant, l'abonnement aux événements échoue : recréez-le.
 
 ## Bonnes pratiques
 
@@ -444,7 +461,11 @@ Seul un critère **Requête entrante** (**Non reçu dans le délai (minutes)**) 
 :::
 
 :::details Un filtre Corps de la requête ne correspond jamais
-Envoyez `Content-Type: application/json`, et écrivez la valeur en JSON compact — `"status":"firing"`, sans espace après les deux-points. Sans type de contenu JSON ou formulaire, le corps n'est pas analysé : seul le JSON envoyé en `text/plain` l'est.
+Envoyez `Content-Type: application/json`, et écrivez la valeur en JSON compact — `"status":"firing"`, sans espace après les deux-points. Sans type de contenu JSON, formulaire ou `text/plain`, le corps est vide, et un filtre sur lui ne correspond jamais.
+:::
+
+:::details Un service indique que l'URL n'a pas répondu à sa vérification
+Donnez au service l'**URL de heartbeat** du moniteur, sur OneUptime lui-même plutôt que sur une sonde. Si le projet exige un secret à chaque requête, la vérification est refusée avec `401`, sauf si le service envoie le secret. Demandez ensuite au service de vérifier l'URL à nouveau : elle reçoit une réponse aussitôt.
 :::
 
 :::details Un filtre En-tête de la requête ne correspond jamais

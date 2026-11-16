@@ -401,7 +401,7 @@ Uma investigação que falha, expira ou fica obsoleta também libera a remediaç
 
 Enquanto a remediação espera, a etapa **Remediação** diz isso (**Aguardando**) e mostra o que aconteceu assim que a investigação se conclui.
 
-A remediação automática depende de dois interruptores. **Corrigir novos incidentes automaticamente** (ou alertas), desativado até o projeto ativá-lo: com ele desativado, nenhum incidente (ou alerta) novo é corrigido. E **Habilitar IA** (**Configurações do projeto → IA → Recursos de IA**), o interruptor principal de IA do projeto: com ele desativado, nenhuma regra de IA é executada (nem mesmo uma que inicia um runbook sem IA) e nenhum cluster ou recurso é corrigido.
+A remediação automática depende de dois interruptores. **Corrigir novos incidentes automaticamente** (ou alertas), desativado até o projeto ativá-lo: com ele desativado, nenhum incidente (ou alerta) novo é corrigido. E **Habilitar IA** (**Configurações do projeto → IA → Recursos de IA**), o interruptor principal de IA do projeto: com ele desativado, nenhuma regra de IA é executada (nem mesmo uma que inicia um runbook sem IA) e nenhum cluster ou recurso é corrigido. Um Runner ou um agente de IA que já tem um comando quando **Habilitar IA** é desligado recebe a ordem de parar no próximo heartbeat: um comando que ainda não começou não começa.
 
 ## O que a remediação automática fez
 

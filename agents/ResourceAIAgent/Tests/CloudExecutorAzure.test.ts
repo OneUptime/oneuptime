@@ -237,6 +237,8 @@ describe("Azure: whoami", () => {
     });
 
     assert.deepStrictEqual(outputLines(result), [
+      // What Test connection reads: no write identity, changes run as the agent's own.
+      'oneuptime-write-path: {"state":"unset"}',
       "Cloud: Azure",
       `Subscription: ${SUB} (Shop production), Enabled`,
       `Signed in as: ${IDENTITY}`,
@@ -1202,6 +1204,8 @@ describe("Azure: identity and posture", () => {
         azureSubscriptionName: "Shop production",
         azureSubscriptionState: "Enabled",
         azureIdentity: IDENTITY,
+        // A Container App says so itself (CONTAINER_APP_NAME).
+        azureHost: "container-apps",
         // The fake's token is no JWT: it names no object id.
         azurePrincipalId: null,
       },
@@ -1210,6 +1214,48 @@ describe("Azure: identity and posture", () => {
         `/subscriptions/${SUB}/resourcegroups/*/providers/microsoft.app/containerapps/oneuptime-ai-agent-2`,
       ],
     });
+  });
+
+  /*
+   * Where the agent runs, so the command written from Change keeps it
+   * there: a Container App says so itself, the VM's start script sets
+   * ONEUPTIME_AI_AZURE_HOST, and an agent a team runs its own way says
+   * nothing.
+   */
+  test("says where it runs: a Container App, its own VM, or neither", async () => {
+    const hostOf: (env: Record<string, string>) => Promise<unknown> = async (
+      env: Record<string, string>,
+    ): Promise<unknown> => {
+      const h: CloudHarness = cloudHarness("azure", { env });
+
+      h.arm.handle("GET", `/subscriptions/${SUB}`, (): FakeAnswer => {
+        return jsonReply({ subscriptionId: SUB });
+      });
+
+      return (await h.executor.probePosture()).details?.["azureHost"];
+    };
+
+    assert.strictEqual(
+      await hostOf({ CONTAINER_APP_NAME: "oneuptime-ai-agent" }),
+      "container-apps",
+    );
+    assert.strictEqual(
+      await hostOf({ ONEUPTIME_AI_AZURE_HOST: " Virtual-Machine " }),
+      "virtual-machine",
+    );
+    assert.strictEqual(await hostOf({}), null);
+    // A value it does not know says nothing; the platform's own word still counts.
+    assert.strictEqual(
+      await hostOf({ ONEUPTIME_AI_AZURE_HOST: "kubernetes" }),
+      null,
+    );
+    assert.strictEqual(
+      await hostOf({
+        ONEUPTIME_AI_AZURE_HOST: "kubernetes",
+        CONTAINER_APP_NAME: "oneuptime-ai-agent",
+      }),
+      "container-apps",
+    );
   });
 
   /*

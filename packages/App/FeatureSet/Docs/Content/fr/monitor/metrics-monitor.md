@@ -97,7 +97,7 @@ Plus la fenêtre est longue, plus chaque intervalle de temps est large, si bien 
 ## Comment il est évalué
 
 - **Chaque minute.** Un moniteur de métriques n'est pas vérifié par des sondes ; il n'a donc pas d'intervalle à régler ni de page **Sondes et intervalle**.
-- **Les requêtes, puis les formules.** Chaque requête renvoie un point de données par intervalle de temps de la plage, selon son **Agréger par**. Les formules sont calculées pour chaque intervalle à partir des points de données des requêtes.
+- **Les requêtes, puis les formules.** Chaque requête renvoie un point de données par intervalle de temps de la plage, selon son **Agréger par**. Les formules sont calculées pour chaque intervalle à partir des points de données des requêtes. Une requête qui compte ce qui s'est passé, la somme ou le nombre d'un compteur ou d'un histogramme, compte 0 dans un intervalle où elle n'a aucun point de données, une fois l'intervalle terminé depuis une minute, si bien qu'une part d'échecs vaut 0 % là où rien n'a échoué. Une jauge, une moyenne ou un centile sans point de données est inconnu, et la formule laisse cet intervalle de côté.
 - **Puis la mesure de la règle.** La règle réduit les points de données de sa métrique à ce qu'elle compare à sa valeur, comme l'indique **Mesuré comme** :
 
 | Mesuré comme | Dans les critères personnalisés | La condition est vérifiée sur… |

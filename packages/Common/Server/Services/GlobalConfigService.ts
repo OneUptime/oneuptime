@@ -61,6 +61,15 @@ import ServerSendingStatusUtil, {
 } from "../../Types/ServerSending/ServerSendingStatus";
 import { JSONObject } from "../../Types/JSON";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import {
+  KEEP_EVERY_RESOLVED_RECORD,
+  ResolvedRecordKind,
+  getResolvedRecordRetentionDefaultProblem,
+  getResolvedRecordRetentionMaximumProblem,
+  readResolvedRecordRetentionDefaultInDays,
+  readResolvedRecordRetentionMaximumInDays,
+  toResolvedRecordRetentionServerValue,
+} from "../../Types/Retention/ResolvedRecordRetention";
 import HashedString from "../../Types/HashedString";
 import { MasterApiKeyState } from "../../Types/MasterApiKey/MasterApiKeyAnswer";
 import MasterApiKey from "../Utils/MasterApiKey";
@@ -68,6 +77,29 @@ import UserService from "./UserService";
 import User from "../../Models/DatabaseModels/User";
 import OneUptimeDate from "../../Types/Date";
 import crypto from "crypto";
+
+// The server's two limits for each kind of resolved record (issue #6941).
+export interface ResolvedRecordRetentionLimitColumns {
+  kind: ResolvedRecordKind;
+  maximumColumn: "maxIncidentRetentionInDays" | "maxAlertRetentionInDays";
+  defaultColumn:
+    | "defaultIncidentRetentionInDays"
+    | "defaultAlertRetentionInDays";
+}
+
+export const RESOLVED_RECORD_RETENTION_LIMIT_COLUMNS: ReadonlyArray<ResolvedRecordRetentionLimitColumns> =
+  [
+    {
+      kind: ResolvedRecordKind.Incident,
+      maximumColumn: "maxIncidentRetentionInDays",
+      defaultColumn: "defaultIncidentRetentionInDays",
+    },
+    {
+      kind: ResolvedRecordKind.Alert,
+      maximumColumn: "maxAlertRetentionInDays",
+      defaultColumn: "defaultAlertRetentionInDays",
+    },
+  ];
 
 /*
  * How long a server keeps whether push notifications are turned off before
@@ -442,6 +474,132 @@ export class Service extends DatabaseService<Model> {
       allowZero: false,
     });
     TelemetryIngestionBudgetValidation.applyInstanceSettingRules(data);
+  }
+
+  /*
+   * The server's limits on how long projects keep resolved incidents and
+   * alerts (issue #6941): each maximum and each new-project default one of
+   * the project choices, or empty (null; 0 is read as empty too) - no
+   * maximum, and Never. A default longer than its maximum is refused, for
+   * the maximum written with it or, when the write leaves it out, the one
+   * stored (`stored`); a maximum lowered below the stored default takes the
+   * default down with it, so a new project never starts beyond what it may
+   * keep. A write that names none of the four is not judged on them.
+   */
+  public static applyResolvedRecordRetentionLimitRules(
+    data: Record<string, unknown>,
+    stored: Record<string, unknown>,
+  ): void {
+    for (const limit of RESOLVED_RECORD_RETENTION_LIMIT_COLUMNS) {
+      const writesMaximum: boolean = data[limit.maximumColumn] !== undefined;
+      const writesDefault: boolean = data[limit.defaultColumn] !== undefined;
+
+      if (writesMaximum) {
+        const problem: string | null = getResolvedRecordRetentionMaximumProblem(
+          data[limit.maximumColumn],
+          limit.kind,
+        );
+
+        if (problem) {
+          throw new BadDataException(problem);
+        }
+
+        data[limit.maximumColumn] = toResolvedRecordRetentionServerValue(
+          data[limit.maximumColumn],
+        );
+      }
+
+      const maximumInDays: number | undefined =
+        readResolvedRecordRetentionMaximumInDays(
+          writesMaximum
+            ? data[limit.maximumColumn]
+            : stored[limit.maximumColumn],
+        );
+
+      if (writesDefault) {
+        const problem: string | null = getResolvedRecordRetentionDefaultProblem(
+          {
+            value: data[limit.defaultColumn],
+            kind: limit.kind,
+            maximumInDays: maximumInDays,
+          },
+        );
+
+        if (problem) {
+          throw new BadDataException(problem);
+        }
+
+        data[limit.defaultColumn] = toResolvedRecordRetentionServerValue(
+          data[limit.defaultColumn],
+        );
+
+        continue;
+      }
+
+      if (!writesMaximum || maximumInDays === undefined) {
+        continue;
+      }
+
+      const storedDefault: number = readResolvedRecordRetentionDefaultInDays(
+        stored[limit.defaultColumn],
+      );
+
+      if (
+        storedDefault !== KEEP_EVERY_RESOLVED_RECORD &&
+        storedDefault > maximumInDays
+      ) {
+        data[limit.defaultColumn] = maximumInDays;
+      }
+    }
+  }
+
+  /*
+   * The stored limits applyResolvedRecordRetentionLimitRules weighs a write
+   * against: read only when the write names one of them.
+   */
+  private async applyResolvedRecordRetentionLimitRulesOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const isLimitWrite: boolean = RESOLVED_RECORD_RETENTION_LIMIT_COLUMNS.some(
+      (limit: ResolvedRecordRetentionLimitColumns): boolean => {
+        return (
+          data[limit.maximumColumn] !== undefined ||
+          data[limit.defaultColumn] !== undefined
+        );
+      },
+    );
+
+    if (!isLimitWrite) {
+      return;
+    }
+
+    const select: Record<string, boolean> = {};
+
+    for (const limit of RESOLVED_RECORD_RETENTION_LIMIT_COLUMNS) {
+      select[limit.maximumColumn] = true;
+      select[limit.defaultColumn] = true;
+    }
+
+    const current: Model | null = await this.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: select,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stored: Record<string, unknown> = {};
+
+    for (const column of Object.keys(select)) {
+      stored[column] = current?.getColumnValue(column);
+    }
+
+    Service.applyResolvedRecordRetentionLimitRules(data, stored);
   }
 
   /*
@@ -1626,6 +1784,7 @@ export class Service extends DatabaseService<Model> {
     Service.applyAmazonSesAuthenticationRules(
       updateBy.data as unknown as Record<string, unknown>,
     );
+    await this.applyResolvedRecordRetentionLimitRulesOnUpdate(updateBy);
     await this.prepareCallAndSmsGateway(updateBy);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {

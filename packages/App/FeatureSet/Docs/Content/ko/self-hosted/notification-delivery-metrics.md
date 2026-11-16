@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 이것들을 `config.env`에 설정한 다음 `npm start`를 실행하세요. `DISABLE_TELEMETRY_FOR_APP`는 기본값이 `true`이며, 그러면 아무것도 보내지 않습니다.
 :::
 
-OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 각 헤더는 `name=value` 형식으로 쓰고, 여러 헤더는 `;`로 구분하거나 `OTEL_EXPORTER_OTLP_HEADERS`처럼 `,`로 구분하세요. 값에 `=`가 들어가도 됩니다. `;`가 없으면 값은 그 표준이 쓰는 방식대로 읽히며, 공백은 `%20`으로 씁니다. 값을 쓴 그대로 보내려면 설정 끝에 `;`를 붙이세요. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
+OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 각 헤더는 `name=value` 형식으로 쓰고, 여러 헤더는 `;`로 구분하거나 `OTEL_EXPORTER_OTLP_HEADERS`처럼 `,`로 구분하세요. 값에 `=`가 들어가도 됩니다. `;`가 없으면 값은 그 표준이 쓰는 방식대로 읽히며, 공백은 `%20`으로 씁니다. 값을 쓴 그대로 보내려면 설정 끝에 `;`를 붙이세요. `OTEL_EXPORTER_OTLP_HEADERS` 자체나, 메트릭에만 쓰는 `OTEL_EXPORTER_OTLP_METRICS_HEADERS`에 설정한 헤더도 인정됩니다. 내보내기가 그 헤더도 함께 보내며, 이름이 같으면 OneUptime 자체 헤더가 우선합니다. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
 
 ### OneUptime 프로젝트로 델타 보내기
 
@@ -57,19 +57,15 @@ OneUptime은 OpenTelemetry의 기본 방식대로 카운터와 히스토그램�
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-서비스 자체의 목록은 차트 전체의 목록을 대체합니다. `app.extraEnv`나 `worker.extraEnv`를 설정한다면 거기에도 추가하세요.
+차트는 이 값을 `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` 변수로 OneUptime 자체의 텔레메트리를 보내는 모든 서비스에 넘깁니다.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-이 파일을 `docker-compose.yml` 옆에 만들거나 이미 있는 파일에 이 내용을 추가한 다음 `npm start`를 실행하세요.
+이 값을 `config.env`에 설정한 다음 `npm start`를 실행하세요.
 :::
 
 이는 OneUptime이 자신에 대해 보내는 모든 메트릭에 적용됩니다. Prometheus처럼 누적 합계를 스스로 읽는 백엔드는 바꿀 것이 없습니다.
@@ -210,7 +206,7 @@ services:
 | `a` | `notification.send.count` | **합계** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **합계** | 같은 조건에 `outcome = failure` 추가 |
 
-수식 `$b / $a * 100`은 실패한 비율이며, 그 값이 1 이하로 유지되는 동안 목표가 지켜집니다. 실패가 없는 단계는 `b`에 포인트가 없으므로 포인트를 그리지 않습니다. `outcome != not_sent`는 프로젝트 자체 설정이 막은 것을 제외하고, `global`은 프로젝트 자체의 Twilio 계정을 제외합니다. SMS를 자체 SMS 및 통화 게이트웨이로 보내는 설치에서는 같은 쿼리가 게이트웨이를 측정합니다. 다른 채널은 `sms`를 `call`, `push` 또는 `email`로 바꾸세요.
+수식 `$b / $a * 100`은 실패한 비율이며, 그 값이 1 이하로 유지되는 동안 목표가 지켜집니다. 실패가 없는 단계는 `b`가 그 안에서 아무것도 세지 않았으므로 0을 그립니다. `outcome != not_sent`는 프로젝트 자체 설정이 막은 것을 제외하고, `global`은 프로젝트 자체의 Twilio 계정을 제외합니다. SMS를 자체 SMS 및 통화 게이트웨이로 보내는 설치에서는 같은 쿼리가 게이트웨이를 측정합니다. 다른 채널은 `sms`를 `call`, `push` 또는 `email`로 바꾸세요.
 
 ### 호출이 30초 안에 나감
 

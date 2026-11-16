@@ -1,8 +1,10 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
@@ -17,6 +19,7 @@ import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -46,6 +49,23 @@ const MAX_EXCLUDED_SCAN_IDS: number = 128;
 router.post(
   "/probe/discovery-scan/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  /*
+   * Under the probe scheduling limit (issue #8051); a refused request claims
+   * nothing and is answered busy (ProbeSchedulingMiddleware): the scans stay
+   * Pending for the probe's next poll.
+   */
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendEntityArrayResponse(
+        req,
+        res,
+        [],
+        0,
+        NetworkDeviceDiscoveryScan,
+      );
+    },
+    { retriesWhenBusy: ProbeCapability.RetryAllWorkWhenBusy },
+  ),
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,

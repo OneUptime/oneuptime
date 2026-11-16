@@ -86,6 +86,8 @@ Klik på **Tilføj formel**, og skriv **Formel** med forespørgslernes variabler
 
 En variabel kan skrives med eller uden sit `$`, med store eller små bogstaver. En formel, der nævner en forespørgsel, du ikke har defineret, siger det i stedet for at tegne.
 
+En forespørgsel, der tæller, hvad der skete, summen eller antallet af en tæller eller et histogram, har intet datapunkt i et trin, hvor intet skete, så en formel læser den som 0 der: `$b / $a * 100` tegner 0 i et trin uden fejl. En måler, et gennemsnit eller en percentil uden datapunkt er ukendt, og formlen udelader det trin. Den udelader også et trin, som ingen af dens forespørgsler har et datapunkt i, og et, der sluttede for mindre end et minut siden, hvis sidste datapunkter stadig kan være på vej.
+
 ## Udforsk omkring et diagram
 
 Knapperne over diagrammerne arbejder med det tidsinterval, du kigger på:

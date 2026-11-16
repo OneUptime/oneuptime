@@ -58,9 +58,12 @@ import { ERROR_CLASS_ATTRIBUTE_KEY } from "../../Types/Telemetry/UnitOfWork";
 import RuntimeMetrics from "./Telemetry/RuntimeMetrics";
 import { getKubernetesResourceAttributes } from "./Telemetry/KubernetesResourceAttributes";
 import {
+  describeSignalsExportedWithoutAHeader,
   describeUnreadableOtlpHeaders,
-  NOTHING_EXPORTED_WITHOUT_A_HEADER,
+  hasOtlpHeadersFor,
   OTLP_EXPORTER_HEADERS_SETTING,
+  OTLP_SIGNALS,
+  OtlpSignal,
   readOtlpExporterHeaders,
   type OtlpExporterHeaders,
 } from "./Telemetry/OtlpExporterHeaders";
@@ -262,11 +265,25 @@ export default class Telemetry {
 
       const headers: Dictionary<string> = headersRead.headers;
 
-      const hasHeaders: boolean = Object.keys(headers).length > 0;
+      /*
+       * A signal is exported only with a header: one of OneUptime's own, or
+       * one its exporter reads from OTEL_EXPORTER_OTLP_HEADERS or the
+       * signal's own OTEL_EXPORTER_OTLP_<SIGNAL>_HEADERS, which every OTLP
+       * exporter sends under OneUptime's own headers (#8884).
+       */
+      const hasHeadersFor: (signal: OtlpSignal) => boolean = (
+        signal: OtlpSignal,
+      ): boolean => {
+        return hasOtlpHeadersFor({
+          ownHeaders: headers,
+          environment: process.env,
+          signal: signal,
+        });
+      };
 
       let traceExporter: SpanExporter | undefined = undefined;
 
-      if (this.getOltpTracesEndpoint() && hasHeaders) {
+      if (this.getOltpTracesEndpoint() && hasHeadersFor(OtlpSignal.Traces)) {
         traceExporter = new OTLPTraceExporter({
           url: this.getOltpTracesEndpoint()!.toString(),
           headers: headers,
@@ -275,7 +292,7 @@ export default class Telemetry {
         this.spanExportEnabled = true;
       }
 
-      if (this.getOltpMetricsEndpoint() && hasHeaders) {
+      if (this.getOltpMetricsEndpoint() && hasHeadersFor(OtlpSignal.Metrics)) {
         const metricExporter: PushMetricExporter = new OTLPMetricExporter({
           url: this.getOltpMetricsEndpoint()!.toString(),
           headers: headers,
@@ -309,7 +326,7 @@ export default class Telemetry {
         };
       }
 
-      if (this.getOltpLogsEndpoint() && hasHeaders) {
+      if (this.getOltpLogsEndpoint() && hasHeadersFor(OtlpSignal.Logs)) {
         const logExporter: OTLPLogExporter = new OTLPLogExporter({
           url: this.getOltpLogsEndpoint()!.toString(),
           headers: headers,
@@ -342,10 +359,22 @@ export default class Telemetry {
       /*
        * Every signal is exported only with a header. An endpoint set without
        * one used to send nothing and say nothing, so the operator found an
-       * empty backend and no reason for it.
+       * empty backend and no reason for it. With no header for any signal
+       * the line is NOTHING_EXPORTED_WITHOUT_A_HEADER; with headers for some
+       * signals only, in their own OTEL_EXPORTER_OTLP_<SIGNAL>_HEADERS, it
+       * names the others.
        */
-      if (this.getOtlpEndpoint() && !hasHeaders) {
-        logger.error(NOTHING_EXPORTED_WITHOUT_A_HEADER, EXTERNAL_FAULT);
+      if (this.getOtlpEndpoint()) {
+        const notExported: string | null =
+          describeSignalsExportedWithoutAHeader(
+            OTLP_SIGNALS.filter((signal: OtlpSignal): boolean => {
+              return !hasHeadersFor(signal);
+            }),
+          );
+
+        if (notExported) {
+          logger.error(notExported, EXTERNAL_FAULT);
+        }
       }
 
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =

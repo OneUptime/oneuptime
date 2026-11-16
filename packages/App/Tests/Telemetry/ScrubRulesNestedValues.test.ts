@@ -697,7 +697,7 @@ describe("LogScrubRuleService: a log's body and its fields to scrub", () => {
     });
   });
 
-  test("a body that arrived as a map or a list is its JSON text: a pattern rule masks inside it, a keys rule does not read it", () => {
+  test("a body that arrived as a map or a list is its JSON text: a pattern rule masks inside it, a keys rule reads its keys (#6513)", () => {
     // What logs ingest stores for a kvlistValue body.
     const body: string = JSON.stringify({
       kvlistValue: {
@@ -713,7 +713,11 @@ describe("LogScrubRuleService: a log's body and its fields to scrub", () => {
       logRules([EMAIL_MASK, SENSITIVE_KEYS]) as never,
     );
 
-    expect(row["body"]).toBe(body.replace("ada@example.com", "a***@***.com"));
+    expect(row["body"]).toBe(
+      body
+        .replace("ada@example.com", "a***@***.com")
+        .replace('{"stringValue":"pw"}', '{"stringValue":"[REDACTED]"}'),
+    );
   });
 });
 

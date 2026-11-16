@@ -122,6 +122,43 @@ export default class MetricSeriesArrivalUtil {
     return combined;
   }
 
+  /*
+   * The arrival of a formula that reads some of its queries' missing points
+   * as 0 (MetricZeroFill): `filled` are those queries' arrivals, `read` the
+   * arrivals of the variables it needs a point of. A query that counts what
+   * happened sends nothing while nothing happens - a failures query after
+   * the last failure - so its silence is never the formula's: the formula's
+   * points are timed by the variables it needs, and it is as fresh as they
+   * are (combine). When it needs none, it has a point wherever any of its
+   * queries has one: it is as fresh as the freshest of them, and fresh when
+   * one of them was not read (not behind, or no data to be behind).
+   */
+  public static combineForFormula(input: {
+    read: Array<MetricSeriesArrival | null | undefined>;
+    filled: Array<MetricSeriesArrival | null | undefined>;
+  }): MetricSeriesArrival | null {
+    if (input.read.length > 0 || input.filled.length === 0) {
+      return MetricSeriesArrivalUtil.combine(input.read);
+    }
+
+    let freshest: MetricSeriesArrival | null = null;
+
+    for (const arrival of input.filled) {
+      if (!arrival) {
+        return null;
+      }
+
+      if (
+        !freshest ||
+        arrival.sinceNewestArrivalMs < freshest.sinceNewestArrivalMs
+      ) {
+        freshest = arrival;
+      }
+    }
+
+    return freshest ? { ...freshest } : null;
+  }
+
   private static isTime(value: number): boolean {
     return typeof value === "number" && Number.isFinite(value) && value > 0;
   }

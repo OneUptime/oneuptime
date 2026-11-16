@@ -46,8 +46,10 @@ export default class File extends FileModel {
    * projects use the same file.
    *
    * Nobody may write it, so it is computed, as a password's salt is: the
-   * create's column check, which runs after the stamp, skips it, and a value
-   * a request sends is replaced, never refused.
+   * create's column check, which runs after the stamp, takes the stamp as
+   * the create's own, and a value a request sends is dropped before the
+   * hooks run and replaced by the stamp, never refused
+   * (ComputedColumnsReplacedOnCreate).
    */
   @ColumnAccessControl({
     create: [],

@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Ange dem i `config.env` och kör sedan `npm start`. `DISABLE_TELEMETRY_FOR_APP` är `true` som standard, och då skickas ingenting.
 :::
 
-OneUptime behöver både slutpunkten och huvudena: utan ett huvud skickar det ingenting. Skriv varje huvud som `name=value` och skilj flera åt med `;`, eller med `,` som i `OTEL_EXPORTER_OTLP_HEADERS`. Ett värde får innehålla `=`. Utan `;` läses ett värde så som den standarden skriver det, ett mellanslag som `%20`: avsluta inställningen med `;` för att skicka det exakt som det är skrivet. OneUptime lägger själv till `/v1/metrics` på slutpunkten, och samma inställningar skickar också dess egna spår och loggar. Varje mätvärde dyker upp så snart OneUptime registrerar det första gången: `notification.send.count` med det första skickade meddelandet.
+OneUptime behöver både slutpunkten och huvudena: utan ett huvud skickar det ingenting. Skriv varje huvud som `name=value` och skilj flera åt med `;`, eller med `,` som i `OTEL_EXPORTER_OTLP_HEADERS`. Ett värde får innehålla `=`. Utan `;` läses ett värde så som den standarden skriver det, ett mellanslag som `%20`: avsluta inställningen med `;` för att skicka det exakt som det är skrivet. Huvuden som är satta i själva `OTEL_EXPORTER_OTLP_HEADERS`, eller bara för mätvärden i `OTEL_EXPORTER_OTLP_METRICS_HEADERS`, räknas också: exportören skickar dem också, och vid samma namn vinner OneUptimes egna. OneUptime lägger själv till `/v1/metrics` på slutpunkten, och samma inställningar skickar också dess egna spår och loggar. Varje mätvärde dyker upp så snart OneUptime registrerar det första gången: `notification.send.count` med det första skickade meddelandet.
 
 ### Skicka deltor till ett OneUptime-projekt
 
@@ -57,19 +57,15 @@ OneUptime skickar räknare och histogram som OpenTelemetry gör som standard: va
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-En tjänsts egen lista ersätter den för hela chartet: om du anger `app.extraEnv` eller `worker.extraEnv`, lägg till den där också.
+Chartet skickar värdet vidare som `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` till varje tjänst som skickar OneUptimes egen telemetri.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Skapa den bredvid `docker-compose.yml`, eller lägg till detta i den du har, och kör sedan `npm start`.
+Ange den i `config.env` och kör sedan `npm start`.
 :::
 
 Det gäller varje mätvärde som OneUptime skickar om sig självt. En backend som själv läser löpande summor, som Prometheus, behöver ingen ändring.
@@ -210,7 +206,7 @@ Högst 1 % av de jour-SMS som skickas via installationens eget Twilio-konto miss
 | `a` | `notification.send.count` | **Summa** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Summa** | Samma, med `outcome = failure` |
 
-Formeln `$b / $a * 100` är andelen som misslyckades, och målet håller så länge den ligger på eller under 1. Ett steg utan misslyckanden ritar ingen punkt, eftersom `b` inte har någon. `outcome != not_sent` utesluter det som projektens egna inställningar höll tillbaka, och `global` projektens egna Twilio-konton. På en installation som skickar SMS via sin SMS- och samtalsgateway mäter samma frågor gatewayen. För en annan kanal ändrar du `sms`: `call`, `push` eller `email`.
+Formeln `$b / $a * 100` är andelen som misslyckades, och målet håller så länge den ligger på eller under 1. Ett steg utan misslyckanden ritar 0, eftersom `b` inte räknade något i det. `outcome != not_sent` utesluter det som projektens egna inställningar höll tillbaka, och `global` projektens egna Twilio-konton. På en installation som skickar SMS via sin SMS- och samtalsgateway mäter samma frågor gatewayen. För en annan kanal ändrar du `sms`: `call`, `push` eller `email`.
 
 ### Larm går ut inom 30 sekunder
 

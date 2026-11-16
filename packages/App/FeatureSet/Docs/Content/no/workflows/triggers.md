@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 URL-en godtar både `GET` og `POST`. Den som kaller, får en rask kvittering, `{"status": "Scheduled"}` — selve arbeidsflyten kjører i bakgrunnen, så den som kaller, ser aldri hva den gjør. Et kall til en arbeidsflyt som er slått av eller arkivert, avvises med HTTP 400 og årsaken.
 
+Azure Event Grid, Slack, Microsoft Graph og Okta sjekker en URL før de leverer noe til den. URL-en besvarer hver sjekk slik tjenesten forventer, slik [URL-en til en overvåker for innkommende forespørsler gjør](/docs/monitor/incoming-request-monitor#tjenester-som-sjekker-url-en-først), og en sjekk starter ingen kjøring. Mens arbeidsflyten er slått av eller arkivert, avvises en sjekk som et kall.
+
 ```mermaid title="Hva som skjer når noe kaller webhook-URL-en"
 sequenceDiagram
     participant Caller as Verktøyet ditt
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **Forespørselshoder**      | Hver header i forespørselen, etter navn med små bokstaver, som `content-type`.                                         |
 | **Spørringsparametere i forespørselen** | Spørringsparameterne i URL-en, etter navn.                                                                             |
-| **Forespørselstekst**         | Bodyen den som kalte, sendte. En JSON-body, sendt med `Content-Type: application/json`, kan leses felt for felt, og det samme gjelder JSON sendt som ren tekst, slik Amazon SNS sender den. |
+| **Forespørselstekst**         | Bodyen den som kalte, sendte. En JSON-body, sendt med `Content-Type: application/json` eller en `+json`-type som CloudEvents fra Azure Event Grid, kan leses felt for felt, og det samme gjelder JSON sendt som ren tekst, slik Amazon SNS sender den. All annen ren tekst er selve teksten. |
 
 Les ett enkelt felt ved å legge navnet til referansen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

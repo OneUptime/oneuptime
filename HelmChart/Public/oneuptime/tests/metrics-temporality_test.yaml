@@ -1,0 +1,213 @@
+# openTelemetryExporter.metricsTemporality: how OneUptime's own counters and
+# histograms are sent, as OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE,
+# which the OTLP metric exporter reads itself (#6760).
+#
+# Empty, the default, sets nothing, so the exporter keeps its default and
+# sends running totals (cumulative), as it always has: switching every
+# installation would change every metric OneUptime sends about itself,
+# Prometheus-style backends that need running totals included. delta is what a
+# OneUptime project reads exactly: its metrics explorer adds up the points of
+# each step. Before this setting, delta took an entry in extraEnv, which a
+# service's own extraEnv replaces, so it had to be written again there.
+#
+# Every workload that sends OneUptime's own telemetry gets it: the ones whose
+# env is oneuptime.env.common, and the probes and the global Runner, which
+# write their exporter settings themselves. Tests/Ops/HelmEnvValuesQuoted.test.js
+# renders the whole chart and holds that set of workloads.
+suite: OneUptime's own metrics temporality
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # -------------------------------------------------------------------------
+  # delta reaches every workload that exports OneUptime's own telemetry
+  # -------------------------------------------------------------------------
+  - it: sends the app's own metrics as deltas
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter.metricsTemporality: delta
+    asserts: &deltaInContainer
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+            value: delta
+
+  - it: sends the worker's own metrics as deltas, which hold the notification delivery metrics too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      openTelemetryExporter.metricsTemporality: delta
+    asserts: *deltaInContainer
+
+  - it: sends a probe's own metrics as deltas
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter.metricsTemporality: delta
+    asserts: *deltaInContainer
+
+  - it: sends the global Runner's own metrics as deltas
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter.metricsTemporality: delta
+    asserts: *deltaInContainer
+
+  - it: sends the telemetry writer's own metrics as deltas
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      telemetryWriter.enabled: true
+      openTelemetryExporter.metricsTemporality: delta
+    asserts: *deltaInContainer
+
+  - it: sends the migrate Job's own metrics as deltas
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      openTelemetryExporter.metricsTemporality: delta
+    asserts: *deltaInContainer
+
+  - it: hands it over even where a service sets its own extraEnv, which replaces the chart-wide list
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter.metricsTemporality: delta
+      extraEnv:
+        - name: CHART_WIDE
+          value: "1"
+      app.extraEnv:
+        - name: APP_ONLY
+          value: "1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+            value: delta
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: APP_ONLY
+            value: "1"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CHART_WIDE
+          any: true
+
+  - it: hands cumulative over as it is set
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      openTelemetryExporter.metricsTemporality: cumulative
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+            value: cumulative
+
+  # -------------------------------------------------------------------------
+  # Unset, the exporter keeps its default: nothing is rendered
+  # -------------------------------------------------------------------------
+  - it: renders nothing in the app by default, so the exporter sends running totals as it always did
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts: &noTemporality
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          any: true
+
+  - it: renders nothing in a probe by default
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts: *noTemporality
+
+  - it: renders nothing in the global Runner by default
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts: *noTemporality
+
+  - it: renders nothing for an empty value
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      openTelemetryExporter.metricsTemporality: ""
+    asserts: *noTemporality
+
+  - it: renders nothing for an empty value in a probe
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter.metricsTemporality: ""
+    asserts: *noTemporality
+
+  # -------------------------------------------------------------------------
+  # The schema takes the values the exporter knows, and nothing else
+  # -------------------------------------------------------------------------
+  - it: refuses Delta, which is written in lowercase
+    templates:
+      - templates/app.yaml
+    set:
+      openTelemetryExporter.metricsTemporality: Delta
+    asserts: &refusesTemporality
+      - failedTemplate:
+          errorPattern: "openTelemetryExporter.metricsTemporality must be one of the following"
+
+  - it: refuses deltas
+    templates:
+      - templates/app.yaml
+    set:
+      openTelemetryExporter.metricsTemporality: deltas
+    asserts: *refusesTemporality
+
+  - it: refuses lowmemory, which would send OneUptime's asynchronous counters as running totals
+    templates:
+      - templates/app.yaml
+    set:
+      openTelemetryExporter.metricsTemporality: lowmemory
+    asserts: *refusesTemporality

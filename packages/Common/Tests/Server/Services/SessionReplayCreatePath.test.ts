@@ -24,6 +24,7 @@ import Permission, {
 import UserType from "../../../Types/UserType";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -220,8 +221,10 @@ describe("RumSessionErasureRequestService create path", () => {
   it("produces a model a Project Admin is allowed to create", async () => {
     /*
      * onBeforeCreate runs BEFORE checkCreatePermissions, so anything it
-     * writes onto the model is checked against the caller's create ACL as
-     * if the caller had sent it.
+     * writes onto the model is checked against the caller's create ACL - as
+     * if the caller had sent it, unless it is a server-set (computed)
+     * column, which the check takes as the create's own
+     * (columnsSetByServer, which DatabaseService hands over).
      */
     const createBy: CreateBy<RumSessionErasureRequest> = buildCreateBy();
 
@@ -236,6 +239,7 @@ describe("RumSessionErasureRequestService create path", () => {
         onCreate.createBy.data,
         onCreate.createBy.props,
         DatabaseRequestType.Create,
+        columnsTheCreateWrote(onCreate.createBy.data),
       );
     }).not.toThrow();
 
@@ -340,6 +344,7 @@ describe("RumSessionPinService create path", () => {
         onCreate.createBy.data,
         onCreate.createBy.props,
         DatabaseRequestType.Create,
+        columnsTheCreateWrote(onCreate.createBy.data),
       );
     }).not.toThrow();
 

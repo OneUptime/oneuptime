@@ -1018,7 +1018,7 @@ describe("counted once however many times the post was tried, against a real end
 
     await expect(
       send({ webhookUrl: hook(), isAddedByTeam: true }),
-    ).rejects.toThrow(/maxContentLength/);
+    ).rejects.toThrow("The answer was larger than 1 MB, so it was not read.");
 
     expect(sendCounterCalls).toEqual([
       { value: 1, attributes: { ...SUBSCRIBER_WEBHOOK, outcome: "failure" } },

@@ -333,6 +333,7 @@ interface ScrubRulePage {
   singularName: string;
   defaultFieldsToScrub: string;
   defaultsSummary: string;
+  sensitiveKeysSummary: string;
 }
 
 const SCRUB_RULE_PAGES: Array<ScrubRulePage> = [
@@ -344,6 +345,8 @@ const SCRUB_RULE_PAGES: Array<ScrubRulePage> = [
     defaultFieldsToScrub: "both",
     defaultsSummary:
       "Matches are replaced with [REDACTED] in the log body and attributes.",
+    sensitiveKeysSummary:
+      "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].",
   },
   {
     name: "Traces > Settings > Scrub Rules",
@@ -352,7 +355,9 @@ const SCRUB_RULE_PAGES: Array<ScrubRulePage> = [
     singularName: "Trace Scrub Rule",
     defaultFieldsToScrub: "all",
     defaultsSummary:
-      "Matches are replaced with [REDACTED] in span names, attributes and event attributes.",
+      "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.",
+    sensitiveKeysSummary:
+      "The values of attributes whose key looks sensitive are replaced with [REDACTED].",
   },
 ];
 
@@ -562,9 +567,7 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
 
     await pickOption(user, patternTypePicker(), "Sensitive Attribute Keys");
     await waitFor(() => {
-      expect(advancedSummary()).toBe(
-        "The values of attributes whose key looks sensitive are replaced with [REDACTED].",
-      );
+      expect(advancedSummary()).toBe(page.sensitiveKeysSummary);
     });
 
     await user.click(advancedHeader());

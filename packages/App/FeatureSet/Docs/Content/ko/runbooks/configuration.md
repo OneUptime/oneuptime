@@ -58,6 +58,7 @@ JavaScript, Bash, SSH, kubectl 단계는 **OneUptime Worker에서 절대 실행�
 | 단계당 출력 | **50 KB**. 더 긴 출력은 표시와 함께 잘립니다. | 모든 자동 단계 |
 | 실행 타임아웃 | 기본 **30초** | JavaScript, Bash, SSH, kubectl 단계 |
 | 요청 타임아웃 | 기본 **30초** | HTTP request 단계 |
+| 요청당 응답 | **10 MB**. 더 큰 응답은 읽지 않고 단계가 실패합니다. | HTTP request 단계 |
 | Claim 타임아웃 | 기본 **2분**. Worker가 선택한 Runner가 작업을 가져가기를 기다렸다가 실패로 처리하기까지의 시간 | JavaScript, Bash, SSH, kubectl 단계 |
 | 타임아웃 범위 | **1초에서 1시간** | 모든 타임아웃 |
 | 사람을 기다리는 시간 | 제한 없음 | Manual 단계와 승인 |

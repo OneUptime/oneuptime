@@ -94,6 +94,7 @@ Tjänster, värdar, Kubernetes-kluster, Docker- och Podman-värdar, Docker Swarm
 | Övervakningsloggar, en rad per kontroll | 1 dag om det inte ändras | På en installation i egen drift, **Lagringstid för övervakningsloggar (dagar)** i Admin Dashboard |
 | Övervakningsmätvärden, och de mätvärden som SLO:er registrerar | 30 dagar om det inte ändras | På en installation i egen drift, **Lagringstid för övervakningsmätvärden (dagar)** i Admin Dashboard |
 | [Telemetrianvändning](/docs/telemetry/usage), en summa per resurs, signal och dag | 120 dagar om det inte ändras | På en installation i egen drift, **Lagringstid för telemetrianvändning (dagar)** i Admin Dashboard |
+| Lösta incidenter och larm, med sina tidslinjer, anteckningar och filer | Tills projektet väljer en tid | **Incidenter → Inställningar → Datalagring** och **Larm → Inställningar → Datalagring**: se [Datalagring](/docs/incidents/settings#datalagring). På en installation i egen drift håller **Behåll i högst** i Admin Dashboard alla projekt inom en gräns |
 
 ## Vad lagring kostar
 

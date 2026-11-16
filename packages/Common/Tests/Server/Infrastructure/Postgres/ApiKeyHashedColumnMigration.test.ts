@@ -11,8 +11,8 @@ import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import ApiKey from "../../../../Models/DatabaseModels/ApiKey";
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { ApiKeyHashedColumn1809180790200 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180790200-ApiKeyHashedColumn";
-import { AddMasterApiKeyCreatedByAndHint1809180790300 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180790300-AddMasterApiKeyCreatedByAndHint";
+import { ApiKeyHashedColumn1809181100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181100000-ApiKeyHashedColumn";
+import { AddMasterApiKeyCreatedByAndHint1809181200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181200000-AddMasterApiKeyCreatedByAndHint";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 
 /*
@@ -110,8 +110,8 @@ function expectRegisteredInOrder(className: string): void {
 }
 
 describe("ApiKeyHashedColumn", () => {
-  const migration: ApiKeyHashedColumn1809180790200 =
-    new ApiKeyHashedColumn1809180790200();
+  const migration: ApiKeyHashedColumn1809181100000 =
+    new ApiKeyHashedColumn1809181100000();
 
   test("up() turns the uuid column into a varchar in place, keeping every key, and adds the hint", async () => {
     expect(await statementsOf(migration, "up")).toEqual([
@@ -178,7 +178,7 @@ describe("ApiKeyHashedColumn", () => {
       .filter((file: string): boolean => {
         return (
           MIGRATION_SOURCE_FILE.test(file) &&
-          Number(file.slice(0, 13)) < 1809180790200
+          Number(file.slice(0, 13)) < 1809181100000
         );
       })
       .filter((file: string): boolean => {
@@ -200,17 +200,17 @@ describe("ApiKeyHashedColumn", () => {
   test("it is named after its file and registered once, in order", () => {
     expect(
       fs.existsSync(
-        path.join(MIGRATION_DIRECTORY, "1809180790200-ApiKeyHashedColumn.ts"),
+        path.join(MIGRATION_DIRECTORY, "1809181100000-ApiKeyHashedColumn.ts"),
       ),
     ).toBe(true);
-    expect(migration.name).toBe("ApiKeyHashedColumn1809180790200");
-    expectRegisteredInOrder("ApiKeyHashedColumn1809180790200");
+    expect(migration.name).toBe("ApiKeyHashedColumn1809181100000");
+    expectRegisteredInOrder("ApiKeyHashedColumn1809181100000");
   });
 });
 
 describe("AddMasterApiKeyCreatedByAndHint", () => {
-  const migration: AddMasterApiKeyCreatedByAndHint1809180790300 =
-    new AddMasterApiKeyCreatedByAndHint1809180790300();
+  const migration: AddMasterApiKeyCreatedByAndHint1809181200000 =
+    new AddMasterApiKeyCreatedByAndHint1809181200000();
 
   test("up() adds when the key was made, by whom and its hint: nullable, with no foreign key", async () => {
     const statements: Array<string> = await statementsOf(migration, "up");
@@ -255,11 +255,11 @@ describe("AddMasterApiKeyCreatedByAndHint", () => {
       fs.existsSync(
         path.join(
           MIGRATION_DIRECTORY,
-          "1809180790300-AddMasterApiKeyCreatedByAndHint.ts",
+          "1809181200000-AddMasterApiKeyCreatedByAndHint.ts",
         ),
       ),
     ).toBe(true);
-    expect(migration.name).toBe("AddMasterApiKeyCreatedByAndHint1809180790300");
-    expectRegisteredInOrder("AddMasterApiKeyCreatedByAndHint1809180790300");
+    expect(migration.name).toBe("AddMasterApiKeyCreatedByAndHint1809181200000");
+    expectRegisteredInOrder("AddMasterApiKeyCreatedByAndHint1809181200000");
   });
 });
