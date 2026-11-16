@@ -14,7 +14,7 @@ import EncryptColumnInPlace, {
  *
  * It encrypted GreenlockCertificate.blob too, the ACME account and
  * certificate keys of the store ACME certificates replaced. That table is
- * gone now (DropGreenlockTables1809181850000, #8990), dropped by a schema
+ * gone now (DropGreenlockTables1809182470000, #8990), dropped by a schema
  * migration before any data migration runs, and its keys with it: there is
  * nothing of it left to encrypt.
  *

@@ -257,17 +257,31 @@ describe("the reads", () => {
   test("the rules are read as before: by the person, by their teams' ids, by their schedules' ids, in the project", async () => {
     await onDuty();
 
-    expect(userRulesRead.mock.calls[0]![0].query).toEqual({
+    // The project, and no other: a read of one project's is a read across projects of one.
+    const inTheProject: (filter: unknown) => void = (filter: unknown): void => {
+      expect(JSON.stringify(filter)).toContain(PROJECT.toString());
+      expect(JSON.stringify(filter)).not.toContain(OTHER_PROJECT.toString());
+    };
+
+    expect(userRulesRead.mock.calls[0]![0].query.userId).toEqual(PERSON);
+    expect(Object.keys(userRulesRead.mock.calls[0]![0].query).sort()).toEqual([
+      "projectId",
+      "userId",
+    ]);
+    inTheProject(userRulesRead.mock.calls[0]![0].query.projectId);
+    expect(teamsRead.mock.calls[0]![0]).toEqual({
       userId: PERSON,
-      projectId: PROJECT,
+      projectIds: [PROJECT],
     });
-    expect(teamRulesRead.mock.calls[0]![0].query.projectId).toEqual(PROJECT);
+    expect(schedulesRead.mock.calls[0]![0]).toEqual({
+      userId: PERSON,
+      projectIds: [PROJECT],
+    });
+    inTheProject(teamRulesRead.mock.calls[0]![0].query.projectId);
     expect(
       JSON.stringify(teamRulesRead.mock.calls[0]![0].query.teamId),
     ).toContain(TEAM_ID.toString());
-    expect(scheduleRulesRead.mock.calls[0]![0].query.projectId).toEqual(
-      PROJECT,
-    );
+    inTheProject(scheduleRulesRead.mock.calls[0]![0].query.projectId);
     expect(
       JSON.stringify(
         scheduleRulesRead.mock.calls[0]![0].query.onCallDutyPolicyScheduleId,
@@ -303,6 +317,312 @@ describe("the reads", () => {
     teamRulesRead.mockRejectedValue(new Error("pool exhausted"));
 
     await expect(onDuty()).rejects.toThrow("pool exhausted");
+  });
+});
+
+/*
+ * MY ON-CALL POLICIES, ACROSS EVERY PROJECT THE PERSON MAY OPEN (#8124).
+ *
+ * The page asked each project in turn, one request after another: someone
+ * in 100 projects waited for 100 requests, each with its five reads. Now
+ * one request answers for all of them, with the same five reads whatever
+ * the number of projects, and each project's answer is kept as its own
+ * request keeps it.
+ */
+describe("across the person's projects", () => {
+  const THIRD_PROJECT: ObjectID = new ObjectID(
+    "0d000000-0000-4000-8000-000000000003",
+  );
+  const OTHER_TEAM_ID: ObjectID = new ObjectID(
+    "0d000000-0000-4000-8000-000000000022",
+  );
+  const OTHER_SCHEDULE_ID: ObjectID = new ObjectID(
+    "0d000000-0000-4000-8000-000000000032",
+  );
+
+  function inProject<T extends { projectId?: ObjectID | undefined }>(
+    row: T,
+    projectId: ObjectID,
+  ): T {
+    row.projectId = projectId;
+    return row;
+  }
+
+  // Alex is named on a rule of PROJECT, in a team on a rule of OTHER_PROJECT, and on call in a schedule of both.
+  const userRuleHere: OnCallDutyPolicyEscalationRuleUser = inProject(
+    ruleByUser(),
+    PROJECT,
+  );
+  const teamRuleThere: OnCallDutyPolicyEscalationRuleTeam = inProject(
+    ruleByTeam(),
+    OTHER_PROJECT,
+  );
+  const scheduleRuleHere: OnCallDutyPolicyEscalationRuleSchedule = inProject(
+    ruleBySchedule(false),
+    PROJECT,
+  );
+  const scheduleRuleThere: OnCallDutyPolicyEscalationRuleSchedule = inProject(
+    ruleBySchedule(false),
+    OTHER_PROJECT,
+  );
+  const nextInRotationThere: OnCallDutyPolicyEscalationRuleSchedule = inProject(
+    ruleBySchedule(true),
+    OTHER_PROJECT,
+  );
+
+  async function acrossProjects(
+    projectIds: Array<ObjectID>,
+    userId: ObjectID = PERSON,
+  ): Promise<Map<string, Awaited<ReturnType<typeof onDuty>>>> {
+    return await OnCallDutyPolicyService.getOnCallPoliciesWhereUserIsOnCallDutyInProjects(
+      { projectIds, userId },
+    );
+  }
+
+  function keyOf(projectId: ObjectID): string {
+    return projectId.toString().toLowerCase();
+  }
+
+  // The projects a read asked in, in the order it named them.
+  function projectsAskedIn(filter: unknown): Array<string> {
+    return [PROJECT, OTHER_PROJECT, THIRD_PROJECT]
+      .map((projectId: ObjectID): string => {
+        return projectId.toString();
+      })
+      .filter((projectId: string): boolean => {
+        return JSON.stringify(filter).includes(projectId);
+      });
+  }
+
+  beforeEach(() => {
+    const otherTeam: Team = new Team();
+    otherTeam.id = OTHER_TEAM_ID;
+    otherTeam.name = "Payments";
+
+    const otherSchedule: OnCallDutyPolicySchedule =
+      new OnCallDutyPolicySchedule();
+    otherSchedule.id = OTHER_SCHEDULE_ID;
+    otherSchedule.name = "Payments primary";
+
+    teamsRead.mockResolvedValue([team(), otherTeam] as never);
+    schedulesRead.mockResolvedValue([schedule(), otherSchedule] as never);
+    userRulesRead.mockResolvedValue([userRuleHere] as never);
+    teamRulesRead.mockResolvedValue([teamRuleThere] as never);
+    scheduleRulesRead.mockResolvedValue([
+      scheduleRuleHere,
+      scheduleRuleThere,
+      nextInRotationThere,
+    ] as never);
+  });
+
+  test("three projects take the five reads one project takes, each asking in all three", async () => {
+    await acrossProjects([PROJECT, OTHER_PROJECT, THIRD_PROJECT]);
+
+    expect(readCount()).toBe(5);
+
+    const all: Array<string> = [PROJECT, OTHER_PROJECT, THIRD_PROJECT].map(
+      (projectId: ObjectID): string => {
+        return projectId.toString();
+      },
+    );
+
+    expect(
+      projectsAskedIn(userRulesRead.mock.calls[0]![0].query.projectId),
+    ).toEqual(all);
+    expect(userRulesRead.mock.calls[0]![0].query.userId).toEqual(PERSON);
+    expect(teamsRead.mock.calls[0]![0]).toEqual({
+      userId: PERSON,
+      projectIds: [PROJECT, OTHER_PROJECT, THIRD_PROJECT],
+    });
+    expect(schedulesRead.mock.calls[0]![0]).toEqual({
+      userId: PERSON,
+      projectIds: [PROJECT, OTHER_PROJECT, THIRD_PROJECT],
+    });
+    expect(
+      projectsAskedIn(teamRulesRead.mock.calls[0]![0].query.projectId),
+    ).toEqual(all);
+    expect(
+      projectsAskedIn(scheduleRulesRead.mock.calls[0]![0].query.projectId),
+    ).toEqual(all);
+
+    // Every team's and every schedule's rules, in one read each.
+    expect(
+      JSON.stringify(teamRulesRead.mock.calls[0]![0].query.teamId),
+    ).toContain(OTHER_TEAM_ID.toString());
+    expect(
+      JSON.stringify(
+        scheduleRulesRead.mock.calls[0]![0].query.onCallDutyPolicyScheduleId,
+      ),
+    ).toContain(OTHER_SCHEDULE_ID.toString());
+  });
+
+  test("each read says which project each rule is in", async () => {
+    await acrossProjects([PROJECT, OTHER_PROJECT]);
+
+    expect(userRulesRead.mock.calls[0]![0].select.projectId).toBe(true);
+    expect(teamRulesRead.mock.calls[0]![0].select.projectId).toBe(true);
+    expect(scheduleRulesRead.mock.calls[0]![0].select.projectId).toBe(true);
+  });
+
+  test("each rule goes to the project it is in, and a project where nothing pages the person answers empty", async () => {
+    const answers: Map<
+      string,
+      Awaited<ReturnType<typeof onDuty>>
+    > = await acrossProjects([PROJECT, OTHER_PROJECT, THIRD_PROJECT]);
+
+    expect(Array.from(answers.keys())).toEqual([
+      keyOf(PROJECT),
+      keyOf(OTHER_PROJECT),
+      keyOf(THIRD_PROJECT),
+    ]);
+    expect(answers.get(keyOf(PROJECT))).toEqual({
+      escalationRulesByUser: [userRuleHere],
+      escalationRulesByTeam: [],
+      escalationRulesBySchedule: [scheduleRuleHere],
+    });
+    // A rule that pages the next person in a rotation is left out here too.
+    expect(answers.get(keyOf(OTHER_PROJECT))).toEqual({
+      escalationRulesByUser: [],
+      escalationRulesByTeam: [teamRuleThere],
+      escalationRulesBySchedule: [scheduleRuleThere],
+    });
+    expect(answers.get(keyOf(THIRD_PROJECT))).toEqual({
+      escalationRulesByUser: [],
+      escalationRulesByTeam: [],
+      escalationRulesBySchedule: [],
+    });
+  });
+
+  test("a rule of a project nobody asked about is in no answer", async () => {
+    userRulesRead.mockResolvedValue([
+      userRuleHere,
+      inProject(ruleByUser(), THIRD_PROJECT),
+    ] as never);
+
+    const answers: Map<
+      string,
+      Awaited<ReturnType<typeof onDuty>>
+    > = await acrossProjects([PROJECT, OTHER_PROJECT]);
+
+    expect(answers.has(keyOf(THIRD_PROJECT))).toBe(false);
+    expect(answers.get(keyOf(PROJECT))!.escalationRulesByUser).toEqual([
+      userRuleHere,
+    ]);
+    expect(answers.get(keyOf(OTHER_PROJECT))!.escalationRulesByUser).toEqual(
+      [],
+    );
+  });
+
+  test("each project's answer is kept: a project's own request after it reads nothing, and answers the same", async () => {
+    const answers: Map<
+      string,
+      Awaited<ReturnType<typeof onDuty>>
+    > = await acrossProjects([PROJECT, OTHER_PROJECT]);
+    const reads: number = readCount();
+
+    expect(await onDuty(PROJECT)).toBe(answers.get(keyOf(PROJECT)));
+    expect(await onDuty(OTHER_PROJECT)).toBe(answers.get(keyOf(OTHER_PROJECT)));
+    expect(readCount()).toBe(reads);
+  });
+
+  test("the projects already kept are not read again: the rest are read, together", async () => {
+    await onDuty(PROJECT);
+    expect(readCount()).toBe(5);
+
+    await acrossProjects([PROJECT, OTHER_PROJECT, THIRD_PROJECT]);
+
+    expect(readCount()).toBe(10);
+    expect(
+      projectsAskedIn(userRulesRead.mock.calls[1]![0].query.projectId),
+    ).toEqual([OTHER_PROJECT.toString(), THIRD_PROJECT.toString()]);
+
+    // And all of them kept now.
+    await acrossProjects([PROJECT, OTHER_PROJECT, THIRD_PROJECT]);
+    expect(readCount()).toBe(10);
+  });
+
+  test("a project's own request that misses with a request across projects shares its build", async () => {
+    const userRules: Deferred<Array<OnCallDutyPolicyEscalationRuleUser>> =
+      deferred<Array<OnCallDutyPolicyEscalationRuleUser>>();
+    userRulesRead.mockReturnValueOnce(userRules.promise as never);
+
+    const across: ReturnType<typeof acrossProjects> = acrossProjects([
+      PROJECT,
+      OTHER_PROJECT,
+    ]);
+
+    await flush();
+
+    const own: ReturnType<typeof onDuty> = onDuty(OTHER_PROJECT);
+
+    await flush();
+
+    userRules.resolve([userRuleHere]);
+
+    const [answers, answer] = await Promise.all([across, own]);
+
+    expect(answer).toBe(answers.get(keyOf(OTHER_PROJECT)));
+    expect(userRulesRead).toHaveBeenCalledTimes(1);
+  });
+
+  test("a change in one project reads that project again, and only it", async () => {
+    await acrossProjects([PROJECT, OTHER_PROJECT]);
+    expect(readCount()).toBe(5);
+
+    await OnDutyPoliciesCache.forgetProjects([OTHER_PROJECT]);
+    await acrossProjects([PROJECT, OTHER_PROJECT]);
+
+    expect(readCount()).toBe(10);
+    expect(
+      projectsAskedIn(userRulesRead.mock.calls[1]![0].query.projectId),
+    ).toEqual([OTHER_PROJECT.toString()]);
+  });
+
+  test("a read that fails fails the whole answer, and nothing of it is kept", async () => {
+    scheduleRulesRead.mockRejectedValueOnce(new Error("pool exhausted"));
+
+    await expect(acrossProjects([PROJECT, OTHER_PROJECT])).rejects.toThrow(
+      "pool exhausted",
+    );
+
+    await acrossProjects([PROJECT, OTHER_PROJECT]);
+
+    expect(userRulesRead).toHaveBeenCalledTimes(2);
+  });
+
+  test("no project: nothing is read", async () => {
+    const answers: Map<
+      string,
+      Awaited<ReturnType<typeof onDuty>>
+    > = await acrossProjects([]);
+
+    expect(answers.size).toBe(0);
+    expect(readCount()).toBe(0);
+  });
+
+  test("a project named twice, or in capitals, is one project", async () => {
+    const answers: Map<
+      string,
+      Awaited<ReturnType<typeof onDuty>>
+    > = await acrossProjects([
+      PROJECT,
+      new ObjectID(PROJECT.toString().toUpperCase()),
+      OTHER_PROJECT,
+    ]);
+
+    expect(Array.from(answers.keys())).toEqual([
+      keyOf(PROJECT),
+      keyOf(OTHER_PROJECT),
+    ]);
+    expect(teamsRead.mock.calls[0]![0].projectIds).toHaveLength(2);
+  });
+
+  test("another person's answers are theirs", async () => {
+    await acrossProjects([PROJECT, OTHER_PROJECT]);
+    await acrossProjects([PROJECT, OTHER_PROJECT], OTHER_PERSON);
+
+    expect(readCount()).toBe(10);
+    expect(userRulesRead.mock.calls[1]![0].query.userId).toEqual(OTHER_PERSON);
   });
 });
 

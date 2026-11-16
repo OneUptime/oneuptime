@@ -37,8 +37,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * from the initial migration just before, and one that dropped them already
  * are left as they are.
  */
-export class DropGreenlockTables1809181850000 implements MigrationInterface {
-  public name: string = "DropGreenlockTables1809181850000";
+export class DropGreenlockTables1809182470000 implements MigrationInterface {
+  public name: string = "DropGreenlockTables1809182470000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

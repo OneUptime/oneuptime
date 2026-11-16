@@ -556,6 +556,241 @@ describe("the source map it keeps", () => {
   });
 });
 
+/*
+ * source-map-support kept, for the life of the process, the decoded map of
+ * every script a stack trace ever passed through and the text of every file
+ * it read on the way: 1,047 MB once each of the App's 8,382 scripts had been
+ * in one. The transpiler gives it caches that keep what it used last, within
+ * a budget (App/Tests/SourceMapSupportCaches runs them in the real library).
+ */
+describe("the caches it gives source-map-support", () => {
+  const SHARED_DATA: symbol = Symbol.for("source-map-support/sharedData");
+
+  type Weigh = (value: string) => number;
+  const lengthOf: Weigh = (value: string): number => {
+    return value.length;
+  };
+
+  function withSharedData<T>(
+    sharedData: Record<string, unknown> | undefined,
+    run: () => T,
+  ): T {
+    const holder: Record<symbol, unknown> = globalThis as unknown as Record<
+      symbol,
+      unknown
+    >;
+    const before: unknown = holder[SHARED_DATA];
+    holder[SHARED_DATA] = sharedData;
+    try {
+      return run();
+    } finally {
+      holder[SHARED_DATA] = before;
+    }
+  }
+
+  test("answer as the plain objects the library reads, writes and asks hasOwnProperty of", () => {
+    const { transpiler } = load();
+    const cache: Record<string, string> = transpiler.leastRecentlyUsed(
+      100,
+      lengthOf,
+    );
+
+    expect(cache["file:///a.ts"]).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(cache, "file:///a.ts")).toBe(
+      false,
+    );
+
+    // The library writes with an assignment and uses what it evaluates to.
+    expect((cache["file:///a.ts"] = "aaaa")).toBe("aaaa");
+    cache["file:///empty.js"] = "";
+
+    expect(cache["file:///a.ts"]).toBe("aaaa");
+    expect(Object.prototype.hasOwnProperty.call(cache, "file:///a.ts")).toBe(
+      true,
+    );
+    // An empty text is kept and found: the library caches unreadable files as "".
+    expect(
+      Object.prototype.hasOwnProperty.call(cache, "file:///empty.js"),
+    ).toBe(true);
+    expect(cache["file:///empty.js"]).toBe("");
+    expect("file:///a.ts" in cache).toBe(true);
+    expect(Object.keys(cache)).toEqual(["file:///a.ts", "file:///empty.js"]);
+    expect({ ...cache }).toEqual({
+      "file:///a.ts": "aaaa",
+      "file:///empty.js": "",
+    });
+
+    delete cache["file:///a.ts"];
+    expect(cache["file:///a.ts"]).toBeUndefined();
+    expect(Object.keys(cache)).toEqual(["file:///empty.js"]);
+  });
+
+  test("keep what was used last within the budget, a read making a key the newest", () => {
+    const { transpiler } = load();
+    const cache: Record<string, string> = transpiler.leastRecentlyUsed(
+      10,
+      lengthOf,
+    );
+
+    cache["a"] = "aaaa";
+    cache["b"] = "bbbb";
+    // Read: a is now the newest, so b goes first.
+    expect(cache["a"]).toBe("aaaa");
+    cache["c"] = "cccc";
+
+    expect(Object.keys(cache)).toEqual(["a", "c"]);
+    expect(cache["b"]).toBeUndefined();
+
+    // Rewriting a key weighs it again: c, grown, takes the room of a.
+    cache["c"] = "cccccccc";
+    expect(Object.keys(cache)).toEqual(["c"]);
+  });
+
+  test("keep a value larger than the whole budget, alone, until the next one", () => {
+    const { transpiler } = load();
+    const cache: Record<string, string> = transpiler.leastRecentlyUsed(
+      10,
+      lengthOf,
+    );
+
+    cache["small"] = "ss";
+    cache["huge"] = "h".repeat(50);
+
+    expect(Object.keys(cache)).toEqual(["huge"]);
+    expect(cache["huge"]).toHaveLength(50);
+
+    cache["next"] = "nn";
+    expect(Object.keys(cache)).toEqual(["next"]);
+  });
+
+  test("start with what the library's caches already held, oldest first", () => {
+    const { transpiler } = load();
+    const cache: Record<string, string> = transpiler.leastRecentlyUsed(
+      10,
+      lengthOf,
+      { a: "aaa", b: "bbb", c: "ccc", d: "ddd" },
+    );
+
+    expect(Object.keys(cache)).toEqual(["b", "c", "d"]);
+  });
+
+  test("weigh a map by its encoded mappings and the sources it keeps, and a script without one by a little", () => {
+    const { transpiler } = load();
+    const mappings: string = "AAAA,CAAC;AACA".repeat(100);
+
+    expect(
+      transpiler.sourceMapCacheEntryBytes({
+        url: "file:///a.ts",
+        map: { _encoded: mappings, sourcesContent: ["x".repeat(1000)] },
+      }),
+    ).toBe(mappings.length * 24 + 1000);
+    // Without its sources (a package's map, or a module whose file is gone).
+    expect(
+      transpiler.sourceMapCacheEntryBytes({
+        url: "file:///a.ts",
+        map: { _encoded: mappings, sourcesContent: null },
+      }),
+    ).toBe(mappings.length * 24);
+    // Mappings handed over decoded: a size of their own.
+    expect(
+      transpiler.sourceMapCacheEntryBytes({ url: "x", map: { _decoded: [] } }),
+    ).toBe(256 * 1024);
+    expect(transpiler.sourceMapCacheEntryBytes({ url: null, map: null })).toBe(
+      512,
+    );
+    expect(transpiler.fileContentsCacheEntryCharacters("abc")).toBe(3);
+    expect(transpiler.fileContentsCacheEntryCharacters(undefined)).toBe(0);
+  });
+
+  test("are the library's once it is hooked: its maps within 48 MB, its files' text within 8 M characters", () => {
+    const { transpiler } = load();
+    const sharedData: Record<string, unknown> = {
+      version: 1,
+      sourceMapCache: Object.create(null),
+      fileContentsCache: Object.create(null),
+    };
+    (sharedData["sourceMapCache"] as Record<string, unknown>)["file:///a.ts"] =
+      { url: "file:///a.ts", map: null };
+
+    withSharedData(sharedData, () => {
+      expect(transpiler.boundSourceMapSupportCaches()).toBe(true);
+    });
+
+    expect(transpiler.SOURCE_MAP_CACHE_BYTES).toBe(48 * 1024 * 1024);
+    expect(transpiler.FILE_CONTENTS_CACHE_CHARACTERS).toBe(8 * 1024 * 1024);
+
+    const maps: Record<string, unknown> = sharedData[
+      "sourceMapCache"
+    ] as Record<string, unknown>;
+    const texts: Record<string, string> = sharedData[
+      "fileContentsCache"
+    ] as Record<string, string>;
+    // What it held stays.
+    expect(maps["file:///a.ts"]).toEqual({ url: "file:///a.ts", map: null });
+
+    // A megabyte of mappings weighs 24 MB: two fit, the third lets the first go.
+    const megabyte: string = "A".repeat(1024 * 1024);
+    for (const name of ["one", "two", "three"]) {
+      maps[`file:///${name}.ts`] = {
+        url: `file:///${name}.ts`,
+        map: { _encoded: megabyte, sourcesContent: null },
+      };
+    }
+    expect(Object.keys(maps)).toEqual(["file:///two.ts", "file:///three.ts"]);
+
+    for (let file: number = 0; file < 9; file++) {
+      texts[`file:///${file}.js`] = "j".repeat(1024 * 1024);
+    }
+    expect(Object.keys(texts)).toHaveLength(8);
+    expect(texts["file:///0.js"]).toBeUndefined();
+    expect(texts["file:///8.js"]).toHaveLength(1024 * 1024);
+  });
+
+  test("leaves a copy of the library whose state it does not know as it is", () => {
+    const { transpiler } = load();
+    const plain: Record<string, unknown> = Object.create(null);
+    const newer: Record<string, unknown> = {
+      version: 2,
+      sourceMapCache: plain,
+      fileContentsCache: plain,
+    };
+
+    withSharedData(undefined, () => {
+      expect(transpiler.boundSourceMapSupportCaches()).toBe(false);
+    });
+    withSharedData(newer, () => {
+      expect(transpiler.boundSourceMapSupportCaches()).toBe(false);
+    });
+    expect(newer["sourceMapCache"]).toBe(plain);
+    withSharedData({ version: 1 }, () => {
+      expect(transpiler.boundSourceMapSupportCaches()).toBe(false);
+    });
+  });
+
+  test("ts-node's hook bounds them, after it hands the library its maps", () => {
+    const { transpiler, stub } = load();
+    const sharedData: Record<string, unknown> = {
+      version: 1,
+      sourceMapCache: Object.create(null),
+      fileContentsCache: Object.create(null),
+    };
+
+    withSharedData(sharedData, () => {
+      transpilerFor(transpiler);
+    });
+
+    expect(stub.installs).toHaveLength(1);
+    const maps: Record<string, unknown> = sharedData[
+      "sourceMapCache"
+    ] as Record<string, unknown>;
+    const megabyte: string = "A".repeat(1024 * 1024);
+    for (const name of ["one", "two", "three"]) {
+      maps[name] = { url: name, map: { _encoded: megabyte } };
+    }
+    expect(Object.keys(maps)).toEqual(["two", "three"]);
+  });
+});
+
 describe("what it keeps for a whole program", () => {
   /*
    * In a fresh Node: the maps of 400 of Common's modules, kept. They are

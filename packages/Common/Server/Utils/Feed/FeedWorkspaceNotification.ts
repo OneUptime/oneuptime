@@ -42,6 +42,14 @@ export interface FeedWorkspaceNotification {
    */
   leadWithAuthor?: boolean | undefined;
   appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+  /*
+   * The key the posts are kept under (WorkspaceLiveMessageKey), so a later
+   * change edits them where they are: a fix's message, which says who
+   * approved or dismissed it once someone did (RemediationChatMessage).
+   * The entry's own blocks are kept with each, so an edit rewrites only
+   * the appended ones.
+   */
+  keepPostsAs?: string | undefined;
   // Not posted in this channel: the note came from a message there.
   exceptChannel?: WorkspaceChannelToSkip | undefined;
   /*
@@ -136,6 +144,7 @@ export default class FeedWorkspaceNotificationUtil {
   }): {
     sendWorkspaceNotification: boolean;
     appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+    keepPostsAs?: string | undefined;
     exceptChannel?: WorkspaceChannelToSkip | undefined;
     authorUserId?: ObjectID | undefined;
     authorApiKeyName?: string | undefined;
@@ -145,6 +154,9 @@ export default class FeedWorkspaceNotificationUtil {
       sendWorkspaceNotification:
         data.workspaceNotification.sendWorkspaceNotification,
       appendMessageBlocks: data.workspaceNotification.appendMessageBlocks,
+      ...(data.workspaceNotification.keepPostsAs
+        ? { keepPostsAs: data.workspaceNotification.keepPostsAs }
+        : {}),
       exceptChannel: data.workspaceNotification.exceptChannel,
       authorUserId: data.author?.authorUserId,
       authorApiKeyName: data.author?.authorApiKeyName,

@@ -4116,5 +4116,20 @@
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Их сеансы завершатся сейчас на всех устройствах, и они снова войдут через SSO. Главные администраторы останутся в системе.",
   "Made by {{name}} on {{date}}": "Создан {{date}}, автор: {{name}}",
   "Made on {{date}}": "Создан {{date}}",
-  "Ends in {{hint}}": "Заканчивается на {{hint}}"
+  "Ends in {{hint}}": "Заканчивается на {{hint}}",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Ответы хранятся на этом сервере, и здесь их читают его главные администраторы. «Оставить отзыв» также отправляется на support@oneuptime.com, а оценки, но никогда не текст, уходят в продуктовую аналитику.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Ответы хранятся на этом сервере, и здесь их читают его главные администраторы. «Оставить отзыв» также отправляется на email уведомлений администратора, если он указан. В OneUptime ничего не отправляется.",
+  "Know when my website or API is down": "Узнавать, когда мой сайт или API недоступен",
+  "Page the right person when something breaks": "Оповещать нужного человека, когда что-то ломается",
+  "Publish a status page": "Опубликуйте страницу статуса",
+  "Send logs, metrics and traces, then get alerted": "Отправьте журналы, метрики и трассировки и получайте оповещения",
+  "Guided setup": "Пошаговая настройка",
+  "Give feedback": "Оставить отзыв",
+  "First-week check-in": "Опрос после первой недели",
+  "How OneUptime works": "Как работает OneUptime",
+  "Is OneUptime set up the way you wanted?": "OneUptime настроен так, как вы хотели?",
+  "Something's broken": "Что-то не работает",
+  "Confusing": "Непонятно",
+  "Idea": "Идея",
+  "Other": "Другое"
 }

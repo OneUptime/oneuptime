@@ -1,5 +1,11 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import User from "Common/Models/DatabaseModels/User";
+import ProjectService from "Common/Server/Services/ProjectService";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -45,7 +51,7 @@ const MONITOR_SELECT: Select<Monitor> = {
 RunCron(
   "MonitorOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -71,61 +77,82 @@ RunCron(
       },
     });
 
-    // get all scheduled events of all the projects.
-    const monitors: Array<Monitor> = await MonitorService.findAllBy({
-      query: {
+    /*
+     * Every monitor whose owners have not been told it was created, a page at a
+     * time, oldest first, each taken by one run alone and told by the run
+     * that took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #8862).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<Monitor>({
+      jobName: "MonitorOwner:SendCreatedResourceEmail",
+      service: MonitorService,
+      notYetNotified: {
         isOwnerNotifiedOfResourceCreation: false,
       },
-      props: {
-        isRoot: true,
+      notified: {
+        isOwnerNotifiedOfResourceCreation: true,
       },
       select: MONITOR_SELECT,
+      deadline: deadline,
+      notify: async (input: {
+        record: Monitor;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        const monitor: Monitor = input.record;
+        /*
+         * Whom it is to tell - its owners, or the project's when it has none -
+         * written before the take: a worker stopped from here on leaves them to
+         * be told by a later run, and one stopped before the take leaves the
+         * monitor to be read again.
+         */
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.planForOwnersOf({
+            notification: {
+              kind: OwnerNotificationKind.MonitorCreated,
+              projectId: monitor.projectId!,
+              resourceId: monitor.id!,
+              eventId: monitor.id!,
+            },
+            findOwners: () => {
+              return MonitorService.findOwners(monitor.id!);
+            },
+            // Read once for every record of the page.
+            findProjectOwners: (): Promise<Array<User>> => {
+              return input.page.once(
+                `projectOwners:${monitor.projectId!.toString()}`,
+                () => {
+                  return ProjectService.getOwners(monitor.projectId!);
+                },
+              );
+            },
+            writesFeedItem: false,
+          });
+
+        /*
+         * Taken - marked notified, by one hook-free compare-and-set - before
+         * its owners are told, so one whose notification keeps failing is
+         * never read again on every run. Taken by another run first: that run
+         * tells them.
+         */
+        if (!(await input.take())) {
+          return;
+        }
+
+        try {
+          await notifyOwnersOfMonitorCreated(monitor, delivery);
+        } catch (e) {
+          logger.error("Error in sending monitor created notification", {
+            projectId: monitor.projectId?.toString(),
+            monitorId: monitor.id?.toString(),
+          });
+          logger.error(e, {
+            projectId: monitor.projectId?.toString(),
+            monitorId: monitor.id?.toString(),
+          });
+        }
+      },
     });
-
-    for (const monitor of monitors) {
-      /*
-       * Whom it is to tell - its owners, or the project's when it has none -
-       * written before the take: a worker stopped from here on leaves them to
-       * be told by a later run, and one stopped before the take leaves the
-       * monitor to be read again.
-       */
-      const delivery: OwnerNotificationDelivery =
-        await OwnerNotificationDeliveries.planForOwnersOf({
-          notification: {
-            kind: OwnerNotificationKind.MonitorCreated,
-            projectId: monitor.projectId!,
-            resourceId: monitor.id!,
-            eventId: monitor.id!,
-          },
-          findOwners: () => {
-            return MonitorService.findOwners(monitor.id!);
-          },
-          writesFeedItem: false,
-        });
-
-      await MonitorService.updateOneById({
-        id: monitor.id!,
-        data: {
-          isOwnerNotifiedOfResourceCreation: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      try {
-        await notifyOwnersOfMonitorCreated(monitor, delivery);
-      } catch (e) {
-        logger.error("Error in sending monitor created notification", {
-          projectId: monitor.projectId?.toString(),
-          monitorId: monitor.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: monitor.projectId?.toString(),
-          monitorId: monitor.id?.toString(),
-        });
-      }
-    }
   },
 );
 

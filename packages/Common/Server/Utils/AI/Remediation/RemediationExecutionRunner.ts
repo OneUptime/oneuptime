@@ -3817,9 +3817,11 @@ export default class RemediationExecutionRunner {
           feedInfoInMarkdown: data.markdown.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
-            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
-              ? { appendMessageBlocks: data.appendMessageBlocks }
-              : {}),
+            // Kept where they are posted: approving the fix edits them there.
+            ...RemediationChatMessage.withFixMessage({
+              suggestionId: data.suggestion.id,
+              appendMessageBlocks: data.appendMessageBlocks,
+            }),
           },
         });
       } else if (data.suggestion.alertId && data.suggestion.projectId) {
@@ -3831,9 +3833,11 @@ export default class RemediationExecutionRunner {
           feedInfoInMarkdown: data.markdown.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
-            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
-              ? { appendMessageBlocks: data.appendMessageBlocks }
-              : {}),
+            // Kept where they are posted: approving the fix edits them there.
+            ...RemediationChatMessage.withFixMessage({
+              suggestionId: data.suggestion.id,
+              appendMessageBlocks: data.appendMessageBlocks,
+            }),
           },
         });
       }

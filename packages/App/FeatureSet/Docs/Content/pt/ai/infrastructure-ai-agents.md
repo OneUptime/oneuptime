@@ -325,7 +325,7 @@ As correções têm os mesmos quatro modos que em um cluster Kubernetes; `ONEUPT
 - **Desativado**: a IA só investiga.
 - **Pedir aprovação**: depois da análise de causa raiz, a OneUptime AI faz o diagnóstico com comandos de leitura e monta o menor plano que trata a causa, por exemplo `docker restart web`. O plano aparece no incidente ou alerta com a sua justificativa, o efeito esperado e o rollback; uma pessoa o aprova com um clique, e a OneUptime executa exatamente esses comandos.
 - **Automático**: mudanças seguras (**SafeWrite**) rodam sozinhas; uma mudança mais arriscada (**RiskyWrite**) é proposta para aprovação, a menos que a lista de comandos permitidos do recurso nomeie exatamente a sua forma.
-- **Ignorar aprovação**: toda mudança que a política permite, incluindo as mais arriscadas, roda sozinha. O que sempre precisa de uma pessoa continua esperando por uma.
+- **Ignorar aprovação**: toda mudança que a política permite, incluindo as mais arriscadas, roda sozinha. O que sempre precisa de uma pessoa continua esperando por uma. Se o projeto pede que duas pessoas aprovem uma correção mais arriscada, uma alteração mais arriscada é proposta em vez disso para a aprovação delas.
 
 Depois que uma correção roda, a OneUptime observa os monitores do incidente ou alerta. Se eles não se recuperarem, o rollback do plano é executado e a OneUptime AI monta mais um plano, com a tentativa que falhou diante de si: no máximo duas rodadas por incidente ou alerta. No modo **Automático**, essa segunda rodada pede aprovação; em **Ignorar aprovação**, ela também roda sozinha. As correções sem supervisão têm um disjuntor de três por recurso por hora: acima disso, ou enquanto outra rodada sem supervisão da OneUptime AI ainda estiver alterando ou verificando o mesmo recurso, uma rodada propõe o seu plano para aprovação em vez de executá-lo.
 
@@ -342,7 +342,7 @@ Um incidente ou alerta recebe uma única faixa de correção de IA. Quando ele e
 
 Algumas mudanças mais arriscadas **sempre precisam de uma pessoa** em todos os modos, incluindo Ignorar aprovação, e nenhuma entrada da lista de permitidos muda isso; elas estão marcadas como tal nas tabelas abaixo.
 
-Um projeto também pode pedir que duas pessoas aprovem uma correção que contém uma alteração mais arriscada: veja [Duas pessoas aprovam uma correção mais arriscada](/docs/ai/ai-sre#duas-pessoas-aprovam-uma-correção-mais-arriscada).
+Um projeto também pode pedir que duas pessoas aprovem uma correção que contém uma alteração mais arriscada; então nenhuma alteração mais arriscada roda sozinha, nem pela lista de permitidos nem com Ignorar aprovação: veja [Duas pessoas aprovam uma correção mais arriscada](/docs/ai/ai-sre#duas-pessoas-aprovam-uma-correção-mais-arriscada).
 
 ### Correções em hosts Docker e Podman
 

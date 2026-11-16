@@ -21,7 +21,10 @@ import {
   ProjectBalanceType,
 } from "../../../../Utils/Project/ProjectBalance";
 import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
-import { GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL } from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
+import {
+  GlobalRunnerKeptOffReason,
+  getGlobalRunnerKeptOffRefusal,
+} from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 import {
   CodeTaskBlocker,
   CodeTaskBlockerType,
@@ -136,7 +139,9 @@ export function describeRepositoryRunnerStatus(
         : getProjectDefaultRunnerOfflineDetail(status.runnerName);
     case CodeRepositoryRunnerChoiceKind.Global:
       if (status.needsOwnRunnerForItsToken) {
-        return GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL;
+        return getGlobalRunnerKeptOffRefusal(
+          status.keptOffReason || GlobalRunnerKeptOffReason.ConnectionToken,
+        );
       }
 
       return status.takesNoCodeFixes

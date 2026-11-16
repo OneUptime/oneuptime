@@ -20,6 +20,7 @@ import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProject
 import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceUtil from "../Workspace";
+import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import WorkspaceBase, {
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -61,6 +62,14 @@ export default class WorkspaceLiveMessages {
 
   // How long one holder may keep a message's key, and wait for it.
   public static readonly LOCK_TIMEOUT_IN_MS: number = 30_000;
+
+  /*
+   * The most blocks a message goes out with as one post in both chats: a
+   * Microsoft Teams card carries 40, a Slack message 50. A longer one is
+   * sent as several posts, and only the last one's id comes back, so it is
+   * not kept: an edit would put the whole message in that last post.
+   */
+  public static readonly MAX_BLOCKS_IN_ONE_POST: number = 40;
 
   // The tail of the work waiting for each key in this process.
   private static localHolds: Map<string, Promise<void>> = new Map<
@@ -308,6 +317,94 @@ export default class WorkspaceLiveMessages {
       } as LogAttributes);
       return null;
     }
+  }
+
+  /*
+   * Keeps messages a send already posted - a record's feed entry with blocks
+   * appended to it (a fix's changes and buttons), posted wherever the
+   * record's messages go - so a later change edits each where it is. Each
+   * response answers the payload at its place; every thread it names is one
+   * post. Its lead blocks (the entry's own) are kept with it, so an edit
+   * rewrites only what follows them. Answers what was kept; a post with no
+   * place to edit is not.
+   */
+  @CaptureSpan()
+  public static async keepPosts(data: {
+    projectId: ObjectID;
+    messageKey: string;
+    payloads: Array<WorkspaceMessagePayload>;
+    responses: Array<WorkspaceSendMessageResponse>;
+    leadBlocksByWorkspaceType: Map<WorkspaceType, Array<WorkspaceMessageBlock>>;
+  }): Promise<Array<WorkspaceLiveMessage>> {
+    const kept: Array<WorkspaceLiveMessage> = [];
+
+    for (let index: number = 0; index < data.payloads.length; index++) {
+      const payload: WorkspaceMessagePayload = data.payloads[index]!;
+      const response: WorkspaceSendMessageResponse | undefined =
+        data.responses[index];
+
+      if (!response || response.workspaceType !== payload.workspaceType) {
+        continue;
+      }
+
+      if (
+        WorkspaceInlineImages.splitMessageBlocks(payload.messageBlocks).length >
+        WorkspaceLiveMessages.MAX_BLOCKS_IN_ONE_POST
+      ) {
+        continue;
+      }
+
+      for (const thread of response.threads) {
+        if (!thread.channel?.id || !thread.threadId) {
+          continue;
+        }
+
+        const keptMessage: WorkspaceLiveMessage = new WorkspaceLiveMessage();
+        keptMessage.projectId = data.projectId;
+        keptMessage.workspaceType = payload.workspaceType;
+        keptMessage.messageKey = data.messageKey;
+        keptMessage.destinationType = (payload.chatIds || []).includes(
+          thread.channel.id,
+        )
+          ? WorkspaceLiveMessageDestinationType.Chat
+          : WorkspaceLiveMessageDestinationType.Channel;
+        keptMessage.channelId = thread.channel.id.substring(0, 100);
+        keptMessage.channelName = (thread.channel.name || "").substring(0, 100);
+
+        const teamId: string | undefined =
+          payload.teamId || thread.channel.teamId;
+
+        if (teamId) {
+          keptMessage.teamId = teamId.substring(0, 100);
+        }
+
+        keptMessage.messageId = thread.threadId.substring(0, 100);
+        keptMessage.contentHash = this.getContentHash(payload.messageBlocks);
+        keptMessage.messageData = {
+          leadBlocks:
+            data.leadBlocksByWorkspaceType.get(payload.workspaceType) || [],
+        };
+
+        try {
+          kept.push(
+            await WorkspaceLiveMessageService.create({
+              data: keptMessage,
+              props: { isRoot: true },
+            }),
+          );
+        } catch (err) {
+          logger.error(
+            "A workspace message was posted, but OneUptime could not remember it to update it later.",
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+          logger.error(err, {
+            projectId: data.projectId.toString(),
+          } as LogAttributes);
+        }
+      }
+    }
+
+    return kept;
   }
 
   /*

@@ -28,7 +28,8 @@ import {
  * services and a stand-in for Postgres, and pin:
  *
  *   - registration (name, schedule, timeout, not on startup, imported by
- *     Index) and the one-run-at-a-time lock;
+ *     Index), and one run at a time: no lock of its own (RunCron's lease
+ *     covers it), and a run that starts no parent once its deadline passed;
  *   - which parents are scanned (connected only, all of them, paged) and in
  *     what order (a persisted rotation cursor, a wall-clock budget — no
  *     parent is ever starved);
@@ -50,7 +51,7 @@ import {
  * and pinned in Common); only the services are replaced.
  */
 
-type CronHandler = () => Promise<void>;
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 interface CronOptions {
   schedule: string;
@@ -147,6 +148,7 @@ jest.mock("Common/Server/Services/PodmanResourceService", () => {
 });
 
 import logger from "Common/Server/Utils/Logger";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
@@ -950,12 +952,12 @@ function queriesTagged(tag: string): Array<RawQueryCall> {
   });
 }
 
-async function runTick(): Promise<void> {
+async function runTick(deadline?: JobDeadline | undefined): Promise<void> {
   const handler: CronHandler | undefined = mockCapturedJobs[JOB_NAME];
   if (!handler) {
     throw new Error(`Cron handler ${JOB_NAME} was not registered.`);
   }
-  await handler();
+  await handler(deadline);
 }
 
 function allLoggedText(): string {
@@ -1023,47 +1025,111 @@ describe("the cron registers itself", () => {
   });
 });
 
-describe("one run at a time", () => {
-  test("the run holds a Redis lock, never queues behind one, and releases it", async () => {
+describe("one run at a time (#8864)", () => {
+  /*
+   * RunCron runs one copy of the job at a time across every worker replica
+   * (CronLock) and hands each run its deadline: the Redis lock the job took
+   * of its own - from when the queue's timeout never stopped a run - is
+   * gone, and the run stops starting parents once its deadline passes.
+   */
+  test("takes no lock of its own: the run's lease covers it", async () => {
     arrange({
       clusters: [cluster({ id: CLUSTER_A })],
       pods: statefulSetPods({ name: "orders-db", replicas: 1 }),
     });
 
-    await runTick();
+    await runTick(new JobDeadline());
 
-    expect(semaphore.lock).toHaveBeenCalledTimes(1);
-    const lockArgs: {
-      key: string;
-      namespace: string;
-      lockTimeout: number;
-      acquireAttemptsLimit: number;
-    } = semaphore.lock.mock.calls[0]![0];
-    expect(lockArgs.acquireAttemptsLimit).toBe(1);
-    // A crashed holder's lock outlives the job's own timeout.
-    expect(lockArgs.lockTimeout).toBeGreaterThan(JOB_TIMEOUT_MS);
-    expect(semaphore.release).toHaveBeenCalledWith({ held: true });
+    expect(semaphore.lock).not.toHaveBeenCalled();
+    expect(semaphore.release).not.toHaveBeenCalled();
     expect(finalUpserts()).toHaveLength(1);
   });
 
-  test("a tick that cannot take the lock (a run in flight) does nothing", async () => {
+  test("a run whose deadline has passed starts no parent, not even the first, and moves no cursor", async () => {
     arrange({
-      clusters: [cluster({ id: CLUSTER_A })],
+      clusters: [
+        cluster({ id: CLUSTER_A }),
+        cluster({ id: CLUSTER_B, clusterIdentifier: "prod-us" }),
+      ],
       pods: statefulSetPods({ name: "orders-db", replicas: 1 }),
     });
-    semaphore.lock.mockRejectedValue(new Error("lock is held"));
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end();
 
-    await expect(runTick()).resolves.toBeUndefined();
+    await expect(runTick(deadline)).resolves.toBeUndefined();
 
-    expect(clusterService.findBy).not.toHaveBeenCalled();
+    expect(queriesTagged("pod inventory")).toHaveLength(0);
     expect(databaseService.upsertWorkloadDatabase).not.toHaveBeenCalled();
-    expect(semaphore.release).not.toHaveBeenCalled();
-    expect(mockedLogger.debug).toHaveBeenCalledWith(
-      expect.stringContaining("skipping this tick"),
+    expect(cache.setString).not.toHaveBeenCalled();
+    expect(mockedLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "visited 0 of 2 connected clusters / hosts before the run's deadline passed",
+      ),
     );
   });
 
-  test("the lock is released even when the run blows up", async () => {
+  test("a deadline that passes during a parent: that parent is finished, no other is started, and the next run continues with the rest", async () => {
+    arrange({
+      clusters: [
+        cluster({ id: CLUSTER_A, clusterIdentifier: "prod-eu" }),
+        cluster({ id: CLUSTER_B, clusterIdentifier: "prod-us" }),
+        cluster({
+          id: "66666666-6666-4666-8666-666666666666",
+          clusterIdentifier: "prod-ap",
+        }),
+      ],
+    });
+    const deadline: JobDeadline = new JobDeadline();
+    const repository: { manager: { query: Mock } } = {
+      manager: {
+        query: jest.fn(async (sql: string, params: Array<unknown>) => {
+          // The lease is lost while the first cluster's inventory is read.
+          if (sql.includes("pod inventory")) {
+            deadline.end();
+          }
+          return rawQuery(sql, params);
+        }),
+      },
+    };
+    resourceService.getRepository.mockReturnValue(repository);
+    containerService.getRepository.mockReturnValue(repository);
+
+    await runTick(deadline);
+
+    expect(
+      queriesTagged("pod inventory").map((call: RawQueryCall): unknown => {
+        return call.params[1];
+      }),
+    ).toEqual([CLUSTER_A]);
+    expect(world.cursor).toBe(`${CLUSTER_A}|kubernetes`);
+    expect(mockedLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "visited 1 of 3 connected clusters / hosts before the run's deadline passed",
+      ),
+    );
+
+    /*
+     * The next run, with a deadline of its own, carries on from the cursor:
+     * the two the stopped run never started first, then round to the one it
+     * did.
+     */
+    resourceService.getRepository.mockReturnValue({
+      manager: { query: jest.fn(rawQuery) },
+    });
+    containerService.getRepository.mockReturnValue({
+      manager: { query: jest.fn(rawQuery) },
+    });
+    rawQueries = [];
+    await runTick(new JobDeadline());
+
+    expect(
+      queriesTagged("pod inventory").map((call: RawQueryCall): unknown => {
+        return call.params[1];
+      }),
+    ).toEqual([CLUSTER_B, "66666666-6666-4666-8666-666666666666", CLUSTER_A]);
+  });
+
+  test("a run that blows up is only logged, never thrown", async () => {
     arrange({
       clusters: [
         cluster({ id: CLUSTER_A }),
@@ -1083,22 +1149,32 @@ describe("one run at a time", () => {
 
     await expect(runTick()).resolves.toBeUndefined();
 
-    expect(semaphore.release).toHaveBeenCalledTimes(1);
     expect(mockedLogger.error).toHaveBeenCalledWith(
       expect.stringContaining("logger exploded"),
     );
   });
 
-  test("a failed release is only logged (the lock expires on its own)", async () => {
-    arrange({ clusters: [cluster({ id: CLUSTER_A })] });
-    semaphore.release.mockRejectedValue(new Error("release failed"));
-
-    await expect(runTick()).resolves.toBeUndefined();
-
-    expect(semaphore.release).toHaveBeenCalledTimes(1);
-    expect(mockedLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining("release failed"),
+  test("the note that the queue's timeout never stops a run is gone", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "FeatureSet",
+        "Workers",
+        "Jobs",
+        "DatabaseServer",
+        "DiscoverContainerDatabases.ts",
+      ),
+      "utf8",
     );
+
+    expect(source).not.toContain("Semaphore");
+    expect(source).not.toContain("discover-container-databases-lock");
+    expect(source).not.toContain("timeout never");
+    expect(source).not.toContain("it never stops the work");
   });
 });
 

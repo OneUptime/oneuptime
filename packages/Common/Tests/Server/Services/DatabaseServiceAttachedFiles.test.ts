@@ -2,7 +2,11 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import logger from "../../../Server/Utils/Logger";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceInternalNote from "../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
+import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -20,15 +24,16 @@ import type { Mock } from "jest-mock";
 jest.mock("../../../Server/Utils/Logger");
 
 /*
- * DELETING AN INCIDENT DELETES THE FILES ATTACHED TO IT (issue #6944), on
- * both of DatabaseService's delete paths: a person's delete (deleteBy) and
- * the retention's purge (hardDeleteBy). The service is DatabaseService
- * itself over the Incident table, the repository an in-memory stand-in, and
- * the statements the delete runs are answered by a small table of
- * attachments. What is pinned:
+ * DELETING AN INCIDENT DELETES THE FILES ATTACHED TO IT (issue #6944), and
+ * so does deleting a scheduled maintenance event, one of its notes, or a
+ * status page announcement (issue #8895), on both of DatabaseService's
+ * delete paths: a person's delete (deleteBy) and a retention purge
+ * (hardDeleteBy). The service is DatabaseService itself over the record's
+ * table, the repository an in-memory stand-in, and the statements the
+ * delete runs are answered by a small table of attachments. What is pinned:
  *
- *   - the files attached to the incident's notes and postmortem are read
- *     before the DELETE, and deleted after it;
+ *   - the files attached to the record, its notes and its postmortem are
+ *     read before the DELETE, and deleted after it;
  *   - a file something still holds - here a record's custom field - stays,
  *     and only files of their own project are deleted;
  *   - a table with no attachments reads none;
@@ -68,33 +73,26 @@ let deletedFileIds: Array<string>;
 // Files a record's custom field still holds.
 let heldFileIds: Set<string>;
 let failAttachmentReads: boolean;
+// The row deleted, and the files each join table lists for it.
+let deletedRowId: string;
+let attachments: Record<string, Array<string>>;
 
 const query: () => QueryMock = (): QueryMock => {
   return jest.fn(
     async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
       if (sql.includes(`AS "fileId", f."projectId"::text AS "projectId"`)) {
-        steps.push(`read attachments ${FIRST_TABLE.exec(sql)![1]}`);
+        const joinTable: string = FIRST_TABLE.exec(sql)![1]!;
+        steps.push(`read attachments ${joinTable}`);
 
         if (failAttachmentReads) {
           throw new Error("canceling statement due to statement timeout");
         }
 
-        expect(parameters).toEqual([[INCIDENT_ID]]);
+        expect(parameters).toEqual([[deletedRowId]]);
 
-        if (sql.includes(`FROM "IncidentInternalNoteFile"`)) {
-          return [
-            { fileId: NOTE_FILE, projectId: PROJECT_ID.toString() },
-            { fileId: HELD_FILE, projectId: PROJECT_ID.toString() },
-          ];
-        }
-
-        if (sql.includes(`FROM "IncidentPostmortemAttachmentFile"`)) {
-          return [
-            { fileId: POSTMORTEM_FILE, projectId: PROJECT_ID.toString() },
-          ];
-        }
-
-        return [];
+        return (attachments[joinTable] || []).map((fileId: string) => {
+          return { fileId, projectId: PROJECT_ID.toString() };
+        });
       }
 
       // CustomFieldFiles.findHeldFileIds: a record's custom field holds HELD_FILE.
@@ -184,6 +182,11 @@ beforeEach(() => {
   deletedFileIds = [];
   heldFileIds = new Set<string>([HELD_FILE]);
   failAttachmentReads = false;
+  deletedRowId = INCIDENT_ID;
+  attachments = {
+    IncidentInternalNoteFile: [NOTE_FILE, HELD_FILE],
+    IncidentPostmortemAttachmentFile: [POSTMORTEM_FILE],
+  };
 });
 
 afterEach(() => {
@@ -276,6 +279,154 @@ describe.each([
       );
 
       await remove(service);
+
+      expect(steps).toContain("DELETE");
+      expect(deletedFileIds).toEqual([]);
+      expect(logger.error).toHaveBeenCalled();
+    });
+  },
+);
+
+/*
+ * ISSUE #8895: a scheduled maintenance event's notes' files, a note's own
+ * files and an announcement's files went nowhere when it was deleted.
+ */
+interface RecordWithAttachments {
+  name: string;
+  model: { new (): BaseModel };
+  // The join tables its delete reads, in order, and the files each lists.
+  reads: Array<[string, Array<string>]>;
+}
+
+const RECORDS_WITH_ATTACHMENTS: Array<RecordWithAttachments> = [
+  {
+    name: "a scheduled maintenance event",
+    model: ScheduledMaintenance as unknown as { new (): BaseModel },
+    reads: [
+      ["ScheduledMaintenanceInternalNoteFile", [NOTE_FILE, HELD_FILE]],
+      ["ScheduledMaintenancePublicNoteFile", [POSTMORTEM_FILE]],
+    ],
+  },
+  {
+    name: "a scheduled maintenance event's internal note",
+    model: ScheduledMaintenanceInternalNote as unknown as {
+      new (): BaseModel;
+    },
+    reads: [["ScheduledMaintenanceInternalNoteFile", [NOTE_FILE, HELD_FILE]]],
+  },
+  {
+    name: "a scheduled maintenance event's public note",
+    model: ScheduledMaintenancePublicNote as unknown as {
+      new (): BaseModel;
+    },
+    reads: [["ScheduledMaintenancePublicNoteFile", [NOTE_FILE, HELD_FILE]]],
+  },
+  {
+    name: "a status page announcement",
+    model: StatusPageAnnouncement as unknown as { new (): BaseModel },
+    reads: [["StatusPageAnnouncementFile", [NOTE_FILE, HELD_FILE]]],
+  },
+];
+
+describe.each(RECORDS_WITH_ATTACHMENTS)(
+  "deleting $name",
+  ({ model, reads }: RecordWithAttachments) => {
+    const RECORD_ID: string = "8895bbbb-0000-4000-8000-000000000001";
+
+    // Every file its join tables list, but the one a custom field holds.
+    const released: Array<string> = Array.from(
+      new Set<string>(
+        reads.flatMap(([, files]: [string, Array<string>]) => {
+          return files;
+        }),
+      ),
+    ).filter((fileId: string): boolean => {
+      return fileId !== HELD_FILE;
+    });
+
+    function serviceAndRow(): DatabaseService<BaseModel> {
+      const service: DatabaseService<BaseModel> =
+        new DatabaseService<BaseModel>(model);
+      const row: BaseModel = new model();
+      row._id = RECORD_ID;
+      row.setColumnValue("projectId", PROJECT_ID);
+      useRepository(service, row);
+      return service;
+    }
+
+    beforeEach(() => {
+      deletedRowId = RECORD_ID;
+      attachments = Object.fromEntries(reads);
+    });
+
+    test.each([
+      [
+        "a person's delete",
+        async (service: DatabaseService<BaseModel>): Promise<void> => {
+          await service.deleteOneById({
+            id: new ObjectID(RECORD_ID),
+            props: rootProps(),
+          });
+        },
+      ],
+      [
+        "a retention purge's hard delete",
+        async (service: DatabaseService<BaseModel>): Promise<void> => {
+          await service.hardDeleteBy({
+            query: { _id: RECORD_ID },
+            limit: 1,
+            skip: 0,
+            props: rootProps(),
+          });
+        },
+      ],
+    ])(
+      "%s reads its files before the DELETE and deletes them after it, but the one still held",
+      async (
+        _path: string,
+        remove: (service: DatabaseService<BaseModel>) => Promise<void>,
+      ) => {
+        await remove(serviceAndRow());
+
+        const deleteAt: number = steps.indexOf("DELETE");
+
+        expect(deleteAt).toBeGreaterThan(-1);
+        expect(
+          steps.slice(0, deleteAt).filter((step: string): boolean => {
+            return step.startsWith("read attachments");
+          }),
+        ).toEqual(
+          reads.map(([joinTable]: [string, Array<string>]): string => {
+            return `read attachments ${joinTable}`;
+          }),
+        );
+        expect(steps.indexOf("delete files")).toBeGreaterThan(deleteAt);
+        expect(deletedFileIds.sort()).toEqual([...released].sort());
+        expect(deletedFileIds).not.toContain(HELD_FILE);
+      },
+    );
+
+    test("with every file held, no file is deleted", async () => {
+      heldFileIds = new Set<string>([NOTE_FILE, POSTMORTEM_FILE, HELD_FILE]);
+
+      await serviceAndRow().deleteOneById({
+        id: new ObjectID(RECORD_ID),
+        props: rootProps(),
+      });
+
+      expect(steps).toContain("DELETE");
+      expect(steps).not.toContain("delete files");
+    });
+
+    test("a read of its files that fails leaves them, and it is still deleted", async () => {
+      failAttachmentReads = true;
+
+      await serviceAndRow().hardDeleteBy({
+        query: { _id: RECORD_ID },
+        limit: 1,
+        skip: 0,
+        props: rootProps(),
+      });
 
       expect(steps).toContain("DELETE");
       expect(deletedFileIds).toEqual([]);

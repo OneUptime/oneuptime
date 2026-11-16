@@ -1,5 +1,11 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import ProjectService from "Common/Server/Services/ProjectService";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -63,7 +69,7 @@ const EPISODE_SELECT: Select<IncidentEpisode> = {
 RunCron(
   "IncidentEpisodeOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -99,78 +105,173 @@ RunCron(
       },
     });
 
-    const privateNotes: Array<IncidentEpisodeInternalNote> =
-      await IncidentEpisodeInternalNoteService.findAllBy({
-        query: {
+    /*
+     * Every note posted on an incident episode and not told of yet, a page at
+     * a time, oldest first, each taken by one run alone and told by the run
+     * that took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #8862).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<IncidentEpisodeInternalNote>(
+      {
+        jobName: "IncidentEpisodeOwner:SendsNotePostedEmail",
+        service: IncidentEpisodeInternalNoteService,
+        notYetNotified: {
           isOwnerNotified: false,
         },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: NOTE_SELECT,
-      });
-
-    for (const note of privateNotes) {
-      // Get the incident episode
-      const episode: IncidentEpisode | null = await readEpisode(
-        note.incidentEpisodeId!,
-      );
-
-      /*
-       * Whom it is to tell - the episode's owners, or the project's when it
-       * has none - written before the take: a worker stopped from here on
-       * leaves them to be told by a later run, and one stopped before the
-       * take leaves the note to be read again.
-       */
-      const delivery: OwnerNotificationDelivery | null = episode
-        ? await OwnerNotificationDeliveries.planForOwnersOf({
-            notification: {
-              kind: OwnerNotificationKind.IncidentEpisodeInternalNotePosted,
-              projectId: episode.projectId!,
-              resourceId: episode.id!,
-              eventId: note.id!,
-            },
-            findOwners: () => {
-              return IncidentEpisodeService.findOwners(episode.id!);
-            },
-            writesFeedItem: true,
-          })
-        : null;
-
-      await IncidentEpisodeInternalNoteService.updateOneById({
-        id: note.id!,
-        data: {
+        notified: {
           isOwnerNotified: true,
         },
-        props: {
-          isRoot: true,
+        select: NOTE_SELECT,
+        deadline: deadline,
+        readPage: readEpisodesOfPage,
+        notify: async (input: {
+          record: IncidentEpisodeInternalNote;
+          page: OwnerNotificationPage;
+          take: () => Promise<boolean>;
+        }): Promise<void> => {
+          await notifyOfNote({
+            note: input.record,
+            page: input.page,
+            take: input.take,
+          });
         },
-      });
-
-      if (!episode || !delivery) {
-        continue;
-      }
-
-      try {
-        await notifyOwnersOfNote({
-          note: note,
-          episode: episode,
-          delivery: delivery,
-        });
-      } catch (e) {
-        logger.error("Error in sending incident episode note notification", {
-          projectId: episode.projectId?.toString(),
-          incidentEpisodeId: episode.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: episode.projectId?.toString(),
-          incidentEpisodeId: episode.id?.toString(),
-        });
-      }
-    }
+      },
+    );
   },
 );
+
+/*
+ * One note read by the run: whom it tells planned, the note taken, and -
+ * when this run took it - its owners told.
+ */
+async function notifyOfNote(data: {
+  note: IncidentEpisodeInternalNote;
+  page: OwnerNotificationPage;
+  take: () => Promise<boolean>;
+}): Promise<void> {
+  const note: IncidentEpisodeInternalNote = data.note;
+  const episodeId: ObjectID | undefined = note.incidentEpisodeId;
+
+  // Read with the page's episodes.
+  const episode: IncidentEpisode | null = episodeId
+    ? await data.page.once(
+        episodeKey(episodeId),
+        (): Promise<IncidentEpisode | null> => {
+          return readEpisode(episodeId);
+        },
+      )
+    : null;
+
+  /*
+   * Whom it is to tell - the episode's owners, or the project's when it
+   * has none - written before the take: a worker stopped from here on
+   * leaves them to be told by a later run, and one stopped before the
+   * take leaves the note to be read again.
+   */
+  const delivery: OwnerNotificationDelivery | null = episode
+    ? await OwnerNotificationDeliveries.planForOwnersOf({
+        notification: {
+          kind: OwnerNotificationKind.IncidentEpisodeInternalNotePosted,
+          projectId: episode.projectId!,
+          resourceId: episode.id!,
+          eventId: note.id!,
+        },
+        // Each read once for every note of the page.
+        findOwners: (): Promise<Array<User>> => {
+          return data.page.once(`owners:${episode.id!.toString()}`, () => {
+            return IncidentEpisodeService.findOwners(episode.id!);
+          });
+        },
+        findProjectOwners: (): Promise<Array<User>> => {
+          return data.page.once(
+            `projectOwners:${episode.projectId!.toString()}`,
+            () => {
+              return ProjectService.getOwners(episode.projectId!);
+            },
+          );
+        },
+        writesFeedItem: true,
+      })
+    : null;
+
+  /*
+   * Marked as notified before its owners are told, so a note whose
+   * notification keeps failing is never read again on every run - one
+   * whose episode is gone too. Taken by another run first: that run tells
+   * them.
+   */
+  if (!(await data.take())) {
+    return;
+  }
+
+  if (!episode || !delivery) {
+    return;
+  }
+
+  try {
+    await notifyOwnersOfNote({
+      note: note,
+      episode: episode,
+      delivery: delivery,
+    });
+  } catch (e) {
+    logger.error("Error in sending incident episode note notification", {
+      projectId: episode.projectId?.toString(),
+      incidentEpisodeId: episode.id?.toString(),
+    });
+    logger.error(e, {
+      projectId: episode.projectId?.toString(),
+      incidentEpisodeId: episode.id?.toString(),
+    });
+  }
+}
+
+function episodeKey(episodeId: ObjectID): string {
+  return `episode:${episodeId.toString()}`;
+}
+
+/*
+ * The episodes of a page's notes, in one query: each is read once however
+ * many of its notes the page has.
+ */
+async function readEpisodesOfPage(
+  notes: Array<IncidentEpisodeInternalNote>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  const episodeIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const note of notes) {
+    if (note.incidentEpisodeId) {
+      episodeIds.set(note.incidentEpisodeId.toString(), note.incidentEpisodeId);
+    }
+  }
+
+  if (episodeIds.size === 0) {
+    return;
+  }
+
+  const episodes: Array<IncidentEpisode> = await IncidentEpisodeService.findBy({
+    query: {
+      _id: QueryHelper.any(Array.from(episodeIds.values())),
+    },
+    select: EPISODE_SELECT,
+    limit: episodeIds.size,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * One not found - gone since its note was read - is read on its own when
+   * a note asks for it, as it would be without the page.
+   */
+  for (const each of episodes) {
+    if (each.id) {
+      page.prime<IncidentEpisode | null>(episodeKey(each.id), each);
+    }
+  }
+}
 
 async function readEpisode(
   episodeId: ObjectID,

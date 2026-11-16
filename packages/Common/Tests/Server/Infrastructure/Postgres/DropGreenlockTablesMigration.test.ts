@@ -1,4 +1,4 @@
-import { DropGreenlockTables1809181850000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181850000-DropGreenlockTables";
+import { DropGreenlockTables1809182470000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182470000-DropGreenlockTables";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Models from "../../../../Models/DatabaseModels/Index";
 import DatabaseBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -8,7 +8,7 @@ import path from "path";
 import { QueryRunner } from "typeorm";
 
 /*
- * DropGreenlockTables1809181850000 drops the two tables of the Greenlock
+ * DropGreenlockTables1809182470000 drops the two tables of the Greenlock
  * store ACME certificates replaced in April 2024 (#8990):
  * "GreenlockCertificate", whose blobs held the ACME account's and each
  * domain's private keys on every installation from before then, and
@@ -40,7 +40,7 @@ const MIGRATION_DIRECTORY: string = path.join(
 
 const MIGRATION_FILE: string = path.join(
   MIGRATION_DIRECTORY,
-  "1809181850000-DropGreenlockTables.ts",
+  "1809182470000-DropGreenlockTables.ts",
 );
 
 const WORKERS_DATA_MIGRATIONS: string = path.join(
@@ -74,12 +74,12 @@ function tableNameOf(model: { new (): DatabaseBaseModel }): string {
   return new model().tableName || "";
 }
 
-describe("DropGreenlockTables1809181850000", () => {
+describe("DropGreenlockTables1809182470000", () => {
   test("has the name it is recorded under, the one its file and class give", () => {
-    const migration: DropGreenlockTables1809181850000 =
-      new DropGreenlockTables1809181850000();
+    const migration: DropGreenlockTables1809182470000 =
+      new DropGreenlockTables1809182470000();
 
-    expect(migration.name).toBe("DropGreenlockTables1809181850000");
+    expect(migration.name).toBe("DropGreenlockTables1809182470000");
     expect(fs.existsSync(MIGRATION_FILE)).toBe(true);
   });
 
@@ -92,17 +92,17 @@ describe("DropGreenlockTables1809181850000", () => {
 
     expect(
       names.filter((name: string): boolean => {
-        return name === "DropGreenlockTables1809181850000";
+        return name === "DropGreenlockTables1809182470000";
       }),
     ).toHaveLength(1);
 
-    const index: number = names.indexOf("DropGreenlockTables1809181850000");
+    const index: number = names.indexOf("DropGreenlockTables1809182470000");
     const timestampOf: (name: string) => number = (name: string): number => {
       return Number(name.match(/(\d{13})$/)?.[1] || 0);
     };
 
     for (const earlier of names.slice(0, index)) {
-      expect([earlier, timestampOf(earlier) < 1809181850000]).toEqual([
+      expect([earlier, timestampOf(earlier) < 1809182470000]).toEqual([
         earlier,
         true,
       ]);
@@ -112,7 +112,7 @@ describe("DropGreenlockTables1809181850000", () => {
   test("up() drops exactly the two Greenlock tables, if they exist, in one statement", async () => {
     const { runner, statements } = recordingRunner();
 
-    await new DropGreenlockTables1809181850000().up(runner);
+    await new DropGreenlockTables1809182470000().up(runner);
 
     expect(statements).toEqual([
       `DROP TABLE IF EXISTS "GreenlockChallenge", "GreenlockCertificate"`,
@@ -122,7 +122,7 @@ describe("DropGreenlockTables1809181850000", () => {
   test("up() names no table but the two, and drops nothing in cascade", async () => {
     const { runner, statements } = recordingRunner();
 
-    await new DropGreenlockTables1809181850000().up(runner);
+    await new DropGreenlockTables1809182470000().up(runner);
 
     const named: Array<string> = Array.from(
       statements.join(" ").matchAll(/"([A-Za-z]+)"/g),
@@ -136,9 +136,9 @@ describe("DropGreenlockTables1809181850000", () => {
 
   test("runs in the migration's transaction, so a lock wait rolls it back to be tried again", () => {
     const source: string = fs.readFileSync(MIGRATION_FILE, "utf8");
-    const migration: DropGreenlockTables1809181850000 & {
+    const migration: DropGreenlockTables1809182470000 & {
       transaction?: boolean;
-    } = new DropGreenlockTables1809181850000();
+    } = new DropGreenlockTables1809182470000();
 
     expect(migration.transaction).toBeUndefined();
     expect(source).not.toMatch(/transaction\s*(:\s*boolean\s*)?=\s*false/);
@@ -147,7 +147,7 @@ describe("DropGreenlockTables1809181850000", () => {
   test("down() makes both tables again as the last migrations left them", async () => {
     const { runner, statements } = recordingRunner();
 
-    await new DropGreenlockTables1809181850000().down(runner);
+    await new DropGreenlockTables1809182470000().down(runner);
 
     const all: string = statements.join("\n");
 

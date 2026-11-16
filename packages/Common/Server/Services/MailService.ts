@@ -7,6 +7,10 @@ import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import Email from "../../Types/Email/EmailMessage";
+import {
+  getCcAddresses,
+  getReplyToAddress,
+} from "../../Types/Email/EmailRecipients";
 import EmailServer from "../../Types/Email/EmailServer";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -60,10 +64,34 @@ export class MailService extends BaseService {
       return blockedProjectRefusal;
     }
 
+    const { ccEmails, replyToEmail, ...envelope }: Email = mail;
+
     const body: JSONObject = {
-      ...mail,
+      ...envelope,
       toEmail: mail.toEmail.toString(),
     };
+
+    /*
+     * Who is copied and where a reply goes (Give Feedback, #8893), as text:
+     * an Email crosses JSON as an object of its own. Left out when unset, so
+     * every other email is posted exactly as before.
+     */
+    const ccAddresses: Array<string> = getCcAddresses({
+      toEmail: mail.toEmail,
+      ccEmails: ccEmails,
+    });
+
+    if (ccAddresses.length > 0) {
+      body["ccEmails"] = ccAddresses;
+    }
+
+    const replyToAddress: string | null = getReplyToAddress({
+      replyToEmail: replyToEmail,
+    });
+
+    if (replyToAddress) {
+      body["replyToEmail"] = replyToAddress;
+    }
 
     if (options && options.mailServer) {
       body["SMTP_ID"] = options.mailServer.id?.toString();

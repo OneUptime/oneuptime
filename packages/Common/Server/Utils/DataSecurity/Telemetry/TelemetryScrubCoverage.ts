@@ -74,6 +74,13 @@ import WorkspaceActionAuthorization from "../../Workspace/WorkspaceActionAuthori
  *    could not be proven - and a finding wrongly called scrubbed is a
  *    leak nobody looks at.
  *
+ * A sensitive-keys rule also hides what sits under such a key inside a
+ * value: a list's or a map's, a log body's, a JSON text's held in a string
+ * (`http.request.body` = {"password": ...}, #8993). A finding names the
+ * field it was found in - `body`, `attributes.http.request.body` - and not
+ * the key inside it, and the rule keeps the rest of that field, so it
+ * covers a finding only where the field's own key looks sensitive.
+ *
  * Only enabled rules count, and never one that scrubs nothing
  * (doesScrubRuleScrubNothing).
  *
@@ -846,7 +853,7 @@ function describeRule(data: {
 
   if (data.plan.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     return cut(
-      `${origin} It hides the whole value of every attribute whose key looks sensitive - password, token, secret, cookie, ... - from now on. What is stored already stays until its retention ends.`,
+      `${origin} It hides the whole value of every attribute whose key looks sensitive - password, token, secret, cookie, ... - and every value under such a key inside a list, a map, a log body or a JSON text, from now on. What is stored already stays until its retention ends.`,
       MAX_RULE_DESCRIPTION_LENGTH,
     );
   }

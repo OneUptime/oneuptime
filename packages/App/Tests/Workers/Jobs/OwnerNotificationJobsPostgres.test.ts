@@ -651,23 +651,26 @@ const CASES: Array<JobCase> = [
     kind: OwnerNotificationKind.StatusPageOwnerAdded,
     eventIdIsTheIncident: false,
     arrange: (): void => {
-      asMock(StatusPageOwnerTeamService.findAllBy).mockImplementation(
-        async () => {
-          return world.isTaken
-            ? []
-            : [
-                plain({
-                  id: world.eventId,
-                  statusPageId: world.incidentId,
-                  teamId: ObjectID.generate(),
-                }),
-              ];
-        },
-      );
-      asMock(StatusPageOwnerTeamService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
-      asMock(StatusPageOwnerUserService.findAllBy).mockResolvedValue([]);
+      /*
+       * Read a page at a time with the status page's other owner rows, and
+       * taken by one compare-and-set that one run alone wins (#8862).
+       */
+      const teamId: ObjectID = ObjectID.generate();
+      asMock(StatusPageOwnerTeamService.findBy).mockImplementation(async () => {
+        return world.isTaken
+          ? []
+          : [
+              plain({
+                id: world.eventId,
+                statusPageId: world.incidentId,
+                teamId: teamId,
+              }),
+            ];
+      });
+      asMock(
+        StatusPageOwnerTeamService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
+      asMock(StatusPageOwnerUserService.findBy).mockResolvedValue([]);
       asMock(TeamMemberService.getUsersInTeams).mockImplementation(async () => {
         return world.owners;
       });
@@ -676,6 +679,8 @@ const CASES: Array<JobCase> = [
           return data.users;
         },
       );
+      // Read with the page's other status pages, or on its own.
+      asMock(StatusPageService.findBy).mockResolvedValue([]);
       asMock(StatusPageService.findOneById).mockImplementation(async () => {
         return plain({
           id: world.incidentId,

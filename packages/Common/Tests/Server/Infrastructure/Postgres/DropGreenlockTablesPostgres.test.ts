@@ -1,9 +1,9 @@
-import { DropGreenlockTables1809181850000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181850000-DropGreenlockTables";
+import { DropGreenlockTables1809182470000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182470000-DropGreenlockTables";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { DataSource, QueryRunner } from "typeorm";
 
 /*
- * DropGreenlockTables1809181850000 against a real Postgres (#8990).
+ * DropGreenlockTables1809182470000 against a real Postgres (#8990).
  *
  * Opt in with RUN_POSTGRES_DROP_GREENLOCK_TABLES_TESTS=true and the normal
  * database credentials; DROP_GREENLOCK_TABLES_TEST_DATABASE_HOST / _PORT /
@@ -33,7 +33,7 @@ const describePostgres: typeof describe.skip =
 
 const LOCK_NOT_AVAILABLE: string = "55P03";
 
-describePostgres("DropGreenlockTables1809181850000 (Postgres)", () => {
+describePostgres("DropGreenlockTables1809182470000 (Postgres)", () => {
   const schema: string = `drop_greenlock_${Date.now().toString(36)}`;
 
   let database: DataSource;
@@ -109,7 +109,7 @@ describePostgres("DropGreenlockTables1809181850000 (Postgres)", () => {
 
   test("down() makes both tables as the last migrations left them, and they take the store's rows", async () => {
     await run(async (runner: QueryRunner) => {
-      await new DropGreenlockTables1809181850000().down(runner);
+      await new DropGreenlockTables1809182470000().down(runner);
     });
 
     expect(await tablesThere()).toEqual([
@@ -156,7 +156,7 @@ describePostgres("DropGreenlockTables1809181850000 (Postgres)", () => {
 
   test('up() drops both tables, the old keys with them, and "User" keeps working', async () => {
     await run(async (runner: QueryRunner) => {
-      await new DropGreenlockTables1809181850000().up(runner);
+      await new DropGreenlockTables1809182470000().up(runner);
     });
 
     expect(await tablesThere()).toEqual([]);
@@ -174,10 +174,10 @@ describePostgres("DropGreenlockTables1809181850000 (Postgres)", () => {
 
   test("up() again, and up() where the tables never were, change nothing", async () => {
     await run(async (runner: QueryRunner) => {
-      await new DropGreenlockTables1809181850000().up(runner);
+      await new DropGreenlockTables1809182470000().up(runner);
     });
     await run(async (runner: QueryRunner) => {
-      await new DropGreenlockTables1809181850000().up(runner);
+      await new DropGreenlockTables1809182470000().up(runner);
     });
 
     expect(await tablesThere()).toEqual([]);
@@ -185,7 +185,7 @@ describePostgres("DropGreenlockTables1809181850000 (Postgres)", () => {
 
   test('behind a reader of "User", up() waits only its lock_timeout, and fails as a lock wait to be tried again', async () => {
     await run(async (runner: QueryRunner) => {
-      await new DropGreenlockTables1809181850000().down(runner);
+      await new DropGreenlockTables1809182470000().down(runner);
     });
 
     const reader: QueryRunner = database.createQueryRunner();
@@ -201,7 +201,7 @@ describePostgres("DropGreenlockTables1809181850000 (Postgres)", () => {
       await run(async (runner: QueryRunner) => {
         // What SchemaMigrationRunner gives every migration statement.
         await runner.query(`SET LOCAL lock_timeout = 2000`);
-        await new DropGreenlockTables1809181850000().up(runner);
+        await new DropGreenlockTables1809182470000().up(runner);
       });
     } catch (err) {
       error = err;
@@ -228,7 +228,7 @@ describePostgres("DropGreenlockTables1809181850000 (Postgres)", () => {
     // The next try, with nobody reading "User", drops them.
     await run(async (runner: QueryRunner) => {
       await runner.query(`SET LOCAL lock_timeout = 2000`);
-      await new DropGreenlockTables1809181850000().up(runner);
+      await new DropGreenlockTables1809182470000().up(runner);
     });
 
     expect(await tablesThere()).toEqual([]);

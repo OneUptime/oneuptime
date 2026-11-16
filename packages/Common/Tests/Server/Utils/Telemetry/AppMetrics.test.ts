@@ -175,6 +175,20 @@ const CATALOG: Array<Instrument> = [
     unit: "1",
   },
   {
+    getter: "getRealtimeBeforeWriteDecisionDuration",
+    factory: "getHistogram",
+    kind: "histogram",
+    name: "oneuptime.realtime.before_write.decision.duration",
+    unit: "ms",
+  },
+  {
+    getter: "getRealtimeBeforeWriteDecisionsSkipped",
+    factory: "getCounter",
+    kind: "counter",
+    name: "oneuptime.realtime.before_write.decision.skipped.count",
+    unit: "1",
+  },
+  {
     getter: "getOnCallCalendarRenderDuration",
     factory: "getHistogram",
     kind: "histogram",
@@ -491,5 +505,49 @@ describe("AppMetrics catalog", () => {
       return e.name;
     });
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  /*
+   * What a write waits for on account of live updates (#8964): the table,
+   * the kind of write and how the decision ended - bounded, never a record
+   * or a project - and buckets from a millisecond to past the most a write
+   * waits (Realtime.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS, 2 s).
+   */
+  test("the live-update decision metrics carry bounded attributes and buckets that reach past the wait's limit", async () => {
+    const { Telemetry, AppMetrics } = await loadFresh();
+
+    const attributes: Record<string, unknown> = AppMetrics as unknown as Record<
+      string,
+      unknown
+    >;
+
+    expect([
+      attributes["REALTIME_TABLE_ATTRIBUTE"],
+      attributes["REALTIME_EVENT_TYPE_ATTRIBUTE"],
+      attributes["REALTIME_OUTCOME_ATTRIBUTE"],
+    ]).toEqual([
+      "oneuptime.realtime.table",
+      "oneuptime.realtime.event_type",
+      "oneuptime.realtime.outcome",
+    ]);
+
+    AppMetrics["getRealtimeBeforeWriteDecisionDuration"]!();
+
+    const options: {
+      explicitBucketBoundaries?: Array<number>;
+      description: string;
+    } = Telemetry.getHistogram.mock.calls[0]![0] as {
+      explicitBucketBoundaries?: Array<number>;
+      description: string;
+    };
+    const buckets: Array<number> = options.explicitBucketBoundaries || [];
+
+    expect(buckets[0]).toBe(1);
+    for (let i: number = 1; i < buckets.length; i++) {
+      expect(buckets[i]!).toBeGreaterThan(buckets[i - 1]!);
+    }
+    expect(buckets).toContain(2000);
+    expect(buckets[buckets.length - 1]!).toBeGreaterThan(2000);
+    expect(options.description).toContain("before it was made");
   });
 });

@@ -381,6 +381,7 @@ import ServiceOwnerTeam from "./ServiceOwnerTeam";
 import ServiceOwnerUser from "./ServiceOwnerUser";
 import CodeRepository from "./CodeRepository";
 import CodeRepositoryConnection from "./CodeRepositoryConnection";
+import CodeRepositoryMintedToken from "./CodeRepositoryMintedToken";
 // Short link.
 import ShortLink from "./ShortLink";
 // SMS
@@ -1118,6 +1119,7 @@ const AllModelTypes: Array<{
   // Code Repository
   CodeRepository,
   CodeRepositoryConnection,
+  CodeRepositoryMintedToken,
 
   ProbeOwnerTeam,
   ProbeOwnerUser,

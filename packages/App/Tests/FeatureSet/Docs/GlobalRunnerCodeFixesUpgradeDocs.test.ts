@@ -797,7 +797,8 @@ describe.each(TRANSLATIONS)("the %s upgrade guide", (language: string) => {
 
 /*
  * #6115: a master admin's switch keeps a global Runner off code fixes, and
- * on OneUptime Cloud global Runners work in GitHub repositories only. The
+ * on OneUptime Cloud global Runners work in GitHub repositories, and - since
+ * #8912, with a token OneUptime makes for each fix - GitLab ones only. The
  * Runners page says both, in every language, on the line after the one on
  * global Runners that take no code fixes.
  */
@@ -827,7 +828,10 @@ describe("the Runners page says how a global Runner is kept off code fixes", () 
     expect(line).toContain("is on by default");
     expect(line).toContain("hands it no repository's token");
     expect(line).toContain(
-      "On OneUptime Cloud, global Runners work in GitHub repositories only",
+      "On OneUptime Cloud, global Runners work in GitHub and GitLab repositories only, with the token made for each fix",
+    );
+    expect(line).toContain(
+      "a Forgejo, Gitea or Git repository is reached with its connection's own token",
     );
     expect(new Runner().getTableColumnMetadata("canRunCodeFixes").title).toBe(
       "Runs AI Code Fixes",
@@ -845,6 +849,10 @@ describe("the Runners page says how a global Runner is kept off code fixes", () 
       expect(line.split("**").length - 1).toBe(6);
       expect(line).toContain("OneUptime Cloud");
       expect(line).toContain("GitHub");
+      // #8912: GitLab works there too, while GitLab makes it a token.
+      expect(line).toContain("GitLab");
+      expect(line).toContain("Maintainer");
+      expect(line).toContain("`api`");
       expect(linesOf(language)[75]).toContain(
         "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false",
       );

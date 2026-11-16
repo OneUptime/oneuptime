@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import PreviousTimelineEntries, {
+  TimelineOf,
+} from "../../Utils/PreviousTimelineEntries";
 import OwnerNotificationBacklog, {
   OwnerNotificationPage,
 } from "../../Utils/OwnerNotificationBacklog";
@@ -27,7 +30,6 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
@@ -70,6 +72,20 @@ const MONITOR_SELECT: Select<Monitor> = {
   monitorType: true,
   // For its destination (MonitorService.getMonitorDestinationInfo).
   monitorSteps: true,
+};
+
+/*
+ * The entries a status change's previous one is read from, and what it is read
+ * with: for "Was ... for ..." in its email (PreviousTimelineEntries).
+ */
+const TIMELINE: TimelineOf<MonitorStatusTimeline> = {
+  service: MonitorStatusTimelineService,
+  recordIdColumn: "monitorId",
+  select: {
+    monitorStatusId: true,
+    startsAt: true,
+    createdAt: true,
+  },
 };
 
 RunCron(
@@ -128,7 +144,7 @@ RunCron(
       },
       select: STATUS_TIMELINE_SELECT,
       deadline: deadline,
-      readPage: readMonitorsOfPage,
+      readPage: readPageOfStateChanges,
       notify: async (input: {
         record: MonitorStatusTimeline;
         page: OwnerNotificationPage;
@@ -226,6 +242,25 @@ async function readMonitor(monitorId: ObjectID): Promise<Monitor | null> {
 }
 
 /*
+ * What every status change of a page needs, read once for the page: the
+ * monitors they are of (readMonitorsOfPage), and the entry before each
+ * (PreviousTimelineEntries: two reads per monitor with more than one of
+ * them on the page, instead of one per status change).
+ */
+async function readPageOfStateChanges(
+  entries: Array<MonitorStatusTimeline>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  await readMonitorsOfPage(entries, page);
+
+  await PreviousTimelineEntries.readForPage({
+    ...TIMELINE,
+    entries: entries,
+    page: page,
+  });
+}
+
+/*
  * The monitors of a page's status changes, in one query: each is read once
  * however many of its status changes the page has.
  */
@@ -299,22 +334,11 @@ async function notifyOwnersOfStatusChange(data: {
 
   if (monitorStatusTimeline.monitorId && monitorStatusTimeline.startsAt) {
     const previousTimeline: MonitorStatusTimeline | null =
-      await MonitorStatusTimelineService.findOneBy({
-        query: {
-          monitorId: monitorStatusTimeline.monitorId,
-          startsAt: QueryHelper.lessThan(monitorStatusTimeline.startsAt),
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          monitorStatusId: true,
-          startsAt: true,
-          createdAt: true,
-        },
+      // Read with the page's other status changes of the monitor, or on its own (#8863).
+      await PreviousTimelineEntries.of({
+        ...TIMELINE,
+        entry: monitorStatusTimeline,
+        page: data.page,
       });
 
     if (previousTimeline?.monitorStatusId) {

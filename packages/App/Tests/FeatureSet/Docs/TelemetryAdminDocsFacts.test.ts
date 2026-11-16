@@ -124,6 +124,7 @@ import {
   SCRUB_MAX_NESTED_VALUES_PER_RECORD,
   SCRUB_MAX_VALUE_DEPTH,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
+import { MAX_JSON_TEXTS_INSIDE_STRINGS } from "Common/Utils/Telemetry/ScrubJsonText";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
@@ -2658,8 +2659,95 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
       notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
     });
+    // Issue #8993: so in JSON held in a string, an attribute's.
+    expect(
+      JSON.parse(
+        scrubbedAttributes(
+          { "request.body": body } as JSONObject,
+          LogScrubPatternType.SensitiveKeys,
+        )["request.body"] as string,
+      ),
+    ).toEqual({
+      user: { password: "[REDACTED]" },
+      deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
+      notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+    });
     expect(page).toContain(
-      "In a log body, only the part past these bounds is read as text: the rest of the body is still read key by key.",
+      "In a log body, and in JSON held in a string, only the part past these bounds is read as text: the rest is still read key by key.",
+    );
+  });
+
+  // Issue #8993: the keys of a JSON text held in a string.
+  it("reads JSON held in a string, as deep as the page says, and changes nothing but the hidden values", () => {
+    const requestBody: string =
+      '{ "user": "jane", "password": "hunter2", "id": 12345678901234567890 }';
+
+    expect(
+      scrubbedAttributes(
+        { "http.request.body": requestBody } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["http.request.body"],
+    ).toBe(requestBody.replace('"hunter2"', '"[REDACTED]"'));
+
+    // A Fluentd record's log line inside a log body.
+    const record: string = JSON.stringify({
+      log: '{"level":"info","password":"hunter2"}',
+      stream: "stdout",
+    });
+
+    expect(
+      scrubbedBody(record, [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ]),
+    ).toBe(record.replace('\\"hunter2\\"', '\\"[REDACTED]\\"'));
+
+    // As deep as the page says, and deeper read as text.
+    let chain: string = '{"password":"hunter2","user":"jane"}';
+
+    for (
+      let level: number = 0;
+      level < MAX_JSON_TEXTS_INSIDE_STRINGS;
+      level++
+    ) {
+      chain = JSON.stringify({ payload: chain });
+    }
+
+    let read: unknown = JSON.parse(
+      scrubbedAttributes(
+        { chain: chain } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["chain"] as string,
+    );
+
+    for (
+      let level: number = 0;
+      level < MAX_JSON_TEXTS_INSIDE_STRINGS;
+      level++
+    ) {
+      read = JSON.parse((read as Record<string, string>)["payload"]!);
+    }
+
+    expect(read).toEqual({ password: "[REDACTED]", user: "jane" });
+
+    const deeper: string = JSON.stringify({ payload: chain });
+
+    expect(
+      scrubbedAttributes(
+        { chain: deeper } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["chain"],
+    ).not.toContain("hunter2");
+
+    // A text that only looks like JSON is left as it is.
+    expect(
+      scrubbedAttributes(
+        { note: "{token}" } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      ),
+    ).toEqual({ note: "{token}" });
+
+    expect(page).toContain(
+      `- **JSON held in a string is read too.** A text that is JSON of its own, such as an attribute \`http.request.body\` holding \`{"password":"hunter2"}\`, or a Fluentd record's \`log\` line inside a log body, is read as JSON, up to ${MAX_JSON_TEXTS_INSIDE_STRINGS} levels of JSON one inside another, and deeper as text. A **Sensitive Attribute Keys** rule hides the values under the keys in it that look secret, and nothing else: its numbers, spaces and other texts stay as your application wrote them. A text that only looks like JSON, such as \`{token}\`, is left as it is.`,
     );
   });
 

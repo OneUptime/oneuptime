@@ -103,14 +103,18 @@ function request(data?: {
  * window, the end expression, and the WHERE clause - as in
  * MonitorStatusTimelineMergedDowntime.test.ts.
  */
-function rowRules(sql: string): { end: string; where: string } {
+function rowRules(sql: string): {
+  start: string;
+  end: string;
+  where: string;
+} {
   const src: RegExpMatchArray | null = sql.match(
-    /GREATEST\(t\."startsAt", p\.win_start\) AS s, (.*?) AS e FROM "MonitorStatusTimeline" t CROSS JOIN params p (WHERE .*?) \), \w+ AS \(/,
+    /GREATEST\( t\."startsAt", p\.win_start, (CASE .*? END) \) AS s, (.*?) AS e FROM "MonitorStatusTimeline" t CROSS JOIN params p LEFT JOIN measured mf ON mf\.monitor_id = t\."monitorId" (WHERE .*?) \), \w+ AS \(/,
   );
 
   expect(src).not.toBeNull();
 
-  return { end: src![1]!, where: src![2]! };
+  return { start: src![1]!, end: src![2]!, where: src![3]! };
 }
 
 describe("MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate", () => {
@@ -167,13 +171,14 @@ describe("MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate", () 
       endDate: WINDOW_END,
     });
 
-    const groupRules: { end: string; where: string } = rowRules(
+    const groupRules: { start: string; end: string; where: string } = rowRules(
       flatten(group.calls[0]!.sql),
     );
-    const monitorRules: { end: string; where: string } = rowRules(
-      flatten(monitors.calls[0]!.sql),
-    );
+    const monitorRules: { start: string; end: string; where: string } =
+      rowRules(flatten(monitors.calls[0]!.sql));
 
+    // A member's time before its first check is no part of the group's (#8960).
+    expect(groupRules.start).toBe(monitorRules.start);
     expect(groupRules.end).toBe(monitorRules.end);
     expect(groupRules.end).toContain(
       'LEAD(t."startsAt") OVER ( PARTITION BY t."monitorId" ORDER BY t."startsAt", t."endsAt" NULLS LAST )',

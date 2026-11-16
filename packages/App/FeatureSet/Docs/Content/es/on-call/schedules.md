@@ -108,6 +108,7 @@ Las programaciones de guardia son el recurso `/api/on-call-duty-policy-schedule`
 - Crear una programación con `firstLayerUsers` (una lista de identificadores de usuario, en el orden en que se turnan) en sus `miscDataProps` le da su primera capa, como hace el panel: **Layer 1**, de guardia desde ahora, las 24 horas. `firstLayerRotation` indica cuánto dura cada turno, como una rotación del tipo `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; sin ella, una semana. Cada usuario debe ser miembro del proyecto y quien llama debe poder crear capas; si no, la programación no se crea.
 - Una programación creada sin ellos no tiene capas, como antes; el recurso de programaciones de Terraform no los envía.
 - Una capa creada sin `rotation` hace el relevo a diario, como siempre.
+- Un cambio en las capas de una programación y en las personas que contienen, hecho con la API o Terraform, se avisa como un solo cambio: quién está de guardia se calcula cuando las capas llevan medio minuto sin cambios, y quien entra o sale de guardia, o es el siguiente, recibe el aviso una vez, no una por cada capa o persona escrita. Las alertas van a quien las capas ponen de guardia en cuanto se guarda cada cambio.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

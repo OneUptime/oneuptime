@@ -5,7 +5,7 @@ import DataMigrationBase from "./DataMigrationBase";
  * store knew, when ACME certificates replaced the store in April 2024.
  *
  * It has nothing left to do (#8990): the store's tables are gone
- * (DropGreenlockTables1809181850000), dropped by a schema migration, which
+ * (DropGreenlockTables1809182470000), dropped by a schema migration, which
  * runs before any data migration. And it does not need to run: a domain the
  * store ordered a certificate for says it has one ordered, and the
  * certificate sweeps order it again when it has none

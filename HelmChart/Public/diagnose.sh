@@ -747,7 +747,7 @@ check_logs() {
       if echo "$errs" | grep -qi "out of memory\|JavaScript heap"; then
         add_finding "CRIT" "$comp" \
           "Out-of-memory errors in $comp logs" \
-          "Raise the Node.js heap (--max-old-space-size) and the container memory limit for $comp in values.yaml."
+          "Raise the memory limit for $comp in values.yaml (resources.limits.memory): its Node.js heap follows it, at three quarters of the limit. A --max-old-space-size set in its NODE_OPTIONS (extraEnv) overrides that."
       fi
     fi
   done
