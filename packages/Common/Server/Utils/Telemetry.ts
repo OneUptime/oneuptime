@@ -144,7 +144,8 @@ export default class Telemetry {
 
   /*
    * The headers the exporters send, from OPENTELEMETRY_EXPORTER_OTLP_HEADERS:
-   * name=value pairs separated by ';', each split at its first '=' so that a
+   * name=value pairs separated by ';', or by ',' with percent-encoded values
+   * as in OTEL_EXPORTER_OTLP_HEADERS, each split at its first '=' so that a
    * value may hold '=' (see OtlpExporterHeaders).
    */
   public static getHeaders(): Dictionary<string> {
