@@ -55,7 +55,7 @@ Everything else is in the [docs](https://oneuptime.com/docs/introduction/getting
 
 ### OneUptime Cloud
 
-[Sign up](https://oneuptime.com/accounts/register) and create a project. The free plan needs no credit card.
+[Sign up](https://oneuptime.com/accounts/register) and create a project. A project needs no card. On the Free plan, checking a website needs a payment method.
 
 ### Self-host with Docker Compose
 

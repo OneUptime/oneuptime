@@ -161,7 +161,7 @@ describe("buildPrivacySummary in the reader's language", () => {
       "⟦Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not.⟧ ⟦Also: ⟦2 extra selectors masked⟧, ⟦2 selectors blocked entirely⟧, ⟦canvas contents recorded⟧.⟧",
     );
     expect(sentence(sentences, "retention").text).toBe(
-      "⟦Recorded footage is deleted after 30 days, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.⟧",
+      "⟦Recorded footage is deleted after 30\u00A0days, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.⟧",
     );
     expect(sentence(sentences, "page-text").changeLabel).toBe(
       "⟦Change masking⟧",
@@ -190,7 +190,7 @@ describe("buildPrivacySummary in the reader's language", () => {
       "Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not. Also: 1 extra selector masked, 2 selectors blocked entirely, canvas contents recorded.",
     );
     expect(sentence(sentences, "retention").text).toBe(
-      "Recorded footage is deleted after 1 day, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.",
+      "Recorded footage is deleted after 1\u00A0day, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.",
     );
     expect(sentence(sentences, "identity").changeLabel).toBe(
       "Change identity capture",

@@ -515,10 +515,10 @@ describe("the escalation rules list", () => {
 
     expect(cardField(first, "Who to call")).toContain("Primary rotation");
     // Saved when the default was 30: it still rings, and reads, 30.
-    expect(cardField(first, "Ring for")).toBe("30 seconds");
+    expect(cardField(first, "Ring for")).toBe("30\u00A0seconds");
 
     expect(cardField(second, "Who to call")).toContain("Sam Rivera");
-    expect(cardField(second, "Ring for")).toBe("1 second");
+    expect(cardField(second, "Ring for")).toBe("1\u00A0second");
   });
 
   test("names a rule nobody named after its place in the list", async () => {
@@ -712,7 +712,7 @@ describe("adding a rule", () => {
   test("starts a new rule at 20 seconds while an older rule in the list keeps its 30", async () => {
     const [first] = (await renderPage()) as [HTMLElement];
 
-    expect(cardField(first, "Ring for")).toBe("30 seconds");
+    expect(cardField(first, "Ring for")).toBe("30\u00A0seconds");
 
     const modal: HTMLElement = await openAddDialog();
 

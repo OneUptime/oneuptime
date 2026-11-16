@@ -879,14 +879,14 @@ describe("how a duration is written", () => {
         unit: MeasurementUnit.Seconds,
         translator: german,
       }),
-    ).toBe("1 Stunde, 5 Minuten");
+    ).toBe("1\u00A0Stunde, 5\u00A0Minuten");
     expect(
       formatEventMeasurementDuration({
         seconds: 5400,
         unit: MeasurementUnit.Hours,
         translator: german,
       }),
-    ).toBe("1,5 Stunden");
+    ).toBe("1,5\u00A0Stunden");
     expect(
       formatEventMeasurementDuration({
         seconds: 30,
@@ -1022,7 +1022,7 @@ describe("what a row says", () => {
         { state: EventMeasurementState.Running, startedAt: minutesAgo(12) },
         german,
       ).text,
-    ).toBe("Läuft bereits 12 Minuten");
+    ).toBe("Läuft bereits 12\u00A0Minuten");
     expect(
       display({ state: EventMeasurementState.NotReached }, german).text,
     ).toBe("Nicht erreicht");

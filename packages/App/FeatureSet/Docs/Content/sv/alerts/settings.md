@@ -123,7 +123,7 @@ Incidenten får larmets titel, beskrivning, monitor, berörda resurser och etike
 
 ## Sekretess- och runbook-regler
 
-**Sekretessregler** gör nya larm som matchar privata innan något annat körs: Bara deras ägare och projektets administratörer och ägare kan se dem. En regel har två steg: **Matcha**, larmen den gör privata, och sedan **Namn**, redan ifyllt som "Gör larm privata". Se [Privata larm](/docs/alerts/index#privata-larm).
+**Sekretessregler** gör nya larm som matchar privata innan något annat körs: Bara deras ägare och Projektadministratörer och Projektägare kan se dem. En regel har två steg: **Matcha**, larmen den gör privata, och sedan **Namn**, redan ifyllt som "Gör larm privata". Se [Privata larm](/docs/alerts/index#privata-larm).
 
 **Runbook-regler** startar en runbook när ett nytt larm matchar, om inte larmet skapades löst. Se [Runbook-regler](/docs/runbooks/rules).
 
@@ -178,7 +178,7 @@ Kortet **Nästa nummer** under det anger numret som nästa larm och nästa episo
 
 ## Arbetsflöden
 
-Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** och **On Delete Alert**, samma sak för **Larmepisod**, **Tillståndstidslinje för larm** och de andra, och åtgärder som **Create One Alert** och **Update One Alert**. Definitionerna av anpassade fält för larm är det enda undantaget: De har inga arbetsflödesutlösare. Se [Översikt över arbetsflöden](/docs/workflows/index).
+Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade efter den: **Vid skapande: Larm**, **Vid uppdatering: Larm**, **Vid skapande eller uppdatering: Larm** och **Vid borttagning: Larm**, samma sak för **Larmepisod**, **Tillståndstidslinje för larm** och de andra, och åtgärder som **Skapa Larm (en post)** och **Uppdatera Larm (en post)**. Definitionerna av anpassade fält för larm är det enda undantaget: De har inga arbetsflödesutlösare. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
 ## Vem som kan ändra dem
 

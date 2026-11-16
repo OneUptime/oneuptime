@@ -16,11 +16,11 @@ Ouvrez une issue [GitLab](https://gitlab.com) pour chaque incident OneUptime, af
 
 ```mermaid title="Un flux de travail, une issue GitLab"
 flowchart TB
-    declared["Incident déclaré"] --> workflow["Flux de travail :<br/>On Create Incident"]
+    declared["Incident déclaré"] --> workflow["Flux de travail :<br/>À la création :<br/>Incident"]
     workflow -->|"POST issues"| issue["Issue GitLab"]
 ```
 
-Le flux de travail s'exécute une fois pour chaque nouvel incident. Son bloc **API Post (JSON)** envoie le titre et la description de l'incident aux issues du projet, signés avec un jeton d'accès.
+Le flux de travail s'exécute une fois pour chaque nouvel incident. Son bloc **Appel d'API POST (JSON)** envoie le titre et la description de l'incident aux issues du projet, signés avec un jeton d'accès.
 
 ## Avant de commencer
 
@@ -47,11 +47,11 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident avec préfixe**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **À la création : Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident avec préfixe**.
 
 ### Ouvrir l'issue
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://gitlab.com/api/v4/projects/12345678/issues`, avec l'ID de votre projet à la place de `12345678`. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://gitlab.com/api/v4/projects/12345678/issues`, avec l'ID de votre projet à la place de `12345678`. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 {
@@ -71,7 +71,7 @@ Et son **Corps de la requête** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `iid` et son `web_url`. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **Appel d'API POST (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `iid` et son `web_url`. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 Le bloc envoie du JSON, il n'a donc besoin d'aucun en-tête `Content-Type`. GitLab crée les labels qu'il ne connaît pas encore : `incident` et `oneuptime` ne demandent donc aucune configuration. L'issue reste ouverte quand l'incident est résolu, car le travail qui en découle survit généralement à l'incident.
@@ -81,11 +81,11 @@ Le bloc envoie du JSON, il n'a donc besoin d'aucun en-tête `Content-Type`. GitL
 - **Votre propre GitLab.** Envoyez plutôt la requête à votre serveur : `https://gitlab.example.com/api/v4/projects/12345678/issues`. Un serveur sur une adresse de réseau privé exige un OneUptime auto-hébergé dont l'administrateur l'autorise : voir [Accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
 - **Le chemin du projet à la place de son ID.** Le chemin fonctionne à la place de l'ID, avec son `/` écrit `%2F` : `projects/your-group%2Fyour-project/issues`. L'URL est envoyée exactement telle qu'elle est écrite : encodez-la donc vous-même.
 - **L'assigner.** Ajoutez `"assignee_ids": [42]` ou `"due_date": "2026-12-31"` au corps, ou `"confidential": true` pour ne la montrer qu'aux membres du projet.
-- **Seulement certains incidents.** Placez un bloc **If / Else** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Oui**, par exemple pour une gravité.
+- **Seulement certains incidents.** Placez un bloc **Si / Sinon** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Oui**, par exemple pour une gravité.
 
 ## Dépannage
 
-L'étape **API Post (JSON)** prend **Erreur** quand GitLab refuse la requête. Ses **Response Status** et **Corps de la réponse** dans l'exécution disent pourquoi.
+L'étape **Appel d'API POST (JSON)** prend **Erreur** quand GitLab refuse la requête. Ses **Statut de la réponse** et **Corps de la réponse** dans l'exécution disent pourquoi.
 
 :::details GitLab répond 401
 Le jeton est faux, expiré ou révoqué. Créez-en un nouveau, et remplacez le contenu de `GITLAB_TOKEN`.

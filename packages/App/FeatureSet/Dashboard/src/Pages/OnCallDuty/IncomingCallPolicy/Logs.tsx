@@ -14,10 +14,14 @@ import UserElement from "../../../Components/User/User";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 
 const IncomingCallPolicyLogsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const getStatusPill: (status?: IncomingCallStatus) => ReactElement = (
@@ -167,9 +171,10 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
                   item.callDurationInSeconds / 60,
                 );
                 const seconds: number = item.callDurationInSeconds % 60;
+                // "2m 5s", in the reader's units and digits (#8455).
                 return (
                   <span>
-                    {minutes}m {seconds}s
+                    {formatCompactDuration(translator, { minutes, seconds })}
                   </span>
                 );
               }

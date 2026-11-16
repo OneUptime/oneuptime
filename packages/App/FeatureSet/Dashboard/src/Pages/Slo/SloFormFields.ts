@@ -3,7 +3,15 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import {
+  isEventSliType,
+  isRequestSliType,
+} from "Common/Utils/Slo/SloRequestSli";
+import { getSloMetricFields, isMetricForm } from "./SloMetricQueryFields";
+import {
+  ParsedSloRequestFilter,
+  parseSloRequestFilter,
+} from "Common/Utils/Slo/SloRequestFilter";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
@@ -435,19 +443,20 @@ export const getSloWindowTypeChoices: GetSloWindowTypeChoicesFunction =
 /*
  * What an SLO measures, each answer with one line that says where its
  * numbers come from. Monitor uptime - what most SLOs measure, and a new
- * SLO's default - comes first. The Metric type is reserved and measures
- * nothing, so it is never offered.
+ * SLO's default - comes first; a metric, the newest (#8445), last.
  */
 export const SLO_SLI_TYPE_CHOICES: ReadonlyArray<SliType> = [
   SliType.MonitorUptime,
   SliType.RequestSuccess,
   SliType.RequestLatency,
+  SliType.Metric,
 ];
 
 export const SLO_SLI_TYPE_NAMES: Record<string, string> = {
   [SliType.MonitorUptime]: translationKey("Monitor uptime"),
   [SliType.RequestSuccess]: translationKey("Request success"),
   [SliType.RequestLatency]: translationKey("Request latency"),
+  [SliType.Metric]: translationKey("Metric"),
 };
 
 export const SLO_SLI_TYPE_CHOICE_DESCRIPTIONS: Record<string, string> = {
@@ -459,6 +468,9 @@ export const SLO_SLI_TYPE_CHOICE_DESCRIPTIONS: Record<string, string> = {
   ),
   [SliType.RequestLatency]: translationKey(
     "The share of your services' requests served fast enough, from their traces.",
+  ),
+  [SliType.Metric]: translationKey(
+    "The share of good events in a counter or a histogram your services send.",
   ),
 };
 
@@ -484,6 +496,12 @@ export const SLO_CREATE_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
   {
     id: "measures",
     title: "What It Measures",
+  },
+  // A Metric SLO's metric (#8445): which one, and which of its events are good.
+  {
+    id: "metric",
+    title: "Metric",
+    showIf: isMetricForm,
   },
   {
     id: "objective",
@@ -608,15 +626,54 @@ export const validateLatencyThreshold: ValidateLatencyThresholdFunction = (
   return null;
 };
 
+export type ValidateRequestFilterFunction = (
+  value: FormValues<ServiceLevelObjective>,
+) => string | null;
+
+/*
+ * The mirror of ServiceLevelObjectiveService.validateRequestFilter, in the
+ * reader's language: a traces search the counting can read (#8444).
+ */
+export const validateRequestFilter: ValidateRequestFilterFunction = (
+  value: FormValues<ServiceLevelObjective>,
+): string | null => {
+  const parsed: ParsedSloRequestFilter = parseSloRequestFilter(
+    value.requestFilter as string | undefined | null,
+  );
+
+  if (!parsed.error) {
+    return null;
+  }
+
+  const reader: Translator = getGlobalTranslator();
+  const values: Record<string, string> = {};
+
+  for (const [name, figure] of Object.entries(parsed.error.values)) {
+    values[name] =
+      typeof figure === "number" ? reader.formatNumber(figure) : figure;
+  }
+
+  return reader.translateTemplate(parsed.error.template, values, {
+    setsValuesApart: true,
+  });
+};
+
 type IsRequestFormFunction = (
   item: FormValues<ServiceLevelObjective>,
 ) => boolean;
 
-// The form is for a request SLO: its services are asked.
+// The form is for a request SLO: its request filter is asked.
 const isRequestForm: IsRequestFormFunction = (
   item: FormValues<ServiceLevelObjective>,
 ): boolean => {
   return isRequestSliType(item.sliType as SliType | undefined);
+};
+
+// The form is for an SLO counted in events: its services are asked.
+const isEventForm: IsRequestFormFunction = (
+  item: FormValues<ServiceLevelObjective>,
+): boolean => {
+  return isEventSliType(item.sliType as SliType | undefined);
 };
 
 // The form is for a Request Latency SLO: its threshold is asked too.
@@ -676,16 +733,16 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       },
       title: "Services",
       description:
-        "Every request that enters one of these services counts, read from its traces.",
+        "The services it measures: the requests that enter them, from their traces, or the metric they send.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       dropdownModal: {
         type: Service,
         labelField: "name",
         valueField: "_id",
       },
-      required: isRequestForm,
+      required: isEventForm,
       placeholder: "Select services",
-      showIf: isRequestForm,
+      showIf: isEventForm,
       stepId: "measures",
     },
     {
@@ -702,6 +759,26 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       showIf: isLatencyForm,
       stepId: "measures",
     },
+    /*
+     * Which of the services' requests count (#8444): optional, a traces
+     * search in the Traces explorer's own syntax. Empty counts them all.
+     */
+    {
+      field: {
+        requestFilter: true,
+      },
+      title: "Request Filter",
+      description:
+        "Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request.",
+      fieldType: FormFieldSchemaType.Text,
+      required: false,
+      placeholder: "@http.route:/checkout* -@http.route:/health",
+      customValidation: validateRequestFilter,
+      showIf: isRequestForm,
+      stepId: "measures",
+    },
+    // A Metric SLO's metric, on a step of its own (#8445).
+    ...getSloMetricFields({ stepId: "metric" }),
     {
       field: {
         name: true,
@@ -888,6 +965,12 @@ export const pickSloFormFields: PickSloFormFieldsFunction = (
 
     if (column === "labels") {
       pickedFields.push(getLabelsFormField<ServiceLevelObjective>());
+      continue;
+    }
+
+    // The metric's column and every question that edits a part of it.
+    if (column === "metricQueryConfig") {
+      pickedFields.push(...getSloMetricFields());
       continue;
     }
 

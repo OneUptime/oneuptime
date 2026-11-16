@@ -60,7 +60,7 @@ Beide zijn gehele getallen, vergeleken met **Groter dan**, **Kleiner dan**, **Ge
 
 | Criterium | Filter | Wat het doet |
 | --- | --- | --- |
-| Controleer of een sonde losgekoppeld is | **Losgekoppelde sondes** groter dan `0` | Zet de monitor offline en meldt een incident met de titel `Probe disconnected: {{disconnectedProbeNames}}`, dat zichzelf oplost. |
+| Controleer of een sonde losgekoppeld is | **Losgekoppelde sondes** groter dan `0` | Zet de monitor offline en meldt een incident met de titel "Sonde losgekoppeld: {{disconnectedProbeNames}}", dat zichzelf oplost. |
 | Controleer of alle sondes verbonden zijn | **Losgekoppelde sondes** gelijk aan `0` | Zet de monitor op operationeel. |
 
 De filter **Verbonden sondes** past bij een monitor die meerdere sondes bewaakt en er een kan missen: **Verbonden sondes** kleiner dan `2` meldt pas een incident als er minder dan twee over zijn.

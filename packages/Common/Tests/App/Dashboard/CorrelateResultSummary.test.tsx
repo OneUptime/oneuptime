@@ -442,7 +442,10 @@ describe("CorrelateResultStats", () => {
       const dashValue: HTMLElement = getTile("correlate-stat-severity").value;
 
       expect(dashValue).toHaveClass("flex", "items-center", "min-h-[2rem]");
-      expect(within(dashValue).getByText("—")).toHaveClass("text-base");
+      // The figure's quiet dash, at the tile's figure size (#8264).
+      expect(within(dashValue).getByTestId("empty-figure")).toHaveClass(
+        "text-gray-400",
+      );
     });
 
     test("lets a long tile label wrap beside its icon", () => {
@@ -818,7 +821,8 @@ describe("CorrelateResultStats", () => {
 
       const parts: TileParts = getTile("correlate-stat-severity");
 
-      expect(parts.value).toHaveTextContent(/^—$/);
+      // The figure's quiet dash: "—" for the eye, "Not set" read out (#8264).
+      expect(parts.value).toHaveTextContent(/^—Not set$/);
       expect(within(parts.value).queryByTestId("pill")).toBeNull();
       expect(parts.hint).toHaveTextContent(/^No severity recorded$/);
       expect(screen.queryByTestId("correlate-stat-worst-class")).toBeNull();

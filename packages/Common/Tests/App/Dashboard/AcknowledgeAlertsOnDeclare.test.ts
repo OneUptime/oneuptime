@@ -251,8 +251,8 @@ describe("AcknowledgeAlertsOnDeclare", () => {
     });
 
     test.each([
-      ["a project owner", [Permission.ProjectOwner]],
-      ["a project admin", [Permission.ProjectAdmin]],
+      ["a Project Owner", [Permission.ProjectOwner]],
+      ["a Project Admin", [Permission.ProjectAdmin]],
       ["a project member", [Permission.ProjectMember]],
       ["an alert admin", [Permission.AlertAdmin]],
       ["an alert member", [Permission.AlertMember]],

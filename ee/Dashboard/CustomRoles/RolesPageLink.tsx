@@ -25,7 +25,7 @@ const RolesPageLink: FunctionComponent = (): ReactElement => {
       to={RouteUtil.populateRouteParams(RouteMap[PageMap.TEAM_ROLES] as Route)}
       dataTestId={ROLES_PAGE_LINK_TEST_ID}
     >
-      {translator.translateText("Roles") || "Roles"}
+      {translator.translateText("Roles") as string}
     </AppLink>
   );
 };

@@ -519,7 +519,7 @@
     "outline": [
       "heading: 수집 키",
       "button: 수집 키",
-      "button: Open search",
+      "button: 검색 열기",
       "field text: 이름, 설명으로 수집 키 검색…",
       "button: 수집 키 생성",
       "button: 추가 옵션",

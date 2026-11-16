@@ -12,7 +12,7 @@ Esta página explica como permitir isso, de forma deliberada e restrita. Três c
 | --- | --- | --- |
 | Workflows, webhooks de projeto, webhooks de usuário do plantão | O ambiente do **servidor de API** | Endereços privados recusados |
 | Fontes de dados, provedores de LLM, servidores SMTP, descoberta OIDC e outras conexões | O ambiente do **servidor de API** | Endereços privados permitidos |
-| **Monitores** API, Website, External Status Page e Custom JavaScript Code | O ambiente próprio da **sonda** | Endereços privados recusados |
+| **Monitores** API, Website, Página de status externa e Código JavaScript personalizado | O ambiente próprio da **sonda** | Endereços privados recusados |
 
 ```mermaid title="Três chaves, cada uma para o seu tipo de conexão"
 flowchart LR
@@ -30,7 +30,7 @@ flowchart LR
     Monitors -->|"desligado<br/>por padrão"| Private
 ```
 
-Os tipos de monitor nativos de rede, como Ping, Port, Certificado SSL, DNS, DNSSEC, SNMP / Dispositivo de rede, Consulta SQL, Saúde do banco de dados, Synthetic e Network Path, usam os seus próprios transportes. A configuração desta página rege os transportes HTTP que devolvem conteúdo de resposta arbitrário a um projeto: os monitores API, Website, External Status Page e Custom JavaScript Code.
+Os tipos de monitor nativos de rede, como Ping, Port, Certificado SSL, DNS, DNSSEC, SNMP / Dispositivo de rede, Consulta SQL, Saúde do banco de dados, Synthetic e Network Path, usam os seus próprios transportes. A configuração desta página rege os transportes HTTP que devolvem conteúdo de resposta arbitrário a um projeto: os monitores API, Website, Página de status externa e Código JavaScript personalizado.
 
 :::cards
 - [Webhooks e workflows](#webhooks-e-workflows): Permita que um webhook publique na sua rede.
@@ -59,7 +59,7 @@ Estes destinos estão cobertos, porque o destino é uma URL escrita por um membr
 - Os componentes **API** dos workflows (GET / POST / PUT / PATCH / DELETE)
 - O componente **Mattermost** dos workflows
 - As requisições HTTP feitas pelo componente de workflow **Custom JavaScript**
-- As notificações de webhook do projeto (incidentes, alertas, monitores, plantão, manutenção agendada, eventos de páginas de status)
+- As notificações de webhook do projeto (incidentes, alertas, monitores, plantão, manutenção programada, eventos de páginas de status)
 - Os **webhooks de usuário** do plantão
 - Os assinantes de webhook de páginas de status que sua equipe adiciona, pelo painel, com uma chave de API ou por um workflow
 
@@ -144,7 +144,7 @@ Com ela ligada, um nome de host recusado é informado sem dizer para o que ele s
 
 ## Sondas e monitores
 
-Quatro tipos de monitor são afetados: **API**, **Site**, **Página de status externa** e **Código JavaScript personalizado**. Numa sonda padrão, eles podem alcançar destinos HTTP(S) públicos, mas recusam o espaço de endereços privado. Os monitores API, Website e External Status Page validam e fixam os resultados de DNS em cada conexão e revalidam cada redirecionamento; o Custom JavaScript Code aplica a mesma política de endereços na ponte da sua sandbox.
+Quatro tipos de monitor são afetados: **API**, **Site**, **Página de status externa** e **Código JavaScript personalizado**. Numa sonda padrão, eles podem alcançar destinos HTTP(S) públicos, mas recusam o espaço de endereços privado. Os monitores API, Website e Página de status externa validam e fixam os resultados de DNS em cada conexão e revalidam cada redirecionamento; o Código JavaScript personalizado aplica a mesma política de endereços na ponte da sua sandbox.
 
 A chave é lida pelo **processo da sonda a partir do seu próprio ambiente**, não do ambiente do servidor de API, e toda sonda a lê: as incluídas no Docker Compose, as que o chart do Helm implanta e qualquer [sonda personalizada](/docs/probe/custom-probe) que você mesmo execute. Quem implanta uma sonda controla o ambiente dela, e é quem sabe qual rede essa sonda consegue ver – uma sonda personalizada costuma ser outra máquina, muitas vezes operada por outra pessoa, e nunca lê a configuração do servidor de API.
 
@@ -187,7 +187,7 @@ Execute o workflow ou o monitor de novo. Se ainda for recusado, a mensagem de er
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – uma sonda privada (personalizada) executou o monitor, e a chave dela está desligada. Repare que isso é definido na sonda, não no servidor de API.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – uma sonda incluída (global) executou o monitor, e a chave dela está desligada. Ligue-a para essa sonda como descrito acima se todo projeto da instância puder alcançar essa rede; caso contrário, selecione uma sonda privada no monitor.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – uma sonda global com `BILLING_ENABLED=true` no ambiente executou o monitor. Sondas globais registradas automaticamente continuam só públicas ali, diga o que disser a chave delas; implante uma sonda privada dentro da rede do destino e selecione-a no monitor.
-- _"Monitor target host ... could not be reached."_ – um monitor API, Website ou External Status Page cujo destino é um **nome de host** informa isso tanto quando o nome se resolve num endereço recusado quanto quando o DNS falha, para que um monitor não possa ser usado para mapear quais nomes internos existem. Os detalhes do erro mostrados com ele mencionam `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` nos dois casos; eles não dizem qual caso ocorreu. Se o nome aponta para um endereço privado, confira no log de inicialização da sonda a política de rede privada dela; se estiver desligada, a solução é a mesma das mensagens acima. Com `LOG_LEVEL=DEBUG`, a sonda também registra o motivo exato de cada nome recusado.
+- _"Monitor target host ... could not be reached."_ – um monitor API, Website ou Página de status externa cujo destino é um **nome de host** informa isso tanto quando o nome se resolve num endereço recusado quanto quando o DNS falha, para que um monitor não possa ser usado para mapear quais nomes internos existem. Os detalhes do erro mostrados com ele mencionam `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` nos dois casos; eles não dizem qual caso ocorreu. Se o nome aponta para um endereço privado, confira no log de inicialização da sonda a política de rede privada dela; se estiver desligada, a solução é a mesma das mensagens acima. Com `LOG_LEVEL=DEBUG`, a sonda também registra o motivo exato de cada nome recusado.
 - _"Request URL could not be reached."_ – a mesma regra para um monitor **Código JavaScript personalizado**: um script que requisita um **nome de host** recebe isso tanto quando o nome se resolve num endereço recusado quanto quando o DNS falha. Com `LOG_LEVEL=DEBUG`, a sonda registra o motivo exato.
 - _"Webhook URL could not be reached."_ ou, a partir de um workflow, _"Request URL could not be reached."_ – a instância roda com `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (ou `BILLING_ENABLED=true`), então um **nome de host** recusado não é explicado: ou ele se resolveu num endereço recusado, ou não se resolveu. Com `LOG_LEVEL=DEBUG`, a aplicação ou o worker registram qual dos dois, e o endereço.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ – o destino está no nível proibido. Para um webhook, nomeie o host ou CIDR exato em `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` se você realmente precisar. Para um monitor, não há exceção.
@@ -201,6 +201,8 @@ Abrir isso muda de verdade o que a sua instância do OneUptime pode ser levada a
 - **Qualquer pessoa que possa criar um workflow ou um monitor API, Website, External Status Page ou Custom JavaScript Code, ou adicionar um assinante a uma página de status, consegue alcançar tudo o que você permitiu.** Trate a participação nesses projetos de acordo.
 - **O corpo da resposta volta.** Um componente API de workflow devolve o status, os cabeçalhos e o corpo ao log do workflow, então um host permitido pode ser lido, não só receber escrita.
 - **Os redirecionamentos nunca são seguidos** nas requisições de webhook, então um host público permitido não consegue redirecionar o servidor para um interno num segundo salto.
+- **O OneUptime conecta ao endereço que verificou.** O nome de host de um webhook é resolvido uma vez, quando a URL é verificada, e a requisição vai para um endereço que essa resolução aprovou, então um nome que responde de outro jeito um instante depois (DNS rebinding) nunca recebe a conexão. O TLS continua verificando o certificado contra o nome na URL.
+- **Através de um proxy de saída, quem conecta é o proxy.** Se o servidor de API envia por um proxy definido em `HTTPS_PROXY`, `HTTP_PROXY` ou `ALL_PROXY` (exceto os hosts em `NO_PROXY`), os webhooks continuam passando por ele: o OneUptime ainda verifica o endereço primeiro e nunca segue um redirecionamento, mas é o proxy que resolve o nome e abre a conexão. Recuse destinos privados e link-local no próprio proxy, sobretudo `169.254.169.254`.
 - **Restrinja por sonda em vez de para a instância inteira sempre que possível.** Uma sonda implantada dentro de uma rede é uma permissão mais estreita do que abrir a saída do servidor de API.
 
 ## Próximos passos

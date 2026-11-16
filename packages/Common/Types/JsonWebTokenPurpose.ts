@@ -37,6 +37,34 @@ enum JsonWebTokenPurpose {
    * for that one status page.
    */
   StatusPageSession = "status-page-session",
+
+  /*
+   * Which UserSession a browser holds, for its sign-out and nothing else
+   * (JSONWebToken.signSessionSignOutToken): the user and the session, no
+   * address. A browser keeps it in its own cookie, sent only to
+   * POST /identity/logout (CookieUtil.setUserCookie), for as long as the
+   * session's refresh token. When a renewal's answer was lost, the
+   * browser's refresh token matches no session and its access-token cookie
+   * is gone after fifteen minutes; this still names the session, so the
+   * sign-out ends it (issue #8638). It ends that session of that user, and
+   * gets nothing anywhere: it is no session, and without an address no
+   * release's reader takes it for one.
+   */
+  UserSessionSignOut = "user-session-sign-out",
+
+  /*
+   * Which StatusPagePrivateUserSession a browser holds on one status page,
+   * for its sign-out on that page and nothing else
+   * (JSONWebToken.signStatusPageSessionSignOutToken): the status page, the
+   * private user and the session, no address. Kept in the page's own
+   * cookie, sent only to that page's sign-out
+   * (POST /status-page-identity-api/logout/<status page>,
+   * CookieUtil.setStatusPagePrivateUserCookie), for as long as the
+   * session's refresh token, so that a sign-out after a renewal whose
+   * answer was lost still ends the session (issue #8671). It ends that
+   * session of that reader on that page, and gets nothing anywhere.
+   */
+  StatusPageSessionSignOut = "status-page-session-sign-out",
 }
 
 export default JsonWebTokenPurpose;

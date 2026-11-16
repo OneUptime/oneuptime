@@ -609,7 +609,7 @@ describe("Transceiver Reading", () => {
         }),
       ),
     ).toBe(
-      "Te1/1/1 transceiver Supply Voltage is 3.05 V, which is less than 3.135.",
+      "Te1/1/1 transceiver Supply Voltage is 3.05\u00A0V, which is less than 3.135.",
     );
   });
 

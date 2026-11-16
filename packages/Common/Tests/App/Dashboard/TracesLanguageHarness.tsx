@@ -181,15 +181,20 @@ export const translatorFor: (language: string) => Translator = (
 ): Translator => {
   const instance: i18n = instanceOf(language);
 
-  return createTranslator((text: string): string | undefined => {
-    const translated: unknown = instance.t(text, {
-      defaultValue: text,
-      keySeparator: false,
-      nsSeparator: false,
-    });
+  // A page's translator, as useTranslator is: English holds a duration's figure (#8770).
+  return createTranslator(
+    (text: string): string | undefined => {
+      const translated: unknown = instance.t(text, {
+        defaultValue: text,
+        keySeparator: false,
+        nsSeparator: false,
+      });
 
-    return typeof translated === "string" ? translated : text;
-  }, language);
+      return typeof translated === "string" ? translated : text;
+    },
+    language,
+    { drawsOnPage: true },
+  );
 };
 
 export const word: (language: string, english: string) => string = (
@@ -275,7 +280,14 @@ export const drawnTexts: () => Array<string> = (): Array<string> => {
 export const CLOCK_READING: RegExp = /\d{1,2}:\d{2}/;
 
 const WORDS: RegExp = /\p{L}{3,}/u;
-const UNITS: RegExp = /\b(ms|us|μs|ns|min|s)\b/g;
+
+/*
+ * A duration's unit symbol. "sec" among them: a span's duration is the
+ * Dashboard's seconds in every language but English (#8617), Intl's own
+ * short unit, and the pseudo language, which Intl knows nothing of, takes
+ * Intl's English one ("2.76 sec") - no word of the page's.
+ */
+const UNITS: RegExp = /\b(ms|us|μs|ns|min|sec|s)\b/g;
 
 /*
  * What the page drew that the pseudo language did not mark: English that

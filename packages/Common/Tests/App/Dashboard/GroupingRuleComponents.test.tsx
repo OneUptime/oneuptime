@@ -173,7 +173,7 @@ describe("GroupingRuleSummary", () => {
       });
 
     expect(notes).toEqual([
-      "Reopens episodes resolved in the last 1 hour",
+      "Reopens episodes resolved in the last 1\u00A0hour",
       "Runs 2 on-call policies",
       "Shows episodes on status pages",
     ]);

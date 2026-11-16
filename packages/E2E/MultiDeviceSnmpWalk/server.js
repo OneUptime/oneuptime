@@ -8,10 +8,16 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../Common/UI/esbuild-config.js");
+const {
+  dashboardLocalesPlugin,
+} = require("../SuiteHelpers/FixtureLocalesBuild.js");
 const esbuild = require("../../Common/node_modules/esbuild");
 
 const repository = path.resolve(__dirname, "../../..");
-const output = path.join(repository, "output/playwright/multi-device-snmp-walk-ui/fixture");
+const output = path.join(
+  repository,
+  "output/playwright/multi-device-snmp-walk-ui/fixture",
+);
 const port = Number(process.env["MULTI_DEVICE_SNMP_WALK_FIXTURE_PORT"] || 4522);
 const config = createConfig({
   serviceName: "multi-device-snmp-walk-fixture",
@@ -26,6 +32,8 @@ const config = createConfig({
       "packages/Common/node_modules/react-dom",
     ),
   },
+  // The locales as the Dashboard's own build ships them (#8366).
+  additionalPlugins: [dashboardLocalesPlugin()],
 });
 config.target = "es2022";
 config.loader[".js"] = "jsx";

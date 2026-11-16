@@ -130,6 +130,14 @@ import { getCodeBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Uti
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { RouteUtil } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import ObjectID from "../../../Types/ObjectID";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/code-repository/*/get-item"]);
 
 const REPOSITORY_ID: string = "6c7d8e9f-0a1b-4c2d-9e3f-4a5b6c7d8e9f";
 const TASK_ID: string = "7d8e9f0a-1b2c-4d3e-8f4a-5b6c7d8e9f0a";
@@ -1304,7 +1312,7 @@ describe("a review's page", () => {
     drawTask(taskAnswer({ canAsk: false }));
     expect(screen.queryByTestId("production-review-again")).toBeNull();
     expect(screen.getByTestId("production-review-read-only")).toHaveTextContent(
-      "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
+      "You can read this review. Reviewing it again takes permission to edit the repository - ask a Project Admin for it.",
     );
 
     cleanup();
@@ -1334,7 +1342,7 @@ describe("a review's page", () => {
   test("a refused Review again says why, at the top", () => {
     drawTask(taskAnswer(), {
       actionError:
-        "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.",
+        "Reviewing a pull request again takes permission to edit its repository - ask a Project Admin for it.",
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
@@ -1412,7 +1420,7 @@ describe("the task's page draws a production review as a review, not a conversat
     getTaskMock.mockResolvedValue(taskAnswer() as never);
     reviewAgainMock.mockRejectedValue(
       new Error(
-        "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.",
+        "Reviewing a pull request again takes permission to edit its repository - ask a Project Admin for it.",
       ) as never,
     );
 

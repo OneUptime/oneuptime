@@ -228,7 +228,7 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Components/ProjectBalance/ProjectBalanceCopy.ts",
-    "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+    "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
   ],
   [
     "Components/ProjectBalance/ProjectBalanceCopy.ts",
@@ -236,7 +236,7 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Components/ProjectBalance/ProjectBalanceCopy.ts",
-    "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+    "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
   ],
   [
     "Components/ApiKey/ApiKeyPermissionTable.tsx",

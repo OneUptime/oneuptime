@@ -41,7 +41,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og vælger **Metrikk
 
 ### Tilføj metrikforespørgslerne
 
-I **Metrik at holde øje med** vælger du en **Metrik**, og hvordan den aggregeres med **Aggregate by**. Åbn **Filters & grouping** for at filtrere efter attributter eller gruppere med **Gruppér efter**. Klik på **Tilføj metrik** for endnu en forespørgsel eller på **Tilføj formel** for at kombinere dem. Diagrammet under forespørgslerne viser de seneste timer med reglens værdi som en rød linje, så du kan se de værdier, reglen vil tjekke.
+I **Metrik at holde øje med** vælger du en **Metrik**, og hvordan den aggregeres med **Aggreger efter**. Åbn **Filtre og gruppering** for at filtrere efter attributter eller gruppere med **Gruppér efter**. Klik på **Tilføj metrik** for endnu en forespørgsel eller på **Tilføj formel** for at kombinere dem. Diagrammet under forespørgslerne viser de seneste timer med reglens værdi som en rød linje, så du kan se de værdier, reglen vil tjekke.
 
 ### Sig, hvornår der skal advares
 
@@ -63,9 +63,9 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | Felt | Hvad det gør | Standard |
 | --- | --- | --- |
 | **Metrik** | Den metrik, der forespørges. | Påkrævet |
-| **Aggregate by** | Hvordan værdierne i hvert tidsinterval kombineres til ét datapunkt: Gns., Sum, Min, Max, Antal eller en percentil (P50, P75, P90, P95 eller P99). | Gns. |
-| **Filter by attributes** (under **Filters & grouping**) | Kun serier, hvis attributter opfylder disse betingelser. | Intet filter |
-| **Gruppér efter** (under **Filters & grouping**) | Én serie pr. unik værdi af disse attributter (se [Advarsler pr. serie](#advarsler-pr-serie-group-by)). | Én serie |
+| **Aggreger efter** | Hvordan værdierne i hvert tidsinterval kombineres til ét datapunkt: Gns., Sum, Min, Max, Antal eller en percentil (P50, P75, P90, P95 eller P99). | Gns. |
+| **Filtrer efter attributter** (under **Filtre og gruppering**) | Kun serier, hvis attributter opfylder disse betingelser. | Intet filter |
+| **Gruppér efter** (under **Filtre og gruppering**) | Én serie pr. unik værdi af disse attributter (se [Advarsler pr. serie](#advarsler-pr-serie-group-by)). | Én serie |
 
 Hver forespørgsel og formel får en variabel (`a`, `b`, `c` og så videre) i den rækkefølge, du tilføjer dem.
 
@@ -97,7 +97,7 @@ Jo længere vinduet er, jo bredere er hvert tidsinterval, så ét datapunkt stå
 ## Sådan evalueres den
 
 - **Hvert minut.** En metrik-monitor tjekkes ikke af sonder, så den har intet interval at angive og ingen side **Sonder og interval**.
-- **Først forespørgsler, så formler.** Hver forespørgsel returnerer ét datapunkt pr. tidsinterval i tidsintervallet ved hjælp af sin **Aggregate by**. Formler beregnes for hvert interval ud fra forespørgslernes datapunkter.
+- **Først forespørgsler, så formler.** Hver forespørgsel returnerer ét datapunkt pr. tidsinterval i tidsintervallet ved hjælp af sin **Aggreger efter**. Formler beregnes for hvert interval ud fra forespørgslernes datapunkter.
 - **Derefter reglens mål.** Reglen reducerer datapunkterne for sin metrik til det, den sammenligner med sin værdi, som **Målt som** siger:
 
 | Målt som | I de egne kriterier | Betingelsen tjekkes mod… |
@@ -140,7 +140,7 @@ Prognosebetingelserne sammenligner, hvor metrikken er på vej hen, med tærsklen
 Hvad et datapunkt sammenlignes med, afhænger af forespørgslen:
 
 - **Dens tjenester.** En monitor, der navngiver tjenester, sammenlignes kun med de tjenester. En, der ikke navngiver nogen, sammenlignes med alle tjenester, der rapporterer metrikken.
-- **Et gennemsnit, minimum, maksimum eller percentil af en almindelig metrik** sammenlignes med metrikkens målinger, så langt tilbage som **Baseline-vindue** rækker.
+- **Et gennemsnit, minimum, maksimum eller percentil af en almindelig metrik** sammenlignes med metrikkens metrikker, så langt tilbage som **Baseline-vindue** rækker.
 - **En sum eller en optælling og enhver forespørgsel på et histogram** sammenlignes med forespørgslens egne datapunkter. De gemmes lige så længe som dine metrikker, så sammenligningen rækker ikke længere tilbage end det: 15 dage, medmindre du har ændret det.
 - **En forespørgsel, der er filtreret eller grupperet efter en attribut,** sammenlignes med sine egne datapunkter, hver serie med sine egne, så en vært bedømmes ud fra, hvad netop den vært gør. De rækker så langt tilbage, som dine metrikker gemmes. Er det under to uger, sammenlignes et gennemsnit, et minimum, et maksimum eller en percentil i stedet med alle serier i dens tjenester, hvilket kun bemærker en ændring, der er stor nok til at forlade dem alles område, og en sum, en optælling eller en forespørgsel på et histogram bliver ved med at lære. En percentil af et histogram bliver altid ved med at lære. En monitor, der er delt op i mere end 5.000 serier, behandles, som om dine metrikker blev gemt i under to uger.
 
@@ -160,7 +160,7 @@ En ny metrik-monitor, der er oprettet via API'et eller Terraform uden kriterier,
 
 ## Gennemgået eksempel: en voksende kø
 
-Du vil have en hændelse, når checkout-køen forbliver dyb. Forespørgsel `a` er gaugen `checkout.queue.depth` med **Aggregate by** Max, og **Tidsvindue** er **Seneste 5 minutter**. Én evaluering ser disse fem datapunkter på ét minut hver:
+Du vil have en hændelse, når checkout-køen forbliver dyb. Forespørgsel `a` er gaugen `checkout.queue.depth` med **Aggreger efter** Max, og **Tidsvindue** er **Seneste 5 minutter**. Én evaluering ser disse fem datapunkter på ét minut hver:
 
 | Minut | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |

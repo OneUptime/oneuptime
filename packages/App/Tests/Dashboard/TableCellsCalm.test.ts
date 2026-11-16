@@ -17,7 +17,7 @@ import {
  * The Dashboard's half of the table redesign (model-table-ui), on the
  * Incidents list of the maintainer's screenshot and every list like it:
  *
- *   - a Duration column says its two largest units ("10 days, 23 hours"),
+ *   - a Duration column says its two largest units ("10\u00A0days, 23\u00A0hours"),
  *     the whole duration under the pointer - "10 days, 23 hours, 31
  *     minutes" was the widest column of the list;
  *   - a row with no owners says so with the table's quiet dash, not "No
@@ -68,23 +68,25 @@ describe("a table's Duration says its two largest units", () => {
   });
 
   test.each([
-    // The screenshot's: "10 days, 23 hours, 31 minutes".
-    [10 * DAY + 23 * HOUR + 31 * MINUTE, "10 days, 23 hours"],
-    [DAY + HOUR + 2 * MINUTE, "1 day, 1 hour"],
-    [2 * DAY + 3 * HOUR, "2 days, 3 hours"],
-    [DAY + MINUTE, "1 day, 1 minute"],
-    [2 * HOUR + 5 * MINUTE, "2 hours, 5 minutes"],
-    [HOUR, "1 hour"],
-    [45 * MINUTE, "45 minutes"],
+    // The screenshot's: "10\u00A0days, 23\u00A0hours, 31\u00A0minutes".
+    [10 * DAY + 23 * HOUR + 31 * MINUTE, "10\u00A0days, 23\u00A0hours"],
+    [DAY + HOUR + 2 * MINUTE, "1\u00A0day, 1\u00A0hour"],
+    [2 * DAY + 3 * HOUR, "2\u00A0days, 3\u00A0hours"],
+    [DAY + MINUTE, "1\u00A0day, 1\u00A0minute"],
+    [2 * HOUR + 5 * MINUTE, "2\u00A0hours, 5\u00A0minutes"],
+    [HOUR, "1\u00A0hour"],
+    [45 * MINUTE, "45\u00A0minutes"],
     [30 * 1000, "less than a minute"],
-    [45 * DAY, "45 days"],
+    [45 * DAY, "45\u00A0days"],
   ])("%i ms reads %s", (milliseconds: number, text: string) => {
     expect(compact(milliseconds)).toBe(text);
   });
 
   test("a smaller unit is dropped, never rounded into the larger: a duration is never said to be longer than it was", () => {
-    expect(compact(DAY + 23 * HOUR + 59 * MINUTE)).toBe("1 day, 23 hours");
-    expect(compact(2 * DAY - 1000)).toBe("1 day, 23 hours");
+    expect(compact(DAY + 23 * HOUR + 59 * MINUTE)).toBe(
+      "1\u00A0day, 23\u00A0hours",
+    );
+    expect(compact(2 * DAY - 1000)).toBe("1\u00A0day, 23\u00A0hours");
   });
 
   test("without maxUnits every unit is said, as on an incident's own page", () => {
@@ -93,7 +95,7 @@ describe("a table's Duration says its two largest units", () => {
         START,
         new Date(START.getTime() + 10 * DAY + 23 * HOUR + 31 * MINUTE),
       ),
-    ).toBe("10 days, 23 hours, 31 minutes");
+    ).toBe("10\u00A0days, 23\u00A0hours, 31\u00A0minutes");
   });
 
   test("a maxUnits of nothing useful is ignored", () => {
@@ -102,13 +104,13 @@ describe("a table's Duration says its two largest units", () => {
     );
 
     expect(getEventDurationText(START, tenDays, { maxUnits: 0 })).toBe(
-      "10 days, 23 hours, 31 minutes",
+      "10\u00A0days, 23\u00A0hours, 31\u00A0minutes",
     );
     expect(getEventDurationText(START, tenDays, { maxUnits: 3 })).toBe(
-      "10 days, 23 hours, 31 minutes",
+      "10\u00A0days, 23\u00A0hours, 31\u00A0minutes",
     );
     expect(getEventDurationText(START, tenDays, { maxUnits: 1 })).toBe(
-      "10 days",
+      "10\u00A0days",
     );
   });
 
@@ -329,15 +331,15 @@ describe("a Duration in the reader's language", () => {
   );
 
   test.each([
-    ["de", 10 * DAY + 23 * HOUR, "10 Tage, 23 Stunden"],
-    ["de", DAY + HOUR, "1 Tag, 1 Stunde"],
+    ["de", 10 * DAY + 23 * HOUR, "10\u00A0Tage, 23\u00A0Stunden"],
+    ["de", DAY + HOUR, "1\u00A0Tag, 1\u00A0Stunde"],
     // French keeps a number and its unit together with a no-break space.
     ["fr", 10 * DAY + 23 * HOUR, "10\u00a0jours et 23\u00a0heures"],
-    ["es", 2 * HOUR + 5 * MINUTE, "2 horas y 5 minutos"],
+    ["es", 2 * HOUR + 5 * MINUTE, "2\u00A0horas y 5\u00A0minutos"],
     // Russian's own plurals, which a translated "{{count}} days" cannot say.
-    ["ru", 21 * DAY, "21 день"],
-    ["ru", 10 * DAY + 23 * HOUR, "10 дней 23 часа"],
-    ["ja", 10 * DAY + 23 * HOUR, "10 日 23 時間"],
+    ["ru", 21 * DAY, "21\u00A0день"],
+    ["ru", 10 * DAY + 23 * HOUR, "10\u00A0дней 23\u00A0часа"],
+    ["ja", 10 * DAY + 23 * HOUR, "10\u00A0日 23\u00A0時間"],
     ["zh-CN", 2 * HOUR + 5 * MINUTE, "2小时5分钟"],
   ])(
     "in %s, %i ms reads %s",
@@ -365,7 +367,7 @@ describe("a Duration in the reader's language", () => {
     try {
       expect(
         formatEventDurationParts(partsOf(10 * DAY + 23 * HOUR, 2), "de"),
-      ).toBe("10 days, 23 hours");
+      ).toBe("10\u00A0days, 23\u00A0hours");
     } finally {
       (Intl as unknown as { NumberFormat: unknown }).NumberFormat = original;
     }

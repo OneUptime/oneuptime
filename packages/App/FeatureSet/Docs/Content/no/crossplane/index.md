@@ -126,7 +126,7 @@ En ressurs nevner den med `kind: ClusterProviderConfig` i sin `providerConfigRef
 
 ## Opprett de første ressursene dine
 
-En monitor for startsiden din, med en etikett, som setter prosjektets statuser **Frakoblet** og **I drift**.
+En monitor for startsiden din, med en etikett, som setter prosjektets statuser **Offline** og **I drift**.
 
 :::steps
 ### Observer statusene den setter

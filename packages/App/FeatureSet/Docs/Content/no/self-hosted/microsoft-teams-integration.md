@@ -68,7 +68,7 @@ Velg **Register**, og legg deretter til en ny Web-omdirigerings-URI, `https://yo
 
 - **User.Read** - Kreves for å hente profilinformasjonen til den autentiserte brukeren (visningsnavn, e-post) under OAuth-flyten
 - **Team.ReadBasic.All** - Kreves for å liste teamene brukeren er medlem av når brukeren velger hvilket team som skal kobles til
-- **Channel.ReadBasic.All** - Kreves for å lese kanalinformasjon og liste kanalene i teamene for levering av varsler
+- **Channel.ReadBasic.All** - Kreves for å lese kanalinformasjon og liste kanalene i teamene for levering av varslinger
 - **ChannelMessage.Send** - Kreves for å sende varsler om hendelser og varsler til Teams-kanaler
 
 **Legg til programtillatelser** (når appen handler som seg selv, uten en pålogget bruker):
@@ -173,7 +173,7 @@ Etter administratorsamtykket viser **Prosjektinnstillinger > Arbeidsområde > Mi
 
 ### Trinn 9: Legg til OneUptime i hvert team (påkrevd)
 
-Når du laster opp manifestet, installeres appen for **deg**. Det gir **ikke** boten tilgang til kanalene i noe team. Microsoft godtar bare meldinger i et team som appen er lagt til i, så du må gjøre dette i hvert team der du vil ha varsler:
+Når du laster opp manifestet, installeres appen for **deg**. Det gir **ikke** boten tilgang til kanalene i noe team. Microsoft godtar bare meldinger i et team som appen er lagt til i, så du må gjøre dette i hvert team der du vil ha varslinger:
 
 1. Klikk på "..." ved siden av **teamnavnet** i Microsoft Teams (ikke kanalnavnet)
 2. Velg **Manage team** > **Apps** > **More apps**
@@ -183,7 +183,7 @@ Merknader:
 
 - Å installere OneUptime for deg selv, eller legge den til i en chat, er en **annen** installasjon. Ingen av dem lar den poste i kanalene til et team.
 - **Private kanaler** må ha appen installert i selve kanalen: åpne kanalen > "..." > **Manage channel** > **Apps** > **Add an app**. En installasjon på teamnivå dekker ikke private kanaler.
-- **Delte kanaler** kan ikke motta varsler i det hele tatt: Microsoft Teams støtter ikke boter i delte kanaler. OneUptime skjuler dem i kanalvelgeren.
+- **Delte kanaler** kan ikke motta varslinger i det hele tatt: Microsoft Teams støtter ikke boter i delte kanaler. OneUptime skjuler dem i kanalvelgeren.
 - Hvis **Manage team > Apps > More apps** er tom eller nedtonet, blokkerer Teams-policyen for appoppsett egendefinerte apper. Rett det i Teams-administrasjonssenteret under **Teams apps > Manage apps** og **Setup policies**.
 :::
 
@@ -225,7 +225,7 @@ Microsoft krever et [offentlig tilgjengelig HTTPS-endepunkt for en selvhostet bo
 
 | Retning | Mål | Formål |
 | --- | --- | --- |
-| Fra OneUptime til Microsoft | HTTPS over TCP 443 til Microsoft Graph, Microsoft-identitet og Bot Framework-tjenestene | Tokenutveksling, oppslag av team og kanaler og levering av varsler |
+| Fra OneUptime til Microsoft | HTTPS over TCP 443 til Microsoft Graph, Microsoft-identitet og Bot Framework-tjenestene | Tokenutveksling, oppslag av team og kanaler og levering av varslinger |
 | Fra Microsoft til OneUptime | `POST /api/microsoft-bot/messages` | Botmeldinger, installasjonshendelser i samtaler og korthandlinger |
 | Fra brukerens nettleser til OneUptime | `/api/microsoft-teams/auth` og `/api/microsoft-teams/admin-consent/callback` | Videresendinger for pålogging og administratorsamtykke |
 
@@ -259,7 +259,7 @@ Microsoft støtter ikke faste IP-tillatelseslister for innkommende Bot Framework
 
 ### Testing og distribusjoner uten innkommende tilgang
 
-Bruk trinn 4 til å bekrefte offentlig DNS, TLS og ruting fra utenfor nettverket og VPN-en din. Koble deretter til Teams, send et testvarsel, skriv til boten og trykk på en knapp på et kort. Bekreft handlingen i OneUptime, og sammenhold Microsofts leveringsdiagnostikk med loggene til gatewayen og appen. En tilgjengelig GET-rute eller et levert varsel bekrefter ikke alene en autentisert innkommende bot-POST.
+Bruk trinn 4 til å bekrefte offentlig DNS, TLS og ruting fra utenfor nettverket og VPN-en din. Koble deretter til Teams, send en testvarsling, skriv til boten og trykk på en knapp på et kort. Bekreft handlingen i OneUptime, og sammenhold Microsofts leveringsdiagnostikk med loggene til gatewayen og appen. En tilgjengelig GET-rute eller et levert varsling bekrefter ikke alene en autentisert innkommende bot-POST.
 
 Til utvikling beskriver [Microsofts veiledning for å teste Teams-boter lokalt](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/add-authentication#testing-the-bot-locally-in-teams) hvordan du eksponerer en lokal tjeneste med en tunnel. Videresend til en proxy som tillater bot-endepunktet, og bruk `/api/microsoft-bot/messages` i stedet for Microsofts eksempelsti `/api/messages`. Oppdater det konfigurerte vertsnavnet og Azure Bot-endepunktet hver gang den offentlige URL-en til tunnelen endres, stopp tunnelen etter testingen, og bruk en stabil ingress i produksjon. En tunnel åpner også for innkommende tilgang.
 
@@ -357,13 +357,13 @@ Microsoft avviste postingen (med egne ord `BotNotInConversationRoster`), og OneU
 
 Gi **TeamsAppInstallation.ReadForTeam.All** (trinn 2), slik at OneUptime forteller deg hvilken av disse det er, i stedet for å liste dem.
 
-### Varsler fungerer i ett team, men ikke i et annet
+### Varslinger fungerer i ett team, men ikke i et annet
 
-Installasjon skjer per team. Å legge til OneUptime i ett team gjør ingenting for andre team, og det gjør heller ikke det å koble til integrasjonen: det gir *lesetilgang* til Graph i hele leietakeren, og derfor kan kanalvelgeren vise deg kanaler fra team der boten ikke kan poste. Fullfør **trinn 9** i hvert team der du vil ha varsler.
+Installasjon skjer per team. Å legge til OneUptime i ett team gjør ingenting for andre team, og det gjør heller ikke det å koble til integrasjonen: det gir *lesetilgang* til Graph i hele leietakeren, og derfor kan kanalvelgeren vise deg kanaler fra team der boten ikke kan poste. Fullfør **trinn 9** i hvert team der du vil ha varslinger.
 
-### "Test regel" fungerer, men ekte varsler kommer aldri frem
+### "Test regel" fungerer, men ekte varslinger kommer aldri frem
 
-Kontroller hvilke mål regelen faktisk har slått på. En regel tester bare det den er satt opp for: med **Opprett en kanal for hver hendelse** slått på oppretter testen en kanal og poster i den, noe som beviser at boten kan poste *i teamet der den kanalen ble opprettet*, og ingenting om andre team. **Prosjektinnstillinger > Varsler > Varsellogger** registrerer hver testsending, inkludert den nøyaktige feilen fra Microsoft når en mislykkes.
+Kontroller hvilke mål regelen faktisk har slått på. En regel tester bare det den er satt opp for: med **Opprett en kanal for hver hendelse** slått på oppretter testen en kanal og poster i den, noe som beviser at boten kan poste *i teamet der den kanalen ble opprettet*, og ingenting om andre team. **Prosjektinnstillinger > Varslinger > Varslingslogger** registrerer hver testsending, inkludert den nøyaktige feilen fra Microsoft når en mislykkes.
 
 ### "Sorry, I couldn't find your project configuration"
 

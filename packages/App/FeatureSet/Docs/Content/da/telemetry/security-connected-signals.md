@@ -1,6 +1,6 @@
 # Forbundne signaler
 
-En sikkerhedssag siger, hvilke brugere, værter og adresser den handler om. Forbundne signaler siger, hvilke af dem OneUptime allerede kender - dine værter, containerværter, Kubernetes-klynger, OpenStack-clouds, netværksenheder, cloud-ressourcer, serverløse funktioner, tjenester, de monitorer, der tjekker dem, og medlemmer - og hvad der skete på hver af dem omkring sagen: dens protokoller, spor og metrikker, de hændelser og advarsler, der er åbne på den, de monitorer, der overvåger den, og hvad der ændrede sig på den. Den søger også i selve dine protokoller og spor efter dem: en angribers adresse i en webservers adgangslog, en lækket e-mail i en applikations fejl. Omvendt siger siden for en vært, en klynge, en cloud-ressource, en tjeneste, en monitor eller et medlem, hvad Security Events har fundet om den.
+En sikkerhedssag siger, hvilke brugere, værter og adresser den handler om. Forbundne signaler siger, hvilke af dem OneUptime allerede kender - dine værter, containerværter, Kubernetes-klynger, OpenStack-clouds, netværksenheder, cloud-ressourcer, serverløse funktioner, tjenester, de monitorer, der tjekker dem, og medlemmer - og hvad der skete på hver af dem omkring sagen: dens protokoller, spor og metrikker, de hændelser og advarsler, der er åbne på den, de monitorer, der overvåger den, og hvad der ændrede sig på den. Den søger også i selve dine protokoller og spor efter dem: en angribers adresse i en webservers adgangslog, en lækket e-mail i en applikations fejl. Omvendt siger siden for en vært, en klynge, en cloud-ressource, en tjeneste, en monitor eller et medlem, hvad Sikkerhedshændelser har fundet om den.
 
 :::cards
 - [Hvor du ser det](#hvor-du-ser-det): En sags side, en begivenheds fane, en entitets side og siderne for det, de nævner.
@@ -90,7 +90,7 @@ Under posterne søger Forbundne signaler i dine protokoller og spor, i det samme
 - Forbundne signaler og en posts **Sikkerhed**-kort kræver en rolle, der kan læse sikkerhedsbegivenheder: Sikkerhedsadministrator, Sikkerhedsmedlem, Sikkerhedsseer, Projektejer eller Projektadministrator. Alle andre ser ingen sikkerhedsdata på nogen side. Se [Roller](/docs/permissions/reference#roller).
 - En hændelses **Sikkerhed**-kort kræver en rolle, der kan læse sikkerhedssager.
 - Hver post læses med din egen rolle, og det samme gør det, der er på den: en rolle, der ikke kan læse vagtplaner, får ikke et medlems vist. En slags post, din rolle ikke kan læse, udelades, og siden siger det; en, der ikke kunne læses lige nu, siger det også, med **Prøv igen**.
-- En posts side viser kun sit **Sikkerhed**-kort i et projekt, der bruger Security Events: et, der har modtaget en sikkerhedsbegivenhed i de seneste 7 dage.
+- En posts side viser kun sit **Sikkerhed**-kort i et projekt, der bruger Sikkerhedshændelser: et, der har modtaget en sikkerhedsbegivenhed i de seneste 7 dage.
 
 ## Hændelser, som en sag erklærer
 

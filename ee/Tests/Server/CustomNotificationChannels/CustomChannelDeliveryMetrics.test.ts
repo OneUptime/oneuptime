@@ -77,6 +77,7 @@ import SignedWebhookPost from "App/FeatureSet/Notification/Utils/SignedWebhookPo
 import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "Common/Tests/Server/TestingUtils/WebhookAddressCheck";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -121,7 +122,9 @@ let find: jest.SpiedFunction<
   typeof CustomNotificationChannelService.findOneById
 >;
 let post: jest.SpiedFunction<typeof API.post>;
-let ssrf: jest.SpiedFunction<typeof SSRFProtection.validateWebhookTargetIsSafe>;
+let ssrf: jest.SpiedFunction<
+  typeof SSRFProtection.validateAndResolveWebhookTarget
+>;
 
 async function send(
   overrides: { isTest?: boolean; withTimeline?: boolean } = {},
@@ -158,9 +161,10 @@ beforeEach(() => {
   post = jest
     .spyOn(API, "post")
     .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}) as never);
-  ssrf = jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined as never);
+  // The check every send runs, approving each URL (WebhookAddressCheck).
+  ssrf = approveEveryWebhookAddress() as unknown as jest.SpiedFunction<
+    typeof SSRFProtection.validateAndResolveWebhookTarget
+  >;
   // The notification's on-call log row, written over Sending only.
   const timeline: OnCallTimelineRows = new OnCallTimelineRows();
   timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);

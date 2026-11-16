@@ -56,9 +56,32 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DataObservability: { way: "a text per language" },
   Docker: { way: "a setup guide's words" },
   Podman: { way: "a setup guide's words" },
+  Proxmox: { way: "a setup guide's words" },
+  StorageArray: { way: "a setup guide's words" },
+  Kubernetes: { way: "a setup guide's words" },
+  IoT: { way: "a setup guide's words" },
+  Ceph: { way: "a setup guide's words" },
+  DockerSwarm: { way: "a setup guide's words" },
+  OpenStack: { way: "a setup guide's words" },
+  VMware: { way: "a setup guide's words" },
+  Database: { way: "a setup guide's words" },
+  Host: { way: "a setup guide's words" },
+  MessageQueue: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
+  },
+  /*
+   * The page, and the catalog it draws: the sources a row comes from, what
+   * deleting one does, the categories and every kind of thing in them.
+   */
+  Inventory: {
+    way: "locale keys",
+    files: [
+      "Pages/Inventory/Documentation.tsx",
+      "Components/Inventory/InventorySource.ts",
+      "Components/Inventory/InventoryTypeCatalog.ts",
+    ],
   },
   Exceptions: { way: "locale keys", files: TELEMETRY_FILES },
   Logs: { way: "locale keys", files: TELEMETRY_FILES },
@@ -76,23 +99,11 @@ const PAGES: Readonly<Record<string, PageReading>> = {
 
 /*
  * The pages that still read English in some language: their setup guide's
- * markdown has no words in any other language yet, or (Inventory) its keys
- * are English in most locale files. #8341. Only ever shorter.
+ * markdown has no words in any other language yet. #8341. Only ever
+ * shorter, and empty since the Queues guide (MessageQueue) has its words:
+ * a new product's page reads one of the three ways from its first day.
  */
-const STILL_IN_ENGLISH: ReadonlyArray<string> = [
-  "Ceph",
-  "Database",
-  "DockerSwarm",
-  "Host",
-  "Inventory",
-  "IoT",
-  "Kubernetes",
-  "MessageQueue",
-  "OpenStack",
-  "Proxmox",
-  "StorageArray",
-  "VMware",
-];
+const STILL_IN_ENGLISH: ReadonlyArray<string> = [];
 
 // Every product that has a Help > Documentation page.
 function productsWithADocumentationPage(): Array<string> {
@@ -201,16 +212,23 @@ describe("every product's Help > Documentation page", () => {
     ).toEqual([...guides].sort());
 
     for (const product of SETUP_GUIDE_DOCUMENTATION_PRODUCTS) {
-      const page: string = fs.readFileSync(
-        path.join(DASHBOARD_SOURCE, "Pages", product.name, "Documentation.tsx"),
-        "utf8",
+      const pageFile: string = path.join(
+        DASHBOARD_SOURCE,
+        "Pages",
+        product.name,
+        "Documentation.tsx",
       );
+      const page: string = fs.readFileSync(pageFile, "utf8");
+      // The files the page imports, by relative path ("./Utils/Card").
+      const imported: Array<string> = [
+        ...page.matchAll(/from\s+"(\.{1,2}\/[^"]+)"/g),
+      ].map((match: RegExpMatchArray): string => {
+        return path.resolve(path.dirname(pageFile), match[1] as string);
+      });
 
       expect({
         product: product.name,
-        drawsItsCard: page.includes(
-          `Components/${product.name}/DocumentationCard`,
-        ),
+        drawsItsCard: imported.includes(product.cardFile.replace(/\.tsx$/, "")),
       }).toEqual({ product: product.name, drawsItsCard: true });
       expect(Object.keys(product.translations).length).toBe(
         DASHBOARD_LANGUAGES.length,
@@ -293,6 +311,19 @@ describe("the checks above (negative control)", () => {
   test("the scan finds what a page hands the translator", () => {
     expect(sentencesOf("Pages/DataSecurity/Documentation.tsx")).toContain(
       "What is Data Security?",
+    );
+  });
+
+  test("the scan finds what a catalog marks as a key: Inventory's caveats and categories", () => {
+    expect(sentencesOf("Components/Inventory/InventorySource.ts")).toEqual(
+      expect.arrayContaining([
+        "Discovered",
+        "This item was discovered from telemetry. Deleting it clears it from the list, but it will be re-created the next time it sends data.",
+        "This item's source is unknown to this version of OneUptime. Deleting it may not be permanent.",
+      ]),
+    );
+    expect(sentencesOf("Components/Inventory/InventoryTypeCatalog.ts")).toEqual(
+      expect.arrayContaining(["Network & Devices", "A Ceph storage cluster."]),
     );
   });
 });

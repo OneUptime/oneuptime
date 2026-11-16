@@ -117,7 +117,7 @@ cp config.example.env config.env
 
 ### Imposta il nome host
 
-Apri `config.env` e imposta `HOST` sul nome di dominio o sull'indirizzo IP che verrà usato per raggiungere OneUptime, senza `http://`. Lascia `localhost` solo per provare OneUptime sul tuo computer.
+Apri `config.env` e imposta `HOST` sul nome di dominio o sull'indirizzo IP che verrà usato per raggiungere OneUptime, senza `http://`. Lascia `localhost` solo per provare OneUptime sul tuo computer. Un indirizzo IPv6 va tra parentesi quadre, come in un indirizzo web, con l'eventuale porta dopo di esse: `HOST=[2001:db8::1]:8080`.
 
 ```ini title="config.env"
 HOST=oneuptime.example.com
@@ -469,7 +469,7 @@ MQTT_INGEST_ENABLED=false
 | Impostazione | Cosa fa |
 | --- | --- |
 | `SERVER_PRODUCTS=monitoring-and-status-pages` | Ogni progetto offre Monitor, Incidenti, Reperibilità, Pagine di stato e Manutenzione programmata. |
-| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime non conserva nessuno dei log, delle metriche, delle trace o dei profili che riceve. Registri, Metriche, Tracce, Profili di prestazioni ed Eccezioni risultano disattivati. |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime non conserva nessuno dei log, delle metriche, delle trace o dei profili che riceve. Log, Metriche, Tracce, Profili di prestazioni ed Eccezioni risultano disattivati. |
 | `GLOBAL_RUNNER_REPLICAS=0` | Il servizio `global-runner` non si avvia. Lo usano solo i runbook e le correzioni del codice di OneUptime AI. |
 | `MQTT_INGEST_ENABLED=false` | I listener MQTT a cui inviano i dati i dispositivi IoT sono disattivati. |
 

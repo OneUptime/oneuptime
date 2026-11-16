@@ -1,4 +1,3 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
 import {
   describeClusterToolOutcome,
   ClusterToolOutcome,
@@ -28,12 +27,15 @@ import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/Res
 import Icon from "Common/UI/Components/Icon/Icon";
 import {
   composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
   getGlobalTranslator,
   TemplateValue,
   translatableTerm,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatDurationInUnit } from "../../Utils/Milliseconds";
 import { formatNameList, getListSeparator } from "../AiAccess/AiAccessModes";
 import {
   EvidenceToolDescription,
@@ -832,39 +834,26 @@ export function describeFollowUpCheck(
 
 /*
  * How long a step took, as its detail says it beside its rows: "0.6s" in
- * English, and in the reader's language its own way ("0,6 Sek.", "۰٫۶s"),
- * so "1.234 Zeilen · 0,6 Sek." writes its two figures alike. An engine
- * without Intl's unit style writes the English.
+ * English, and in the reader's language its own way ("0,6 Sek.", "۰٫۶
+ * ثانیه"), so "1.234 Zeilen · 0,6 Sek." writes its two figures alike. The
+ * Dashboard's seconds (formatDurationInUnit), as every other step and
+ * span writes them (#8455); an engine without Intl's unit style writes the
+ * figure in the reader's digits beside the short "s".
  */
 export function formatStepDuration(
   durationInMs: number,
   language: string | undefined,
 ): string {
   const seconds: number = durationInMs / 1000;
-  const english: string = `${seconds.toFixed(1)}s`;
 
-  if (!language || language === "en" || language.startsWith("en-")) {
-    return english;
-  }
-
-  try {
-    const said: string = new Intl.NumberFormat(getNumberLocale(language), {
-      style: "unit",
-      unit: "second",
-      unitDisplay: "narrow",
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    } as Intl.NumberFormatOptions).format(seconds);
-    const bare: string = seconds.toLocaleString(getNumberLocale(language), {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    });
-
-    // The unit style not known: the bare number alone would lose the unit.
-    return said === bare ? english : said;
-  } catch {
-    return english;
-  }
+  return formatDurationInUnit(
+    createTranslator(undefined, language || DEFAULT_LANGUAGE, {
+      drawsOnPage: true,
+    }),
+    seconds,
+    "second",
+    { decimals: 1, english: `${seconds.toFixed(1)}s` },
+  );
 }
 
 // An address an action's line carries, which makes the line its link.

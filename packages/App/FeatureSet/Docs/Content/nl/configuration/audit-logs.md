@@ -43,7 +43,7 @@ Ga naar **Projectinstellingen → Auditlogboeken → Instellingen**. **Auditlogb
 
 ### De instellingen bewerken
 
-Klik op **Edit Audit Log Settings**.
+Klik op **Instellingen van auditlogboeken bewerken**.
 
 ### Het aanzetten
 
@@ -65,10 +65,10 @@ Een wijziging van deze instellingen geldt binnen een minuut.
 | Kolom | Wat die toont |
 | --- | --- |
 | **Wanneer** | Hoe lang geleden, met datum en tijd. |
-| **Actie** | `Create`, `Update` of `Delete`, `Download` voor een pakketopnamebestand dat iemand heeft gedownload, of `Sign In`, `Sign Out`, `Session Timeout` of `Session Revoked` voor een sessie. |
+| **Actie** | `Create`, `Update` of `Delete`, `Download` voor een pakketopnamebestand dat iemand heeft gedownload, of `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` of `Session Revoked` voor een aanmelding of een sessie. |
 | **Resource** | De naam van de resource, die deze opent zolang die bestaat, en het type. |
 | **Actor** | Wie de wijziging deed: een persoon, een API-sleutel, een workflow of `System` voor een wijziging die OneUptime zelf deed. Bij de wijziging van een persoon via een MCP-client staat welke. |
-| **Wijzigingen** | Hoeveel velden zijn gewijzigd, of bij een aanmaak of verwijdering zijn vastgelegd. Bij een sessie: hoe die is aangemeld of waarom die eindigde. Klik erop om elk veld te zien. |
+| **Wijzigingen** | Hoeveel velden zijn gewijzigd, of bij een aanmaak of verwijdering zijn vastgelegd. Bij een aanmelding of een sessie: hoe er is aangemeld, waarom dat mislukte of waarom de sessie eindigde. Klik erop om elk veld te zien. |
 
 Filter op **Resourcetype**, **Resourcenaam**, **Actie**, **E-mailadres gebruiker** of **Tijd**. Een wijziging toont alleen de velden die zijn veranderd, ervoor en erna, en een opslag die niets verandert, voegt geen vermelding toe.
 
@@ -86,7 +86,7 @@ Alles wat mensen in een project maken, wijzigen of verwijderen, wordt vastgelegd
 | Vastleggingen van uitvoeringen | Elk is al de vastlegging van een workflowuitvoering, een piketescalatie, een scan, een import of een AI-uitvoering. |
 | Wat agents en telemetrie rapporteren | Gevonden resources, metingen en gebruik veranderen bij elk rapport, niet omdat iemand ze heeft gewijzigd. |
 | Activiteitenfeeds | Een feed toont wijzigingen die het auditlogboek al vastlegt. |
-| De werkstatus van OneUptime | Sessies van lezers van statuspagina's, taken in de wachtrij en andere status die OneUptime bijhoudt terwijl het werkt. |
+| De werkstatus van OneUptime | Taken in de wachtrij en andere status die OneUptime bijhoudt terwijl het werkt. |
 | De eigen meldingsinstellingen van een persoon | De adressen, nummers en persoonlijke piketregels van ieder persoon zijn alleen van hem of haar. |
 | De eigen voorkeuren van een persoon | De producten die ieder persoon in de eigen bovenbalk vastzet, zijn alleen van hem of haar, en alleen die persoon ziet ze. |
 
@@ -114,13 +114,18 @@ Elke keer dat een lid van het project zich bij OneUptime aanmeldt, legt het audi
 | Actie | Wanneer het wordt vastgelegd |
 | --- | --- |
 | `Sign In` | Iemand meldt zich aan: met een wachtwoord of een inloglink, een passkey, Google, Microsoft, Vercel of single sign-on. |
+| `Sign-In Failed` | Iemand probeert zich aan te melden bij een bestaand account en dat mislukt: een verkeerd wachtwoord, een verkeerde authenticatorcode, back-upcode of beveiligingssleutel, een geblokkeerd of niet-geverifieerd account, of een single sign-on die OneUptime heeft geweigerd. |
 | `Sign Out` | Diegene meldt zich af. |
 | `Session Timeout` | OneUptime beëindigt de sessie omdat de tijd om is: de inactiviteitsduur of sessieduur die een serverbeheerder heeft ingesteld, of 30 dagen zonder gebruik. |
-| `Session Revoked` | OneUptime beëindigt de sessie omdat het wachtwoord is gewijzigd, het account is geblokkeerd, of een serverbeheerder tweestapsverificatie heeft gereset of verplicht heeft gesteld. |
+| `Session Revoked` | OneUptime beëindigt de sessie omdat het wachtwoord is gewijzigd, het account is geblokkeerd, of een serverbeheerder tweefactorauthenticatie heeft gereset of verplicht heeft gesteld. |
 
 De **Resource** van een vermelding is de sessie, genoemd naar het apparaat waarop de aanmelding plaatsvond, zoals `Chrome 130 on macOS`. De **Actor** is de persoon van wie de sessie is, dus filteren op **E-mailadres gebruiker** vindt al diens aanmeldingen en sessies. De details vermelden hoe diegene zich aanmeldde en met welke tweede factor, het IP-adres en de plaats, en bij een geëindigde sessie wanneer die werd aangemeld, wanneer die het laatst werd gebruikt en wanneer die verliep. De eigen SSO-provider van een project wordt alleen in het auditlogboek van dat project genoemd.
 
-Aanmeldingen en sessies worden vastgelegd, of het project systeemgebeurtenissen opslaat of niet. Een verstreken sessieduur of 30 dagen zonder gebruik wordt binnen enkele minuten vastgelegd. Een verstreken inactiviteitsduur in de browser wordt binnen 35 minuten vastgelegd, of de persoon nu terugkomt of niet. In de mobiele app wordt die vastgelegd wanneer de app de volgende keer contact maakt met OneUptime.
+Een `Sign-In Failed`-vermelding gaat over de poging en is genoemd naar het apparaat waar die vandaan kwam. De **Actor** is het account waarop de poging is gedaan: wie die deed, heeft niet bewezen die persoon te zijn. De details vermelden waarom het mislukte, hoe diegene zich probeerde aan te melden, het IP-adres en de plaats, nooit wat er werd getypt. Een poging met een e-mailadres dat bij geen enkel account hoort, wordt niet vastgelegd, en het vastleggen van een poging verandert niets aan wat de aanmeldpagina antwoordt of hoe snel. Zodat een stroom pogingen het auditlogboek niet kan vullen, worden de eerste 10 mislukte pogingen op een account binnen een uur een voor een vastgelegd. De rest wordt geteld, en de volgende vermelding van het account vermeldt voor hoeveel pogingen die staat en wanneer de eerste ervan werd gedaan.
+
+Ook de lezers van een privéstatuspagina worden vastgelegd, alleen in het project van de statuspagina: elke aanmelding met een wachtwoord, een inloglink of de single sign-on van de statuspagina, elke afmelding, en elke sessie die OneUptime beëindigt omdat het wachtwoord van de lezer is gewijzigd of de statuspagina de manier waarop die is aangemeld niet meer accepteert. Hun vermeldingen staan ook op de eigen pagina **Auditlogboeken** van de statuspagina. Hun **Actor** is de lezer, met diens e-mailadres, en hun **Resource** is de sessie van de lezer.
+
+Aanmeldingen en sessies worden vastgelegd, of het project systeemgebeurtenissen opslaat of niet. Een verstreken sessieduur of 30 dagen zonder gebruik wordt binnen enkele minuten vastgelegd. Een verstreken inactiviteitsduur in de browser, of in een versie van de mobiele app nieuwer dan 1.6.0, wordt binnen 35 minuten vastgelegd, of de persoon nu terugkomt of niet. In versie 1.6.0 en ouder van de mobiele app wordt die vastgelegd wanneer de app de volgende keer contact maakt met OneUptime.
 
 ## Hoe lang vermeldingen blijven
 

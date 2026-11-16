@@ -26,7 +26,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 :::cards
 - [Sammenlign utgavene](#hva-hver-utgave-inneholder): Hva Enterprise Edition legger til.
 - [Kjør Enterprise-imaget](#kjøre-enterprise-edition): Én innstilling, på Kubernetes eller Docker Compose.
-- [Aktiver en lisens](#lisensiering): Nettbasert med en nøkkel, eller frakoblet med et signert token.
+- [Aktiver en lisens](#lisensiering): Nettbasert med en nøkkel, eller offline med et signert token.
 - [Når en lisens utløper](#når-en-lisens-utløper-eller-mangler): Hva som stopper, hva som aldri stopper, og hvordan det kommer tilbake.
 :::
 
@@ -132,20 +132,20 @@ Installasjonen kontrollerer nøkkelen hos OneUptime og lagrer lisensen den motta
 
 Nettbasert aktivering krever utgående HTTPS fra OneUptime-serveren til `https://oneuptime.com`. Hvis serveren bare når internett gjennom et relé, angir du `ENTERPRISE_LICENSE_SERVER_URL` til reléets `https://`-adresse. Reléet må videresende `/api/enterprise-license/` til oneuptime.com.
 
-### Frakoblet aktivering (installasjoner uten nettverkstilgang)
+### Offline aktivering (installasjoner uten nettverkstilgang)
 
 En installasjon uten rute til internett kan bruke et **signert lisenstoken** i stedet for en nøkkel:
 
 :::steps
-1. Logg på som hovedadministrator, åpne **Admin Dashboard > Innstillinger > Lisens**, bytt til frakoblet aktivering og noter **instans-ID-en**.
-2. Be OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) om et frakoblet lisenstoken for den instans-ID-en.
+1. Logg på som hovedadministrator, åpne **Admin Dashboard > Innstillinger > Lisens**, bytt til offline aktivering og noter **instans-ID-en**.
+2. Be OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) om et offline lisenstoken for den instans-ID-en.
 3. Lim inn tokenet i tokenfeltet og aktiver det.
 :::
 
 Installasjonen verifiserer tokenet selv, mot OneUptimes signeringsnøkler som er bygd inn i releasen din. Den kontakter aldri OneUptime. Et token utstedt for én instans-ID avvises av alle andre installasjoner, og et token utstedt uten instans-ID (slik som tokenet en nettbasert aktivert installasjon mottar) avvises også. For å fornye eller legge til plasser aktiverer du et nytt token før det nåværende utløper.
 
 > [!IMPORTANT]
-> **Frakoblet aktivering krever en release som stoler på OneUptimes lisenssigneringsnøkkel.** Hvis releasen din ennå ikke inneholder den nøkkelen, mislykkes aktiveringen med "this build does not trust the key that signed this token". Aktiver i så fall nettbasert, eller oppgrader til en release som inneholder nøkkelen.
+> **Offline aktivering krever en release som stoler på OneUptimes lisenssigneringsnøkkel.** Hvis releasen din ennå ikke inneholder den nøkkelen, mislykkes aktiveringen med "this build does not trust the key that signed this token". Aktiver i så fall nettbasert, eller oppgrader til en release som inneholder nøkkelen.
 
 ### Hva den daglige lisenssynkroniseringen sender
 
@@ -162,7 +162,7 @@ Svaret inneholder lisensen slik OneUptime kjenner den den dagen: firmanavn, utl�
 
 Når du aktiverer eller oppdaterer lisensen, sender installasjonen bare lisensnøkkelen, instans-ID-en, vertsnavnet og versjonen.
 
-Ingenting annet sendes. Ingen overvåkingsdata, telemetri, logger eller konfigurasjon forlater installasjonen. Community Edition sender ikke noe av dette, og det gjør heller ikke en frakoblet aktivert installasjon.
+Ingenting annet sendes. Ingen overvåkingsdata, telemetri, logger eller konfigurasjon forlater installasjonen. Community Edition sender ikke noe av dette, og det gjør heller ikke en offline aktivert installasjon.
 
 ### Når en lisens utløper eller mangler
 
@@ -196,7 +196,7 @@ Hva som stopper når en lisens utløper:
 - **Overstyringer av oppbevaring slutter å gjelde.** Ny telemetri beholdes i prosjektets standardoppbevaring. Telemetri som allerede er lagret, beholder oppbevaringen den ble skrevet med. Du kan fortsatt fjerne en overstyring via API-et, men ikke angi en.
 - **Statussider viser Powered by OneUptime igjen.** En side som skjuler linjen, viser den til en lisens aktiveres. Innstillingen beholdes.
 - **Planlagte sikkerhetskopier stopper.** Ingen ny sikkerhetskopi lages. Sikkerhetskopier som allerede er laget, blir værende på målet sitt, og du kan fortsatt gjenopprette og slette dem.
-- **Egendefinerte kanaler stopper.** Ingen vaktvarsler eller andre varsler sendes til en egendefinert kanal, og ingen tilbys i vaktregler. Kanalene og reglene som bruker dem, beholdes, og du kan fortsatt slette en kanal.
+- **Egendefinerte kanaler stopper.** Ingen vaktvarslinger eller andre varslinger sendes til en egendefinert kanal, og ingen tilbys i vaktregler. Kanalene og reglene som bruker dem, beholdes, og du kan fortsatt slette en kanal.
 
 Hva som **ikke** stopper:
 
@@ -235,7 +235,7 @@ Konfigurasjonen din blir værende i databasen. Et bytte tilbake til Enterprise-i
 `IS_ENTERPRISE_EDITION=true` er angitt på Community-imaget. Angi `APP_TAG=enterprise-<version>` for å beholde Enterprise Edition, eller `IS_ENTERPRISE_EDITION=false` for å kjøre Community Edition, og kjør deretter `npm run update` på nytt.
 :::
 
-:::details Frakoblet aktivering mislykkes med "this build does not trust the key that signed this token"
+:::details Offline aktivering mislykkes med "this build does not trust the key that signed this token"
 Releasen din ble bygd før den stolte på OneUptimes lisenssigneringsnøkkel. Aktiver nettbasert, eller oppgrader til en release som inneholder nøkkelen.
 :::
 

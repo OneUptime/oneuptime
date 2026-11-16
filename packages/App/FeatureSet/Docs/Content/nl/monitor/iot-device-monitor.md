@@ -44,7 +44,7 @@ flowchart TB
 
 Ga naar **Monitoren** en klik op **Monitor maken**.
 
-### IoT Device kiezen
+### IoT-apparaat kiezen
 
 Klik onder **Monitortype** op **Meer monitortypen** en kies **IoT-apparaat** onder **Infrastructuur**, of typ `iot` in het zoekvak. Vul een **Naam** in - die wordt gebruikt in de titels van incidenten en waarschuwingen - en klik op **Volgende**.
 
@@ -82,7 +82,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **IoT Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; templates stellen hun eigen venster in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregeren op**, **Filteren op attributen**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
 De filters werken samen: met een **Device ID** en een **Apparaattype** komt een apparaat van een ander type met niets overeen.
 
@@ -95,7 +95,7 @@ Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn v
 | Template | Categorie | Ernst | Houdt in de gaten | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Beschikbaarheid | Kritiek | `iot_device_up`, Min per `device.id`, laatste 30 minuten | Een meting ligt onder 1, of een geregistreerd apparaat stuurt het hele venster niets | Weer op 1 |
-| Low Battery | Power | Waarschuwing | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
+| Low Battery | Voeding | Waarschuwing | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
 | Weak Signal | Connectiviteit | Waarschuwing | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
 | High Temperature | Omgeving | Kritiek | `iot_temperature_celsius`, Max per `device.id`, laatste 5 minuten | Boven 70 °C | Op 63 °C of lager |
 | High CPU Usage | Systeem | Waarschuwing | `iot_cpu_usage_ratio`, Avg per `device.id`, laatste 5 minuten | Boven 0.9 (90 % van zijn CPU) | Op 0.81 of lager |
@@ -160,8 +160,8 @@ Een monitor die je niet vanuit een template bouwt, begint met twee criteria:
 
 | Volgorde | Criterium | Komt overeen als | Dan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | De eerste query heeft in het hele venster geen gegevens | Markeert de monitor als **Offline** en verklaart het incident "_monitor name_ is offline", dat vanzelf wordt opgelost als de monitor herstelt. |
-| 2 | Check if _monitor name_ is online | De eerste query heeft gegevens | Markeert de monitor als **Operationeel**. |
+| 1 | Controleer of _monitornaam_ offline is | De eerste query heeft in het hele venster geen gegevens | Markeert de monitor als **Offline** en verklaart het incident "_monitornaam_ is offline", dat vanzelf wordt opgelost als de monitor herstelt. |
+| 2 | Controleer of _monitornaam_ online is | De eerste query heeft gegevens | Markeert de monitor als **Operationeel**. |
 
 > [!IMPORTANT]
 > Een waarde van `0` is ook data: een metric die vaak nul is, zoals herstarts of fouten, zet de monitor niet offline. Wilt u een melding bij een waarde, begin dan met een sjabloon of voeg een criterium met een drempel toe. Komt er helemaal geen data binnen en past geen enkel criterium, dan houdt de monitor zijn status en blijven open incidenten open: stilte is geen herstel. Tijd waarin OneUptime zelf geen data ontving, telt nooit als geen data: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.

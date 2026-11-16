@@ -327,7 +327,7 @@ describe("ExceptionAIAssistance", () => {
       expect(
         within(notice).getByTestId("code-blocker-who-can"),
       ).toHaveTextContent(
-        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+        "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
       );
       expectNothingToStart();
     });

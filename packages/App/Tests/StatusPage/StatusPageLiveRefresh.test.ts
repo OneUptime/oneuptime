@@ -154,14 +154,14 @@ describe("StatusPageLiveRefreshUtil.formatRelativeTime", () => {
         secondsAgo: 42,
         locale: "en",
       }),
-    ).toBe("42 seconds ago");
+    ).toBe("42\u00A0seconds ago");
 
     expect(
       StatusPageLiveRefreshUtil.formatRelativeTime({
         secondsAgo: 60,
         locale: "en",
       }),
-    ).toBe("1 minute ago");
+    ).toBe("1\u00A0minute ago");
   });
 
   test("a page just refreshed says now", () => {
@@ -208,13 +208,13 @@ describe("StatusPageLiveRefreshUtil.formatRelativeTime", () => {
         secondsAgo: 90,
         locale: "not a locale!!",
       }),
-    ).toBe("1 minute ago");
+    ).toBe("1\u00A0minute ago");
   });
 
   test("no locale at all still produces a sentence", () => {
     expect(
       StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 7200 }),
-    ).toBe("2 hours ago");
+    ).toBe("2\u00A0hours ago");
   });
 
   test("the English fallback pluralises correctly", () => {
@@ -229,16 +229,16 @@ describe("StatusPageLiveRefreshUtil.formatRelativeTime", () => {
 
       expect(
         StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 60 }),
-      ).toBe("1 minute ago");
+      ).toBe("1\u00A0minute ago");
       expect(
         StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 180 }),
-      ).toBe("3 minutes ago");
+      ).toBe("3\u00A0minutes ago");
       expect(
         StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 1 }),
       ).toBe("now");
       expect(
         StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 86400 }),
-      ).toBe("1 day ago");
+      ).toBe("1\u00A0day ago");
     } finally {
       (Intl as unknown as { RelativeTimeFormat: unknown }).RelativeTimeFormat =
         original;

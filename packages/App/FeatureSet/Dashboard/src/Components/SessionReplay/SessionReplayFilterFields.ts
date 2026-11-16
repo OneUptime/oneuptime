@@ -13,6 +13,7 @@ import {
   DEFAULT_LANGUAGE,
   Translator,
 } from "Common/Types/Translator";
+import { formatCompactDuration } from "Common/Utils/Milliseconds";
 import {
   getSessionReplayPermissionTitle,
   SESSION_REPLAY_IDENTITY_PERMISSION,
@@ -191,7 +192,9 @@ export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
   },
 ];
 
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 /*
  * The line under a field in the reader's language, or null for a field
@@ -233,6 +236,11 @@ export interface SessionReplayFilterChipOptions {
   hideIdentity?: boolean | undefined;
   /* The search text is visible in the box itself; the chip is redundant there. */
   hideSearch?: boolean | undefined;
+  /*
+   * The reader's, for a chip's duration in their units and digits (">= 30
+   * Sek.", ">= ۳۰ ثانیه"; #8455). English without one.
+   */
+  translator?: Translator | undefined;
 }
 
 /*
@@ -299,7 +307,11 @@ export function buildSessionReplayFilterChips(
       chips.push({
         field: field.field,
         label: "Min duration",
-        text: `>= ${seconds}s`,
+        text: `>= ${formatCompactDuration(
+          options?.translator || ENGLISH,
+          { seconds },
+          { decimals: 3, dropTrailingZeros: true },
+        )}`,
       });
       continue;
     }

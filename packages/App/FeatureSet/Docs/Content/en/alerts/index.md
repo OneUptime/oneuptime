@@ -106,7 +106,7 @@ The moment an alert is created, OneUptime works through these steps, in this ord
 
 A background job tells the alert's owners about a minute after it is created, every owner it has by then, and the **On Create Alert** workflow trigger starts any workflow built on it.
 
-To make people and teams the alert's owners as it is created, so that this notification reaches them and not the project's owners, hand them over with the create: over the API, send their ids in `miscDataProps`, as `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, with `POST /api/alert`; in a workflow, pick them under **Owner Users** and **Owner Teams** of **Create One Alert**; over MCP, pass `ownerUsers` and `ownerTeams` to `create_alert`. A request whose caller may not add those owners is refused before anything is saved. Owners that a separate request adds after the create hear of it only if they are in within that minute.
+To make people and teams the alert's owners as it is created, so that this notification reaches them and not the Project Owners, hand them over with the create: over the API, send their ids in `miscDataProps`, as `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, with `POST /api/alert`; in a workflow, pick them under **Owner Users** and **Owner Teams** of **Create One Alert**; over MCP, pass `ownerUsers` and `ownerTeams` to `create_alert`. A request whose caller may not add those owners is refused before anything is saved. Owners that a separate request adds after the create hear of it only if they are in within that minute.
 
 ### Created already acknowledged or resolved
 
@@ -152,7 +152,7 @@ While you work it, write down what you learn as **Private Notes**, fill in its *
 
 ## Private alerts
 
-A private alert is seen only by its owners, the owner users and the members of its owner teams, and by your project's admins and owners. Nobody else in the project can open it.
+A private alert is seen only by its owners, the owner users and the members of its owner teams, and by Project Admins and Project Owners. Nobody else in the project can open it.
 
 Make an alert private with **Private Alert** under **More fields** on the create form or in a monitor's criteria, with **Alerts → Rules → Privacy Rules**, or later on its **Settings** page, which asks **Make this alert private?** before it hides the alert. If you are none of those people, you lose access to it too.
 
@@ -161,7 +161,7 @@ An episode that a private alert opens is not private, so it never shows the aler
 ## Who hears about an alert
 
 - **On call.** The alert's on-call policies page their people, each the way they set it up under **User Settings → How to Reach Me**, on the **Alerts** tab. Answering the page acknowledges the alert, and paging stops.
-- **Its owners.** By email, unless they chose other channels under **User Settings → Notification Settings**, on the **Alerts** tab: **Alert created**, **Alert state changed** and **Alert reminder** are on by default, and **Alert note posted** and **Added as alert owner** are off until someone turns them on. An alert with no owners notifies the project's owners instead. If OneUptime stops while it is sending a notification, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.
+- **Its owners.** By email, unless they chose other channels under **User Settings → Notification Settings**, on the **Alerts** tab: **Alert created**, **Alert state changed** and **Alert reminder** are on by default, and **Alert note posted** and **Added as alert owner** are off until someone turns them on. An alert with no owners notifies the Project Owners instead. Someone the alert's on-call page has reached already is not notified again that it was created. If OneUptime stops while it is sending a notification, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.
 - **Your chat tools.** **Alerts → Workspace** holds the Slack and Microsoft Teams rules that post alerts and episodes to channels. See [Slack](/docs/workspace-connections/slack) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Troubleshooting

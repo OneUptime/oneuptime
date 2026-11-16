@@ -219,6 +219,7 @@ const StartVideoCallModal: FunctionComponent<ComponentProps> = (
           eventNoun,
         },
       )}
+      isTitleTranslated={true}
       description={translator.translateTemplate(
         "Its Join button is posted to the {{eventNoun}}'s Slack and Microsoft Teams channels and its feed.",
         { eventNoun },

@@ -16,11 +16,11 @@
 
 ```mermaid title="Ett arbetsflöde, ett GitLab-issue"
 flowchart TB
-    declared["Incident deklarerad"] --> workflow["Arbetsflöde:<br/>On Create Incident"]
+    declared["Incident deklarerad"] --> workflow["Arbetsflöde:<br/>Vid skapande:<br/>Incident"]
     workflow -->|"POST issues"| issue["GitLab-issue"]
 ```
 
-Arbetsflödet körs en gång för varje ny incident. Dess block **API Post (JSON)** skickar incidentens titel och beskrivning till projektets issues, signerade med en åtkomsttoken.
+Arbetsflödet körs en gång för varje ny incident. Dess block **API-anrop POST (JSON)** skickar incidentens titel och beskrivning till projektets issues, signerade med en åtkomsttoken.
 
 ## Innan du börjar
 
@@ -47,11 +47,11 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Incident**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning** och **Incident Number With Prefix**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Vid skapande: Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning** och **Incident Number With Prefix**.
 
 ### Öppna issuet
 
-Klicka på **Lägg till komponent**, lägg till ett block **API Post (JSON)** och anslut utlösarens punkt **Framgång** till det. Sätt dess **URL** till `https://gitlab.com/api/v4/projects/12345678/issues`, med ditt projekts ID i stället för `12345678`. Sätt under **Fler fält** dess **Begärandehuvuden** till:
+Klicka på **Lägg till komponent**, lägg till ett block **API-anrop POST (JSON)** och anslut utlösarens punkt **Framgång** till det. Sätt dess **URL** till `https://gitlab.com/api/v4/projects/12345678/issues`, med ditt projekts ID i stället för `12345678`. Sätt under **Fler fält** dess **Begärandehuvuden** till:
 
 ```json
 {
@@ -71,7 +71,7 @@ Och **Begärandekropp** på:
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `201`-svar med det nya issuet, med dess `iid` och dess `web_url`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API-anrop POST (JSON)** visar ett `201`-svar med det nya issuet, med dess `iid` och dess `web_url`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 Blocket skickar JSON, så det behöver ingen `Content-Type`-rubrik. GitLab skapar etiketter som det inte har sett förut, så `incident` och `oneuptime` behöver inte konfigureras. Issuet förblir öppet när incidenten är löst, eftersom uppföljningsarbetet oftast lever längre än incidenten.
@@ -81,11 +81,11 @@ Blocket skickar JSON, så det behöver ingen `Content-Type`-rubrik. GitLab skapa
 - **Ditt eget GitLab.** Skicka begäran till din server i stället: `https://gitlab.example.com/api/v4/projects/12345678/issues`. En server på en privat nätverksadress kräver en egenvärdad OneUptime vars administratör tillåter det: se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
 - **Projektets sökväg i stället för dess ID.** Sökvägen fungerar i stället för ID:t, med dess `/` skrivet som `%2F`: `projects/your-group%2Fyour-project/issues`. URL:en skickas exakt som den är skriven, så koda den själv.
 - **Tilldela det.** Lägg till `"assignee_ids": [42]` eller `"due_date": "2026-12-31"` i bodyn, eller `"confidential": true` för att bara visa det för projektmedlemmar.
-- **Bara vissa incidenter.** Sätt ett block **If / Else** mellan utlösaren och API-blocket, och öppna issues bara på dess **Ja**-sida, till exempel för en allvarlighetsgrad.
+- **Bara vissa incidenter.** Sätt ett block **Om / Annars** mellan utlösaren och API-blocket, och öppna issues bara på dess **Ja**-sida, till exempel för en allvarlighetsgrad.
 
 ## Felsökning
 
-Steget **API Post (JSON)** tar **Fel** när GitLab avvisar begäran. Dess **Response Status** och **Svarstext** i körningen säger varför.
+Steget **API-anrop POST (JSON)** tar **Fel** när GitLab avvisar begäran. Dess **Svarsstatus** och **Svarstext** i körningen säger varför.
 
 :::details GitLab svarar 401
 Token är fel, har gått ut eller har återkallats. Skapa en ny och ersätt innehållet i `GITLAB_TOKEN`.

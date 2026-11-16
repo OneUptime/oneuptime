@@ -304,6 +304,7 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
       return (
         <Modal
           title={say(guide.guideTitle)}
+          isTitleTranslated={true}
           description={say(guide.guideDescription)}
           modalWidth={ModalWidth.Large}
           onClose={closeGuide}

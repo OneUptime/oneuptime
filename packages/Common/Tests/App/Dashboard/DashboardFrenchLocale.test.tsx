@@ -25,6 +25,7 @@ import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import frenchLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fr.json";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
+import ProjectProducts from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectProducts/ProjectProductsStore";
 import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import {
@@ -211,11 +212,21 @@ beforeEach(() => {
   window.localStorage.clear();
   setViewportWidth(DESKTOP_WIDTH);
   goTo(`/dashboard/${PROJECT_ID}/home`);
+  /*
+   * The products menu reads the project's products when it opens. Answered
+   * here with no answer, the way an unanswered read is taken: every product
+   * as the menu lists it by default, never a request to the network.
+   */
+  ProjectProducts.setFetcher(async (): Promise<null> => {
+    return null;
+  });
 });
 
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+  ProjectProducts.setFetcher(null);
+  ProjectProducts.reset();
 });
 
 afterAll(() => {

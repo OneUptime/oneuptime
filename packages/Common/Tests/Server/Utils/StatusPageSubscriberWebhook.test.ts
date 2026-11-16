@@ -14,6 +14,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 
 /*
@@ -31,7 +32,7 @@ import dns from "dns";
  */
 
 describe("StatusPageSubscriberWebhookUtil.sendWebhookNotification", () => {
-  let postSpy: jest.SpiedFunction<typeof API.post>;
+  let postSpy: SpyInstance<typeof API.post>;
 
   const payload: StatusPageWebhookPayload = {
     eventType: "IncidentCreated",
@@ -51,7 +52,7 @@ describe("StatusPageSubscriberWebhookUtil.sendWebhookNotification", () => {
       .spyOn(API, "post")
       .mockResolvedValue(
         new HTTPResponse<JSONObject>(200, {}, {}) as never,
-      ) as unknown as jest.SpiedFunction<typeof API.post>;
+      ) as unknown as SpyInstance<typeof API.post>;
   });
 
   afterEach(() => {

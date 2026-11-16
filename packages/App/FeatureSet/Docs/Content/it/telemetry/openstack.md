@@ -39,7 +39,7 @@ Il cloud si registra da solo con i primi dati, con il nome che l'agente imposta 
 - Docker Engine 20.10 o successivo con il plugin Docker Compose v2 oppure, per eseguirlo senza Docker, una macchina Linux (x86_64 o arm64) con systemd 235 o successivo, glibc 2.34 o successiva (RHEL 9, Ubuntu 22.04, Debian 12) e root.
 - Una route da quella macchina a Keystone e all'endpoint pubblico di ogni servizio.
 - La riga di comando `openstack`, usata da qualcuno che possa creare la credenziale qui sotto.
-- Una chiave di ingestione. Creane una in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e copiane il valore.
+- Una chiave di acquisizione. Creane una in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e copiane il valore.
 - HTTPS in uscita da quella macchina verso l'URL di OneUptime.
 
 ### Dove eseguire l'agente
@@ -260,7 +260,7 @@ curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
 bash install.sh
 ```
 
-Lo script chiede l'URL di OneUptime, la chiave di ingestione, un nome stabile per il cloud, l'URL di autenticazione di Keystone, i nomi delle regioni, la credenziale applicativa (nome utente e password se rispondi di no) e un file CA privato se il cloud ha una propria autorità di certificazione. Nulla di segreto viene mostrato a video né finisce su una riga di comando. Verifica la credenziale con Keystone prima di scrivere o avviare qualsiasi cosa, installa in `/opt/oneuptime-openstack-agent`, oppure in `oneuptime-openstack-agent` nella tua home se non hai diritti su `/opt` (serve solo il gruppo `docker`), scrive `.env` e `clouds.yaml` con modo `0600` e avvia l'agente con Docker Compose. Ogni risposta funziona anche come variabile d'ambiente, ed eseguendo di nuovo lo script queste vengono riusate invece di essere richieste ancora, ed è così che si [aggiorna l'agente](#aggiornare-lagente).
+Lo script chiede l'URL di OneUptime, la chiave di acquisizione, un nome stabile per il cloud, l'URL di autenticazione di Keystone, i nomi delle regioni, la credenziale applicativa (nome utente e password se rispondi di no) e un file CA privato se il cloud ha una propria autorità di certificazione. Nulla di segreto viene mostrato a video né finisce su una riga di comando. Verifica la credenziale con Keystone prima di scrivere o avviare qualsiasi cosa, installa in `/opt/oneuptime-openstack-agent`, oppure in `oneuptime-openstack-agent` nella tua home se non hai diritti su `/opt` (serve solo il gruppo `docker`), scrive `.env` e `clouds.yaml` con modo `0600` e avvia l'agente con Docker Compose. Ogni risposta funziona anche come variabile d'ambiente, ed eseguendo di nuovo lo script queste vengono riusate invece di essere richieste ancora, ed è così che si [aggiorna l'agente](#aggiornare-lagente).
 @tab Docker Compose
 Scarica `docker-compose.yml` e `otel-collector-config.yaml` dal tuo OneUptime in una nuova cartella:
 
@@ -359,7 +359,7 @@ Lo script di installazione le scrive in `/opt/oneuptime-openstack-agent/.env`; u
 | Variabile | Obbligatoria | Descrizione |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Sì | L'URL di OneUptime, come `https://oneuptime.com` o la tua istanza self-hosted. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di ingestione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di acquisizione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
 | `OPENSTACK_CLOUD_NAME` | Sì | Il nome del cloud in OneUptime, impostato su ogni metrica come attributo di risorsa `openstack.cloud.name`. Mantienilo stabile: cambiarlo registra un nuovo cloud. Il default è `openstack`. |
 | `OPENSTACK_AUTH_URL` | Exporter incluso | Una risposta allo script di installazione: l'URL di autenticazione di Keystone. `/v3` viene aggiunto se manca. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Sì | Le regioni, tra parentesi quadre, come `[RegionOne,RegionTwo]`, ciascuna il nome di una voce di `clouds.yaml`. Il default è `[RegionOne]`. |
@@ -1016,11 +1016,11 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/install-logs.sh
 sudo bash install-logs.sh
 ```
 
-Senza argomento lo script guarda la macchina, e chiede se non riesce a capirlo. Chiede l'URL di OneUptime, la chiave di ingestione, il nome del cloud, che deve essere il nome che il cloud ha in OneUptime, e la regione servita da questa macchina. Ogni risposta funziona anche come variabile d'ambiente, quindi un'esecuzione su una flotta non chiede nulla: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` e `OPENSTACK_LOGS_PROFILE`. Eseguirlo di nuovo è l'aggiornamento, e mantiene ogni risposta.
+Senza argomento lo script guarda la macchina, e chiede se non riesce a capirlo. Chiede l'URL di OneUptime, la chiave di acquisizione, il nome del cloud, che deve essere il nome che il cloud ha in OneUptime, e la regione servita da questa macchina. Ogni risposta funziona anche come variabile d'ambiente, quindi un'esecuzione su una flotta non chiede nulla: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` e `OPENSTACK_LOGS_PROFILE`. Eseguirlo di nuovo è l'aggiornamento, e mantiene ogni risposta.
 
 | Variabile | A cosa serve |
 | --- | --- |
-| `OPENSTACK_REGION_NAME` | La regione servita da questa macchina, per cui la pagina Registri del cloud filtra. Il default è `RegionOne`. Una macchina configurata prima di questo non indica alcuna regione, quindi i suoi log compaiono solo in **Tutte le regioni** finché non esegui di nuovo lo script |
+| `OPENSTACK_REGION_NAME` | La regione servita da questa macchina, per cui la pagina Log del cloud filtra. Il default è `RegionOne`. Una macchina configurata prima di questo non indica alcuna regione, quindi i suoi log compaiono solo in **Tutte le regioni** finché non esegui di nuovo lo script |
 | `OPENSTACK_NODE_NAME` | Il nome di questa macchina, per cui le pagine di un hypervisor e di un servizio leggono i log. Il default è quello della macchina stessa |
 | `OPENSTACK_LOGS_DIRECTORY` | Dove sono i log di Kolla-Ansible, se non nel suo solito volume Docker |
 | `OPENSTACK_LOGS_TIMEZONE` | Il fuso in cui oslo.log scrive i suoi orari. Il default è `UTC` |
@@ -1042,8 +1042,8 @@ logs:
 
 Ogni riga che OneUptime legge ha livello, servizio, macchina, richiesta, utente, progetto e istanza come attributi, comunque sia configurato il servizio: il formato predefinito di oslo.log, il formato journal di DevStack, `use_json` e `use_journal` vengono letti tutti come la stessa cosa. Quindi:
 
-- La scheda **Registri** di un'istanza mostra ciò che nomina il suo UUID, a partire dalle richieste a cui appartengono quelle righe, prima quelle fallite. Quella di un hypervisor mostra ciò che è venuto da quella macchina, e quella di un servizio il suo.
-- Qualsiasi riga che ha un ID di richiesta dice **Segui la richiesta**, che apre quella richiesta nella pagina Registri del cloud: ogni riga che contiene il suo ID o il suo ID globale, in ogni servizio, in ordine di tempo.
+- La scheda **Log** di un'istanza mostra ciò che nomina il suo UUID, a partire dalle richieste a cui appartengono quelle righe, prima quelle fallite. Quella di un hypervisor mostra ciò che è venuto da quella macchina, e quella di un servizio il suo.
+- Qualsiasi riga che ha un ID di richiesta dice **Segui la richiesta**, che apre quella richiesta nella pagina Log del cloud: ogni riga che contiene il suo ID o il suo ID globale, in ogni servizio, in ordine di tempo.
 
 I servizi si uniscono quando quello che li chiama invia un ID di richiesta globale. Nova ne invia uno a Neutron, Cinder e Glance, e qualcosa che hai scritto tu potrebbe non farlo. Quindi la pagina dice quali servizi si sono uniti, e nomina quelli che hanno scritto righe di altre richieste negli stessi istanti, per i quali OneUptime non può dire se abbiano partecipato o no.
 
@@ -1530,11 +1530,13 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+Archiviare il cloud non disattiva nulla di tutto questo. Un cloud archiviato è solo nascosto dagli elenchi: continua a essere raccolto, e i suoi controlli API e il controllo del ciclo di vita continuano a essere eseguiti. Disattiva un controllo per fermarlo.
+
 ## Agente IA
 
 Il `docker-compose.yml` dell'agente esegue anche l'**Agente IA OpenStack**, `oneuptime-openstack-ai-agent` (immagine `oneuptime/resource-ai-agent:release`). Mentre OneUptime AI indaga su un incidente o un avviso su questo cloud, esegue tramite esso comandi `openstack` di sola lettura — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — e cita ciò che ha eseguito. Nell'agente non c'è alcun binario `openstack` né una shell: ogni comando diventa una `GET` al servizio che risponde, con la credenziale dell'agente stesso. L'agente si registra con lo stesso `OPENSTACK_CLOUD_NAME` che riporta il collector, quindi serve questo cloud.
 
-- **Le indagini IA sono attive per default.** Una volta connesso l'agente, OneUptime AI indaga con esso su incidenti e avvisi di questo cloud, e la **Panoramica** del cloud mostra lo stato dell'agente. Per fermarle, imposta `ONEUPTIME_AI_INVESTIGATION=false` dove gira l'agente. **IA → Agente IA** ha lo stato dell'agente, **Testa la connessione**, **Reimposta l'agente** e le istruzioni di installazione, **IA → Informazioni** ciò che ha fatto, e **IA → Registri** i comandi che ha eseguito.
+- **Le indagini IA sono attive per default.** Una volta connesso l'agente, OneUptime AI indaga con esso su incidenti e avvisi di questo cloud, e la **Panoramica** del cloud mostra lo stato dell'agente. Per fermarle, imposta `ONEUPTIME_AI_INVESTIGATION=false` dove gira l'agente. **IA → Agente IA** ha lo stato dell'agente, **Testa la connessione**, **Reimposta l'agente** e le istruzioni di installazione, **IA → Insight** ciò che ha fatto, e **IA → Log** i comandi che ha eseguito.
 - **Legge, finché non dici altrimenti.** Le correzioni sono disattivate finché non le scegli due volte, e usano una credenziale propria: vedi [Correzioni](#correzioni). Utenti, credenziali e assegnazioni di ruoli di Keystone, console, ciò che un guest ha stampato e i secret di Barbican sono off-limits per esso, da leggere o da modificare.
 - **La credenziale è il limite rigido.** Usa la credenziale in `clouds.yaml` che legge l'exporter, quindi vede ciò che il livello che hai scelto in [Scegli quanto vede l'agente](#scegli-quanto-vede-lagente) gli permette di vedere. Se hai creato quella credenziale con regole di accesso, creane una nuova dalle [regole](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json) attuali: hanno acquisito alcuni percorsi `GET` per l'agente (le azioni di un'istanza, una rete, subnet, router, floating IP, porta o immagine), e le vecchie funzionano ancora per tutto il resto. Per usare una credenziale propria, imposta `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` e `OPENSTACK_AUTH_URL`, e `OPENSTACK_AI_CLOUDS_FILE=/dev/null` se non c'è un `clouds.yaml` accanto all'agente, come con il tuo exporter.
 - **I segreti restano fuori.** Lo `user_data` di un'istanza, la sua password admin, il `direct_url` di un'immagine e il `provider_auth` di un volume, e i segreti generici che ogni agente IA maschera, vengono rimossi dall'output prima che raggiunga il modello o un log.
@@ -1641,7 +1643,7 @@ La pagina **Agente IA** del cloud propone un runbook per ciascuno di questi, da 
 
 ### Correzioni da un flusso di lavoro
 
-Un flusso di lavoro può partire da un avviso OpenStack e proporre una correzione: il passaggio **Propose an OpenStack fix** prende l'avviso o l'incidente, e il comando. Passa per la stessa policy, lo stesso scope di scrittura e la stessa lettura di ciò che una modifica tocca di una correzione proposta da OneUptime AI, non richiede alcun modello IA, e una persona la approva sull'avviso. Un flusso di lavoro non può fare la modifica da sé né approvare ciò che propone, qualunque sia la modalità di correzione del cloud. Il template **Propose taking a failing OpenStack compute service out of scheduling** è un punto di partenza.
+Un flusso di lavoro può partire da un avviso OpenStack e proporre una correzione: il passaggio **Proponi una correzione OpenStack** prende l'avviso o l'incidente, e il comando. Passa per la stessa policy, lo stesso scope di scrittura e la stessa lettura di ciò che una modifica tocca di una correzione proposta da OneUptime AI, non richiede alcun modello IA, e una persona la approva sull'avviso. Un flusso di lavoro non può fare la modifica da sé né approvare ciò che propone, qualunque sia la modalità di correzione del cloud. Il template **Propose taking a failing OpenStack compute service out of scheduling** è un punto di partenza.
 
 ## Esegui come servizio systemd
 
@@ -1734,7 +1736,7 @@ Le immagini di OneUptime stesso attraversano il gap in un altro modo: [Installaz
 ## Risoluzione dei problemi
 
 :::details Esegui prima lo script diagnostico
-L'agente include uno script, [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), che controlla l'intera catena sul percorso di rete usato dall'agente: i container o i servizi, `clouds.yaml`, l'exporter, DNS, TLS, Keystone, ogni servizio del catalogo, il nome del cloud, e se OneUptime accetta la chiave di ingestione. OneUptime rifiuta una chiave errata con `401` (`422` per una chiave disabilitata o una chiave del browser), e il collector scarta ogni batch rifiutato con una sola riga di log `Exporting failed` facile da perdere.
+L'agente include uno script, [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), che controlla l'intera catena sul percorso di rete usato dall'agente: i container o i servizi, `clouds.yaml`, l'exporter, DNS, TLS, Keystone, ogni servizio del catalogo, il nome del cloud, e se OneUptime accetta la chiave di acquisizione. OneUptime rifiuta una chiave errata con `401` (`422` per una chiave disabilitata o una chiave del browser), e il collector scarta ogni batch rifiutato con una sola riga di log `Exporting failed` facile da perdere.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent/troubleshoot.sh -o troubleshoot.sh
@@ -1745,7 +1747,7 @@ Legge ogni percorso di cui l'agente ha bisogno con la credenziale reale, una pic
 :::
 
 :::details Nessun cloud compare in OneUptime
-1. Leggi i log del collector: `docker logs oneuptime-openstack-agent`, oppure `journalctl -u oneuptime-openstack-agent` senza Docker. Un `401` sull'esportazione indica una chiave di ingestione errata; connection refused indica un `ONEUPTIME_URL` sbagliato.
+1. Leggi i log del collector: `docker logs oneuptime-openstack-agent`, oppure `journalctl -u oneuptime-openstack-agent` senza Docker. Un `401` sull'esportazione indica una chiave di acquisizione errata; connection refused indica un `ONEUPTIME_URL` sbagliato.
 2. Verifica che l'exporter risponda. L'exporter incluso non pubblica la sua porta sull'host, quindi chiedi dall'interno della sua rete: `docker run --rm --network container:oneuptime-openstack-exporter curlimages/curl -s "http://localhost:9180/probe?cloud=RegionOne&include_services=identity" | head` dovrebbe stampare righe `openstack_identity_*`.
 3. Dagli un intervallo di scrape: 2 minuti per compute, 5 per identity.
 :::
@@ -1791,7 +1793,7 @@ Su Flamingo ed Epoxy, oslo.policy genera un errore a ogni controllo una volta ch
 :::
 
 :::details I log dei servizi di un cloud non arrivano
-Leggi il log del collector: `docker logs oneuptime-openstack-logs` per il profilo files, oppure `journalctl -u oneuptime-openstack-logs` per quello del journal. Un `401` indica una chiave di ingestione errata. Se le righe arrivano senza alcun cloud, `OPENSTACK_CLOUD_NAME` non è il nome che il cloud ha in OneUptime: riesegui `install-logs.sh` con quello giusto.
+Leggi il log del collector: `docker logs oneuptime-openstack-logs` per il profilo files, oppure `journalctl -u oneuptime-openstack-logs` per quello del journal. Un `401` indica una chiave di acquisizione errata. Se le righe arrivano senza alcun cloud, `OPENSTACK_CLOUD_NAME` non è il nome che il cloud ha in OneUptime: riesegui `install-logs.sh` con quello giusto.
 :::
 
 :::details Le righe arrivano senza livello, richiesta o servizio

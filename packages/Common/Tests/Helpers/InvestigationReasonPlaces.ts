@@ -147,15 +147,15 @@ export function getInvestigationReasonPlace(
       },
       // Faults: someone has to look, and no setting would have changed them.
       budget_check_failed: {
-        names: ["project administrator", "AI settings"],
+        names: ["Project Admin", "AI settings"],
         page: null,
       },
       enqueue_failed: {
-        names: ["project administrator", "server logs"],
+        names: ["Project Admin", "server logs"],
         page: null,
       },
       eligibility_check_failed: {
-        names: ["project administrator", "AI settings"],
+        names: ["Project Admin", "AI settings"],
         page: null,
       },
       /*

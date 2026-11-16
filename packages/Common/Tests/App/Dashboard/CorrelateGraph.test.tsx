@@ -1473,11 +1473,11 @@ describe("CorrelateGraph query panel", () => {
         return option.textContent || "";
       });
     expect(optionLabels).toEqual([
-      "Last 1 hour",
-      "Last 6 hours",
-      "Last 24 hours",
-      "Last 7 days",
-      "Last 30 days",
+      "Last 1\u00A0hour",
+      "Last 6\u00A0hours",
+      "Last 24\u00A0hours",
+      "Last 7\u00A0days",
+      "Last 30\u00A0days",
     ]);
   });
 });

@@ -16,11 +16,11 @@ Open voor elk OneUptime-incident een [GitLab](https://gitlab.com)-issue, zodat h
 
 ```mermaid title="Eén workflow, één GitLab-issue"
 flowchart TB
-    declared["Incident gemeld"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> workflow["Workflow:<br/>Bij aanmaken:<br/>Incident"]
     workflow -->|"POST issues"| issue["GitLab-issue"]
 ```
 
-De workflow draait één keer voor elk nieuw incident. Zijn blok **API Post (JSON)** stuurt de titel en de beschrijving van het incident naar de issues van het project, ondertekend met een toegangstoken.
+De workflow draait één keer voor elk nieuw incident. Zijn blok **API-aanroep POST (JSON)** stuurt de titel en de beschrijving van het incident naar de issues van het project, ondertekend met een toegangstoken.
 
 ## Voordat je begint
 
@@ -47,11 +47,11 @@ Ga naar **Workflows**, klik op **Workflow maken** en dan op **Vanaf nul beginnen
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
 
 ### Het issue openen
 
-Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbind het punt **Succes** van de trigger ermee. Zet zijn **URL** op `https://gitlab.com/api/v4/projects/12345678/issues`, met de ID van je project in plaats van `12345678`. Zet onder **Meer velden** zijn **Aanvraagheaders** op:
+Klik op **Component toevoegen**, voeg een blok **API-aanroep POST (JSON)** toe en verbind het punt **Succes** van de trigger ermee. Zet zijn **URL** op `https://gitlab.com/api/v4/projects/12345678/issues`, met de ID van je project in plaats van `12345678`. Zet onder **Meer velden** zijn **Aanvraagheaders** op:
 
 ```json
 {
@@ -71,7 +71,7 @@ En de **Verzoeklichaam** op:
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een antwoord `201` met het nieuwe issue, met zijn `iid` en zijn `web_url`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API-aanroep POST (JSON)** toont een antwoord `201` met het nieuwe issue, met zijn `iid` en zijn `web_url`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 Het blok stuurt JSON, dus het heeft geen header `Content-Type` nodig. GitLab maakt labels aan die het nog niet kent, dus `incident` en `oneuptime` hoeven niet te worden ingesteld. Het issue blijft open wanneer het incident is opgelost, omdat het vervolgwerk het incident meestal overleeft.
@@ -81,11 +81,11 @@ Het blok stuurt JSON, dus het heeft geen header `Content-Type` nodig. GitLab maa
 - **Een eigen GitLab.** Stuur het verzoek in plaats daarvan naar je server: `https://gitlab.example.com/api/v4/projects/12345678/issues`. Een server op een privénetwerkadres heeft een zelf gehoste OneUptime nodig waarvan de beheerder dat toestaat: zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
 - **Het projectpad in plaats van de ID.** Het pad werkt in plaats van de ID, met de `/` geschreven als `%2F`: `projects/your-group%2Fyour-project/issues`. De URL wordt precies zo verstuurd als hij is geschreven, dus codeer hem zelf.
 - **Wijs het toe.** Voeg `"assignee_ids": [42]` of `"due_date": "2026-12-31"` toe aan de body, of `"confidential": true` om het alleen aan projectleden te tonen.
-- **Alleen sommige incidenten.** Zet een blok **If / Else** tussen de trigger en het API-blok, en open alleen issues aan de kant **Ja** ervan, bijvoorbeeld voor één ernst.
+- **Alleen sommige incidenten.** Zet een blok **Als / Anders** tussen de trigger en het API-blok, en open alleen issues aan de kant **Ja** ervan, bijvoorbeeld voor één ernst.
 
 ## Problemen oplossen
 
-De stap **API Post (JSON)** neemt **Fout** wanneer GitLab het verzoek weigert. Zijn **Response Status** en **Antwoordlichaam** in de run zeggen waarom.
+De stap **API-aanroep POST (JSON)** neemt **Fout** wanneer GitLab het verzoek weigert. Zijn **Status van het antwoord** en **Antwoordlichaam** in de run zeggen waarom.
 
 :::details GitLab antwoordt 401
 Het token is fout, verlopen of ingetrokken. Maak een nieuw token en vervang de inhoud van `GITLAB_TOKEN`.

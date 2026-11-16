@@ -438,7 +438,7 @@ describe("the files it lists", () => {
         .map((element: HTMLElement): string => {
           return element.textContent || "";
         }),
-    ).toEqual(["TXT · 100 B"]);
+    ).toEqual(["TXT · 100\u00A0B"]);
   });
 
   test("a stored file, which comes without its bytes: its size as the page was told it", () => {
@@ -460,7 +460,7 @@ describe("the files it lists", () => {
         .map((element: HTMLElement): string => {
           return element.textContent || "";
         }),
-    ).toEqual(["PDF · 47 KB", "PNG"]);
+    ).toEqual(["PDF · 47\u00A0KB", "PNG"]);
     // One it was not told the size of says its type alone.
     expect(screen.getByText("PNG")).toBeInTheDocument();
   });
@@ -507,7 +507,7 @@ describe("the files it lists", () => {
         .map((element: HTMLElement): string => {
           return element.textContent || "";
         }),
-    ).toEqual(["PNG · 2 KB"]);
+    ).toEqual(["PNG · 2\u00A0KB"]);
   });
 });
 

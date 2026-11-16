@@ -6,6 +6,7 @@ import {
   Translator,
 } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import { LABEL_WITH_COLON } from "../../../Utils/LabelWithColon";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
 import IsolatedText from "../../IsolatedText/IsolatedText";
@@ -125,7 +126,13 @@ const TelemetryActiveFilterChips: FunctionComponent<
                   : "font-medium text-indigo-500"
               }
             >
-              {keyText}:
+              {/*
+               * The field with its own colon, as the reader's language
+               * writes it ("Service :", "服务："), not English's (#8571).
+               */}
+              {translator.translateTemplate(LABEL_WITH_COLON, {
+                label: keyText,
+              })}
             </span>
             {/*
              * The value as its telemetry wrote it - a service, a span name,

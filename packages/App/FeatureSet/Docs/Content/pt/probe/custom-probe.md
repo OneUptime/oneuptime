@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **A sonda se conecta para fora.** Cada requisição vai da sonda para `ONEUPTIME_URL` por HTTPS. Nada precisa alcançar a sonda de fora da sua rede.
 - **Ela verifica só os próprios monitores.** A sonda pede ao OneUptime os monitores aos quais foi adicionada, verifica cada um quando chega a hora e devolve o resultado. O OneUptime decide pelos resultados se o status de um monitor muda.
-- **O OneUptime acompanha se ela está rodando.** Cada requisição da sonda conta como sinal de vida, e a sonda envia pelo menos uma por minuto. Depois de cerca de três minutos sem nenhuma, a sonda mostra **Desconectado** e seus proprietários são avisados. Uma sonda sem proprietários avisa os proprietários do projeto. Para ser acionado como em qualquer interrupção, com um único incidente até ela voltar, adicione um [monitor de status de sondas](/docs/monitor/probe-status-monitor): **Monitorar esta sonda**, na página da sonda, cria um.
+- **O OneUptime acompanha se ela está rodando.** Cada requisição da sonda conta como sinal de vida, e a sonda envia pelo menos uma por minuto. Depois de cerca de três minutos sem nenhuma, a sonda mostra **Desconectado** e seus proprietários são avisados. Uma sonda sem proprietários avisa os Proprietários do projeto. Para ser acionado como em qualquer interrupção, com um único incidente até ela voltar, adicione um [monitor de status de sondas](/docs/monitor/probe-status-monitor): **Monitorar esta sonda**, na página da sonda, cria um.
 
 ## Antes de começar
 
@@ -201,7 +201,7 @@ spec:
 O que passa pelo proxy:
 
 - **As próprias requisições da sonda ao OneUptime.**
-- **As verificações HTTP dos monitores**: monitores Website, API, External Status Page, Custom Code, de certificado SSL, sintéticos e de domínio. Os monitores de certificado SSL e sintéticos usam `HTTPS_PROXY_URL`, ou `HTTP_PROXY_URL` quando só essa está definida.
+- **As verificações HTTP dos monitores**: monitores Website, API, Página de status externa, Custom Code, de certificado SSL, sintéticos e de domínio. Os monitores de certificado SSL e sintéticos usam `HTTPS_PROXY_URL`, ou `HTTP_PROXY_URL` quando só essa está definida.
 - **Não as outras verificações.** Ping, Port, DNS, SNMP e as demais verificações que não são HTTP se conectam diretamente.
 
 Uma entrada de `NO_PROXY` é um nome de host (`api.internal`), um domínio com um ponto inicial ou `*.` para todos os nomes abaixo dele (`.internal.example.com`), qualquer um deles com uma `:port`, ou `*` para tudo. Faixas de IP não são lidas: liste cada endereço. Os nomes em minúsculas `http_proxy`, `https_proxy` e `no_proxy`, e também `HTTP_PROXY` e `HTTPS_PROXY`, funcionam igualmente.
@@ -287,8 +287,8 @@ A sonda lê suas configurações do próprio ambiente ao iniciar: altere uma e r
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tempo limite dos scripts de monitores sintéticos, em milissegundos. |
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Defina como `true` para executar o Chromium, nos monitores sintéticos, dentro do seu próprio sandbox. Ative-a só quando o contêiner da sonda rodar com um perfil seccomp que permita o sandbox, como o do Playwright: sem um, o Chromium não consegue iniciar. Enquanto estiver desativada, a sonda registra um aviso ao iniciar. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tempo limite dos scripts de monitores Custom Code, em milissegundos. |
-| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Defina como `true` para que os monitores Website, API, External Status Page e Custom Code desta sonda possam alcançar endereços privados. Veja [Acesso à rede privada](/docs/self-hosted/private-network-access). |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | Os monitores SSL Certificate, Website e API desta sonda perguntam ao emissor de um certificado se ele revogou o certificado, como os navegadores fazem. Defina como `false` para parar de perguntar, por exemplo em uma sonda sem acesso à internet. Um emissor que a sonda não consegue alcançar nunca é tomado como uma revogação: a sonda espera alguns segundos por cada respondedor que não consegue alcançar, mais ou menos uma vez a cada 5 minutos. Veja [Monitor de certificado SSL](/docs/monitor/ssl-certificate-monitor). |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Defina como `true` para que os monitores Website, API, Página de status externa e Custom Code desta sonda possam alcançar endereços privados. Veja [Acesso à rede privada](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | Os monitores Certificado SSL, Website e API desta sonda perguntam ao emissor de um certificado se ele revogou o certificado, como os navegadores fazem. Defina como `false` para parar de perguntar, por exemplo em uma sonda sem acesso à internet. Um emissor que a sonda não consegue alcançar nunca é tomado como uma revogação: a sonda espera alguns segundos por cada respondedor que não consegue alcançar, mais ou menos uma vez a cada 5 minutos. Veja [Monitor de certificado SSL](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Quantos dispositivos de rede a sonda consulta ao mesmo tempo. Aumente-a para uma sonda que consulta muitos dispositivos. |
 
 Os limites dentro dos quais um monitor sintético roda (quantos ao mesmo tempo, sua memória e seu disco) estão na página [Monitor sintético](/docs/monitor/synthetic-monitor).

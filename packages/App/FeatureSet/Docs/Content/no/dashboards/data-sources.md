@@ -50,7 +50,7 @@ flowchart TB
 
 ### Velg typen
 
-Klikk på **Opprett Data Source**. Dialogen **Choose a Data Source Type** grupperer typene etter hva de inneholder: målinger, logger, databaser, søk og API-er. Klikk på én.
+Klikk på **Opprett Datakilde**. Dialogen **Choose a Data Source Type** grupperer typene etter hva de inneholder: målinger, logger, databaser, søk og API-er. Klikk på én.
 
 ### Gi den et navn
 
@@ -58,15 +58,15 @@ Under **Grunnleggende informasjon** gir du den et **Navn**, for eksempel "Produk
 
 ### Angi hvor den er
 
-Under **Tilkobling** får en HTTP-kilde **URL** den svarer på. En database får sin **Database Host**, sin **Database Port** (la den stå tom for 5432, 3306, 1433 eller 8123) og sitt **Databasenavn**.
+Under **Tilkobling** får en HTTP-kilde **URL** den svarer på. En database får sin **Databasevert**, sin **Databaseport** (la den stå tom for 5432, 3306, 1433 eller 8123) og sitt **Databasenavn**.
 
 ### Angi hvordan du logger på
 
-Under **Autentisering** skriver du inn et **Brukernavn** og et **Passord**, eller for en HTTP-kilde et **API-token**, som sendes som et bearer-token. **Flere felt** inneholder **Custom HTTP Headers**, for eksempel `{ "X-Scope-OrgID": "tenant-1" }`, og **Additional Options**: `sslEnabled` og `sslRejectUnauthorized` for databaser, og `elasticsearchIndex` for Elasticsearch, som uten den leser alle indekser (`*`).
+Under **Autentisering** skriver du inn et **Brukernavn** og et **Passord**, eller for en HTTP-kilde et **API-token**, som sendes som et bearer-token. **Flere felt** inneholder **Egendefinerte HTTP-hoder**, for eksempel `{ "X-Scope-OrgID": "tenant-1" }`, og **Flere alternativer**: `sslEnabled` og `sslRejectUnauthorized` for databaser, og `elasticsearchIndex` for Elasticsearch, som uten den leser alle indekser (`*`).
 
 ### Test den
 
-Klikk på **Opprett Data Source**, og deretter på **Test** i raden. OneUptime kobler til med opplysningene du har oppgitt, og forteller om det fungerte, eller hva som gikk galt.
+Klikk på **Opprett Datakilde**, og deretter på **Test** i raden. OneUptime kobler til med opplysningene du har oppgitt, og forteller om det fungerte, eller hva som gikk galt.
 :::
 
 For å endre en datakilde senere åpner du den fra listen. **Rediger** på **Data Source Details** endrer alt unntatt hemmelighetene; **Oppdater påloggingsinformasjon** erstatter passordet, tokenet eller headerne og lar feltene du lar stå tomme, være som de var; **Test** sjekker den på nytt.
@@ -75,9 +75,9 @@ For å endre en datakilde senere åpner du den fra listen. **Rediger** på **Dat
 
 Rediger et dashbord, klikk på **Legg til widget**, og velg en widget fra gruppen Eksterne datakilder: et **Diagram**, en **Verdi**, en **Måler** eller en **Tabell**. I innstillingene:
 
-- Velg **Data Source**, og skriv **Spørring**. Redigeringsprogrammet navngir spørrespråket og viser et eksempel for typen.
+- Velg **Datakilde**, og skriv **Spørring**. Redigeringsprogrammet navngir spørrespråket og viser et eksempel for typen.
 - På et diagram legger **Legg til spørring** flere spørringer på de samme aksene, og **Legend (optional)** navngir hver serie ut fra etikettene: `{{instance}} — errors` skriver seriens etikett `instance` foran.
-- På en verdi eller en måler gjør **Reduce** punktene om til ett tall: den siste verdien (standard), den første, gjennomsnittet, summen, minimum eller maksimum. **Enhet** legger til et suffiks og skalerer de kjente enhetene: `Bytes` leses som 1.5 MB, `ms` som 2.4 s.
+- På en verdi eller en måler gjør **Slå sammen** punktene om til ett tall: den siste verdien (standard), den første, gjennomsnittet, summen, minimum eller maksimum. **Enhet** legger til et suffiks og skalerer de kjente enhetene: `Bytes` leses som 1.5 MB, `ms` som 2.4 s.
 - På en tabell fungerer enhver skrivebeskyttet spørring, og radene vises slik de kommer tilbake.
 
 ## Skriv en spørring
@@ -162,14 +162,14 @@ Intervallspørringer mot Prometheus og Loki ber om rundt 250 punkter over tidsin
 ## Sikkerhet
 
 - **SQL forblir skrivebeskyttet.** En spørring må være én setning som begynner med `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` eller `DESC`. Ord som skriver eller endrer en økt, for eksempel `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` eller `SET`, avvises overalt utenfor strenger og navn i anførselstegn, så sett en kolonne som heter som ett av dem, i anførselstegn. Skriv et anførselstegn i en streng som to anførselstegn (`''`): en omvendt skråstrek foran et anførselstegn avvises. Økter i PostgreSQL, MySQL og ClickHouse er også skrivebeskyttede. SQL Server har ingen skrivebeskyttet økt, så koble den til med en skrivebeskyttet pålogging.
-- **Påloggingsinformasjon kan bare skrives.** **Passord**, **API-token** og **Custom HTTP Headers** krypteres når de er lagret, og API-et returnerer dem aldri, heller ikke til deg.
+- **Påloggingsinformasjon kan bare skrives.** **Passord**, **API-token** og **Egendefinerte HTTP-hoder** krypteres når de er lagret, og API-et returnerer dem aldri, heller ikke til deg.
 - **Adresser sjekkes.** Loopback-, link-local- (der skymetadata ligger) og andre reserverte adresser avvises overalt. Private adresser avvises på OneUptime Cloud og tillates på en selvdriftet installasjon, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`: se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
 - **Offentlige dashbord kjører dem aldri.** Widgetene fra Eksterne datakilder utelates fra et [offentlig dashbord](/docs/dashboards/sharing), spørringer og alt.
 
 ## Feilsøking
 
 :::details Test sier at den ikke kan koble til
-Sjekk URL-en, eller verten og porten, fra der OneUptime kjører: en brannmur, en privat adresse på OneUptime Cloud eller en database som bare lytter på sin egen maskin, ser like ut herfra. For en database som krever TLS, legger du til `{ "sslEnabled": true }` under **Additional Options**.
+Sjekk URL-en, eller verten og porten, fra der OneUptime kjører: en brannmur, en privat adresse på OneUptime Cloud eller en database som bare lytter på sin egen maskin, ser like ut herfra. For en database som krever TLS, legger du til `{ "sslEnabled": true }` under **Flere alternativer**.
 :::
 
 :::details "Only read-only queries are allowed"

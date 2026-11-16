@@ -367,7 +367,7 @@ Alerts for payments:
 - 上傳到 Slack 需要應用程式的 `files:write` 權限。如果你的工作區在 OneUptime 要求該權限之前就已連接 Slack，請在 **專案設定 → 工作區 → Slack** 中重新連接 Slack(在自行託管的伺服器上，請先為你的 Slack 應用程式加入該權限——請參閱 [Slack 整合](/docs/self-hosted/slack-integration#訊息中的圖片))。
 - 聊天無法顯示的螢幕截圖——WebP、超出上述限制的螢幕截圖、被 Slack 或 Teams 拒絕的螢幕截圖，或透過傳入 Webhook 傳送的訊息中的任何螢幕截圖——會顯示為其替代文字，沒有替代文字時顯示為 "[image]"，所以請為每張圖片提供替代文字。圖片的 base64 永遠不會進入聊天。
 - 只有你在範本中撰寫的圖片才會顯示。受監控的頁面或指令碼所回報的值(錯誤訊息、日誌行)中的圖片仍會顯示為文字(請參閱 [描述和補救備註中的值](#描述和補救備註中的值))。
-- OneUptime AI 讀取的是螢幕截圖周圍的文字，而不是螢幕截圖本身。調查、起草的事後檢討或備註、執行手冊的 AI 步驟或工作流程的 AI 步驟交給模型的內容中，圖片位置會有一段簡短的說明，例如 `[image omitted: PNG, 340 KB]`：模型讀取的是文字而不是圖片，而螢幕截圖的 base64 每次呼叫都會佔用數十萬個權杖。調查的活動記錄會說明省略了什麼。
+- OneUptime AI 讀取的是螢幕截圖周圍的文字，而不是螢幕截圖本身。調查、起草的事後檢討或備註、運行手冊的 AI 步驟或工作流程的 AI 步驟交給模型的內容中，圖片位置會有一段簡短的說明，例如 `[image omitted: PNG, 340 KB]`：模型讀取的是文字而不是圖片，而螢幕截圖的 base64 每次呼叫都會佔用數十萬個權杖。調查的活動記錄會說明省略了什麼。
 
 若要顯示每次失敗執行的螢幕截圖，請把圖片放進迴圈中。這裡指令碼把每張螢幕截圖儲存為 `screenshots["failure"]`：
 
@@ -452,17 +452,17 @@ Alerts for payments:
 
 ### 指標和基礎設施監測器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、Storage Array 和 IoT Device 監測器各有一個自己的變數：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、儲存陣列 和 IoT 裝置 監測器各有一個自己的變數：
 
 | 變數 | 內容 | 類型 |
 | --- | --- | --- |
 | `metricName` | 監測器的第一個查詢所讀取的指標名稱，例如 `container.cpu.time`。 | `string` |
 
-分組時，它們還有每個 **分組依據** 屬性的值以及 `seriesLabels`：請參閱 [分組監測器的值](#分組監測器的值)。IoT Device 監測器的範本依裝置分組，因此用範本建立的監測器還有 `{{device.id}}`。
+分組時，它們還有每個 **分組依據** 屬性的值以及 `seriesLabels`：請參閱 [分組監測器的值](#分組監測器的值)。IoT 裝置 監測器的範本依裝置分組，因此用範本建立的監測器還有 `{{device.id}}`。
 
 ### 其他監測器類型
 
-Logs、Traces、Exceptions、Security Events、AI / LLM 和 SQL Query 監測器沒有自己的變數。請使用 [所有監測器都有的變數](#所有監測器都有的變數)，在分組的 Logs 監測器上還可以使用 [分組的值](#分組監測器的值)。
+Logs、Traces、Exceptions、安全事件、AI / LLM 和 SQL 查詢 監測器沒有自己的變數。請使用 [所有監測器都有的變數](#所有監測器都有的變數)，在分組的 Logs 監測器上還可以使用 [分組的值](#分組監測器的值)。
 
 ## 範例
 

@@ -281,7 +281,7 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
       databaseProps: props,
       allowedPermissions: new SecurityEventConnection().getUpdatePermissions(),
       errorMessage:
-        "Project owners, project administrators, and security administrators can run connection diagnostics.",
+        "Project Owners, Project Admins, and Security Admins can run connection diagnostics.",
     });
   }
 

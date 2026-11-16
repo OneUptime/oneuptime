@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -178,12 +179,14 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               getElement: (item: LlmProvider): ReactElement => {
                 return (
                   <span className="break-all">
-                    {getLlmProviderShownValue({
-                      value: item.baseUrl,
-                      defaultValue: getLlmProviderTypeCopy(item.llmType)
-                        ?.defaultBaseUrl,
-                      translator: translator,
-                    })}
+                    {getValueOrQuietDash(
+                      getLlmProviderShownValue({
+                        value: item.baseUrl,
+                        defaultValue: getLlmProviderTypeCopy(item.llmType)
+                          ?.defaultBaseUrl,
+                        translator: translator,
+                      }),
+                    )}
                   </span>
                 );
               },
@@ -226,7 +229,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
                   },
                   title: "Additional Parameters",
                   description:
-                    "Only project owners and admins can read them, like the API key.",
+                    "Only Project Owners and Project Admins can read them, like the API key.",
                   fieldType: FieldType.Boolean,
                   getElement: (item: LlmProvider): ReactElement => {
                     return (

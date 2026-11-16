@@ -16,6 +16,15 @@ import DashboardPagesData from "./DashboardPages.json";
  * them, in English. App's AIDashboardPagesCatalog test fails when the two
  * part, and writes this file again when run with
  * UPDATE_AI_DASHBOARD_PAGES=1.
+ *
+ * Every text the model reads or the finder searches - a page's title,
+ * where it is, its other names - is its English as the Dashboard draws it.
+ * The index names a few pages by a key that names its meaning (Common/
+ * Types/MeaningKeys): the explorers' tab is "Insights (explorer
+ * analytics)", which English draws as "Insights". The model is told
+ * "Insights", never the note to translators (#8817), and the key is kept
+ * beside it, in titleKey, for the "Go to ..." button alone, which draws
+ * the tab's own word in the reader's language (AskAiPageButtons).
  */
 
 export enum AIDashboardPageKind {
@@ -25,7 +34,22 @@ export enum AIDashboardPageKind {
 }
 
 export interface AIDashboardPage {
+  // Its English title, as the Dashboard draws it: what the model reads and the finder searches.
   title: string;
+  /*
+   * The locale key its title is looked up by, where that is not the title:
+   * a key that names its meaning, "Insights (explorer analytics)" for
+   * "Insights". Never shown to the model nor searched: only the "Go to
+   * ..." button draws it, in the reader's language.
+   */
+  titleKey?: string | undefined;
+  /*
+   * Where titleKey is a template, what fills it once it is translated:
+   * another product's name, the same in every language - "Import from
+   * {{tool}}" with { tool: "PagerDuty" } for "Import from PagerDuty"
+   * (#8834). Only the button and the chip read it.
+   */
+  titleValues?: Record<string, string> | undefined;
   // Where it is, as Search shows it: ["Project Settings", "Advanced"].
   where: Array<string>;
   keywords?: Array<string> | undefined;
@@ -89,11 +113,19 @@ export default class DashboardPageFinder {
    * The pages that fit `query` best, best first: a page named exactly so
    * first, then the ones whose name, other names and place hold the most
    * of its words. Where billing is off, no billing page.
+   *
+   * With `place`, only the pages that are there: where a page is, as a
+   * result said it ("Traces", "Project Settings > Advanced"), the same
+   * words in the same order. Two pages may share a name in one area -
+   * Traces > Insights, the explorer's tab, and Traces > AI > Insights,
+   * OneUptime AI's findings - and a name with its place finds both, so
+   * the place is how the model cites the one it means (#8829).
    */
   public static find(data: {
     query: string;
     limit: number;
     isBillingEnabled: boolean;
+    place?: string | undefined;
     pages?: ReadonlyArray<AIDashboardPage> | undefined;
   }): Array<AIDashboardPage> {
     const queryTerms: Array<string> = tokenizePageName(data.query);
@@ -105,9 +137,18 @@ export default class DashboardPageFinder {
     const pages: ReadonlyArray<AIDashboardPage> =
       data.pages || AI_DASHBOARD_PAGES;
     const scored: Array<{ page: AIDashboardPage; score: number }> = [];
+    const placeTerms: Array<string> | undefined =
+      data.place !== undefined ? tokenizePageName(data.place) : undefined;
 
     pages.forEach((page: AIDashboardPage, position: number) => {
       if (page.billing && !data.isBillingEnabled) {
+        return;
+      }
+
+      if (
+        placeTerms !== undefined &&
+        !sameWords(tokenizePageName(page.where.join(" ")), placeTerms)
+      ) {
         return;
       }
 

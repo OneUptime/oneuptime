@@ -45,11 +45,11 @@ Il vous faut un rôle autorisé à créer des SLO : Propriétaire du projet, Adm
 :::steps
 ### Ouvrir les SLO
 
-Ouvrez **SLOs** depuis le menu **Produits** de la barre supérieure. Il se trouve dans le premier groupe, à côté des moniteurs et des incidents. Cliquez sur **Créer : Objectif de niveau de service**.
+Ouvrez **SLO** depuis le menu **Produits** de la barre supérieure. Il se trouve dans le premier groupe, à côté des moniteurs et des incidents. Cliquez sur **Créer : Objectif de niveau de service**.
 
 ### Choisir ce qu'il mesure
 
-Sous **Ce qui est mesuré**, gardez **Disponibilité des moniteurs** pour mesurer la part du temps pendant laquelle des moniteurs sont disponibles. Pour mesurer plutôt les requêtes de services, choisissez **Réussite des requêtes** ou **Latence des requêtes**, puis leurs **Services** : voir [SLO de requêtes et de latence](/docs/slo/request-slos). Cliquez sur **Suivant**.
+Sous **Ce qui est mesuré**, gardez **Disponibilité des moniteurs** pour mesurer la part du temps pendant laquelle des moniteurs sont disponibles. Pour mesurer plutôt les requêtes de services, choisissez **Réussite des requêtes** ou **Latence des requêtes**, puis leurs **Services** : voir [SLO de requêtes et de latence](/docs/slo/request-slos). Choisissez **Métrique** pour compter les bons événements d'un compteur ou d'un histogramme qu'envoient vos services : voir [SLO à partir d'une métrique](/docs/slo/request-slos#slo-à-partir-dune-métrique). Cliquez sur **Suivant**.
 
 ### Le nommer et fixer un objectif
 
@@ -146,7 +146,7 @@ Un SLO désactivé ou archivé n'est pas évalué, son statut reste donc tel que
 
 ## La liste des SLO
 
-La page **SLOs** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires. Sa colonne **Ce qui est mesuré** affiche les services d'un SLO de requêtes là où elle affiche les moniteurs d'un SLO de disponibilité, et le filtre **Services** trouve les SLO qui mesurent un service.
+La page **SLO** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires. Sa colonne **Ce qui est mesuré** affiche les services d'un SLO de requêtes là où elle affiche les moniteurs d'un SLO de disponibilité, et le filtre **Services** trouve les SLO qui mesurent un service.
 
 - Les tuiles au-dessus de la liste comptent les SLO par statut : **Sain**, **À risque**, **Budget épuisé**, **Mal configuré**, **En pause** et **Désactivé**. Elles s'affichent dès qu'il existe un SLO non archivé. Cliquez sur une tuile pour n'afficher que ces SLO, puis de nouveau pour tous les revoir.
 - Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les activer ou les désactiver, leur donner les [règles de taux de consommation recommandées](/docs/slo/burn-rate-alerts#les-ajouter-à-plusieurs-slo-à-la-fois) qui leur manquent, les archiver ou les supprimer, tous en même temps.
@@ -161,6 +161,7 @@ Ouvrez un SLO pour voir ses pages dans le menu latéral :
 | --- | --- |
 | **Vue d'ensemble** | Le statut, les chiffres clés, la consommation du budget d'erreur, l'activité récente, les alertes et incidents ouverts et les règles de taux de consommation. |
 | **Métriques** | Les métriques `oneuptime.slo.*` du SLO, l'historique à long terme de son budget d'erreur, et les métriques des incidents et des alertes qui le concernent. Voir [Métriques et tableaux de bord des SLO](/docs/slo/metrics). |
+| **Rapport mensuel** | Comment le SLO s'est comporté chaque mois calendaire, et sur toute la période. Voir [Le rapport mensuel](#le-rapport-mensuel). |
 | **Incidents** | Les incidents que ses règles de taux de consommation et sa politique de budget d'erreur ont déclarés. Le badge compte ceux qui sont ouverts. |
 | **Alertes** | Les alertes que ses règles de taux de consommation et sa politique de budget d'erreur ont déclenchées. Le badge compte celles qui sont ouvertes. |
 | **Fil d'activité** | Ce qui est arrivé au SLO, sous forme de chronologie. Voir [Fil d'activité et journaux d'audit des SLO](/docs/slo/feed-and-audit-logs). |
@@ -201,7 +202,7 @@ La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun 
 
 | Carte | Ce que vous modifiez | Bon à savoir |
 | --- | --- | --- |
-| **Ce qui est mesuré** | **Ce qui est mesuré**, **Services** et **Seuil de latence (ms)**, avec **Modifier ce qui est mesuré**. | Après une modification, un SLO de requêtes recompte ses requêtes depuis le début. |
+| **Ce qui est mesuré** | **Ce qui est mesuré**, **Services**, **Seuil de latence (ms)**, **Filtre de requêtes** et **Métrique**, avec **Modifier ce qui est mesuré**. | Après une modification, un SLO de requêtes recompte ses requêtes depuis le début. |
 | **Objectif** | **Cible (%)** et **Seuil à risque (%)**, avec **Modifier l'objectif**. | Affiche l'indisponibilité que l'objectif autorise, par exemple « 43 min 12 s d'indisponibilité par fenêtre de 30 jours ». |
 | **Période de conformité** | **Type de fenêtre**, **Fenêtre (jours)** et **Fuseau horaire**, avec **Modifier la période**. | Les règles de taux de consommation gardent leurs seuils quand la fenêtre change, revoyez-les donc ensuite. |
 | **Calcul de l'indisponibilité** | **Mode multi-moniteurs** et **Statuts de moniteur d'indisponibilité**, avec **Modifier le calcul de l'indisponibilité**. | SLO de disponibilité des moniteurs uniquement. Des statuts vides comptent tous les statuts non opérationnels, y compris ceux ajoutés plus tard. |
@@ -209,6 +210,31 @@ La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun 
 | **Archiver : SLO** | **Archiver** ou **Désarchiver**. | Voir [Archiver un SLO](#archiver-un-slo). |
 
 Après une modification de ce qu'il mesure, de l'objectif, de la période ou du calcul de l'indisponibilité, OneUptime réévalue le SLO à son exécution suivante.
+
+### Le rapport mensuel
+
+Le **Rapport mensuel** montre comment le SLO s'est comporté chaque mois calendaire des **3 mois**, **6 mois**, **9 mois** ou **12 mois** écoulés, ou d'une année civile. Chaque mois indique son SLI, son indisponibilité (pour un SLO de requêtes, ses requêtes en échec ou lentes ; pour un SLO de métrique, ses mauvais événements), la part de son budget d'erreur qu'il a consommée, et son résultat :
+
+| Résultat | Signification |
+| --- | --- |
+| Atteint | Le mois est terminé, et son SLI a atteint l'objectif. |
+| Non atteint | Le mois est terminé et n'a pas atteint l'objectif, ou le mois est en cours et a déjà plus d'indisponibilité que tout le mois n'en autorise. |
+| En bonne voie | Le mois est en cours, et son SLI jusqu'ici atteint l'objectif. |
+| Sous l'objectif | Le mois est en cours, et son SLI jusqu'ici est sous l'objectif. |
+| Aucune donnée | Rien n'a été mesuré ce mois-là. |
+
+La ligne **Total** mesure toute la période d'un seul tenant. Un SLO à plusieurs moniteurs a aussi un tableau **Par moniteur** : le SLI propre à chaque moniteur pour chaque mois, le moniteur qui a le plus coûté au SLO en premier. **Télécharger le CSV** enregistre le rapport dans un fichier pour un tableur.
+
+Rien de plus n'est stocké pour le rapport. Chaque mois est calculé à partir de l'historique de statut des moniteurs à l'ouverture du rapport, avec les moniteurs, les statuts d'indisponibilité et l'objectif du SLO tels qu'ils sont aujourd'hui : il remonte donc avant la création du SLO. Les mois d'un SLO de requêtes viennent des requêtes que OneUptime a comptées pour lui, et ceux d'un SLO de métrique des événements de sa métrique, conservés 400 jours. Les mois suivent le fuseau horaire du SLO, ou UTC s'il n'en a pas.
+
+L'API renvoie le même rapport :
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Demandez avec `months` de 1 à 24 mois se terminant par le mois en cours, ou une année civile avec `year`, par exemple `year=2025`.
 
 ## Archiver un SLO
 
@@ -241,7 +267,7 @@ Chaque alerte et chaque incident qu'une règle de taux de consommation crée est
 
 OneUptime établit ce lien quand une règle crée l'alerte ou l'incident ; vous ne pouvez pas l'ajouter à la main, et modifier l'alerte ou l'incident ne le retire jamais.
 
-Le menu latéral d'un moniteur a lui aussi une page **SLOs** : les SLO qui mesurent ce moniteur, pour savoir quels objectifs en dépendent avant de le mettre en pause ou de le modifier.
+Le menu latéral d'un moniteur a lui aussi une page **SLO** : les SLO qui mesurent ce moniteur, pour savoir quels objectifs en dépendent avant de le mettre en pause ou de le modifier.
 
 ## Les jeunes SLO et l'indicateur de remplissage de la fenêtre
 
@@ -265,6 +291,8 @@ Un bandeau en haut des pages du SLO dit ce qui l'empêche de mesurer :
 | **Aucun service choisi** | Un SLO de requêtes n'a aucun service, il n'a donc aucune requête à compter. | Choisissez ses services dans **Paramètres** → **Ce qui est mesuré**. |
 | **Aucun seuil de latence** | Un SLO de latence des requêtes n'a pas de seuil, aucune requête ne peut donc compter comme assez rapide. | Fixez le **Seuil de latence (ms)** dans **Paramètres** → **Ce qui est mesuré**. |
 | **En attente de requêtes** | Aucun des services d'un SLO de requêtes n'a encore servi de requête dans sa fenêtre. | Vérifiez que les services envoient des traces à OneUptime. Les chiffres apparaissent après la prochaine évaluation qui compte une requête. |
+| **Aucune métrique à compter** | Un SLO de métrique n'a aucune métrique qu'il puisse compter : aucune n'est choisie, ou il manque la façon de distinguer ses bons événements. | Choisissez la métrique, et sa condition ou sa valeur de bon événement, dans **Paramètres** → **Ce qui est mesuré**. |
+| **En attente de sa métrique** | Aucun des services d'un SLO de métrique n'a encore envoyé d'événement de sa métrique dans sa fenêtre. | Vérifiez que les services envoient la métrique à OneUptime, sous le nom que compte le SLO. Les chiffres apparaissent après la prochaine évaluation qui compte un événement. |
 
 ## Prochaines étapes
 

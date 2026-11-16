@@ -249,7 +249,7 @@ describe("public note approval's words in every language", () => {
       const locale: Record<string, unknown> = readLocale(language);
       const sentence: string = String(
         locale[
-          "Nobody can approve this step yet. A project admin can add approvers in Settings > Public Note Approval."
+          "Nobody can approve this step yet. A Project Admin can add approvers in Settings > Public Note Approval."
         ],
       );
 

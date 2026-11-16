@@ -65,9 +65,8 @@ import AIFeaturesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Settings
 import SettingsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/Layout";
 import InvestigationRunDetails from "../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationRunDetails";
 import ChatActivityFeed from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
-import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -458,15 +457,33 @@ function liveStep(index) {
  * separators i18next reads in a key (the "." and ":" of a sentence) are
  * turned off, as the Dashboard's own setup does.
  */
+/*
+ * English, the fallback, is in the bundle; German, Persian and Japanese are
+ * each a chunk of its own, loaded only by a page drawn in that language, as
+ * the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as
+ * the Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+  ja: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    fa: { translation: FA },
-    ja: { translation: JA },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

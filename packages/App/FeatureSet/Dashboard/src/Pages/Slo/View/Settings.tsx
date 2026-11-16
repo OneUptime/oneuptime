@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   SLO_ARCHIVE_CARD_DESCRIPTION,
   SLO_ARCHIVE_CONFIRM_MESSAGE,
@@ -16,6 +18,8 @@ import {
   SLO_SLI_TYPE_NAMES,
   SLO_WINDOW_TYPE_DESCRIPTIONS,
 } from "../SloFormFields";
+// The Metric SLO fields' controls, for What It Measures.
+import "../SloMetricQueryFieldElements";
 import { describeRequestErrorBudgetInLanguage } from "../../../Components/Slo/SloRequestTextInLanguage";
 import {
   describeSloErrorBudget,
@@ -31,7 +35,11 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import {
+  isEventSliType,
+  isRequestSliType,
+} from "Common/Utils/Slo/SloRequestSli";
+import SloMetricSummary from "../../../Components/Slo/SloMetricSummary";
 import { formatMilliseconds } from "Common/Utils/Milliseconds";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Route from "Common/Types/API/Route";
@@ -62,8 +70,6 @@ import {
 import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 
-const EM_DASH: string = "—";
-
 /*
  * Each card's dialog is titled like the button that opens it. All three
  * said "Edit Service Level Objective" over the two or three fields of one
@@ -86,6 +92,10 @@ const SLO_MEASURES_COLUMNS: Array<string> = [
   "sliType",
   "services",
   "latencyThresholdInMilliseconds",
+  // Which of the services' requests count (#8444).
+  "requestFilter",
+  // A Metric SLO's metric, and which of its events are good (#8445).
+  "metricQueryConfig",
 ];
 
 /*
@@ -110,7 +120,7 @@ const getValueElement: GetValueElementFunction = (
 ): ReactElement => {
   return (
     <div className="space-y-1">
-      <p className="font-medium text-gray-900">{value}</p>
+      <p className="font-medium text-gray-900">{getValueOrQuietDash(value)}</p>
       {description ? <p className="text-gray-500">{description}</p> : null}
     </div>
   );
@@ -258,7 +268,8 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     };
   }, [modelId.toString(), measuresSaveCount]);
 
-  const isRequestSlo: boolean = isRequestSliType(sliType);
+  // Counted in events, from traces or a metric (#8445): no downtime to calculate.
+  const isRequestSlo: boolean = isEventSliType(sliType);
 
   return (
     <Fragment>
@@ -272,7 +283,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "What It Measures",
           description:
-            "Where this SLO's numbers come from: the uptime of its monitors, or the requests its services serve.",
+            "Where this SLO's numbers come from: the uptime of its monitors, the requests its services serve, or a metric they send.",
         }}
         isEditable={true}
         editButtonText="Edit What It Measures"
@@ -289,10 +300,11 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelType: ServiceLevelObjective,
           id: "slo-settings-measures",
           modelId: modelId,
-          // The services and threshold rows show by the SLI type.
+          // The services, threshold and metric rows show by the SLI type.
           selectMoreFields: {
             sliType: true,
             latencyThresholdInMilliseconds: true,
+            metricQueryConfig: true,
           },
           fields: [
             {
@@ -324,7 +336,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Services",
               fieldType: FieldType.Element,
               showIf: (item: ServiceLevelObjective): boolean => {
-                return isRequestSliType(item.sliType);
+                return isEventSliType(item.sliType);
               },
               getElement: (item: ServiceLevelObjective): ReactElement => {
                 const services: Array<Service> =
@@ -370,10 +382,71 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         translator,
                         item.latencyThresholdInMilliseconds,
                       )
-                    : EM_DASH,
+                    : EMPTY_VALUE_MARK,
                   translator.translateTemplate(
                     "A request served within this counts as fast enough.",
                   ),
+                );
+              },
+            },
+            /*
+             * Which of the services' requests count (#8444): the traces
+             * search, as written, or every request when there is none.
+             */
+            {
+              field: {
+                requestFilter: true,
+              },
+              title: "Request Filter",
+              fieldType: FieldType.Element,
+              showIf: (item: ServiceLevelObjective): boolean => {
+                return isRequestSliType(item.sliType);
+              },
+              getElement: (item: ServiceLevelObjective): ReactElement => {
+                const filter: string = (item.requestFilter || "").trim();
+
+                if (!filter) {
+                  return getValueElement(
+                    translator.translateText("Every request of its services") ||
+                      "Every request of its services",
+                  );
+                }
+
+                return (
+                  <div>
+                    <code
+                      className="break-all rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-900"
+                      data-testid="slo-settings-request-filter"
+                    >
+                      {filter}
+                    </code>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {translator.translateTemplate(
+                        "Only the requests that match this traces search count.",
+                      )}
+                    </p>
+                  </div>
+                );
+              },
+            },
+            /*
+             * A Metric SLO's metric (#8445): its name, then what makes an
+             * event good and which of its series count, as written.
+             */
+            {
+              field: {
+                metricQueryConfig: true,
+              },
+              title: "Metric",
+              fieldType: FieldType.Element,
+              showIf: (item: ServiceLevelObjective): boolean => {
+                return item.sliType === SliType.Metric;
+              },
+              getElement: (item: ServiceLevelObjective): ReactElement => {
+                return (
+                  <SloMetricSummary
+                    metricQueryConfig={item.metricQueryConfig}
+                  />
                 );
               },
             },
@@ -423,7 +496,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     item.targetPercentage,
                     undefined,
                     translator,
-                  ) || EM_DASH,
+                  ) || EMPTY_VALUE_MARK,
                 );
               },
             },
@@ -446,7 +519,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "{{threshold}} of error budget remaining",
                         { threshold: threshold },
                       )
-                    : EM_DASH,
+                    : EMPTY_VALUE_MARK,
                   translator.translateTemplate(
                     "Below this the SLO turns At Risk.",
                   ),
@@ -460,16 +533,23 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Error Budget",
               fieldType: FieldType.Element,
               getElement: (item: ServiceLevelObjective): ReactElement => {
-                if (isRequestSliType(item.sliType)) {
+                if (isEventSliType(item.sliType)) {
                   // "0.1% of requests: 1 bad request in every 1,000".
                   return getValueElement(
                     describeRequestErrorBudgetInLanguage(
-                      { targetPercentage: item.targetPercentage },
+                      {
+                        targetPercentage: item.targetPercentage,
+                        sliType: item.sliType,
+                      },
                       translator,
-                    ) || EM_DASH,
-                    translator.translateTemplate(
-                      "The bad requests this objective allows before it is breached.",
-                    ),
+                    ) || EMPTY_VALUE_MARK,
+                    item.sliType === SliType.Metric
+                      ? translator.translateTemplate(
+                          "The bad events this objective allows before it is breached.",
+                        )
+                      : translator.translateTemplate(
+                          "The bad requests this objective allows before it is breached.",
+                        ),
                   );
                 }
 
@@ -482,7 +562,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       windowDays: item.windowDays,
                     },
                     translator,
-                  ) || EM_DASH,
+                  ) || EMPTY_VALUE_MARK,
                   translator.translateTemplate(
                     "The downtime this objective allows before it is breached.",
                   ),

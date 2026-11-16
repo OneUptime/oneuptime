@@ -1156,7 +1156,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## Neste trinn
 
 :::cards
-- [Kubernetes-overvåking](/docs/monitor/kubernetes-monitor): Varsle på krasjløkker, noder som ikke er klare, pods som ligger mot grensene sine, og fulle nodedisker.
+- [Kubernetes-monitor](/docs/monitor/kubernetes-monitor): Varsle på krasjløkker, noder som ikke er klare, pods som ligger mot grensene sine, og fulle nodedisker.
 - [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost): Se hva hver arbeidsbelastning koster, og hvilke requests som bør krympes.
 - [Databaser](/docs/telemetry/databases): Databasearbeidsbelastninger i klyngen blir funnet og får egne sider.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Overvåk Linux-, macOS- og Windows-maskiner utenfor Kubernetes.

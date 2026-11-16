@@ -48,7 +48,7 @@ Klicka på **Starta uppgift**, eller tryck på Enter. Uppgiftens sida öppnas, o
 | **Länk** | En webbadress, som referens. |
 | **Incident** eller **Larm** | Dess tillstånd, beskrivning och grundorsak, så som de är när du skickar begäran. |
 | **Undantag** | Dess meddelande och stack trace. |
-| **Övervakning** | Dess typ, status och beskrivning. |
+| **Monitor** | Dess typ, status och beskrivning. |
 | **Spår** | Dess spans: deras namn, tider och fel. |
 | **Loggar** | De senaste 20 loggraderna som innehåller din sökning, från den senaste timmen, dagen eller veckan. |
 | **Prestandaprofil** | Vart en funktions tid går i dess tjänsts profiler: vem som anropar den, vad den anropar och dess hetaste rader. |
@@ -208,7 +208,7 @@ Att slå samman en korrigering åtgärdar ingenting förrän den körs. När en 
 | --- | --- | --- | --- |
 | Ett undantag | Om undantaget inträffar igen | **Åtgärdad i produktion** | **Inträffar fortfarande efter korrigeringen** |
 | En långsam trace eller en latensinsikt | p99 för operationen som korrigeringen nämner | **Snabbare i produktion** | **Fortfarande långsam efter korrigeringen** |
-| Grundorsaken till en incident eller en avisering | Om dess monitor utlöser en till | **Åtgärdad i produktion** | **Inträffade igen efter korrigeringen** |
+| Grundorsaken till en incident eller ett larm | Om dess monitor utlöser en till | **Åtgärdad i produktion** | **Inträffade igen efter korrigeringen** |
 | Saknad telemetri, loggning eller spårning | Det som korrigeringen lägger till, och resten av tjänstens telemetri | **Kommer fram i produktion** | **Telemetrin upphörde efter korrigeringen** |
 
 Tills en driftsättning levererar den står det **Mergad, väntar på en deploy** vid korrigeringen, sedan **Deployad, bevakas i produktion** medan den bevakas. En korrigering som ingen registrerad driftsättning innehåller inom 14 dagar, eller som produktionen inte kan säga något om, står som **Inte verifierad i produktion**. [Automatiska kodkorrigeringar](/docs/ai/ai-sre#automatiska-kodkorrigeringar) har reglerna. Ett regressionstest, bättre felhantering, en granskning och en begäran i Code bevakas inte: produktionen kan inte visa vad de ändrar.

@@ -316,7 +316,7 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
      * project's first monitor already reaches whoever made the project.
      */
     description: translationKey(
-      "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the project's owners get an email.",
+      "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.",
     ),
     // A server that cannot send email emails nobody: said, with the fix.
     descriptionWithoutEmail: {

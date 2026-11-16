@@ -1,6 +1,6 @@
 # Importere ressurser
 
-Du trenger ikke begynne på nytt for å styre OneUptime med Terraform. Importer overvåkerne, statussidene, teamene og de andre postene du allerede har, så styrer Terraform dem derfra, slik de er. En import leser bare: ingenting endres i OneUptime før du tar i bruk en endring du har planlagt.
+Du trenger ikke begynne på nytt for å styre OneUptime med Terraform. Importer monitorene, statussidene, teamene og de andre postene du allerede har, så styrer Terraform dem derfra, slik de er. En import leser bare: ingenting endres i OneUptime før du tar i bruk en endring du har planlagt.
 
 :::cards
 - [Slik virker en import](#slik-virker-en-import): Hva en import leser, og hva du skriver.
@@ -43,7 +43,7 @@ Dashbordet skriver konfigurasjonen for ressursen du ser på, med `import`-blokke
 :::steps
 ### Åpne ressursens Terraform-side
 
-Åpne overvåkeren, statussiden eller en annen ressurs i dashbordet. Åpne **Utvikler** i sidemenyen dens, og deretter **Terraform**.
+Åpne monitoren, statussiden eller en annen ressurs i dashbordet. Åpne **Utvikler** i sidemenyen dens, og deretter **Terraform**.
 
 ### Kopier konfigurasjonen
 
@@ -99,12 +99,12 @@ Kopier postens verdi inn i konfigurasjonen din (her `color = "#FF5733"`), og pla
 
 ## Importer mange ressurser
 
-For å importere alle overvåkere, statussider eller andre ressurser av én type, begynner du fra listen deres.
+For å importere alle monitorer, statussider eller andre ressurser av én type, begynner du fra listen deres.
 
 :::steps
 ### Åpne listens Terraform-side
 
-Åpne listen, og deretter **Utvikler** og **Terraform** i sidemenyen dens, for eksempel **Overvåkere → Utvikler → Terraform**.
+Åpne listen, og deretter **Utvikler** og **Terraform** i sidemenyen dens, for eksempel **Monitorer → Utvikler → Terraform**.
 
 ### Kopier importblokkene
 
@@ -184,7 +184,7 @@ Planen sier at teamet ikke lenger styres av Terraform, og ødelegger ingenting. 
 
 - **En import endrer ingenting, men neste apply gjør det.** Når du tar i bruk en plan som viser en endring ved siden av en import, endres posten i OneUptime. Få først planen til å vise bare importen.
 - **Den samme verdien skrevet på en annen måte er ingen endring.** OneUptime lagrer et tidsstempel i UTC med millisekunder, et tall som et 64-biters flyttall, og JSON og trinnene til en monitor med nøklene den fyller ut selv. Rett etter en import viser planen for en konfigurasjon som sier det samme på sin egen måte, ingen endring.
-- **Hemmeligheter leses ikke tilbake.** En hemmelighet som OneUptime aldri sender tilbake, som `secret_value` for en overvåkerhemmelighet, er ikke i state etter en import. Hvis konfigurasjonen din angir den, viser den første planen den som en endring, og når du tar den i bruk, skrives hemmeligheten på nytt.
+- **Hemmeligheter leses ikke tilbake.** En hemmelighet som OneUptime aldri sender tilbake, som `secret_value` for en monitorhemmelighet, er ikke i state etter en import. Hvis konfigurasjonen din angir den, viser den første planen den som en endring, og når du tar den i bruk, skrives hemmeligheten på nytt.
 - **Én konfigurasjon for hver post.** En post som er importert i to konfigurasjoner, endres ved hver apply tilbake til det hver av dem sier.
 - **Importerte poster er styrte poster.** `terraform destroy` sletter dem fra OneUptime, som postene Terraform har opprettet.
 

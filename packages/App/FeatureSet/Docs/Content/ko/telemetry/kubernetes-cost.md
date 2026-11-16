@@ -146,9 +146,9 @@ request는 권장하지만 limit은 권장하지 않습니다. request는 스케
 
 Prometheus가 중단되어도 지출 수집은 멈추지 않습니다. 최대치는 부가 정보이며, 그 시간은 최대치 없이 전송됩니다. CPU는 의도적으로 Prometheus를 사용하지 않습니다. CPU request가 너무 크면 스로틀링될 뿐이지만 메모리 request가 너무 작으면 컨테이너가 종료되므로 CPU에는 시간별 평균으로 충분히 안전하며, 클러스터 전체에서 모든 컨테이너의 CPU 비율을 쿼리하는 것은 작은 Prometheus를 쓰러뜨릴 만큼 무겁습니다.
 
-## 비용에 대한 알림
+## 비용에 대한 경고
 
-비용 메트릭은 일반 메트릭이므로 [메트릭 모니터](/docs/monitor/metrics-monitor)가 다른 것과 마찬가지로 이에 대해 알림을 보낼 수 있습니다. 예를 들어 평균 `node_total_hourly_cost`가 예산을 넘을 때, 또는 클러스터에 있어서는 안 되는 볼륨 클래스의 `pv_hourly_cost`가 나타날 때입니다.
+비용 메트릭은 일반 메트릭이므로 [메트릭 모니터](/docs/monitor/metrics-monitor)가 다른 것과 마찬가지로 이에 대해 경고를 보낼 수 있습니다. 예를 들어 평균 `node_total_hourly_cost`가 예산을 넘을 때, 또는 클러스터에 있어서는 안 되는 볼륨 클래스의 `pv_hourly_cost`가 나타날 때입니다.
 
 ## 데이터 모델과 보존
 
@@ -192,6 +192,6 @@ OneUptime은 엔진의 조정(reconciliation) 금액을 각 비용 구성 요소
 
 :::cards
 - [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent): 에이전트 설치와 에이전트가 수집하는 그 밖의 모든 것.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 지출이 예산을 넘으면 알림을 보냅니다.
-- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 클러스터 상태에 대해서도 알림을 보냅니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 지출이 예산을 넘으면 경고를 보냅니다.
+- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 클러스터 상태에 대해서도 경고를 보냅니다.
 :::

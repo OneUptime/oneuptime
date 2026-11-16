@@ -129,9 +129,9 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 
 | 操作 | 作用 |
 | --- | --- |
-| `acknowledge` | 确认此人的呼叫，并随之确认事件、告警或片段 |
+| `acknowledge` | 确认此人的呼叫，并随之确认事件、警报或片段 |
 | `escalate` | 此人无法处理：立即呼叫值班策略的下一级，并停止呼叫此人 |
-| `resolve` | 在此人自己的权限允许时，解决事件、告警或片段 |
+| `resolve` | 在此人自己的权限允许时，解决事件、警报或片段 |
 
 ```bash title="Acknowledge a page"
 curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…"

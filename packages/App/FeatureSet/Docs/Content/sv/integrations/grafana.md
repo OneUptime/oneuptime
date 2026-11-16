@@ -125,11 +125,11 @@ Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet*
 
 ### Kontrollera att aviseringen är utlöst
 
-Klicka på **Lägg till komponent**, lägg till ett block **If / Else** och anslut utlösarens punkt **Ut** till det. Ställ in **Värde att kontrollera** på `{{local.components.webhook-1.returnValues.request-body.status}}`, **Jämförelse** på **är lika med** och **Jämför med** på `firing`.
+Klicka på **Lägg till komponent**, lägg till ett block **Om / Annars** och anslut utlösarens punkt **Ut** till det. Ställ in **Värde att kontrollera** på `{{local.components.webhook-1.returnValues.request-body.status}}`, **Jämförelse** på **är lika med** och **Jämför med** på `firing`.
 
 ### Deklarera incidenten
 
-Lägg till ett block **Create One Incident** och anslut sidan **Ja** av blocket **If / Else** till det. Välj under **Incidentmall** en mall som ställer in allvarlighetsgraden och de jourpolicyer som ska larmas (se [Incidentmallar](/docs/incidents/settings#incidentmallar)). Ange under **JSON Object** vad som kommer från Grafana:
+Lägg till ett block **Skapa Incident (en post)** och anslut sidan **Ja** av blocket **Om / Annars** till det. Välj under **Incidentmall** en mall som ställer in allvarlighetsgraden och de jourpolicyer som ska larmas (se [Incidentmallar](/docs/incidents/settings#incidentmallar)). Ange under **JSON-objekt** vad som kommer från Grafana:
 
 ```json
 {
@@ -138,14 +138,14 @@ Lägg till ett block **Create One Incident** och anslut sidan **Ja** av blocket 
 }
 ```
 
-Utan en mall måste **JSON Object** också innehålla `incidentSeverityId`, ID:t för en av projektets incidentallvarlighetsgrader.
+Utan en mall måste **JSON-objekt** också innehålla `incidentSeverityId`, ID:t för en av projektets incidentallvarlighetsgrader.
 
 ### Slå på arbetsflödet
 
 Slå på **Aktiverad** överst i **Byggare**. Ett arbetsflöde som är avstängt svarar Grafana med `400`.
 :::
 
-En körning hanterar en avisering, så den deklarerar en incident oavsett hur många larm aviseringen innehåller. En avisering som är `resolved` tar sidan **Nej** av blocket **If / Else**, där ingenting är anslutet, så körningen slutar där. Använd monitorn för en incident per larm som löses vid återhämtning.
+En körning hanterar en avisering, så den deklarerar en incident oavsett hur många larm aviseringen innehåller. En avisering som är `resolved` tar sidan **Nej** av blocket **Om / Annars**, där ingenting är anslutet, så körningen slutar där. Använd monitorn för en incident per larm som löses vid återhämtning.
 
 ## Felsökning
 

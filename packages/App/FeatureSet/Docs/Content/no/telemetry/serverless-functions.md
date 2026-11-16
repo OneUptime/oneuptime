@@ -226,5 +226,5 @@ En funksjon viser **Ingen nylige anrop** når OneUptime ikke har mottatt noe fra
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send spor, logger og målinger fra et hvilket som helst program.
 - [Køer](/docs/telemetry/queues): Køene og emnene funksjonene dine publiserer til og konsumerer fra.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Varsle om mislykkede eller trege kall til en funksjon.
+- [Trase-monitor](/docs/monitor/traces-monitor): Varsle om mislykkede eller trege kall til en funksjon.
 :::

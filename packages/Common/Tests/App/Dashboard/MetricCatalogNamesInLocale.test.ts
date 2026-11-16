@@ -9,9 +9,77 @@ import {
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
 } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
-import { getAllCephMetrics } from "../../../Types/Monitor/CephMetricCatalog";
-import { getAllProxmoxMetrics } from "../../../Types/Monitor/ProxmoxMetricCatalog";
-import { getAllStorageArrayMetrics } from "../../../Types/Monitor/StorageArrayMetricCatalog";
+import {
+  CephMetricCategory,
+  getAllCephMetricCategories,
+  getAllCephMetrics,
+  getCephMetricCategoryLabel,
+} from "../../../Types/Monitor/CephMetricCatalog";
+import {
+  DatabaseMetricCategory,
+  getAllDatabaseMetrics,
+  getDatabaseMetricCategoryLabel,
+  getDatabaseMetricCategoryOrder,
+} from "../../../Types/Monitor/DatabaseMetricCatalog";
+import {
+  DockerMetricCategory,
+  getAllDockerMetricCategories,
+  getAllDockerMetrics,
+  getDockerMetricCategoryLabel,
+} from "../../../Types/Monitor/DockerMetricCatalog";
+import {
+  DockerSwarmMetricCategory,
+  getAllDockerSwarmMetricCategories,
+  getAllDockerSwarmMetrics,
+  getDockerSwarmMetricCategoryLabel,
+} from "../../../Types/Monitor/DockerSwarmMetricCatalog";
+import {
+  getAllHostMetricCategories,
+  getAllHostMetrics,
+  getHostMetricCategoryLabel,
+  HostMetricCategory,
+} from "../../../Types/Monitor/HostMetricCatalog";
+import {
+  getAllIoTMetricCategories,
+  getAllIoTMetrics,
+  getIoTMetricCategoryLabel,
+  IoTMetricCategory,
+} from "../../../Types/Monitor/IotMetricCatalog";
+import {
+  getAllKubernetesMetricCategories,
+  getAllKubernetesMetrics,
+  getKubernetesMetricCategoryLabel,
+  KubernetesMetricCategory,
+} from "../../../Types/Monitor/KubernetesMetricCatalog";
+import {
+  getAllPodmanMetricCategories,
+  getAllPodmanMetrics,
+  getPodmanMetricCategoryLabel,
+  PodmanMetricCategory,
+} from "../../../Types/Monitor/PodmanMetricCatalog";
+import {
+  getOpenStackMetricCategoryLabel,
+  getAllOpenStackMetricCategories,
+  OpenStackMetricCategory,
+} from "../../../Types/Monitor/OpenStackMetricCatalog";
+import {
+  getAllProxmoxMetricCategories,
+  getAllProxmoxMetrics,
+  getProxmoxMetricCategoryLabel,
+  ProxmoxMetricCategory,
+} from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import {
+  getAllVMwareMetricCategories,
+  getAllVMwareMetrics,
+  getVMwareMetricCategoryLabel,
+  VMwareMetricCategory,
+} from "../../../Types/Monitor/VMwareMetricCatalog";
+import {
+  getAllStorageArrayMetricCategories,
+  getAllStorageArrayMetrics,
+  getStorageArrayMetricCategoryLabel,
+  StorageArrayMetricCategory,
+} from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import {
   createTranslator,
   Translator,
@@ -35,7 +103,13 @@ import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
  * language words them, with the unit words a chart title adds ("Buffer
  * pool size (pages)") and the words in brackets that tell two copies of a
  * metric apart ("JSON stream", "legacy names"). The Proxmox and Ceph
- * Insights pages' charts, keys already, are worded too.
+ * Insights pages' charts, keys already, are worded too. So are a Database
+ * Health monitor's metric names, which its criteria's metric dropdown, its
+ * summary and its charts drew in English, and the headings of its
+ * summary's groups, the category's English value (#8354). And so are the
+ * VMware, Kubernetes, Docker, Docker Swarm, Podman, host and IoT pickers'
+ * names and the headings of their groups, which the dropdown drew as each
+ * catalog's category identifier (#8353).
  */
 
 const DASHBOARD: string = path.resolve(
@@ -51,6 +125,14 @@ const CATALOG_FILES: ReadonlyArray<string> = [
   "packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
   "packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
   "packages/Common/Types/Monitor/CephMetricCatalog.ts",
+  "packages/Common/Types/Monitor/DatabaseMetricCatalog.ts",
+  "packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
+  "packages/Common/Types/Monitor/KubernetesMetricCatalog.ts",
+  "packages/Common/Types/Monitor/DockerMetricCatalog.ts",
+  "packages/Common/Types/Monitor/DockerSwarmMetricCatalog.ts",
+  "packages/Common/Types/Monitor/PodmanMetricCatalog.ts",
+  "packages/Common/Types/Monitor/HostMetricCatalog.ts",
+  "packages/Common/Types/Monitor/IotMetricCatalog.ts",
 ];
 
 // The Insights pages whose chart titles, lines and lines under them are keys.
@@ -158,9 +240,83 @@ const PICKER_NAMES: Array<string> = unique(
     ...getAllStorageArrayMetrics(),
     ...getAllProxmoxMetrics(),
     ...getAllCephMetrics(),
+    ...getAllDatabaseMetrics(),
+    ...getAllVMwareMetrics(),
+    ...getAllKubernetesMetrics(),
+    ...getAllDockerMetrics(),
+    ...getAllDockerSwarmMetrics(),
+    ...getAllPodmanMetrics(),
+    ...getAllHostMetrics(),
+    ...getAllIoTMetrics(),
   ].map((metric: { friendlyName: string }): string => {
     return metric.friendlyName;
   }),
+);
+
+// The headings the eleven pickers draw over their groups (#8353, #8653).
+const PICKER_GROUP_HEADINGS: Array<string> = unique([
+  ...getAllVMwareMetricCategories().map(
+    (category: VMwareMetricCategory): string => {
+      return getVMwareMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllKubernetesMetricCategories().map(
+    (category: KubernetesMetricCategory): string => {
+      return getKubernetesMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllDockerMetricCategories().map(
+    (category: DockerMetricCategory): string => {
+      return getDockerMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllDockerSwarmMetricCategories().map(
+    (category: DockerSwarmMetricCategory): string => {
+      return getDockerSwarmMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllPodmanMetricCategories().map(
+    (category: PodmanMetricCategory): string => {
+      return getPodmanMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllHostMetricCategories().map(
+    (category: HostMetricCategory): string => {
+      return getHostMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllIoTMetricCategories().map((category: IoTMetricCategory): string => {
+    return getIoTMetricCategoryLabel(category);
+  }),
+  ...getAllStorageArrayMetricCategories().map(
+    (category: StorageArrayMetricCategory): string => {
+      return getStorageArrayMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllProxmoxMetricCategories().map(
+    (category: ProxmoxMetricCategory): string => {
+      return getProxmoxMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllCephMetricCategories().map(
+    (category: CephMetricCategory): string => {
+      return getCephMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllOpenStackMetricCategories().map(
+    (category: OpenStackMetricCategory): string => {
+      return getOpenStackMetricCategoryLabel(category);
+    },
+  ),
+]);
+
+// The headings of a Database monitor's summary groups and Metrics tab cards.
+const DATABASE_GROUP_HEADINGS: Array<string> = unique(
+  getDatabaseMetricCategoryOrder().map(
+    (category: DatabaseMetricCategory): string => {
+      return getDatabaseMetricCategoryLabel(category);
+    },
+  ),
 );
 
 function insightsWords(): Array<string> {
@@ -182,6 +338,8 @@ const ALL_KEYS: Array<string> = unique([
   ...QUEUE_TITLE_KEYS,
   ...UNIT_WORDS,
   ...PICKER_NAMES,
+  ...DATABASE_GROUP_HEADINGS,
+  ...PICKER_GROUP_HEADINGS,
   ...insightsWords(),
 ]);
 
@@ -212,7 +370,54 @@ describe("the metric catalogs' names are keys", () => {
     // The names are many: a regression that empties a list would pass otherwise.
     expect(DATABASE_TITLES.length).toBeGreaterThan(50);
     expect(QUEUE_TITLE_KEYS.length).toBeGreaterThan(40);
-    expect(PICKER_NAMES.length).toBeGreaterThan(100);
+    expect(PICKER_NAMES.length).toBeGreaterThan(250);
+    expect(PICKER_NAMES).toEqual(
+      expect.arrayContaining([
+        "Datacenter Cluster Count",
+        "Pod Network I/O (Cumulative, Both Directions)",
+        "Load Average (1m)",
+        "Device Up",
+      ]),
+    );
+    /*
+     * A heading is a key that says the group, never the category's
+     * identifier: Control Plane, Block I/O; and the host's Load is its
+     * load averages, never the verb "Load" the key would read as.
+     */
+    expect(PICKER_GROUP_HEADINGS).toEqual(
+      expect.arrayContaining(["Control Plane", "Block I/O", "Load Average"]),
+    );
+    expect(PICKER_GROUP_HEADINGS).not.toEqual(
+      expect.arrayContaining(["ControlPlane"]),
+    );
+    expect(PICKER_GROUP_HEADINGS).not.toEqual(
+      expect.arrayContaining(["BlockIO"]),
+    );
+    expect(PICKER_GROUP_HEADINGS).not.toEqual(expect.arrayContaining(["Load"]));
+    // The storage array, Proxmox, Ceph and OpenStack pickers' too (#8653).
+    expect(PICKER_GROUP_HEADINGS).toEqual(
+      expect.arrayContaining([
+        "Array Health",
+        "Guest",
+        "PG",
+        "OVN and Open vSwitch",
+        "Key Manager",
+      ]),
+    );
+    expect(PICKER_NAMES).toEqual(
+      expect.arrayContaining(["Replication Lag (Bytes)", "TempDB Free Space"]),
+    );
+    /*
+     * Each group's heading is a key that says the group's English name, as
+     * the docs' headings do; "Cache and I/O" was no key at all.
+     */
+    expect(DATABASE_GROUP_HEADINGS).toEqual(
+      getDatabaseMetricCategoryOrder().map(
+        (category: DatabaseMetricCategory): string => {
+          return category;
+        },
+      ),
+    );
     expect(QUEUE_TITLE_KEYS).toEqual(
       expect.arrayContaining(["JSON stream", "legacy names"]),
     );

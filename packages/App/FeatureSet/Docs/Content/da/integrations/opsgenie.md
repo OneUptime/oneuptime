@@ -1,6 +1,6 @@
 # Opsgenie
 
-Send OneUptime-hændelser til [Opsgenie](https://www.atlassian.com/software/opsgenie). én arbejdsgang opretter en Opsgenie-alarm, når en OneUptime-hændelse erklæres, og et andet lukker den, når OneUptime-hændelsen er løst. Brug det, så længe Opsgenie stadig kalder dit team op, og OneUptime overvåger dine systemer.
+Send OneUptime-hændelser til [Opsgenie](https://www.atlassian.com/software/opsgenie). Én arbejdsgang opretter en Opsgenie-alarm, når en OneUptime-hændelse erklæres, og en anden lukker den, når OneUptime-hændelsen er løst. Brug det, så længe Opsgenie stadig kalder dit team op, og OneUptime overvåger dine systemer.
 
 :::cards
 - [Gem API-nøglen](#gem-api-nøglen): Hold Opsgenies nøgle ude af dine arbejdsgange.
@@ -16,13 +16,13 @@ Send OneUptime-hændelser til [Opsgenie](https://www.atlassian.com/software/opsg
 
 ```mermaid title="To arbejdsgange, én Opsgenie-alarm"
 flowchart TB
-    declared["Hændelse erklæret"] --> create["Arbejdsgang 1:<br/>On Create Incident"]
+    declared["Hændelse erklæret"] --> create["Arbejdsgang 1:<br/>Ved oprettelse:<br/>Hændelse"]
     create -->|"POST /v2/alerts"| og["Opsgenie-alarm"]
-    resolved["Hændelse løst"] --> update["Arbejdsgang 2:<br/>On Update Incident"]
+    resolved["Hændelse løst"] --> update["Arbejdsgang 2:<br/>Ved opdatering:<br/>Hændelse"]
     update -->|"luk via alias"| og
 ```
 
-Begge arbejdsgange kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Det første giver alarmen et `alias` dannet ud fra OneUptime-hændelsens ID, og det andet lukker alarmen via det alias.
+Begge arbejdsgange kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Den første giver alarmen et `alias` dannet ud fra OneUptime-hændelsens ID, og den anden lukker alarmen via det alias.
 
 ## Før du går i gang
 
@@ -45,15 +45,15 @@ En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så nøglen vise
 :::steps
 ### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to Opsgenie`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv den navnet `Incidents to Opsgenie`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse**.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **Ved oprettelse: Hændelse**. Klik på triggeren: dens **Felter, der sendes videre** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse**.
 
 ### Opret alarmen
 
-Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **URL** til `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Sæt under **Flere felter** dens **Anmodningsheadere** til:
+Klik på **Tilføj komponent**, tilføj en **API-kald POST (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **URL** til `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ Og dens **Anmodningsbrødtekst** til:
 
 ### Test det, og slå det derefter til
 
-Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API Post (JSON)** viser et `202`-svar, og alarmen dukker op i Opsgenie et øjeblik senere. Slå derefter **Aktiveret** til øverst i **Bygger**.
+Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API-kald POST (JSON)** viser et `202`-svar, og alarmen dukker op i Opsgenie et øjeblik senere. Slå derefter **Aktiveret** til øverst i **Bygger**.
 :::
 
 Opsgenies skema er ordet `GenieKey`, et mellemrum og derefter nøglen. Opsgenie begrænser `message` til 130 tegn, og prioriteterne går fra `P1` til `P5`: se [Tilknyt prioriteter](#tilknyt-prioriteter) for at sende hver hændelses egen.
@@ -83,9 +83,9 @@ Opsgenies skema er ordet `GenieKey`, et mellemrum og derefter nøglen. Opsgenie 
 En arbejdsgang har én trigger, så det kræver en anden arbejdsgang at lukke den, startet når en hændelses tilstand ændres.
 
 :::steps
-### Tilføj triggeren On Update Incident
+### Tilføj triggeren "Ved opdatering: Hændelse"
 
-Opret en arbejdsgang med navnet `Close Opsgenie alerts`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
+Opret en arbejdsgang med navnet `Close Opsgenie alerts`, og vælg **Ved opdatering: Hændelse** som trigger. Klik på **Tilføj felt** i **Felter, der holdes øje med**, og vælg **Current Incident State**, så den kun kører, når tilstanden ændres. Spørg i **Felter, der sendes videre**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Opret en arbejdsgang med navnet `Close Opsgenie alerts`, og vælg **On Update In
 
 ### Kontrollér, at hændelsen er løst
 
-Tilføj en **If / Else**-blok efter triggeren. Sæt **Værdi, der skal tjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sand**.
+Tilføj en **Hvis / Ellers**-blok efter triggeren. Sæt **Værdi, der skal tjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sand**.
 
 ### Luk alarmen
 
-Tilføj en **API Post (JSON)**-blok efter **Ja**-siden, med de samme **Anmodningsheadere** og denne **URL**:
+Tilføj en **API-kald POST (JSON)**-blok efter **Ja**-siden, med de samme **Anmodningsheadere** og denne **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,10 +114,10 @@ Slå **Aktiveret** til, og løs derefter en testhændelse i OneUptime. Opsgenie 
 
 ## Tilknyt prioriteter
 
-For at sende hver hændelses alvorlighed som en Opsgenie-prioritet tilføjer du en **Run Custom JavaScript**-blok mellem triggeren og **API Post (JSON)**-blokken.
+For at sende hver hændelses alvorlighed som en Opsgenie-prioritet tilføjer du en **Kør egen JavaScript**-blok mellem triggeren og **API-kald POST (JSON)**-blokken.
 
-1. Klik på **Tilføj felt** i triggerens **Fields to pass on**, åbn **Hændelsesalvor**, og vælg **Navn**.
-2. Sæt blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript-kode** til:
+1. Klik på **Tilføj felt** i triggerens **Felter, der sendes videre**, åbn **Hændelsesalvor**, og vælg **Navn**.
+2. Sæt blokkens **Argumenter** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript-kode** til:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie svarer `202`, før den behandler anmodningen, så en anmodning, den sen
 :::
 
 :::details Arbejdsgangen kører aldrig
-Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
+Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **Hvis / Ellers**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 ## Næste trin

@@ -352,7 +352,7 @@ describe("the Replay Health page in the reader's language", () => {
 
     expect(screen.getByTestId("health-uploads")).toHaveAttribute(
       "aria-label",
-      marked("Uploads in the last 24 hours"),
+      marked("Uploads in the last 24\u00A0hours"),
     );
     expect(screen.getByTestId("health-refusals")).toHaveTextContent(
       marked("Refused at the gate"),

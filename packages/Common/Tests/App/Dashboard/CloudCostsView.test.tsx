@@ -51,6 +51,7 @@ import {
   getCloudCostGapsDescription,
   getCloudCostGapsTitle,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostGapsCard";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 /*
  * WHAT THE CLOUD COSTS - Cloud > Costs over every account and an account's
@@ -252,7 +253,8 @@ describe("every account's costs", () => {
         return element.textContent || "";
       });
 
-    expect(values).toEqual(["$3,000", "$7,800", "$8,000", "—"]);
+    // Nothing to save yet: the quiet dash, "Not set" to a screen reader (#8264).
+    expect(values).toEqual(["$3,000", "$7,800", "$8,000", QUIET_DASH_TEXT]);
   });
 
   test("unusual days: under the daily spend and before where the money goes, when an account had one", async () => {

@@ -264,7 +264,7 @@ describe("an SMS the Notification service does not send", () => {
         `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
       );
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+        "SMS not sent: SMS is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
       );
       // The tenant's setting, not a defect.
       expect(declaredErrorClass(error)).toEqual({
@@ -303,7 +303,7 @@ describe("an SMS the Notification service does not send", () => {
         getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
       );
       expect(loggedRows()[0]!.statusMessage).toContain(
-        "A project owner, a Billing Admin or someone with Manage Billing",
+        "A Project Owner, a Billing Admin or someone with Manage Billing",
       );
     });
 
@@ -352,7 +352,7 @@ describe("an SMS the Notification service does not send", () => {
         })}`,
       );
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        "SMS not sent: This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
       );
       expect(createMessage).not.toHaveBeenCalled();
       expect(loggedRows()).toHaveLength(1);
@@ -367,7 +367,7 @@ describe("an SMS the Notification service does not send", () => {
       );
 
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: This project's balance (0.01 USD) is less than this SMS costs (0.10 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        "SMS not sent: This project's balance (0.01\u00A0USD) is less than this SMS costs (0.10\u00A0USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
       );
       expect(createMessage).not.toHaveBeenCalled();
       expect(loggedRows()[0]!.status).toBe(SmsStatus.LowBalance);

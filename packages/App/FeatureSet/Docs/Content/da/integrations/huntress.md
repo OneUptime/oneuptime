@@ -13,7 +13,7 @@ Denne integration er **indgående**: Huntress sender hver begivenhed om en hænd
 
 ## Sådan virker det
 
-Huntress sender en begivenhed om en hændelsesrapport, når rapporten sendes, når nogen kommenterer den, og når den lukkes. Triggeren **Huntress Incident Report** starter arbejdsgangen én gang for hver begivenhed, og dens **Begivenhed** siger, hvilken det var: `created`, `comment-added` eller `closed`.
+Huntress sender en begivenhed om en hændelsesrapport, når rapporten sendes, når nogen kommenterer den, og når den lukkes. Triggeren **Huntress-hændelsesrapport** starter arbejdsgangen én gang for hver begivenhed, og dens **Begivenhed** siger, hvilken det var: `created`, `comment-added` eller `closed`.
 
 ```mermaid title="Én Huntress-hændelsesrapport i en arbejdsgang"
 sequenceDiagram
@@ -55,11 +55,11 @@ Hændelsen gemmer rapportens nummer i sine brugerdefinerede felter som `huntress
 
 ### Vælg, hvem der tilkaldes
 
-Dialogen spørger derefter, hvem der skal tilkaldes: under **Who to page for high and critical reports** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Arbejdsgangen åbner i **Bygger**, slået fra. For senere at ændre, hvem det tilkalder, klikker du på dets trin **Page an On-Call Policy** og ændrer dets **Vagtpolitikker**.
+Dialogen spørger derefter, hvem der skal tilkaldes: under **Who to page for high and critical reports** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Arbejdsgangen åbner i **Bygger**, slået fra. For senere at ændre, hvem den tilkalder, klikker du på dens trin **Start en vagtpolitik** og ændrer dets **Vagtpolitikker**.
 
 ### Tilføj et webhook-endpoint i Huntress
 
-Klik på triggeren **Huntress Incident Report**, og klik på **Kopiér URL** under **Tilføj et webhook-endpoint i Huntress**. URL'en ser ud som `https://oneuptime.com/workflow/huntress/<key>`; på en selvhostet installation begynder den med din egen vært.
+Klik på triggeren **Huntress-hændelsesrapport**, og klik på **Kopiér URL** under **Tilføj et webhook-endpoint i Huntress**. URL'en ser ud som `https://oneuptime.com/workflow/huntress/<key>`; på en selvhostet installation begynder den med din egen vært.
 
 Åbn menuen øverst til højre i Huntress, og vælg **Integrations**. Klik på **Add an Integration**, vælg **Webhooks**, og klik på **Add Endpoint**. Indsæt URL'en, slå **Incident Reports** til, og gem. Lad **Escalations**, **Platform Actions** og **Account Notices** være slået fra: Triggeren tager imod de begivenheder og starter intet for dem.
 
@@ -79,15 +79,15 @@ Slå **Aktiveret** til øverst i **Bygger**. Åbn endpointets menu (⋯) i Huntr
 
 ## Hvad arbejdsgangen gør
 
-Efter triggeren gør **Incident From Another Tool** det, hver **Begivenhed** beder om, ud fra rapportens nummer:
+Efter triggeren gør **Hændelse fra et andet værktøj** det, hver **Begivenhed** beder om, ud fra rapportens nummer:
 
 | Event | Hvad arbejdsgangen gør |
 | --- | --- |
-| `created` | Åbner en hændelse med triggerens **Id for hændelsesalvorlighed**, med etiketten fra dens **Organization Label ID**. Ved en høj eller kritisk rapport tilkalder **Page an On-Call Policy** din politik; en lav rapport tilkalder ingen. En rapport, der allerede har en hændelse, åbner ikke en til. |
+| `created` | Åbner en hændelse med triggerens **Id for hændelsesalvorlighed**, med etiketten fra dens **ID for organisationsetiket**. Ved en høj eller kritisk rapport tilkalder **Start en vagtpolitik** din politik; en lav rapport tilkalder ingen. En rapport, der allerede har en hændelse, åbner ikke en til. |
 | `comment-added` | Finder rapportens hændelse og tilføjer kommentaren til den som en privat note. |
 | `closed` | Finder rapportens hændelse og løser den, medmindre den allerede er løst. Årsagen står på dens tidslinje: Huntress lukkede rapporten. |
 
-Det er en arbejdsgang som alle andre, så du kan ændre, hvad den gør: tilkald kun ved kritiske rapporter ved at ændre, hvad **If / Else** efter **Incident From Another Tool** sammenligner, post hver rapport i en chatkanal med et Slack- eller Microsoft Teams-trin, eller send hver organisation til dens egen vagtpolitik med en **Switch / Case** på **Organisation**. Hver kørsel står blandt arbejdsgangens kørsler, med hvad hvert trin gjorde.
+Det er en arbejdsgang som alle andre, så du kan ændre, hvad den gør: tilkald kun ved kritiske rapporter ved at ændre, hvad **Hvis / Ellers** efter **Hændelse fra et andet værktøj** sammenligner, post hver rapport i en chatkanal med et Slack- eller Microsoft Teams-trin, eller send hver organisation til dens egen vagtpolitik med en **Valg / Sag** på **Organisation**. Hver kørsel står blandt arbejdsgangens kørsler, med hvad hvert trin gjorde.
 
 ### Alvorligheder
 
@@ -103,7 +103,7 @@ Et projekt med færre alvorligheder bruger sin laveste til resten. En rapport ud
 
 ### Organisationer
 
-Triggerens **Organization Label ID** er en etiket, der er opkaldt efter rapportens Huntress-organisation, f.eks. _Acme Corp_, og som den opretter, første gang en rapport fra den organisation ankommer. én arbejdsgang modtager rapporterne fra alle organisationer i din Huntress-konto, og triggerens **Kun disse organisationer** indsnævrer det: ét organisationsnavn eller -id pr. linje, hvor navne ikke skelner mellem store og små bogstaver.
+Triggerens **ID for organisationsetiket** er en etiket, der er opkaldt efter rapportens Huntress-organisation, f.eks. _Acme Corp_, og som den opretter, første gang en rapport fra den organisation ankommer. én arbejdsgang modtager rapporterne fra alle organisationer i din Huntress-konto, og triggerens **Kun disse organisationer** indsnævrer det: ét organisationsnavn eller -id pr. linje, hvor navne ikke skelner mellem store og små bogstaver.
 
 > [!TIP]
 > For at tilkalde hver kundes eget team skal du tilføje en vagtregel for hændelser pr. organisation, f.eks. »Hvis **Hændelsesetiketter** har en af _Acme Corp_«, der udfører kundens politik. Se [Vagtregler for hændelser](/docs/incidents/settings#vagtregler-for-hændelser).
@@ -115,7 +115,7 @@ Triggeren åbner på Huntress: dens URL, et flueben ved hvert opsætningstrin, d
 | Værdi | Hvad den indeholder |
 | --- | --- |
 | **Begivenhed** | `created`, `comment-added` eller `closed`. En rapport, der allerede er lukket eller afvist, er `closed`, uanset hvilken begivenhed der bragte den. |
-| **Report ID** | Rapportens nummer i Huntress. |
+| **Rapport-ID** | Rapportens nummer i Huntress. |
 | **Alvorlighed** | `critical`, `high` eller `low`. |
 | **Status** | Rapportens status i Huntress, f.eks. `sent`, `closed` eller `dismissed`. |
 | **Emne** | Rapportens emne, som Huntress skriver det. |
@@ -124,19 +124,19 @@ Triggeren åbner på Huntress: dens URL, et flueben ved hvert opsætningstrin, d
 | **Berørt** | Den vært eller identitet, rapporten handler om. |
 | **Platform**, **Indikatorer** | Hvor Huntress fandt det, og hvad den fandt. |
 | **Kommentar** | Den kommentar, nogen tilføjede, ved `comment-added`. |
-| **Report URL** | Hvor rapporten åbner i Huntress. |
+| **Rapport-URL** | Hvor rapporten åbner i Huntress. |
 | **Hændelsestitel**, **Hændelsesbeskrivelse** | En titel og en Markdown-beskrivelse til en hændelse om rapporten. |
 | **Note** | Markdown til en note om begivenheden: kommentaren, eller at Huntress lukkede rapporten. |
-| **Id for hændelsesalvorlighed**, **Organization Label ID** | Hændelsesalvorligheden og etiketten, som ovenfor. |
-| **Received At** | Hvornår OneUptime modtog begivenheden. |
+| **Id for hændelsesalvorlighed**, **ID for organisationsetiket** | Hændelsesalvorligheden og etiketten, som ovenfor. |
+| **Modtaget** | Hvornår OneUptime modtog begivenheden. |
 
 **Oversigt** og **Kommentar** er tekst, som Huntress' analytikere har skrevet. Brug **Hændelsesbeskrivelse** og **Note** for at sætte dem i en hændelse eller en note: De bevarer formateringen, og intet i dem henter et billede eller nævner nogen.
 
-For at prøve arbejdsgangen uden Huntress skal du klikke på **Kør arbejdsgang** i **Bygger** og skrive en **Begivenhed**, et **Report ID** og de felter, du har brug for. Brug det samme **Report ID** for at følge én rapport fra `created` til `closed`.
+For at prøve arbejdsgangen uden Huntress skal du klikke på **Kør arbejdsgang** i **Bygger** og skrive en **Begivenhed**, et **Rapport-ID** og de felter, du har brug for. Brug det samme **Rapport-ID** for at følge én rapport fra `created` til `closed`.
 
 ## Huntress-forbindelser oprettet tidligere
 
-Huntress blev tidligere sat op under **Hændelser → Integrationer → Huntress**. Hver Huntress-forbindelse blev til en arbejdsgang med samme navn, slået til, som gør det, forbindelsen gjorde: Den tilkalder de samme vagtpolitikker ved de samme rapporter, tilføjer de samme etiketter og løser (eller noterer kun) på samme måde. Dens URL er stadig forbindelsens, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, og dets signeringshemmelighed er den samme, så der er intet at ændre i Huntress. De hændelser, forbindelsen åbnede, beholder deres rapports nummer, så arbejdsgangen finder dem, når Huntress kommenterer eller lukker de rapporter.
+Huntress blev tidligere sat op under **Hændelser → Integrationer → Huntress**. Hver Huntress-forbindelse blev til en arbejdsgang med samme navn, slået til, som gør det, forbindelsen gjorde: Den tilkalder de samme vagtpolitikker ved de samme rapporter, tilføjer de samme etiketter og løser (eller noterer kun) på samme måde. Dens URL er stadig forbindelsens, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, og dens signeringshemmelighed er den samme, så der er intet at ændre i Huntress. De hændelser, forbindelsen åbnede, beholder deres rapports nummer, så arbejdsgangen finder dem, når Huntress kommenterer eller lukker de rapporter.
 
 ## Sikkerhed
 
@@ -170,15 +170,15 @@ Slå **Aktiveret** til øverst i **Bygger**. Huntress sender den afviste anmodni
 :::
 
 :::details "No Huntress workflow has this address."
-Arbejdsgangen er slettet eller arkiveret, dens trigger er ikke længere **Huntress Incident Report**, eller endpointets URL i Huntress er ikke arbejdsgangens. Kopiér URL'en fra triggeren, og indsæt den i endpointet i Huntress igen.
+Arbejdsgangen er slettet eller arkiveret, dens trigger er ikke længere **Huntress-hændelsesrapport**, eller endpointets URL i Huntress er ikke arbejdsgangens. Kopiér URL'en fra triggeren, og indsæt den i endpointet i Huntress igen.
 :::
 
 :::details Der blev ikke åbnet nogen hændelse
-Åbn arbejdsgangens kørsler og rapportens kørsel. Hvis **Incident From Another Tool** mislykkedes med `This project has no incident severities to put the incident at.`, så tilføj en under **Hændelser → Indstillinger → Hændelsesalvor**.
+Åbn arbejdsgangens kørsler og rapportens kørsel. Hvis **Hændelse fra et andet værktøj** mislykkedes med `This project has no incident severities to put the incident at.`, så tilføj en under **Hændelser → Indstillinger → Hændelsesalvor**.
 :::
 
 :::details Ingen blev tilkaldt
-En lav rapport åbner en hændelse uden at tilkalde nogen. Ellers fortæller rapportens kørsel, hvad **Page an On-Call Policy** gjorde, og hændelsens side **Vagtudførelser** viser, hvad hver politik gjorde.
+En lav rapport åbner en hændelse uden at tilkalde nogen. Ellers fortæller rapportens kørsel, hvad **Start en vagtpolitik** gjorde, og hændelsens side **Vagtudførelser** viser, hvad hver politik gjorde.
 :::
 
 ## Næste trin

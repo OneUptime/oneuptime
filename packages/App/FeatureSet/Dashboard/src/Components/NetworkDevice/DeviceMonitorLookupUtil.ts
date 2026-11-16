@@ -1,5 +1,9 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
@@ -11,7 +15,9 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { DEVICE_ADDRESS_MONITOR_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import DeviceWebUiUtil from "Common/Utils/NetworkDevice/DeviceWebUiUtil";
 import Search from "Common/Types/BaseDatabase/Search";
+import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { APP_API_URL } from "Common/UI/Config";
 
 /** What a device's own row says about who reports its health. */
 export interface DeviceBinding {
@@ -39,6 +45,29 @@ export interface DeviceMonitorContext {
 }
 
 /*
+ * Where the server answers which Network Device monitors watch a device
+ * (Common/Server/API/NetworkDeviceWatchingMonitorsAPI, issue #8101).
+ */
+export const NETWORK_DEVICE_WATCHING_MONITORS_ROUTE: string =
+  "/network-device/:networkDeviceId/watching-monitors";
+
+export function getWatchingMonitorsRoute(
+  networkDeviceId: ObjectID | string,
+): string {
+  return NETWORK_DEVICE_WATCHING_MONITORS_ROUTE.replace(
+    ":networkDeviceId",
+    encodeURIComponent(networkDeviceId.toString()),
+  );
+}
+
+/*
+ * The most watching monitors one Monitor list request names by id. A device
+ * has a handful; a device with more is read in pieces of this many, never
+ * cut off at a page.
+ */
+export const WATCHING_MONITORS_PER_READ: number = 500;
+
+/*
  * Finds the monitors that report on a given network device.
  *
  * There are FOUR ways a monitor relates to a device, and this util has to
@@ -48,15 +77,20 @@ export interface DeviceMonitorContext {
  *
  * 1. A Network Device monitor WATCHES the device: the reference lives inside
  *    the monitor's monitorSteps JSON column
- *    (step.data.networkDeviceMonitor.networkDeviceId), which is not queryable
- *    server-side. So: list every Network Device monitor in the project
- *    (bounded by LIMIT_PER_PROJECT — these are rare enough that one page is
- *    plenty) and filter client-side by the step data.
+ *    (step.data.networkDeviceMonitor.networkDeviceId). Postgres keeps
+ *    MonitorNetworkDevice from every monitor's steps, so the server answers
+ *    which monitors those are, by the device
+ *    (POST /network-device/:id/watching-monitors, listWatchingMonitors), and
+ *    they are read by id. It used to list every Network Device monitor in
+ *    the project, steps and all, and filter them here: one heavy read of
+ *    every monitor's steps each time someone opened a device, and past
+ *    LIMIT_PER_PROJECT a monitor that did watch the device was silently
+ *    missed (OneUptime issue #8101).
  *
  * 2. A monitor is BOUND to the device (NetworkDevice.monitorId): the
  *    monitor-backed contract, where that monitor's status IS the device's
  *    status. It is an ordinary Ping or IP monitor, so it is not of type
- *    NetworkDevice and its steps say nothing about the device — the query in
+ *    NetworkDevice and its steps say nothing about the device — the lookup in
  *    (1) can never find it.
  *
  * 3. A monitor was MADE FOR the device (Monitor.autoProvisionedNetworkDeviceId)
@@ -70,21 +104,6 @@ export interface DeviceMonitorContext {
  * The bound monitor leads the list: it is the one deciding the device's state.
  */
 export default class DeviceMonitorLookupUtil {
-  public static monitorWatchesDevice(
-    monitor: Monitor,
-    networkDeviceId: ObjectID,
-  ): boolean {
-    const steps: Array<MonitorStep> =
-      monitor.monitorSteps?.data?.monitorStepsInstanceArray || [];
-
-    return steps.some((step: MonitorStep) => {
-      return (
-        step.data?.networkDeviceMonitor?.networkDeviceId ===
-        networkDeviceId.toString()
-      );
-    });
-  }
-
   /**
    * The device's binding half: the monitor bound to it, and whether it is
    * monitor-backed at all.
@@ -184,6 +203,101 @@ export default class DeviceMonitorLookupUtil {
   }
 
   /*
+   * The ids of the Network Device monitors watching the device that the
+   * reader may read, as the server answers them. An id that is not one is
+   * dropped, and each is kept once. A failed request is thrown, as the
+   * Monitor list's was: the card says so rather than say nothing alerts.
+   */
+  public static async fetchWatchingMonitorIds(
+    networkDeviceId: ObjectID,
+  ): Promise<Array<string>> {
+    const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+      getWatchingMonitorsRoute(networkDeviceId),
+    );
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post<JSONObject>({
+        url: url,
+        data: {},
+        headers: { ...ModelAPI.getCommonHeaders() },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    const value: JSONValue | undefined = (response.data || {})["monitorIds"];
+
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const monitorIds: Set<string> = new Set<string>();
+
+    for (const id of value) {
+      if (typeof id === "string" && ObjectID.isValidUUID(id)) {
+        monitorIds.add(id);
+      }
+    }
+
+    return Array.from(monitorIds);
+  }
+
+  /*
+   * 1. The Network Device monitors WATCHING the device: the server names
+   *    them (fetchWatchingMonitorIds), and they are read by id with the
+   *    card's columns - never the project's every Network Device monitor.
+   *    In name order, as the list read sorted them; a device watched by
+   *    more than WATCHING_MONITORS_PER_READ is read in pieces, all of them.
+   */
+  public static async listWatchingMonitors(data: {
+    networkDeviceId: ObjectID;
+    select: Select<Monitor>;
+  }): Promise<Array<Monitor>> {
+    const monitorIds: Array<string> =
+      await DeviceMonitorLookupUtil.fetchWatchingMonitorIds(
+        data.networkDeviceId,
+      );
+
+    const monitors: Array<Monitor> = [];
+
+    for (
+      let offset: number = 0;
+      offset < monitorIds.length;
+      offset += WATCHING_MONITORS_PER_READ
+    ) {
+      const chunk: Array<string> = monitorIds.slice(
+        offset,
+        offset + WATCHING_MONITORS_PER_READ,
+      );
+
+      const page: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          _id: new Includes(chunk),
+          monitorType: MonitorType.NetworkDevice,
+        },
+        limit: chunk.length,
+        skip: 0,
+        select: data.select,
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
+
+      monitors.push(...page.data);
+    }
+
+    if (monitorIds.length > WATCHING_MONITORS_PER_READ) {
+      monitors.sort((first: Monitor, second: Monitor): number => {
+        return (first.name || "").localeCompare(second.name || "");
+      });
+    }
+
+    return monitors;
+  }
+
+  /*
    * 4. The device's WEB UI monitor: a Website monitor of its management
    *    page, as "Monitor web UI" on its Monitors card makes one
    *    (DeviceWebUiUtil). Nothing on a Website monitor names a device, so
@@ -265,22 +379,15 @@ export default class DeviceMonitorLookupUtil {
       },
     };
 
-    const [networkDeviceMonitors, madeForDevice, webUiMonitors]: [
-      ListResult<Monitor>,
+    const [watching, madeForDevice, webUiMonitors]: [
+      Array<Monitor>,
       ListResult<Monitor>,
       Array<Monitor>,
     ] = await Promise.all([
-      ModelAPI.getList<Monitor>({
-        modelType: Monitor,
-        query: {
-          monitorType: MonitorType.NetworkDevice,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: { ...select, monitorSteps: true },
-        sort: {
-          name: SortOrder.Ascending,
-        },
+      // 1. The Network Device monitors watching it (listWatchingMonitors).
+      DeviceMonitorLookupUtil.listWatchingMonitors({
+        networkDeviceId: networkDeviceId,
+        select: select,
       }),
       /*
        * 3. A monitor made FOR the device from a Ping, IP, Port or NTP
@@ -308,15 +415,6 @@ export default class DeviceMonitorLookupUtil {
         select: select,
       }),
     ]);
-
-    const watching: Array<Monitor> = networkDeviceMonitors.data.filter(
-      (monitor: Monitor) => {
-        return DeviceMonitorLookupUtil.monitorWatchesDevice(
-          monitor,
-          networkDeviceId,
-        );
-      },
-    );
 
     /*
      * Deduped by id, not by identity: the bound monitor arrives from a

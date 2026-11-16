@@ -225,7 +225,7 @@ const WEEKDAYS_AT_NINE: Record<string, unknown> = {
 describe("setting up a schedule", () => {
   test.each([
     ["a runbook admin", RUNBOOK_ADMIN],
-    ["a project owner", PROJECT_OWNER],
+    ["a Project Owner", PROJECT_OWNER],
     ["someone who may edit runbooks and start runs", EDIT_AND_START_RUNS],
   ])(
     "%s sets one up, and its next run is worked out on the zone's clock",

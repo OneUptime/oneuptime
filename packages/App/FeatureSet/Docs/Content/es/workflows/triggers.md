@@ -21,25 +21,25 @@ Para añadir el disparador, haz clic en el bloque discontinuo **Elige qué inici
 | Ejecutarlo según una programación periódica    | **Programación**            |
 | Que otro sistema envíe datos                   | **Webhook**                 |
 | Iniciarlo a partir de un correo                | **Correo entrante**          |
-| Actuar sobre los informes de incidente de Huntress | **Huntress Incident Report** |
+| Actuar sobre los informes de incidente de Huntress | **Informe de incidente de Huntress** |
 | Reaccionar a algo dentro de OneUptime          | **Evento de OneUptime**     |
 
-Un flujo de trabajo solo puede tener un disparador. Si necesitas dos formas de iniciar la misma automatización, construye la lógica compartida en un flujo de trabajo con un disparador **Manual** e inícialo desde dos flujos de trabajo «envoltorio» ligeros con un bloque **Execute Workflow**.
+Un flujo de trabajo solo puede tener un disparador. Si necesitas dos formas de iniciar la misma automatización, construye la lógica compartida en un flujo de trabajo con un disparador **Manual** e inícialo desde dos flujos de trabajo «envoltorio» ligeros con un bloque **Ejecutar otro flujo de trabajo**.
 
 ## Manual
 
-Ejecuta el flujo de trabajo cuando quieras: haz clic en **Ejecutar flujo de trabajo** en la página **Constructor**, rellena el **JSON** del disparador, haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. Otro flujo de trabajo también puede iniciarlo, con un bloque **Execute Workflow**.
+Ejecuta el flujo de trabajo cuando quieras: haz clic en **Ejecutar flujo de trabajo** en la página **Constructor**, rellena el **JSON** del disparador, haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. Otro flujo de trabajo también puede iniciarlo, con un bloque **Ejecutar otro flujo de trabajo**.
 
 Útil para: automatizaciones de un clic para las que quieres un botón, como «rotar esta clave» o «enviar una alerta de prueba», y lógica que compartes entre flujos de trabajo.
 
 **Retornos**: **JSON** — aquello con lo que se inició la ejecución.
 
 - Desde **Ejecutar flujo de trabajo**, es el JSON que escribiste. Para leer uno de sus campos, añade el nombre del campo a la referencia, como en `{{local.components.manual-1.returnValues.value.name}}`.
-- Desde un bloque **Execute Workflow**, cada clave de los **Arguments** del bloque es un valor propio. Con `{"customerId": "42"}`, un bloque posterior lee `{{local.components.manual-1.returnValues.customerId}}`, donde `manual-1` es el ID del disparador Manual.
+- Desde un bloque **Ejecutar otro flujo de trabajo**, cada clave de los **Argumentos** del bloque es un valor propio. Con `{"customerId": "42"}`, un bloque posterior lee `{{local.components.manual-1.returnValues.customerId}}`, donde `manual-1` es el ID del disparador Manual.
 
 ## Schedule
 
-Ejecuta el flujo de trabajo según una programación periódica. Indica la frecuencia en **Schedule at**: elige una de las **Programaciones habituales**, escribe una expresión de **Cron personalizado** o elige una **Variable** que contenga una. Debajo del campo, la programación se describe en palabras, con sus **Próximas ejecuciones**.
+Ejecuta el flujo de trabajo según una programación periódica. Indica la frecuencia en **Programar a las**: elige una de las **Programaciones habituales**, escribe una expresión de **Cron personalizado** o elige una **Variable** que contenga una. Debajo del campo, la programación se describe en palabras, con sus **Próximas ejecuciones**.
 
 Útil para: limpieza nocturna, sincronización cada hora, informes semanales.
 
@@ -93,7 +93,7 @@ sequenceDiagram
 | Valor                    | Qué contiene                                                                                                         |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | **Encabezados de la solicitud**      | Todas las cabeceras de la solicitud, por su nombre en minúsculas, como `content-type`.                               |
-| **Request Query Params** | Los parámetros de la cadena de consulta de la URL, por su nombre.                                                    |
+| **Parámetros de consulta de la solicitud** | Los parámetros de la cadena de consulta de la URL, por su nombre.                                                    |
 | **Cuerpo de la solicitud**         | El cuerpo que envió quien llama. Un cuerpo JSON, enviado con `Content-Type: application/json`, se puede leer campo a campo, y también el JSON enviado como texto plano, como lo envía Amazon SNS. |
 
 Lee un campo añadiendo su nombre a la referencia, como en `{{local.components.webhook-1.returnValues.request-body.message}}`.
@@ -117,7 +117,7 @@ OneUptime le da al flujo de trabajo una dirección de correo propia. Cada correo
 
 Útil para: actuar sobre correos de sistemas que no pueden llamar a un webhook — alertas de herramientas de monitorización antiguas, avisos de estado de un proveedor, el informe que envía por correo un proceso nocturno.
 
-Para obtener la dirección, haz clic en el disparador Incoming Email en el lienzo. La dirección está en la parte superior de sus ajustes, con un botón **Copiar dirección**. Dásela a lo que deba iniciar el flujo de trabajo: una herramienta que solo sabe enviar correos, los ajustes de notificación de un proveedor o una regla de reenvío de tu propio buzón.
+Para obtener la dirección, haz clic en el disparador Correo entrante en el lienzo. La dirección está en la parte superior de sus ajustes, con un botón **Copiar dirección**. Dásela a lo que deba iniciar el flujo de trabajo: una herramienta que solo sabe enviar correos, los ajustes de notificación de un proveedor o una regla de reenvío de tu propio buzón.
 
 Cada correo inicia su propia ejecución. El correo llega al flujo de trabajo tanto si la dirección está en Para como en CC, como copia oculta o a través de una regla de reenvío. Un correo que nombra la dirección dos veces inicia una sola ejecución.
 
@@ -130,16 +130,16 @@ Cada correo inicia su propia ejecución. El correo llega al flujo de trabajo tan
 | **CC**          | Todos los destinatarios en copia, en una sola línea.                                                    |
 | **Asunto**     | El asunto.                                                                                              |
 | **Cuerpo**        | El texto sin formato del correo.                                                                        |
-| **HTML Body**   | El HTML del correo, cuando lo tiene. Body y HTML Body se cortan cada uno en 1 MB.                        |
-| **Headers**     | Todas las cabeceras del correo, por su nombre en minúsculas, como `message-id`.                         |
+| **Cuerpo HTML**   | El HTML del correo, cuando lo tiene. Body y HTML Body se cortan cada uno en 1 MB.                        |
+| **Encabezados**     | Todas las cabeceras del correo, por su nombre en minúsculas, como `message-id`.                         |
 | **Adjuntos** | El nombre, el tipo y el tamaño de cada archivo adjunto. Los archivos en sí no se guardan.               |
-| **Received At** | Cuándo recibió OneUptime el correo.                                                                     |
+| **Recibido el** | Cuándo recibió OneUptime el correo.                                                                     |
 
 Cuando ha llegado un correo, el selector de valores de cada bloque posterior al disparador sabe lo que contenía: muestra cada cabecera y cada adjunto que tenía el correo, con su contenido, para que puedas elegir `headers.message-id` en lugar de escribir una ruta. Hasta entonces, indica que todavía no ha llegado ningún correo a la dirección. Consulta [Usar valores de bloques anteriores](/docs/workflows/authoring#usar-valores-de-bloques-anteriores).
 
 Para probar el flujo de trabajo sin enviar un correo, haz clic en **Ejecutar flujo de trabajo** en la página **Constructor** y rellena un remitente, un asunto y un cuerpo. Los valores que dejes fuera llegan vacíos.
 
-El correo inicia el flujo de trabajo solo mientras está activado. El correo a un flujo de trabajo desactivado se ignora, igual que el correo a un flujo de trabajo cuyo disparador ya no es Incoming Email.
+El correo inicia el flujo de trabajo solo mientras está activado. El correo a un flujo de trabajo desactivado se ignora, igual que el correo a un flujo de trabajo cuyo disparador ya no es Correo entrante.
 
 ### Mantén la dirección en privado
 
@@ -159,7 +159,7 @@ OneUptime le da al flujo de trabajo una URL propia para Huntress, el servicio de
 
 Útil para: abrir un incidente por cada informe de incidente de Huntress, avisar a la guardia y seguir el informe hasta su cierre. La plantilla **Open an incident for each Huntress incident report** hace las tres cosas.
 
-Para conectar Huntress, haz clic en el disparador **Huntress Incident Report** en el lienzo: muestra la URL que hay que darle a Huntress, guarda el secreto de firma del endpoint y dice cuándo llegó Huntress por última vez al flujo de trabajo. Una solicitud que no está firmada con ese secreto no inicia nada, así que la URL no es una contraseña. Consulta [Huntress](/docs/integrations/huntress) para la configuración en Huntress, los valores que devuelve el disparador y sus ajustes.
+Para conectar Huntress, haz clic en el disparador **Informe de incidente de Huntress** en el lienzo: muestra la URL que hay que darle a Huntress, guarda el secreto de firma del endpoint y dice cuándo llegó Huntress por última vez al flujo de trabajo. Una solicitud que no está firmada con ese secreto no inicia nada, así que la URL no es una contraseña. Consulta [Huntress](/docs/integrations/huntress) para la configuración en Huntress, los valores que devuelve el disparador y sus ajustes.
 
 ## Disparadores de eventos de OneUptime
 
@@ -172,7 +172,7 @@ Casi todo en OneUptime — monitores, incidentes, alertas, eventos de mantenimie
 
 Así construyes «cuando pase X en OneUptime, haz Y» sin tener que comprobar las cosas en un bucle.
 
-**On Update** se puede limitar a algunos campos con **Fields to watch**: entonces solo salta cuando una actualización cambia uno de ellos, a cualquier valor — desactivar un interruptor o vaciar un campo cuenta. **On Create or Update** tiene el mismo **Fields to watch**, solo para sus actualizaciones: cada registro nuevo lo sigue disparando.
+**On Update** se puede limitar a algunos campos con **Campos que vigilar**: entonces solo salta cuando una actualización cambia uno de ellos, a cualquier valor — desactivar un interruptor o vaciar un campo cuenta. **On Create or Update** tiene el mismo **Campos que vigilar**, solo para sus actualizaciones: cada registro nuevo lo sigue disparando.
 
 ```mermaid title="Cuándo salta un disparador On Update"
 flowchart TB
@@ -185,11 +185,11 @@ flowchart TB
     field -->|"No"| nothing
 ```
 
-**On Create**, **On Update** y **On Create or Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Fields to pass on** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío. Lo mismo ocurre con un campo en el que el registro no tiene nada, como el monitor de una alerta que ningún monitor generó.
+**On Create**, **On Update** y **On Create or Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Campos que pasar** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío. Lo mismo ocurre con un campo en el que el registro no tiene nada, como el monitor de una alerta que ningún monitor generó.
 
-**On Create or Update** también pasa **Qué ocurrió**: `created` cuando un registro nuevo inició la ejecución, y `updated` cuando lo hizo un cambio, como en `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar los dos casos de forma distinta, compáralo en un bloque **If / Else**, o toma un camino para cada uno con **Switch / Case**.
+**On Create or Update** también pasa **Qué ocurrió**: `created` cuando un registro nuevo inició la ejecución, y `updated` cuando lo hizo un cambio, como en `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar los dos casos de forma distinta, compáralo en un bloque **Si / Si no**, o toma un camino para cada uno con **Según / Caso**.
 
-Un guardado lo dispara una vez. Lo que OneUptime rellena mientras crea un registro forma parte de la creación, así que un registro nuevo lo dispara una vez, como `created`. Los cambios que OneUptime hace después, como enlazar el canal de Slack de un incidente, son actualizaciones como cualquier otra: para dejarlos fuera, añade a **Fields to watch** solo los campos que te importan.
+Un guardado lo dispara una vez. Lo que OneUptime rellena mientras crea un registro forma parte de la creación, así que un registro nuevo lo dispara una vez, como `created`. Los cambios que OneUptime hace después, como enlazar el canal de Slack de un incidente, son actualizaciones como cualquier otra: para dejarlos fuera, añade a **Campos que vigilar** solo los campos que te importan.
 
 **On Delete** solo pasa el ID del registro eliminado: el registro ya no existe cuando se ejecuta el flujo de trabajo, así que sus otros campos no se pueden leer.
 

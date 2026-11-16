@@ -48,7 +48,7 @@ Levez une alerte quand votre équipe doit regarder avant que quiconque à l'ext�
 - **Le taux de consommation d'un SLO.** Une règle de taux de consommation peut créer une alerte quand un SLO dépense son budget d'erreurs trop vite. Voir [Alertes et incidents de taux de consommation](/docs/slo/burn-rate-alerts).
 - **Sites réseau et événements de sécurité.** Un site réseau configuré pour alerter quand il n'est pas en bonne santé ouvre une alerte dès que son agrégation cesse d'être opérationnelle, et vos règles de détection d'événements de sécurité ouvrent aussi des alertes. Voir [Sites réseau (agrégation de santé et disponibilité)](/docs/monitor/network-sites) et [Événements de sécurité (SIEM)](/docs/telemetry/security-events).
 - **Un appel.** `/oneuptime page` dans Slack ou Microsoft Teams, partout sauf dans le canal propre d'un incident ou d'une alerte, ouvre une alerte dont le titre est votre message, et alerte les personnes que vous nommez. Les blocs d'appel d'un flux de travail font de même avec le titre et le message que vous leur donnez. Voir [Alerter quelqu'un depuis Slack](/docs/workspace-connections/slack#alerter-quelquun-depuis-slack) et [Paging](/docs/workflows/components#paging).
-- **L'API, Terraform et les flux de travail.** Les alertes sont une ressource ordinaire : `/api/alert`, la ressource Terraform `oneuptime_alert` et l'étape **Create One Alert** d'un flux de travail.
+- **L'API, Terraform et les flux de travail.** Les alertes sont une ressource ordinaire : `/api/alert`, la ressource Terraform `oneuptime_alert` et l'étape **Créer : Alerte (un seul)** d'un flux de travail.
 
 ## Où trouver les alertes dans le tableau de bord
 
@@ -104,9 +104,9 @@ Dès qu'une alerte est créée, OneUptime franchit ces étapes, dans cet ordre :
 7. **Les règles de regroupement la placent dans un épisode**, quand l'une d'elles correspond. Voir [Épisodes d'alertes et règles de regroupement](/docs/alerts/episodes).
 8. **Les rappels sont planifiés**, quand une règle de rappel correspond, et **OneUptime AI** investigue l'alerte quand **Investiguer les nouvelles alertes** est activé dans **Alertes → IA → Paramètres**, et la corrige quand **Corriger automatiquement les nouvelles alertes** est activé. Voir [AI SRE](/docs/ai/ai-sre).
 
-Une tâche en arrière-plan prévient les propriétaires de l'alerte environ une minute après sa création, tous ceux qu'elle a alors, et le déclencheur de flux de travail **On Create Alert** lance tout flux de travail construit dessus.
+Une tâche en arrière-plan prévient les propriétaires de l'alerte environ une minute après sa création, tous ceux qu'elle a alors, et le déclencheur de flux de travail **À la création : Alerte** lance tout flux de travail construit dessus.
 
-Pour que des personnes et des équipes soient propriétaires de l'alerte dès sa création, afin que cette notification leur parvienne et non aux propriétaires du projet, transmettez-les avec la création : par l'API, envoyez leurs identifiants dans `miscDataProps`, sous la forme `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, avec `POST /api/alert` ; dans un flux de travail, choisissez-les sous **Utilisateurs propriétaires** et **Équipes propriétaires** de **Create One Alert** ; par MCP, passez `ownerUsers` et `ownerTeams` à `create_alert`. Une requête dont l'appelant n'a pas le droit d'ajouter ces propriétaires est refusée avant tout enregistrement. Les propriétaires qu'une requête distincte ajoute après la création n'en sont informés que s'ils sont ajoutés dans cette minute.
+Pour que des personnes et des équipes soient propriétaires de l'alerte dès sa création, afin que cette notification leur parvienne et non aux Propriétaires du projet, transmettez-les avec la création : par l'API, envoyez leurs identifiants dans `miscDataProps`, sous la forme `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, avec `POST /api/alert` ; dans un flux de travail, choisissez-les sous **Utilisateurs propriétaires** et **Équipes propriétaires** de **Créer : Alerte (un seul)** ; par MCP, passez `ownerUsers` et `ownerTeams` à `create_alert`. Une requête dont l'appelant n'a pas le droit d'ajouter ces propriétaires est refusée avant tout enregistrement. Les propriétaires qu'une requête distincte ajoute après la création n'en sont informés que s'ils sont ajoutés dans cette minute.
 
 ### Créée déjà prise en compte ou résolue
 
@@ -152,7 +152,7 @@ Pendant que vous la traitez, consignez ce que vous apprenez dans les **Notes pri
 
 ## Alertes privées
 
-Une alerte privée n'est visible que par ses propriétaires, c'est-à-dire les utilisateurs propriétaires et les membres de ses équipes propriétaires, ainsi que par les administrateurs et propriétaires de votre projet. Personne d'autre dans le projet ne peut l'ouvrir.
+Une alerte privée n'est visible que par ses propriétaires, c'est-à-dire les utilisateurs propriétaires et les membres de ses équipes propriétaires, ainsi que par les Administrateurs du projet et les Propriétaires du projet. Personne d'autre dans le projet ne peut l'ouvrir.
 
 Rendez une alerte privée avec **Alerte privée** sous **Plus de champs** dans le formulaire de création ou dans les critères d'un moniteur, avec **Alertes → Règles → Règles de confidentialité**, ou plus tard sur sa page **Paramètres**, qui demande **Rendre cette alerte privée ?** avant de masquer l'alerte. Si vous ne faites partie d'aucune de ces personnes, vous perdez vous aussi l'accès.
 
@@ -161,7 +161,7 @@ Un épisode qu'ouvre une alerte privée n'est pas privé ; il n'affiche donc jam
 ## Qui est informé d'une alerte
 
 - **L'astreinte.** Les politiques d'astreinte de l'alerte alertent leurs personnes, chacune comme elle l'a configuré dans **Paramètres utilisateur → Comment me joindre**, dans l'onglet **Alertes**. Répondre à l'appel prend l'alerte en compte, et les appels s'arrêtent.
-- **Ses propriétaires.** Par e-mail, sauf s'ils ont choisi d'autres canaux dans **Paramètres utilisateur → Paramètres de notification**, dans l'onglet **Alertes** : **Alerte créée**, **État de l'alerte modifié** et **Rappel d'alerte** sont activés par défaut, et **Note d'alerte publiée** et **Ajouté comme propriétaire de l'alerte** sont désactivés jusqu'à ce que quelqu'un les active. Une alerte sans propriétaire prévient à la place les propriétaires du projet. Si OneUptime s'arrête pendant qu'il envoie une notification, les personnes qu'il n'avait pas encore atteintes la reçoivent quand OneUptime revient, quelques minutes plus tard, et personne ne la reçoit deux fois.
+- **Ses propriétaires.** Par e-mail, sauf s'ils ont choisi d'autres canaux dans **Paramètres utilisateur → Paramètres de notification**, dans l'onglet **Alertes** : **Alerte créée**, **État de l'alerte modifié** et **Rappel d'alerte** sont activés par défaut, et **Note d'alerte publiée** et **Ajouté comme propriétaire de l'alerte** sont désactivés jusqu'à ce que quelqu'un les active. Une alerte sans propriétaire prévient à la place les Propriétaires du projet. Quelqu'un que l'appel d'astreinte de l'alerte a déjà atteint n'est pas notifié à nouveau de sa création. Si OneUptime s'arrête pendant qu'il envoie une notification, les personnes qu'il n'avait pas encore atteintes la reçoivent quand OneUptime revient, quelques minutes plus tard, et personne ne la reçoit deux fois.
 - **Vos outils de chat.** **Alertes → Espace de travail** contient les règles Slack et Microsoft Teams qui publient les alertes et les épisodes dans des canaux. Voir [Slack](/docs/workspace-connections/slack) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Dépannage

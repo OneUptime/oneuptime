@@ -300,6 +300,12 @@ const SHOWN_AS_WRITTEN: Array<ShownAsWritten> = [
     reason: "A key of a JSON body, typed as it is.",
   },
   {
+    english: 'The ID column is "_id" (the "id" spelling is accepted too).',
+    words: ["id"],
+    reason:
+      "A record step's ID column, by the other spelling of its key in a step's JSON (#8642): typed as it is.",
+  },
+  {
     english: 'a bare array, or { "events": [...] }',
     words: ["events"],
     reason: "A key of a JSON body, typed as it is.",
@@ -308,6 +314,12 @@ const SHOWN_AS_WRITTEN: Array<ShownAsWritten> = [
     english: 'narrow the collector\'s "process" scraper',
     words: ["process"],
     reason: "The collector's scraper, by the name its configuration gives it.",
+  },
+  {
+    english: 'Known units also scale it — "Bytes" reads as',
+    words: ["Bytes"],
+    reason:
+      "A unit as it is typed into the Unit field: the widget scales the English names only, as the field's placeholder (e.g. %, ms, Bytes) shows.",
   },
   {
     english: 'traceContextInjection: "all"',
@@ -664,7 +676,7 @@ describe("the sentences #6659 put right", () => {
     },
     {
       language: "fa",
-      english: "SMS is off in this project. A project owner, a Billing Admin",
+      english: "SMS is off in this project. A Project Owner, a Billing Admin",
       quoted: "Billing Admin",
     },
     {

@@ -16,7 +16,7 @@ Chaque intégration déplace des données dans un sens ou dans les deux. **Entra
 ```mermaid title="Entrant et sortant"
 flowchart TB
     tool["Outil d'alerte<br/>ou de sécurité"] -->|"entrant"| record["Incident ou alerte,<br/>astreinte prévenue"]
-    record -->|"sortant"| workflow["Flux de travail,<br/>par exemple<br/>On Create Incident"]
+    record -->|"sortant"| workflow["Flux de travail,<br/>par exemple<br/>À la création :<br/>Incident"]
     workflow -->|"Appel d'API<br/>ou message"| other["Outil de tickets,<br/>d'astreinte ou de chat"]
     other -.->|"webhook en retour"| record
 ```
@@ -118,7 +118,7 @@ Pour un outil d'alerte, commencez par un [moniteur de requêtes entrantes](/docs
 1. Ouvrez **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez le flux de travail et cliquez sur **Créer un flux de travail**.
 2. Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **Webhook**. Cliquez sur le déclencheur, puis sur **Copier l'URL**.
 3. Dans l'autre outil, envoyez son webhook à cette URL en `POST` avec `Content-Type: application/json`.
-4. Ajoutez les blocs qui le traitent. Ils lisent la requête avec des références comme `{{local.components.webhook-1.returnValues.request-body.status}}` : un bloc **If / Else** pour vérifier un champ, puis **Create One Incident** pour déclarer un incident.
+4. Ajoutez les blocs qui le traitent. Ils lisent la requête avec des références comme `{{local.components.webhook-1.returnValues.request-body.status}}` : un bloc **Si / Sinon** pour vérifier un champ, puis **Créer : Incident (un seul)** pour déclarer un incident.
 5. Activez **Activé** en haut du **Constructeur**, envoyez un test depuis l'autre outil et ouvrez **Journaux → Exécutions** pour voir ce qui est arrivé.
 :::
 
@@ -128,8 +128,8 @@ L'URL est le seul identifiant, traitez-la donc comme un mot de passe. Voir [Webh
 
 :::steps
 1. Enregistrez la clé d'API de l'outil comme variable globale secrète, comme indiqué [plus bas](#protéger-les-identifiants).
-2. Créez un flux de travail, cliquez sur le bloc en pointillés et choisissez un déclencheur d'événement, par exemple **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs à envoyer, par exemple **Description**.
-3. Cliquez sur **Ajouter un composant** et ajoutez un bloc **API Post (JSON)**. Reliez-y le point **Succès** du déclencheur.
+2. Créez un flux de travail, cliquez sur le bloc en pointillés et choisissez un déclencheur d'événement, par exemple **À la création : Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs à envoyer, par exemple **Description**.
+3. Cliquez sur **Ajouter un composant** et ajoutez un bloc **Appel d'API POST (JSON)**. Reliez-y le point **Succès** du déclencheur.
 4. Remplissez son **URL**, ses **En-têtes de la requête** avec l'en-tête `Authorization`, et son **Corps de la requête** avec les champs de l'incident, par exemple `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Cliquez sur **Exécuter le flux de travail**, choisissez un incident sous **Incident** et lancez-le. Une exécution de test envoie vraiment la requête. Activez ensuite **Activé**.
 :::

@@ -139,6 +139,7 @@ const ConfirmSubscription: FunctionComponent<ComponentProps> = (
               signUpPage ? (
                 <Button
                   title={t("subscribe.confirm.subscribeAgain")}
+                  isTitleTranslated={true}
                   buttonStyle={ButtonStyleType.PRIMARY}
                   dataTestId="confirm-subscription-subscribe-again"
                   onClick={() => {

@@ -82,6 +82,23 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { StateListType, STATE_LISTS } from "../../../Utils/StateOrder";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelListCache from "../../../UI/Utils/ModelListCache";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the pages make that these tests leave unanswered: each page counts
+ * its archived values (and, for a severity, its live ones) for an Archived
+ * section beside the table (useArchivableValues), which these tests are not
+ * about. Refused at once, as the network refused them, and taken as counts
+ * the page could not make: no Archived section (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/incident-state/count",
+  "/alert-state/count",
+  "/scheduled-maintenance-state/count",
+  "/monitor-status/count",
+  "/incident-severity/count",
+  "/alert-severity/count",
+]);
 
 interface RecordedColumn {
   field?: Record<string, unknown>;

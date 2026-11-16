@@ -97,7 +97,7 @@ Udfyld **Mappe-id (tenant)**, **Program-id (klient)** og **Klienthemmelighed**. 
 
 | Indstilling | Hvad den gør |
 | --- | --- |
-| **Hvem der kan læse samtaler** | **Projektejere og administratorer**, standarden: ingen andre i projektet ser disse samtaler eller de AI-kald, de består af, nogen steder i OneUptime. **Alle, der må læse AI-kald**: alle, der må læse projektets traces. |
+| **Hvem der kan læse samtaler** | **Projektejere og Projektadministratorer**, standarden: ingen andre i projektet ser disse samtaler eller de AI-kald, de består af, nogen steder i OneUptime. **Alle, der må læse AI-kald**: alle, der må læse projektets traces. |
 | **Behold det skrevne** | Til, standarden: spørgsmål og svar gemmes. Fra: OneUptime gemmer, hvem der spurgte, hvornår, med hvilken model og i hvilken app, men ikke ordene. |
 
 En ændring af, hvem der må læse, gælder inden for et minut. At slå **Behold det skrevne** fra gælder for de chats, der læses bagefter; det, der blev gemt før, bliver, indtil opbevaringen slutter.
@@ -139,7 +139,7 @@ For Copilot giver du administratorsamtykke til appens Graph-tilladelser, og ogs�
 :::
 
 :::details Nogen kan ikke se samtalerne
-**Hvem der kan læse samtaler** står på **Projektejere og administratorer**. En ejer eller administrator kan ændre det med **Rediger** i forbindelsens række.
+**Hvem der kan læse samtaler** står på **Projektejere og Projektadministratorer**. En Projektejer eller Projektadministrator kan ændre det med **Rediger** i forbindelsens række.
 :::
 
 :::details Samtalerne viser, hvem der spurgte, men ingen ord

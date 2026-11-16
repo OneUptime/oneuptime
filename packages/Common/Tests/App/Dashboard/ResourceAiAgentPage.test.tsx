@@ -102,6 +102,7 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
+import { withPlainSpaces } from "../../../Types/NoBreakSpaces";
 
 jest.mock("react-i18next", () => {
   return {
@@ -801,8 +802,9 @@ describe("the agent card", () => {
     openAgentPage();
 
     expect(await findTestId("ai-agent-status")).toHaveTextContent("Offline");
+    // toHaveTextContent reads the sentence's held "5 minutes" with a plain space.
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
-      getResourceAiAgentSilentText(DOCKER),
+      withPlainSpaces(getResourceAiAgentSilentText(DOCKER)),
     );
     expect(codeIn(screen.getByTestId("ai-agent-logs-command"))).toBe(
       getResourceAiAgentLogsCommand(AiResourceType.DockerHost),
@@ -1350,7 +1352,7 @@ describe("Needs attention", () => {
       within(investigation).queryByTestId("ai-agent-gap-ask"),
     ).not.toBeInTheDocument();
     expect(within(provider).getByTestId("ai-agent-gap-ask")).toHaveTextContent(
-      "Ask a project owner or admin.",
+      "Ask a Project Owner or Project Admin.",
     );
     expect(
       within(provider).queryByText("Open LLM Providers"),
@@ -1450,7 +1452,7 @@ describe("Needs attention", () => {
       "ai-agent-gap-investigation_disabled",
     );
     expect(within(row).getByTestId("ai-agent-gap-ask")).toHaveTextContent(
-      "Ask a project owner or admin.",
+      "Ask a Project Owner or Project Admin.",
     );
     expect(
       screen.queryByTestId("ai-agent-gap-turn-on-investigation"),
@@ -1490,7 +1492,7 @@ describe("Needs attention", () => {
       within(credits).queryByText("Open AI Credits"),
     ).not.toBeInTheDocument();
     expect(credits).toHaveTextContent(
-      "A project owner or someone with Manage Billing can add AI credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits.",
     );
   });
 
@@ -1502,7 +1504,7 @@ describe("Needs attention", () => {
    * way.
    */
   test.each([
-    ["a project owner", Permission.ProjectOwner],
+    ["a Project Owner", Permission.ProjectOwner],
     ["someone with Manage Billing", Permission.ManageProjectBilling],
   ])(
     "out of AI credits: %s is linked to AI Credits",
@@ -1532,7 +1534,7 @@ describe("Needs attention", () => {
   );
 
   test.each([
-    ["a project admin", ADMIN_PERMISSIONS],
+    ["a Project Admin", ADMIN_PERMISSIONS],
     ["a member", MEMBER_PERMISSIONS],
   ])(
     "out of AI credits: %s is told who can add them - not linked, not sent to an admin",
@@ -1552,12 +1554,14 @@ describe("Needs attention", () => {
       expect(
         within(row).getByTestId("ai-agent-gap-who-can-add-ai-credits"),
       ).toHaveTextContent(
-        "A project owner or someone with Manage Billing can add AI credits.",
+        "A Project Owner or someone with Manage Billing can add AI credits.",
       );
       expect(
         within(row).queryByText("Open AI Credits"),
       ).not.toBeInTheDocument();
-      expect(row).not.toHaveTextContent("Ask a project owner or admin.");
+      expect(row).not.toHaveTextContent(
+        "Ask a Project Owner or Project Admin.",
+      );
       expect(row).toHaveTextContent("Add AI credits to this project.");
       expect(row).not.toHaveTextContent(/auto-recharge/i);
     },
@@ -1580,7 +1584,7 @@ describe("Needs attention", () => {
     expect(
       within(row).queryByTestId("ai-agent-gap-who-can-add-ai-credits"),
     ).not.toBeInTheDocument();
-    expect(row).not.toHaveTextContent("Ask a project owner or admin.");
+    expect(row).not.toHaveTextContent("Ask a Project Owner or Project Admin.");
   });
 
   test("project-level gaps tell a member who to ask", async () => {
@@ -1595,7 +1599,7 @@ describe("Needs attention", () => {
     const row: HTMLElement = await findTestId(
       "ai-agent-gap-ai_disabled_for_project",
     );
-    expect(row).toHaveTextContent("Ask a project owner or admin.");
+    expect(row).toHaveTextContent("Ask a Project Owner or Project Admin.");
     expect(within(row).queryByText("Open AI Features")).not.toBeInTheDocument();
   });
 
@@ -1639,7 +1643,7 @@ describe("Needs attention", () => {
     const row: HTMLElement = await findTestId(
       "ai-agent-gap-auto_remediation_disabled_for_project",
     );
-    expect(row).toHaveTextContent("Ask a project owner or admin.");
+    expect(row).toHaveTextContent("Ask a Project Owner or Project Admin.");
     expect(within(row).queryByText("Open AI Features")).not.toBeInTheDocument();
   });
 
@@ -1906,7 +1910,7 @@ describe("What AI may do", () => {
     openAgentPage();
 
     expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
-      "Ask a project owner or admin to choose Ask for approval.",
+      "Ask a Project Owner or Project Admin to choose Ask for approval.",
     );
   });
 

@@ -16,11 +16,11 @@
 
 ```mermaid title="Ein Arbeitsablauf, ein GitLab-Issue"
 flowchart TB
-    declared["Vorfall erklärt"] --> workflow["Arbeitsablauf:<br/>On Create Incident"]
+    declared["Vorfall erklärt"] --> workflow["Arbeitsablauf:<br/>Bei Erstellung:<br/>Vorfall"]
     workflow -->|"POST issues"| issue["GitLab-Issue"]
 ```
 
-Der Arbeitsablauf läuft einmal für jeden neuen Vorfall. Sein Block **API Post (JSON)** sendet den Titel und die Beschreibung des Vorfalls an die Issues des Projekts, signiert mit einem Zugriffstoken.
+Der Arbeitsablauf läuft einmal für jeden neuen Vorfall. Sein Block **API-Aufruf POST (JSON)** sendet den Titel und die Beschreibung des Vorfalls an die Issues des Projekts, signiert mit einem Zugriffstoken.
 
 ## Bevor Sie beginnen
 
@@ -47,11 +47,11 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, d
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Block **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Auslöser: Seine **Fields to pass on** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallsnummer mit Präfix**.
+Klicken Sie auf den gestrichelten Block **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Vorfall**. Klicken Sie auf den Auslöser: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallsnummer mit Präfix**.
 
 ### Das Issue öffnen
 
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen Block **API Post (JSON)** hinzu und verbinden Sie den Punkt **Erfolg** des Auslösers damit. Setzen Sie seine **URL** auf `https://gitlab.com/api/v4/projects/12345678/issues`, mit der ID Ihres Projekts statt `12345678`. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen Block **API-Aufruf POST (JSON)** hinzu und verbinden Sie den Punkt **Erfolg** des Auslösers damit. Setzen Sie seine **URL** auf `https://gitlab.com/api/v4/projects/12345678/issues`, mit der ID Ihres Projekts statt `12345678`. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
 
 ```json
 {
@@ -71,7 +71,7 @@ Und seinen **Anfragetext** auf:
 
 ### Testen und dann einschalten
 
-Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine Antwort `201` mit dem neuen Issue, mit seiner `iid` und seiner `web_url`. Schalten Sie dann oben im **Editor** **Aktiviert** ein.
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API-Aufruf POST (JSON)** zeigt eine Antwort `201` mit dem neuen Issue, mit seiner `iid` und seiner `web_url`. Schalten Sie dann oben im **Editor** **Aktiviert** ein.
 :::
 
 Der Block sendet JSON und braucht deshalb keinen Header `Content-Type`. GitLab legt Labels an, die es noch nicht kennt, `incident` und `oneuptime` müssen also nicht eingerichtet werden. Das Issue bleibt offen, wenn der Vorfall behoben ist, denn die Nacharbeit überdauert den Vorfall meist.
@@ -81,11 +81,11 @@ Der Block sendet JSON und braucht deshalb keinen Header `Content-Type`. GitLab l
 - **Ein eigenes GitLab.** Senden Sie die Anfrage stattdessen an Ihren Server: `https://gitlab.example.com/api/v4/projects/12345678/issues`. Ein Server an einer privaten Netzwerkadresse braucht ein selbst gehostetes OneUptime, dessen Administrator es erlaubt: siehe [Ausgehender Netzwerkzugriff](/docs/workflows/configuration#ausgehender-netzwerkzugriff).
 - **Der Projektpfad statt der ID.** Der Pfad funktioniert anstelle der ID, mit seinem `/` als `%2F` geschrieben: `projects/your-group%2Fyour-project/issues`. Die URL wird genau so gesendet, wie sie geschrieben ist, kodieren Sie sie also selbst.
 - **Zuweisen.** Fügen Sie dem Text `"assignee_ids": [42]` oder `"due_date": "2026-12-31"` hinzu, oder `"confidential": true`, um das Issue nur Projektmitgliedern zu zeigen.
-- **Nur manche Vorfälle.** Setzen Sie einen Block **If / Else** zwischen den Auslöser und den API-Block und öffnen Sie Issues nur auf seiner Seite **Ja**, zum Beispiel für einen Schweregrad.
+- **Nur manche Vorfälle.** Setzen Sie einen Block **Wenn / Sonst** zwischen den Auslöser und den API-Block und öffnen Sie Issues nur auf seiner Seite **Ja**, zum Beispiel für einen Schweregrad.
 
 ## Fehlerbehebung
 
-Der Schritt **API Post (JSON)** nimmt **Fehler**, wenn GitLab die Anfrage ablehnt. Seine **Response Status** und **Antworttext** im Lauf sagen, warum.
+Der Schritt **API-Aufruf POST (JSON)** nimmt **Fehler**, wenn GitLab die Anfrage ablehnt. Seine **Antwortstatus** und **Antworttext** im Lauf sagen, warum.
 
 :::details GitLab antwortet 401
 Das Token ist falsch, abgelaufen oder widerrufen. Erstellen Sie ein neues und ersetzen Sie den Inhalt von `GITLAB_TOKEN`.

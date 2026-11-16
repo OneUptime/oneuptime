@@ -185,7 +185,7 @@ Brug et [arbejdsgang](/docs/workflows/index), når du har brug for dine egne tri
 :::steps
 ### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald det `Alertmanager alerts`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald den `Alertmanager alerts`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj Webhook-triggeren
 
@@ -193,11 +193,11 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Kontrollér, at notifikationen er udløst
 
-Klik på **Tilføj komponent**, tilføj en blok **If / Else**, og forbind triggerens punkt **Ud** med den. Sæt **Værdi, der skal tjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lig med** og **Sammenlign med** til `firing`.
+Klik på **Tilføj komponent**, tilføj en blok **Hvis / Ellers**, og forbind triggerens punkt **Ud** med den. Sæt **Værdi, der skal tjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lig med** og **Sammenlign med** til `firing`.
 
 ### Erklær hændelsen
 
-Tilføj en blok **Create One Incident**, og forbind siden **Ja** af blokken **If / Else** med den. Vælg under **Hændelsesskabelon** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON Object**, hvad der kommer fra Alertmanager:
+Tilføj en blok **Opret Hændelse (én post)**, og forbind siden **Ja** af blokken **Hvis / Ellers** med den. Vælg under **Hændelsesskabelon** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON-objekt**, hvad der kommer fra Alertmanager:
 
 ```json
 {
@@ -206,14 +206,14 @@ Tilføj en blok **Create One Incident**, og forbind siden **Ja** af blokken **If
 }
 ```
 
-Uden en skabelon skal **JSON Object** også indeholde `incidentSeverityId`, ID'et på en af projektets hændelsesalvorligheder.
+Uden en skabelon skal **JSON-objekt** også indeholde `incidentSeverityId`, ID'et på en af projektets hændelsesalvorligheder.
 
 ### Slå arbejdsgangen til
 
 Slå **Aktiveret** til øverst i **Bygger**. En arbejdsgang, der er slået fra, svarer Alertmanager med `400`.
 :::
 
-En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset hvor mange advarsler notifikationen indeholder. En notifikation, der er `resolved`, tager siden **Nej** af blokken **If / Else**, hvor intet er forbundet, så kørslen slutter der. Brug monitoren til én hændelse pr. advarsel, der løses ved genopretning.
+En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset hvor mange advarsler notifikationen indeholder. En notifikation, der er `resolved`, tager siden **Nej** af blokken **Hvis / Ellers**, hvor intet er forbundet, så kørslen slutter der. Brug monitoren til én hændelse pr. advarsel, der løses ved genopretning.
 
 ## Overvåg selve Alertmanager
 
@@ -258,7 +258,7 @@ Når watchdog-advarslen ikke er kommet i ti minutter, går watchdog-monitoren of
 :::details Intet kommer frem til OneUptime
 - Tjek Alertmanagers log for fejl ved levering til modtageren.
 - Monitoren svarer `200` med det samme, før den kontrollerer noget, også ved en forkert hemmelig nøgle. Tjek monitorens tidslinje for at se, om notifikationer kommer frem.
-- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Hændelser oprettes, men løses aldrig

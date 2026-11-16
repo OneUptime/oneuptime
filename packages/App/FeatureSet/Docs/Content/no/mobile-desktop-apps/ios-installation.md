@@ -1,6 +1,6 @@
 # iOS-installasjon
 
-Installer **OneUptime On-Call** fra App Store på en iPhone eller iPad, koble appen til ditt OneUptime, og logg inn. Send deg selv et testvarsel etterpå, og la akutte vaktvarsler ringe gjennom lydløs og Fokus.
+Installer **OneUptime On-Call** fra App Store på en iPhone eller iPad, koble appen til ditt OneUptime, og logg inn. Send deg selv en testvarsling etterpå, og la akutte vaktvarslinger ringe gjennom lydløs og Fokus.
 
 :::cards
 - [Installer appen](#installer-appen): Fra App Store.
@@ -30,7 +30,7 @@ App Store holder appen oppdatert så lenge **Appoppdateringer** er på, under **
 flowchart TB
     Address["Du skriver inn adressen<br/>til ditt OneUptime"]
     Check["Appen sjekker at ditt<br/>OneUptime svarer"]
-    SignIn["Du logger inn: passord,<br/>tilgangsnøkkel eller SSO"]
+    SignIn["Du logger inn: passord,<br/>passnøkkel eller SSO"]
     Allow["Du tillater varslinger"]
     Register["Appen registrerer<br/>enheten i hvert av<br/>prosjektene dine"]
     Rules["Hvert prosjekt<br/>viser enheten, med<br/>standard vaktregler"]
@@ -46,7 +46,7 @@ Bruk måten kontoen din logger inn på:
 
 - E-postadressen og passordet ditt, deretter **Sign In**. **Forgot password?** sender deg en lenke på e-post for å velge et nytt.
 - **Sign in with SSO**, hvis organisasjonen din bruker single sign-on. Velg leverandøren din, eller skriv inn jobb-e-posten din og trykk på **Continue**. En sikker nettleser åpnes, og du er tilbake i appen så snart du har logget inn.
-- **Sign in with a passkey**, når du har lagt til en i dashbordet: se [Legg til en tilgangsnøkkel](/docs/introduction/your-account#legg-til-en-passnøkkel). Et nettleserark åpnes for å bekrefte den og sender deg deretter tilbake.
+- **Sign in with a passkey**, når du har lagt til en i dashbordet: se [Legg til en passnøkkel](/docs/introduction/your-account#legg-til-en-passnøkkel). Et nettleserark åpnes for å bekrefte den og sender deg deretter tilbake.
 
 Med tofaktorautentisering slått på skriver du inn den sekssifrede koden fra autentiseringsappen din, eller en av reservekodene dine. En sikkerhetsnøkkel kan ikke brukes i appen. Krever administratoren din tofaktorautentisering, og du ikke har satt den opp ennå, setter appen først opp en autentiseringsapp sammen med deg.
 
@@ -62,10 +62,10 @@ Appen viser ett prosjekt om gangen: trykk på prosjektets navn øverst på en sk
 
 :::steps
 ### Finn enheten i dashbordet
-Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push-varsler** i dashbordet. iPhone eller iPad står under **Enheter for push-varsler** med modellnavnet sitt. Hvert prosjekt har sin egen liste.
+Åpne **Brukerinnstillinger → Varslingsmetoder** og fanen **Push-varslinger** i dashbordet. iPhone eller iPad står under **Enheter for push-varslinger** med modellnavnet sitt. Hvert prosjekt har sin egen liste.
 
 ### Send en test
-Klikk på **Testvarsel** i enhetens rad. Et varsel kommer frem på enheten; trykk på det for å åpne appen.
+Klikk på **Testvarsling** i enhetens rad. En varsling kommer frem på enheten; trykk på det for å åpne appen.
 :::
 
 Vaktreglene dine bestemmer hvilke varsler som går til enheten, og hvor raskt: se **Brukerinnstillinger → Slik når man meg**. En ny enhet får de samme standardreglene som enhver annen metode du legger til.
@@ -99,7 +99,7 @@ Når iOS spør om OneUptime On-Call kan sende kritiske varsler, trykker du på *
 Trykk på **Alarm sound** under bryteren. I tillegg til enhetens egen lyd for kritiske varsler tilbyr appen Klaxon, Siren, Digital alarm, Smoke alarm og Rising alarm, som starter lavt og blir sterkere. Trykk på spill av ved siden av en lyd for å høre den. Velg deretter volumet et varsel spilles med: 25 %, 50 %, 75 % eller 100 %, standarden.
 :::
 
-Bare vaktvarsler ringer gjennom, og bare fra vaktregler satt til **Kritisk varsel**, standarden. En regel satt til **Normal** følger enhetens innstillinger uansett hva bryteren sier, så du kan bli vekket av en kritisk hendelse og varslet stille om en mindre. Send et **Testvarsel** med enheten på lydløs for å høre hva et varsel vil gjøre. Forhåndsvisningen på skjermen **Alarm sound** spilles med ringevolumet, og ikke i det hele tatt på lydløs; et ekte varsel ringer gjennom lydløs med volumet du valgte.
+Bare vaktvarsler ringer gjennom, og bare fra vaktregler satt til **Kritisk varsel**, standarden. En regel satt til **Normal** følger enhetens innstillinger uansett hva bryteren sier, så du kan bli vekket av en kritisk hendelse og varslet stille om en mindre. Send en **Testvarsling** med enheten på lydløs for å høre hva et varsel vil gjøre. Forhåndsvisningen på skjermen **Alarm sound** spilles med ringevolumet, og ikke i det hele tatt på lydløs; et ekte varsel ringer gjennom lydløs med volumet du valgte.
 
 > [!NOTE]
 > Kritiske varsler krever OneUptime On-Call 1.5.0 eller nyere fra App Store. Tidligere versjoner ble bygget uten Apples tillatelse til kritiske varsler, så iOS tilbød dem aldri bryteren.
@@ -120,7 +120,7 @@ Slå på **Biometrics Login** under **Settings** i appen, så spør appen om Fac
 
 - **Oppdater.** App Store oppdaterer appen; du kan også oppdatere den fra kontoen din i App Store. Appens versjon står nederst på skjermen **Settings**.
 - **Logg ut.** **Settings → Log Out** logger deg ut og fjerner enheten fra push-enhetene dine i alle prosjekter, sammen med vaktreglene. Logger du inn igjen, kommer den tilbake med standardreglene.
-- **Slett.** Hold inne appens symbol, og trykk på **Fjern app** og deretter **Slett app**. Var du fortsatt logget inn, blir enheten stående i listen din til et push til den mislykkes: OneUptime merker den da som **Mottar ikke varsler**. Installerer du appen igjen og logger inn, kommer den oppføringen som regel tilbake med reglene sine; bruker du ikke enheten lenger, sletter du oppføringen med **Slett**.
+- **Slett.** Hold inne appens symbol, og trykk på **Fjern app** og deretter **Slett app**. Var du fortsatt logget inn, blir enheten stående i listen din til et push til den mislykkes: OneUptime merker den da som **Mottar ikke varslinger**. Installerer du appen igjen og logger inn, kommer den oppføringen som regel tilbake med reglene sine; bruker du ikke enheten lenger, sletter du oppføringen med **Slett**.
 
 ## Feilsøking
 
@@ -128,12 +128,12 @@ Slå på **Biometrics Login** under **Settings** i appen, så spør appen om Fac
 Appen nådde ikke `https://<your-oneuptime>/api/status`. Sjekk adressen, inkludert `https://`. Er ditt OneUptime på et privat nettverk, kobler du enheten til det først, for eksempel via VPN. Åpne den adressen i Safari på enheten: den viser `{"status":"ok"}` når enheten når OneUptime.
 :::
 
-:::details Det kommer ingen varsler
-- Sjekk at **Tillat varslinger** er på under **Innstillinger → Varslinger → OneUptime On-Call**, og at ingen Fokus holder varsler tilbake.
-- Sjekk at enheten står under **Push-varsler** i **Brukerinnstillinger → Varselmetoder**, og send den et **Testvarsel**.
-- Er enheten merket **Mottar ikke varsler**, åpner du appen mens du er logget inn. Den registrerer enheten på nytt; se [Når en telefon må registreres på nytt](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-må-registreres-på-nytt).
+:::details Det kommer ingen varslinger
+- Sjekk at **Tillat varslinger** er på under **Innstillinger → Varslinger → OneUptime On-Call**, og at ingen Fokus holder varslinger tilbake.
+- Sjekk at enheten står under **Push-varslinger** i **Brukerinnstillinger → Varslingsmetoder**, og send den en **Testvarsling**.
+- Er enheten merket **Mottar ikke varslinger**, åpner du appen mens du er logget inn. Den registrerer enheten på nytt; se [Når en telefon må registreres på nytt](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-må-registreres-på-nytt).
 - Sjekk vaktreglene dine under **Brukerinnstillinger → Slik når man meg**.
-- På et selvdriftet OneUptime sjekker du at serveren din når push-reléet sitt: se [Push-varsler](/docs/self-hosted/push-notifications#nettverkstilgang).
+- På et selvdriftet OneUptime sjekker du at serveren din når push-reléet sitt: se [Push-varslinger](/docs/self-hosted/push-notifications#nettverkstilgang).
 :::
 
 :::details Ingen bryter for kritiske varsler i iOS-innstillingene
@@ -154,5 +154,5 @@ Bryteren vises når Face ID eller Touch ID er satt opp under **Innstillinger →
 - [Vanlige spørsmål og feilsøking](/docs/mobile-desktop-apps/faq-troubleshooting): Hva du gjør når en telefon slutter å få varsler.
 - [Android-installasjon](/docs/mobile-desktop-apps/android-installation): Den samme appen på Android.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som varsles, og når.
-- [Push-varsler](/docs/self-hosted/push-notifications): Slik sender et selvdriftet OneUptime varsler til telefoner.
+- [Push-varslinger](/docs/self-hosted/push-notifications): Slik sender et selvdriftet OneUptime varslinger til telefoner.
 :::

@@ -1,6 +1,7 @@
 import { getCallAndSmsGateway } from "../Config";
 import SignedWebhookPost, {
   MAX_SIGNED_WEBHOOK_BODY_LENGTH,
+  SIGNED_WEBHOOK_TARGET_VALIDATION,
   SignedPostOutcome,
 } from "../Utils/SignedWebhookPost";
 import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
@@ -12,7 +13,9 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
-import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import SafeWebhookRequest, {
+  WebhookTarget,
+} from "Common/Server/Utils/SafeWebhookRequest";
 
 /*
  * SENDING AN SMS OR A CALL THROUGH THE SERVER'S OWN GATEWAY.
@@ -63,15 +66,19 @@ export default class CallAndSmsGatewayService {
       };
     }
 
+    let target: WebhookTarget;
+
     try {
       /*
        * The installation's own gateway, often on its private network, so
        * private targets are allowed - as they are when its URL is saved
-       * (GlobalConfigService).
+       * (GlobalConfigService). Every attempt then dials an address this
+       * check approved (SignedWebhookPost).
        */
-      await SSRFProtection.validateWebhookTargetIsSafe(data.gateway.url, {
-        allowPrivateNetworkTargets: true,
-      });
+      target = await SafeWebhookRequest.resolveTarget(
+        data.gateway.url,
+        SIGNED_WEBHOOK_TARGET_VALIDATION,
+      );
     } catch (err) {
       logger.error(
         "SMS and call gateway: its URL was refused.",
@@ -86,7 +93,7 @@ export default class CallAndSmsGatewayService {
     }
 
     const outcome: SignedPostOutcome = await SignedWebhookPost.post({
-      url: data.gateway.url,
+      target: target,
       secret: data.gateway.secret,
       eventType: data.event,
       payload: data.payload,

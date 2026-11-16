@@ -47,13 +47,17 @@ import {
   SloRollingWindowFill,
 } from "Common/Utils/Slo/SloProjection";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import {
+  isEventSliType,
+  isRequestSliType,
+} from "Common/Utils/Slo/SloRequestSli";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import { formatMilliseconds } from "Common/Utils/Milliseconds";
 import {
   getRequestWindowFill,
   getSloServiceCountInLanguage,
 } from "./SloRequestTextInLanguage";
+import { normalizeSloMetricQueryConfig } from "Common/Utils/Slo/SloMetricSli";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
@@ -150,8 +154,17 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
    * links its services, its window fill is how far back its requests are
    * counted, and a latency SLO's target says how fast is fast enough.
    */
-  const isRequestSlo: boolean = isRequestSliType(slo.sliType);
+  // Counted in events: from its services' traces, or their metric (#8445).
+  const isRequestSlo: boolean = isEventSliType(slo.sliType);
+  const isMetricSlo: boolean = slo.sliType === SliType.Metric;
   const serviceCount: number = props.serviceCount || 0;
+  // Spans only: a Metric SLO says which metric it counts instead.
+  const requestFilter: string | null = isRequestSliType(slo.sliType)
+    ? (slo.requestFilter || "").trim() || null
+    : null;
+  const metricName: string | null = isMetricSlo
+    ? normalizeSloMetricQueryConfig(slo.metricQueryConfig)?.metricName || null
+    : null;
 
   const headline: string = getSloHeadlineInLanguage(
     {
@@ -414,13 +427,17 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
               <span
                 data-testid="slo-overview-chip-window-fill"
                 title={
-                  isRequestSlo
+                  isMetricSlo
                     ? translator.translateTemplate(
-                        "OneUptime is still counting the older requests of this SLO's services, so its numbers cover part of its compliance window so far. Expect them to steady as the window fills.",
+                        "OneUptime is still counting the older events of this SLO's metric, so its numbers cover part of its compliance window so far. Expect them to steady as the window fills.",
                       )
-                    : translator.translateTemplate(
-                        "This SLO is younger than its compliance window, so it is measured over the data that exists so far and its error budget is still growing. Expect the numbers to steady as the window fills.",
-                      )
+                    : isRequestSlo
+                      ? translator.translateTemplate(
+                          "OneUptime is still counting the older requests of this SLO's services, so its numbers cover part of its compliance window so far. Expect them to steady as the window fills.",
+                        )
+                      : translator.translateTemplate(
+                          "This SLO is younger than its compliance window, so it is measured over the data that exists so far and its error budget is still growing. Expect the numbers to steady as the window fills.",
+                        )
                 }
               >
                 <StatusBadge
@@ -457,6 +474,44 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
                 />
               </Link>
             </dd>
+            {/*
+             * Only some of their requests count (#8444): says so, with the
+             * search, so the numbers above read for what they count.
+             */}
+            {requestFilter ? (
+              <dd
+                className="mt-0.5 truncate text-xs text-gray-500"
+                data-testid="slo-overview-chip-request-filter"
+                title={requestFilter}
+              >
+                {translator.translateTemplate(
+                  "Matching {{filter}}",
+                  { filter: requestFilter },
+                  { setsValuesApart: true },
+                )}
+              </dd>
+            ) : (
+              <></>
+            )}
+            {/*
+             * A Metric SLO counts one of their metrics (#8445): which one,
+             * so the numbers above read for what they count.
+             */}
+            {metricName ? (
+              <dd
+                className="mt-0.5 truncate text-xs text-gray-500"
+                data-testid="slo-overview-chip-metric"
+                title={metricName}
+              >
+                {translator.translateTemplate(
+                  "From {{metric}}",
+                  { metric: metricName },
+                  { setsValuesApart: true },
+                )}
+              </dd>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <div className="min-w-0" data-testid="slo-overview-chip-monitors">

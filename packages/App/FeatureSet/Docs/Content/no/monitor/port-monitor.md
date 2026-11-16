@@ -1,4 +1,4 @@
-# Port-overvåking
+# Port-monitor
 
 En port-monitor sjekker at en vert godtar TCP-tilkoblinger på en port, og måler hvor lang tid tilkoblingen tar. Bruk den for tjenester som ikke snakker HTTP, eller der du ikke vil sjekke HTTP: databaser, e-postservere, SSH, meldingsmeglere og lignende.
 
@@ -6,7 +6,7 @@ En port-monitor sjekker at en vert godtar TCP-tilkoblinger på en port, og måle
 - [Opprett monitoren](#opprett-en-port-monitor): Seks trinn i dashbordet.
 - [Tilkoblingstider](#tilkoblingstider): Hva DNS-, TCP- og totaltidene måler.
 - [Overvåkingskriterier](#overvåkingskriterier): Tilgjengelighet og tilkoblingstider.
-- [Feilsøking](#feilsøking): Når tjenesten kjører, men monitoren sier frakoblet.
+- [Feilsøking](#feilsøking): Når tjenesten kjører, men monitoren sier offline.
 :::
 
 ## Slik fungerer det
@@ -27,7 +27,7 @@ sequenceDiagram
 
 Sonden åpner bare TCP-tilkoblinger: en tjeneste som bare lytter på UDP, som en SNMP-agent, kan ikke sjekkes med en port-monitor.
 
-Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, og legger det den fant ved resultatet som **Nettverksbane på feiltidspunktet**, så du kan se hvor ruten brøt sammen. En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke tjenesten din som frakoblet.
+Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, og legger det den fant ved resultatet som **Nettverksbane på feiltidspunktet**, så du kan se hvor ruten brøt sammen. En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke tjenesten din som offline.
 
 ## Før du starter
 
@@ -51,11 +51,11 @@ Angi under **Vertsnavn eller IP-adresse** verten porten ligger på, som `db.exam
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser om tilkoblingen åpnet seg, og hvor lang tid hver del tok.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser om tilkoblingen åpnet seg, og hvor lang tid hver del tok.
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når porten ikke godtar en tilkobling, tilkoblet når den gjør det. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når porten ikke godtar en tilkobling, tilkoblet når den gjør det. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -104,7 +104,7 @@ Når målet er en IP-adresse, er det ikke noe DNS-oppslag, så den fasen utelate
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når porten regnes som tilkoblet, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
+Kriterier avgjør når porten regnes som tilkoblet, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
@@ -122,7 +122,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny port-monitor starter med to kriterier:
 
-- **Frakoblet** — porten godtar ikke en tilkobling etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når porten godtar tilkoblinger igjen.
+- **Offline** — porten godtar ikke en tilkobling etter alle nye forsøk. Monitoren merkes som **Offline**, og en hendelse kalt "_monitornavn_ er offline" opprettes. Hendelsen løser seg selv når porten godtar tilkoblinger igjen.
 - **Oppe** — porten godtar en tilkobling. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -155,7 +155,7 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Frakoblet når porten er lukket | **Er tilkoblet** | **Usann** | — |
+| Offline når porten er lukket | **Er tilkoblet** | **Usann** | — |
 | Varsle når tilkoblingen går tregt | **Total Connection Time (DNS + TCP) (in ms)** | **Større enn** | `500` |
 | Merk tjenesten som redusert når den kobler til tregt | **Total Connection Time (DNS + TCP) (in ms)** | **Større enn** | `200` |
 | Varsle når DNS er treg | **DNS-oppslagstid for port (i ms)** | **Større enn** | `100` |
@@ -163,7 +163,7 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 
 ## Feilsøking
 
-:::details Tjenesten kjører, men monitoren sier frakoblet
+:::details Tjenesten kjører, men monitoren sier offline
 Sonden kunne ikke åpne en tilkobling: en brannmur dropper den, tjenesten lytter bare på et privat grensesnitt, eller porten er feil. Hendelsens rotårsak og **Overvåkingslogger** på monitoren viser feilen, og **Nettverksbane på feiltidspunktet** viser hvor langt ruten kom. Slipp sondene gjennom brannmuren, eller bruk en [egendefinert sonde](/docs/probe/custom-probe) inne i nettverket.
 :::
 
@@ -178,8 +178,8 @@ Port-monitorer åpner bare TCP-tilkoblinger. For en DNS-server bruker du en [DNS
 ## Neste steg
 
 :::cards
-- [Ping-overvåking](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
-- [Databasehelse-overvåking](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
+- [Ping-monitor](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
+- [Databasehelse-monitor](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
 :::

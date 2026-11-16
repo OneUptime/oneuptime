@@ -359,6 +359,7 @@ const PromQLQueryView: FunctionComponent<ComponentProps> = (
             </div>
             <Button
               title={translator.translateText("Run Query")}
+              isTitleTranslated={true}
               icon={IconProp.Play}
               buttonStyle={ButtonStyleType.PRIMARY}
               isLoading={runState.kind === "running"}

@@ -261,7 +261,7 @@ describe("BaseModelTable read permissions", () => {
     { name: "an empty permission snapshot", permissions: [] },
     { name: "ordinary user permissions", permissions: [Permission.User] },
     {
-      name: "project admin permissions",
+      name: "Project Admin permissions",
       permissions: [Permission.ProjectAdmin],
     },
   ])(

@@ -45,7 +45,7 @@ Et prosjekt uten grupperingsregler ser fem ferdige regler i stedet for en tom li
 
 | Mal                                           | Grupperer                                                                     | Tidsvindu   |
 | --------------------------------------------- | ----------------------------------------------------------------------------- | ----------- |
-| **Grupper varsler fra samme overvåking**      | Én episode per monitor                                                        | 30 minutter |
+| **Grupper varsler fra samme monitor**      | Én episode per monitor                                                        | 30 minutter |
 | **Grupper varsler som skjer samtidig**        | Én felles episode, uansett monitor                                            | 10 minutter |
 | **Grupper varsler på tilkoblede tjenester** | Én episode for tjenester som kaller hverandre på tjenestekartet | 30 minutter |
 | **Grupper varsler etter alvorlighetsgrad**    | Én episode per alvorlighetsgrad                                               | 30 minutter |
@@ -56,7 +56,7 @@ Et prosjekt uten grupperingsregler ser fem ferdige regler i stedet for en tom li
 :::steps
 #### Svar på hvordan det skal grupperes
 
-Klikk på **Opprett egendefinert regel** under malene, eller på **Opprett grupperingsregel for varsler** på kortet når du har regler. På trinnet **Gruppering** stiller **Grupper varsler etter** ett spørsmål: **Overvåking**, **Alt samlet**, **Tilkoblede tjenester**, **Alvorlighetsgrad**, **Tittel** eller **Egendefinert**. **Navn** følger svaret ditt til du skriver ditt eget.
+Klikk på **Opprett egendefinert regel** under malene, eller på **Opprett grupperingsregel for varsler** på kortet når du har regler. På trinnet **Gruppering** stiller **Grupper varsler etter** ett spørsmål: **Monitor**, **Alt samlet**, **Tilkoblede tjenester**, **Alvorlighetsgrad**, **Tittel** eller **Egendefinert**. **Navn** følger svaret ditt til du skriver ditt eget.
 
 #### Angi tidsvinduet
 
@@ -64,7 +64,7 @@ Klikk på **Opprett egendefinert regel** under malene, eller på **Opprett grupp
 
 #### Kombiner felt, for Egendefinert
 
-**Egendefinert** legger til et trinn **Grupper etter** med seks brytere: **Grupper etter overvåking**, **Grupper etter varselalvorlighet**, **Grupper etter varseltittel**, **Grupper etter varseletiketter**, **Grupper etter overvåkingsetiketter** og **Grupper etter tilkoblede tjenester**. Etiketter grupperer etter det nøyaktige settet sitt.
+**Egendefinert** legger til et trinn **Grupper etter** med seks brytere: **Grupper etter monitor**, **Grupper etter varselalvorlighet**, **Grupper etter varseltittel**, **Grupper etter varseletiketter**, **Grupper etter monitoretiketter** og **Grupper etter tilkoblede tjenester**. Etiketter grupperer etter det nøyaktige settet sitt.
 
 #### Avgrens den
 
@@ -75,7 +75,7 @@ Alt annet en regel kan gjøre, er foldet sammen under **Flere felt** sist på tr
 
 | Gruppe                    | Innstillinger                                                                                              |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Vakt og eierskap**      | **Vaktretningslinjer** som skal kjøre når regelen åpner en episode, og **Episodeeiere**.                         |
+| **Vakt og eierskap**      | **Vaktpolicyer** som skal kjøre når regelen åpner en episode, og **Episodeeiere**.                         |
 | **Episodens livssyklus**  | **Vent på flere varsler**, en bryter med et antall, deretter **Gjenåpne nylig løste episoder**, **Vent før en episode løses** og **Løs stille episoder**, hver en bryter med sine minutter. |
 | **Detaljer**              | Regelens **Beskrivelse**, **Mal for episodetittel**, **Mal for episodebeskrivelse** og **Episodeetiketter**. |
 
@@ -88,18 +88,18 @@ Regler kontrolleres ovenfra og ned i listen, og det første samsvaret vinner: Dr
 - **Inntil da venter hvert varsel alene.** Et varsel som ikke finner noen åpen episode fra sin gruppe å bli med i, og ingen løst episode å gjenåpne, åpner ingenting og kjører bare sine egne vaktpolicyer, slik et varsel som ingen regel samsvarer med, gjør.
 - **Så åpnes én episode med alle sammen.** Varselet som fyller antallet, åpner episoden med hvert varsel som ventet. Episoden tar tittel, monitor og alvorlighetsgrad fra det første av dem og stiger til den mest alvorlige, og varslene etter dem blir med i den som vanlig.
 - **Bare pågående varsler teller.** Et varsel som er løst i mellomtiden, er over, så en monitor som stadig feiler og kommer seg igjen, åpner aldri en episode av seg selv. Mens **Grupper bare varsler som kommer tett etter hverandre** er slått på, må varslene også ha kommet innenfor tidsvinduet fra hverandre.
-- **Det teller per gruppe.** Med **Alt samlet** teller alle samsvarende varsler, så en episode åpnes bare ved et utfall som utløser flere monitorer samtidig. Med **Overvåking** åpnes en monitors episode når den monitoren har flere pågående varsler.
+- **Det teller per gruppe.** Med **Alt samlet** teller alle samsvarende varsler, så en episode åpnes bare ved et utfall som utløser flere monitorer samtidig. Med **Monitor** åpnes en monitors episode når den monitoren har flere pågående varsler.
 
 Listens kolonne **Gruppering** sier "Åpner en episode når 3 samsvarende varsler pågår". Via API-et og Terraform heter det `enableMinimumAlertCount` og `minimumAlertCount`.
 
 ### Grupper varsler på tilkoblede tjenester
 
-Når en tjeneste svikter, begynner tjenestene som kaller den, også å feile, og hver av dem utløser et varsel på sin egen overvåking. **Tilkoblede tjenester** samler disse varslene i én episode ved hjelp av [tjenestekartet](/docs/telemetry/topology) som OneUptime tegner ut fra sporene dine.
+Når en tjeneste svikter, begynner tjenestene som kaller den, også å feile, og hver av dem utløser et varsel på sin egen monitor. **Tilkoblede tjenester** samler disse varslene i én episode ved hjelp av [tjenestekartet](/docs/telemetry/topology) som OneUptime tegner ut fra sporene dine.
 
-- Tjenestene til et varsel er de som er koblet til det under **Berørte ressurser**, og de som er koblet til overvåkingen til varselet.
+- Tjenestene til et varsel er de som er koblet til det under **Berørte ressurser**, og de som er koblet til monitoren til varselet.
 - Et varsel går inn i en åpen episode for regelen når en av tjenestene er, kaller eller kalles av en tjeneste til et varsel som allerede er i den, så en feil som sprer seg, holder én episode.
 - Tilkoblet betyr ett kall unna: to tjenester som bare kaller den samme databasen eller det samme eksterne API-et, er ikke tilkoblet, ellers ville en avhengighet som halvparten av tjenestene dine kaller, legge hvert varsel i én episode.
-- Et varsel uten tjeneste grupperes etter overvåkingen sin, slik **Overvåking** grupperer.
+- Et varsel uten tjeneste grupperes etter monitoren sin, slik **Monitor** grupperer.
 
 Et kall som ikke er sett på 30 dager, forsvinner fra tjenestekartet, og forbindelsen med det. Listens kolonne **Gruppering** sier "Varsler på tilkoblede tjenester deler én episode". Via API-et og Terraform heter det `groupByConnectedServices`.
 
@@ -141,7 +141,7 @@ flowchart TB
     grouped -->|"Blir med i en episode"| none["Ingenting mer kjører"]
 ```
 
-- **En ny episode** kjører regelens **Vaktretningslinjer** pluss dem fra enhver samsvarende regel på fanen **Episoderegler** under **Varsler → Regler → Vaktregler**.
+- **En ny episode** kjører regelens **Vaktpolicyer** pluss dem fra enhver samsvarende regel på fanen **Episoderegler** under **Varsler → Regler → Vaktregler**.
 - **Et varsel som blir med i en åpen episode**, kjører bare sine egne policyer. Episodens kjører ikke på nytt.
 - **Et varsel som venter på flere varsler**, kjører også bare sine egne policyer. Når **Vent på flere varsler** er slått på og regelens policyer er de eneste som tilkaller, tilkaller et enkelt varsel ingen før nok av dem pågår.
 - **Svarer noen på en episodes tilkalling**, bekreftes episoden og dermed hvert varsel i den.
@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > For å tilkalle én gang per problem i stedet for én gang per varsel legger du vaktpolicyer på grupperingsreglene dine og lar dem være borte fra varslene: fra monitorens kriterier, opprettelsesskjemaet og vaktreglene dine for varsler.
 
-Episodens eiere får også vite om det: **Varselepisode opprettet**, **Tilstand for varselepisode endret** og **Varsel lagt til i varselepisode** er slått på via e-post som standard under **Brukerinnstillinger → Varselinnstillinger** på fanen **Varsler**. Regelens **Episodeeiere** blir eiere av hver episode den åpner, og får beskjed som enhver annen eier.
+Episodens eiere får også vite om det: **Varselepisode opprettet**, **Tilstand for varselepisode endret** og **Varsel lagt til i varselepisode** er slått på via e-post som standard under **Brukerinnstillinger → Varslingsinnstillinger** på fanen **Varsler**. Regelens **Episodeeiere** blir eiere av hver episode den åpner, og får beskjed som enhver annen eier.
 
 ## Opprett en episode manuelt
 

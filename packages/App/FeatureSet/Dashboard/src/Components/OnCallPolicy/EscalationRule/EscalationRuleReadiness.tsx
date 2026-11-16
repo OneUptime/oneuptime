@@ -1636,6 +1636,8 @@ export const RuleReadinessDetails: FunctionComponent<
   return (
     <Modal
       title={props.ruleName}
+      // The record's own name, as written: never looked up as an English key.
+      isTitleTranslated={true}
       description={translator.translatePlural(
         {
           one: "Whether the {{count}} person this level notifies can actually be paged.",

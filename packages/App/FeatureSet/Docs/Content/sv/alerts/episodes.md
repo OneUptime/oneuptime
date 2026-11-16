@@ -56,7 +56,7 @@ Ett projekt utan grupperingsregler ser fem färdiga regler i stället för en to
 :::steps
 #### Svara på hur det ska grupperas
 
-Klicka på **Skapa anpassad regel** under mallarna, eller på **Skapa grupperingsregel för larm** på kortet när du har regler. I steget **Gruppering** ställer **Gruppera larm efter** en enda fråga: **Övervakning**, **Allt tillsammans**, **Anslutna tjänster**, **Allvarlighetsgrad**, **Titel** eller **Anpassad**. **Namn** följer ditt svar tills du skriver ett eget.
+Klicka på **Skapa anpassad regel** under mallarna, eller på **Skapa grupperingsregel för larm** på kortet när du har regler. I steget **Gruppering** ställer **Gruppera larm efter** en enda fråga: **Monitor**, **Allt tillsammans**, **Anslutna tjänster**, **Allvarlighetsgrad**, **Titel** eller **Anpassad**. **Namn** följer ditt svar tills du skriver ett eget.
 
 #### Ställ in tidsfönstret
 
@@ -88,7 +88,7 @@ Regler kontrolleras uppifrån och ned i listan, och den första matchningen vinn
 - **Till dess väntar varje larm ensamt.** Ett larm som inte hittar någon öppen episod i sin grupp att ansluta till, och ingen löst episod att öppna igen, öppnar ingenting och kör bara sina egna jourpolicyer, precis som ett larm som ingen regel matchar.
 - **Sedan öppnas en enda episod med alla larmen.** Larmet som fyller antalet öppnar episoden med varje larm som väntade. Episoden tar sin titel, monitor och allvarlighetsgrad från det första av dem och stiger till den allvarligaste, och larmen efter dem ansluter till den som vanligt.
 - **Bara pågående larm räknas.** Ett larm som har lösts under tiden är över, så en monitor som hela tiden fallerar och återhämtar sig öppnar aldrig en episod på egen hand. Medan **Gruppera bara larm som kommer tätt efter varandra** är påslaget måste larmen också ha kommit inom dess fönster från varandra.
-- **Det räknas per grupp.** Med **Allt tillsammans** räknas alla matchande larm, så en episod öppnas bara vid ett avbrott som utlöser flera monitorer på en gång. Med **Övervakning** öppnas en monitors episod när den monitorn har flera pågående larm.
+- **Det räknas per grupp.** Med **Allt tillsammans** räknas alla matchande larm, så en episod öppnas bara vid ett avbrott som utlöser flera monitorer på en gång. Med **Monitor** öppnas en monitors episod när den monitorn har flera pågående larm.
 
 Listans kolumn **Gruppering** säger "Öppnar en episod när 3 matchande larm pågår". Via API:et och Terraform heter det `enableMinimumAlertCount` och `minimumAlertCount`.
 
@@ -99,7 +99,7 @@ När en tjänst fallerar börjar tjänsterna som anropar den också att fallera,
 - Ett larms tjänster är de som är kopplade till det under **Berörda resurser**, och de som är kopplade till dess övervakning.
 - Ett larm går in i en öppen episod för regeln när en av dess tjänster är, anropar eller anropas av en tjänst för ett larm som redan finns i den, så att ett fel som sprider sig håller sig till en episod.
 - Ansluten betyder ett anrop bort: två tjänster som bara anropar samma databas eller externa API är inte anslutna, annars skulle ett beroende som hälften av dina tjänster anropar lägga varje larm i en episod.
-- Ett larm utan tjänst grupperas efter sin övervakning, så som **Övervakning** grupperar.
+- Ett larm utan tjänst grupperas efter sin övervakning, så som **Monitor** grupperar.
 
 Ett anrop som inte har setts på 30 dagar försvinner från tjänstekartan, och anslutningen med det. Listans kolumn **Gruppering** säger "Larm i anslutna tjänster delar en episod". Via API:et och Terraform heter det `groupByConnectedServices`.
 
@@ -189,7 +189,7 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 
 **Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Larm i den här episoden** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Flytta episoden till** i menyn **⋯**.
 
-Sidan **Rotorsak** visar mätvärdena bakom episoden bredvid dess rotorsak: dem från dess första larm, det som skapades först, så som telemetrikortet på dess **Översikt** visar dem, kring när episoden började och med dess ögonblick markerade, så att du kan läsa dem över vilket intervall som helst kring den medan du skriver ner varför den inträffade. När det larmet inte har sparat någon ögonblicksbild av en måttkontroll (ett som skapats för hand på en måttmonitor, till exempel), visar sidan den monitorns mätvärden så som monitorn läser dem nu, och säger det.
+Sidan **Rotorsak** visar mätvärdena bakom episoden bredvid dess rotorsak: dem från dess första larm, det som skapades först, så som telemetrikortet på dess **Översikt** visar dem, kring när episoden började och med dess ögonblick markerade, så att du kan läsa dem över vilket intervall som helst kring den medan du skriver ner varför den inträffade. När det larmet inte har sparat någon ögonblicksbild av en mätvärdeskontroll (ett som skapats för hand på en mätvärdesmonitor, till exempel), visar sidan den monitorns mätvärden så som monitorn läser dem nu, och säger det.
 
 **Larm → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
 

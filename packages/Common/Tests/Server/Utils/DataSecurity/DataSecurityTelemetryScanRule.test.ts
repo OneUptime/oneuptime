@@ -6,13 +6,7 @@ jest.mock("../../../../Server/Utils/DataSecurity/DataSecurityJobs", () => {
   };
 });
 
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import DataStoreService from "../../../../Server/Services/DataStoreService";
 import { getServedProjectSql } from "../../../../Server/Utils/DataSecurity/DataSecurityProbeClaim";
 import {

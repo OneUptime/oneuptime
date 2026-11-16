@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Test LLM Provider, end to end in a browser, against the fixture's in-page
@@ -828,4 +829,18 @@ test.describe("the dialog at phone width, in the dark theme and in Japanese", ()
     expect(await footerButtons(page)).toEqual(["再テスト", "閉じる"]);
     await shoot(page, "failed-ja-1280");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * Japanese and German whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["ja", "de"],
+  address: (language: string): string => {
+    return `/?role=owner${language === "en" ? "" : `&lang=${language}`}`;
+  },
 });

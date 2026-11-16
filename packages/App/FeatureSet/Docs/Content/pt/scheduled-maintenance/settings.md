@@ -117,7 +117,7 @@ O cartão **Próximo número** abaixo define o número que o próximo evento rec
 
 ## Workflows
 
-Cada modelo de manutenção tem gatilhos e ações de workflow com o nome dele: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** e **On Delete Maintenance Event**, o mesmo para **Scheduled Maintenance State Timeline** e os outros, e ações como **Create One Maintenance Event** e **Update One Maintenance Event**. As definições de campos personalizados e os valores das medições são as exceções: não têm etapas de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
+Cada modelo de manutenção tem gatilhos e ações de workflow com o nome dele: **Ao criar: Evento de manutenção**, **Ao atualizar: Evento de manutenção**, **Ao criar ou atualizar: Evento de manutenção** e **Ao excluir: Evento de manutenção**, o mesmo para **Scheduled Maintenance State Timeline** e os outros, e ações como **Criar: Evento de manutenção (um registro)** e **Atualizar: Evento de manutenção (um registro)**. As definições de campos personalizados e os valores das medições são as exceções: não têm etapas de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
 
 ## Quem pode alterá-las
 

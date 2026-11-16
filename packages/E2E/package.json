@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.2.0",
+  "version": "14.3.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -138,6 +138,7 @@
     "test-host-pages-ui": "playwright test --config playwright.host-pages-ui.config.ts",
     "test-vmware-pages-ui": "playwright test --config playwright.vmware-pages-ui.config.ts",
     "test-product-onboarding-ui": "playwright test --config playwright.product-onboarding-ui.config.ts",
+    "test-security-page-ui": "playwright test --config playwright.security-page-ui.config.ts",
     "docs-screens": "playwright test --config playwright.docs-screens.config.ts",
     "docs-screens:check": "DOCS_SCREENS_MODE=check playwright test --config playwright.docs-screens.config.ts"
   },

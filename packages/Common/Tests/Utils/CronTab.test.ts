@@ -156,17 +156,17 @@ describe("CronTab", () => {
   describe("human-readable descriptions", () => {
     const cases: Array<[string, string]> = [
       ["* * * * *", "Every minute"],
-      ["*/5 * * * *", "Every 5 minutes"],
-      ["*/30 * * * *", "Every 30 minutes"],
+      ["*/5 * * * *", "Every 5\u00A0minutes"],
+      ["*/30 * * * *", "Every 30\u00A0minutes"],
       ["0 * * * *", "Every hour, on the hour"],
-      ["0 */2 * * *", "Every 2 hours"],
-      ["0 */18 * * *", "Every 18 hours"],
+      ["0 */2 * * *", "Every 2\u00A0hours"],
+      ["0 */18 * * *", "Every 18\u00A0hours"],
       ["0 0 * * *", "Every day at 00:00 (UTC)"],
       ["30 9 * * *", "Every day at 09:30 (UTC)"],
       ["0 9 * * 1", "Every week on Monday at 09:00 (UTC)"],
       ["0 0 * * 0", "Every week on Sunday at 00:00 (UTC)"],
       ["0 0 1 * *", "Every month on the 1st at 00:00 (UTC)"],
-      ["0 0 1 */3 *", "Every 3 months on the 1st at 00:00 (UTC)"],
+      ["0 0 1 */3 *", "Every 3\u00A0months on the 1st at 00:00 (UTC)"],
       ["0 0 1 1 *", "On the 1st of January at 00:00 (UTC)"],
     ];
 

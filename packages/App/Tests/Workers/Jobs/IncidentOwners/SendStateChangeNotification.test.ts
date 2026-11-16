@@ -24,15 +24,17 @@ import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
  * incident description once PER OWNER. The perf fix merges the severity
  * relation into the single incident fetch and hoists the markdown conversion
  * to once per timeline row. These tests pin:
- *   1. the query shape: exactly ONE findOneById per timeline row, whose
- *      select carries both the display fields and the severity relation,
+ *   1. the query shape: ONE read of a page's incidents (issue #7974 - it was
+ *      one per timeline row), whose select carries both the display fields
+ *      and the severity relation,
  *   2. exactly ONE Markdown.convertToHTML per row regardless of owner count,
  *   3. the notification payloads (vars, subject, SMS, call, push, feed) are
  *      byte-identical to the old two-query flow, including the severity name
  *      and the converted description,
- *   4. the skip/throw semantics are unchanged: a deleted incident is skipped,
- *      a missing severity relation still throws (no silent ?. downgrade), and
- *      rows without owners never reach the markdown conversion.
+ *   4. the skip/throw semantics: a deleted incident is taken without telling
+ *      anyone (it used to be left to be read again on every run), a missing
+ *      severity relation still throws (no silent ?. downgrade), and rows
+ *      without owners never reach the markdown conversion.
  *
  * The job registers itself via RunCron at import time and exports nothing, so
  * the Cron util is mocked to CAPTURE the handler (the same recorder the other
@@ -103,6 +105,7 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findBy: jest.fn(),
       findAllBy: jest.fn(),
       findOwners: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
@@ -115,7 +118,9 @@ jest.mock("Common/Server/Services/IncidentStateTimelineService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
       findOneBy: jest.fn(),
     },
   };
@@ -174,6 +179,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import UserService from "Common/Server/Services/UserService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { OwnerNotificationDeliveryStatus } from "Common/Types/Notification/OwnerNotificationDelivery";
 import {
   InMemoryOwnerNotificationDeliveries,
@@ -185,6 +191,7 @@ import "../../../../FeatureSet/Workers/Jobs/IncidentOwners/SendStateChangeNotifi
 
 interface IncidentServiceMock {
   findOneById: jest.Mock;
+  findBy: jest.Mock;
   findAllBy: jest.Mock;
   findOwners: jest.Mock;
   getIncidentLinkInDashboard: jest.Mock;
@@ -192,7 +199,9 @@ interface IncidentServiceMock {
 
 interface TimelineServiceMock {
   findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
+  compareAndSetColumnsByIdWithoutHooks: jest.Mock;
   findOneBy: jest.Mock;
 }
 
@@ -321,19 +330,22 @@ function makeUser(id: ObjectID, timezone?: Timezone | undefined): User {
 }
 
 /*
- * The job reads the incident's affected resources back through
- * IncidentService.findAllBy, right after its own findOneById for the row; answer
- * those reads with the incident that findOneById just returned.
+ * The ids a read asks for: QueryHelper.any is spied to say them (beforeEach).
  */
-function answerRelationReadsWithFetchedIncident(): void {
-  incidentService.findAllBy.mockImplementation(async () => {
-    const results: Array<{ value: unknown }> =
-      incidentService.findOneById.mock.results;
-    const incident: unknown =
-      results.length > 0 ? await results[results.length - 1]!.value : null;
+function idsAskedFor(query: Record<string, unknown>): Array<string> {
+  return (query["_id"] as { __in?: Array<string> } | undefined)?.__in || [];
+}
 
-    return incident ? [incident] : [];
-  });
+/*
+ * The state changes the job's page read finds - those a test hands it -
+ * until the job takes each (OwnerNotificationBacklog): the read is a page,
+ * and the take a compare-and-set that only the first to make wins.
+ */
+let dueTimelines: Array<IncidentStateTimeline> = [];
+const takenTimelineIds: Set<string> = new Set<string>();
+
+function due(timelines: Array<IncidentStateTimeline>): void {
+  dueTimelines = timelines;
 }
 
 function stubIncidents(incidents: Array<Incident>): void {
@@ -343,22 +355,43 @@ function stubIncidents(incidents: Array<Incident>): void {
     incidentsById[incident.id!.toString()] = incident;
   }
 
+  const byIdsAskedFor: (args: {
+    query: Record<string, unknown>;
+  }) => Promise<Array<Incident>> = (args: {
+    query: Record<string, unknown>;
+  }): Promise<Array<Incident>> => {
+    return Promise.resolve(
+      idsAskedFor(args.query)
+        .map((id: string): Incident | undefined => {
+          return incidentsById[id];
+        })
+        .filter((each: Incident | undefined): each is Incident => {
+          return Boolean(each);
+        }),
+    );
+  };
+
+  // The page's incidents, in one read (the job's readIncidentsOfPage)...
+  incidentService.findBy.mockImplementation(byIdsAskedFor);
+
+  // ...one the page read did not find, on its own...
   incidentService.findOneById.mockImplementation((args: { id: ObjectID }) => {
     return Promise.resolve(incidentsById[args.id.toString()] || null);
   });
 
-  answerRelationReadsWithFetchedIncident();
+  // ...and its affected resources, a relation at a time (LinkedAffectedResources).
+  incidentService.findAllBy.mockImplementation(byIdsAskedFor);
 }
 
-interface FindOneByIdArgs {
-  id: ObjectID;
+interface FindByArgs {
+  query: Record<string, unknown>;
   props: { isRoot: boolean };
   select: Record<string, unknown>;
 }
 
-function incidentFetchCalls(): Array<FindOneByIdArgs> {
-  return incidentService.findOneById.mock.calls.map((args: Array<unknown>) => {
-    return args[0] as FindOneByIdArgs;
+function incidentPageReads(): Array<FindByArgs> {
+  return incidentService.findBy.mock.calls.map((args: Array<unknown>) => {
+    return args[0] as FindByArgs;
   });
 }
 
@@ -390,10 +423,12 @@ function sendCalls(): Array<SendNotificationArgs> {
 interface UpdateCallArgs {
   id: ObjectID;
   data: Record<string, unknown>;
+  expectedData: Record<string, unknown>;
 }
 
+// The takes: one hook-free compare-and-set per state change.
 function timelineUpdateCalls(): Array<UpdateCallArgs> {
-  return timelineService.updateOneById.mock.calls.map(
+  return timelineService.compareAndSetColumnsByIdWithoutHooks.mock.calls.map(
     (args: Array<unknown>) => {
       return args[0] as UpdateCallArgs;
     },
@@ -451,6 +486,33 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
       return Promise.resolve(convertedHtmlOf(markdown));
     });
 
+    dueTimelines = [];
+    takenTimelineIds.clear();
+    jest
+      .spyOn(QueryHelper, "any")
+      .mockImplementation((values: Array<string | ObjectID | number>) => {
+        return {
+          __in: values.map((value: string | ObjectID | number): string => {
+            return value.toString();
+          }),
+        } as never;
+      });
+    timelineService.findBy.mockImplementation(async () => {
+      return dueTimelines.filter((timeline: IncidentStateTimeline) => {
+        return !takenTimelineIds.has(timeline.id!.toString());
+      });
+    });
+    timelineService.compareAndSetColumnsByIdWithoutHooks.mockImplementation(
+      async (data: { id: ObjectID }): Promise<boolean> => {
+        if (takenTimelineIds.has(data.id.toString())) {
+          return false;
+        }
+
+        takenTimelineIds.add(data.id.toString());
+        return true;
+      },
+    );
+    incidentService.findBy.mockResolvedValue([]);
     timelineService.findAllBy.mockResolvedValue([]);
     timelineService.updateOneById.mockResolvedValue(undefined);
     timelineService.findOneBy.mockResolvedValue(null);
@@ -468,10 +530,8 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     );
   });
 
-  test("fetches the incident EXACTLY ONCE per timeline row, selecting the severity relation alongside the display fields", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID }),
-    ]);
+  test("reads the page's incidents in ONE query - never once per row, nor again for the severity - selecting the severity relation alongside the display fields", async () => {
+    due([makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID })]);
     stubIncidents([
       makeIncident({
         id: INCIDENT_1_ID,
@@ -483,12 +543,16 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
 
     await runWorkerTick();
 
-    // THE removed regression: a second findOneById just for the severity name.
-    expect(incidentService.findOneById).toHaveBeenCalledTimes(1);
+    /*
+     * THE removed regressions: a second read just for the severity name, and
+     * one read per state change - the page's incidents are read in one query.
+     */
+    expect(incidentService.findBy).toHaveBeenCalledTimes(1);
+    expect(incidentService.findOneById).not.toHaveBeenCalled();
 
-    const fetch: FindOneByIdArgs = incidentFetchCalls()[0]!;
+    const fetch: FindByArgs = incidentPageReads()[0]!;
 
-    expect(fetch.id.toString()).toBe(INCIDENT_1_ID.toString());
+    expect(idsAskedFor(fetch.query)).toEqual([INCIDENT_1_ID.toString()]);
     expect(fetch.props).toEqual({ isRoot: true });
 
     /*
@@ -526,7 +590,7 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
   });
 
   test("converts the description markdown ONCE PER ROW, not once per owner, across 3 owners and 2 rows", async () => {
-    timelineService.findAllBy.mockResolvedValue([
+    due([
       makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID }),
       makeTimeline({ id: TIMELINE_2_ID, incidentId: INCIDENT_2_ID }),
     ]);
@@ -582,15 +646,20 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
       convertedHtmlOf("row two description"),
     ]);
 
-    // One merged incident fetch per row - never a severity re-fetch.
-    expect(incidentService.findOneById).toHaveBeenCalledTimes(2);
+    // One read of the page's two incidents - never per row, nor a severity re-fetch.
+    expect(incidentService.findBy).toHaveBeenCalledTimes(1);
+    expect(idsAskedFor(incidentPageReads()[0]!.query)).toEqual([
+      INCIDENT_1_ID.toString(),
+      INCIDENT_2_ID.toString(),
+    ]);
+    expect(incidentService.findOneById).not.toHaveBeenCalled();
   });
 
   test("sends byte-identical notification payloads to the old two-query flow, previous state included", async () => {
     const startsAt: Date = STATE_CHANGED_AT;
     const previousStartsAt: Date = new Date("2026-08-18T08:00:00.000Z");
 
-    timelineService.findAllBy.mockResolvedValue([
+    due([
       makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID, startsAt }),
     ]);
     stubIncidents([
@@ -695,6 +764,9 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     expect(updates).toHaveLength(1);
     expect(updates[0]!.id.toString()).toBe(TIMELINE_1_ID.toString());
     expect(updates[0]!.data).toEqual({ isOwnerNotified: true });
+    // Only if no other run took it first: one run alone tells its owners.
+    expect(updates[0]!.expectedData).toEqual({ isOwnerNotified: false });
+    expect(timelineService.updateOneById).not.toHaveBeenCalled();
 
     // One feed item: a sentence, and who was notified behind its details.
     expect(feedService.createIncidentFeedItem).toHaveBeenCalledTimes(1);
@@ -718,8 +790,8 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     );
   });
 
-  test("a row whose incident no longer exists is skipped exactly as before, without blocking later rows", async () => {
-    timelineService.findAllBy.mockResolvedValue([
+  test("a row whose incident no longer exists is taken without telling anyone - so no run reads it again - and does not block later rows", async () => {
+    due([
       makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID }),
       makeTimeline({ id: TIMELINE_2_ID, incidentId: INCIDENT_2_ID }),
     ]);
@@ -735,14 +807,29 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
 
     await expect(runWorkerTick()).resolves.toBeUndefined();
 
-    // Still exactly one fetch per row - the null result costs no extra query.
-    expect(incidentService.findOneById).toHaveBeenCalledTimes(2);
+    /*
+     * The page's read found the surviving incident; the deleted one is read on
+     * its own once, and found gone.
+     */
+    expect(incidentService.findBy).toHaveBeenCalledTimes(1);
+    expect(incidentService.findOneById).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        incidentService.findOneById.mock.calls[0]![0] as { id: ObjectID }
+      ).id.toString(),
+    ).toBe(INCIDENT_1_ID.toString());
 
-    // The deleted row is skipped BEFORE the mark-notified write and the send.
+    /*
+     * Both rows are taken: the deleted one too, so it is not read again on
+     * every run for ever (it used to be left as it was). Nobody is told of it.
+     */
     const updates: Array<UpdateCallArgs> = timelineUpdateCalls();
 
-    expect(updates).toHaveLength(1);
-    expect(updates[0]!.id.toString()).toBe(TIMELINE_2_ID.toString());
+    expect(
+      updates.map((update: UpdateCallArgs): string => {
+        return update.id.toString();
+      }),
+    ).toEqual([TIMELINE_1_ID.toString(), TIMELINE_2_ID.toString()]);
 
     expect(markdownMock.convertToHTML).toHaveBeenCalledTimes(1);
     expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
@@ -753,9 +840,7 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
   });
 
   test("a missing severity relation still fails after the mark-notified write - never silently downgraded - and costs only that owner's notification", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID })]);
     stubIncidents([
       makeIncident({ id: INCIDENT_1_ID, description: "no severity row" }),
     ]);
@@ -768,7 +853,10 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     await expect(runWorkerTick()).resolves.toBeUndefined();
 
     // Same as the old flow: the row was already marked notified...
-    expect(timelineService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(
+      timelineService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(timelineService.updateOneById).not.toHaveBeenCalled();
 
     // ...and no notification went out.
     expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
@@ -778,9 +866,7 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
   });
 
   test("a row with no owners at all is marked notified and skipped without converting markdown", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID })]);
     stubIncidents([
       makeIncident({
         id: INCIDENT_1_ID,
@@ -794,7 +880,10 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     await runWorkerTick();
 
     expect(projectService.getOwners).toHaveBeenCalledTimes(1);
-    expect(timelineService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(
+      timelineService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(timelineService.updateOneById).not.toHaveBeenCalled();
 
     // The hoisted conversion still sits behind the owners gate.
     expect(markdownMock.convertToHTML).not.toHaveBeenCalled();
@@ -803,9 +892,7 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
   });
 
   test("project-owner fallback still notifies without the isOwner flag and maps zero monitors to None", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID })]);
     stubIncidents([
       makeIncident({
         id: INCIDENT_1_ID,
@@ -832,7 +919,7 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     expect(feedService.createIncidentFeedItem).toHaveBeenCalledWith(
       expect.objectContaining({
         feedInfoInMarkdown:
-          "The project's owners were notified that this incident is now **Acknowledged**, as it has no owners yet.",
+          "The Project Owners were notified that this incident is now **Acknowledged**, as it has no owners yet.",
       }),
     );
   });
@@ -842,9 +929,7 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
    * rendered as nothing and a lone "{{" stopped the email being sent.
    */
   test("a title quoting template syntax reaches the subject as written, marked literal", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, incidentId: INCIDENT_1_ID })]);
     const incident: Incident = makeIncident({
       id: INCIDENT_1_ID,
       description: "",

@@ -64,6 +64,7 @@ import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsP
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import logger from "../../../Server/Utils/Logger";
 import {
   stubRowsCallerMayWrite,
@@ -783,10 +784,13 @@ describe("the AI agent card follows the real status", () => {
     expect(getAiAgentOverviewState(status).text).toBe("Offline");
     // It never signed off: its heartbeats stopped.
     expect(getAiAgentOfflineReason(status)).toBe("silent");
+    // As the page draws it: its "5 minutes" held to its figure (#8770).
     expect(getAiAgentStateSentence(status)).toBe(
-      fillTemplate(AI_AGENT_SILENT_TEXT, {
-        minutes: KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
-      }),
+      withDurationWordsHeld(
+        fillTemplate(AI_AGENT_SILENT_TEXT, {
+          minutes: KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+        }),
+      ),
     );
   });
 

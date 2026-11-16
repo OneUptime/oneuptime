@@ -85,15 +85,15 @@ La pestaña **Custom Metric** ofrece estas métricas, agrupadas por tipo de recu
 
 | Categoría | Métricas |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nodo | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Contenedor | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Carga de trabajo | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Plano de control | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Consumo de CPU del pod, Uso de memoria del pod, Fase del pod (código), Uso del sistema de archivos del pod, Utilización del límite de memoria del pod, Utilización del límite de CPU del pod, E/S de red del pod (acumulada, ambas direcciones) |
+| Nodo | Consumo de CPU del nodo, CPU asignable del nodo, Uso de memoria del nodo, Working set de memoria del nodo, Uso del sistema de archivos del nodo, Memoria asignable del nodo, Condición Ready del nodo, Condición MemoryPressure del nodo, Condición DiskPressure del nodo, Condición PIDPressure del nodo, Sistema de archivos disponible del nodo |
+| Contenedor | Reinicios del contenedor, Reinicios del contenedor (aumento), Límite de CPU del contenedor, Solicitud de CPU del contenedor, Límite de memoria del contenedor, Solicitud de memoria del contenedor, Contenedor listo |
+| Carga de trabajo | Réplicas disponibles del Deployment, Réplicas deseadas del Deployment, Nodos deseados del DaemonSet, Nodos mal programados del DaemonSet, Nodos listos del DaemonSet, Réplicas deseadas del StatefulSet, Réplicas listas del StatefulSet, Pods fallidos del Job, Pods fallidos del Job (aumento), Pods correctos del Job |
+| HPA | Réplicas actuales del HPA, Réplicas deseadas del HPA, Réplicas máximas del HPA, Réplicas mínimas del HPA |
+| Plano de control | etcd tiene líder, Solicitudes en curso del servidor de API, Pods pendientes del programador |
 
 > [!NOTE]
-> **Pod CPU Usage** y **Node CPU Usage** están en núcleos, no en porcentaje: `0.18` es 0,18 de un núcleo. **Pod Phase (Code)** es un código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): agréguelo con Máximo o Mínimo, nunca con Suma. Las métricas del plano de control solo llegan cuando la recopilación del plano de control del agente está activada. **Node Ready Condition** vale 1 con Ready, 0 con NotReady y -1 con Unknown, que es lo que informa un nodo caído: alerte por debajo de 1. **Container Restarts** es el contador acumulado de reinicios del contenedor; **Container Restarts (Increase)** es lo que el agente envía con cada muestra: los reinicios desde su muestra anterior del contenedor, así que su suma en una ventana son los reinicios que hubo en ella. Lleva lo que lleva **Container Restarts**, incluidos los nombres de las cargas de trabajo del pod del contenedor, pero no el ID del contenedor, que cambia con cada reinicio. **Job Failed Pods** es el contador acumulado de pods fallidos de un Job; **Job Failed Pods (Increase)** es lo que el agente envía con cada muestra: los pods del Job que fallaron desde su muestra anterior del Job, así que su suma en una ventana son los fallos que hubo en ella. Lleva lo que lleva **Job Failed Pods**: el nombre y el espacio de nombres del Job.
+> **Consumo de CPU del pod** y **Consumo de CPU del nodo** están en núcleos, no en porcentaje: `0.18` es 0,18 de un núcleo. **Fase del pod (código)** es un código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): agréguelo con Máximo o Mínimo, nunca con Suma. Las métricas del plano de control solo llegan cuando la recopilación del plano de control del agente está activada. **Condición Ready del nodo** vale 1 con Ready, 0 con NotReady y -1 con Unknown, que es lo que informa un nodo caído: alerte por debajo de 1. **Reinicios del contenedor** es el contador acumulado de reinicios del contenedor; **Reinicios del contenedor (aumento)** es lo que el agente envía con cada muestra: los reinicios desde su muestra anterior del contenedor, así que su suma en una ventana son los reinicios que hubo en ella. Lleva lo que lleva **Reinicios del contenedor**, incluidos los nombres de las cargas de trabajo del pod del contenedor, pero no el ID del contenedor, que cambia con cada reinicio. **Pods fallidos del Job** es el contador acumulado de pods fallidos de un Job; **Pods fallidos del Job (aumento)** es lo que el agente envía con cada muestra: los pods del Job que fallaron desde su muestra anterior del Job, así que su suma en una ventana son los fallos que hubo en ella. Lleva lo que lleva **Pods fallidos del Job**: el nombre y el espacio de nombres del Job.
 
 ## Criterios de monitoreo
 
@@ -191,7 +191,7 @@ Los clústeres se registran solos a partir de los datos del agente, con el `clus
 :::
 
 :::details Un umbral de CPU nunca se dispara
-**Pod CPU Usage** y **Node CPU Usage** están en núcleos, no en porcentaje, así que un umbral de `80` significa 80 núcleos. Fije el umbral en núcleos, o parta de **High Node CPU Utilization** o de **Pod CPU Saturating Container Limit**, que comparan un porcentaje.
+**Consumo de CPU del pod** y **Consumo de CPU del nodo** están en núcleos, no en porcentaje, así que un umbral de `80` significa 80 núcleos. Fije el umbral en núcleos, o parta de **High Node CPU Utilization** o de **Pod CPU Saturating Container Limit**, que comparan un porcentaje.
 :::
 
 :::details CrashLoopBackOff Detection no se disparó con un reinicio

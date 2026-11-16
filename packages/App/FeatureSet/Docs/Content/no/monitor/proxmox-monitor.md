@@ -1,6 +1,6 @@
-# Proxmox-overvåking
+# Proxmox-monitor
 
-En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-containerne, lagringen, HA-tilstanden, dekningen av sikkerhetskopijobber og lagringsreplikeringen – og sier fra når en node blir frakoblet, en gjest stopper eller lagringen fylles opp. Den leser målingene `pve_*` som OneUptimes Proxmox-agent samler inn, så ingenting undersøkes utenfra.
+En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-containerne, lagringen, HA-tilstanden, dekningen av sikkerhetskopijobber og lagringsreplikeringen – og sier fra når en node blir offline, en gjest stopper eller lagringen fylles opp. Den leser målingene `pve_*` som OneUptimes Proxmox-agent samler inn, så ingenting undersøkes utenfra.
 
 :::cards
 - [Opprett monitoren](#opprett-en-proxmox-monitor): Seks trinn i dashbordet.
@@ -82,7 +82,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Proxmox Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler angir sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 ## Ressursidentitet
 
@@ -152,7 +152,7 @@ To varsler til leser notifikasjonene fra Proxmox VE selv, som klyngen sender som
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Advarsel | Notifikasjonslogger med `pve.notification.type = vzdump` og `pve.notification.severity = error`, per node og jobb, siste 60 minutter | En sikkerhetskopijobb melder en feil | Neste kjøring av samme jobb lykkes |
+| Backup Job Failed | Advarsling | Notifikasjonslogger med `pve.notification.type = vzdump` og `pve.notification.severity = error`, per node og jobb, siste 60 minutter | En sikkerhetskopijobb melder en feil | Neste kjøring av samme jobb lykkes |
 | Node Fenced | Kritisk | Notifikasjonslogger med `pve.notification.type = fencing`, per node, siste 30 minutter | Proxmox VE isolerer en node (fencing) | Den noden isoleres ikke igjen på 30 minutter |
 
 Hver node og hver sikkerhetskopijobb får sin egen hendelse og sitt eget varsel. Varselet for en mislykket sikkerhetskopijobb forblir åpent til en senere kjøring av samme jobb lykkes, uansett hvor lang tid det tar.
@@ -199,7 +199,7 @@ CPU- og minneseriene rapporteres også for hver gjest, på id-ene `qemu/*` og `l
 | `pve_onboot_status` | antall | 1 når gjesten starter ved nodens oppstart. En stoppet gjest med denne innstillingen er som regel uplanlagt nedetid. |
 | `pve_lock_state` | — | Låsen Proxmox VE holder på en gjest mens en oppgave endrer den, én serie per lås (`backup`, `migrate`, `snapshot`, …), 1 på den som holdes. Filtrer på etiketten `state`. |
 
-### Lager
+### Lagring
 
 | Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
@@ -260,11 +260,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitor name_ is offline», som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
+| 1 | Sjekk om _monitornavn_ er offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hendelsen «_monitornavn_ er offline», som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren offline. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 
@@ -281,7 +281,7 @@ Malen tar gjennomsnittet av `pve_cpu_usage_ratio` per `id`, så hver node kontro
 :::
 
 :::details Node Offline fortsetter å utløses for en node du har fjernet fra klyngen
-Med det innebygde pushet i Proxmox VE ser en node som er tatt ut av klyngen, lik ut som en som har gått ned: den sluttet å rapportere, så nodene som fortsatt lever, fortsetter å melde den nede. Åpne nodens side og klikk på **Fjern node** – noden forsvinner, og varselet løses. Ellers forblir den frakoblet i opptil 7 dager. Agenten har ikke dette problemet: den spør klyngen, som ikke lenger viser noden.
+Med det innebygde pushet i Proxmox VE ser en node som er tatt ut av klyngen, lik ut som en som har gått ned: den sluttet å rapportere, så nodene som fortsatt lever, fortsetter å melde den nede. Åpne nodens side og klikk på **Fjern node** – noden forsvinner, og varselet løses. Ellers forblir den offline i opptil 7 dager. Agenten har ikke dette problemet: den spør klyngen, som ikke lenger viser noden.
 :::
 
 :::details Sikkerhetskopi- eller replikeringsmålinger mangler
@@ -289,14 +289,14 @@ Med det innebygde pushet i Proxmox VE ser en node som er tatt ut av klyngen, lik
 :::
 
 :::details Tellere som pve_network_receive_bytes bare vokser
-Serier for nettverks- og disk-I/O er tellere over hele levetiden, og kriterier sammenligner rå verdier: det finnes ingen rateoperator, og **Convert to per-second rate** i spørringsbyggeren endrer bare diagrammet. Vis dem som en rate i et diagram, eller varsle på veksten med en formel, for eksempel en **Maksimum**-spørring minus en **Minimum**-spørring på samme teller.
+Serier for nettverks- og disk-I/O er tellere over hele levetiden, og kriterier sammenligner rå verdier: det finnes ingen rateoperator, og **Gjør om til rate per sekund** i spørringsbyggeren endrer bare diagrammet. Vis dem som en rate i et diagram, eller varsle på veksten med en formel, for eksempel en **Maksimum**-spørring minus en **Minimum**-spørring på samme teller.
 :::
 
 ## Neste trinn
 
 :::cards
 - [Proxmox-agent](/docs/telemetry/proxmox): Installer agenten, eller sett opp det innebygde pushet.
-- [Ceph-overvåking](/docs/monitor/ceph-monitor): Overvåk Ceph-lagringen bak en Proxmox-klynge.
-- [VMware-overvåking](/docs/monitor/vmware-monitor): Samme type monitor for vSphere.
+- [Ceph-monitor](/docs/monitor/ceph-monitor): Overvåk Ceph-lagringen bak en Proxmox-klynge.
+- [VMware-monitor](/docs/monitor/vmware-monitor): Samme type monitor for vSphere.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

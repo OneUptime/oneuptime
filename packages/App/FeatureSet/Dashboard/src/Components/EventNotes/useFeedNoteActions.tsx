@@ -126,7 +126,7 @@ export default function useFeedNoteActions(
         isDisabled={gate.isDisabled}
         tooltip={gate.tooltip}
         // The gate's reason, in the reader's words already.
-        isTooltipUserContent={true}
+        isTooltipTranslated={true}
         onClick={() => {
           setOpenDialog({
             visibility: entry.visibility,

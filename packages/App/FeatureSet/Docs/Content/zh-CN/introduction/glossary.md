@@ -208,7 +208,7 @@ OneUptime 在项目中可以联系到你的地址：邮箱地址、用于短信�
 
 参见 [RUM 概览](/docs/rum/index)。
 
-### 清单
+### 资产清单
 
 一个列表，汇集了 OneUptime 对你的环境所知道的一切：服务、主机、Kubernetes 对象、虚拟机、网络设备、云资源，以及根本不发送遥测的东西。其中大部分会自动填充。
 
@@ -224,7 +224,7 @@ OneUptime 在项目中可以联系到你的地址：邮箱地址、用于短信�
 
 为你所监控的对象设定的可靠性目标，例如在 30 天内 99.9% 的时间可用。OneUptime 每 5 分钟根据其监视器测量一次每个 SLO。
 
-也称为：**Service Level Objective**。参见 [SLO 概览](/docs/slo/introduction)。
+也称为：**服务级别目标**。参见 [SLO 概览](/docs/slo/introduction)。
 
 ### 错误预算
 
@@ -260,7 +260,7 @@ SLO 的目标所允许的停机时间：目标为 30 天内 99.9% 时，就是 4
 
 ### 异常
 
-你的代码抛出的错误。OneUptime 把同一错误的每次出现归为一个异常，并附上它的堆栈跟踪、趋势以及发生它的请求。
+你的代码抛出的错误。OneUptime 把同一错误的每次出现归为一个异常，并附上它的堆栈追踪、趋势以及发生它的请求。
 
 也称为：**异常跟踪**、`/telemetry-exception`。参见 [异常](/docs/telemetry/exceptions)。
 
@@ -300,7 +300,7 @@ OneUptime 的 SIEM：来自你的日志、安全工具以及你发送的其他�
 
 一个请求逐步穿过你的服务的路径。每一步都是一个 span，带有它的耗时和结果。
 
-参见 [跟踪浏览器](/docs/telemetry/traces-explorer)。
+参见 [追踪浏览器](/docs/telemetry/traces-explorer)。
 
 ### 性能剖析
 
@@ -392,7 +392,7 @@ OneUptime 的 AI 站点可靠性工程师：它在你的遥测中调查每个新
 
 ### 基础设施代理
 
-Server / VM 监视器背后的 `oneuptime-infrastructure-agent` 服务：它每 30 秒报告一次一台机器的 CPU、内存、磁盘和进程，并用该监视器的密钥签名。
+服务器 / 虚拟机 监视器背后的 `oneuptime-infrastructure-agent` 服务：它每 30 秒报告一次一台机器的 CPU、内存、磁盘和进程，并用该监视器的密钥签名。
 
 参见 [服务器 / 虚拟机监控](/docs/monitor/server-monitor)。
 

@@ -446,14 +446,14 @@ describe("EventMeasurementsCard", () => {
       {
         name: "Time to acknowledge",
         summary: "Declared → Acknowledged",
-        value: "3 minutes",
+        value: "3\u00A0minutes",
         reason: null,
         state: "recorded",
       },
       {
         name: "Time to resolve",
         summary: "Declared → Resolved",
-        value: "Running for 19 minutes",
+        value: "Running for 19\u00A0minutes",
         reason: null,
         state: "running",
       },
@@ -555,13 +555,13 @@ describe("EventMeasurementsCard", () => {
   test("a running clock moves on its own, every 30 seconds", async () => {
     await renderCard();
 
-    expect(valueOf("Time to resolve")).toBe("Running for 19 minutes");
+    expect(valueOf("Time to resolve")).toBe("Running for 19\u00A0minutes");
 
     act(() => {
       jest.advanceTimersByTime(60 * 1000);
     });
 
-    expect(valueOf("Time to resolve")).toBe("Running for 20 minutes");
+    expect(valueOf("Time to resolve")).toBe("Running for 20\u00A0minutes");
     // Moving the clock reads nothing again.
     expect(listRequests()).toHaveLength(2);
   });
@@ -601,7 +601,7 @@ describe("EventMeasurementsCard", () => {
       jest.advanceTimersByTime(2 * MINUTE_IN_MS);
     });
 
-    expect(rows()[0]!.value).toBe("Running for 1 minute");
+    expect(rows()[0]!.value).toBe("Running for 1\u00A0minute");
   });
 
   test("told the event is over, a state it waited for is not reached, with nothing read again", async () => {
@@ -647,7 +647,7 @@ describe("EventMeasurementsCard", () => {
       IncidentMeasurementValue,
       IncidentMeasurementValue,
     ]);
-    expect(valueOf("Time to resolve")).toBe("19 minutes");
+    expect(valueOf("Time to resolve")).toBe("19\u00A0minutes");
 
     await act(async () => {
       jest.advanceTimersByTime(2 * MINUTE_IN_MS);
@@ -666,7 +666,7 @@ describe("EventMeasurementsCard", () => {
 
     expect(listRequests()).toHaveLength(3);
     // The old value describes the incident as it was: a clock still running.
-    expect(valueOf("Time to resolve")).toBe("Running for 19 minutes");
+    expect(valueOf("Time to resolve")).toBe("Running for 19\u00A0minutes");
 
     // It has, by the next read.
     api.values = resolvedValues();
@@ -677,7 +677,7 @@ describe("EventMeasurementsCard", () => {
     await flush();
 
     expect(listRequests()).toHaveLength(4);
-    expect(valueOf("Time to resolve")).toBe("19 minutes");
+    expect(valueOf("Time to resolve")).toBe("19\u00A0minutes");
 
     // Caught up: nothing more to read.
     await act(async () => {
@@ -696,7 +696,7 @@ describe("EventMeasurementsCard", () => {
 
     // The server never gets to it: reads 3, 6, 12 and 24 seconds apart.
     for (const delay of EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS) {
-      expect(valueOf("Time to resolve")).toBe("Running for 19 minutes");
+      expect(valueOf("Time to resolve")).toBe("Running for 19\u00A0minutes");
 
       await act(async () => {
         jest.advanceTimersByTime(delay);
@@ -800,7 +800,7 @@ describe("EventMeasurementsCard", () => {
     await flush();
 
     expect(rows()).toHaveLength(5);
-    expect(valueOf("Time to acknowledge")).toBe("3 minutes");
+    expect(valueOf("Time to acknowledge")).toBe("3\u00A0minutes");
 
     // Back again by the next try.
     serve();
@@ -811,7 +811,7 @@ describe("EventMeasurementsCard", () => {
     });
     await flush();
 
-    expect(valueOf("Time to resolve")).toBe("19 minutes");
+    expect(valueOf("Time to resolve")).toBe("19\u00A0minutes");
   });
 
   test("a reader who may not read the measurements gets no card, and nothing is asked", async () => {
@@ -945,7 +945,7 @@ describe("EventMeasurementsCard", () => {
         ),
       ).toBeInTheDocument();
       // Pinned to minutes: 90 seconds is 1.5 minutes.
-      expect(valueOf("Our measurement")).toBe("1.5 minutes");
+      expect(valueOf("Our measurement")).toBe("1.5\u00A0minutes");
     },
   );
 
@@ -983,9 +983,9 @@ describe("EventMeasurementsCard", () => {
     expect(rows().slice(0, 4)).toEqual([
       expect.objectContaining({
         name: "Time to acknowledge",
-        value: "3 Minuten",
+        value: "3\u00A0Minuten",
       }),
-      expect.objectContaining({ value: "Läuft bereits 19 Minuten" }),
+      expect.objectContaining({ value: "Läuft bereits 19\u00A0Minuten" }),
       expect.objectContaining({ value: "Noch nicht gestartet" }),
       expect.objectContaining({
         value: "Nicht gemessen",

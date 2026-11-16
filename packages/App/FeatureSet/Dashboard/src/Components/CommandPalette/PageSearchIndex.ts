@@ -1151,7 +1151,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "x-oneuptime-secret",
               "incoming request security",
             ],
-            settings: ["Require a Secret", "Require a secret on every request"],
+            settings: [
+              "Require a Secret",
+              "Require a secret on every request",
+              "Requests Without a Secret",
+            ],
           },
           {
             page: PageMap.MONITORS_SETTINGS_TEMPLATES,
@@ -1967,7 +1971,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.LOGS_INSIGHTS,
-            title: "Insights",
+            title: "Insights (explorer analytics)",
             icon: IconProp.ChartBar,
             keywords: ["log patterns", "top errors"],
           },
@@ -2057,7 +2061,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.METRICS_INSIGHTS,
-            title: "Insights",
+            title: "Insights (explorer analytics)",
             icon: IconProp.ChartBar,
           },
           setupGuide(PageMap.METRICS_DOCUMENTATION),
@@ -2121,7 +2125,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.TRACES_INSIGHTS,
-            title: "Insights",
+            title: "Insights (explorer analytics)",
             icon: IconProp.ChartBar,
           },
           setupGuide(PageMap.TRACES_DOCUMENTATION),
@@ -2262,7 +2266,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.EXCEPTIONS_OVERVIEW,
-            title: "Insights",
+            title: "Insights (explorer analytics)",
             icon: IconProp.ChartBar,
             keywords: ["error trends", "top errors"],
           },

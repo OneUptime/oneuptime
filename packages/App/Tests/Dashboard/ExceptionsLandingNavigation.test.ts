@@ -2,6 +2,14 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { getActiveExceptionsTab } from "../../FeatureSet/Dashboard/src/Utils/ExceptionsNavigation";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
+
+/*
+ * The Insights tab's own key (#8629), so a language words it apart from
+ * OneUptime AI's findings, the bare "Insights". English reads it as
+ * "Insights".
+ */
+const INSIGHTS_TAB: string = "Insights (explorer analytics)";
 
 const DASHBOARD_SRC: string = path.join(
   __dirname,
@@ -96,10 +104,11 @@ describe("Exceptions landing navigation", () => {
 
     expect(getTabDefinitions(tabs)).toEqual([
       { key: "exceptions", label: "Exceptions" },
-      { key: "overview", label: "Insights" },
+      { key: "overview", label: INSIGHTS_TAB },
       { key: "ai", label: "AI" },
       { key: "setup", label: "Setup Guide" },
     ]);
+    expect(withMeaningKeyAsItsWord(INSIGHTS_TAB)).toBe("Insights");
 
     const exceptionsTab: string = sectionBetween(
       tabs,
@@ -231,7 +240,7 @@ describe("Exceptions landing navigation", () => {
       "BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_UNRESOLVED",
     );
 
-    expect(insightsBreadcrumb).toContain('"Insights"');
+    expect(insightsBreadcrumb).toContain(`"${INSIGHTS_TAB}"`);
     expect(insightsBreadcrumb).not.toContain('"Overview"');
   });
 });

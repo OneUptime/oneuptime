@@ -19,6 +19,7 @@ import {
   OpenStackConnectionTestJob,
   OpenStackConnectionTestReport,
 } from "../../../../Types/OpenStack/OpenStackProbeCollection";
+import { normalizeSql } from "../../TestingUtils/PastDueMonitoringClaimSql";
 
 /*
  * "Test connection": checked like the connection it is about to become, handed once to the
@@ -431,10 +432,17 @@ interface FakeTestService {
   order: Array<string>;
   updates: Array<{ id: string; data: Record<string, unknown> }>;
   findOneByCalls: Array<Record<string, unknown>>;
+  transactionsOpened: Array<unknown>;
 }
 
+/*
+ * The claim is one self-committing statement on the service's connection
+ * (OneUptime issue #7392). The fake still carries an executeTransaction, as
+ * the real service does, which records and refuses: a claim that opens a
+ * transaction again fails here.
+ */
 function fakeService(data: {
-  selectedRows?: Array<{ _id: string }>;
+  claimedRows?: unknown;
   tests?: Array<OpenStackConnectionTestRecord>;
   test?: OpenStackConnectionTestRecord | null;
 }): FakeTestService {
@@ -442,56 +450,68 @@ function fakeService(data: {
   const updates: Array<{ id: string; data: Record<string, unknown> }> = [];
   const findOneByCalls: Array<Record<string, unknown>> = [];
   const order: Array<string> = [];
+  const transactionsOpened: Array<unknown> = [];
 
-  return {
-    queries: queries,
-    order: order,
-    updates: updates,
-    findOneByCalls: findOneByCalls,
-    service: {
-      executeTransaction: async <T>(
-        run: (manager: {
-          query: (sql: string, parameters: Array<unknown>) => Promise<unknown>;
-        }) => Promise<T>,
-      ): Promise<T> => {
-        return await run({
+  const service: OpenStackConnectionTestService & {
+    executeTransaction: (run: unknown) => Promise<never>;
+  } = {
+    executeTransaction: async (run: unknown): Promise<never> => {
+      transactionsOpened.push(run);
+      throw new Error(
+        "A claim must not open a transaction: its row locks would outlive its statement.",
+      );
+    },
+    getRepository: (): {
+      manager: {
+        query: (sql: string, parameters: Array<unknown>) => Promise<unknown>;
+      };
+    } => {
+      return {
+        manager: {
           query: async (
             sql: string,
             parameters: Array<unknown>,
           ): Promise<unknown> => {
             queries.push({ sql: sql, parameters: parameters });
 
-            return sql.trim().startsWith("SELECT")
-              ? data.selectedRows || []
-              : [];
+            return data.claimedRows === undefined ? [] : data.claimedRows;
           },
-        });
-      },
-      countBy: async (): Promise<{ toNumber: () => number }> => {
-        return {
-          toNumber: (): number => {
-            return 0;
-          },
-        };
-      },
-      findBy: async (): Promise<Array<OpenStackConnectionTestRecord>> => {
-        order.push("read");
-        return data.tests || [];
-      },
-      findOneBy: async (
-        options: Record<string, unknown>,
-      ): Promise<OpenStackConnectionTestRecord | null> => {
-        findOneByCalls.push(options);
-        return data.test === undefined ? null : data.test;
-      },
-      updateColumnsByIdWithoutHooks: async (input: {
-        id: ObjectID;
-        data: Record<string, unknown>;
-      }): Promise<void> => {
-        order.push("wipe");
-        updates.push({ id: input.id.toString(), data: input.data });
-      },
+        },
+      };
     },
+    countBy: async (): Promise<{ toNumber: () => number }> => {
+      return {
+        toNumber: (): number => {
+          return 0;
+        },
+      };
+    },
+    findBy: async (): Promise<Array<OpenStackConnectionTestRecord>> => {
+      order.push("read");
+      return data.tests || [];
+    },
+    findOneBy: async (
+      options: Record<string, unknown>,
+    ): Promise<OpenStackConnectionTestRecord | null> => {
+      findOneByCalls.push(options);
+      return data.test === undefined ? null : data.test;
+    },
+    updateColumnsByIdWithoutHooks: async (input: {
+      id: ObjectID;
+      data: Record<string, unknown>;
+    }): Promise<void> => {
+      order.push("wipe");
+      updates.push({ id: input.id.toString(), data: input.data });
+    },
+  };
+
+  return {
+    queries: queries,
+    order: order,
+    updates: updates,
+    findOneByCalls: findOneByCalls,
+    transactionsOpened: transactionsOpened,
+    service: service,
   };
 }
 
@@ -536,25 +556,41 @@ describe("handing tests to a probe", () => {
 
     await claim(fake);
 
-    const [select] = fake.queries;
+    expect(fake.queries).toHaveLength(1);
 
-    expect(select?.sql).toContain('t."probeId" = $1');
-    expect(select?.sql).toContain('t."status" = $2');
-    expect(select?.sql).toContain('t."createdAt" >= $3');
-    expect(select?.sql).toContain("FOR UPDATE OF t SKIP LOCKED");
-    expect(select?.sql).toContain(
+    const [statement] = fake.queries;
+    const sql: string = normalizeSql(statement!.sql);
+    const pending: string = sql.slice(
+      sql.indexOf('WITH "pending" AS ('),
+      sql.indexOf('"claimed" AS ('),
+    );
+
+    expect(pending).toContain(
+      'FROM "OpenStackCloudConnectionTest" t INNER JOIN "Probe" pr ON t."probeId" = pr."_id"',
+    );
+    expect(pending).toContain('t."probeId" = $1');
+    expect(pending).toContain('t."status" = $2');
+    expect(pending).toContain('t."deletedAt" IS NULL');
+    expect(pending).toContain('t."createdAt" >= $3');
+    expect(pending).toContain('ORDER BY t."createdAt" ASC LIMIT $4');
+    // The tests only: the Probe rows the tenancy rule reads stay unlocked.
+    expect(pending).toContain("FOR NO KEY UPDATE OF t SKIP LOCKED");
+    expect(sql).not.toContain("FOR UPDATE");
+    expect(pending).toContain(
       '(pr."isGlobalProbe" = false AND pr."projectId" = t."projectId")',
     );
-    expect(select?.sql).toContain(
+    expect(pending).toContain(
       '(pr."isGlobalProbe" = true AND $5::boolean = false)',
     );
 
-    expect(select?.parameters[0]).toBe(PROBE_ID.toString());
-    expect(select?.parameters[1]).toBe(OpenStackConnectionTestStatus.Pending);
-    expect(select?.parameters[3]).toBe(5);
-    expect(select?.parameters[4]).toBe(IsBillingEnabled);
+    expect(statement?.parameters[0]).toBe(PROBE_ID.toString());
+    expect(statement?.parameters[1]).toBe(
+      OpenStackConnectionTestStatus.Pending,
+    );
+    expect(statement?.parameters[3]).toBe(5);
+    expect(statement?.parameters[4]).toBe(IsBillingEnabled);
 
-    const oldest: number = (select?.parameters[2] as Date).getTime();
+    const oldest: number = (statement?.parameters[2] as Date).getTime();
 
     expect(oldest).toBeGreaterThanOrEqual(
       before -
@@ -566,33 +602,69 @@ describe("handing tests to a probe", () => {
     );
   });
 
+  test("never in a transaction: one statement on the service's own connection", async () => {
+    const fake: FakeTestService = fakeService({
+      claimedRows: [{ _id: TEST_ID }],
+      tests: [testRow()],
+    });
+
+    await claim(fake);
+
+    expect(fake.transactionsOpened).toEqual([]);
+    expect(fake.queries).toHaveLength(1);
+  });
+
   test("nothing pending touches nothing", async () => {
-    const fake: FakeTestService = fakeService({ selectedRows: [] });
+    const fake: FakeTestService = fakeService({ claimedRows: [] });
 
     await expect(claim(fake)).resolves.toEqual([]);
     expect(fake.queries).toHaveLength(1);
     expect(fake.order).toEqual([]);
   });
 
-  test("once each: running from the moment it is claimed", async () => {
+  test("an answer that is not a list of rows hands out nothing, and touches nothing", async () => {
+    const fake: FakeTestService = fakeService({ claimedRows: "unexpected" });
+
+    await expect(claim(fake)).resolves.toEqual([]);
+    expect(fake.order).toEqual([]);
+  });
+
+  test("once each: running from the moment it is claimed, by the statement that locks it", async () => {
     const fake: FakeTestService = fakeService({
-      selectedRows: [{ _id: TEST_ID }],
+      claimedRows: [{ _id: TEST_ID }],
       tests: [testRow()],
     });
 
+    const before: number = Date.now();
     await claim(fake);
+    const after: number = Date.now();
 
-    expect(fake.queries[1]?.sql).toContain('"status" = $1');
-    expect(fake.queries[1]?.sql).toContain('"claimedAt" = $2::timestamptz');
-    expect(fake.queries[1]?.parameters[0]).toBe(
+    const sql: string = normalizeSql(fake.queries[0]!.sql);
+
+    expect(sql.slice(sql.indexOf('"claimed" AS ('))).toContain(
+      'UPDATE "OpenStackCloudConnectionTest" AS t SET "status" = $6, "claimedAt" = $7::timestamptz FROM "pending" WHERE t."_id" = "pending"."_id"',
+    );
+    expect(fake.queries[0]?.parameters[5]).toBe(
       OpenStackConnectionTestStatus.Running,
     );
-    expect(fake.queries[1]?.parameters[2]).toEqual([TEST_ID]);
+
+    const claimedAt: number = (
+      fake.queries[0]?.parameters[6] as Date
+    ).getTime();
+
+    expect(claimedAt).toBeGreaterThanOrEqual(before);
+    expect(claimedAt).toBeLessThanOrEqual(after);
+    expect(fake.queries[0]?.parameters).toHaveLength(7);
+
+    // The rows it wrote, in the order it locked them: oldest first.
+    expect(sql).toMatch(
+      /SELECT "pending"\."_id" FROM "pending" INNER JOIN "claimed" ON "claimed"\."_id" = "pending"\."_id" ORDER BY "pending"\."createdAt" ASC$/,
+    );
   });
 
   test("the job holds the secret, and the row no longer does", async () => {
     const fake: FakeTestService = fakeService({
-      selectedRows: [{ _id: TEST_ID }],
+      claimedRows: [{ _id: TEST_ID }],
       tests: [testRow()],
     });
 
@@ -620,7 +692,7 @@ describe("handing tests to a probe", () => {
 
   test("the oldest first, however they read back", async () => {
     const fake: FakeTestService = fakeService({
-      selectedRows: [{ _id: TEST_ID }, { _id: SECOND_TEST_ID }],
+      claimedRows: [{ _id: TEST_ID }, { _id: SECOND_TEST_ID }],
       tests: [testRow({ _id: SECOND_TEST_ID }), testRow({ _id: TEST_ID })],
     });
 
@@ -635,7 +707,7 @@ describe("handing tests to a probe", () => {
 
   test("a row it cannot make a job of is wiped all the same, and not handed out", async () => {
     const fake: FakeTestService = fakeService({
-      selectedRows: [{ _id: TEST_ID }],
+      claimedRows: [{ _id: TEST_ID }],
       tests: [testRow({ authUrl: undefined })],
     });
 
@@ -645,7 +717,7 @@ describe("handing tests to a probe", () => {
 
   test("what a row is missing has a safe answer", async () => {
     const fake: FakeTestService = fakeService({
-      selectedRows: [{ _id: TEST_ID }],
+      claimedRows: [{ _id: TEST_ID }],
       tests: [
         testRow({
           collectionRegions: undefined,

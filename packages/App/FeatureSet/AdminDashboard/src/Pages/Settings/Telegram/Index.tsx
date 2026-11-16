@@ -9,6 +9,8 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
@@ -22,6 +24,7 @@ import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import { useTranslation } from "react-i18next";
 import { buildTelegramSetupMarkdown } from "./TelegramSetupGuide";
+import { getReadingDirection } from "Common/Types/ReadingDirection";
 
 // Telegram bot tokens look like "8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321".
 const TELEGRAM_BOT_TOKEN_PATTERN: RegExp = /^\d{6,}:[A-Za-z0-9_-]{30,}$/;
@@ -33,10 +36,12 @@ const validateBotToken: (values: FormValues<GlobalConfig>) => string | null = (
 ): string | null => {
   const value: string = String(values.telegramBotToken || "").trim();
   if (!value) {
-    return "Bot token is required.";
+    return translateText("Bot token is required.") as string;
   }
   if (!TELEGRAM_BOT_TOKEN_PATTERN.test(value)) {
-    return "That doesn't look like a Telegram bot token. It should be the value @BotFather gave you — digits, a colon, then ~35 letters/digits (e.g. 123456789:ABCdef...). Don't paste the curl command here.";
+    return translateText(
+      "That doesn't look like a Telegram bot token. It should be the value @BotFather gave you — digits, a colon, then ~35 letters/digits (e.g. 123456789:ABCdef...). Don't paste the curl command here.",
+    ) as string;
   }
   return null;
 };
@@ -46,11 +51,13 @@ const validateBotUsername: (
 ) => string | null = (values: FormValues<GlobalConfig>): string | null => {
   const raw: string = String(values.telegramBotUsername || "").trim();
   if (!raw) {
-    return "Bot username is required.";
+    return translateText("Bot username is required.") as string;
   }
   const value: string = raw.replace(/^@/, "");
   if (!TELEGRAM_BOT_USERNAME_PATTERN.test(value)) {
-    return "Enter the bot's Telegram username without the leading @. It must be 5-32 characters, start with a letter, and contain only letters, digits, and underscores.";
+    return translateText(
+      "Enter the bot's Telegram username without the leading @. It must be 5-32 characters, start with a letter, and contain only letters, digits, and underscores.",
+    ) as string;
   }
   return null;
 };
@@ -59,12 +66,16 @@ const validateBotUsername: (
  * The guide below the form (TelegramSetupGuide), with the webhook address
  * this installation answers on.
  */
-const telegramSetupMarkdown: string = buildTelegramSetupMarkdown(
-  `${APP_API_URL.toString().replace(/\/$/, "")}/notification/telegram/webhook`,
-);
+const TELEGRAM_WEBHOOK_URL: string = `${APP_API_URL.toString().replace(/\/$/, "")}/notification/telegram/webhook`;
 
 const SettingsTelegram: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
+  // The guide in the reader's language (#8677).
+  const telegramSetupMarkdown: string = buildTelegramSetupMarkdown(
+    TELEGRAM_WEBHOOK_URL,
+    translator,
+  );
   const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
   const [testSuccess, setTestSuccess] = useState<string>("");
@@ -100,7 +111,10 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
         title={t("pages.settings.telegram.setupCardTitle")}
         description={t("pages.settings.telegram.setupCardDescription")}
       >
-        <MarkdownViewer text={telegramSetupMarkdown} />
+        <MarkdownViewer
+          text={telegramSetupMarkdown}
+          readingDirection={getReadingDirection(translator.language)}
+        />
       </Card>
 
       <CardModelDetail

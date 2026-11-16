@@ -240,6 +240,8 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
                 _id: true,
               },
               latencyThresholdInMilliseconds: true,
+              // A Metric SLO's metric, for its setup notice (#8445).
+              metricQueryConfig: true,
             },
           });
 
@@ -274,6 +276,7 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
     monitorCount: ((slo.monitors as Array<Monitor> | undefined) || []).length,
     serviceCount: ((slo.services as Array<Service> | undefined) || []).length,
     latencyThresholdInMilliseconds: slo.latencyThresholdInMilliseconds,
+    metricQueryConfig: slo.metricQueryConfig,
     targetPercentage: slo.targetPercentage,
     lastEvaluatedAt: slo.lastEvaluatedAt,
   });

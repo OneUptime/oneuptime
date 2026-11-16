@@ -202,7 +202,7 @@ const StackOverview: FunctionComponent<{
       : {
           key: "project",
           label: "Project",
-          value: "—",
+          value: undefined,
           description: NO_PROJECT_DESCRIPTION,
         },
   );
@@ -270,7 +270,7 @@ const StackOverview: FunctionComponent<{
           title="In state for"
           icon={IconProp.Clock}
           iconColor="slate"
-          value={getOpenStackTimeInState(row, now) || "—"}
+          value={getOpenStackTimeInState(row, now)}
           description="How long since OneUptime saw this stack's status change. One already in this state when OneUptime first saw it counts from then."
         />
       </div>

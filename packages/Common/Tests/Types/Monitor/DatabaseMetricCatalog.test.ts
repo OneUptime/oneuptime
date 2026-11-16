@@ -13,11 +13,14 @@ import {
   getDatabaseMetricsForEngine,
   isDatabaseMetricType,
 } from "../../../Types/Monitor/DatabaseMetricCatalog";
+import { DatabaseMetricGroup as GroupsOfTheirOwn } from "../../../Types/Monitor/DatabaseMetricGroup";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import SqlDatabaseType, {
   SqlDatabaseTypeUtil,
 } from "../../../Types/Monitor/SqlDatabaseType";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The catalog is the only place a Database Health metric is declared: title,
@@ -265,6 +268,30 @@ describe("collection groups", () => {
     );
 
     expect(grouped).toBe(allMetrics.length);
+  });
+
+  /*
+   * A Database Health step, which every page loads, names its groups from
+   * DatabaseMetricGroup: read from this catalog, they brought every metric
+   * in it into every page's first load (first-load-budgets.js,
+   * SignInFirstLoadBuild.test.ts).
+   */
+  test("are DatabaseMetricGroup's own, a module that imports nothing", () => {
+    expect(DatabaseMetricGroup).toBe(GroupsOfTheirOwn);
+
+    const source: string = fs.readFileSync(
+      path.resolve(__dirname, "../../../Types/Monitor/DatabaseMetricGroup.ts"),
+      "utf8",
+    );
+
+    // `from "x"`, a bare `import "x"`, `import("x")` and `require("x")`.
+    expect(
+      Array.from(
+        source.matchAll(
+          /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)"([^"]+)"/g,
+        ),
+      ),
+    ).toEqual([]);
   });
 });
 

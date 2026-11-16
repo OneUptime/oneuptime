@@ -2697,7 +2697,7 @@ describePostgres(
      * The dashboard's path: a signed-in project admin, through the permission
      * layer, with the request's project as the tenant.
      */
-    describe("as a signed-in project admin", () => {
+    describe("as a signed-in Project Admin", () => {
       let licenceCheck: jest.SpyInstance;
 
       beforeAll(() => {
@@ -2773,7 +2773,7 @@ describePostgres(
        * number nobody collides with is never rewritten, so an API or
        * Terraform caller reads back exactly what it wrote.
        */
-      test("a signed-in delete by a project admin pauses the rule too, and leaves the severities that remain where they are", async () => {
+      test("a signed-in delete by a Project Admin pauses the rule too, and leaves the severities that remain where they are", async () => {
         const admin: DatabaseCommonInteractionProps = memberProps(projectId, [
           Permission.ProjectAdmin,
         ]);
@@ -3043,7 +3043,7 @@ describePostgres(
         );
       });
 
-      test("a project admin cannot switch a rule a delete emptied back on, but can re-scope it", async () => {
+      test("a Project Admin cannot switch a rule a delete emptied back on, but can re-scope it", async () => {
         const admin: DatabaseCommonInteractionProps = memberProps(projectId, [
           Permission.ProjectAdmin,
         ]);

@@ -16,9 +16,9 @@ Invia gli incidenti di OneUptime a [Opsgenie](https://www.atlassian.com/software
 
 ```mermaid title="Due flussi di lavoro, un alert Opsgenie"
 flowchart TB
-    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>Alla creazione:<br/>Incidente"]
     create -->|"POST /v2/alerts"| og["Alert Opsgenie"]
-    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>On Update Incident"]
+    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>All'aggiornamento:<br/>Incidente"]
     update -->|"chiudi per alias"| og
 ```
 
@@ -49,11 +49,11 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
 
 ### Creare l'alert
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://api.opsgenie.com/v2/alerts`, o `https://api.eu.opsgenie.com/v2/alerts` in Europa. In **Altri campi**, imposta i suoi **Intestazioni della richiesta** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **Chiamata API POST (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://api.opsgenie.com/v2/alerts`, o `https://api.eu.opsgenie.com/v2/alerts` in Europa. In **Altri campi**, imposta i suoi **Intestazioni della richiesta** su:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ E il suo **Corpo della Richiesta** su:
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `202`, e l'alert compare in Opsgenie un attimo dopo. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **Chiamata API POST (JSON)** mostra una risposta `202`, e l'alert compare in Opsgenie un attimo dopo. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 Lo schema di Opsgenie è la parola `GenieKey`, uno spazio, poi la chiave. Opsgenie limita `message` a 130 caratteri, e le sue priorità vanno da `P1` a `P5`: per inviare quella di ogni incidente, vedi [Mappare le priorità](#mappare-le-priorità).
@@ -83,9 +83,9 @@ Lo schema di Opsgenie è la parola `GenieKey`, uno spazio, poi la chiave. Opsgen
 Un flusso di lavoro ha un solo trigger, quindi per chiudere serve un secondo flusso di lavoro, avviato quando cambia lo stato di un incidente.
 
 :::steps
-### Aggiungere il trigger On Update Incident
+### Aggiungere il trigger «All'aggiornamento: Incidente»
 
-Crea un flusso di lavoro chiamato `Close Opsgenie alerts` e scegli **On Update Incident** come trigger. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Fields to pass on**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
+Crea un flusso di lavoro chiamato `Close Opsgenie alerts` e scegli **All'aggiornamento: Incidente** come trigger. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Campi da passare**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Crea un flusso di lavoro chiamato `Close Opsgenie alerts` e scegli **On Update I
 
 ### Controllare che l'incidente sia risolto
 
-Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
+Aggiungi un blocco **Se / Altrimenti** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
 
 ### Chiudere l'alert
 
-Aggiungi un blocco **API Post (JSON)** dopo il lato **Sì**, con gli stessi **Intestazioni della richiesta** e questo **URL**:
+Aggiungi un blocco **Chiamata API POST (JSON)** dopo il lato **Sì**, con gli stessi **Intestazioni della richiesta** e questo **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,10 +114,10 @@ Attiva **Abilitato**, poi risolvi un incidente di prova in OneUptime. Opsgenie c
 
 ## Mappare le priorità
 
-Per inviare la gravità di ogni incidente come priorità di Opsgenie, aggiungi un blocco **Run Custom JavaScript** tra il trigger e il blocco **API Post (JSON)**.
+Per inviare la gravità di ogni incidente come priorità di Opsgenie, aggiungi un blocco **Esegui JavaScript personalizzato** tra il trigger e il blocco **Chiamata API POST (JSON)**.
 
-1. Nei **Fields to pass on** del trigger, fai clic su **Aggiungi campo**, apri **Gravità incidente** e scegli **Nome**.
-2. Imposta gli **Arguments** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **Codice JavaScript** su:
+1. Nei **Campi da passare** del trigger, fai clic su **Aggiungi campo**, apri **Gravità incidente** e scegli **Nome**.
+2. Imposta gli **Argomenti** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **Codice JavaScript** su:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie risponde `202` prima di elaborare la richiesta, quindi una richiesta ch
 :::
 
 :::details Il flusso di lavoro non viene mai eseguito
-Verifica che sia attivo: **Abilitato**, in cima al suo **Costruttore**. Poi apri **Registri → Esecuzioni**: un'esecuzione che ha preso il lato **No** del blocco **If / Else** è un aggiornamento che non era una risoluzione.
+Verifica che sia attivo: **Abilitato**, in cima al suo **Costruttore**. Poi apri **Log → Esecuzioni**: un'esecuzione che ha preso il lato **No** del blocco **Se / Altrimenti** è un aggiornamento che non era una risoluzione.
 :::
 
 ## Prossimi passi

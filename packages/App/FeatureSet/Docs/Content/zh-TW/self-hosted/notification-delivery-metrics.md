@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中設定它們，然後執行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 預設為 `true`，此時不會傳送任何內容。
 :::
 
-OneUptime 需要同時設定端點和標頭：沒有標頭時它什麼都不傳送。每個標頭寫成 `name=value`，多個標頭之間以 `;` 分隔。值中可以包含 `=`。OneUptime 會自行在端點後加上 `/v1/metrics`，同樣的設定也會傳送它自己的追蹤和日誌。每個指標會在 OneUptime 第一次記錄它時出現：`notification.send.count` 會在傳送第一則訊息時出現。
+OneUptime 需要同時設定端點和標頭：沒有標頭時它什麼都不傳送。每個標頭寫成 `name=value`，多個標頭之間以 `;` 分隔，也可以像 `OTEL_EXPORTER_OTLP_HEADERS` 那樣以 `,` 分隔。值中可以包含 `=`。沒有 `;` 時，值會依該標準的寫法讀取，空格寫作 `%20`：若要依原樣傳送值，請在設定結尾加上 `;`。OneUptime 會自行在端點後加上 `/v1/metrics`，同樣的設定也會傳送它自己的追蹤和日誌。每個指標會在 OneUptime 第一次記錄它時出現：`notification.send.count` 會在傳送第一則訊息時出現。
 
 ### 向 OneUptime 專案傳送差量
 
@@ -193,7 +193,7 @@ services:
 
 :::steps
 1. 開啟專案的[指標瀏覽器](/docs/telemetry/metrics-explorer)，按一下目標的第一個指標。它的查詢是 `a`。
-2. 在 **Aggregate by** 下選擇其彙總方式。接著開啟 **Filters & grouping**，在 **Filter by attributes** 下新增它的每個條件。
+2. 在 **彙總方式** 下選擇其彙總方式。接著開啟 **篩選與分組**，在 **依屬性篩選** 下新增它的每個條件。
 3. 若要第二個查詢，按一下 **新增指標**，並以同樣方式設定 `b`。
 4. 若要公式，按一下 **新增公式**，並在 **公式** 中寫入它。
 5. 若要在目標未達成時收到通知，按一下 **操作 → 從此檢視建立監測器**，並在值越過目標時發出警示：請參閱[指標監控](/docs/monitor/metrics-monitor)。

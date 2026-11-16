@@ -43,7 +43,7 @@ Gå till **Projektinställningar → Granskningsloggar → Inställningar**. **G
 
 ### Redigera inställningarna
 
-Klicka på **Edit Audit Log Settings**.
+Klicka på **Redigera inställningar för granskningsloggar**.
 
 ### Slå på den
 
@@ -65,10 +65,10 @@ En ändring av de här inställningarna träder i kraft inom en minut.
 | Kolumn | Vad den visar |
 | --- | --- |
 | **När** | Hur länge sedan, med datum och klockslag. |
-| **Åtgärd** | `Create`, `Update` eller `Delete`, `Download` för en paketinspelningsfil som någon har laddat ner, eller `Sign In`, `Sign Out`, `Session Timeout` eller `Session Revoked` för en session. |
+| **Åtgärd** | `Create`, `Update` eller `Delete`, `Download` för en paketinspelningsfil som någon har laddat ner, eller `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` eller `Session Revoked` för en inloggning eller en session. |
 | **Resurs** | Resursens namn, som öppnar den så länge den finns, och dess typ. |
 | **Aktör** | Vem som gjorde ändringen: en person, en API-nyckel, ett arbetsflöde eller `System` för en ändring som OneUptime själv gjorde. En persons ändring via en MCP-klient anger vilken. |
-| **Ändringar** | Hur många fält som ändrades, eller registrerades vid ett skapande eller en borttagning. För en session: hur den loggade in eller varför den slutade. Klicka för att se varje fält. |
+| **Ändringar** | Hur många fält som ändrades, eller registrerades vid ett skapande eller en borttagning. För en inloggning eller en session: hur inloggningen gick till, varför den misslyckades eller varför sessionen slutade. Klicka för att se varje fält. |
 
 Filtrera efter **Resurstyp**, **Resursnamn**, **Åtgärd**, **Användares e-post** eller **Tid**. En ändring visar bara de fält som ändrades, före och efter, och en sparning som inte ändrar något lägger inte till någon post.
 
@@ -86,7 +86,7 @@ Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: moni
 | Registreringar av körningar | Var och en är redan registreringen av en körning av ett arbetsflöde, en joureskalering, en skanning, en import eller en AI-körning. |
 | Det som agenter och telemetri rapporterar | Upptäckta resurser, mätvärden och användning ändras med varje rapport, inte för att någon har ändrat dem. |
 | Aktivitetsflöden | Ett flöde visar ändringar som granskningsloggen redan registrerar. |
-| OneUptimes arbetstillstånd | Sessioner för läsare av statussidor, köade jobb och annat tillstånd som OneUptime håller medan det arbetar. |
+| OneUptimes arbetstillstånd | Köade jobb och annat tillstånd som OneUptime håller medan det arbetar. |
 | En persons egen aviseringskonfiguration | Varje persons adresser, nummer och personliga jourregler tillhör bara dem. |
 | En persons egna preferenser | De produkter som varje person fäster i sitt eget övre fält tillhör bara dem, och bara de ser dem. |
 
@@ -114,13 +114,18 @@ Varje gång en medlem i projektet loggar in i OneUptime registrerar granskningsl
 | Åtgärd | När den registreras |
 | --- | --- |
 | `Sign In` | Någon loggar in: med lösenord eller inloggningslänk, passnyckel, Google, Microsoft, Vercel eller enkel inloggning. |
+| `Sign-In Failed` | Någon försöker logga in på ett befintligt konto och misslyckas: fel lösenord, autentiseringskod, reservkod eller säkerhetsnyckel, ett blockerat eller overifierat konto, eller en enkel inloggning som OneUptime nekade. |
 | `Sign Out` | Personen loggar ut. |
 | `Session Timeout` | OneUptime avslutar sessionen när tiden har gått ut: den inaktivitetstid eller sessionslängd som en serveradministratör har angett, eller 30 dagar utan användning. |
 | `Session Revoked` | OneUptime avslutar sessionen för att lösenordet ändrades, kontot blockerades, eller en serveradministratör återställde eller krävde tvåfaktorsautentisering. |
 
 En posts **Resurs** är sessionen, som får namn efter enheten den loggade in från, till exempel `Chrome 130 on macOS`. Dess **Aktör** är personen som sessionen tillhör, så om du filtrerar efter **Användares e-post** hittar du alla personens inloggningar och sessioner. Detaljerna anger hur personen loggade in och med vilken andra faktor, IP-adressen och platsen, och för en session som har slutat när den loggade in, när den senast användes och när tiden gick ut. Ett projekts egen SSO-leverantör namnges bara i det projektets granskningslogg.
 
-Inloggningar och sessioner registreras oavsett om projektet lagrar systemhändelser eller inte. En sessionslängd eller 30 dagar utan användning registreras inom några minuter efter att tiden har gått ut. En inaktivitetstid i webbläsaren registreras inom 35 minuter efter att tiden har gått ut, oavsett om personen kommer tillbaka. I mobilappen registreras den när appen nästa gång når OneUptime.
+En `Sign-In Failed`-post gäller försöket och får namn efter enheten det kom från. Dess **Aktör** är kontot som försöket gjordes på: den som gjorde det har inte bevisat att de är den personen. Detaljerna anger varför det misslyckades, hur personen försökte logga in, IP-adressen och platsen, aldrig vad som skrevs. Ett försök på en e-postadress som inget konto har registreras inte, och att ett försök registreras ändrar varken vad inloggningssidan svarar eller hur snabbt. För att en flod av försök inte ska kunna fylla granskningsloggen registreras de första 10 misslyckade försöken på ett konto under en timme ett och ett. Resten räknas, och kontots nästa post anger hur många försök den står för och när det första av dem gjordes.
+
+Läsarna av en privat statussida registreras också, bara i statussidans projekt: varje inloggning med lösenord, inloggningslänk eller statussidans enkla inloggning, varje utloggning, och varje session som OneUptime avslutar för att läsarens lösenord ändrades eller statussidan inte längre godtar hur den loggade in. Deras poster finns också på statussidans egen sida **Granskningsloggar**. Deras **Aktör** är läsaren, med sin e-postadress, och deras **Resurs** är läsarens session.
+
+Inloggningar och sessioner registreras oavsett om projektet lagrar systemhändelser eller inte. En sessionslängd eller 30 dagar utan användning registreras inom några minuter efter att tiden har gått ut. En inaktivitetstid i webbläsaren, eller i en version av mobilappen nyare än 1.6.0, registreras inom 35 minuter efter att tiden har gått ut, oavsett om personen kommer tillbaka. I mobilappen version 1.6.0 och äldre registreras den när appen nästa gång når OneUptime.
 
 ## Hur länge poster behålls
 

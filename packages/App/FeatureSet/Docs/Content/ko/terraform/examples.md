@@ -541,7 +541,7 @@ resource "oneuptime_escalation_rule_team" "sre" {
 }
 ```
 
-모니터의 기준은 자신이 여는 인시던트의 `on_call_policy_ids`를 통해 정책을 호출합니다. [인시던트와 알림](/docs/terraform/monitor-steps#인시던트와-알림)을 참조하세요.
+모니터의 기준은 자신이 여는 인시던트의 `on_call_policy_ids`를 통해 정책을 호출합니다. [인시던트와 경고](/docs/terraform/monitor-steps#인시던트와-경고)을 참조하세요.
 
 ## 인시던트와 유지 관리
 
@@ -565,7 +565,7 @@ resource "oneuptime_incident_state" "mitigated" {
 }
 ```
 
-`oneuptime_alert_severity`와 `oneuptime_alert_state`는 알림에 대해 같은 방식으로 작동합니다. 엔드투엔드 테스트 `03-incident-severity`와 `04-incident-state`가 이것들을 적용합니다.
+`oneuptime_alert_severity`와 `oneuptime_alert_state`는 경고에 대해 같은 방식으로 작동합니다. 엔드투엔드 테스트 `03-incident-severity`와 `04-incident-state`가 이것들을 적용합니다.
 
 ### 인시던트 선언하기
 

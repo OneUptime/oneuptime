@@ -165,7 +165,7 @@ Une alerte non envoyée indique pourquoi dans les **Journaux d'astreinte** de la
 - le solde du projet n'a pas pu la payer, et qui peut ajouter du solde ;
 - le canal est désactivé dans le projet, et qui peut l'activer.
 
-Les propriétaires du projet en sont informés une fois par e-mail, jusqu'à ce que le solde soit rechargé ou que le canal soit réactivé.
+Les Propriétaires du projet en sont informés une fois par e-mail, jusqu'à ce que le solde soit rechargé ou que le canal soit réactivé.
 
 Une alerte qui n'a pas pu atteindre le service de notification de OneUptime indique `Could not reach the Notification service to send this (ECONNREFUSED).`, avec le code de l'erreur réseau entre les parenthèses. Une alerte dont l'envoi ne s'est jamais terminé, par exemple parce qu'un serveur a redémarré pendant l'envoi, indique `Sending did not finish within 15 minutes, so this notification may not have been sent.` Si l'envoi se termine finalement, son résultat remplace ce message.
 

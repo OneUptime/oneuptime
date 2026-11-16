@@ -316,6 +316,7 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
               testConnection.name ||
               getVideoCallProviderDisplayName(testConnection.provider),
           })}
+          isTitleTranslated={true}
           description="OneUptime starts a real test meeting with this connection. If it works, the connection is ready to use."
           modalWidth={ModalWidth.Medium}
           closeButtonText="Close"

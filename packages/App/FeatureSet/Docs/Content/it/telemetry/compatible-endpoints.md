@@ -36,7 +36,7 @@ Ogni endpoint risponde nella lingua del proprio strumento: un `204` per Promethe
 - **Il tuo host**: gli esempi usano `oneuptime.com`. Se ospiti OneUptime in proprio, usa il tuo host.
 
 > [!TIP]
-> La scheda Guida alla configurazione di Registri, Metriche, Tracce ed Eccezioni elenca questi strumenti tra i suoi modi di inviare, con il tuo host e una chiave a tua scelta già compilati.
+> La scheda Guida alla configurazione di Log, Metriche, Tracce ed Eccezioni elenca questi strumenti tra i suoi modi di inviare, con il tuo host e una chiave a tua scelta già compilati.
 
 ## Endpoint
 
@@ -203,7 +203,7 @@ L'`1` alla fine del DSN è richiesto dagli SDK di Sentry e non viene letto. Il D
 
 - **Gli errori** compaiono in Eccezioni, con i loro stack trace e le eccezioni che li hanno causati, raggruppati come qualsiasi altra eccezione. Ognuno è uno span nella sua traccia, sotto lo span che era attivo.
 - **Le transazioni** e i loro span compaiono in Tracce.
-- **I log di Sentry** e i messaggi catturati con `capture_message` compaiono in Registri.
+- **I log di Sentry** e i messaggi catturati con `capture_message` compaiono in Log.
 - **Il servizio** è un tag `service`, oppure il nome della release prima della `@`: `checkout@1.4.2` è `checkout`. La release è la versione del servizio, e l'ambiente viene mantenuto.
 - **Non mantenuti:** sessioni, replay, allegati, profili e check-in. L'SDK continua a inviarli; OneUptime li accetta e li scarta.
 

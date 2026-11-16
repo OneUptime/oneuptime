@@ -341,7 +341,7 @@ configure_host() {
 
         say ""
         say "Which address will people use to open OneUptime?"
-        say "  A domain name (oneuptime.example.com) or this server's IP address. Type localhost to try OneUptime on this computer only."
+        say "  A domain name (oneuptime.example.com) or this server's IP address, an IPv6 one in brackets ([2001:db8::1]). Type localhost to try OneUptime on this computer only."
         printf 'Address [%s]: ' "$suggested"
 
         local answer=""
@@ -353,6 +353,22 @@ configure_host() {
     if ! printf '%s' "$host" | grep -Eq '^[][A-Za-z0-9.:_-]+$'; then
         fail "\"$host\" is not an address people can open. Run this again with a domain name or an IP address, such as ONEUPTIME_HOST=oneuptime.example.com."
     fi
+
+    # An IPv6 address goes in brackets, as a web address writes it, with any
+    # port after them: [2001:db8::1], [2001:db8::1]:8080. Without them no
+    # browser can open OneUptime at it, and npm start stops on it
+    # (Scripts/Install/Preflight.js says why). The brackets are not put in
+    # here: 2001:db8::1:8080 is an address of its own, and also 2001:db8::1 on
+    # port 8080, and only the person knows which they meant.
+    case "$host" in
+        \[*) ;;
+        *:*:*)
+            if printf '%s' "$host" | grep -Eq '^[0-9A-Fa-f:.]+$'; then
+                fail "\"$host\" is an IPv6 address without brackets, which no browser can open. Run this again with it in brackets, such as ONEUPTIME_HOST=[$host], and any port after them, such as [2001:db8::1]:8080."
+            fi
+            fail "\"$host\" is not an address people can open: only an IPv6 address has two colons, and it goes in brackets. Run this again with a domain name or an IP address, such as ONEUPTIME_HOST=oneuptime.example.com or ONEUPTIME_HOST=[2001:db8::1]."
+            ;;
+    esac
 
     if [ "$host" != "$(current_host)" ]; then
         set_host "$host"

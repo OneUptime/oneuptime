@@ -48,7 +48,7 @@ flowchart TB
     short -->|"Sì"| fire["Generare l'avviso,<br/>dichiarare l'incidente<br/>o entrambi"]
 ```
 
-Una regola non può scattare finché lo SLO non ha una finestra lunga completa di cronologia di monitoraggio: altrimenti il primissimo controllo fallito di un monitor, diviso per pochi minuti di cronologia, darebbe un tasso di consumo enorme. Quindi un nuovo SLO non può far scattare la sua regola **Fast burn** nella prima ora, né la sua regola **Slow burn** nelle prime sei, né la sua regola **Slow leak** nei primi tre giorni. Se in seguito uno SLO non ha più tanta cronologia, per esempio dopo che i suoi monitor sono stati sostituiti con altri nuovi, la regola risolve ciò che ha aperto invece di lasciarlo in sospeso. Una regola non scatta nemmeno mentre uno dei monitor dello SLO è in una manutenzione pianificata: vedi [Manutenzione pianificata](#manutenzione-pianificata).
+Una regola non può scattare finché lo SLO non ha una finestra lunga completa di cronologia di monitoraggio: altrimenti il primissimo controllo fallito di un monitor, diviso per pochi minuti di cronologia, darebbe un tasso di consumo enorme. Quindi un nuovo SLO non può far scattare la sua regola **Fast burn** nella prima ora, né la sua regola **Slow burn** nelle prime sei, né la sua regola **Slow leak** nei primi tre giorni. Se in seguito uno SLO non ha più tanta cronologia, per esempio dopo che i suoi monitor sono stati sostituiti con altri nuovi, la regola risolve ciò che ha aperto invece di lasciarlo in sospeso. Una regola non scatta nemmeno mentre uno dei monitor dello SLO è in una manutenzione programmata: vedi [Manutenzione programmata](#manutenzione-programmata).
 
 ## Regole predefinite
 
@@ -86,7 +86,7 @@ Gli SLO a mese di calendario ricevono i valori di 30 giorni. Le regole usano il 
 
 Gli SLO creati prima che esistesse Slow leak hanno solo Fast burn e Slow burn: aggiornare OneUptime non aggiunge mai da solo una regola che inizierebbe a generare avvisi. Finché a uno SLO manca una delle tre regole predefinite, la sua pagina **Regole di tasso di consumo** le nomina in una nota sopra la tabella. Fai clic su **Aggiungi regole consigliate** nella nota per vedere esattamente cosa aggiunge, adattato alla finestra dello SLO, e conferma. Aggiunge solo le regole mancanti, e un nuovo clic non aggiunge nulla.
 
-Una regola conta come presente quando lo SLO ha una regola con lo stesso nome, o una con la stessa finestra lunga, che sia attiva o no. Così una regola predefinita che hai rinominato o regolato non viene mai aggiunta due volte. Perché la nota smetta di proporre una regola predefinita che non vuoi, tieni la regola e disabilitala invece di eliminarla. Ti serve il permesso di creare regole del tasso di consumo degli SLO. Ogni regola aggiunta così viene pubblicata nel feed dello SLO e registrata nei suoi registri di audit, come una regola che crei tu.
+Una regola conta come presente quando lo SLO ha una regola con lo stesso nome, o una con la stessa finestra lunga, che sia attiva o no. Così una regola predefinita che hai rinominato o regolato non viene mai aggiunta due volte. Perché la nota smetta di proporre una regola predefinita che non vuoi, tieni la regola e disabilitala invece di eliminarla. Ti serve il permesso di creare regole del tasso di consumo degli SLO. Ogni regola aggiunta così viene pubblicata nel feed dello SLO e registrata nei suoi log di audit, come una regola che crei tu.
 
 ### Aggiungerle a molti SLO in una volta
 
@@ -106,7 +106,7 @@ Apri **Azioni di massa** e scegli **Aggiungi regole consigliate**.
 Prima di aggiungere qualsiasi cosa, la conferma conta quanti degli SLO selezionati ricevono ciascuna regola, adattata alle loro finestre. Quando più SLO con finestre diverse ricevono una regola in varianti diverse, come Slow leak su uno SLO di 7 giorni e su uno di 30 giorni, elenca ogni variante con la sua soglia, le sue finestre e gli SLO che la ricevono. Dice anche quanti hanno già tutte le regole consigliate e quanti non è stato possibile leggere. Fai clic su **Aggiungi regole consigliate** per aggiungerle.
 :::
 
-Ogni SLO riceve solo le regole che gli mancano, esattamente come le aggiungerebbe la sua pagina **Regole di tasso di consumo**: lo stesso controllo di cosa conta come presente, e un elemento del feed e una voce nei registri di audit per ogni regola. Il risultato dice, per ogni SLO, se sono state aggiunte regole, se aveva già tutte le regole consigliate oppure se non è stato modificato e perché, per esempio uno SLO che non puoi modificare. Uno SLO non modificato non blocca mai gli altri, e ripetere l'azione sugli stessi SLO non aggiunge nulla. Gli SLO archiviati non compaiono nell'elenco e le regole non vengono mai proposte per loro, perché non vengono valutati: prima annulla l'archiviazione dello SLO.
+Ogni SLO riceve solo le regole che gli mancano, esattamente come le aggiungerebbe la sua pagina **Regole di tasso di consumo**: lo stesso controllo di cosa conta come presente, e un elemento del feed e una voce nei log di audit per ogni regola. Il risultato dice, per ogni SLO, se sono state aggiunte regole, se aveva già tutte le regole consigliate oppure se non è stato modificato e perché, per esempio uno SLO che non puoi modificare. Uno SLO non modificato non blocca mai gli altri, e ripetere l'azione sugli stessi SLO non aggiunge nulla. Gli SLO archiviati non compaiono nell'elenco e le regole non vengono mai proposte per loro, perché non vengono valutati: prima annulla l'archiviazione dello SLO.
 
 Gli script possono fare lo stesso tramite l'API, con una [chiave API](/docs/api-reference/api-reference) del progetto. Le richieste per un solo SLO accettano `{ "serviceLevelObjectiveId": "..." }` e rispondono con le regole in `rules`. Le richieste di massa accettano `{ "serviceLevelObjectiveIds": ["..."] }`, al massimo 100 SLO per richiesta, e rispondono con una voce per ogni SLO in `results`, nell'ordine richiesto:
 
@@ -132,7 +132,7 @@ In **Regola**, inserisci un **Nome**, come «Fast burn». Una nuova regola è at
 
 ### Impostare la finestra di consumo
 
-In **Finestra di consumo**, imposta la **Soglia del tasso di consumo** (per esempio `14.4`), la **Finestra lunga (minuti)** e la **Finestra breve (minuti)**, e se vuoi la **Soppressione della riattivazione (minuti)**.
+In **Finestra di consumo**, imposta la **Soglia del tasso di consumo** (per esempio `14.4`), la **Finestra lunga (minuti)** e la **Finestra breve (minuti)**, e se vuoi la **Soppressione della riattivazione (minuti)**. La regola di uno SLO di richieste prevede anche un **Numero minimo di richieste**, per esempio `100`: la regola salta una finestra lunga che ha meno richieste di quel numero. La regola di uno SLO di metrica prevede allo stesso modo un **Numero minimo di eventi**, contato negli eventi della sua metrica.
 
 ### Scegliere cosa dichiara
 
@@ -151,10 +151,12 @@ OneUptime controlla i numeri di una regola quando la salvi:
 | **Finestra breve (minuti)** | Maggiore di 0. |
 | **Finestra lunga (minuti)** | Più lunga della finestra breve. |
 | **Soppressione della riattivazione (minuti)** | 0 o più. Vuoto significa la durata della finestra lunga. |
+| **Numero minimo di richieste** | Un numero intero, 0 o più. Vuoto significa nessun minimo. |
+| **Numero minimo di eventi** | Un numero intero, 0 o più. Vuoto significa nessun minimo. |
 
 Ogni risposta a **Quando scatta** apre qualcosa. L'API rifiuta una regola che non creerebbe alcun avviso né dichiarerebbe alcun incidente, perché verrebbe controllata a ogni valutazione senza dichiarare mai nulla.
 
-La tabella delle regole mostra per ogni regola la soglia, le finestre e la soppressione, cosa dichiara (e se l'avviso o l'incidente si risolve solo a mano, o è privato), le gravità, le politiche di reperibilità, i proprietari e le etichette.
+La tabella delle regole mostra per ogni regola la soglia, le finestre e la soppressione, cosa dichiara (e se l'avviso o l'incidente si risolve solo a mano, o è privato), le gravità, le politiche di reperibilità, i proprietari e le etichette. Per uno SLO di richieste indica anche, sotto le finestre, il minimo di ogni regola.
 
 > [!TIP]
 > Un buon punto di partenza: tieni le tre regole predefinite, manda la regola di consumo rapido alla tua politica di reperibilità che avvisa, con gravità alta, lascia che la regola di consumo lento generi un avviso di gravità più bassa per l'orario di lavoro, e usa la regola di perdita lenta come ticket per il team responsabile. Se il tuo team gestisce tutto con gli incidenti, scegli **Dichiara un incidente** per la regola di consumo rapido, o **Entrambi** per ricevere anche un avviso.
@@ -253,13 +255,13 @@ Alcune modifiche risolvono sempre ciò che una regola ha aperto, qualunque cosa 
 - il passaggio dello SLO a **In pausa** o **Configurato male**, perché allora non misura nulla;
 - la perdita della soglia o delle finestre della regola, o il fatto che lo SLO non abbia più una finestra lunga completa di cronologia.
 
-## Manutenzione pianificata
+## Manutenzione programmata
 
 Mentre un monitor dello SLO è in un evento di manutenzione in corso, le sue regole del tasso di consumo non generano avvisi né dichiarano incidenti: il lavoro pianificato non deve avvisare nessuno. Ciò che le regole hanno già aperto si risolve comunque come al solito. Il tempo conta comunque nel budget di errore, secondo gli stati di inattività dello SLO.
 
 ## Il feed dello SLO
 
-Il **Feed** dello SLO pubblica ogni avviso generato da una regola e ogni incidente che dichiara, con un link e i tassi di consumo che lo spiegano, e quando ognuno si risolve, automaticamente o a mano. Un record che la regola riprende perché era ancora aperto non viene pubblicato due volte. Anche creare, modificare ed eliminare una regola viene pubblicato, e registrato nei **Registri di audit** dello SLO. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
+Il **Feed** dello SLO pubblica ogni avviso generato da una regola e ogni incidente che dichiara, con un link e i tassi di consumo che lo spiegano, e quando ognuno si risolve, automaticamente o a mano. Un record che la regola riprende perché era ancora aperto non viene pubblicato due volte. Anche creare, modificare ed eliminare una regola viene pubblicato, e registrato nei **Log di audit** dello SLO. Vedi [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs).
 
 ## Risoluzione dei problemi
 
@@ -276,7 +278,7 @@ Le regole del tasso di consumo restano in silenzio mentre uno dei monitor dello 
 :::
 
 :::details Esiste un numero minimo di campioni?
-Non per gli SLO misurati dalla disponibilità dei monitor. La disponibilità si misura in secondi, quindi ogni secondo della finestra è un campione e non c'è un caso di traffico basso da cui proteggersi. Un numero minimo di campioni conta solo per gli SLI basati su eventi, che non sono ancora disponibili.
+Non per gli SLO misurati dalla disponibilità dei monitor. La disponibilità si misura in secondi, quindi ogni secondo della finestra è un campione e non c'è un caso di traffico basso da cui proteggersi. La regola di uno SLO di richieste ne ha uno: imposta il suo **Numero minimo di richieste**, e la regola salta una finestra lunga con meno richieste di quel numero, così un'ora tranquilla con una richiesta fallita su cinque non avvisa nessuno.
 :::
 
 ## Passi successivi
@@ -285,5 +287,5 @@ Non per gli SLO misurati dalla disponibilità dei monitor. La disponibilità si 
 - [Budget di errore](/docs/slo/error-budget): Cos'è il budget e quanto dura.
 - [Policy del budget di errore](/docs/slo/error-budget-policy): Agire in base a quanto budget resta, livello per livello.
 - [Regole di escalation](/docs/on-call/escalation-rules): Chi viene avvisato, e in quale ordine.
-- [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni avviso e incidente generato da una regola.
+- [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni avviso e incidente generato da una regola.
 :::

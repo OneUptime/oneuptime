@@ -145,13 +145,13 @@ const METHOD_RULE_TYPES: Array<ComplianceRuleType> = ALL_RULE_TYPES.filter(
  * someone with Manage Billing - not "a project admin", who may not.
  */
 const CALL_NOTE: string =
-  "Call notifications also have to be switched on for the project, or nobody will be reached this way. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
+  "Call notifications also have to be switched on for the project, or nobody will be reached this way. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
 const WHATSAPP_NOTE: string =
-  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.";
+  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.";
 const CALL_AND_SMS_NOTE: string =
-  "Call and SMS notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
+  "Call and SMS notifications also have to be switched on for the project, or nobody will be reached those ways. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
 const CALL_SMS_AND_TELEGRAM_NOTE: string =
-  "Call, SMS and Telegram notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
+  "Call, SMS and Telegram notifications also have to be switched on for the project, or nobody will be reached those ways. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
 const PAUSED_NOTE: string =
   "This rule is saved paused: it is listed but nobody is checked against it until you turn it on.";
 
@@ -989,7 +989,7 @@ describe("the live preview", () => {
   ])(
     "switched off, %s reaches nobody - and the note says so",
     (channel: ComplianceNotificationChannel, label: string) => {
-      const note: string = `${label} notifications also have to be switched on for the project, or nobody will be reached this way. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.`;
+      const note: string = `${label} notifications also have to be switched on for the project, or nobody will be reached this way. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.`;
 
       expect(getProjectSwitchNote(channel)).toBe(note);
       expect(getProjectSwitchNotes([channel])).toEqual([note]);
@@ -1060,7 +1060,7 @@ describe("the live preview", () => {
 
         expect(note.endsWith(getWhoCanTurnOnSentence(pronoun))).toBe(true);
         expect(note).toContain(
-          "A project owner, a Billing Admin or someone with Manage Billing can turn",
+          "A Project Owner, a Billing Admin or someone with Manage Billing can turn",
         );
         expect(note).toContain(
           "in Project Settings > Notifications > Notification Channels.",
@@ -1578,6 +1578,16 @@ describe("Slack, Microsoft Teams and Mattermost follow the project's workspaces"
     });
 
     describe("the custom channel follows the server's custom channels", () => {
+      /*
+       * The project's workspaces answered by a stand-in, as the tests above
+       * do: the modal asks for them, and a real request is refused
+       * (Tests/jest.setup.ts, #8731). None are connected - these cases are
+       * about the custom channel alone.
+       */
+      beforeEach(() => {
+        ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+      });
+
       const corpoApp: () => CustomNotificationChannel =
         (): CustomNotificationChannel => {
           const channel: CustomNotificationChannel =

@@ -20,7 +20,9 @@ import {
   dashboardTranslator,
   isWordedInDashboardLocale,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "Common/Tests/Helpers/DashboardLocales";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import { buildMonitorMetricQueryConfig } from "../../FeatureSet/Dashboard/src/Components/Monitor/MonitorMetricQueryConfig";
 import {
   SLO_BURN_RATE_CHART_DESCRIPTION,
@@ -31,6 +33,11 @@ import {
   getSloIncidentMetricDescription,
   getSloMetricChartDescription,
 } from "../../FeatureSet/Dashboard/src/Components/Slo/SloMetricsQueryConfig";
+import {
+  asWrittenTokensMissing,
+  fullStopsOf,
+  numbersMissing,
+} from "./DescriptionWordsKept";
 
 /*
  * A MONITOR'S, AN INCIDENT'S, AN ALERT'S AND AN SLO'S CHARTS HAND THEIR
@@ -45,8 +52,12 @@ import {
  * the chart's query is built, and worded in every Dashboard language.
  *
  * A Database monitor's metric is named by its catalog, whose names are
- * another task's (#8353, #8354); a monitor metric's description is the
- * catalog's or a follow-up's. Neither is held here.
+ * another task's (#8353, #8354), and not held here. The line under every
+ * other monitor's chart, what its metric is
+ * (MonitorMetricTypeUtil.getDescriptionByMonitorMetricType), is a key too
+ * (#8468): worded in every language, it keeps the numbers, protocol names
+ * and states the English gives (TCP, IF-MIB, ESTABLISHED, "1-2%") and ends
+ * a sentence where the English does.
  */
 
 const PROJECT_ID: string = "0193c0de-5555-4aaa-8bbb-000000000001";
@@ -81,6 +92,13 @@ function chartWords(): Map<string, string> {
       add(
         MonitorMetricTypeUtil.getLegendByMonitorMetricType(metric, monitorType),
         `a ${monitorType} monitor's chart legend`,
+      );
+      add(
+        MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+          metric,
+          monitorType,
+        ),
+        `the line under a ${monitorType} monitor's chart`,
       );
     }
   }
@@ -192,9 +210,10 @@ describe("every word these charts draw", () => {
         SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
       ),
     ).toBe(SloMetricTypeUtil.getDescription(SloMetricType.BurnRate));
-    expect(getSloMetricChartDescription(SloMetricType.BurnRate)).toBe(
-      SloMetricTypeUtil.getDescription(SloMetricType.BurnRate),
-    );
+    // The chart draws its window held (#8811); the catalog stores it as written.
+    expect(
+      withPlainSpaces(getSloMetricChartDescription(SloMetricType.BurnRate)),
+    ).toBe(SloMetricTypeUtil.getDescription(SloMetricType.BurnRate));
   });
 });
 
@@ -262,7 +281,9 @@ describe("a monitor's chart (buildMonitorMetricQueryConfig)", () => {
   test.each(["de", "fa", "ar", "ja"])(
     "hands every Server metric's title in %s",
     (language: string) => {
-      const words: Record<string, string> = readDashboardLocale(language);
+      // As the Translator draws them: each figure held to its unit (#8770).
+      const words: Record<string, string> =
+        readDashboardLocaleAsDrawn(language);
 
       for (const metric of MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
         MonitorType.Server,
@@ -423,7 +444,7 @@ describe("the SLO Metrics page's charts", () => {
     })[0]!;
 
     expect(burn.metricAliasData?.description).toContain(
-      `${SLO_CURRENT_BURN_RATE_WINDOW_MINUTES} Minuten`,
+      `${SLO_CURRENT_BURN_RATE_WINDOW_MINUTES}\u00A0Minuten`,
     );
     expect(burn.metricAliasData?.description).not.toContain("minutes");
   });
@@ -500,5 +521,129 @@ describe("the SLO Metrics page's charts", () => {
         expect(word.startsWith(PROBE)).toBe(true);
       }
     }
+  });
+});
+
+/*
+ * What each monitor's chart says its metric is (#8468): every one of the
+ * other monitor types' descriptions, and a Port monitor's own response
+ * time, held to what a reader types or reads as written.
+ */
+const DESCRIPTION_NAMES: ReadonlyArray<string> = [
+  "TCP",
+  "DNS",
+  "IP",
+  "TLS",
+  "ICMP",
+  "VoIP",
+  "IF-MIB",
+  "SFP",
+  "CPU",
+  "VM",
+  "NIC",
+  "GPS",
+  "JavaScript",
+  "Port",
+  "ntpd",
+  "iowait",
+  "ESTABLISHED",
+  "LISTEN",
+];
+
+const DESCRIPTIONS: Array<string> = Array.from(
+  new Set<string>(
+    (Object.values(MonitorType) as Array<MonitorType>).flatMap(
+      (monitorType: MonitorType): Array<string> => {
+        return MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
+          monitorType,
+        )
+          .filter((metric: MonitorMetricType): boolean => {
+            return !getDatabaseMetricByMetricType(metric);
+          })
+          .map((metric: MonitorMetricType): string => {
+            return MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+              metric,
+              monitorType,
+            );
+          })
+          .filter((description: string): boolean => {
+            return description !== "";
+          });
+      },
+    ),
+  ),
+);
+
+const DROPPED: string =
+  "Anteil der Echo-Anfragen ohne Antwort. Verlust über 1% ist schlecht.";
+
+describe("what each monitor's chart says its metric is (#8468)", () => {
+  test("is read for every monitor type, a Port monitor's response time its own", () => {
+    expect(DESCRIPTIONS.length).toBeGreaterThan(45);
+
+    for (const description of DESCRIPTIONS) {
+      expect({ description, held: WORDS.has(description) }).toEqual({
+        description,
+        held: true,
+      });
+    }
+
+    const port: string =
+      MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+        MonitorType.Port,
+      );
+
+    expect(DESCRIPTIONS).toContain(port);
+    expect(port).not.toBe(
+      MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+        MonitorType.Website,
+      ),
+    );
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s keeps each description's numbers, names and states as written, and its full stop",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+      const stops: ReadonlyArray<string> = fullStopsOf(language);
+      const broken: Array<{ description: string; lost: Array<string> }> = [];
+
+      for (const description of DESCRIPTIONS) {
+        const worded: string = words[description] as string;
+        const lost: Array<string> = [
+          ...asWrittenTokensMissing(description, worded, DESCRIPTION_NAMES),
+          ...numbersMissing(description, worded),
+        ];
+
+        if (
+          description.endsWith(".") &&
+          !stops.some((stop: string): boolean => {
+            return worded.trimEnd().endsWith(stop);
+          })
+        ) {
+          lost.push("its full stop");
+        }
+
+        if (lost.length > 0) {
+          broken.push({ description, lost });
+        }
+      }
+
+      expect({ language, broken }).toEqual({ language, broken: [] });
+    },
+  );
+
+  test("a wording that drops a protocol or a number is caught (control)", () => {
+    const description: string =
+      MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+        MonitorMetricType.PacketLossPercent,
+      );
+
+    expect(
+      asWrittenTokensMissing(description, DROPPED, DESCRIPTION_NAMES),
+    ).toEqual(["ICMP"]);
+    expect(numbersMissing(description, DROPPED)).toEqual(["2"]);
   });
 });

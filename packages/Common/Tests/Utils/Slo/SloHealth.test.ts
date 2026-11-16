@@ -23,6 +23,16 @@ const SECONDS_PER_DAY: number = 24 * 60 * 60;
 /** The full 30-day error budget of a 99.9% SLO: 43m 12s. */
 const THIRTY_DAY_999_BUDGET_SECONDS: number = 0.001 * 30 * SECONDS_PER_DAY;
 
+// An SLI type OneUptime does not measure: Metric is measured now (#8445).
+const UNSUPPORTED_SLI_TYPE: SliType = "Availability" as SliType;
+
+// A Metric SLO's metric it can count with.
+const COUNTER_METRIC: Record<string, unknown> = {
+  metricName: "http_requests_total",
+  kind: "Counter",
+  goodFilter: "@http.response.status_code:<500",
+};
+
 /** An SLO that is measuring normally; each test changes one thing. */
 const MEASURING: SloNoticeData = {
   isArchived: false,
@@ -46,7 +56,7 @@ const EVERY_NOTICE_INPUT: Array<{ name: string; data: SloNoticeData }> = [
     data: {
       ...MEASURING,
       sloStatus: SloStatus.Misconfigured,
-      sliType: SliType.Metric,
+      sliType: UNSUPPORTED_SLI_TYPE,
     },
   },
   {
@@ -207,7 +217,7 @@ describe("SloHealth notices after the settings move", () => {
       const notice: SloNotice | null = getSloNotice({
         ...MEASURING,
         sloStatus: SloStatus.Misconfigured,
-        sliType: SliType.Metric,
+        sliType: UNSUPPORTED_SLI_TYPE,
       });
 
       expect(notice?.title).toBe("This SLO cannot be evaluated");
@@ -451,14 +461,14 @@ describe("SloHealth", () => {
       const notice: SloNotice | null = getSloNotice({
         isEnabled: true,
         sloStatus: SloStatus.Misconfigured,
-        sliType: SliType.Metric,
+        sliType: UNSUPPORTED_SLI_TYPE,
         monitorCount: 0,
         targetPercentage: 99.9,
         lastEvaluatedAt: new Date(),
       });
 
       expect(notice?.body).toContain(
-        "monitor uptime, request success or request latency",
+        "monitor uptime, request success, request latency or a metric",
       );
     });
 
@@ -539,7 +549,7 @@ describe("SloHealth", () => {
         const notice: SloNotice | null = getSloNotice({
           ...MEASURING,
           sloStatus: SloStatus.Misconfigured,
-          sliType: SliType.Metric,
+          sliType: UNSUPPORTED_SLI_TYPE,
           monitorCount: 16,
         });
 
@@ -850,7 +860,7 @@ describe("SloHealth notices are translation keys", () => {
     getSloNotice({ ...BASE, isEnabled: false }),
     getSloNotice({
       ...BASE,
-      sliType: SliType.Metric,
+      sliType: UNSUPPORTED_SLI_TYPE,
       sloStatus: SloStatus.Misconfigured,
     }),
     getSloNotice({
@@ -883,6 +893,24 @@ describe("SloHealth notices are translation keys", () => {
     getSloNotice({ ...BASE, sloStatus: SloStatus.Misconfigured }),
     getSloNotice({ ...BASE, sloStatus: SloStatus.Paused }),
     getSloNotice({ ...BASE, lastEvaluatedAt: null }),
+    // A Metric SLO's own (#8445).
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.Metric,
+      serviceCount: 0,
+      sloStatus: SloStatus.Misconfigured,
+    }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.Metric,
+      sloStatus: SloStatus.Misconfigured,
+    }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.Metric,
+      metricQueryConfig: COUNTER_METRIC,
+      sloStatus: SloStatus.Misconfigured,
+    }),
   ];
 
   test("the inputs reach every notice, each once", () => {
@@ -904,6 +932,9 @@ describe("SloHealth notices are translation keys", () => {
       "Waiting for SLO evaluation",
       "Measurement is paused",
       "Not evaluated yet",
+      "No services chosen",
+      "No metric to count",
+      "Waiting for its metric",
     ]);
   });
 
@@ -964,5 +995,89 @@ describe("SloHealth notices are translation keys", () => {
         body: notice?.body?.replace(/\d/g, ""),
       });
     }
+  });
+});
+
+/*
+ * A Metric SLO (#8445) is set up like a request SLO - its services - and
+ * also needs a metric it can count. Each notice mirrors a guard of the
+ * worker (EvaluateSlos.getRequestSloMisconfiguredReason), in the order a
+ * person fixes them.
+ */
+describe("getSloNotice - a Metric SLO", () => {
+  const METRIC_SLO: SloNoticeData = {
+    ...MEASURING,
+    sliType: SliType.Metric,
+    serviceCount: 2,
+    metricQueryConfig: COUNTER_METRIC,
+  };
+
+  it("with no services asks for them, saying what a Metric SLO measures", () => {
+    const notice: SloNotice | null = getSloNotice({
+      ...METRIC_SLO,
+      sloStatus: SloStatus.Misconfigured,
+      serviceCount: 0,
+    });
+
+    expect(notice?.title).toBe("No services chosen");
+    expect(notice?.body).toContain("the metric its services send");
+    expect(notice?.action?.target).toBe(SloNoticeActionTarget.Settings);
+  });
+
+  it.each<[string, unknown]>([
+    ["no metric", undefined],
+    ["a counter with no good condition", { metricName: "m", kind: "Counter" }],
+    [
+      "a histogram with no value",
+      { metricName: "http.server.request.duration", kind: "Histogram" },
+    ],
+    [
+      "one of OneUptime's own",
+      { ...COUNTER_METRIC, metricName: "oneuptime.slo.sli.percent" },
+    ],
+  ])(
+    "with %s asks for a metric it can count",
+    (_label: string, metric: unknown) => {
+      const notice: SloNotice | null = getSloNotice({
+        ...METRIC_SLO,
+        sloStatus: SloStatus.Misconfigured,
+        metricQueryConfig: metric,
+      });
+
+      expect(notice?.type).toBe(SloNoticeType.Warning);
+      expect(notice?.title).toBe("No metric to count");
+      expect(notice?.action).toEqual({
+        label: "Choose the metric",
+        target: SloNoticeActionTarget.Settings,
+      });
+    },
+  );
+
+  it("with its services and a metric waits for the metric, never for traces", () => {
+    const notice: SloNotice | null = getSloNotice({
+      ...METRIC_SLO,
+      sloStatus: SloStatus.Misconfigured,
+    });
+
+    expect(notice?.type).toBe(SloNoticeType.Info);
+    expect(notice?.title).toBe("Waiting for its metric");
+    expect(notice?.body).not.toContain("traces");
+  });
+
+  it("before its first evaluation names what is missing, or that numbers are coming", () => {
+    expect(
+      getSloNotice({
+        ...METRIC_SLO,
+        lastEvaluatedAt: null,
+        metricQueryConfig: null,
+      })?.title,
+    ).toBe("No metric to count");
+    expect(getSloNotice({ ...METRIC_SLO, lastEvaluatedAt: null })?.title).toBe(
+      "Not evaluated yet",
+    );
+  });
+
+  it("measuring, says nothing", () => {
+    expect(getSloNotice(METRIC_SLO)).toBeNull();
   });
 });

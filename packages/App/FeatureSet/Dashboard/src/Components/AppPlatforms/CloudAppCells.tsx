@@ -22,7 +22,9 @@ import {
   formatPercent,
 } from "../TelemetryResource/telemetryFormat";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The cells an App Platforms app shows in a list - All Apps, an
@@ -239,7 +241,7 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
         className="text-sm tabular-nums text-gray-700"
         data-testid="cloud-app-requests"
       >
-        {formatCompact(signals.requests, translator)}
+        {getValueOrQuietDash(formatCompact(signals.requests, translator))}
       </span>
     );
   }
@@ -250,7 +252,9 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
         className="text-sm tabular-nums text-gray-700"
         data-testid="cloud-app-p95"
       >
-        {formatDurationMsInLanguage(signals.p95Ms, translator)}
+        {getValueOrQuietDash(
+          formatDurationMsInLanguage(signals.p95Ms, translator),
+        )}
       </span>
     );
   }
@@ -265,7 +269,7 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
       data-testid="cloud-app-error-rate"
       data-tone={tone}
     >
-      {formatPercent(signals.errorRatePercent, translator)}
+      {getValueOrQuietDash(formatPercent(signals.errorRatePercent, translator))}
     </span>
   );
 };

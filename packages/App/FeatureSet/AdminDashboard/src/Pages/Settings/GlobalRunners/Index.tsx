@@ -324,6 +324,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       {currentRunner ? (
         <Modal
           title={t("pages.settings.globalRunners.keyModalTitle")}
+          isTitleTranslated={true}
           modalWidth={ModalWidth.Medium}
           closeButtonText={t("common.close")}
           onClose={() => {

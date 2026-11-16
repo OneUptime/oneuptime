@@ -43,7 +43,7 @@ Daarna [configureer je New Relic](#new-relic-configureren) zodat het zijn issues
 
 ### Wat de workflow doet
 
-Na de trigger **Webhook** leest de stap **Check With JavaScript** `read-event-1` de `state` die New Relic stuurt, en **Incident From Another Tool**, of **Alert From Another Tool** in het sjabloon voor waarschuwingen, doet wat die betekent, via de ID van het issue. Het incident bewaart de ID in zijn aangepaste veld `newRelicIssueId`.
+Na de trigger **Webhook** leest de stap **Controleren met JavaScript** `read-event-1` de `state` die New Relic stuurt, en **Incident uit een andere tool**, of **Waarschuwing uit een andere tool** in het sjabloon voor waarschuwingen, doet wat die betekent, via de ID van het issue. Het incident bewaart de ID in zijn aangepaste veld `newRelicIssueId`.
 
 | Wat New Relic stuurt | Wat de workflow doet |
 | --- | --- |

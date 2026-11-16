@@ -46,8 +46,8 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import CloudResourceRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/CloudResourceRoutes";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -114,14 +114,30 @@ const USAGE_SCENARIO = ["learning", "fits"].includes(params.get("usage"))
   ? params.get("usage")
   : "";
 
+/*
+ * English, the fallback, is in the bundle; German and Persian are each a
+ * chunk of its own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
+ * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: LANGUAGE,
-  fallbackLng: LANGUAGE,
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    fa: { translation: FA },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: LANGUAGE,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

@@ -1,4 +1,5 @@
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   BytesReading,
   getBytesReading,
@@ -34,13 +35,16 @@ export interface OpenStackFigureOptions {
   language?: string | undefined;
 }
 
-// "۶٫۰ TiB", "480 GiB": a size in the reader's digits, in formatBytes' unit.
+/*
+ * "۶٫۰ TiB", "480 GiB": a size in the reader's digits, in formatBytes' unit,
+ * held to it by a no-break space (#8457).
+ */
 export function formatOpenStackBytes(
   bytes: number,
   options?: OpenStackFigureOptions,
 ): string {
   if (!Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const reading: BytesReading = getBytesReading(bytes);
@@ -48,7 +52,7 @@ export function formatOpenStackBytes(
   return `${formatReaderFigure(reading.value, {
     decimals: reading.decimals,
     language: options?.language,
-  })} ${reading.unit}`;
+  })}\u00A0${reading.unit}`;
 }
 
 /*

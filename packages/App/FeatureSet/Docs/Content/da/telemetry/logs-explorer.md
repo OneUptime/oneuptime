@@ -118,7 +118,7 @@ Klik på **Liste** for at gå tilbage til selve linjerne.
 
 ## Åbn tilhørende spor og metrikker
 
-Knapperne **Spor** og **Metrikker** ved siden af **Gemte visninger** åbner [Sporudforsker](/docs/telemetry/traces-explorer) eller [Måleudforsker](/docs/telemetry/metrics-explorer) for det samme tidsvindue, med så meget af din filtrering, som den udforsker kan bruge. Peg på en knap for at se, hvad den ikke kan tage med.
+Knapperne **Spor** og **Metrikker** ved siden af **Gemte visninger** åbner [Sporudforsker](/docs/telemetry/traces-explorer) eller [Metrikudforsker](/docs/telemetry/metrics-explorer) for det samme tidsvindue, med så meget af din filtrering, som den udforsker kan bruge. Peg på en knap for at se, hvad den ikke kan tage med.
 
 ## Indsigter i protokoller
 

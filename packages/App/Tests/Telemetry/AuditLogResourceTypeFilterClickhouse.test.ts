@@ -10,6 +10,7 @@ import ClickhouseDatabase, {
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
@@ -103,11 +104,19 @@ const PROJECT_B: ObjectID = new ObjectID(
 
 const ROOT: DatabaseCommonInteractionProps = { isRoot: true };
 
-// An audit reader of project A: what the Dashboard reads the log as.
+/*
+ * An audit reader of project A: what the Dashboard reads the log as. A
+ * request through the API carries its project's plan (CommonAPI reads it,
+ * CallerPlan.withPlan), and the audit log is the Enterprise plan's. With
+ * billing on, as App Test's config.env has it, a read without one is
+ * checked against the plan read from Postgres, which this suite has not.
+ */
 const AUDIT_READER: DatabaseCommonInteractionProps = {
   userId: new ObjectID("75800000-0000-4000-8000-00000000c003"),
   userType: UserType.User,
   tenantId: PROJECT_A,
+  currentPlan: PlanType.Enterprise,
+  isSubscriptionUnpaid: false,
   userTenantAccessPermission: {
     [PROJECT_A.toString()]: {
       projectId: PROJECT_A,

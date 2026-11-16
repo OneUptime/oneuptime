@@ -130,7 +130,7 @@ Ihr Marketplace-Abonnement ist Ihre Lizenz. Jeder Bericht, den der Marketplace a
 | Seit 72 Stunden wurde kein Bericht angenommen | **Enterprise Edition (Marketplace-Berichte schlagen fehl)**: Jede Enterprise-Funktion funktioniert während einer 30-tägigen Kulanzfrist weiter. |
 | Der Marketplace meldet, dass für die Installation kein Abonnement besteht, oder die Kulanzfrist endet | **Enterprise Edition (Marketplace-Abonnement beendet)**: Die Enterprise-Funktionen enden, genau wie beim [Auslaufen einer Lizenz](/docs/self-hosted/enterprise#wenn-eine-lizenz-abläuft-oder-fehlt). |
 
-Der Marketplace lehnt ein gekündigtes oder ausgesetztes Abonnement ab, ebenso eine Installation, die nicht die von Ihnen gekaufte ist. Monitoring, Alarme, Incidents, Bereitschaftsdienst und Statusseiten funktionieren in jedem Fall weiter, und nichts wird gelöscht. Abonnieren Sie erneut, und der nächste angenommene Bericht lizenziert die Enterprise Edition wieder, ohne Neustart.
+Der Marketplace lehnt ein gekündigtes oder ausgesetztes Abonnement ab, ebenso eine Installation, die nicht die von Ihnen gekaufte ist. Monitoring, Warnungen, Incidents, Bereitschaftsdienst und Statusseiten funktionieren in jedem Fall weiter, und nichts wird gelöscht. Abonnieren Sie erneut, und der nächste angenommene Bericht lizenziert die Enterprise Edition wieder, ohne Neustart.
 
 ## Aktualisierung
 

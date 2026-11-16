@@ -81,7 +81,8 @@ const UserOverrideOverlapsMark: FunctionComponent<ComponentProps> = (
    * another override for ..."), so the word is not said twice.
    */
   return (
-    <Tooltip text={props.text}>
+    // Worded by getUserOverrideOverlapsText: drawn as given (#8423).
+    <Tooltip text={props.text} isTextTranslated={true}>
       <span
         data-testid="user-override-overlaps"
         role="img"

@@ -30,6 +30,7 @@ import {
   buildObservables,
   buildProcessFields,
 } from "../NormalizerHelpers";
+import { writeOwnValue } from "../../LookupTable";
 
 /*
  * One log line as the log parsers read it: the line itself, the attributes
@@ -181,12 +182,17 @@ export function boundAttributes(
 
     const raw: unknown = flattened[key];
 
-    if (raw === null || raw === undefined || key === "__proto__") {
+    if (raw === null || raw === undefined) {
       continue;
     }
 
+    /*
+     * Written as the copy's own key, so a field named "__proto__" is an
+     * attribute like any other (issue #8487): it was left out, since an
+     * assignment would have dropped it. Its value is always text here.
+     */
     const value: string = typeof raw === "string" ? raw : String(raw);
-    bounded[key] = cutText(value, maxValueLength);
+    writeOwnValue(bounded, key, cutText(value, maxValueLength));
     count++;
   }
 

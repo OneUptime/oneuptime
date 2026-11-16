@@ -284,7 +284,7 @@ describe("the Gauge's numbers", () => {
       unit: "KB",
       gap: "0.15em",
     });
-    expect(gaugeBounds()).toEqual(["0 B", "4,1 KB"]);
+    expect(gaugeBounds()).toEqual(["0\u00A0B", "4,1\u00A0KB"]);
   });
 
   test("a fraction metric reads as a percentage in the reader's language", async () => {

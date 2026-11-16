@@ -2172,7 +2172,7 @@ describe("IncidentTemplateVariableBuilder in the page's language", () => {
     forPage(variables, germanPage());
 
     expect(OneUptimeDate.convertMinutesToDaysHoursAndMinutes(5)).toBe(
-      "5 minutes",
+      "5\u00A0minutes",
     );
   });
 });

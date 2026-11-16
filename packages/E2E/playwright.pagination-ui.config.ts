@@ -23,6 +23,8 @@ export default defineConfig({
   reporter: "list",
   outputDir: "../../output/playwright/pagination-ui/test-results",
   use: {
+    // One zone whatever the machine's (Tests/Ops/E2EConfigsPinTheirZone.test.js).
+    timezoneId: "UTC",
     baseURL: `http://127.0.0.1:${port}`,
     // The summary prints counts with the reader's separators: "1,000".
     locale: "en-US",

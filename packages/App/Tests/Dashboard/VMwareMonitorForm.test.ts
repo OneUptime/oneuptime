@@ -222,9 +222,15 @@ describe("VMwareMonitorStepForm vCenter selection", () => {
     expect(stepFormSource).toContain(
       "useInfrastructureResources<VMwareVCenter>({ modelType: VMwareVCenter,",
     );
+    /*
+     * The option: its name, drawn as written, and "Unknown" in the reader's
+     * words when it has none (21e88b8a152); its name is the value.
+     */
     expect(stepFormSource).toContain(
-      'return { label: vcenter.name || "Unknown", value: vcenter.name || "", };',
+      'return { label: vcenter.name || "Unknown",',
     );
+    expect(stepFormSource).toContain("isUserContent: Boolean(vcenter.name),");
+    expect(stepFormSource).toContain('value: vcenter.name || "", };');
     expect(stepFormSource).toContain("onChange={changeResource}");
     expect(stepFormSource).toContain(
       "const changeResource: (vcenterIdentifier: string) => void",

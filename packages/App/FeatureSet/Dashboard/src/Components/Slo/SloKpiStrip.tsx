@@ -1,4 +1,6 @@
 import EventStatBar from "../EventView/EventStatBar";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import EventStatTile from "../EventView/EventStatTile";
 import SloBudgetBar, { SLO_BUDGET_TIER_TEXT_CLASS } from "./SloBudgetBar";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -47,7 +49,7 @@ import {
   getRequestBudgetRemainingSecondsEquivalent,
   getRequestWindowFill,
 } from "./SloRequestTextInLanguage";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -63,8 +65,6 @@ export interface ComponentProps {
   now: Date;
   className?: string | undefined;
 }
-
-const EM_DASH: string = "—";
 
 /*
  * The tiles' notes are drawn and nothing else, so each value in them (a
@@ -151,7 +151,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
    * A request SLO's budget is counted in requests, and its window fills as
    * OneUptime counts its services' older requests (SloRequestTextInLanguage).
    */
-  const isRequestSlo: boolean = isRequestSliType(slo.sliType);
+  const isRequestSlo: boolean = isEventSliType(slo.sliType);
 
   const requestCounting: Parameters<typeof getRequestWindowFill>[0] = {
     sliType: slo.sliType,
@@ -341,9 +341,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
           label="SLI"
           icon={IconProp.Activity}
           value={
-            sliText === null ? (
-              <span className="text-gray-400">{EM_DASH}</span>
-            ) : (
+            sliText === null ? undefined : (
               <span
                 className={isBelowTarget ? "text-red-700" : "text-gray-900"}
               >
@@ -362,7 +360,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
           value={
             <div>
               <span className={SLO_BUDGET_TIER_TEXT_CLASS[budgetTier]}>
-                {budgetText ?? EM_DASH}
+                {budgetText ?? <EmptyFigure />}
               </span>
               <SloBudgetBar
                 className="mb-1 mt-2"
@@ -382,9 +380,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
           label="Burn rate"
           icon={IconProp.Fire}
           value={
-            burnRateText === null ? (
-              <span className="text-gray-400">{EM_DASH}</span>
-            ) : (
+            burnRateText === null ? undefined : (
               <span className="inline-flex flex-wrap items-center gap-2">
                 <span className={burnRateClassName}>{burnRateText}</span>
                 {isAtOrAboveRuleThreshold ? (
@@ -423,15 +419,15 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
           label="Budget runway"
           icon={IconProp.Clock}
           value={
-            <span
-              className={
-                isRunwayPlaceholder
-                  ? "text-gray-400"
-                  : RUNWAY_TONE_TEXT_CLASS[runway.tone]
-              }
-            >
-              {runwayText.value}
-            </span>
+            /*
+             * A runway not worked out is the figure's quiet dash, read out
+             * as "Not set", as the strip's other tiles draw theirs (#8262).
+             */
+            isRunwayPlaceholder ? undefined : (
+              <span className={RUNWAY_TONE_TEXT_CLASS[runway.tone]}>
+                {getValueOrQuietDash(runwayText.value)}
+              </span>
+            )
           }
           description={runwayText.description}
         />

@@ -257,7 +257,7 @@ Svaret på et filspørsmål er filene slik de ble lagret, hver med sin `fileId`,
 
 ### Arbeidsflyter
 
-Skjemaer har de genererte arbeidsflytkomponentene: **On Create Form**, **On Update Form** og så videre. Bruk **On Create Incident** eller **On Create Maintenance Event** for å handle på det et skjema har opprettet.
+Skjemaer har de genererte arbeidsflytkomponentene: **Ved oppretting: Skjema**, **Ved oppdatering: Skjema** og så videre. Bruk **Ved oppretting: Hendelse** eller **Ved oppretting: Vedlikeholdshendelse** for å handle på det et skjema har opprettet.
 
 ### Den offentlige sidens egne endepunkter
 

@@ -170,6 +170,14 @@ import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import UserUtil from "../../../UI/Utils/User";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/security-case/resource-security"]);
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/network-devices"),
@@ -277,12 +285,12 @@ describe("the device Overview shows what discovery read, and which (issue #5185)
       "kds-04.store-24.acme.example",
     );
     expect(textOf("network-device-details-dnsName-source")).toBe(
-      "Discovery scan Store subnets (reverse DNS) · 2 hours ago",
+      "Discovery scan Store subnets (reverse DNS) · 2\u00A0hours ago",
     );
 
     expect(screen.getByText("System Name (sysName)")).toBeInTheDocument();
     expect(textOf("network-device-details-sysName-source")).toBe(
-      "Discovery scan Store subnets (SNMP) · 2 hours ago",
+      "Discovery scan Store subnets (SNMP) · 2\u00A0hours ago",
     );
     expect(textOf("network-device-details-sysDescr")).toContain(
       "Linux kds-04 5.15.0-91-generic",
@@ -302,7 +310,7 @@ describe("the device Overview shows what discovery read, and which (issue #5185)
       "00:1b:54:c2:7a:01",
     );
     expect(textOf("network-device-details-macAddress-source")).toBe(
-      "ARP table of core-rtr-01 · 3 hours ago",
+      "ARP table of core-rtr-01 · 3\u00A0hours ago",
     );
   });
 

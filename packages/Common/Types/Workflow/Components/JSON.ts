@@ -4,20 +4,21 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.JsonToText,
-    title: "JSON to Text",
-    category: "JSON",
-    description: "Converts JSON Object to Text",
+    title: translationKey("JSON to Text"),
+    category: translationKey("JSON"),
+    description: translationKey("Converts JSON Object to Text"),
     iconProp: IconProp.JSON,
     componentType: ComponentType.Component,
     arguments: [
       {
         type: ComponentInputType.JSON,
-        name: "JSON",
-        description: "JSON Object as Input",
+        name: translationKey("JSON"),
+        description: translationKey("JSON Object as Input"),
         required: true,
         id: "json",
       },
@@ -25,38 +26,43 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         type: ComponentInputType.Text,
-        name: "Text",
-        description: "Text as Output",
+        name: translationKey("Text"),
+        description: translationKey("Text as Output"),
         required: true,
         id: "text",
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description:
+        title: translationKey("In"),
+        description: translationKey(
           "Please connect components to this port for this component to work.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Success",
-        description: "This is executed when the JSON is successfully converted",
+        title: translationKey("Success"),
+        description: translationKey(
+          "This is executed when the JSON is successfully converted",
+        ),
         id: "success",
       },
       {
-        title: "Error",
-        description: "This is executed when there is an error in conversion",
+        title: translationKey("Error"),
+        description: translationKey(
+          "This is executed when there is an error in conversion",
+        ),
         id: "error",
       },
     ],
   },
   {
     id: ComponentID.TextToJson,
-    title: "Text to JSON",
-    category: "JSON",
-    description: "Converts Text to JSON Object",
+    title: translationKey("Text to JSON"),
+    category: translationKey("JSON"),
+    description: translationKey("Converts Text to JSON Object"),
     iconProp: IconProp.JSON,
     componentType: ComponentType.Component,
     arguments: [
@@ -68,9 +74,10 @@ const components: Array<ComponentMetadata> = [
        */
       {
         type: ComponentInputType.LongText,
-        name: "Text",
-        description:
+        name: translationKey("Text"),
+        description: translationKey(
           "JSON written as text, such as a response body from an earlier step.",
+        ),
         required: true,
         id: "text",
         placeholder: '{"key1": "value1", "key2": "value2"}',
@@ -79,52 +86,57 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         type: ComponentInputType.JSON,
-        name: "JSON",
-        description: "JSON Object as Output",
+        name: translationKey("JSON"),
+        description: translationKey("JSON Object as Output"),
         required: true,
         id: "json",
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description:
+        title: translationKey("In"),
+        description: translationKey(
           "Please connect components to this port for this component to work.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Success",
-        description: "This is executed when the JSON is successfully converted",
+        title: translationKey("Success"),
+        description: translationKey(
+          "This is executed when the JSON is successfully converted",
+        ),
         id: "success",
       },
       {
-        title: "Error",
-        description: "This is executed when there is an error in conversion",
+        title: translationKey("Error"),
+        description: translationKey(
+          "This is executed when there is an error in conversion",
+        ),
         id: "error",
       },
     ],
   },
   {
     id: ComponentID.MergeJson,
-    title: "Merge JSON",
-    category: "JSON",
-    description: "Merge two JSON Objects into one",
+    title: translationKey("Merge JSON"),
+    category: translationKey("JSON"),
+    description: translationKey("Merge two JSON Objects into one"),
     iconProp: IconProp.JSON,
     componentType: ComponentType.Component,
     arguments: [
       {
         type: ComponentInputType.JSON,
-        name: "JSON 1",
-        description: "JSON Object 1 as Input",
+        name: translationKey("JSON 1"),
+        description: translationKey("JSON Object 1 as Input"),
         required: true,
         id: "json1",
       },
       {
         type: ComponentInputType.JSON,
-        name: "JSON 2",
-        description: "JSON Object 2 as Input",
+        name: translationKey("JSON 2"),
+        description: translationKey("JSON Object 2 as Input"),
         required: true,
         id: "json2",
       },
@@ -132,30 +144,34 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         type: ComponentInputType.JSON,
-        name: "JSON",
-        description: "JSON Object as Output",
+        name: translationKey("JSON"),
+        description: translationKey("JSON Object as Output"),
         required: true,
         id: "json",
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description:
+        title: translationKey("In"),
+        description: translationKey(
           "Please connect components to this port for this component to work.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Success",
-        description: "This is executed when the JSON is successfully merged",
+        title: translationKey("Success"),
+        description: translationKey(
+          "This is executed when the JSON is successfully merged",
+        ),
         id: "success",
       },
       {
-        title: "Error",
-        description:
+        title: translationKey("Error"),
+        description: translationKey(
           "This is executed when the JSON is not successfully merged",
+        ),
         id: "error",
       },
     ],

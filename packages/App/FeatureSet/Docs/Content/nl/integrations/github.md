@@ -15,7 +15,7 @@ OneUptime werkt op twee manieren met [GitHub](https://github.com). Koppel je rep
 flowchart TB
     app["De GitHub App"] --> repos["Je repository's,<br/>geïmporteerd"]
     repos --> pr["Pull requests met<br/>fixes van de AI<br/>van OneUptime"]
-    declared["Incident gemeld"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> workflow["Workflow:<br/>Bij aanmaken:<br/>Incident"]
     workflow -->|"POST issues"| issue["GitHub-issue"]
 ```
 
@@ -62,11 +62,11 @@ Ga naar **Workflows**, klik op **Workflow maken** en dan op **Vanaf nul beginnen
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
 
 ### Het issue openen
 
-Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbind het punt **Succes** van de trigger ermee. Zet zijn **URL** op `https://api.github.com/repos/your-org/your-repo/issues`, met de eigenaar en de naam van je repository. Zet onder **Meer velden** zijn **Aanvraagheaders** op:
+Klik op **Component toevoegen**, voeg een blok **API-aanroep POST (JSON)** toe en verbind het punt **Succes** van de trigger ermee. Zet zijn **URL** op `https://api.github.com/repos/your-org/your-repo/issues`, met de eigenaar en de naam van je repository. Zet onder **Meer velden** zijn **Aanvraagheaders** op:
 
 ```json
 {
@@ -88,7 +88,7 @@ En de **Verzoeklichaam** op:
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een antwoord `201` met het nieuwe issue, met zijn `number` en zijn `html_url`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API-aanroep POST (JSON)** toont een antwoord `201` met het nieuwe issue, met zijn `number` en zijn `html_url`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 Het issue blijft open wanneer het incident is opgelost, omdat het vervolgwerk het incident meestal overleeft. Voor tickets die in beide richtingen met het incident gelijk oplopen, zie [Jira](/docs/integrations/jira).
@@ -97,11 +97,11 @@ Het issue blijft open wanneer het incident is opgelost, omdat het vervolgwerk he
 
 - **GitHub Enterprise Server.** Stuur het verzoek in plaats daarvan naar je server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Een server op een privénetwerkadres heeft een zelf gehoste OneUptime nodig waarvan de beheerder dat toestaat: zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
 - **Wijs het toe.** Voeg `"assignees": ["octocat"]` of `"milestone": 3` toe aan de body. GitHub laat labels, toegewezenen en mijlpalen zonder melding vallen wanneer het token niet naar de repository mag pushen.
-- **Alleen sommige incidenten.** Zet een blok **If / Else** tussen de trigger en het API-blok, en open alleen issues aan de kant **Ja** ervan, bijvoorbeeld voor één ernst.
+- **Alleen sommige incidenten.** Zet een blok **Als / Anders** tussen de trigger en het API-blok, en open alleen issues aan de kant **Ja** ervan, bijvoorbeeld voor één ernst.
 
 ## Problemen oplossen
 
-De stap **API Post (JSON)** neemt **Fout** wanneer GitHub het verzoek weigert. Zijn **Response Status** en **Antwoordlichaam** in de run zeggen waarom.
+De stap **API-aanroep POST (JSON)** neemt **Fout** wanneer GitHub het verzoek weigert. Zijn **Status van het antwoord** en **Antwoordlichaam** in de run zeggen waarom.
 
 :::details GitHub antwoordt 401
 Het token is fout, verlopen of ingetrokken. Maak een nieuw token en vervang de inhoud van `GITHUB_TOKEN`.

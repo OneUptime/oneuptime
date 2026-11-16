@@ -36,7 +36,9 @@ import {
  * reasons, versions and session ids - is kept as written.
  */
 
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A fixed sentence or label in the translator's language.
 function translateLine(text: string, translator: Translator): string {

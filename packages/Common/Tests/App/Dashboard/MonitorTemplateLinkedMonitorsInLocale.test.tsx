@@ -931,8 +931,8 @@ describe("the page's words about its linked monitors", () => {
         dialogButton: "Interval synchroniseren",
       },
       no: {
-        countless: "Synkroniser intervall til koblede overvåkere",
-        counted: "Synkroniser intervall til 3 koblede overvåkere",
+        countless: "Synkroniser intervall til koblede monitorer",
+        counted: "Synkroniser intervall til 3 koblede monitorer",
         dialogButton: "Synkroniser intervall",
       },
       hi: {

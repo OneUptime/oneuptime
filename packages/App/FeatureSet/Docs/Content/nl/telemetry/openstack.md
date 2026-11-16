@@ -1170,7 +1170,7 @@ In elke pipeline komt `audit` direct na `authtoken` en het contextfilter dat daa
 
 Het filter schrijft twee regels per aanroep, en de meeste aanroepen zijn lezingen. Een lezing zegt niets tenzij hij werd geweigerd, dus OneUptime bewaart wat iets veranderde, en wat werd geweigerd, wat eruitziet als iemand die een cloud aftast. `ignore_req_list = GET, HEAD` in de sectie van het filter laat lezingen ook uit de logboeken weg, en geweigerde lezingen met hen.
 
-### Wat Security Events bereikt
+### Wat Beveiligingsgebeurtenissen bereikt
 
 | Wat | Wie, wat en waarop |
 | --- | --- |
@@ -1185,7 +1185,7 @@ Keystone stuurt niets voor een rol die op het systeem is gegeven, dus niets hier
 
 Een project en een onderdeel worden uit de inventaris van de cloud benoemd waar OneUptime ze kent, dus een geval leest `project payments` en `instance web-1` en niet hun ID's. Het project van een onderdeel is het project dat zijn rij zegt, voor welk project het token dat het aanraakte ook was. Keystones gebruikers staan niet in de inventaris, omdat de toegang die de agent vraagt ze met opzet weglaat. Een gebruiker wordt benoemd zodra een van de gebeurtenissen van de cloud hun naam heeft genoemd, en tot dan op ID. Een rol wordt op ID benoemd, omdat geen gebeurtenis zijn naam noemt.
 
-De pagina van de cloud zegt wat Security Events erover vond, een geval noemt de cloud, en de pagina van elk onderdeel heeft **Wie dit heeft gewijzigd**: wie wat deed rond het moment dat zijn status voor het laatst veranderde. Het leest de audittrail, en de eigen actor van een notificatie zonder die, en het ontbreekt wanneer geen van beide iets zegt.
+De pagina van de cloud zegt wat Beveiligingsgebeurtenissen erover vond, een geval noemt de cloud, en de pagina van elk onderdeel heeft **Wie dit heeft gewijzigd**: wie wat deed rond het moment dat zijn status voor het laatst veranderde. Het leest de audittrail, en de eigen actor van een notificatie zonder die, en het ontbreekt wanneer geen van beide iets zegt.
 
 Deze zes [detecties](/docs/telemetry/security-events) komen uit de regelbibliotheek:
 
@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+Het archiveren van de cloud zet hier niets van uit. Een gearchiveerde cloud is alleen verborgen in de lijsten: hij wordt nog steeds verzameld, en zijn API-controles en de levenscyclus-controle blijven draaien. Zet een controle uit om die te stoppen.
+
 ## AI-agent
 
 De `docker-compose.yml` van de agent draait ook de **OpenStack AI-agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Terwijl OneUptime AI een incident of waarschuwing op deze cloud onderzoekt, draait het er alleen-lezen `openstack`-opdrachten mee — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — en citeert wat het draaide. Er is geen `openstack`-binary in de agent en geen shell: elke opdracht wordt één `GET` naar de service die hem beantwoordt, met de eigen referentie van de agent. De agent registreert zich met dezelfde `OPENSTACK_CLOUD_NAME` die de collector rapporteert, dus hij bedient deze cloud.
@@ -1641,7 +1643,7 @@ De pagina **AI-agent** van de cloud biedt voor elk hiervan een runbook aan, om t
 
 ### Fixes vanuit een workflow
 
-Een workflow kan beginnen bij een OpenStack-waarschuwing en een fix voorstellen: de stap **Propose an OpenStack fix** neemt de waarschuwing of het incident, en de opdracht. Het gaat door hetzelfde beleid, hetzelfde schrijfbereik en dezelfde lezing van wat een wijziging raakt als een fix die OneUptime AI voorstelt, het heeft geen AI-model nodig, en een mens keurt het goed op de waarschuwing. Een workflow kan de wijziging zelf niet doorvoeren of goedkeuren wat hij voorstelt, welke fixmodus de cloud ook heeft. Het sjabloon **Propose taking a failing OpenStack compute service out of scheduling** is een plek om te beginnen.
+Een workflow kan beginnen bij een OpenStack-waarschuwing en een fix voorstellen: de stap **OpenStack-oplossing voorstellen** neemt de waarschuwing of het incident, en de opdracht. Het gaat door hetzelfde beleid, hetzelfde schrijfbereik en dezelfde lezing van wat een wijziging raakt als een fix die OneUptime AI voorstelt, het heeft geen AI-model nodig, en een mens keurt het goed op de waarschuwing. Een workflow kan de wijziging zelf niet doorvoeren of goedkeuren wat hij voorstelt, welke fixmodus de cloud ook heeft. Het sjabloon **Propose taking a failing OpenStack compute service out of scheduling** is een plek om te beginnen.
 
 ## Draaien als systemd-service
 

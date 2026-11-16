@@ -117,7 +117,7 @@ cp config.example.env config.env
 
 ### Stel de hostnaam in
 
-Open `config.env` en stel `HOST` in op de domeinnaam of het IP-adres waarmee mensen OneUptime bereiken, zonder `http://`. Houd `localhost` alleen aan om OneUptime op uw eigen computer uit te proberen.
+Open `config.env` en stel `HOST` in op de domeinnaam of het IP-adres waarmee mensen OneUptime bereiken, zonder `http://`. Houd `localhost` alleen aan om OneUptime op uw eigen computer uit te proberen. Een IPv6-adres staat net als in een webadres tussen vierkante haken, met een eventuele poort erachter: `HOST=[2001:db8::1]:8080`.
 
 ```ini title="config.env"
 HOST=oneuptime.example.com

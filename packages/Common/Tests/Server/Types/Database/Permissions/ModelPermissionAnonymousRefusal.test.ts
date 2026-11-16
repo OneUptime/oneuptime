@@ -433,7 +433,21 @@ describe("ModelPermission: anonymous refusals become 401 (stubbed underlying che
 
     await ModelPermission.checkReadQueryPermission(Probe, query, select, props);
 
-    expect(spy).toHaveBeenCalledWith(Probe, query, select, props);
+    // No sort asked for: none is handed on.
+    expect(spy).toHaveBeenCalledWith(Probe, query, select, props, undefined);
+
+    // The sort a read asked for, which the check holds to the caller's read (#8839).
+    const sort: Record<string, string> = { name: "ASC" };
+
+    await ModelPermission.checkReadQueryPermission(
+      Probe,
+      query,
+      select,
+      props,
+      sort,
+    );
+
+    expect(spy).toHaveBeenLastCalledWith(Probe, query, select, props, sort);
   });
 });
 

@@ -81,7 +81,7 @@ Varje villkor jämför en sak hos incidenten, larmet eller underhållshändelsen
 | **Incidentetiketter** / **Larmetiketter** / **Händelseetiketter** | Etiketterna på själva incidenten, larmet eller händelsen, inklusive dem som etikettregler lade till när den skapades. |
 | **Övervakningsetiketter** | Etiketterna på dess monitorer. Ge dina monitorer etiketten `production` eller `staging` för att köra ett runbook i bara en miljö. |
 | **Incidenttitel** / **Larmtitel** / **Händelsetitel** | Dess titel. |
-| **Incidentbeskrivning** / **Larmbeskrivning** | Dess beskrivning (för händelser heter kriteriet **Händelsebeskrivning**). |
+| **Incidentbeskrivning** / **Larmbeskrivning** / **Händelsebeskrivning** | Dess beskrivning (för händelser heter kriteriet **Händelsebeskrivning**). |
 | **Övervakningsnamn** / **Övervakningsbeskrivning** | Namnet eller beskrivningen på dess monitorer. |
 
 Välj en operator för varje villkor:

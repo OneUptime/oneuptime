@@ -512,7 +512,7 @@ export class Service extends ProjectReferencesService<Model> {
 
         throw new NotAuthorizedException(
           data.leaves
-            ? `You cannot leave ${team}: it blocks ${permission} for its members, and lifting that block needs ${permission} at an equal or broader scope in your own access. Ask a project owner to remove you from the team.`
+            ? `You cannot leave ${team}: it blocks ${permission} for its members, and lifting that block needs ${permission} at an equal or broader scope in your own access. Ask a Project Owner to remove you from the team.`
             : `You cannot remove this member from ${team}: it blocks ${permission} for them, and your own access does not include that permission at an equal or broader scope, so you cannot lift that block.`,
         );
       }

@@ -11,7 +11,7 @@ En monitorskabelon er en gemt monitorkonfiguration (en type, kriterier, et inter
 
 ## Sådan virker skabeloner
 
-En skabelon overvåger ikke selv noget. Monitorer oprettes ud fra den eller knyttes til den, og skabelonens side viser dem som **Tilknyttede overvågninger**. Når du ændrer skabelonen, ændres intet på de monitorer, før du synkroniserer: hver synkroniseringsknap kopierer én del af skabelonen til hver tilknyttet monitor, og felter, du beskytter, beholder hver monitors egen værdi.
+En skabelon overvåger ikke selv noget. Monitorer oprettes ud fra den eller knyttes til den, og skabelonens side viser dem som **Tilknyttede monitorer**. Når du ændrer skabelonen, ændres intet på de monitorer, før du synkroniserer: hver synkroniseringsknap kopierer én del af skabelonen til hver tilknyttet monitor, og felter, du beskytter, beholder hver monitors egen værdi.
 
 ```mermaid title="En skabelon og dens tilknyttede monitorer"
 flowchart TB
@@ -43,34 +43,34 @@ Angiv under **Skabeloninformation** et **Skabelonnavn**, som `Production API Hea
 
 ### Angiv monitorens standarder
 
-Vælg under **Overvågningsstandarder** **Monitortype** med den samme vælger som i Opret monitor. Angiv eventuelt et **Standardnavn for overvågning**; lades det stå tomt, får hver monitor navn efter den ressource, den overvåger. **Standardbeskrivelse for overvågning** og **Etiketter** venter under **Flere felter**. Klik på **Næste**.
+Vælg under **Monitorstandarder** **Monitortype** med den samme vælger som i Opret monitor. Angiv eventuelt et **Standardnavn for monitor**; lades det stå tomt, får hver monitor navn efter den ressource, den overvåger. **Standardbeskrivelse for monitor** og **Etiketter** venter under **Flere felter**. Klik på **Næste**.
 
 ### Angiv kriterierne og intervallet
 
 Udfyld under **Kriterier**, hvad der skal tjekkes, og kriterierne, som i [Opret monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Indstillinger for skabelonsynkronisering** øverst kan du beskytte felter mod synkroniseringer (se [Behold værdier for hver monitor](#behold-værdier-for-hver-monitor)). For en monitortype, som sonder tjekker, beder det sidste trin, **Interval**, om **Overvågningsinterval**. Klik på **Opret Monitorskabelon** på det sidste trin.
 :::
 
-Skabelonen tilføjes listen. Åbn den for at se dens side med et kort for hver del: **Skabeloninformation**, **Overvågningsstandarder**, **Kriterier**, **Overvågningsinterval** (med **Minimum sondeenighed**), **Etiketter**, **Standardværdier for brugerdefinerede felter** (når projektet har brugerdefinerede monitorfelter) og **Tilknyttede overvågninger**. Du ændrer hver del på dens eget kort, for eksempel med **Rediger kriterier** eller **Rediger interval**.
+Skabelonen tilføjes listen. Åbn den for at se dens side med et kort for hver del: **Skabeloninformation**, **Monitorstandarder**, **Kriterier**, **Overvågningsinterval** (med **Minimum sondeenighed**), **Etiketter**, **Standardværdier for brugerdefinerede felter** (når projektet har brugerdefinerede monitorfelter) og **Tilknyttede monitorer**. Du ændrer hver del på dens eget kort, for eksempel med **Rediger kriterier** eller **Rediger interval**.
 
 ## Opret monitorer ud fra en skabelon
 
-- **Ny monitor.** Klik på **Opret monitor** i skabelonens række på listen eller på **Opret overvågning fra skabelon** på dens side. **Opret monitor** åbner med skabelonens type og indstillinger udfyldt; ret det, du har brug for, og opret den. Den nye monitor er knyttet til skabelonen.
-- **Monitorer, du allerede har.** Klik på **Tilknyt eksisterende overvågninger** under **Tilknyttede overvågninger**, og vælg dem. De beholder deres indstillinger, indtil du synkroniserer.
+- **Ny monitor.** Klik på **Opret monitor** i skabelonens række på listen eller på **Opret monitor fra skabelon** på dens side. **Opret monitor** åbner med skabelonens type og indstillinger udfyldt; ret det, du har brug for, og opret den. Den nye monitor er knyttet til skabelonen.
+- **Monitorer, du allerede har.** Klik på **Tilknyt eksisterende monitorer** under **Tilknyttede monitorer**, og vælg dem. De beholder deres indstillinger, indtil du synkroniserer.
 
 Værdier, der er sat under **Standardværdier for brugerdefinerede felter**, skrives til hver monitor, der oprettes ud fra skabelonen, også monitorer, som regler for automatisk import og advarselspolitikker opretter ud fra den.
 
 ## Synkronisér ændringer til tilknyttede monitorer
 
-At redigere en skabelon ændrer kun skabelonen. For at kopiere en ændring til de tilknyttede monitorer bruger du synkroniseringsknappen på det kort, du har ændret. Hver knap nævner, hvor mange monitorer den når, som **Synkronisér kriterier til 3 tilknyttede overvågninger**, og er nedtonet, så længe intet er tilknyttet. En synkronisering kan ikke fortrydes.
+At redigere en skabelon ændrer kun skabelonen. For at kopiere en ændring til de tilknyttede monitorer bruger du synkroniseringsknappen på det kort, du har ændret. Hver knap nævner, hvor mange monitorer den når, som **Synkronisér kriterier til 3 tilknyttede monitorer**, og er nedtonet, så længe intet er tilknyttet. En synkronisering kan ikke fortrydes.
 
 | Knap | Kopierer til hver tilknyttet monitor | Lader være |
 | --- | --- | --- |
-| **Synkronisér kriterier til tilknyttede overvågninger** | Kriterierne og trinindstillingerne, som destinationer og anmodningsindstillinger, undtagen beskyttede felter | Overvågningsintervallet, minimum sondeenighed, navnet, beskrivelsen, etiketterne og værdierne i brugerdefinerede felter |
-| **Synkronisér interval til tilknyttede overvågninger** | Overvågningsintervallet og minimum sondeenighed | Kriterierne, navnet, beskrivelsen, etiketterne og værdierne i brugerdefinerede felter |
-| **Synkronisér etiketter til tilknyttede overvågninger** | Etiketterne og intet andet | Alt andet |
+| **Synkronisér kriterier til tilknyttede monitorer** | Kriterierne og trinindstillingerne, som destinationer og anmodningsindstillinger, undtagen beskyttede felter | Overvågningsintervallet, minimum sondeenighed, navnet, beskrivelsen, etiketterne og værdierne i brugerdefinerede felter |
+| **Synkronisér interval til tilknyttede monitorer** | Overvågningsintervallet og minimum sondeenighed | Kriterierne, navnet, beskrivelsen, etiketterne og værdierne i brugerdefinerede felter |
+| **Synkronisér etiketter til tilknyttede monitorer** | Etiketterne og intet andet | Alt andet |
 | **Synkroniser brugerdefinerede felter til tilknyttede monitorer** | De brugerdefinerede felter, som skabelonen har en standardværdi for, i stedet for det, hver monitor havde | Brugerdefinerede felter, som skabelonen lader stå tomme, og alt andet |
 
-For at synkronisere en enkelt monitor klikker du på **Synkronisér fra skabelon** i dens række under **Tilknyttede overvågninger**. Det kopierer kriterierne og trinindstillingerne (undtagen beskyttede felter), overvågningsintervallet, minimum sondeenighed og etiketterne og lader monitorens navn, beskrivelse og værdier i brugerdefinerede felter være. **Fjern kæde fra skabelon** frakobler en monitor; den beholder sine indstillinger.
+For at synkronisere en enkelt monitor klikker du på **Synkronisér fra skabelon** i dens række under **Tilknyttede monitorer**. Det kopierer kriterierne og trinindstillingerne (undtagen beskyttede felter), overvågningsintervallet, minimum sondeenighed og etiketterne og lader monitorens navn, beskrivelse og værdier i brugerdefinerede felter være. **Fjern kæde fra skabelon** frakobler en monitor; den beholder sine indstillinger.
 
 Efter en synkronisering siger en opsummering, hvor mange monitorer der blev opdateret. **Delvist synkroniseret** betyder, at nogle tilknyttede monitorer stadig har den tidligere konfiguration, som regel fordi dine tilladelser ikke dækker dem.
 
@@ -97,7 +97,7 @@ Gem dine ændringer. Kortet **Kriterier** og bekræftelsen af begge synkroniseri
 
 ### Synkronisér
 
-Brug **Synkronisér kriterier til tilknyttede overvågninger** eller **Synkronisér fra skabelon** på en enkelt tilknyttet monitor.
+Brug **Synkronisér kriterier til tilknyttede monitorer** eller **Synkronisér fra skabelon** på en enkelt tilknyttet monitor.
 :::
 
 Beskyt for eksempel **Monitor-mål** og **Anmodningsheadere** på en API-skabelon. Produktions- og staging-monitorer beholder deres egne URL'er og headere, mens begge får skabelonens opdaterede kriterier og de øvrige ubeskyttede indstillinger.
@@ -144,22 +144,22 @@ Udelad arrayet, eller sæt det til `[]`, for at synkronisere alle understøttede
 :::details Feltnavne for doNotSyncFields efter monitortype
 | Monitortype | Feltnavne |
 | --- | --- |
-| Websted, API, Ping, IP, Port, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| Websted, API, Ping, IP, Port, SSL-certifikat, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | Kun API | `requestHeaders`, `requestType`, `requestBody` |
 | Websted og API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (klientcertifikatet, nøglen og adgangsudtrykket samlet) |
 | Port, NTP | `monitorDestinationPort` |
-| Synthetic Monitor, Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| Syntetisk monitor, Brugerdefineret JavaScript-kode | `customCode` |
+| Syntetisk monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (DNS-serveren og porten samlet), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | Domæne | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Protokoller, Security Events, Spor, AI / LLM, Metrikker, Undtagelser, Profiler | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (monitorens hele konfiguration) |
+| SQL-forespørgsel | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| Databasesundhed | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| Ekstern statusside | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| Protokoller, Sikkerhedshændelser, Spor, AI / LLM, Metrikker, Undtagelser, Profiler | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (monitorens hele konfiguration) |
 | Sondestatus | `probeStatusMonitor.probeIds` |
 
-Infrastrukturmonitorer (Kubernetes, Docker Container, Vært, Podman Container, Proxmox, Docker Swarm, Ceph, Lagerarray, IoT Device) tilbyder deres ressourcevælger, filtre (alle undtagen Vært), metrikforespørgsler og forespørgslens tidsvindue. Deres navne vises under **Indstillinger for skabelonsynkronisering** på en skabelon af den type.
+Infrastrukturmonitorer (Kubernetes, Docker-container, Vært, Podman-container, Proxmox, Docker Swarm, Ceph, Lagerarray, IoT-enhed) tilbyder deres ressourcevælger, filtre (alle undtagen Vært), metrikforespørgsler og forespørgslens tidsvindue. Deres navne vises under **Indstillinger for skabelonsynkronisering** på en skabelon af den type.
 :::
 
 ## Fejlfinding
@@ -173,7 +173,7 @@ Et beskyttet felt kunne ikke matches til et trin på en af monitorerne, så synk
 :::
 
 :::details Synkroniseringsknapperne er nedtonede
-Ingen monitor er knyttet til skabelonen endnu. Opret en monitor ud fra den, eller klik på **Tilknyt eksisterende overvågninger** under **Tilknyttede overvågninger**.
+Ingen monitor er knyttet til skabelonen endnu. Opret en monitor ud fra den, eller klik på **Tilknyt eksisterende monitorer** under **Tilknyttede monitorer**.
 :::
 
 :::details Gem fejler med "Unsupported do not sync field"

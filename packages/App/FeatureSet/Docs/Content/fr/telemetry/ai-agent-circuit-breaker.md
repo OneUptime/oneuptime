@@ -15,7 +15,7 @@ Un agent IA tombe rarement en panne en plantant. Il tombe en panne en continuant
 flowchart TB
     agent["Votre agent envoie<br/>des spans gen_ai.*"] --> ingest["OneUptime"]
     ingest --> wire{"Déclencheur : alerte<br/>de budget ou de boucle"}
-    wire -->|"Alerte créée"| workflow["Flux de travail :<br/>On Create Alert"]
+    wire -->|"Alerte créée"| workflow["Flux de travail :<br/>À la création : Alerte"]
     workflow -->|"API Post (JSON)"| endpoint["Votre endpoint d'arrêt"]
     endpoint --> runner["L'exécuteur met en pause<br/>ou arrête l'agent"]
 ```
@@ -125,19 +125,19 @@ Ouvrez **Produits → Flux de travail** et cliquez sur **Créer un flux de trava
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** dans le panneau **Ajouter un déclencheur**. Cliquez sur le déclencheur : **Fields to pass on** commence avec le titre, alors cliquez sur **Ajouter un champ**, cochez la description, puis cliquez sur **Enregistrer**. L'ID affiché sur le bloc, `alert-on-create-1`, est la façon dont les blocs suivants s'y réfèrent.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **À la création : Alerte** dans le panneau **Ajouter un déclencheur**. Cliquez sur le déclencheur : **Champs à transmettre** commence avec le titre, alors cliquez sur **Ajouter un champ**, cochez la description, puis cliquez sur **Enregistrer**. L'ID affiché sur le bloc, `alert-on-create-1`, est la façon dont les blocs suivants s'y réfèrent.
 
 ### Vérifier le titre
 
-Cliquez sur **Ajouter un composant**, choisissez **If / Else** et reliez-lui le point **Succès** du déclencheur. Réglez **Valeur à vérifier** sur le titre de l'alerte (cliquez sur **{ }** et choisissez-le), **Comparaison** sur **contient**, et **Comparer avec** sur le début commun aux titres de vos déclencheurs, par exemple `LLM budget exceeded`.
+Cliquez sur **Ajouter un composant**, choisissez **Si / Sinon** et reliez-lui le point **Succès** du déclencheur. Réglez **Valeur à vérifier** sur le titre de l'alerte (cliquez sur **{ }** et choisissez-le), **Comparaison** sur **contient**, et **Comparer avec** sur le début commun aux titres de vos déclencheurs, par exemple `LLM budget exceeded`.
 
 ### Appeler votre endpoint
 
-Ajoutez **API Post (JSON)** et reliez-lui le point **Oui** du **If / Else**. Réglez son **URL** sur votre endpoint, par exemple `https://agents.example.com/circuit-breaker`, et remplissez les en-têtes et le corps ci-dessous.
+Ajoutez **Appel d'API POST (JSON)** et reliez-lui le point **Oui** du **Si / Sinon**. Réglez son **URL** sur votre endpoint, par exemple `https://agents.example.com/circuit-breaker`, et remplissez les en-têtes et le corps ci-dessous.
 
 ### Signaler un échec
 
-Ajoutez **Send Message to Slack**, ou **Send Email**, et reliez-lui le point **Erreur** du bloc API. Un disjoncteur qui ne parvient pas à se déclencher est l'alerte qu'une personne doit voir.
+Ajoutez **Envoyer un message à Slack**, ou **Envoyer un e-mail**, et reliez-lui le point **Erreur** du bloc API. Un disjoncteur qui ne parvient pas à se déclencher est l'alerte qu'une personne doit voir.
 
 ### L'activer
 
@@ -164,7 +164,7 @@ Son **Corps de la requête** :
 }
 ```
 
-Pour réagir à plusieurs déclencheurs, faites commencer tous leurs titres de la même façon, ou chaînez d'autres blocs **If / Else** depuis le point **Non**. Voir [Créer un flux de travail](/docs/workflows/authoring) pour le canevas et [Variables](/docs/workflows/variables) pour les références `{{…}}`.
+Pour réagir à plusieurs déclencheurs, faites commencer tous leurs titres de la même façon, ou chaînez d'autres blocs **Si / Sinon** depuis le point **Non**. Voir [Créer un flux de travail](/docs/workflows/authoring) pour le canevas et [Variables](/docs/workflows/variables) pour les références `{{…}}`.
 
 ## Tester le disjoncteur
 
@@ -180,7 +180,7 @@ Pour réagir à plusieurs déclencheurs, faites commencer tous leurs titres de l
 - Un budget compte la journée UTC, donc son pourcentage repart de 0 à minuit UTC. Une alerte de budget peut alors se résoudre, et le prochain mauvais jour ouvre une nouvelle alerte qui fait de nouveau sauter le disjoncteur.
 - Un moniteur garde son alerte ouverte tant que ses critères sont remplis. Avec **Résoudre automatiquement l'alerte** activé, l'alerte se résout quand ils cessent de l'être, et le dépassement suivant ouvre une nouvelle alerte.
 - Réarmer est la décision d'une personne, des deux côtés : résolvez l'alerte dans OneUptime, et réarmez le disjoncteur dans votre exécuteur.
-- Chaque nouvelle alerte du projet démarre le flux de travail. C'est le **If / Else** qui tient les autres alertes à l'écart du disjoncteur : ne le supprimez pas.
+- Chaque nouvelle alerte du projet démarre le flux de travail. C'est le **Si / Sinon** qui tient les autres alertes à l'écart du disjoncteur : ne le supprimez pas.
 
 ## Dépannage
 
@@ -189,7 +189,7 @@ Vérifiez que **Activé** est activé en haut du **Constructeur** : les flux de 
 :::
 
 :::details Le flux de travail s'exécute, mais prend toujours la branche No
-Le titre est vide ou ne correspond pas. Un champ qui n'est pas dans **Fields to pass on** du déclencheur arrive vide, donc ajoutez-y le titre. Comparez ensuite le titre de l'alerte avec **Comparer avec** : **contient** doit y trouver exactement ce texte.
+Le titre est vide ou ne correspond pas. Un champ qui n'est pas dans **Champs à transmettre** du déclencheur arrive vide, donc ajoutez-y le titre. Comparez ensuite le titre de l'alerte avec **Comparer avec** : **contient** doit y trouver exactement ce texte.
 :::
 
 :::details Votre endpoint répond 401
@@ -201,7 +201,7 @@ La **Plage temporelle** du moniteur est plus courte que les 15 minutes qui sépa
 :::
 
 :::details La requête n'atteint jamais votre endpoint
-Ouvrez l'exécution sous **Flux de travail → Journaux → Exécutions** et l'étape **API Post (JSON)** : elle indique pourquoi la requête a échoué. Sur OneUptime Cloud, l'endpoint doit être joignable depuis internet ; une installation auto-hébergée refuse les adresses de réseau privé sauf si un administrateur les autorise.
+Ouvrez l'exécution sous **Flux de travail → Journaux → Exécutions** et l'étape **Appel d'API POST (JSON)** : elle indique pourquoi la requête a échoué. Sur OneUptime Cloud, l'endpoint doit être joignable depuis internet ; une installation auto-hébergée refuse les adresses de réseau privé sauf si un administrateur les autorise.
 :::
 
 ## Étapes suivantes

@@ -11,6 +11,7 @@ import {
   getKubernetesSetupGuide,
   resolveKubernetesPlatform,
 } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Kubernetes/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -34,7 +35,9 @@ const KubernetesDocumentationCard: FunctionComponent<ComponentProps> = (
       newKeyName={translationKey("Kubernetes key")}
       optionsLabel="Where is your cluster running?"
       options={KUBERNETES_PLATFORMS}
-      keyStepDescription="The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it."
+      keyStepDescription={translationKey(
+        "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getKubernetesSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,
@@ -43,6 +46,7 @@ const KubernetesDocumentationCard: FunctionComponent<ComponentProps> = (
           clusterName: props.clusterName,
         });
       }}
+      translations={KUBERNETES_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

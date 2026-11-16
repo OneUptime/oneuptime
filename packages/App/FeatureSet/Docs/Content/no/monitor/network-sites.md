@@ -113,7 +113,7 @@ Hver lokasjon velger én av to oppsummeringspolicyer, på kortet **Health Rollup
 
 ### Verste status for en enhet (standard)
 
-Den verste statusen en enhet i undertreet rapporterer, blir lokasjonens status. Hvor alvorlig en status er, følger av prioriteten som monitorstatus: et nytt prosjekts statuser er Operational (1), Degraded (2) og Offline (3), og høyere er verre. Én frakoblet enhet gjør lokasjonen frakoblet, uansett hvor mange friske enheter som står ved siden av.
+Den verste statusen en enhet i undertreet rapporterer, blir lokasjonens status. Hvor alvorlig en status er, følger av prioriteten som monitorstatus: et nytt prosjekts statuser er Operational (1), Degraded (2) og Offline (3), og høyere er verre. Én offline enhet gjør lokasjonen offline, uansett hvor mange friske enheter som står ved siden av.
 
 Det er riktig svar for en Unit. Fire svitsjer og en brannmur i én bygning er ikke uavhengige: at én av dem er mørk, er et problem på den adressen, og å ta gjennomsnittet skjuler et virkelig avbrudd.
 
@@ -126,12 +126,12 @@ Lokasjonens status avgjøres av andelen av undertreets rapporterende enheter som
 | Andel enheter nede | Lokasjonens status |
 | --- | --- |
 | 0 % | Operational |
-| Over 0 %, under terskelen | Degraded: prosjektets status som verken er i drift eller frakoblet, eller Offline når prosjektet ikke har noen slik |
+| Over 0 %, under terskelen | Degraded: prosjektets status som verken er i drift eller offline, eller Offline når prosjektet ikke har noen slik |
 | Ved eller over terskelen | Offline |
 
 Terskelen settes per lokasjon, som **Offline Threshold (%)**, og er 50 som standard.
 
-Ingenting nede er Operational uansett hvor lavt terskelen settes: en terskel på 0 betyr "en hvilken som helst enhet nede gjør dette frakoblet", ikke "en frisk region er frakoblet".
+Ingenting nede er Operational uansett hvor lavt terskelen settes: en terskel på 0 betyr "en hvilken som helst enhet nede gjør dette offline", ikke "en frisk region er offline".
 
 ### Hvilke enheter som stemmer
 
@@ -141,7 +141,7 @@ Begge policyene er enige her, og det betyr mer enn det høres ut som:
 - Enheter som aldri har rapportert noe, stemmer aldri. En enhet som venter på første polling, er ikke bevis på et avbrudd, så den holdes utenfor begge sider av andelen, og en region som er halvveis gjennom innføringen, vurderes etter halvparten som har svart.
 - En sondepollet enhet, den vanlige typen, stemmer med utfallet av siste polling: tilgjengelig via ping eller SNMP, ikke hvor lenge siden den sist lyktes. En enhet som svarer på ping mens SNMP-walket feiler, er tilgjengelig og stemmer slik; lokasjonen sier at den er oppe, og enhetens rad sier **SNMP failing** slik at noen retter påloggingsinformasjonen.
 - En enhet med bundet monitor, en som er byttet til overstyringen med bundet monitor på siden Innstillinger, stemmer med statusen til monitoren som er bundet til den, fordi ingenting poller den. Uten noe bundet har den aldri rapportert, så den stemmer ikke i det hele tatt.
-- En enhet med bundet monitor der monitoren ikke kontrolleres, fordi overvåkingen er slått av eller den er arkivert, stemmer heller ikke: statusen monitoren har, er bare det den siste kontrollen så. Enheten står som **Venter**, med **Overvåking slått av** eller **Overvåking arkivert** ved siden av, til overvåkingen av monitoren slås på igjen eller den fjernes fra arkivet.
+- En enhet med bundet monitor der monitoren ikke kontrolleres, fordi overvåkingen er slått av eller den er arkivert, stemmer heller ikke: statusen monitoren har, er bare det den siste kontrollen så. Enheten står som **Venter**, med **Overvåking slått av** eller **Monitor arkivert** ved siden av, til overvåkingen av monitoren slås på igjen eller den fjernes fra arkivet.
 
 En nettverksenhetsmonitor på en sondepollet enhet endrer ikke hvordan enheten stemmer. En monitor med et kriterium "grensesnitt nede, altså Offline" ville stemplet Offline på en svitsj som svarer på hvert ping, og én mørk port ville gjort en hel lokasjon rød mens hver enhetsrad under den viser Up: lokasjonen ville vært uenig med listen den oppsummerer. For en pollet enhet er pollingen kilden til helsen; monitoren er der for å opprette hendelser.
 
@@ -220,7 +220,7 @@ Når ingenting på en lokasjon rapporterer en status lenger, fordi monitorene ba
 ## Feilsøking
 
 :::details En region er alltid rød
-Lokasjonen har policyen for verste status, så én frakoblet enhet et sted under den gjør den frakoblet. Bytt regionen til **Percentage of devices down** på kortet **Health Rollup**, med en terskel som svarer til hvor mye av regionen som må være nede før du kaller den nede.
+Lokasjonen har policyen for verste status, så én offline enhet et sted under den gjør den offline. Bytt regionen til **Percentage of devices down** på kortet **Health Rollup**, med en terskel som svarer til hvor mye av regionen som må være nede før du kaller den nede.
 :::
 
 :::details En lokasjon viser — i stedet for en oppetid
@@ -228,7 +228,7 @@ Det har aldri kjørt en oppsummering for lokasjonen, så den har ingen tidslinje
 :::
 
 :::details En enhet teller ikke for lokasjonen sin
-Arkiverte enheter, og enheter som ikke har rapportert ennå, stemmer aldri. En enhet med bundet monitor uten noen monitor bundet har heller aldri rapportert. Sjekk enhetens status: en enhet som står som **Venter**, begynner å stemme etter første polling. En enhet med **Overvåking slått av** eller **Overvåking arkivert** ved siden av stemmer igjen så snart overvåkingen av monitoren slås på igjen eller monitoren fjernes fra arkivet.
+Arkiverte enheter, og enheter som ikke har rapportert ennå, stemmer aldri. En enhet med bundet monitor uten noen monitor bundet har heller aldri rapportert. Sjekk enhetens status: en enhet som står som **Venter**, begynner å stemme etter første polling. En enhet med **Overvåking slått av** eller **Monitor arkivert** ved siden av stemmer igjen så snart overvåkingen av monitoren slås på igjen eller monitoren fjernes fra arkivet.
 :::
 
 :::details En lokasjon har ikke lenger noen status
@@ -242,7 +242,7 @@ Ingenting på lokasjonen rapporterer en status: monitorene bak enhetene har over
 ## Neste steg
 
 :::cards
-- [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor): Legg til, poll og varsle om enhetene som knyttes til disse lokasjonene.
+- [Monitor for nettverksenhet](/docs/monitor/network-device-monitor): Legg til, poll og varsle om enhetene som knyttes til disse lokasjonene.
 - [Nettverkstrafikk](/docs/monitor/network-traffic): Se en lokasjons trafikk ut fra enhetenes flytposter.
 - [Inventar](/docs/inventory/overview): Nettverksenheter ved siden av alle de andre ressursene dine.
 :::

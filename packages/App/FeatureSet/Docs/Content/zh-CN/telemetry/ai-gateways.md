@@ -6,7 +6,7 @@ AI 网关位于你的应用和模型提供商之间，所以每次模型调用�
 - [LiteLLM Proxy](#litellm-proxy): 内置导出，用三个变量完成设置。
 - [谁花了什么](#每位员工一个虚拟密钥): 每位员工一个 LiteLLM 虚拟密钥，就能识别每个人。
 - [Portkey](#portkey): 自托管网关有内置导出；其他情况下为应用插桩。
-- [OpenRouter](#openrouter): Broadcast 会发送每个请求的跟踪，只需在 OpenRouter 中设置一次。
+- [OpenRouter](#openrouter): Broadcast 会发送每个请求的追踪，只需在 OpenRouter 中设置一次。
 - [检查调用是否到达](#检查调用是否到达): 你应该看到什么，看不到时怎么办。
 :::
 
@@ -163,10 +163,10 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT="NO_CONTENT"
 ```
 :::
 
-`callback_settings` 是顶层键，不是 `litellm_settings` 下的键。要保留提示词但遮盖其中一部分，请改用 **跟踪 → 设置** 下的清理规则。
+`callback_settings` 是顶层键，不是 `litellm_settings` 下的键。要保留提示词但遮盖其中一部分，请改用 **追踪 → 设置** 下的清理规则。
 
 :::details LiteLLM 的 OpenTelemetry v2 模式
-较新的 LiteLLM 版本有一个可选的 OpenTelemetry v2 模式（`LITELLM_OTEL_V2=true`，无需修改 `config.yaml`）。它为每个请求发送一条跟踪，把 HTTP 处理、身份验证、防护规则和模型调用作为名称类似 `chat gpt-4o` 的 GenAI span。在 v2 模式下，提示词默认关闭；用 `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` 打开它们。成本以 `litellm.cost.total` 到达，OneUptime 也会读取它。请只使用其中一种模式，不要同时使用两种。
+较新的 LiteLLM 版本有一个可选的 OpenTelemetry v2 模式（`LITELLM_OTEL_V2=true`，无需修改 `config.yaml`）。它为每个请求发送一条追踪，把 HTTP 处理、身份验证、防护规则和模型调用作为名称类似 `chat gpt-4o` 的 GenAI span。在 v2 模式下，提示词默认关闭；用 `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` 打开它们。成本以 `litellm.cost.total` 到达，OneUptime 也会读取它。请只使用其中一种模式，不要同时使用两种。
 :::
 
 ## Portkey
@@ -179,7 +179,7 @@ Portkey 能发送什么，取决于你如何运行它：
 | 开源网关（`portkey-ai/gateway`） | 无：为调用它的应用插桩 |
 | 托管网关（portkey.ai） | 网关上没有：为调用它的应用插桩 |
 
-Portkey 也有自己的 OpenTelemetry 端点（`api.portkey.ai/v1/otel`）。它是把跟踪接收进 Portkey，方向与本页相反。
+Portkey 也有自己的 OpenTelemetry 端点（`api.portkey.ai/v1/otel`）。它是把追踪接收进 Portkey，方向与本页相反。
 
 ### 自托管和 Enterprise 网关
 
@@ -198,15 +198,15 @@ services:
 - 标头是以逗号分隔的 `key=value` 对。`EXPERIMENTAL_GEN_AI_OTEL_RESOURCE_ATTRIBUTES` 以同样的方式添加资源属性，例如 `deployment.environment=production`。
 - Portkey 只以 JSON 格式通过 HTTP 发送 OTLP，OneUptime 无需中间的收集器即可接受。
 - 每次调用都是一个名为 `{operation} {model}` 的 span，例如 `chat gpt-4o`，位于服务 `portkey` 下，带有 `gen_ai.provider.name`、请求的模型和实际响应的模型、token 计数、`gen_ai.conversation.id`，以及 `gen_ai.input.messages` 和 `gen_ai.output.messages` 中的消息。
-- 完整的提示词和回答始终包含在内。请用 **跟踪 → 设置** 下的清理规则遮盖需要遮盖的内容。
+- 完整的提示词和回答始终包含在内。请用 **追踪 → 设置** 下的清理规则遮盖需要遮盖的内容。
 - 每次调用在响应后单独发送，没有批处理，也没有重试：导出失败就会丢失。请把它当作可观测性，而不是审计日志。
-- 如果你的 `x-portkey-trace-id` 是有效的跟踪 ID（32 个十六进制字符），Portkey 会复用它，让网关的 span 接入你自己应用的跟踪。
+- 如果你的 `x-portkey-trace-id` 是有效的追踪 ID（32 个十六进制字符），Portkey 会复用它，让网关的 span 接入你自己应用的追踪。
 
 Portkey 把这个导出标记为实验性。如果变量没有效果，请对照 Portkey 的最新文档检查你的网关版本。
 
 ### 开源和托管网关
 
-开源网关没有导出器，托管网关也无法设置它的变量。请改为给调用 Portkey 的应用插桩。Portkey 使用 OpenAI 的 API，所以 [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability) 中的 GenAI 插桩（OpenLLMetry、OpenInference、OpenLIT）即使在基础 URL 指向 Portkey 时，也会跟踪你的 SDK 的调用：
+开源网关没有导出器，托管网关也无法设置它的变量。请改为给调用 Portkey 的应用插桩。Portkey 使用 OpenAI 的 API，所以 [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability) 中的 GenAI 插桩（OpenLLMetry、OpenInference、OpenLIT）即使在基础 URL 指向 Portkey 时，也会追踪你的 SDK 的调用：
 
 ```python
 from traceloop.sdk import Traceloop
@@ -229,7 +229,7 @@ client = OpenAI(
 
 ## OpenRouter
 
-OpenRouter 的 Broadcast 会把你的 OpenRouter 账户每个请求的跟踪发送到一个 OpenTelemetry 端点：模型、token、OpenRouter 收取的成本，以及除非你关闭，否则还有提示词和回答。只需在 OpenRouter 中设置一次，无需修改你的应用。
+OpenRouter 的 Broadcast 会把你的 OpenRouter 账户每个请求的追踪发送到一个 OpenTelemetry 端点：模型、token、OpenRouter 收取的成本，以及除非你关闭，否则还有提示词和回答。只需在 OpenRouter 中设置一次，无需修改你的应用。
 
 :::steps
 ### 开启 Broadcast
@@ -238,7 +238,7 @@ OpenRouter 的 Broadcast 会把你的 OpenRouter 账户每个请求的跟踪发�
 
 ### 把 OneUptime 添加为收集器
 
-编辑 OpenTelemetry Collector 目标。把它的端点设为完整的跟踪路径 `https://oneuptime.com/otlp/v1/traces`，把它的请求头设为 `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`。然后测试连接：只有测试通过，OpenRouter 才会保存该目标。
+编辑 OpenTelemetry Collector 目标。把它的端点设为完整的追踪路径 `https://oneuptime.com/otlp/v1/traces`，把它的请求头设为 `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`。然后测试连接：只有测试通过，OpenRouter 才会保存该目标。
 
 ### 通过它调用模型
 
@@ -254,7 +254,7 @@ OpenRouter 的 Broadcast 会把你的 OpenRouter 账户每个请求的跟踪发�
 :::steps
 1. 通过网关发送一个请求，等几秒钟。
 2. 打开 **产品 → AI / LLM → 调用** 。这次调用会连同提供商、模型和 token 一起列出。
-3. 点击这次调用打开它的跟踪，再打开该 span 的 **LLM** 标签页：模型、token、参数，以及（除非你关闭了）提示词和回答。
+3. 点击这次调用打开它的追踪，再打开该 span 的 **LLM** 标签页：模型、token、参数，以及（除非你关闭了）提示词和回答。
 4. 打开 **用量** ：这次调用计入总计，成本为网关报告的或 OneUptime 估算的金额。
 :::
 
@@ -273,7 +273,7 @@ LiteLLM 使用完整路径 `https://oneuptime.com/otlp/v1/traces`。Portkey 使�
 :::
 
 :::details span 到达了，但没有出现在 AI / LLM 中
-在 **跟踪** 中按网关的服务（`litellm`、`portkey` 或你的 `OTEL_SERVICE_NAME`）过滤，查看原始 span。只有带 `gen_ai.*` 属性的 span 才算作模型调用：请检查回调是否为 `otel`，以及这次调用是否发往了模型。
+在 **追踪** 中按网关的服务（`litellm`、`portkey` 或你的 `OTEL_SERVICE_NAME`）过滤，查看原始 span。只有带 `gen_ai.*` 属性的 span 才算作模型调用：请检查回调是否为 `otel`，以及这次调用是否发往了模型。
 :::
 
 :::details 支出显示为未归属
@@ -294,6 +294,6 @@ LiteLLM 使用完整路径 `https://oneuptime.com/otlp/v1/traces`。Portkey 使�
 - [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability): 这些调用的对话、警报、用量和每日成本预算。
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): 在自己不发送遥测数据的工具前面放一个网关。
 - [AI 代理熔断器](/docs/telemetry/ai-agent-circuit-breaker): 当警报触发时让失控的代理停下。
-- [跟踪监控](/docs/monitor/traces-monitor): 针对 span 模式发出警报，例如在循环中被调用的工具。
+- [追踪监控](/docs/monitor/traces-monitor): 针对 span 模式发出警报，例如在循环中被调用的工具。
 - [AI 提供商账户](/docs/telemetry/ai-provider-accounts): 无需代码，查看网关背后账户的账单。
 :::

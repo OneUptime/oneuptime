@@ -367,7 +367,7 @@ describe("the importer's query string", () => {
 
 describe("who is offered it", () => {
   test.each(ALL_OFFERS)(
-    "%s: a project admin is offered a quiet link with the import icon",
+    "%s: a Project Admin is offered a quiet link with the import icon",
     (_name: string, offer: ToolImportListOffer) => {
       const action: TableEmptyStateAction | undefined =
         getToolImportEmptyStateAction({ offer, translator: ENGLISH });

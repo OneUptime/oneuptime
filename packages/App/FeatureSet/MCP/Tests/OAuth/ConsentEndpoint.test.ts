@@ -757,7 +757,7 @@ describe("/mcp/oauth/consent", () => {
 
         expect(response.status).toBe(422);
         expect(response.json.message).toBe(
-          "Your project administrator does not allow you to connect MCP clients to this project.",
+          "Your Project Admin does not allow you to connect MCP clients to this project.",
         );
         expectNothingWritten();
       });

@@ -139,8 +139,8 @@ export const CHAT_STEP_PAGES: ReadonlyArray<string> = [DISCORD, TELEGRAM];
  * an If / Else block offers. The facts suite holds each to the step
  * catalog. The builder looks each up in the Dashboard's locale, so a
  * translation names the ones a locale has a word for as its Dashboard
- * draws them (#7511, isStepNameOnPage), and keeps the rest, most of the
- * steps' titles, as written.
+ * draws them (#7511, isStepNameOnPage): every step's title since #8359, a
+ * record step's as the sentence it was built from (#8708).
  */
 const OUTBOUND_STEPS: ReadonlyArray<string> = [
   "On Create Incident",
@@ -377,7 +377,11 @@ export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Create an alert for each Zabbix problem",
     // What the create wizard asks who to page by.
     "Who to page for High and Disaster problems",
-    "Zabbix URL",
+    /*
+     * Zabbix URL is not among them: the wizard's field label looks it up,
+     * and it is the Update Zabbix Problem step's setting too, worded in
+     * every language since #8359.
+     */
     "Zabbix API Token",
     "Acknowledge or close the Zabbix problem with the incident",
     "Copy incident private notes to the Zabbix problem",

@@ -258,11 +258,11 @@ describe("getEmptyReason precedence", () => {
       );
 
     expect(reason?.variant).toBe("no-sessions-in-range");
-    expect(reason?.title).toBe("No sessions in the past 24 hours");
+    expect(reason?.title).toBe("No sessions in the past 24\u00A0hours");
     expect(reason?.detail).toContain("The most recent started 3d ago");
     expect(reason?.action).toEqual({
       kind: "set-range",
-      label: "Show the past 7 days",
+      label: "Show the past 7\u00A0days",
       range: { range: TimeRange.PAST_ONE_WEEK },
     });
   });
@@ -320,7 +320,7 @@ describe("getEmptyReason precedence", () => {
 
     expect(reason?.variant).toBe("filters-match-nothing");
     expect(reason?.title).toBe(
-      "No sessions match these filters in the past 7 days",
+      "No sessions match these filters in the past 7\u00A0days",
     );
     expect(reason?.showChips).toBe(true);
     expect(reason?.action).toEqual({
@@ -357,7 +357,7 @@ describe("describeSessionReplayListError", () => {
       );
 
     expect(copy.kind).toBe("narrow-range");
-    expect(copy.title).toContain("30 days");
+    expect(copy.title).toContain("30\u00A0days");
     expect(copy.detail).toContain("Narrow the time range");
   });
 

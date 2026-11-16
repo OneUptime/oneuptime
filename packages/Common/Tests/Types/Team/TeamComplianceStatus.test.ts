@@ -67,6 +67,8 @@ const RULE_KEYS: Equals<
   | "compliantCount"
   | "nonCompliantCount"
   | "warnings"
+  // The warnings as data, for the Dashboard to word (#8632).
+  | "warningDetails"
 > = true;
 
 const SEVERITY_KEYS: Equals<
@@ -86,7 +88,8 @@ const MEMBER_KEYS: Equals<
 
 const ISSUE_KEYS: Equals<
   keyof TeamComplianceIssueJSON,
-  "settingId" | "ruleType" | "reason"
+  // findings: the reason as data, for the Dashboard to word (#8632).
+  "settingId" | "ruleType" | "reason" | "findings"
 > = true;
 
 /*

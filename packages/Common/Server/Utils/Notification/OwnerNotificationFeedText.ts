@@ -34,6 +34,12 @@ import FeedMarkdown, {
  *
  *   The project's owners were notified that this incident was created, as
  *   it has no owners yet.
+ *
+ * And the "created" entry names, after them, the owners it left out because
+ * the record's on-call page had reached them already (#7987), so it never
+ * lists somebody it did not notify:
+ *
+ *   Not notified again, as the on-call page reached them: Ana Lopez.
  */
 export type OwnerNotificationRecordNoun =
   | "incident"
@@ -125,7 +131,7 @@ export default class OwnerNotificationFeedText {
       ? mdText`, as this ${data.recordNoun} has no owners yet`
       : mdText`, as it has no owners yet`;
 
-    return mdText`The project's owners ${data.sentence}${reason}.`.toString();
+    return mdText`The Project Owners ${data.sentence}${reason}.`.toString();
   }
 
   /*
@@ -184,6 +190,29 @@ export default class OwnerNotificationFeedText {
    */
   public static notifiedLineMarkdown(person: MarkdownValue): string {
     return mdText`- ${person}\n`.toString();
+  }
+
+  /*
+   * The people a record's "created" notification left out because its
+   * on-call page had reached them already (OwnersReachedByAPage, #7987), as
+   * the last paragraph of the entry's details, after the list of who was
+   * notified:
+   *
+   *   - Bo Chen (bo@example.com)
+   *
+   *   Not notified again, as the on-call page reached them: Ana Lopez
+   *   (ana@example.com).
+   *
+   * A paragraph of its own, after a blank line, so that it is not read as
+   * one more person notified. Empty when nobody was left out. Named for
+   * Markdown, as what it returns is appended to the details as it is.
+   */
+  public static reachedByPageMarkdown(people: Array<MarkdownValue>): string {
+    if (people.length === 0) {
+      return "";
+    }
+
+    return mdText`\nNot notified again, as the on-call page reached them: ${FeedMarkdown.join(people)}.\n`.toString();
   }
 
   // A person as their name and address: "Nitin Kumar (nitin@example.com)".

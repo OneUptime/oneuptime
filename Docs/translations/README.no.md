@@ -28,7 +28,7 @@
   <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
 </p>
 
-OneUptime er en observerbarhetsplattform med åpen kildekode. Den sjekker at nettstedene, API-ene og serverne dine virker, samler inn loggene, metrikkene og sporene appene dine sender, varsler den som har vakt når noe går i stykker, og holder kundene dine oppdatert på en statusside. Alt skjer i ett produkt: verktøyet som oppdager et problem, er det samme som varsler teamet ditt.
+OneUptime er en observerbarhetsplattform med åpen kildekode. Den sjekker at nettstedene, API-ene og serverne dine virker, samler inn loggene, målingene og sporene appene dine sender, varsler den som har vakt når noe går i stykker, og holder kundene dine oppdatert på en statusside. Alt skjer i ett produkt: verktøyet som oppdager et problem, er det samme som varsler teamet ditt.
 
 Du kan bruke [OneUptime Cloud](https://oneuptime.com) eller kjøre OneUptime på dine egne servere.
 
@@ -41,7 +41,7 @@ Du kan bruke [OneUptime Cloud](https://oneuptime.com) eller kjøre OneUptime på
 - **[Overvåking](https://oneuptime.com/docs/no/monitor/create-monitor)**: Sjekk nettsteder, API-er, porter, DNS og sertifikater fra sonder over hele verden eller fra innsiden av ditt eget nettverk. OneUptime følger også med på servere, Kubernetes, Docker, VMware, databaser og nettverksenheter.
 - **[Hendelser og vakt](https://oneuptime.com/docs/no/incidents/index)**: Jobb med hver hendelse på én tidslinje. Varsle den som har vakt via telefon, SMS, e-post, push, Slack eller Microsoft Teams, og eskaler til noen svarer.
 - **[Statussider](https://oneuptime.com/docs/no/status-pages/index)**: Hold kundene oppdatert på offentlige eller private statussider, og kunngjør planlagt vedlikehold der.
-- **[Logger, metrikker og spor](https://oneuptime.com/docs/no/telemetry/open-telemetry)**: Send dem med OpenTelemetry, søk i dem og bygg dashbord. Unntak, profiler, Real User Monitoring og sikkerhetshendelser ligger på samme sted.
+- **[Logger, målinger og spor](https://oneuptime.com/docs/no/telemetry/open-telemetry)**: Send dem med OpenTelemetry, søk i dem og bygg dashbord. Unntak, profiler, Real User Monitoring og sikkerhetshendelser ligger på samme sted.
 - **[Arbeidsflyter og runbooks](https://oneuptime.com/docs/no/workflows/index)**: Automatiser rutinearbeid, og koble til Jira, ServiceNow og de andre verktøyene teamet ditt allerede bruker.
 - **[OneUptime AI](https://oneuptime.com/docs/no/ai/ai-sre)**: Undersøker nye hendelser og varsler og legger ut en årsaksanalyse med kilder. Når du slår på retting, kan den åpne en pull-forespørsel med en rettelse som teamet ditt går gjennom.
 - **[API, CLI og Terraform](https://oneuptime.com/docs/no/api-reference/api-reference)**: Automatiser OneUptime fra skriptene dine og CI-en din, og administrer monitorer, statussider og vakt som kode.
@@ -55,7 +55,7 @@ Alt annet står i [dokumentasjonen](https://oneuptime.com/docs/no/introduction/g
 
 ### OneUptime Cloud
 
-[Registrer deg](https://oneuptime.com/accounts/register) og opprett et prosjekt. Gratisplanen krever ikke kredittkort.
+[Registrer deg](https://oneuptime.com/accounts/register) og opprett et prosjekt. Et prosjekt krever ikke kort. På Free-abonnementet krever sjekk av et nettsted en betalingsmetode.
 
 ### Drift selv med Docker Compose
 

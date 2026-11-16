@@ -65,7 +65,7 @@ Kortet viser hvert felt på den nye hændelse, og hvor dets værdi kommer fra:
 Vælg en **Hændelsesskabelon** i indstillingerne, så oprettes hver hændelse, formularen opretter, ud fra den, på samme måde som serveren anvender en skabelon overalt — se [Sådan anvendes en skabelon](/docs/incidents/settings#sådan-anvendes-en-skabelon). Svarene og formularens indstillinger kommer først, og skabelonen udfylder alt andet: den indledende tilstand, beskrivelsen, alvorligheden, de berørte ressourcer, vagtpolitikkerne, ejerne, etiketterne, værdierne i brugerdefinerede felter og en ændring af monitorstatus.
 
 > [!WARNING]
-> **Pas på monitorerne.** At oprette en hændelse på en monitor via en formular påvirker monitoren præcis som at oprette en hændelse på den manuelt: den aktive overvågning af monitoren sættes på pause, indtil hændelsen er løst, og en skabelons **Skift overvågningsstatus til** ændrer monitorens status med det samme — på hver statusside, der viser monitoren, selv mens selve hændelsen er skjult. Med en formular kan alle med linket gøre dette. Tilknyt kun monitorer via en formular, når hver indsendelse skal sætte dem på pause.
+> **Pas på monitorerne.** At oprette en hændelse på en monitor via en formular påvirker monitoren præcis som at oprette en hændelse på den manuelt: den aktive overvågning af monitoren sættes på pause, indtil hændelsen er løst, og en skabelons **Skift monitorstatus til** ændrer monitorens status med det samme — på hver statusside, der viser monitoren, selv mens selve hændelsen er skjult. Med en formular kan alle med linket gøre dette. Tilknyt kun monitorer via en formular, når hver indsendelse skal sætte dem på pause.
 
 ### Sådan ser hændelsen ud
 
@@ -73,10 +73,10 @@ En hændelse, der er oprettet via en formular, er en almindelig hændelse med no
 
 - **Skjult fra statussider.** **Synlig på statussiden** er slået fra, og det samme er **Underret statussideabonnenter**. Indtil en responder offentliggør den, når intet om hændelsen en statusside eller en abonnent — bortset fra en skabelons ændring af monitorstatus, ovenfor.
 - **Oprettet af ingen.** Indsenderen er ikke en OneUptime-bruger, så ingen bruger registreres som den, der oprettede hændelsen.
-- **Dens ejere får besked.** De ejere, indstillingerne og skabelonen nævner, tilføjes, så snart hændelsens Slack- og Microsoft Teams-kanaler findes, og får besked — hændelsens notifikation **Hændelse oprettet** venter, til de er dens ejere, så den går til dem i stedet for til projektets ejere.
+- **Dens ejere får besked.** De ejere, indstillingerne og skabelonen nævner, tilføjes, så snart hændelsens Slack- og Microsoft Teams-kanaler findes, og får besked — hændelsens notifikation **Hændelse oprettet** venter, til de er dens ejere, så den går til dem i stedet for til Projektejere.
 - **En privat note registrerer indsendelsen** — se [Den private note](#den-private-note).
 
-Alt, der kører for en ny hændelse, kører også for disse: privatlivs-, ejer-, etiket-, vagt- og runbook-regler, vagtpolitikker og arbejdsgange med **On Create Incident**. Vagtregler matcher en formulars hændelser som alle andre — også på deres titel og beskrivelse, som indsenderen skrev.
+Alt, der kører for en ny hændelse, kører også for disse: privatlivs-, ejer-, etiket-, vagt- og runbook-regler, vagtpolitikker og arbejdsgange med **Ved oprettelse: Hændelse**. Vagtregler matcher en formulars hændelser som alle andre — også på deres titel og beskrivelse, som indsenderen skrev.
 
 :::steps
 #### Læs, hvad indsenderen skrev

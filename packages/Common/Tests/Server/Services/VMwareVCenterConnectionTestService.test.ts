@@ -31,7 +31,11 @@ import {
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
-import { EntityManager } from "typeorm";
+import {
+  CapturedStatement,
+  captureClaimQueries,
+  normalizeSql,
+} from "../TestingUtils/PastDueMonitoringClaimSql";
 
 /*
  * "Test connection": checked like the connection it is about to become,
@@ -152,34 +156,6 @@ async function refusal(promise: Promise<unknown>): Promise<string> {
 interface RecordedStatement {
   sql: string;
   params: Array<unknown>;
-}
-
-function stubTransaction(
-  service: VMwareVCenterConnectionTestServiceType,
-  results: Array<unknown>,
-): Array<RecordedStatement> {
-  const statements: Array<RecordedStatement> = [];
-  const queue: Array<unknown> = [...results];
-
-  jest
-    .spyOn(service, "executeTransaction")
-    .mockImplementation(
-      async <TResult>(
-        runInTransaction: (entityManager: EntityManager) => Promise<TResult>,
-      ): Promise<TResult> => {
-        return await runInTransaction({
-          query: async (
-            sql: string,
-            params: Array<unknown>,
-          ): Promise<unknown> => {
-            statements.push({ sql, params });
-            return queue.length > 0 ? queue.shift() : [];
-          },
-        } as unknown as EntityManager);
-      },
-    );
-
-  return statements;
 }
 
 function stubColumnWrites(
@@ -455,10 +431,15 @@ describe("onBeforeCreate: a test is checked like the connection it is about to b
   });
 });
 
+/*
+ * The claim is one self-committing statement (OneUptime issue #7392):
+ * captured at getRepository().manager.query, with executeTransaction made
+ * to throw, so a claim that opens a transaction again fails here.
+ */
 describe("claimPendingTests: each test is handed once, to its own probe, and its password wiped", () => {
   test("claims nothing without a free slot", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, []);
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
 
     expect(
       await service.claimPendingTests({ probeId: PROBE_ID, limit: 0 }),
@@ -466,39 +447,55 @@ describe("claimPendingTests: each test is handed once, to its own probe, and its
     expect(statements).toEqual([]);
   });
 
-  test("selects this probe's fresh pending tests it may run, locks them and marks them running", async () => {
+  test("locks this probe's fresh pending tests it may run and marks them running, in one statement", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
-      [{ _id: TEST_ID }, { _id: SECOND_TEST_ID }],
+    const statements: Array<CapturedStatement> = captureClaimQueries(service, [
+      { _id: TEST_ID },
+      { _id: SECOND_TEST_ID },
     ]);
     jest.spyOn(service, "findBy").mockResolvedValue([] as never);
     stubColumnWrites(service);
 
+    const before: number = Date.now();
     await service.claimPendingTests({ probeId: PROBE_ID, limit: 5 });
+    const after: number = Date.now();
 
-    expect(statements).toHaveLength(2);
-    const select: RecordedStatement = statements[0]!;
-    const sql: string = flatten(select.sql);
+    expect(statements).toHaveLength(1);
+    expect(service.executeTransaction).not.toHaveBeenCalled();
+
+    const claim: CapturedStatement = statements[0]!;
+    const sql: string = normalizeSql(claim.sql);
+    const pending: string = sql.slice(
+      sql.indexOf('WITH "pending" AS ('),
+      sql.indexOf('"claimed" AS ('),
+    );
+    const claimed: string = sql.slice(sql.indexOf('"claimed" AS ('));
 
     for (const clause of [
+      'FROM "VMwareVCenterConnectionTest" t INNER JOIN "Probe" pr ON t."probeId" = pr."_id"',
       't."probeId" = $1',
       't."status" = $2',
       't."deletedAt" IS NULL',
       't."createdAt" >= $3',
       '(pr."isGlobalProbe" = false AND pr."projectId" = t."projectId")',
       '(pr."isGlobalProbe" = true AND $5::boolean = false)',
+      'ORDER BY t."createdAt" ASC',
       "LIMIT $4",
-      "FOR UPDATE OF t SKIP LOCKED",
+      // The tests only: the Probe rows the tenancy rule reads stay unlocked.
+      "FOR NO KEY UPDATE OF t SKIP LOCKED",
     ]) {
-      expect(sql).toContain(clause);
+      expect(pending).toContain(clause);
     }
 
-    expect(select.params[0]).toBe(PROBE_ID.toString());
-    expect(select.params[1]).toBe(VMwareConnectionTestStatus.Pending);
-    expect(select.params[3]).toBe(5);
-    expect(select.params[4]).toBe(IsBillingEnabled);
+    // FOR UPDATE holds up the foreign-key checks of rows that name a test.
+    expect(sql).not.toContain("FOR UPDATE");
 
-    const cutoff: Date = select.params[2] as Date;
+    expect(claim.parameters[0]).toBe(PROBE_ID.toString());
+    expect(claim.parameters[1]).toBe(VMwareConnectionTestStatus.Pending);
+    expect(claim.parameters[3]).toBe(5);
+    expect(claim.parameters[4]).toBe(IsBillingEnabled);
+
+    const cutoff: Date = claim.parameters[2] as Date;
     const age: number = Date.now() - cutoff.getTime();
     expect(age).toBeGreaterThanOrEqual(
       VMWARE_CONNECTION_TEST_PICKUP_TIMEOUT_IN_SECONDS * 1000 - 5000,
@@ -507,16 +504,48 @@ describe("claimPendingTests: each test is handed once, to its own probe, and its
       VMWARE_CONNECTION_TEST_PICKUP_TIMEOUT_IN_SECONDS * 1000 + 5000,
     );
 
-    expect(flatten(statements[1]!.sql)).toBe(
-      'UPDATE "VMwareVCenterConnectionTest" SET "status" = $1, "claimedAt" = $2::timestamptz WHERE "_id" = ANY($3::uuid[])',
+    expect(claimed).toContain(
+      'UPDATE "VMwareVCenterConnectionTest" AS t SET "status" = $6, "claimedAt" = $7::timestamptz FROM "pending" WHERE t."_id" = "pending"."_id"',
     );
-    expect(statements[1]!.params[0]).toBe(VMwareConnectionTestStatus.Running);
-    expect(statements[1]!.params[2]).toEqual([TEST_ID, SECOND_TEST_ID]);
+    expect(claim.parameters[5]).toBe(VMwareConnectionTestStatus.Running);
+    const claimedAt: number = (claim.parameters[6] as Date).getTime();
+    expect(claimedAt).toBeGreaterThanOrEqual(before);
+    expect(claimedAt).toBeLessThanOrEqual(after);
+    // The pickup window is counted back from the claim's own time.
+    expect(claimedAt - cutoff.getTime()).toBe(
+      VMWARE_CONNECTION_TEST_PICKUP_TIMEOUT_IN_SECONDS * 1000,
+    );
+    expect(claim.parameters).toHaveLength(7);
+
+    // The rows it wrote, in the order it locked them: oldest first.
+    expect(sql).toMatch(
+      /SELECT "pending"\."_id" FROM "pending" INNER JOIN "claimed" ON "claimed"\."_id" = "pending"\."_id" ORDER BY "pending"\."createdAt" ASC$/,
+    );
+  });
+
+  test("nothing claimed reads and wipes nothing", async () => {
+    const { service } = buildService();
+    const statements: Array<CapturedStatement> = captureClaimQueries(
+      service,
+      [],
+    );
+    const read: Spy = jest
+      .spyOn(service, "findBy")
+      .mockResolvedValue([] as never) as unknown as Spy;
+    const writes: Array<{ id: string; data: Record<string, unknown> }> =
+      stubColumnWrites(service);
+
+    expect(
+      await service.claimPendingTests({ probeId: PROBE_ID, limit: 5 }),
+    ).toEqual([]);
+    expect(statements).toHaveLength(1);
+    expect(read.mock.calls).toHaveLength(0);
+    expect(writes).toEqual([]);
   });
 
   test("hands out what the probe needs, then wipes every claimed test's password", async () => {
     const { service } = buildService();
-    stubTransaction(service, [[{ _id: TEST_ID }, { _id: SECOND_TEST_ID }]]);
+    captureClaimQueries(service, [{ _id: TEST_ID }, { _id: SECOND_TEST_ID }]);
 
     const first: VMwareVCenterConnectionTest =
       new VMwareVCenterConnectionTest();

@@ -221,7 +221,7 @@ function alertTextOf(alert: HTMLElement): AlertText {
 describe("what Settings > SCIM tells everyone else", () => {
   test("who can, and why: Groups reach every team", () => {
     expect(SCIM_SAVE_ACCESS_TITLE).toBe(
-      "Only a project owner can add or change SCIM connections.",
+      "Only a Project Owner can add or change SCIM connections.",
     );
     expect(SCIM_SAVE_ACCESS_DESCRIPTION).toContain("any team in this project");
     expect(SCIM_SAVE_ACCESS_DESCRIPTION).toContain(

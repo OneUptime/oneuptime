@@ -16,9 +16,9 @@ OneUptime のインシデントを [Opsgenie](https://www.atlassian.com/software
 
 ```mermaid title="2 つのワークフロー、1 つの Opsgenie アラート"
 flowchart TB
-    declared["インシデント宣言"] --> create["ワークフロー 1:<br/>On Create Incident"]
+    declared["インシデント宣言"] --> create["ワークフロー 1:<br/>インシデントの作成時"]
     create -->|"POST /v2/alerts"| og["Opsgenie の<br/>アラート"]
-    resolved["インシデント解決"] --> update["ワークフロー 2:<br/>On Update Incident"]
+    resolved["インシデント解決"] --> update["ワークフロー 2:<br/>インシデントの更新時"]
     update -->|"alias でクローズ"| og
 ```
 
@@ -49,11 +49,11 @@ flowchart TB
 
 ### トリガーを追加する
 
-点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックします。その **Fields to pass on** は **タイトル** から始まるので、**フィールドを追加** をクリックして **説明** を選びます。
+点線の **このワークフローを開始するものを選択** ブロックをクリックし、**インシデントの作成時** を選びます。トリガーをクリックします。その **引き渡すフィールド** は **タイトル** から始まるので、**フィールドを追加** をクリックして **説明** を選びます。
 
 ### アラートを作成する
 
-**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**URL** を `https://api.opsgenie.com/v2/alerts` (ヨーロッパでは `https://api.eu.opsgenie.com/v2/alerts`) に設定します。**その他の項目** で、**リクエストヘッダー** を次のように設定します:
+**コンポーネントを追加** をクリックし、**API 呼び出し POST (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**URL** を `https://api.opsgenie.com/v2/alerts` (ヨーロッパでは `https://api.eu.opsgenie.com/v2/alerts`) に設定します。**その他の項目** で、**リクエストヘッダー** を次のように設定します:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ flowchart TB
 
 ### テストしてからオンにする
 
-**ワークフローを実行** をクリックし、**インシデント** でテスト用インシデントを選んで実行します。**API Post (JSON)** ステップに `202` の応答が表示され、少し後に Opsgenie にアラートが表示されます。その後、**ビルダー** の上部で **有効** をオンにします。
+**ワークフローを実行** をクリックし、**インシデント** でテスト用インシデントを選んで実行します。**API 呼び出し POST (JSON)** ステップに `202` の応答が表示され、少し後に Opsgenie にアラートが表示されます。その後、**ビルダー** の上部で **有効** をオンにします。
 :::
 
 Opsgenie の方式は、`GenieKey` という語、スペース、キーの順です。Opsgenie は `message` を 130 文字までに制限し、優先度は `P1` から `P5` までです。インシデントごとの優先度を送るには、[優先度を対応付ける](#優先度を対応付ける) を参照してください。
@@ -83,9 +83,9 @@ Opsgenie の方式は、`GenieKey` という語、スペース、キーの順で
 ワークフローのトリガーは 1 つだけなので、クローズには、インシデントの状態が変わったときに開始される 2 つ目のワークフローが必要です。
 
 :::steps
-### On Update Incident トリガーを追加する
+### 「インシデントの更新時」トリガーを追加する
 
-`Close Opsgenie alerts` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**Fields to watch** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選び、状態が変わったときだけ実行されるようにします。**Fields to pass on** で、新しい状態が解決済みの状態かどうかを要求します。**フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。または **JSON として編集** をクリックし、JSON を次の内容に置き換えます:
+`Close Opsgenie alerts` という名前のワークフローを作成し、トリガーに **インシデントの更新時** を選びます。**監視するフィールド** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選び、状態が変わったときだけ実行されるようにします。**引き渡すフィールド** で、新しい状態が解決済みの状態かどうかを要求します。**フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。または **JSON として編集** をクリックし、JSON を次の内容に置き換えます:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Opsgenie の方式は、`GenieKey` という語、スペース、キーの順で
 
 ### インシデントが解決されたことを確認する
 
-トリガーの後に **If / Else** ブロックを追加します。**確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** に設定します。
+トリガーの後に **条件分岐** ブロックを追加します。**確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** に設定します。
 
 ### アラートをクローズする
 
-**はい** 側の後に、同じ **リクエストヘッダー** と次の **URL** を持つ **API Post (JSON)** ブロックを追加します:
+**はい** 側の後に、同じ **リクエストヘッダー** と次の **URL** を持つ **API 呼び出し POST (JSON)** ブロックを追加します:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,10 +114,10 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 ## 優先度を対応付ける
 
-インシデントごとの重大度を Opsgenie の優先度として送るには、トリガーと **API Post (JSON)** ブロックの間に **Run Custom JavaScript** ブロックを追加します。
+インシデントごとの重大度を Opsgenie の優先度として送るには、トリガーと **API 呼び出し POST (JSON)** ブロックの間に **カスタム JavaScript を実行** ブロックを追加します。
 
-1. トリガーの **Fields to pass on** で **フィールドを追加** をクリックし、**インシデントの重大度** を開いて **名前** を選びます。
-2. ブロックの **Arguments** を `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` に、**JavaScript コード** を次のように設定します:
+1. トリガーの **引き渡すフィールド** で **フィールドを追加** をクリックし、**インシデントの重大度** を開いて **名前** を選びます。
+2. ブロックの **引数** を `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` に、**JavaScript コード** を次のように設定します:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie はリクエストを処理する前に `202` を返すため、後で�
 :::
 
 :::details ワークフローが一度も実行されない
-オンになっていることを確認します: **ビルダー** の上部の **有効** です。次に **ログ → 実行履歴** を開きます。**If / Else** ブロックの **いいえ** 側に進んだ実行は、解決ではない更新です。
+オンになっていることを確認します: **ビルダー** の上部の **有効** です。次に **ログ → 実行履歴** を開きます。**条件分岐** ブロックの **いいえ** 側に進んだ実行は、解決ではない更新です。
 :::
 
 ## 次のステップ

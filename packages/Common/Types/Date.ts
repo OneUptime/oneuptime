@@ -20,9 +20,19 @@ import {
   getHourOption,
   getNumberLocale,
   isEnglishDateLanguage,
+  rememberEnglishOf,
   writeDigitsInLocale,
   writeInDateDisplayLanguage,
 } from "./DateLanguage";
+import { NO_BREAK_SPACE, withDurationWordsHeld } from "./NoBreakSpaces";
+import { Translator } from "./Translator";
+import {
+  CompactDuration,
+  CompactDurationUnit,
+  formatCompactDuration,
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../Utils/Milliseconds";
 
 export const Moment: typeof moment = moment;
 
@@ -111,6 +121,39 @@ const DURATION_DECIMAL_POINT: RegExp = /(\d)\.(\d)/g;
 // Every digit, to find the separator a language writes between them.
 const DIGITS: RegExp = /\d/g;
 
+/*
+ * A span's duration as getHumanizedDurationFromNanoseconds reads it, before
+ * it is written: one spaced unit ("1.72 s", "960 ms"), or the compact parts
+ * of a longer one ("2h 5m", "1m 5.5s"), with its sign. English and the
+ * reader's language are both written from it, so the two always say the
+ * same length.
+ */
+type HumanizedDurationReading =
+  | { kind: "unknown" }
+  | { kind: "zero" }
+  | {
+      kind: "nanosecond" | "microsecond" | "millisecond" | "second";
+      isNegative: boolean;
+      value: number;
+    }
+  | {
+      kind: "compact";
+      isNegative: boolean;
+      parts: Array<{ unit: CompactDurationUnit; value: number }>;
+    };
+
+// The compact parts' units, largest first, and their seconds and English letter.
+const HUMANIZED_DURATION_UNITS: ReadonlyArray<{
+  unit: CompactDurationUnit;
+  seconds: number;
+  english: string;
+}> = [
+  { unit: "days", seconds: 86400, english: "d" },
+  { unit: "hours", seconds: 3600, english: "h" },
+  { unit: "minutes", seconds: 60, english: "m" },
+  { unit: "seconds", seconds: 1, english: "s" },
+];
+
 // secondsToFormattedFriendlyTimeString's English unit words: one, many.
 const FRIENDLY_TIME_ENGLISH_UNITS: Readonly<
   Partial<Record<DurationTextPart["unit"], [string, string]>>
@@ -185,7 +228,7 @@ export interface FriendlyTimeOptions {
 }
 
 // What a duration of nothing reads in English, with writesZero.
-export const ZERO_FRIENDLY_TIME_TEXT: string = "0 secs";
+export const ZERO_FRIENDLY_TIME_TEXT: string = `0${NO_BREAK_SPACE}secs`;
 
 export default class OneUptimeDate {
   // get date time from unix timestamp
@@ -352,15 +395,16 @@ export default class OneUptimeDate {
       (): string => {
         let formattedString: string = "";
 
+        // Each number held to its word: "2 hours 5 minutes" (#8669).
         if (hours > 0) {
-          formattedString += hours + " hours ";
+          formattedString += `${hours}${NO_BREAK_SPACE}hours `;
         }
 
         if (mins > 0) {
-          formattedString += mins + " minutes";
+          formattedString += `${mins}${NO_BREAK_SPACE}minutes`;
         }
 
-        return formattedString.trim() || "0 minutes";
+        return formattedString.trim() || `0${NO_BREAK_SPACE}minutes`;
       },
       (_language: string, locale: string): string | null => {
         // "2 Stunden 5 Minuten", "0 Minuten".
@@ -1339,12 +1383,16 @@ export default class OneUptimeDate {
   /*
    * "5 hours ago", "in 3 days" - in the reader's language when a frontend set
    * one ("vor 5 Stunden"), rounded as moment rounds it. Counted from now, or
-   * from the moment a view reads its own clock at (one its tests pin).
+   * from the moment a view reads its own clock at (one its tests pin). The
+   * number is held to its unit in every language: moment's English through
+   * withDurationWordsHeld (#8669), Intl's through DateLanguage (#8456).
    */
   public static fromNow(date: Date, now?: Date | undefined): string {
     return writeInDateDisplayLanguage(
       (): string => {
-        return now ? moment(date).from(now) : moment(date).fromNow();
+        return withDurationWordsHeld(
+          now ? moment(date).from(now) : moment(date).fromNow(),
+        );
       },
       (_language: string, locale: string): string | null => {
         return formatRelativeDate({
@@ -2193,7 +2241,10 @@ export default class OneUptimeDate {
               part.unit
             ] || [part.unit, part.unit];
 
-            return `${part.count} ${part.count === 1 ? names[0] : names[1]}`;
+            // Each number held to its unit: "1 min 47 secs" (#8669).
+            return `${part.count}${NO_BREAK_SPACE}${
+              part.count === 1 ? names[0] : names[1]
+            }`;
           })
           .join(" ");
       },
@@ -2797,7 +2848,7 @@ export default class OneUptimeDate {
     let formattedString: string = "";
 
     if (days > 0) {
-      formattedString += days + " days";
+      formattedString += `${days}${NO_BREAK_SPACE}days`;
     }
 
     if (hours > 0) {
@@ -2805,7 +2856,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += hours + " hours";
+      formattedString += `${hours}${NO_BREAK_SPACE}hours`;
     }
 
     if (minutes > 0) {
@@ -2813,7 +2864,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += minutes + " minutes";
+      formattedString += `${minutes}${NO_BREAK_SPACE}minutes`;
     }
 
     if (secs > 0) {
@@ -2821,7 +2872,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += secs + " seconds";
+      formattedString += `${secs}${NO_BREAK_SPACE}seconds`;
     }
 
     return formattedString;
@@ -2867,7 +2918,7 @@ export default class OneUptimeDate {
     let formattedString: string = "";
 
     if (days > 0) {
-      formattedString += days + " days";
+      formattedString += `${days}${NO_BREAK_SPACE}days`;
     }
 
     if (hours > 0) {
@@ -2875,7 +2926,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += hours + " hours";
+      formattedString += `${hours}${NO_BREAK_SPACE}hours`;
     }
 
     if (mins >= 0) {
@@ -2883,22 +2934,51 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += mins + " minutes";
+      formattedString += `${mins}${NO_BREAK_SPACE}minutes`;
     }
 
     return formattedString;
   }
 
   /*
-   * "1.72 s", "960 ms", "2h 5m". The unit symbols read the same in every
-   * language, as a unit symbol does; the figure is written the reader's
-   * way - "1,72 s" in German.
+   * "1.72 s", "960 ms", "2h 5m".
+   *
+   * Handed the reader's Translator, every language writes it its own way
+   * (#8617): the Dashboard's spaced units ("1,72 Sek.", "۹۶۰ میلی‌ثانیه";
+   * formatMilliseconds and formatDurationInUnit) and its compact keys for a
+   * longer one ("2 Std. 5 Min.", "۲ ساعت ۵ دقیقه"; formatCompactDuration),
+   * each figure the reader's, remembered with its English for a sentence
+   * the language has not worded yet. English reads exactly as it always did.
+   *
+   * Without one - the server, a caller that has no reader - the unit
+   * symbols stay English and only the figure follows the date display
+   * language ("1,72 s" in German).
    */
   public static getHumanizedDurationFromNanoseconds(data: {
     nanoseconds: number;
     maxParts?: number;
+    translator?: Translator | undefined;
   }): string {
     const english: string = this.getEnglishHumanizedDuration(data);
+
+    if (data.translator) {
+      if (isEnglishDateLanguage(data.translator.language)) {
+        return english;
+      }
+
+      const localized: string = this.writeHumanizedDuration(
+        this.readHumanizedDuration(data),
+        data.translator,
+      );
+
+      if (localized !== english) {
+        rememberEnglishOf(localized, (): string => {
+          return english;
+        });
+      }
+
+      return localized;
+    }
 
     return writeInDateDisplayLanguage(
       (): string => {
@@ -2923,56 +3003,118 @@ export default class OneUptimeDate {
     return text.replace(DURATION_DECIMAL_POINT, `$1${separator}$2`);
   }
 
-  // getHumanizedDurationFromNanoseconds's English, as it always read.
+  /*
+   * getHumanizedDurationFromNanoseconds's English, as it always read, each
+   * figure held to its unit by a no-break space ("12 ms", "5 ns"), as the
+   * other languages' are, so a span's narrow cell never ends a line with
+   * "12" and starts the next with "ms" (#8826).
+   */
   private static getEnglishHumanizedDuration(data: {
     nanoseconds: number;
     maxParts?: number;
   }): string {
-    let { nanoseconds } = data;
-    const maxParts: number = data.maxParts ?? 2;
+    const reading: HumanizedDurationReading = this.readHumanizedDuration(data);
 
-    if (!Number.isFinite(nanoseconds)) {
+    if (reading.kind === "unknown") {
       return "-";
     }
 
-    if (nanoseconds === 0) {
-      return "0 ms";
+    if (reading.kind === "zero") {
+      return `0${NO_BREAK_SPACE}ms`;
     }
 
-    const sign: string = nanoseconds < 0 ? "-" : "";
-    nanoseconds = Math.abs(nanoseconds);
+    const sign: string = reading.isNegative ? "-" : "";
+
+    if (reading.kind === "compact") {
+      // "2h 5m", "1m 5.5s": each unit's letter right after its count.
+      return reading.parts
+        .map(
+          (
+            part: { unit: CompactDurationUnit; value: number },
+            index: number,
+          ): string => {
+            const count: string =
+              part.unit === "seconds"
+                ? OneUptimeDate.formatDurationValue(part.value)
+                : part.value.toString();
+            const letter: string =
+              HUMANIZED_DURATION_UNITS.find(
+                (unit: { unit: CompactDurationUnit }): boolean => {
+                  return unit.unit === part.unit;
+                },
+              )?.english || "";
+
+            return `${index === 0 ? sign : ""}${count}${letter}`;
+          },
+        )
+        .join(" ");
+    }
+
+    if (reading.kind === "nanosecond") {
+      return `${sign}${reading.value.toString()}${NO_BREAK_SPACE}ns`;
+    }
+
+    const symbol: string =
+      reading.kind === "microsecond"
+        ? "μs"
+        : reading.kind === "millisecond"
+          ? "ms"
+          : "s";
+
+    return `${sign}${OneUptimeDate.formatDurationValue(reading.value)}${NO_BREAK_SPACE}${symbol}`;
+  }
+
+  /*
+   * How long `nanoseconds` is, as the humanized duration says it: under a
+   * microsecond in nanoseconds, then in microseconds, milliseconds and
+   * seconds, and from a minute up in at most `maxParts` of days, hours,
+   * minutes and seconds - the seconds keeping their fraction ("1m 5.5s").
+   */
+  private static readHumanizedDuration(data: {
+    nanoseconds: number;
+    maxParts?: number;
+  }): HumanizedDurationReading {
+    const maxParts: number = data.maxParts ?? 2;
+
+    if (!Number.isFinite(data.nanoseconds)) {
+      return { kind: "unknown" };
+    }
+
+    if (data.nanoseconds === 0) {
+      return { kind: "zero" };
+    }
+
+    const isNegative: boolean = data.nanoseconds < 0;
+    const nanoseconds: number = Math.abs(data.nanoseconds);
 
     if (nanoseconds < 1000) {
-      return sign + Math.round(nanoseconds).toString() + " ns";
+      return {
+        kind: "nanosecond",
+        isNegative,
+        value: Math.round(nanoseconds),
+      };
     }
 
     const microseconds: number = nanoseconds / 1000;
     if (microseconds < 1000) {
-      return sign + OneUptimeDate.formatDurationValue(microseconds) + " μs";
+      return { kind: "microsecond", isNegative, value: microseconds };
     }
 
     const milliseconds: number = nanoseconds / 1000000;
     if (milliseconds < 1000) {
-      return sign + OneUptimeDate.formatDurationValue(milliseconds) + " ms";
+      return { kind: "millisecond", isNegative, value: milliseconds };
     }
 
     const seconds: number = nanoseconds / 1000000000;
 
     if (seconds < 60) {
-      return sign + OneUptimeDate.formatDurationValue(seconds) + " s";
+      return { kind: "second", isNegative, value: seconds };
     }
 
-    const units: Array<{ label: string; seconds: number }> = [
-      { label: "d", seconds: 86400 },
-      { label: "h", seconds: 3600 },
-      { label: "m", seconds: 60 },
-      { label: "s", seconds: 1 },
-    ];
-
     let remainingSeconds: number = Math.floor(seconds);
-    const parts: string[] = [];
+    const parts: Array<{ unit: CompactDurationUnit; value: number }> = [];
 
-    for (const unit of units) {
+    for (const unit of HUMANIZED_DURATION_UNITS) {
       if (parts.length >= maxParts) {
         break;
       }
@@ -2984,40 +3126,96 @@ export default class OneUptimeDate {
       const value: number = Math.floor(remainingSeconds / unit.seconds);
 
       if (value > 0) {
-        parts.push(`${value}${unit.label}`);
+        parts.push({ unit: unit.unit, value });
         remainingSeconds -= value * unit.seconds;
       }
     }
 
     const fractionalSeconds: number = seconds - Math.floor(seconds);
     const leftoverSeconds: number = remainingSeconds + fractionalSeconds;
+    const last: { unit: CompactDurationUnit; value: number } | undefined =
+      parts[parts.length - 1];
 
     if (leftoverSeconds > 0) {
-      if (parts.length === 0) {
-        parts.push(`${OneUptimeDate.formatDurationValue(leftoverSeconds)}s`);
-      } else if (parts[parts.length - 1]?.endsWith("s")) {
-        const numericValue: number = parseFloat(
-          parts[parts.length - 1]!.slice(0, -1),
-        );
-        const updatedSeconds: number = numericValue + leftoverSeconds;
-        parts[parts.length - 1] =
-          `${OneUptimeDate.formatDurationValue(updatedSeconds)}s`;
+      if (!last) {
+        parts.push({ unit: "seconds", value: leftoverSeconds });
+      } else if (last.unit === "seconds") {
+        last.value += leftoverSeconds;
       } else if (parts.length < maxParts) {
-        parts.push(`${OneUptimeDate.formatDurationValue(leftoverSeconds)}s`);
+        parts.push({ unit: "seconds", value: leftoverSeconds });
       }
     }
 
     if (parts.length === 0) {
-      return sign + OneUptimeDate.formatDurationValue(seconds) + " s";
+      return { kind: "second", isNegative, value: seconds };
     }
 
-    const trimmedParts: string[] = parts.slice(0, maxParts);
+    return { kind: "compact", isNegative, parts: parts.slice(0, maxParts) };
+  }
 
-    if (sign) {
-      trimmedParts[0] = sign + trimmedParts[0];
+  /*
+   * A humanized duration in the reader's language: the Dashboard's spaced
+   * units for one unit, its compact keys for several, each figure the
+   * reader's, with the decimals the English writes (two, trailing zeros
+   * dropped, and none from a hundred up).
+   */
+  private static writeHumanizedDuration(
+    reading: HumanizedDurationReading,
+    translator: Translator,
+  ): string {
+    if (reading.kind === "unknown") {
+      return "-";
     }
 
-    return trimmedParts.join(" ");
+    if (reading.kind === "zero") {
+      return formatMilliseconds(translator, 0);
+    }
+
+    const signed: (value: number) => number = (value: number): number => {
+      return reading.isNegative ? -value : value;
+    };
+
+    if (reading.kind === "compact") {
+      const duration: CompactDuration = {};
+
+      reading.parts.forEach(
+        (
+          part: { unit: CompactDurationUnit; value: number },
+          index: number,
+        ): void => {
+          duration[part.unit] = index === 0 ? signed(part.value) : part.value;
+        },
+      );
+
+      return formatCompactDuration(translator, duration, {
+        decimals: 2,
+        dropTrailingZeros: true,
+      });
+    }
+
+    if (reading.kind === "nanosecond") {
+      return formatDurationInUnit(
+        translator,
+        signed(reading.value),
+        "nanosecond",
+        { decimals: 0 },
+      );
+    }
+
+    const decimals: number = reading.value >= 100 ? 0 : 2;
+
+    if (reading.kind === "millisecond") {
+      return formatMilliseconds(translator, signed(reading.value), {
+        maximumFractionDigits: decimals,
+      });
+    }
+
+    return formatDurationInUnit(
+      translator,
+      signed(reading.value),
+      reading.kind,
+      { decimals, dropTrailingZeros: true },
+    );
   }
 
   private static formatDurationValue(value: number): string {

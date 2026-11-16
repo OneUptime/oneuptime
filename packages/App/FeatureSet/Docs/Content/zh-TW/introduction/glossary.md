@@ -208,7 +208,7 @@ OneUptime 在專案中可以聯絡到你的位址：電子郵件地址、用於�
 
 參閱 [RUM 概觀](/docs/rum/index)。
 
-### 清單
+### 資產清單
 
 一份清單，彙整了 OneUptime 對你的環境所知道的一切：服務、主機、Kubernetes 物件、虛擬機器、網路裝置、雲端資源，以及完全不傳送遙測的東西。其中大部分會自動填入。
 
@@ -224,7 +224,7 @@ OneUptime 在專案中可以聯絡到你的位址：電子郵件地址、用於�
 
 為你所監控的對象設定的可靠性目標，例如在 30 天內 99.9% 的時間可用。OneUptime 每 5 分鐘根據其監測器測量一次每個 SLO。
 
-又稱：**Service Level Objective**。參閱 [SLO 概觀](/docs/slo/introduction)。
+又稱：**服務等級目標**。參閱 [SLO 概觀](/docs/slo/introduction)。
 
 ### 錯誤預算
 
@@ -346,7 +346,7 @@ OneUptime 的 SIEM：來自你的日誌、安全工具以及你傳送的其他�
 
 參閱 [工作流程概觀](/docs/workflows/index)。
 
-### 操作手冊
+### 運行手冊
 
 可重複使用的應變程序：團隊在事件、警示或維護事件上執行的手動和自動步驟，可以手動執行，也可以在 Runbook 規則相符時自動執行。
 
@@ -392,7 +392,7 @@ OneUptime 的 AI 網站可靠性工程師：它會在你的遙測中調查每個
 
 ### 基礎設施代理程式
 
-Server / VM 監測器背後的 `oneuptime-infrastructure-agent` 服務：它每 30 秒回報一次一台機器的 CPU、記憶體、磁碟和處理程序，並以該監測器的秘密金鑰簽署。
+伺服器 / 虛擬機器 監測器背後的 `oneuptime-infrastructure-agent` 服務：它每 30 秒回報一次一台機器的 CPU、記憶體、磁碟和處理程序，並以該監測器的秘密金鑰簽署。
 
 參閱 [伺服器 / 虛擬機器監控](/docs/monitor/server-monitor)。
 
@@ -410,7 +410,7 @@ Server / VM 監測器背後的 `oneuptime-infrastructure-agent` 服務：它每 
 
 ### Runner
 
-你在自己的基礎設施中執行的小型程序，負責執行操作手冊中的 JavaScript、Bash、SSH 和 kubectl 步驟。它使用自己的 Runner ID 和金鑰對外連線到 OneUptime。
+你在自己的基礎設施中執行的小型程序，負責執行運行手冊中的 JavaScript、Bash、SSH 和 kubectl 步驟。它使用自己的 Runner ID 和金鑰對外連線到 OneUptime。
 
 又稱：**Runbook 代理程式**。參閱 [Runbook 代理程式](/docs/runbooks/agents)。
 
@@ -472,7 +472,7 @@ OneUptime 中有許多東西都是規則，每一種都替你做一個決定：�
 
 ### 代理程式
 
-你安裝的、向 OneUptime 回報或代表它採取行動的程式：基礎設施、Kubernetes 和 Docker 代理程式會傳送它們收集的資料，Runner 執行操作手冊步驟，AI 代理程式則讓 OneUptime AI 查看叢集或主機。你交給 **程式碼** 的任務就是 AI 代理程式任務。
+你安裝的、向 OneUptime 回報或代表它採取行動的程式：基礎設施、Kubernetes 和 Docker 代理程式會傳送它們收集的資料，Runner 執行運行手冊步驟，AI 代理程式則讓 OneUptime AI 查看叢集或主機。你交給 **程式碼** 的任務就是 AI 代理程式任務。
 
 參閱 [該用哪一個？](/docs/introduction/which-one#探測器代理程式收集器還是-runner)。
 
@@ -491,7 +491,7 @@ OneUptime 中有許多東西都是規則，每一種都替你做一個決定：�
 ## 後續步驟
 
 :::cards
-- [該用哪一個？](/docs/introduction/which-one): 事件還是警示、工作流程還是操作手冊，以及其他相似項目的並排比較。
+- [該用哪一個？](/docs/introduction/which-one): 事件還是警示、工作流程還是運行手冊，以及其他相似項目的並排比較。
 - [核心概念](/docs/introduction/core-concepts): 各部分如何關聯，全在一個頁面上。
 - [快速開始](/docs/introduction/quickstart): 在十五分鐘內把這些詞彙付諸實踐。
 :::

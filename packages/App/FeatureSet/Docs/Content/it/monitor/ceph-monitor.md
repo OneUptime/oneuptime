@@ -89,7 +89,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | **Ceph Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo** o **Minimo**. Parte dall'aggregazione abituale della metrica. Una somma o un conteggio sommerebbe ogni raccolta di un minuto, quindi sono lasciati ad **Avanzato**. |
 | **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano il proprio. |
-| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggrega per**, **Filtra per attributi**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 Le serie di dati dei pool hanno solo l'etichetta `pool_id`: il nome del pool esiste solo in `ceph_pool_metadata`. Filtra e raggruppa le serie dei pool per `pool_id`, e cerca il nome in `ceph_pool_metadata` quando ti serve.
 
@@ -244,8 +244,8 @@ Un monitor che non costruisci da un modello parte con due criteri:
 
 | Ordine | Criterio | Corrisponde quando | Poi |
 | --- | --- | --- | --- |
-| 1 | Check if _nome del monitor_ is offline | La prima query non ha dati per l'intera finestra | Imposta il monitor su **Offline** e dichiara l'incidente "_nome del monitor_ is offline", che si risolve da solo quando il monitor si riprende. |
-| 2 | Check if _nome del monitor_ is online | La prima query ha dati | Imposta il monitor su **Operativo**. |
+| 1 | Verifica se _nome del monitor_ è offline | La prima query non ha dati per l'intera finestra | Imposta il monitor su **Offline** e dichiara l'incidente "_nome del monitor_ è offline", che si risolve da solo quando il monitor si riprende. |
+| 2 | Verifica se _nome del monitor_ è online | La prima query ha dati | Imposta il monitor su **Operativo**. |
 
 > [!IMPORTANT]
 > Un valore di `0` è un dato: una metrica che spesso vale zero, come i riavvii o gli errori, non porta il monitor offline. Per ricevere un avviso su un valore, parti da un modello o aggiungi un criterio con una soglia. Quando non arriva alcun dato e nessun criterio corrisponde, il monitor mantiene il suo stato e gli incidenti aperti restano aperti: il silenzio non è un ripristino. Il tempo in cui OneUptime stesso non riceveva dati non conta mai come assenza di dati: un controllo la cui finestra lo contiene attende, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
@@ -275,7 +275,7 @@ Un health check che non è mai scattato non ha alcuna serie, `ceph_daemon_health
 :::
 
 :::details Contatori come ceph_pool_wr_bytes crescono soltanto
-Le serie di I/O dei pool sono contatori cumulativi, e i criteri confrontano valori grezzi: non esiste un operatore di tasso, e **Convert to per-second rate** nel generatore di query cambia solo il grafico. Visualizzali come tasso, oppure crea un avviso sulla loro crescita con una formula, per esempio una query **Massimo** meno una query **Minimo** dello stesso contatore.
+Le serie di I/O dei pool sono contatori cumulativi, e i criteri confrontano valori grezzi: non esiste un operatore di tasso, e **Converti in tasso al secondo** nel generatore di query cambia solo il grafico. Visualizzali come tasso, oppure crea un avviso sulla loro crescita con una formula, per esempio una query **Massimo** meno una query **Minimo** dello stesso contatore.
 :::
 
 ## Passaggi successivi

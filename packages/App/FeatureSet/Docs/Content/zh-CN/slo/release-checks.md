@@ -7,6 +7,7 @@
 - [Argo Rollouts](#argo-rollouts): 中止发布的分析。
 - [Flagger](#flagger): 暂停金丝雀版本的 webhook。
 - [GitHub Actions](#github-actions): 部署后执行回滚的步骤。
+- [关闭功能标志](#关闭功能标志): 在 SLO 的预算消耗过快时关闭功能标志的工作流。
 :::
 
 ## 工作原理
@@ -42,6 +43,7 @@ sequenceDiagram
 检查读取什么取决于 SLO 衡量的对象：
 
 - [请求 SLO](/docs/slo/request-slos) 根据其服务在窗口内的请求评判，这些请求在 span 到达时从 span 中读取。添加 `serviceVersion` 即可只评判新版本的请求：OneUptime 会将其与 span 的 `service.version` 资源属性匹配，OpenTelemetry SDK 会根据 `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2` 设置该属性。这样，金丝雀版本只按它自己的请求评判，而不会被旧版本的请求稀释。
+- [基于指标的 SLO](/docs/slo/request-slos#基于指标的-slo) 根据其指标在窗口内的事件评判，这些事件按其 SLI 的方式计数，因此 `minimumRequestCount`、`goodRequestCount` 和 `totalRequestCount` 都是事件数。带上 `serviceVersion` 时，只计入 `service.version` 资源属性为该值的指标数据点：OpenTelemetry SDK 会像在 span 上一样，在其指标上设置该属性。
 - 监视器可用率 SLO 根据其监视器在窗口内的状态时间线评判。`minimumRequestCount` 不适用于这类 SLO，带有 `serviceVersion` 的检查会被拒绝：监视器没有版本。
 
 ## 开始之前
@@ -126,7 +128,7 @@ curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/release-che
 | `deploymentsAllowed` 和 `errorBudgetPolicyTier` | SLO 的错误预算策略是否允许部署，以及 SLO 所处的级别。 |
 | `checkedAt` | 检查进行测量的时间。 |
 
-无法测量的 SLO（没有服务的请求 SLO、没有阈值的延迟 SLO、没有监视器的监视器可用率 SLO）会得到 HTTP 400 答复，并说明需要修复什么，这样发布会因明确的错误而停止，而不是依据猜测继续。在自托管安装上，请改用它自己的地址，而不是 oneuptime.com。
+无法测量的 SLO（没有服务的请求 SLO、没有阈值的延迟 SLO、没有可计数指标的基于指标的 SLO、没有监视器的监视器可用率 SLO）会得到 HTTP 400 答复，并说明需要修复什么，这样发布会因明确的错误而停止，而不是依据猜测继续。在自托管安装上，请改用它自己的地址，而不是 oneuptime.com。
 
 ## Argo Rollouts
 
@@ -256,6 +258,37 @@ jobs:
 ```
 
 答复为否时该步骤会失败，任何不含 `isSafeToContinue: true` 的答复（ID 错误、密钥无法读取该 SLO、完全没有答复）也会让它失败，因此流水线绝不会依据它没有得到的答复继续。请在服务启动时把 `service.version` 设置为提交（`${{ github.sha }}`），这样检查只评判新版本。
+
+## 关闭功能标志
+
+由功能标志控制的发布，只要关闭功能标志就能回滚。工作流可以替您完成这一步：当 SLO 的某条 [消耗率规则](/docs/slo/burn-rate-alerts) 触发警报或声明事件时，工作流会在 LaunchDarkly 或 Unleash 中关闭该功能标志。这样，有问题的发布几分钟内就会被撤销，无需等人处理。
+
+:::steps
+### 复制消耗率规则的 ID
+
+打开 SLO，进入 **消耗速率规则**。打开要用来关闭功能标志的那条规则的菜单，选择 **显示 ID**。快速消耗规则最适合这一用途，因为有问题的发布开始后几分钟内它就会触发。
+
+### 从模板创建工作流
+
+打开 **工作流**，点击 **创建工作流**。在 **或者从模板开始** 下选择 **SLOs** 类别，再选择您所用功能标志服务的模板：
+
+| 模板 | 需要提供的内容 |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | 一个能更新该功能标志的 API 访问令牌，以及功能标志所在项目、功能标志本身和环境各自的键。 |
+| **Turn an Unleash flag off when an SLO burns too fast** | 您的 Unleash 地址、一个服务账号令牌或个人访问令牌，以及功能标志所在的项目、它的名称和环境。 |
+
+将规则的 ID 粘贴到 **Burn Rate Rule ID** 中，填写其余内容，然后创建工作流。
+
+### 开启工作流
+
+工作流创建时处于关闭状态。准备好后，在工作流的 **生成器** 顶部打开 **已启用** 开关。
+:::
+
+每当项目中的某条消耗率规则触发警报或声明事件时，工作流就会启动。它的 **如果 / 否则** 只让您粘贴了 ID 的那条规则继续往下走，下一步会调用功能标志服务：在 LaunchDarkly 中是 `turnFlagOff` 指令，并附上一条写明规则和 SLO 的备注；在 Unleash 中是针对该环境的 `off`。无论定向设置如何，两者都会为该环境中的所有人关闭功能标志。如果功能标志服务拒绝该调用，这次运行就会失败，其日志会说明原因。规则的警报仍会照常呼叫人员。
+
+**生成器** 上的 **运行工作流** 会像您选择的规则刚刚触发一样运行工作流，因此它会真的关闭功能标志。请先用测试环境中的功能标志试一试。
+
+如果使用其他功能标志服务，或使用有自己地址的 LaunchDarkly 实例，请从任一模板开始，并把它的 API 步骤改为在该环境中为所有人关闭功能标志的调用。请像这两个模板一样，选择连用户分群和定向规则也能覆盖的调用，否则渐进式发布仍会继续提供该功能标志。
 
 ## 后续步骤
 

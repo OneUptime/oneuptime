@@ -35,11 +35,11 @@ Vi serve una chiave di acquisizione della telemetria di tipo **Server**. Se non 
 
 Andate in **Prodotti → Impostazioni del progetto**, aprite **Telemetria e APM** nel menu laterale e selezionate **Chiavi di acquisizione**.
 
-![L'elenco «Chiavi di acquisizione», con «Crea chiave di ingestione» evidenziato](screen:ingestion-keys)
+![L'elenco «Chiavi di acquisizione», con «Crea chiave di acquisizione» evidenziato](screen:ingestion-keys)
 
 ### Creare una chiave
 
-Fate clic su **Crea chiave di ingestione**. La finestra di dialogo ha già il nome della chiave compilato e **Server** selezionato (il tipo di chiave con cui invia un'applicazione o un collector), quindi fate clic su **Crea chiave di ingestione** per crearla, oppure rinominatela prima.
+Fate clic su **Crea chiave di acquisizione**. La finestra di dialogo ha già il nome della chiave compilato e **Server** selezionato (il tipo di chiave con cui invia un'applicazione o un collector), quindi fate clic su **Crea chiave di acquisizione** per crearla, oppure rinominatela prima.
 
 ### Copiare il segreto
 
@@ -309,7 +309,7 @@ Quando una funzione del vostro codice occupa almeno il 5% del tempo o della memo
 | --- | --- |
 | **Flame graph** | Ogni barra è una funzione dello stack di chiamate, e la sua larghezza è proporzionale al tempo o alle risorse consumati. Fate clic su una funzione per ingrandirla e vederne chiamanti e chiamate. |
 | **Top functions** | Le funzioni del profilo, ordinate per tempo proprio o totale. **Solo il mio codice** nasconde i frame delle librerie. |
-| **Diff vs. baseline** | Il profilo confrontato con un periodo precedente (**rispetto a 1 ora fa**, **rispetto a ieri** o **rispetto alla scorsa settimana**), con le funzioni **Più peggiorate** e **Più migliorate**. |
+| **Differenza dalla baseline** | Il profilo confrontato con un periodo precedente (**rispetto a 1 ora fa**, **rispetto a ieri** o **rispetto alla scorsa settimana**), con le funzioni **Più peggiorate** e **Più migliorate**. |
 
 **Scarica pprof** salva il profilo per strumenti locali come `go tool pprof`.
 
@@ -350,8 +350,8 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 ### Vedere cosa ha fatto
 
-- **Prodotti → Profili → IA → Informazioni** elenca il codice lento trovato, ogni rilevamento con le sue prove e **Apri in Profili**.
-- **Prodotti → Profili → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
+- **Prodotti → Profili → IA → Insight** elenca il codice lento trovato, ogni rilevamento con le sue prove e **Apri in Profili**.
+- **Prodotti → Profili → IA → Log** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ## Conservazione dei dati

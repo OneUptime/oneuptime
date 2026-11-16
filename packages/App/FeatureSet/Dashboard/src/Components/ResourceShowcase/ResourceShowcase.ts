@@ -1,9 +1,13 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   getNumberLocale,
+  getUnitAmountParts,
+  IntlTextPart,
   isEnglishDateLanguage,
+  joinIntlParts,
   writeDigitsInLocale,
 } from "Common/Types/DateLanguage";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { translationKey, Translator } from "Common/Types/Translator";
 import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 
@@ -59,7 +63,8 @@ import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
  * English reads as the product's own English always has: its units are
  * the short symbols the rest of the product writes ("1.24 s", not Intl's
  * "1.24 sec"); every other language takes Intl's words for the unit, as a
- * duration on any other page does (formatDurationCompactInLanguage).
+ * duration on any other page does (formatDurationCompactInLanguage). In
+ * every language the space before a unit is a no-break one (#8456).
  */
 export type ShowcaseFigure =
   // A count, or a reading with no unit (a load average: 2.14).
@@ -159,7 +164,10 @@ const writeDecimal: (value: number, language: string) => string = (
 export interface ShowcaseFigureParts {
   // "184", "1,24", "۱٫۲", "99.98%", "$4,120", "1.82M".
   amount: string;
-  // What the language writes between the two: " ", or "" ("184毫秒").
+  /*
+   * What the language writes between the two: a no-break space (U+00A0,
+   * French's U+202F as it writes it), or "" ("184毫秒").
+   */
   separator: string;
   // "ms", "Sek.", "میلی‌ثانیه"; "" for a figure without a unit.
   unit: string;
@@ -178,15 +186,13 @@ const withoutUnit: (amount: string) => ShowcaseFigureParts = (
  * unit, so the caller keeps its own.
  */
 const splitAtUnit: (
-  parts: Array<Intl.NumberFormatPart>,
+  parts: Array<IntlTextPart>,
 ) => ShowcaseFigureParts | null = (
-  parts: Array<Intl.NumberFormatPart>,
+  parts: Array<IntlTextPart>,
 ): ShowcaseFigureParts | null => {
-  const unitStart: number = parts.findIndex(
-    (part: Intl.NumberFormatPart): boolean => {
-      return part.type === "unit";
-    },
-  );
+  const unitStart: number = parts.findIndex((part: IntlTextPart): boolean => {
+    return part.type === "unit";
+  });
   let separatorStart: number = unitStart;
 
   while (separatorStart > 0 && parts[separatorStart - 1]?.type === "literal") {
@@ -197,22 +203,10 @@ const splitAtUnit: (
     return null;
   }
 
-  const join: (from: number, to: number) => string = (
-    from: number,
-    to: number,
-  ): string => {
-    return parts
-      .slice(from, to)
-      .map((part: Intl.NumberFormatPart): string => {
-        return part.value;
-      })
-      .join("");
-  };
-
   return {
-    amount: join(0, separatorStart),
-    separator: join(separatorStart, unitStart),
-    unit: join(unitStart, parts.length),
+    amount: joinIntlParts(parts.slice(0, separatorStart)),
+    separator: joinIntlParts(parts.slice(separatorStart, unitStart)),
+    unit: joinIntlParts(parts.slice(unitStart)),
   };
 };
 
@@ -220,7 +214,9 @@ const splitAtUnit: (
  * An amount of a unit: the product's own English symbol in English ("1.24
  * s"), Intl's short unit in every other language ("1,24 Sek."). An engine
  * without the unit writes the number the reader's way and the symbol as
- * written.
+ * written. The space between the two is a no-break one in every language
+ * (getUnitAmountParts, #8456), so a tile too narrow for both never ends a
+ * line with the number and starts the next with its unit.
  */
 const writeUnit: (data: {
   amount: number;
@@ -237,7 +233,7 @@ const writeUnit: (data: {
 }): ShowcaseFigureParts => {
   const asWritten: ShowcaseFigureParts = {
     amount: writeDecimal(data.amount, data.language),
-    separator: " ",
+    separator: NO_BREAK_SPACE,
     unit: data.englishSymbol,
   };
 
@@ -245,20 +241,15 @@ const writeUnit: (data: {
     return asWritten;
   }
 
-  try {
-    return (
-      splitAtUnit(
-        new Intl.NumberFormat(getNumberLocale(data.language), {
-          style: "unit",
-          unit: data.intlUnit,
-          unitDisplay: "short",
-          maximumFractionDigits: SHOWCASE_FRACTION_DIGITS,
-        }).formatToParts(data.amount),
-      ) || asWritten
-    );
-  } catch {
-    return asWritten;
-  }
+  const parts: Array<IntlTextPart> | null = getUnitAmountParts({
+    value: data.amount,
+    unit: data.intlUnit,
+    locale: data.language,
+    unitDisplay: "short",
+    maximumFractionDigits: SHOWCASE_FRACTION_DIGITS,
+  });
+
+  return (parts && splitAtUnit(parts)) || asWritten;
 };
 
 /*
@@ -371,7 +362,7 @@ export function formatShowcaseFigureParts(
   if ("dBm" in figure) {
     return {
       amount: writeDecimal(figure.dBm, language),
-      separator: " ",
+      separator: NO_BREAK_SPACE,
       unit: "dBm",
     };
   }

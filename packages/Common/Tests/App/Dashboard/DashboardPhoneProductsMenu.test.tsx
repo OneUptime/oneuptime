@@ -33,6 +33,15 @@ import {
   setViewportWidth,
 } from "./SideMenuHarness";
 import { PHONE_MENU_HELP_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/PhoneMenuEntries";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * The products menu reads which products the project has on
+ * (/project-products). These tests leave that read unanswered: refused at
+ * once, as the network refused it, and the menu lists every product
+ * (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/project-products"]);
 
 /*
  * On a phone the Dashboard has no products dialog: the menu toggle lists

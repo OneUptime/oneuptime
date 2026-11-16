@@ -563,7 +563,7 @@ export function OnBehalfOfBanner(props: {
                   { name: props.firstName },
                 )
               : translator.translateTemplate(
-                  'You can see {{name}}\'s configuration but not change it. Ask a project owner or admin for the "Edit User Notification Rules" permission.',
+                  'You can see {{name}}\'s configuration but not change it. Ask a Project Owner or Project Admin for the "Edit User Notification Rules" permission.',
                   { name: props.firstName },
                 )}
           </p>

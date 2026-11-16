@@ -643,6 +643,24 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                     }
                   />
                 );
+              } else if (
+                /*
+                 * Another policy is paging them already, and its page stands
+                 * for this one (OnCallPageMerge): reached, as a page sent is.
+                 */
+                item["status"] ===
+                OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
+              ) {
+                return (
+                  <Pill
+                    color={Green}
+                    text={
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
+                      ]
+                    }
+                  />
+                );
               }
 
               return (

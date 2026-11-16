@@ -257,8 +257,8 @@ describe.each(BALANCES)("a refill of $name", (balance: BalanceUnderTest) => {
       balance.title,
       "*Project Name:* Kerberos Compliance Platform",
       `*Project ID:* ${PROJECT_ID.toString()}`,
-      "*Refill Amount:* $20 USD",
-      "*Current Balance:* $21.50 USD",
+      "*Refill Amount:* $20\u00A0USD",
+      "*Current Balance:* $21.50\u00A0USD",
       "*Recharge Type:* Manual",
       "*Project Created By:* Jane Doe (jane@acme.example)",
     ]);
@@ -276,8 +276,8 @@ describe.each(BALANCES)("a refill of $name", (balance: BalanceUnderTest) => {
     const lines: Array<string> = linesOf(world.slack.messages[0]);
 
     expect(lines[0]).toBe(balance.title);
-    expect(lines).toContain("*Refill Amount:* $20 USD");
-    expect(lines).toContain("*Current Balance:* $21.50 USD");
+    expect(lines).toContain("*Refill Amount:* $20\u00A0USD");
+    expect(lines).toContain("*Current Balance:* $21.50\u00A0USD");
     expect(lines).toContain("*Recharge Type:* Auto Recharge");
   });
 
@@ -292,8 +292,8 @@ describe.each(BALANCES)("a refill of $name", (balance: BalanceUnderTest) => {
 
     const lines: Array<string> = linesOf(world.slack.messages[0]);
 
-    expect(lines).toContain("*Refill Amount:* $25 USD");
-    expect(lines).toContain("*Current Balance:* $26.50 USD");
+    expect(lines).toContain("*Refill Amount:* $25\u00A0USD");
+    expect(lines).toContain("*Current Balance:* $26.50\u00A0USD");
     expect(lines).toContain("*Recharge Type:* Auto Recharge");
   });
 

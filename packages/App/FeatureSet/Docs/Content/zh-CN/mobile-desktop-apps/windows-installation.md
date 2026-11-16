@@ -61,7 +61,7 @@ flowchart TB
 点击 **注册设备**，保留建议的 **设备名称**（例如 `Edge on Windows`）或修改它，然后再次点击 **注册设备**。当浏览器询问是否允许 OneUptime 显示通知时，选择 **允许**。
 
 ### 发送测试
-在 **Browser Registered** 对话框中，点击 **Send Test Notification**。如果什么都没有出现，请查看 Windows 自己的通知设置：参见 [故障排除](#故障排除)。
+在 **浏览器已注册** 对话框中，点击 **发送测试通知**。如果什么都没有出现，请查看 Windows 自己的通知设置：参见 [故障排除](#故障排除)。
 :::
 
 浏览器的提醒不会比 Windows 允许的更响：它无法覆盖请勿打扰。对于必须叫醒你的呼叫，请使用开启了关键提醒的移动应用：参见 [Android 安装](/docs/mobile-desktop-apps/android-installation#穿透静音模式) 或 [iOS 安装](/docs/mobile-desktop-apps/ios-installation#穿透静音模式)。

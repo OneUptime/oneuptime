@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -8,6 +9,8 @@ import {
   SLO_CREATE_FORM_STEPS,
   SLO_CREATE_INITIAL_VALUES,
 } from "./SloFormFields";
+// The Metric SLO fields' controls, for the create form.
+import "./SloMetricQueryFieldElements";
 import SloStatusPill from "../../Components/Slo/SloStatusPill";
 import SloStatusSummaryCards from "../../Components/Slo/SloStatusSummaryCards";
 import {
@@ -22,7 +25,7 @@ import {
 import MonitorsElement from "../../Components/Monitor/Monitors";
 import ServicesElement from "../../Components/Service/ServiceElements";
 import Service from "Common/Models/DatabaseModels/Service";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import Route from "Common/Types/API/Route";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
@@ -73,7 +76,9 @@ import useProductFirstRun, {
 } from "../../Components/ProductOnboarding/UseProductFirstRun";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
 ### How SLOs and Error Budgets Work
@@ -152,7 +157,10 @@ type FormatPercentFunction = (value: number | undefined | null) => string;
 const formatPercent: FormatPercentFunction = (
   value: number | undefined | null,
 ): string => {
-  return formatSloPercent(value, SLI_DECIMALS, getGlobalTranslator()) ?? "—";
+  return (
+    formatSloPercent(value, SLI_DECIMALS, getGlobalTranslator()) ??
+    EMPTY_VALUE_MARK
+  );
 };
 
 /*
@@ -187,7 +195,7 @@ export const getSloTargetAndWindowColumns: GetSloTableColumnsFunction =
         getElement: (item: ServiceLevelObjective): ReactElement => {
           return (
             <span className="text-sm text-gray-900">
-              {formatPercent(item.targetPercentage)}
+              {getValueOrQuietDash(formatPercent(item.targetPercentage))}
             </span>
           );
         },
@@ -308,7 +316,7 @@ export const getSloTableColumns: GetSloTableColumnsFunction =
                   : "text-sm font-medium text-red-700"
               }
             >
-              {formatPercent(sli)}
+              {getValueOrQuietDash(formatPercent(sli))}
             </span>
           );
         },
@@ -336,7 +344,7 @@ export const getSloTableColumns: GetSloTableColumnsFunction =
             <span
               className={`text-sm font-medium ${BUDGET_TIER_TEXT_CLASS[tier]}`}
             >
-              {formatPercent(remaining)}
+              {getValueOrQuietDash(formatPercent(remaining))}
             </span>
           );
         },
@@ -433,7 +441,7 @@ export const getSloWhatItMeasuresColumns: GetSloTableColumnsFunction =
         type: FieldType.Element,
         hideOnMobile: true,
         getElement: (item: ServiceLevelObjective): ReactElement => {
-          if (isRequestSliType(item.sliType)) {
+          if (isEventSliType(item.sliType)) {
             return (
               <ServicesElement
                 services={(item.services as Array<Service>) || []}

@@ -129,7 +129,7 @@ Begge ligger i rækken **Oppetidshistorik** på kortet **Hvad din statusside vis
 - **Vis samlet oppetidsprocent**: en kontakt, slået fra som standard. Mens den er slået til, vælger **Præcision** ved siden af, hvor mange decimaler procenten viser: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. På OneUptime Cloud kræver det planen **Scale** at slå procenten til; dens præcision kan ændres på alle planer.
 - **Tæller som nedetid**: monitorstatusserne, som farvede mærker, hvis tid tæller mod oppetiden på denne side. Her afgør du for eksempel, om en forringet status tæller mod oppetiden. Mindst én status forbliver valgt.
 
-De var tidligere to selvstændige kort, **Samlet oppetidsprocent** og **Nedetidsovervågningsstatusser**, hver bag en knap **Rediger**. Se [At vælge hvad der vises på siden](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden) for resten af kortet.
+De var tidligere to selvstændige kort, **Samlet oppetidsprocent** og **Nedetidsmonitorstatusser**, hver bag en knap **Rediger**. Se [At vælge hvad der vises på siden](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden) for resten af kortet.
 
 ## Brugerdefineret HTML, CSS og JavaScript
 

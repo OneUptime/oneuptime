@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import DataSecurityApi from "../../../Components/DataSecurity/DataSecurityApi";
 import {
   ExposurePill,
@@ -709,9 +710,11 @@ const DataStoreOverview: FunctionComponent<
                 {translator.translateText("Estimated Sensitive Records")}
               </dt>
               <dd className="text-lg font-semibold text-gray-900">
-                {typeof store.estimatedRecords === "number"
-                  ? translator.formatNumber(store.estimatedRecords)
-                  : "—"}
+                {typeof store.estimatedRecords === "number" ? (
+                  translator.formatNumber(store.estimatedRecords)
+                ) : (
+                  <EmptyFigure />
+                )}
               </dd>
             </dl>
             {findingCount > 0 ? (

@@ -50,9 +50,9 @@ flowchart TB
 
 1. Gå til **Produkter → Projektindstillinger**.
 2. Åbn **Telemetri og APM** i sidemenuen, og vælg **Indtagelsesnøgler**.
-3. Klik på **Opret ingestion-nøgle**. Dialogen udfylder et navn og vælger nøgletypen **Server**, som en applikation eller en collector sender med. Omdøb den, hvis du vil, og klik derefter på **Opret ingestion-nøgle**.
+3. Klik på **Opret indtagelsesnøgle**. Dialogen udfylder et navn og vælger nøgletypen **Server**, som en applikation eller en collector sender med. Omdøb den, hvis du vil, og klik derefter på **Opret indtagelsesnøgle**.
 
-![Listen »Indtagelsesnøgler«, med »Opret ingestion-nøgle« fremhævet](screen:ingestion-keys)
+![Listen »Indtagelsesnøgler«, med »Opret indtagelsesnøgle« fremhævet](screen:ingestion-keys)
 
 Den nye nøgle åbner på sin egen side. Kopiér dens **Hemmelig nøgle** — det er det token, du sender som `x-oneuptime-token`.
 
@@ -410,7 +410,7 @@ Hver nøgles side under **Projektindstillinger → Telemetri og APM → Indtagel
 | **Aktiveret** | Slå den fra for straks at holde op med at acceptere data, der sendes med nøglen, uden at slette den. |
 | **Udløber den** | Efter denne dato afvises nøglen. Tom betyder, at den aldrig udløber. |
 | **Requests Per Minute Limit** | Det højeste antal OTLP/HTTP-forespørgsler pr. minut, nøglen accepteres for, på tværs af alle klienter, der bruger den. Tom betyder ingen grænse på en servernøgle og 6.000 på en browsernøgle. |
-| **Last Used At** | Hvornår der sidst blev accepteret data med nøglen. Brug den til at finde nøgler, der trygt kan roteres eller slettes. |
+| **Senest brugt den** | Hvornår der sidst blev accepteret data med nøglen. Brug den til at finde nøgler, der trygt kan roteres eller slettes. |
 
 **Nulstil hemmelig nøgle** på nøglens side erstatter hemmeligheden. Alle applikationer og collectors, der sender med den gamle, afvises, indtil du opdaterer dem. Om browsernøgler, sikker udskiftning af en nøgle og hvad hver afvisning betyder, se [Indtagelsesnøgler](/docs/telemetry/ingestion-keys).
 

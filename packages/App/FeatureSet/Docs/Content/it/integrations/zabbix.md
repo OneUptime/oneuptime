@@ -60,14 +60,14 @@ Inizia con **Declare an incident for each Zabbix problem**, o con **Create an al
 
 ### Cosa chiedono i modelli
 
-- **Zabbix URL**: l'indirizzo a cui apri Zabbix, come `https://zabbix.example.com`, o `https://example.com/zabbix` quando Zabbix gira sotto un percorso. I link a un problema portano lì, e i modelli che chiamano Zabbix inviano le loro richieste al suo `api_jsonrpc.php`. Il campo rifiuta l'indirizzo di una pagina dentro Zabbix.
+- **URL di Zabbix**: l'indirizzo a cui apri Zabbix, come `https://zabbix.example.com`, o `https://example.com/zabbix` quando Zabbix gira sotto un percorso. I link a un problema portano lì, e i modelli che chiamano Zabbix inviano le loro richieste al suo `api_jsonrpc.php`. Il campo rifiuta l'indirizzo di una pagina dentro Zabbix.
 - **Zabbix API Token**: un token API dell'utente Zabbix con cui agisce il flusso di lavoro. [Creare il token API](#creare-il-token-api) spiega come. Viene salvato come variabile segreta, e inviato solo a Zabbix: nell'header `Authorization`, o nel corpo della richiesta su Zabbix 6.0.
 
 ### Ricevere i problemi con il modello
 
 :::steps
 1. Vai su **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. In **Oppure parti da un modello**, scegli **Zabbix** nell'elenco di categorie, fai clic su **Declare an incident for each Zabbix problem** e poi su **Usa questo modello**.
-2. Compila **Zabbix URL**. In **Who to page for High and Disaster problems**, scegli le policy di reperibilità da chiamare, o nessuna per non chiamare nessuno, e fai clic su **Crea flusso di lavoro**. Il flusso di lavoro si apre nel **Costruttore**, disattivato.
+2. Compila **URL di Zabbix**. In **Who to page for High and Disaster problems**, scegli le policy di reperibilità da chiamare, o nessuna per non chiamare nessuno, e fai clic su **Crea flusso di lavoro**. Il flusso di lavoro si apre nel **Costruttore**, disattivato.
 3. Fai clic sul trigger **Webhook**, poi su **Copia URL**, e conserva l'URL per Zabbix.
 4. Attiva **Abilitato** in cima al **Costruttore**. Un flusso di lavoro disattivato risponde a Zabbix con `400`.
 :::
@@ -76,7 +76,7 @@ Poi [configura Zabbix](#configurare-zabbix) perché invii i suoi problemi a quel
 
 ### Cosa fa il flusso di lavoro
 
-Dopo il trigger **Webhook**, il passo **Check With JavaScript** `read-event-1` legge l'`event` che il tipo di media invia, e **Incident From Another Tool**, o **Alert From Another Tool** nel modello degli avvisi, fa ciò che significa, tramite l'ID evento del problema:
+Dopo il trigger **Webhook**, il passo **Verifica con JavaScript** `read-event-1` legge l'`event` che il tipo di media invia, e **Incidente da un altro strumento**, o **Avviso da un altro strumento** nel modello degli avvisi, fa ciò che significa, tramite l'ID evento del problema:
 
 | Evento | Cosa fa il flusso di lavoro |
 | --- | --- |
@@ -102,13 +102,13 @@ In un nuovo progetto, il modello mappa le sei gravità di Zabbix su queste gravi
 Con gravità tue, Disaster e High vanno alla più grave, Average e Warning a quella di mezzo, e Information e Not classified alla meno grave. Zabbix numera le sue gravità da 0 (Not classified) a 5 (Disaster), e il modello legge il numero, quindi rinominare una gravità in Zabbix non cambia nulla.
 
 - Per mappare una gravità su una delle tue per nome, modifica `SEVERITY_BY_NAME` nel passo `read-event-1`, ad esempio `{ 2: 'Minor Incident' }` per Warning.
-- Per chiamare i reperibili anche per i problemi Average, imposta **Confronta con** del passo `if-page-1` **If / Else** a `3`.
+- Per chiamare i reperibili anche per i problemi Average, imposta **Confronta con** del passo `if-page-1` **Se / Altrimenti** a `3`.
 
 ### Rimandare riconoscimenti e note a Zabbix
 
 :::steps
 1. [Crea il token API](#creare-il-token-api).
-2. Crea un flusso di lavoro da **Acknowledge or close the Zabbix problem with the incident**. Compila **Zabbix URL** e **Zabbix API Token**, fai clic su **Crea flusso di lavoro** e attiva **Abilitato**.
+2. Crea un flusso di lavoro da **Acknowledge or close the Zabbix problem with the incident**. Compila **URL di Zabbix** e **Zabbix API Token**, fai clic su **Crea flusso di lavoro** e attiva **Abilitato**.
 3. Se vuoi anche le note in Zabbix, fai lo stesso con **Copy incident private notes to the Zabbix problem**.
 :::
 
@@ -126,7 +126,7 @@ Il modello di stato chiede prima a Zabbix del problema, quindi un problema che Z
 
 ### Su Zabbix 6.0
 
-Zabbix 6.0 legge il token API dal corpo della richiesta, non dal suo header `Authorization`. Nel passo **Update Zabbix Problem** di ogni modello che chiama Zabbix, attiva **Zabbix 6.0**, in **Altri campi**. Zabbix 7.2 e successivi rifiutano un token nel corpo, quindi disattivalo di nuovo quando aggiorni.
+Zabbix 6.0 legge il token API dal corpo della richiesta, non dal suo header `Authorization`. Nel passo **Aggiorna problema Zabbix** di ogni modello che chiama Zabbix, attiva **Zabbix 6.0**, in **Altri campi**. Zabbix 7.2 e successivi rifiutano un token nel corpo, quindi disattivalo di nuovo quando aggiorni.
 
 ## Ricevere i problemi con un monitor
 
@@ -293,7 +293,7 @@ Per inviare alcuni problemi al modello per gli incidenti e altri a quello per gl
 ## Provarlo
 
 1. In Zabbix, apri **Alerts → Media types** e fai clic su **Test** accanto a `OneUptime`. Inserisci l'URL che hai copiato e valori di esempio come `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` e `event_value` `1`. Fai clic su **Test**: Zabbix mostra la risposta dello script, `OK`, o l'errore che ha generato.
-2. In OneUptime, apri **Registri → Esecuzioni** del flusso di lavoro e controlla l'esecuzione, oppure apri il monitor e verifica che si sia aperto un incidente.
+2. In OneUptime, apri **Log → Esecuzioni** del flusso di lavoro e controlla l'esecuzione, oppure apri il monitor e verifica che si sia aperto un incidente.
 3. Prova di nuovo con `event_value` `0` e lo stesso `event_id`. L'incidente viene risolto.
 
 Poi lascia scattare un trigger reale, ad esempio abbassando per un momento una soglia, e osserva il problema arrivare. Per provare un aggiornamento, riconosci il problema in Zabbix con un messaggio: l'incidente riceve una nota privata e viene riconosciuto.
@@ -320,12 +320,12 @@ Apri il tipo di media e usa **Test**: Zabbix mostra il risultato dello script o 
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - L'azione ha bisogno di **Recovery operations**, altrimenti Zabbix non invia mai il rientro.
-- Con il modello, apri **Registri → Esecuzioni** del flusso di lavoro e l'esecuzione del rientro: il suo ultimo passo dice perché. Il rientro di un problema che non ha aperto alcun incidente non cambia nulla.
+- Con il modello, apri **Log → Esecuzioni** del flusso di lavoro e l'esecuzione del rientro: il suo ultimo passo dice perché. Il rientro di un problema che non ha aperto alcun incidente non cambia nulla.
 - Con il monitor, l'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**. **Field that signals recovery** deve essere `requestBody.status`, e **Value that means recovered** esattamente `0`.
 :::
 
 :::details Il problema di Zabbix non viene riconosciuto né chiuso
-Apri l'esecuzione del modello di stato in **Registri → Esecuzioni**: il suo ultimo passo dice cosa ha risposto Zabbix.
+Apri l'esecuzione del modello di stato in **Log → Esecuzioni**: il suo ultimo passo dice cosa ha risposto Zabbix.
 
 - `Not authorized`: il token API è errato, scaduto o disattivato, oppure Zabbix è precedente alla 6.4 (vedi [Su Zabbix 6.0](#su-zabbix-60)).
 - `Cannot close problem: trigger does not allow manual closing`: attiva **Allow manual close** sul trigger. Il modello già riconosce questi problemi invece di chiuderli.
@@ -334,7 +334,7 @@ Apri l'esecuzione del modello di stato in **Registri → Esecuzioni**: il suo ul
 :::
 
 :::details L'incidente mostra un riferimento invece di un valore
-Un riferimento a un campo che la richiesta non ha viene lasciato così com'è scritto, parentesi graffe comprese, invece di essere svuotato. Verifica che Zabbix invii `Content-Type: application/json` e che i nomi di campo che usi (`name`, `host`, `severity`, `status`, `event_id`) corrispondano al payload dello script. Per un flusso di lavoro, apri l'esecuzione in **Registri → Esecuzioni** e confrontala con ciò che il trigger ha ricevuto. Vedi [Insidie](/docs/workflows/variables#trappole).
+Un riferimento a un campo che la richiesta non ha viene lasciato così com'è scritto, parentesi graffe comprese, invece di essere svuotato. Verifica che Zabbix invii `Content-Type: application/json` e che i nomi di campo che usi (`name`, `host`, `severity`, `status`, `event_id`) corrispondano al payload dello script. Per un flusso di lavoro, apri l'esecuzione in **Log → Esecuzioni** e confrontala con ciò che il trigger ha ricevuto. Vedi [Insidie](/docs/workflows/variables#trappole).
 :::
 
 :::details Ogni problema arriva due volte
@@ -344,7 +344,7 @@ Probabilmente l'azione ha due operazioni che inviano allo stesso utente, come un
 ## Sicurezza
 
 - **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, reimpostalo: **Reimposta URL** nel trigger **Webhook** del flusso di lavoro, o **Reimposta la chiave segreta della richiesta in arrivo** nella pagina **Impostazioni** del monitor. Poi aggiorna **Send to** nel media dell'utente Zabbix.
-- **I link portano al tuo Zabbix.** Il modello collega un problema sul sito indicato dal suo **Zabbix URL**, qualunque cosa dica una richiesta, e scrive ciò che Zabbix ha inviato come testo.
+- **I link portano al tuo Zabbix.** Il modello collega un problema sul sito indicato dal suo **URL di Zabbix**, qualunque cosa dica una richiesta, e scrive ciò che Zabbix ha inviato come testo.
 - **Limita il token API a ciò che fa il flusso di lavoro.** È una variabile segreta, oscurata nei log delle esecuzioni e inviata solo a Zabbix, nell'header `Authorization` a meno che **Zabbix 6.0** non sia attivo. Dai al suo utente un ruolo con nient'altro che le azioni qui sopra, ed elimina il token in **Users → API tokens** se trapela.
 - **Invia solo ciò che richiede un incidente.** Usa le condizioni dell'azione, o le gravità del media dell'utente, per lasciare in Zabbix i problemi di bassa gravità.
 - **Self-hosted?** Lascia che il tuo server Zabbix raggiunga il tuo OneUptime via HTTPS attraverso il firewall. Per chiamare uno Zabbix su una rete privata, il flusso di lavoro ha bisogno di [accesso di rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).

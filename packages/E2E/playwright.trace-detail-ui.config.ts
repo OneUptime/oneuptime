@@ -21,6 +21,8 @@ export default defineConfig({
     },
   ],
   use: {
+    // One zone whatever the machine's (Tests/Ops/E2EConfigsPinTheirZone.test.js).
+    timezoneId: "UTC",
     baseURL: "http://127.0.0.1:4231",
     locale: "en-GB",
     trace: "retain-on-failure",

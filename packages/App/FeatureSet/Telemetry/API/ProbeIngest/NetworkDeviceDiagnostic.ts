@@ -95,7 +95,7 @@ function isJsonObject(value: unknown): value is JSONObject {
  * renders at the next poll.
  *
  * A failure to record is logged, never thrown: the rest of the batch was
- * claimed in the same transaction and must still reach the probe, or every
+ * claimed by the same statement and must still reach the probe, or every
  * diagnostic in it would sit In Progress until retention removes it.
  */
 async function failClaimedDiagnostic(data: {
@@ -313,7 +313,7 @@ function buildSnmpWalkJob(data: {
  * SNMP walks from the device's SNMP Walk page) as
  * `{ diagnostics: Array<NetworkDeviceDiagnosticJob> }`.
  *
- * Claiming is atomic (FOR UPDATE SKIP LOCKED, see
+ * Claiming is atomic (one statement, FOR NO KEY UPDATE SKIP LOCKED, see
  * NetworkDeviceDiagnosticService.claimPendingForProbe) so replicas of the
  * same probe never run the same diagnostic twice, and marks the rows
  * In Progress. A claimed row the probe could not run — no hostname, or a

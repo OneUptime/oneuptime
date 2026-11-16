@@ -1,11 +1,11 @@
 # Värdövervakning
 
-En värdmonitor övervakar en maskin – dess CPU, minne, diskar, belastning och processer – och säger till när den är mättad eller håller på att fyllas. Den läser OpenTelemetry-måtten `system.*` som en OpenTelemetry Collector skickar från värden, samma data som produkten **Värdar** visar, så ingenting undersöks utifrån.
+En värdmonitor övervakar en maskin – dess CPU, minne, diskar, belastning och processer – och säger till när den är mättad eller håller på att fyllas. Den läser OpenTelemetry-mätvärdena `system.*` som en OpenTelemetry Collector skickar från värden, samma data som produkten **Värdar** visar, så ingenting undersöks utifrån.
 
 :::cards
 - [Skapa monitorn](#skapa-en-värdmonitor): Sex steg i instrumentpanelen.
 - [Mallar](#färdiga-larmmallar): Tio färdiga larm för en tyst eller omstartad värd, CPU, minne, swap, disk, inoder, belastning, processer och misslyckade systemd-enheter.
-- [Mätvärden](#insamlade-mätvärden): De värdmått som du kan varna på, och deras enheter.
+- [Mätvärden](#insamlade-mätvärden): De värdmätvärden som du kan varna på, och deras enheter.
 - [Värd eller Server / VM?](#värdmonitor-eller-server-vm-monitor): Vilken av de två maskinmonitorerna du ska använda.
 :::
 
@@ -36,8 +36,8 @@ OneUptime har två monitorer för maskiner. De kan köras på samma värd.
 | | Värdmonitor | Server- / VM-monitor |
 | --- | --- | --- |
 | **Agent** | En OpenTelemetry Collector med mottagaren `hostmetrics` | OneUptimes infrastrukturagent |
-| **Data** | OpenTelemetry-måtten `system.*` och `process.*`, samma som sidorna under **Värdar** visar i diagram | En statusrapport som agenten skickar till monitorn |
-| **Kriterier** | Trösklar eller avvikelseidentifiering på vilken måttfråga eller formel som helst | Inbyggda kontroller som CPU-, minnes- och diskanvändning |
+| **Data** | OpenTelemetry-mätvärdena `system.*` och `process.*`, samma som sidorna under **Värdar** visar i diagram | En statusrapport som agenten skickar till monitorn |
+| **Kriterier** | Trösklar eller avvikelseidentifiering på vilken mätvärdesfråga eller formel som helst | Inbyggda kontroller som CPU-, minnes- och diskanvändning |
 | **Inställning** | Installera collectorn; värden registrerar sig själv | Skapa monitorn och ge sedan dess hemliga nyckel till agenten |
 
 Använd värdmonitorn när värden redan skickar OpenTelemetry-data, eller när du vill ha loggar och rikare mätvärden från samma collector. Se [Server- / VM-övervakning](/docs/monitor/server-monitor) för den andra.
@@ -69,7 +69,7 @@ En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas 
 
 - **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Host Metric** och ange sedan **Aggregering** och **Tidsintervall**.
-- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mätvärden**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollera kriterierna
 
@@ -91,7 +91,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Host Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden), grupperat som CPU, minne, disk, nätverk, belastning och processer. |
 | **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 ## Färdiga larmmallar
 
@@ -130,7 +130,7 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 Listan **Host Metric** erbjuder de här mätvärdena. Var och ett bär `resource.host.name`, vilket är hur monitorn begränsar sina frågor till en värd. Valt där räknar CPU tillståndet `user`, minnes- och filsystemsanvändning tillståndet `used`, och filsystem och processer ger en serie per monteringspunkt och status.
 
 > [!IMPORTANT]
-> Utnyttjandemåtten är en kvot från 0 till 1, inte en procentsats: använd `0.8` för 80 % i en tröskel på det råa mätvärdet. Mallarna räknar om till procent med en formel, så deras trösklar är 80, 85 och 90.
+> Utnyttjandemätvärdena är en kvot från 0 till 1, inte en procentsats: använd `0.8` för 80 % i en tröskel på det råa mätvärdet. Mallarna räknar om till procent med en formel, så deras trösklar är 80, 85 och 90.
 
 ### CPU
 
@@ -199,11 +199,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
+| 1 | Kontrollera om _monitornamn_ är offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitornamn_ är offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mätvärde som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Felsökning
 
@@ -212,7 +212,7 @@ Värdar registrerar sig själva utifrån collectorns data, som behöver ett `hos
 :::
 
 :::details En CPU- eller minnesströskel utlöses aldrig
-Utnyttjandemåtten är kvoter som maximalt når `1.0`, så en handskriven tröskel på `80` passeras aldrig: använd `0.8`, eller utgå från en mall, som räknar om till procent. Filtrera också på `state` – `user` och `system` för CPU, `used` för minne. Ett genomsnitt över alla tillstånd håller sig nära 1 delat med antalet tillstånd.
+Utnyttjandemätvärdena är kvoter som maximalt når `1.0`, så en handskriven tröskel på `80` passeras aldrig: använd `0.8`, eller utgå från en mall, som räknar om till procent. Filtrera också på `state` – `user` och `system` för CPU, `used` för minne. Ett genomsnitt över alla tillstånd håller sig nära 1 delat med antalet tillstånd.
 :::
 
 :::details Incidenter utlöses för fel värd

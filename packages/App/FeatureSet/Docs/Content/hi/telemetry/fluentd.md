@@ -31,11 +31,11 @@ Fluentd रिकॉर्ड को JSON के बैच में भेज�
 
 **उत्पाद → प्रोजेक्ट सेटिंग्स** पर जाएं, साइड मेन्यू में **टेलीमेट्री और APM** खोलें और **इंजेशन कुंजियाँ** चुनें।
 
-!["इंजेशन कुंजियाँ" सूची, "इन्जेशन कुंजी बनाएँ" घेरा हुआ](screen:ingestion-keys)
+!["इंजेशन कुंजियाँ" सूची, "इंजेशन कुंजी बनाएँ" घेरा हुआ](screen:ingestion-keys)
 
 ### एक कुंजी बनाएं
 
-**इन्जेशन कुंजी बनाएँ** पर क्लिक करें। डायलॉग में कुंजी का नाम पहले से भरा होता है और **सर्वर** चुना होता है — वह कुंजी प्रकार जिससे कोई एप्लिकेशन या collector डेटा भेजता है — इसलिए उसे बनाने के लिए **इन्जेशन कुंजी बनाएँ** पर क्लिक करें, या पहले उसका नाम बदलें।
+**इंजेशन कुंजी बनाएँ** पर क्लिक करें। डायलॉग में कुंजी का नाम पहले से भरा होता है और **सर्वर** चुना होता है — वह कुंजी प्रकार जिससे कोई एप्लिकेशन या collector डेटा भेजता है — इसलिए उसे बनाने के लिए **इंजेशन कुंजी बनाएँ** पर क्लिक करें, या पहले उसका नाम बदलें।
 
 ### सीक्रेट कॉपी करें
 
@@ -82,6 +82,10 @@ Fluentd की कॉन्फ़िगरेशन फ़ाइल आमतौ
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Fluentd की कॉन्फ़िगरेशन फ़ाइल आमतौ
 
 `json_array true` बफ़र के हर चंक को एक JSON ऐरे के रूप में भेजता है, और `flush_interval 10s` हर 10 सेकंड में बफ़र भेजता है। `chunk_limit_size 900k` हर रिक्वेस्ट को 1 MB से कम रखता है, जो इस एंडपॉइंट पर OneUptime की अधिकतम सीमा है।
 
+`@type file` भेजे जाने से बचे बैच को उस फ़ोल्डर में रखता है जिसका नाम `path` देता है, ताकि Fluentd के रीस्टार्ट होने पर उनमें से कोई न खोए; मेमोरी वाला बफ़र, जो Fluentd का डिफ़ॉल्ट है, जो कुछ रखता है वह खो देता है। Fluentd के यूज़र को उस फ़ोल्डर में लिखने की अनुमति होनी चाहिए: `/var/log/fluent` fluent-package का है, `/var/log/td-agent` td-agent का, और `/fluentd/log` `fluent/fluentd` इमेज का। `total_limit_size 512m` वहाँ ज़्यादा से ज़्यादा 512 MB रखता है; भर जाने पर Fluentd तब तक और रिकॉर्ड नहीं लेता जब तक कोई बैच भेजा न जाए।
+
 `retryable_response_codes 429,502,503,504` बैच को फिर से भेजता है जब OneUptime व्यस्त हो (`429`) या रीस्टार्ट हो रहा हो (`502`, `503`, `504`); इसके बिना Fluentd `503` को छोड़कर किसी भी जवाब पर बैच को छोड़ देता है। `retry_max_interval 30s` दो कोशिशों के बीच ज़्यादा से ज़्यादा 30 सेकंड रुकता है, और `retry_timeout 72h` उस बैच को छोड़ देता है जो 72 घंटे बाद भी नहीं भेजा जा सका। `record_transformer` फ़िल्टर हर रिकॉर्ड में वह समय जोड़ता है जो Fluentd ने उसे दिया, `fluentd_time` के रूप में: HTTP आउटपुट सिर्फ़ रिकॉर्ड भेजता है, और OneUptime लॉग का समय उसी से पढ़ता है।
 
 ### Fluentd रीस्टार्ट करें
@@ -113,7 +119,7 @@ Fluentd सर्विस को रीस्टार्ट करें, त�
 
 ## पूरा उदाहरण
 
-यह कॉन्फ़िगरेशन पोर्ट `24224` पर Fluentd के forward प्रोटोकॉल से रिकॉर्ड लेती है और उन सभी को OneUptime को भेजती है:
+यह कॉन्फ़िगरेशन पोर्ट `24224` पर Fluentd के forward प्रोटोकॉल से, सिर्फ़ इसी होस्ट से, रिकॉर्ड लेती है और उन सभी को OneUptime को भेजती है:
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Fluentd सर्विस को रीस्टार्ट करें, त�
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Fluentd सर्विस को रीस्टार्ट करें, त�
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Fluentd सर्विस को रीस्टार्ट करें, त�
 </label>
 ```
 
-अलग-अलग स्रोतों को अलग-अलग सेवाओं के रूप में भेजने के लिए, हर टैग के लिए एक `<match>` सेक्शन इस्तेमाल करें, और हर एक में अपना `x-oneuptime-service-name` रखें।
+`bind 127.0.0.1` सिर्फ़ इसी होस्ट से रिकॉर्ड लेता है, जैसे Docker के `fluentd` लॉग ड्राइवर के, जो `localhost:24224` पर भेजता है। अलग-अलग स्रोतों को अलग-अलग सेवाओं के रूप में भेजने के लिए, हर टैग के लिए एक `<match>` सेक्शन इस्तेमाल करें, और हर एक में अपना `x-oneuptime-service-name` और बफ़र का अपना `path` रखें: एक ही पाथ पर दो बफ़र होने पर Fluentd शुरू नहीं होता।
+
+## दूसरे होस्ट से रिकॉर्ड लें
+
+`bind 0.0.0.0` के साथ और `<security>` सेक्शन के बिना, जो कोई भी पोर्ट `24224` तक पहुँच सकता है, वह आपकी इंजेशन कुंजी से OneUptime को लॉग भेज सकता है। दूसरे होस्ट पर चल रहे Fluentd या Fluent Bit से रिकॉर्ड लेने के लिए, हर पते पर सुनें, हर भेजने वाले से एक साझा कुंजी माँगें, और TLS इस्तेमाल करें। पूरे उदाहरण के `<source>` सेक्शन की जगह यह रखें:
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` और `private_key_path` इस होस्ट के नाम, यहाँ `fluentd.example.com`, का एक सर्टिफ़िकेट और उसकी कुंजी हैं, जिन्हें Fluentd का यूज़र पढ़ सके। कुंजी पर पासफ़्रेज़ न होने पर Fluentd चेतावनी देता है; `private_key_passphrase` एक पासफ़्रेज़ सेट करता है। `YOUR_SHARED_KEY` की जगह एक लंबा रैंडम सीक्रेट रखें, जैसे `openssl rand -base64 32` से बना एक, और हर भेजने वाले को वही दें:
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+Fluent Bit का `forward` आउटपुट भी यही सेटिंग लेता है: `Shared_Key`, `Self_Hostname`, `tls On` और `tls.ca_file`।
+
+कुंजी या TLS के बिना भेजने वाले को लौटा दिया जाता है। कुंजी खुद कभी नेटवर्क पर नहीं जाती: हर पक्ष साबित करता है कि उसके पास वह है। TLS के बिना, होस्ट के बीच के नेटवर्क पर कोई भी रिकॉर्ड पढ़ सकता है। होस्ट के फ़ायरवॉल में पोर्ट `24224` सिर्फ़ उन होस्ट के लिए खोलें जो भेजते हैं। अगर Fluentd लॉग गाइड की Docker Compose फ़ाइल से चलता है, तो वहाँ भी पोर्ट को हर पते पर पब्लिश करें, `"24224:24224"`, और सर्टिफ़िकेट का फ़ोल्डर कंटेनर में माउंट करें।
 
 ## रिकॉर्ड कैसे पढ़े जाते हैं
 
@@ -209,11 +274,15 @@ Fluentd लॉग भी किसी दूसरे लॉग की तरह
 :::
 
 :::details Fluentd `429`, `502`, `503` या `504` लॉग करता है
-OneUptime व्यस्त है या रीस्टार्ट हो रहा है। ऊपर के कॉन्फ़िगरेशन की तरह `<match>` सेक्शन में `retryable_response_codes 429,502,503,504` होने पर Fluentd बैच को रखता है और फिर से भेजता है; इसके बिना Fluentd बैच को छोड़ देता है।
+OneUptime व्यस्त है या रीस्टार्ट हो रहा है। ऊपर के कॉन्फ़िगरेशन की तरह `<match>` सेक्शन में `retryable_response_codes 429,502,503,504` होने पर Fluentd बैच को रखता है और फिर से भेजता है; इसके बिना Fluentd बैच को छोड़ देता है। `<buffer>` सेक्शन में `@type file` होने पर Fluentd रीस्टार्ट होने पर भी बैच रखता है।
 :::
 
 :::details लॉग अपना समय नहीं, बल्कि वह समय दिखाते हैं जब OneUptime ने उन्हें प्राप्त किया
-OneUptime लॉग का समय उसके रिकॉर्ड से पढ़ता है, और Fluentd का HTTP आउटपुट सिर्फ़ रिकॉर्ड भेजता है। `<parse>` सेक्शन रिकॉर्ड से `time` फ़ील्ड निकाल देता है: उसमें `keep_time_key true` जोड़ें। ऊपर के कॉन्फ़िगरेशन का `record_transformer` फ़िल्टर भी जोड़ें: यह हर रिकॉर्ड में वह समय जोड़ता है जो Fluentd ने उसे दिया, `fluentd_time` के रूप में।
+OneUptime लॉग का समय उसके रिकॉर्ड से पढ़ता है, और Fluentd का HTTP आउटपुट सिर्फ़ रिकॉर्ड भेजता है। `<parse>` सेक्शन रिकॉर्ड से `time` फ़ील्ड को इवेंट के समय के रूप में निकाल देता है: उसमें `time_key fluentd_time` जोड़ें, ताकि वह किसी रिकॉर्ड का समय न पढ़े और `time` को जैसा है वैसा छोड़ दे। ऊपर के कॉन्फ़िगरेशन का `record_transformer` फ़िल्टर भी जोड़ें: यह हर रिकॉर्ड में वह समय जोड़ता है जो Fluentd ने उसे दिया, `fluentd_time` के रूप में।
+:::
+
+:::details ऐसी JSON लाइन कभी नहीं पहुँचती जिसका `time` `null`, `true`, एक लिस्ट या एक ऑब्जेक्ट हो
+Fluentd का `json` पार्सर किसी लाइन के `time` फ़ील्ड को इवेंट के समय के रूप में पढ़ता है, और जिस लाइन का `time` न टेक्स्ट हो न कोई संख्या, उसे बिना किसी चेतावनी के छोड़ देता है। ऊपर की तरह उसके `<parse>` सेक्शन में `time_key fluentd_time` जोड़ें: तब Fluentd `time` को रिकॉर्ड में जैसा है वैसा छोड़ देता है। ऊपर के `record_transformer` फ़िल्टर के साथ, OneUptime लॉग को उस समय पर सहेजता है जब Fluentd ने उसे पढ़ा, `fluentd_time`; उसके बिना, उस समय पर जब OneUptime उसे प्राप्त करता है।
 :::
 
 :::details लॉग `Fluentd` सेवा के तहत पहुंचते हैं

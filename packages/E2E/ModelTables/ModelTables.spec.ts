@@ -2,6 +2,8 @@ import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Tables (ModelTable -> BaseModelTable -> Table) in real Chromium, against
@@ -443,9 +445,13 @@ test.describe("the Incidents list of the screenshot", () => {
       .getByTestId("live-duration");
 
     await expect(duration).toHaveText("10 days, 23 hours");
+    /*
+     * An attribute is matched as written: each number held to its unit by a
+     * no-break space (#8669).
+     */
     await expect(duration).toHaveAttribute(
       "title",
-      "10 days, 23 hours, 31 minutes",
+      `${withUnit(10, "days")}, ${withUnit(23, "hours")}, ${withUnit(31, "minutes")}`,
     );
   });
 
@@ -1173,7 +1179,17 @@ test.describe("the Alerts list of the screenshot", () => {
    * wide as its icon and name - on the left of an English page, on the
    * right of a Persian one.
    */
-  for (const language of ["en", "fa"]) {
+  /*
+   * A click past a short name's end needs room past it. At 1280px the
+   * Persian page's other columns, worded in Persian since 7ef63100d98, leave
+   * the cluster's 128px name 3.6px of its item (#8751): its page is read at
+   * 1440px, where the column has room again, as the English one has at
+   * 1280px.
+   */
+  for (const [language, width] of [
+    ["en", 1280],
+    ["fa", 1440],
+  ] as Array<[string, number]>) {
     test(`a resource's link tabbed onto shows its focus ring above and below it, round its icon and name, and a click past a short name's end is not the link's (${language})`, async ({
       page,
     }: {
@@ -1182,6 +1198,7 @@ test.describe("the Alerts list of the screenshot", () => {
       await open(
         page,
         language === "en" ? ALERTS : `${ALERTS}?lang=${language}`,
+        width,
       );
 
       const link: Locator = rows(page)
@@ -1194,7 +1211,7 @@ test.describe("the Alerts list of the screenshot", () => {
 
       expectRingRoundIconAndName(focused);
 
-      await screenshot(page, `alerts-${language}-1280-resource-focused`);
+      await screenshot(page, `alerts-${language}-${width}-resource-focused`);
     });
   }
 
@@ -1556,9 +1573,13 @@ test.describe("the Alerts list of the screenshot", () => {
     await expect(page.getByRole("listbox")).toHaveCount(0);
     await expect(cards).toHaveCount(1);
 
-    // Folded again: Filter, with its count, the Monitor chip and Clear all.
+    /*
+     * Folded again: Filter, with its count, the Monitor chip and Clear all.
+     * Its name says the count as a sentence, "Filter: 1 applied"
+     * (FacetFilterBar, d7b86b0b39f), where it read "Filter 1".
+     */
     const filter: Locator = bar.getByRole("button", {
-      name: "Filter 1",
+      name: "Filter: 1 applied",
       exact: true,
     });
     await filter.click();
@@ -3394,12 +3415,18 @@ test.describe("a table wider than its card", () => {
    * ring and words hidden and its reason pointing at the column (#5282).
    * The rows now scroll on until it is clear (TableStickyEndFocus). Each
    * reading is one evaluate, once the rows have stopped moving.
+   *
+   * The test needs the pill under the column before the focus lands, or
+   * there is nothing to scroll for. Since the Persian words of 7ef63100d98
+   * the Persian page's columns put it clear of the column at 1280px
+   * (#8751), so that page is read at 1024px, where it starts under the
+   * column again; and the test says so first, should the columns move again.
    */
-  for (const [language, isRightToLeft, reason] of [
-    ["en", false, "This rule never sends a reminder"],
+  for (const [language, isRightToLeft, reason, width] of [
+    ["en", false, "This rule never sends a reminder", 1280],
     // The Dashboard's Persian words for it (Locales/fa.json).
-    ["fa", true, "این قاعده هرگز یادآوری نمی‌فرستد"],
-  ] as Array<[string, boolean, string]>) {
+    ["fa", true, "این قاعده هرگز یادآوری نمی‌فرستد", 1024],
+  ] as Array<[string, boolean, string, number]>) {
     test(`the keyboard never leaves a focused pill under the stuck Actions column${
       isRightToLeft ? ", right to left too (?lang=fa)" : ""
     }`, async ({ page }: { page: Page }) => {
@@ -3408,6 +3435,7 @@ test.describe("a table wider than its card", () => {
         `${GALLERY}?table=wide&data=rich${
           language === "en" ? "" : `&lang=${language}`
         }`,
+        width,
       );
 
       const scroller: Locator = page.getByTestId("table-scroll");
@@ -3415,6 +3443,31 @@ test.describe("a table wider than its card", () => {
       const pill: Locator = row.getByTestId("never-reminds-5");
 
       await expect(scroller).toHaveAttribute("data-overflowing", "true");
+
+      // Before the focus lands, the pill is partly under the stuck column.
+      const atRest: { underTheColumn: boolean; scrollLeft: number } =
+        await pill.evaluate(
+          (
+            element: Element,
+          ): { underTheColumn: boolean; scrollLeft: number } => {
+            const stuck: Element = Array.from(
+              (element.closest("tr") as Element).children,
+            ).find((cell: Element): boolean => {
+              return getComputedStyle(cell).position === "sticky";
+            }) as Element;
+            const pillBox: DOMRect = element.getBoundingClientRect();
+            const stuckBox: DOMRect = stuck.getBoundingClientRect();
+
+            return {
+              underTheColumn:
+                pillBox.left < stuckBox.right && pillBox.right > stuckBox.left,
+              scrollLeft: (
+                element.closest("[data-testid='table-scroll']") as Element
+              ).scrollLeft,
+            };
+          },
+        );
+      expect(atRest).toEqual({ underTheColumn: true, scrollLeft: 0 });
 
       // From the row's select box, the next stop is the pill.
       await row.getByRole("checkbox").focus();
@@ -4577,7 +4630,9 @@ test.describe("a table fits its own card", () => {
     const duration: string =
       (await row.getByTestId("live-duration").textContent()) || "";
 
-    expect(duration).toMatch(/^\d+\u00a0\S+(, \d+\u00a0\S+)?$/);
+    expect(duration).toMatch(
+      new RegExp(`^\\d+${NO_BREAK_SPACE}\\S+(, \\d+${NO_BREAK_SPACE}\\S+)?$`),
+    );
     await screenshot(page, "incidents-rich-folded-titles-1280");
   });
 
@@ -5301,7 +5356,7 @@ test.describe("a member who may read none of a list", () => {
     await expect(state).toBeVisible();
     await expect(state).toContainText("You don't have access to this list");
     await expect(state).toContainText(
-      "You need this permission: Read Incident. Ask a project admin for access.",
+      "You need this permission: Read Incident. Ask a Project Admin for access.",
     );
     await expect(state).not.toContainText("Project Owner");
 
@@ -5359,4 +5414,18 @@ test.describe("a member who may read none of a list", () => {
 
     await screenshot(page, "no-access-monitors-390-de-dark");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese and Persian whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? INCIDENTS : `${INCIDENTS}?lang=${language}`;
+  },
 });

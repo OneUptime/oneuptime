@@ -12,10 +12,14 @@ import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
 import { Green, Red, Yellow, Grey } from "Common/Types/BrandColors";
 import UserElement from "../../../Components/User/User";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 
 const IncomingCallPolicyLogViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const incomingCallLogId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const getStatusPill: (status?: IncomingCallStatus) => ReactElement = (
@@ -133,9 +137,10 @@ const IncomingCallPolicyLogViewPage: FunctionComponent<
                   item.dialDurationInSeconds / 60,
                 );
                 const seconds: number = item.dialDurationInSeconds % 60;
+                // "2m 5s", in the reader's units and digits (#8455).
                 return (
                   <span>
-                    {minutes}m {seconds}s
+                    {formatCompactDuration(translator, { minutes, seconds })}
                   </span>
                 );
               }

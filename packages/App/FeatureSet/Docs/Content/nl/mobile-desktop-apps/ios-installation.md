@@ -48,7 +48,7 @@ Gebruik de manier waarop uw account zich aanmeldt:
 - **Sign in with SSO**, als uw organisatie single sign-on gebruikt. Kies uw provider, of voer uw zakelijke e-mailadres in en tik op **Continue**. Een beveiligde browser opent, en u bent terug in de app zodra u bent aangemeld.
 - **Sign in with a passkey**, zodra u er een in het dashboard hebt toegevoegd: zie [Een passkey toevoegen](/docs/introduction/your-account#een-passkey-toevoegen). Een browservenster opent om hem te bevestigen en brengt u daarna terug.
 
-Met tweestapsverificatie aan voert u de zescijferige code uit uw authenticator-app in, of een van uw back-upcodes. Een beveiligingssleutel kan in de app niet worden gebruikt. Vereist uw beheerder tweestapsverificatie en hebt u die nog niet ingesteld, dan stelt de app eerst samen met u een authenticator-app in.
+Met tweefactorauthenticatie aan voert u de zescijferige code uit uw authenticator-app in, of een van uw back-upcodes. Een beveiligingssleutel kan in de app niet worden gebruikt. Vereist uw beheerder tweefactorauthenticatie en hebt u die nog niet ingesteld, dan stelt de app eerst samen met u een authenticator-app in.
 
 ### Meldingen toestaan
 Wanneer iOS vraagt of OneUptime On-Call u berichtgeving mag sturen, tikt u op **Sta toe**.

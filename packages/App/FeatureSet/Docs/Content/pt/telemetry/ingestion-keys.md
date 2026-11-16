@@ -108,7 +108,7 @@ Uma origem é um esquema, um host e uma porta opcional: `https://app.example.com
 
 ## Trocar, desativar ou excluir uma chave
 
-A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trás de **Clique para mostrar**, e o seu **Last Used At**: a última vez que o OneUptime aceitou dados enviados com ela.
+A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trás de **Clique para mostrar**, e o seu **Usado pela última vez em**: a última vez que o OneUptime aceitou dados enviados com ela.
 
 | Para | Faça isto | O que os remetentes veem |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trá
 | Substituir um segredo vazado | Clique em **Redefinir chave secreta** e confirme. A chave mantém as configurações e recebe um novo segredo. | `401` até eles enviarem o novo segredo |
 | Parar uma chave de vez | Clique em **Excluir: Chave de ingestão** no fim da página dela. | `401` |
 
-Para trocar um segredo sem perder dados, crie uma segunda chave, passe os seus remetentes para ela e exclua a chave antiga quando o **Last Used At** dela parar de mudar. **Last Used At** é atualizado a cada poucos minutos, não a cada requisição.
+Para trocar um segredo sem perder dados, crie uma segunda chave, passe os seus remetentes para ela e exclua a chave antiga quando o **Usado pela última vez em** dela parar de mudar. **Usado pela última vez em** é atualizado a cada poucos minutos, não a cada requisição.
 
 ## Solução de problemas
 

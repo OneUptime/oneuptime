@@ -669,7 +669,7 @@ describe("the Home tab, opened", () => {
     // Greeted by name, as on the Home that lets her in.
     expect(blockTexts(publishedBlocks())).toEqual([
       "👋 Hi Alice",
-      "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.\n",
+      "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.\n",
     ]);
     expect(incidentReads).toEqual([]);
   });

@@ -1132,7 +1132,8 @@ describe("how the devices are monitored", () => {
     await openDialog();
     await search("10.48.12.0/24");
     await next();
-    await pick("Check every", "Every 15 minutes");
+    // The option as the menu draws it, its figure held (#8811).
+    await pick("Check every", "Every 15\u00A0minutes");
 
     await act(async () => {
       fireEvent.click(screen.getByTestId("discovery-import-back"));

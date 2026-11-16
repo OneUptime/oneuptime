@@ -3,6 +3,7 @@ import {
   ADDED_BY_PERSON,
   ADDED_THROUGH_API,
   RULE_EXCEPTIONS_TEST_IDS,
+  RULE_EXCEPTION_STATUS_LABELS,
   TIME_WINDOW_RANGE,
 } from "./RuleExceptionsCopy";
 import {
@@ -13,6 +14,8 @@ import {
   getRuleExceptionStatusLine,
 } from "./RuleExceptionsModel";
 import OneUptimeDate from "Common/Types/Date";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   DetectionRuleExceptionShape,
   DetectionRuleExceptionStatus,
@@ -34,12 +37,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 // A time as a list's line says it: "Oct 30, 14:00", the whole of it under the pointer.
 function writeTime(time: Date | undefined): string {
-  return time ? OneUptimeDate.getDateAsLocalShortDateTimeString(time) : "-";
+  return time
+    ? OneUptimeDate.getDateAsLocalShortDateTimeString(time)
+    : EMPTY_VALUE_MARK;
 }
 
 // How far ahead or how long ago: "in 30 days", "2 days ago".
 function writeRelativeTime(time: Date | undefined): string {
-  return time ? OneUptimeDate.fromNow(time) : "-";
+  return time ? OneUptimeDate.fromNow(time) : EMPTY_VALUE_MARK;
 }
 
 /*
@@ -118,8 +123,16 @@ export const RuleExceptionWindowRange: FunctionComponent<WindowRangeProps> = (
     <TranslatedSentence
       template={TIME_WINDOW_RANGE}
       slots={{
-        from: <span className="whitespace-nowrap">{times.from}</span>,
-        until: <span className="whitespace-nowrap">{times.until}</span>,
+        from: (
+          <span className="whitespace-nowrap">
+            {getValueOrQuietDash(times.from)}
+          </span>
+        ),
+        until: (
+          <span className="whitespace-nowrap">
+            {getValueOrQuietDash(times.until)}
+          </span>
+        ),
       }}
     />
   );
@@ -216,7 +229,7 @@ export const RuleExceptionStatusCell: FunctionComponent<StatusCellProps> = (
       data-testid={RULE_EXCEPTIONS_TEST_IDS.statusCell}
     >
       <Pill
-        text={status}
+        text={RULE_EXCEPTION_STATUS_LABELS[status]}
         color={getRuleExceptionStatusColor(status)}
         isMinimal={true}
       />

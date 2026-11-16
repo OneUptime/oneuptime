@@ -76,7 +76,7 @@ describe("summarizeCloudFleet", () => {
     expect(tileByTitle(tiles, "Deploys")).toEqual({
       title: "Deploys",
       value: "0",
-      sublabel: "in the last 24 hours",
+      sublabel: "in the last 24\u00A0hours",
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.deploys,
     });
     expect(tileByTitle(tiles, "Live instances")).toEqual({
@@ -95,7 +95,7 @@ describe("summarizeCloudFleet", () => {
     ).toEqual({
       title: "Deploys",
       value: "7",
-      sublabel: "in the last 24 hours",
+      sublabel: "in the last 24\u00A0hours",
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.deploys,
     });
   });

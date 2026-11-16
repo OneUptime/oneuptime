@@ -1386,7 +1386,7 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
 
       expectSends(teams, { attempted: 1, delivered: 1 });
       expect(theDeliveredAnswer(teams)).toEqual({
-        text: "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+        text: "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.",
         connectUrl: null,
       });
       expect(assertCanCreateSpy).not.toHaveBeenCalled();

@@ -16,9 +16,9 @@
 
 ```mermaid title="兩個工作流程，一個 PagerDuty 事件"
 flowchart TB
-    declared["事件已宣告"] --> create["工作流程 1：<br/>On Create Incident"]
+    declared["事件已宣告"] --> create["工作流程 1：<br/>建立事件時"]
     create -->|"trigger"| pd["PagerDuty 事件"]
-    resolved["事件已解決"] --> update["工作流程 2：<br/>On Update Incident"]
+    resolved["事件已解決"] --> update["工作流程 2：<br/>更新事件時"]
     update -->|"resolve"| pd
 ```
 
@@ -48,11 +48,11 @@ flowchart TB
 
 ### 新增觸發器
 
-點選虛線的 **選擇啟動此工作流程的方式** 區塊，選擇 **On Create Incident**。點選該觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述**。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊，選擇 **建立事件時**。點選該觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述**。
 
 ### 傳送 trigger 事件
 
-點選 **新增元件**，新增一個 **API Post (JSON)** 區塊，並把觸發器的 **成功** 點連接到它。把它的 **URL** 設為 `https://events.pagerduty.com/v2/enqueue`，**請求內文** 設為：
+點選 **新增元件**，新增一個 **API 呼叫 POST (JSON)** 區塊，並把觸發器的 **成功** 點連接到它。把它的 **URL** 設為 `https://events.pagerduty.com/v2/enqueue`，**請求內文** 設為：
 
 ```json
 {
@@ -72,7 +72,7 @@ flowchart TB
 
 ### 測試，然後啟用
 
-點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行。**API Post (JSON)** 步驟會顯示帶有 `"status": "success"` 的 `202` 回應，PagerDuty 會建立一個事件。然後在 **建構器** 頂部開啟 **已啟用**。
+點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行。**API 呼叫 POST (JSON)** 步驟會顯示帶有 `"status": "success"` 的 `202` 回應，PagerDuty 會建立一個事件。然後在 **建構器** 頂部開啟 **已啟用**。
 :::
 
 該區塊傳送的是 JSON，因此不需要 `Content-Type` 標頭。PagerDuty 的 `severity` 是 `critical`、`error`、`warning` 和 `info` 之一：要傳送每個事件自己的嚴重程度，請參閱 [對應嚴重程度](#對應嚴重程度)。
@@ -82,9 +82,9 @@ flowchart TB
 一個工作流程只有一個觸發器，因此解決需要第二個工作流程，在事件狀態變化時啟動。
 
 :::steps
-### 新增 On Update Incident 觸發器
+### 新增「更新事件時」觸發器
 
-建立一個名為 `Resolve PagerDuty incidents` 的工作流程，選擇 **On Update Incident** 作為觸發器。在 **Fields to watch** 中點選 **新增欄位** 並選擇 **Current Incident State**，使它只在狀態變化時執行。在 **Fields to pass on** 中請求新狀態是否為已解決狀態：點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。也可以點選 **以 JSON 編輯**，把 JSON 取代為：
+建立一個名為 `Resolve PagerDuty incidents` 的工作流程，選擇 **更新事件時** 作為觸發器。在 **要關注的欄位** 中點選 **新增欄位** 並選擇 **Current Incident State**，使它只在狀態變化時執行。在 **要傳遞的欄位** 中請求新狀態是否為已解決狀態：點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。也可以點選 **以 JSON 編輯**，把 JSON 取代為：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ flowchart TB
 
 ### 檢查事件是否已解決
 
-在觸發器之後新增一個 **If / Else** 區塊。把 **要檢查的值** 設為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比較** 設為 **為真**。
+在觸發器之後新增一個 **如果 / 否則** 區塊。把 **要檢查的值** 設為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比較** 設為 **為真**。
 
 ### 傳送 resolve 事件
 
-在 **是** 一側之後新增一個 **API Post (JSON)** 區塊，使用相同的 **URL** 和以下 **請求內文**：
+在 **是** 一側之後新增一個 **API 呼叫 POST (JSON)** 區塊，使用相同的 **URL** 和以下 **請求內文**：
 
 ```json
 {
@@ -115,10 +115,10 @@ flowchart TB
 
 ## 對應嚴重程度
 
-要傳送每個事件的嚴重程度，請在觸發器和 **API Post (JSON)** 區塊之間新增一個 **Run Custom JavaScript** 區塊，並在請求內文中讀取它的結果。
+要傳送每個事件的嚴重程度，請在觸發器和 **API 呼叫 POST (JSON)** 區塊之間新增一個 **執行自訂 JavaScript** 區塊，並在請求內文中讀取它的結果。
 
-1. 在觸發器的 **Fields to pass on** 中點選 **新增欄位**，展開 **事件嚴重性** 並選擇 **名稱**。
-2. 把該區塊的 **Arguments** 設為 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript 程式碼** 設為：
+1. 在觸發器的 **要傳遞的欄位** 中點選 **新增欄位**，展開 **事件嚴重性** 並選擇 **名稱**。
+2. 把該區塊的 **參數** 設為 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript 程式碼** 設為：
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ flowchart TB
 ## 疑難排解
 
 :::details PagerDuty 傳回 400
-回應內文會說明 PagerDuty 拒絕了什麼，執行的 **API Post (JSON)** 步驟中可以看到它。通常是路由金鑰不是 Events API v2 整合金鑰：請從服務的 **Integrations** 中重新複製。缺少 `summary`、`source` 或 `severity` 的事件也會被拒絕。
+回應內文會說明 PagerDuty 拒絕了什麼，執行的 **API 呼叫 POST (JSON)** 步驟中可以看到它。通常是路由金鑰不是 Events API v2 整合金鑰：請從服務的 **Integrations** 中重新複製。缺少 `summary`、`source` 或 `severity` 的事件也會被拒絕。
 :::
 
 :::details resolve 事件沒有關閉任何東西
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details 工作流程從未執行
-檢查它是否已啟用：它的 **建構器** 頂部的 **已啟用**。然後開啟 **日誌 → 執行記錄**：走了 **If / Else** 區塊 **否** 一側的執行，是一次不是解決的更新。
+檢查它是否已啟用：它的 **建構器** 頂部的 **已啟用**。然後開啟 **日誌 → 執行記錄**：走了 **如果 / 否則** 區塊 **否** 一側的執行，是一次不是解決的更新。
 :::
 
 :::details PagerDuty 顯示的是引用而不是值

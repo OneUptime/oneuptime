@@ -234,7 +234,7 @@ describe("the card's first words", () => {
   test("says what happens, who is emailed and who is paged, as the issue words it", () => {
     expect(getWhoIsToldSentences(result([offline()]), translator)).toEqual([
       "OneUptime marks it Offline and opens an incident (Critical).",
-      "It emails the project's owners (Owner One).",
+      "It emails the Project Owners (Owner One).",
       "It pages Ana Lopez through Primary.",
     ]);
   });
@@ -783,7 +783,7 @@ describe("MonitorWhoIsToldCard", () => {
 
     expect(screen.getByTestId("who-is-told-loading")).toBeInTheDocument();
     expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
-      "OneUptime marks it Offline and opens an incident (Critical). It emails the project's owners (Owner One). It pages Ana Lopez through Primary.",
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the Project Owners (Owner One). It pages Ana Lopez through Primary.",
     );
     expect(screen.getByTestId("who-is-told-no-breaks")).toBeInTheDocument();
     expect(screen.getByText("When this goes down")).toBeInTheDocument();

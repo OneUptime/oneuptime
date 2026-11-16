@@ -5,6 +5,7 @@ import {
   isEnglishDateLanguage,
   writeInDateDisplayLanguage,
 } from "Common/Types/DateLanguage";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { getGlobalTranslator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface EventTimelineDate {
@@ -32,8 +33,9 @@ export interface EventDurationPart {
   unit: EventDurationUnit;
 }
 
+// "23 hours", the number held to its word (#8669).
 function formatDurationUnit(count: number, unit: string): string {
-  return `${count} ${unit}${count === 1 ? "" : "s"}`;
+  return `${count}${NO_BREAK_SPACE}${unit}${count === 1 ? "" : "s"}`;
 }
 
 /*

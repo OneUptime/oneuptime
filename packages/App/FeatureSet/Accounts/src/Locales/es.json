@@ -556,6 +556,12 @@
   "Try again in a moment.": "Vuelva a intentarlo en un momento.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Vuelva a intentarlo. Si sigue fallando, contacte con el soporte de OneUptime y facilite esta referencia:",
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Vuelva a intentarlo. Si sigue fallando, facilite esta referencia a quien administre su servidor de OneUptime:",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Lo que se envió era demasiado grande para que el servidor lo aceptara, así que la operación no terminó. Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Lo que se envió supera los 50 MB que OneUptime acepta en una solicitud, así que la operación no terminó. Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
+  "What was sent was too large for the server to accept.": "Lo que se envió era demasiado grande para que el servidor lo aceptara.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Lo que se envió supera los 50 MB que OneUptime acepta en una solicitud.",
+  "Try again with less at once, such as a smaller file.": "Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Si un proxy delante de OneUptime lo rechazó, aumente el límite de tamaño de las solicitudes de ese proxy a 50 MB, lo mismo que acepta OneUptime (en nginx, client_max_body_size 50M).",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Este formulario no está disponible. Es posible que se haya desactivado o que el enlace esté desactualizado.",
   "This form can only be opened from an allowed network.": "Este formulario solo se puede abrir desde una red permitida.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Se han enviado demasiados informes desde tu red. Espera unos minutos y vuelve a intentarlo.",
@@ -631,9 +637,5 @@
     "note": "Nota",
     "tip": "Consejo",
     "warning": "Advertencia"
-  },
-  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Lo que se envió era demasiado grande para que el servidor lo aceptara, así que la operación no terminó. Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
-  "What was sent was too large for the server to accept.": "Lo que se envió era demasiado grande para que el servidor lo aceptara.",
-  "Try again with less at once, such as a smaller file.": "Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
-  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Si un proxy delante de OneUptime lo rechazó, aumente el límite de tamaño de las solicitudes de ese proxy a 50 MB, lo mismo que acepta OneUptime (en nginx, client_max_body_size 50M)."
+  }
 }

@@ -66,7 +66,7 @@ flowchart TB
 ## 不会导入什么
 
 - **可用性历史、响应时间和事件。** OneUptime 从导入完成时开始检查。
-- **告警联系人和集成。** 请按 [完成迁移](#完成迁移) 中的说明，在 OneUptime 中选择通知谁。
+- **警报联系人和集成。** 请按 [完成迁移](#完成迁移) 中的说明，在 OneUptime 中选择通知谁。
 - **密码，以及可能包含机密信息的标头。** 需要登录的监视器，或发送 `Authorization`、Cookie 或令牌标头的监视器，会去掉这些内容后导入：请用 [监视器密钥](/docs/monitor/monitor-secrets) 添加。
 - **UDP、自定义 HTTP 和事务检查。** OneUptime 没有能做同样事情的监视器，预览会逐一列出。[合成监视器](/docs/monitor/synthetic-monitor) 可以像事务检查那样走完一个页面。
 - **DNS 检查期望的地址。** 请在 OneUptime 中将其添加为标准。

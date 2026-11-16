@@ -17,6 +17,7 @@ import Color from "Common/Types/Color";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
+import { useInMemoryOwnerNotificationDeliveries } from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
 import "../../../../FeatureSet/Workers/Jobs/AlertEpisodeOwners/SendAlertAddedNotification";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeOwners/SendIncidentAddedNotification";
 
@@ -255,6 +256,11 @@ describe.each(cases)(
   (entry: EpisodeCase) => {
     beforeEach(() => {
       jest.clearAllMocks();
+      /*
+       * Whom the job tells is written down before it takes the batch, and
+       * each owner told through it (OwnerNotificationDeliveries, #8509).
+       */
+      useInMemoryOwnerNotificationDeliveries();
       entry.memberService.findAllBy.mockResolvedValue([
         {
           id: new ObjectID("member-1"),
@@ -546,12 +552,12 @@ describe.each(cases)(
        * its title - but the rule is the member's, not the recipient's, as it
        * is for the feed entries: one email never carries a private title.
        */
-      test("is listed without its title to the project owners the email falls back to, too", async () => {
+      test("is listed without its title to the Project Owners the email falls back to, too", async () => {
         entry.episodeService.findOwners.mockResolvedValue([]);
         (ProjectService.getOwners as jest.Mock).mockResolvedValue([
           {
             id: new ObjectID("project-owner-1"),
-            name: "Project owner",
+            name: "Project Owner",
             email: "project-owner@example.com",
           },
         ]);

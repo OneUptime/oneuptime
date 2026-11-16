@@ -64,6 +64,7 @@ export enum WorkflowTemplateCategory {
   Incidents = "Incidents",
   Alerts = "Alerts",
   Monitors = "Monitors",
+  Slos = "SLOs",
   StatusPage = "Status Page",
   ScheduledMaintenance = "Scheduled Maintenance",
   OnCall = "On-Call",
@@ -83,6 +84,7 @@ export const WorkflowTemplateCategories: Array<WorkflowTemplateCategory> = [
   WorkflowTemplateCategory.Incidents,
   WorkflowTemplateCategory.Alerts,
   WorkflowTemplateCategory.Monitors,
+  WorkflowTemplateCategory.Slos,
   WorkflowTemplateCategory.OnCall,
   WorkflowTemplateCategory.StatusPage,
   WorkflowTemplateCategory.ScheduledMaintenance,
@@ -152,6 +154,13 @@ const WORKFLOW_TEMPLATE_CATEGORY_INFO: Record<
     description:
       "Act when a monitor goes down, comes back up or changes status.",
     icon: IconProp.AltGlobe,
+  },
+  [WorkflowTemplateCategory.Slos]: {
+    category: WorkflowTemplateCategory.Slos,
+    label: "SLOs",
+    description:
+      "Act when an SLO burns its error budget too fast, such as turning a feature flag off.",
+    icon: IconProp.Gauge,
   },
   [WorkflowTemplateCategory.OnCall]: {
     category: WorkflowTemplateCategory.OnCall,
@@ -6515,6 +6524,275 @@ const NEW_RELIC_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   newRelicIssueTemplate(ALERT_KIND),
 ];
 
+/* -------------------------------- SLOs -------------------------------- */
+
+/*
+ * A FEATURE FLAG TURNED OFF WHEN AN SLO BURNS ITS ERROR BUDGET TOO FAST (#8447).
+ *
+ * A release behind a flag is rolled back by turning the flag off, and the
+ * flag service, not OneUptime, holds the switch. A burn rate rule says when.
+ * The worker stamps the rule's Last Alert Created At when the rule raises
+ * its alert, and its Last Incident Declared At when it declares its
+ * incident, in an update of the rule itself (EvaluateSlos'
+ * saveLifecycleColumns). So the rule's On Update trigger, watching those
+ * two, starts the workflow once each time the rule fires. A resolve stamps
+ * the rule's resolve columns and an edit of the rule its settings, and
+ * neither starts it.
+ *
+ * Every burn rate rule of the project fires the trigger, so the If / Else
+ * goes on only for the rule whose ID was pasted into the wizard: Show ID,
+ * in the rule's menu on the SLO's Burn Rate Rules page. The API step then
+ * turns the flag off for everyone in one environment - LaunchDarkly's
+ * turnFlagOff, Unleash's environment off - whatever the flag's targeting.
+ * Flagsmith's environment default and ConfigCat's default value leave
+ * segment overrides and targeting rules serving the flag, so a gradual
+ * rollout would carry on. Those two have no template, and the docs say how
+ * to point the API step at another service (slo/release-checks.md).
+ */
+
+// The id the Builder gives the first burn rate rule On Update trigger added.
+export const SLO_BURN_RATE_RULE_TRIGGER_ID: string =
+  "service-level-objective-burn-rate-rule-on-update-1";
+
+type SloBurnRateRuleFieldFunction = (path: string) => string;
+
+// A field of the rule that fired, as the trigger passes it on.
+const sloBurnRateRuleField: SloBurnRateRuleFieldFunction = (
+  path: string,
+): string => {
+  return `{{local.components.${SLO_BURN_RATE_RULE_TRIGGER_ID}.returnValues.model.${path}}}`;
+};
+
+/*
+ * An ID as Show ID gives it: a lowercase UUID. The If / Else compares it
+ * with the rule's own as text, so one typed in capitals would never match.
+ */
+export const SLO_BURN_RATE_RULE_ID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+const SLO_BURN_RATE_RULE_ID: WorkflowTemplateVariable = {
+  name: "burnRateRuleId",
+  title: "Burn Rate Rule ID",
+  description:
+    "The rule that turns the flag off when it raises its alert or declares its incident. On the SLO's Burn Rate Rules page, open the rule's menu and pick Show ID.",
+  placeholder: "6ba7b810-9dad-41d1-80b4-00c04fd430c8",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: SLO_BURN_RATE_RULE_ID_PATTERN,
+    message:
+      "Paste the rule's ID as Show ID gives it, from the rule's menu on the SLO's Burn Rate Rules page.",
+  },
+};
+
+// An address the workflow adds a path to: no trailing slash, query or fragment.
+const SLO_FLAG_SERVICE_URL_PATTERN: RegExp =
+  /^https?:\/\/[^\s/?#]+(?:\/[^\s?#]*[^\s/?#])?$/;
+
+type SloFlagOffTemplateFunction = (data: {
+  id: string;
+  // "LaunchDarkly"
+  service: string;
+  // "a LaunchDarkly flag"
+  aFlag: string;
+  // The flag service's settings, after the rule's ID.
+  variables: Array<WorkflowTemplateVariable>;
+  // The step that turns the flag off, which the If / Else's Yes leads to.
+  turnOff: TemplateColumnStep;
+}) => TemplateDefinition;
+
+const sloFlagOffTemplate: SloFlagOffTemplateFunction = (data: {
+  id: string;
+  service: string;
+  aFlag: string;
+  variables: Array<WorkflowTemplateVariable>;
+  turnOff: TemplateColumnStep;
+}): TemplateDefinition => {
+  return {
+    id: data.id,
+    name: `Turn ${data.aFlag} off when an SLO burns too fast`,
+    description: `Turns ${data.aFlag} off in one environment as soon as one of an SLO's burn rate rules fires.`,
+    teaches:
+      "How a burn rate rule starts a workflow when it fires, and how an If / Else keeps the workflow to that one rule.",
+    category: WorkflowTemplateCategory.Slos,
+    icon: IconProp.Flag,
+    workflowName: `Turn the ${data.service} flag off on a fast burn`,
+    workflowDescription: `Turns a ${data.service} flag off when the burn rate rule in the burnRateRuleId variable raises its alert or declares its incident.`,
+    variables: [SLO_BURN_RATE_RULE_ID, ...data.variables],
+    graph: columnGraph([
+      {
+        componentId: SLO_BURN_RATE_RULE_TRIGGER_ID,
+        metadataId: "service-level-objective-burn-rate-rule-on-update",
+        componentType: ComponentType.Trigger,
+        args: {
+          // Stamped only when the rule fires: never by a resolve or an edit.
+          "listen-on": {
+            lastAlertCreatedAt: true,
+            lastIncidentCreatedAt: true,
+          },
+          select: {
+            _id: true,
+            name: true,
+            serviceLevelObjective: {
+              name: true,
+            },
+            lastAlertCreatedAt: true,
+            lastIncidentCreatedAt: true,
+          },
+        },
+      },
+      {
+        componentId: "if-else-1",
+        metadataId: ComponentID.IfElse,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          "input-1-type": ConditionValueType.Text,
+          "input-1": sloBurnRateRuleField("_id"),
+          operator: ConditionOperator.EqualTo,
+          "input-2-type": ConditionValueType.Text,
+          "input-2": "{{local.variables.burnRateRuleId}}",
+        },
+      },
+      { ...data.turnOff, from: "yes" },
+    ]),
+  };
+};
+
+const SLO_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
+  sloFlagOffTemplate({
+    id: "slo-burn-launchdarkly-flag-off",
+    service: "LaunchDarkly",
+    aFlag: "a LaunchDarkly flag",
+    variables: [
+      {
+        name: "launchDarklyAccessToken",
+        title: "LaunchDarkly Access Token",
+        description:
+          "An API access token whose role can update the flag, from the Authorization page of LaunchDarkly's settings.",
+        placeholder: "api-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        required: true,
+        isSecret: true,
+      },
+      {
+        name: "launchDarklyProjectKey",
+        title: "LaunchDarkly Project Key",
+        description:
+          "The key of the LaunchDarkly project the flag is in, such as default.",
+        placeholder: "default",
+        required: true,
+        isSecret: false,
+      },
+      {
+        name: "launchDarklyFlagKey",
+        title: "LaunchDarkly Flag Key",
+        description:
+          "The flag's key, as LaunchDarkly shows it under the flag's name.",
+        placeholder: "new-checkout",
+        required: true,
+        isSecret: false,
+      },
+      {
+        name: "launchDarklyEnvironmentKey",
+        title: "LaunchDarkly Environment Key",
+        description:
+          "The key of the environment to turn the flag off in, such as production.",
+        placeholder: "production",
+        required: true,
+        isSecret: false,
+      },
+    ],
+    turnOff: {
+      componentId: "api-patch-1",
+      metadataId: ComponentID.ApiPatch,
+      componentType: ComponentType.Component,
+      args: {
+        url: "https://app.launchdarkly.com/api/v2/flags/{{local.variables.launchDarklyProjectKey}}/{{local.variables.launchDarklyFlagKey}}",
+        "request-headers": {
+          Authorization: "{{local.variables.launchDarklyAccessToken}}",
+          // A semantic patch: instructions, not a JSON patch of the flag.
+          "Content-Type":
+            "application/json; domain-model=launchdarkly.semanticpatch",
+        },
+        "request-body": jsonText({
+          environmentKey: "{{local.variables.launchDarklyEnvironmentKey}}",
+          // Kept in the flag's audit log in LaunchDarkly.
+          comment: `Turned off by OneUptime: the burn rate rule ${sloBurnRateRuleField("name")} of the SLO ${sloBurnRateRuleField("serviceLevelObjective.name")} fired.`,
+          instructions: [{ kind: "turnFlagOff" }],
+        }),
+      },
+    },
+  }),
+  sloFlagOffTemplate({
+    id: "slo-burn-unleash-flag-off",
+    service: "Unleash",
+    aFlag: "an Unleash flag",
+    variables: [
+      {
+        name: "unleashUrl",
+        title: "Unleash URL",
+        description:
+          "The address you open Unleash at, such as https://unleash.example.com, with no trailing slash. The workflow calls Unleash's Admin API there.",
+        placeholder: "https://unleash.example.com",
+        required: true,
+        isSecret: false,
+        format: {
+          pattern: SLO_FLAG_SERVICE_URL_PATTERN,
+          message:
+            "Type the address you open Unleash at, starting with https:// and with no trailing slash.",
+        },
+      },
+      {
+        name: "unleashApiToken",
+        title: "Unleash API Token",
+        description:
+          "A service account token or a personal access token that can turn the flag off in the environment.",
+        placeholder: "user:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        required: true,
+        isSecret: true,
+      },
+      {
+        name: "unleashProjectId",
+        title: "Unleash Project ID",
+        description:
+          "The ID of the Unleash project the flag is in, such as default.",
+        placeholder: "default",
+        required: true,
+        isSecret: false,
+      },
+      {
+        name: "unleashFlagName",
+        title: "Unleash Flag Name",
+        description: "The flag's name, as Unleash shows it.",
+        placeholder: "new-checkout",
+        required: true,
+        isSecret: false,
+      },
+      {
+        name: "unleashEnvironment",
+        title: "Unleash Environment",
+        description:
+          "The environment to turn the flag off in, such as production.",
+        placeholder: "production",
+        required: true,
+        isSecret: false,
+      },
+    ],
+    turnOff: {
+      componentId: "api-post-1",
+      metadataId: ComponentID.ApiPost,
+      componentType: ComponentType.Component,
+      args: {
+        url: "{{local.variables.unleashUrl}}/api/admin/projects/{{local.variables.unleashProjectId}}/features/{{local.variables.unleashFlagName}}/environments/{{local.variables.unleashEnvironment}}/off",
+        "request-headers": {
+          // The token as it is: Unleash's Admin API takes no Bearer.
+          Authorization: "{{local.variables.unleashApiToken}}",
+        },
+      },
+    },
+  }),
+];
+
 /*
  * WHAT IS POSTED TO A WEBHOOK, SHOWN IN SLACK.
  *
@@ -7954,6 +8232,9 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       ],
     },
   },
+
+  /* -------------------------------- SLOs -------------------------------- */
+  ...SLO_TEMPLATE_DEFINITIONS,
 
   /* ------------------------------ On-Call ------------------------------ */
   {

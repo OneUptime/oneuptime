@@ -24,14 +24,14 @@ const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
     {
       title: "Host Group",
       description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.hostGroupColumn,
-      value: row.groupName || "—",
+      value: row.groupName,
     },
     {
       title: "Connected Volumes",
       description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.hostVolumesColumn,
       value:
         row.connectionCount === null || row.connectionCount === undefined
-          ? "—"
+          ? undefined
           : String(row.connectionCount),
     },
     {

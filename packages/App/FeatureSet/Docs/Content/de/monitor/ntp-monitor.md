@@ -95,7 +95,7 @@ Ein Server, der die Zeit verweigert, sendet stattdessen ein **Kiss-o'-Death**: e
 
 ## Überwachungskriterien
 
-Kriterien entscheiden, wann der Server als online, eingeschränkt oder offline gilt, und ob dabei ein Vorfall erklärt oder ein Alarm erstellt wird. Jedes Kriterium prüft einen oder mehrere Filter:
+Kriterien entscheiden, wann der Server als online, eingeschränkt oder offline gilt, und ob dabei ein Vorfall erklärt oder eine Warnung erstellt wird. Jedes Kriterium prüft einen oder mehrere Filter:
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
@@ -106,13 +106,13 @@ Kriterien entscheiden, wann der Server als online, eingeschränkt oder offline g
 | **NTP Response Time (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Von der Anfrage bis zur Antwort. |
 | **NTP Root Dispersion (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Die eigene Schätzung des Servers für seinen maximalen Fehler. |
 
-Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, einen Alarm erstellen, einen Vorfall erklären oder eine Kombination davon.
+Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, eine Warnung erstellen, einen Vorfall erklären oder eine Kombination davon.
 
 ### Standardkriterien
 
 Ein neuer NTP-Monitor beginnt mit zwei Kriterien:
 
-- **Offline** — der Server antwortet nicht, ist nicht synchronisiert, oder seine Uhr weicht `1000` ms oder mehr von der der Sonde ab. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_Monitorname_ is not serving good time“ wird erstellt. Er löst sich selbst auf, sobald der Server wieder gute Zeit liefert.
+- **Offline** — der Server antwortet nicht, ist nicht synchronisiert, oder seine Uhr weicht `1000` ms oder mehr von der der Sonde ab. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_Monitorname_ liefert keine korrekte Zeit“ wird erstellt. Er löst sich selbst auf, sobald der Server wieder gute Zeit liefert.
 - **Online** — der Server antwortet, ist synchronisiert und seine Uhr liegt innerhalb von `1000` ms an der der Sonde. Der Monitor wird als **Betriebsbereit** markiert.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet. Ein Server, der mit der falschen Zeit antwortet, gilt bewusst als ausgefallen: Jeder Client, der ihm folgt, würde diese Zeit übernehmen.
@@ -125,10 +125,10 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Alarm, wenn ein GPS-Server auf eine Netzwerkquelle zurückfällt | **NTP Stratum** | **Größer als** | `1` |
-| Alarm, wenn die Uhr abdriftet | **NTP Clock Offset (in ms)** | **Größer als** | `100` |
-| Alarm, wenn die Fehlergrenze des Servers wächst | **NTP Root Dispersion (in ms)** | **Größer als** | `500` |
-| Alarm, wenn die Antworten langsam werden | **NTP Response Time (in ms)** | **Größer als** | `1000` |
+| Warnung, wenn ein GPS-Server auf eine Netzwerkquelle zurückfällt | **NTP Stratum** | **Größer als** | `1` |
+| Warnung, wenn die Uhr abdriftet | **NTP Clock Offset (in ms)** | **Größer als** | `100` |
+| Warnung, wenn die Fehlergrenze des Servers wächst | **NTP Root Dispersion (in ms)** | **Größer als** | `500` |
+| Warnung, wenn die Antworten langsam werden | **NTP Response Time (in ms)** | **Größer als** | `1000` |
 
 ## Fehlerbehebung
 
@@ -158,5 +158,5 @@ Die Sonde ist weit vom Server entfernt, oder der Weg ist in eine Richtung langsa
 - [Ping-Monitor](/docs/monitor/ping-monitor): Prüfen, ob der Host selbst erreichbar ist.
 - [Port-Monitor](/docs/monitor/port-monitor): Die TCP-Dienste auf demselben Host prüfen.
 - [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Zeitserver im eigenen Netzwerk prüfen.
-- [Vorfall- und Alarm-Vorlagen](/docs/monitor/incident-alert-templating): Stratum und Abweichung in den Titel eines Vorfalls schreiben.
+- [Vorfall- und Warnungs-Vorlagen](/docs/monitor/incident-alert-templating): Stratum und Abweichung in den Titel eines Vorfalls schreiben.
 :::

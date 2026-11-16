@@ -275,6 +275,7 @@
       "channelSlack": "Slack-workspace",
       "channelMicrosoftTeams": "Microsoft Teams-workspace",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Dette abonnement blev tilføjet af det team, der driver denne statusside. Hvis det er en delt adresse, f.eks. en mailingliste, stopper afmelding disse notifikationer for alle, der modtager dem, og teamet får besked.",
       "confirmButton": "Afmeld",
       "manageInstead": "Vælg i stedet, hvilke notifikationer du modtager",

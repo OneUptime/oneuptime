@@ -13,9 +13,9 @@
 
 ```mermaid title="两个工作流，一个 ServiceNow 事件"
 flowchart TB
-    declared["事件已声明"] --> create["工作流 1：<br/>On Create Incident"]
+    declared["事件已声明"] --> create["工作流 1：<br/>创建事件时"]
     create -->|"POST incident"| sn["ServiceNow 事件"]
-    resolved["事件已解决"] --> update["工作流 2：<br/>On Update Incident"]
+    resolved["事件已解决"] --> update["工作流 2：<br/>更新事件时"]
     update --> find["按 correlation_id<br/>查找记录"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,11 +54,11 @@ Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
 
 ### 添加触发器
 
-点击虚线的 **选择启动此工作流的方式** 块，选择 **On Create Incident**。点击该触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
+点击虚线的 **选择启动此工作流的方式** 块，选择 **创建事件时**。点击该触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
 
 ### 创建记录
 
-点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://your-instance.service-now.com/api/now/table/incident`。在 **更多字段** 下，把 **请求标头** 设为：
+点击 **添加组件**，添加一个 **API 调用 POST (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://your-instance.service-now.com/api/now/table/incident`。在 **更多字段** 下，把 **请求标头** 设为：
 
 ```json
 {
@@ -81,7 +81,7 @@ Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
 
 ### 测试，然后启用
 
-点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行。**API Post (JSON)** 步骤会显示一个 `201` 响应，其中包含新记录及其 `sys_id` 和 `number`，例如 `INC0012345`。然后在 **生成器** 顶部打开 **已启用**。
+点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行。**API 调用 POST (JSON)** 步骤会显示一个 `201` 响应，其中包含新记录及其 `sys_id` 和 `number`，例如 `INC0012345`。然后在 **生成器** 顶部打开 **已启用**。
 :::
 
 `urgency` 和 `impact` 用 `1` 表示高、`2` 表示中、`3` 表示低，ServiceNow 根据这两者算出优先级。`incident` 表的任何其他列都可以按列名放进请求主体。
@@ -91,9 +91,9 @@ Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
 一个工作流只有一个触发器，因此解决需要第二个工作流，在事件状态变化时启动。
 
 :::steps
-### 添加 On Update Incident 触发器
+### 添加“更新事件时”触发器
 
-创建一个名为 `Resolve ServiceNow incidents` 的工作流，选择 **On Update Incident** 作为触发器。在 **Fields to watch** 中点击 **添加字段** 并选择 **Current Incident State**，使它只在状态变化时运行。在 **Fields to pass on** 中请求新状态是否为已解决状态：点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。也可以点击 **以 JSON 编辑**，把 JSON 替换为：
+创建一个名为 `Resolve ServiceNow incidents` 的工作流，选择 **更新事件时** 作为触发器。在 **要关注的字段** 中点击 **添加字段** 并选择 **Current Incident State**，使它只在状态变化时运行。在 **要传递的字段** 中请求新状态是否为已解决状态：点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。也可以点击 **以 JSON 编辑**，把 JSON 替换为：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
 
 ### 检查事件是否已解决
 
-在触发器之后添加一个 **If / Else** 块。把 **要检查的值** 设为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比较** 设为 **为真**。
+在触发器之后添加一个 **如果 / 否则** 块。把 **要检查的值** 设为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比较** 设为 **为真**。
 
 ### 查找记录
 
-在 **是** 一侧之后添加一个 **API Get (JSON)** 块，使用相同的 **请求标头** 和以下 **URL**：
+在 **是** 一侧之后添加一个 **API 调用 GET (JSON)** 块，使用相同的 **请求标头** 和以下 **URL**：
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,7 +113,7 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### 解决记录
 
-在查找块的 **成功** 之后添加一个 **API Patch (JSON)** 块，使用相同的 **请求标头** 和以下 **URL**：
+在查找块的 **成功** 之后添加一个 **API 调用 PATCH (JSON)** 块，使用相同的 **请求标头** 和以下 **URL**：
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}

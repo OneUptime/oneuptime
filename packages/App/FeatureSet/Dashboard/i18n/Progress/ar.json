@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 53450,
+    "keys": 55711,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -97,6 +97,7 @@
     "Down & Out",
     "Down + In",
     "Down + Out",
+    "Dragonfly",
     "Dynamics 365",
     "EKS Fargate",
     "Edge",
@@ -147,6 +148,8 @@
     "Job",
     "Jobs",
     "John Smith",
+    "Key Manager",
+    "KeyDB",
     "Keystone",
     "Kolla-Ansible",
     "LXC 201 · pve3",
@@ -159,6 +162,7 @@
     "MITRE ATT&CK Enterprise v{{version}}",
     "MTU",
     "Mailgun",
+    "MariaDB",
     "Markdown",
     "Mbps",
     "Memcached",
@@ -176,6 +180,7 @@
     "OR",
     "OSD",
     "Ollama",
+    "OpenSearch",
     "OpenShift",
     "OpenStack-Ansible",
     "OpenStack-Helm",
@@ -262,6 +267,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Valkey",
     "Verhoeff",
     "Vertical Pod Autoscalers",
     "WhatsApp: ",

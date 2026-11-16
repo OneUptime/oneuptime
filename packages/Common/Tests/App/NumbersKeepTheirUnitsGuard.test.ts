@@ -43,6 +43,11 @@ import {
  * space a line breaks at anywhere in it, which finds such a unit in any
  * language; the units of two words its sentences write are listed here
  * too (UNITS_OF_TWO_WORDS).
+ *
+ * A duration's word is a unit too (#8770): "Alle 5 Minuten" broke as "Alle
+ * 5" over "Minuten", "Every 5 minutes" as "Every 5" over "minutes". Every
+ * sentence whose English writes a number and a space before one
+ * (DURATION_WORDS) holds the figure to the word after it, in every language.
  */
 
 const PACKAGES: string = path.resolve(__dirname, "../../..");
@@ -92,14 +97,61 @@ const UNIT: string = [...UNITS]
   })
   .join("|");
 
+/*
+ * The words English names a duration's unit with after a number and a
+ * space, listed here apart from the code too: "Every {{count}} minutes",
+ * "between 15 minutes and 14 days" (#8770). Each language's wording holds
+ * the figure to whatever word it names the unit with.
+ */
+const DURATION_WORDS: ReadonlyArray<string> = [
+  "second",
+  "seconds",
+  "minute",
+  "minutes",
+  "hour",
+  "hours",
+  "day",
+  "days",
+  "week",
+  "weeks",
+  "month",
+  "months",
+  "year",
+  "years",
+];
+
+const DURATION_WORD: string = [...DURATION_WORDS]
+  .sort((a: string, b: string): number => {
+    return b.length - a.length;
+  })
+  .join("|");
+
+// A unit's symbol, joined or after a space, or a duration's word after one.
+const UNIT_AFTER_A_NUMBER: string = `(?: ?(?:${UNIT})| (?:${DURATION_WORD}))`;
+
 // A placeholder English writes beside a unit: its name.
 const PLACEHOLDER_WITH_A_UNIT: RegExp = new RegExp(
-  `\\{\\{(\\w+)\\}\\} ?(?:${UNIT})(?![A-Za-z0-9_])`,
+  `\\{\\{(\\w+)\\}\\}${UNIT_AFTER_A_NUMBER}(?![A-Za-z0-9_])`,
   "g",
 );
 
 // Written digits English writes beside a unit.
 const DIGITS_WITH_A_UNIT: RegExp = new RegExp(
+  `(?<![A-Za-z0-9_.,])(\\d+)${UNIT_AFTER_A_NUMBER}(?![A-Za-z0-9_])`,
+  "g",
+);
+
+/*
+ * The same, a unit's symbol only: what the server's English holds, whose
+ * sentences OneUptime also writes into records it reads back by their
+ * English (#8770).
+ */
+const PLACEHOLDER_WITH_A_SYMBOL: RegExp = new RegExp(
+  `\\{\\{(\\w+)\\}\\} ?(?:${UNIT})(?![A-Za-z0-9_])`,
+  "g",
+);
+
+const DIGITS_WITH_A_SYMBOL: RegExp = new RegExp(
   `(?<![A-Za-z0-9_.,])(\\d+) ?(?:${UNIT})(?![A-Za-z0-9_])`,
   "g",
 );
@@ -249,6 +301,8 @@ function checkLanguage(data: {
   ) => string;
   // English itself: every key is its own wording, and is checked.
   isEnglish?: boolean;
+  // Only a unit's symbol: English that is no page's (the server's).
+  symbolsOnly?: boolean;
 }): Checked {
   const checked: Checked = { sentences: 0, breaks: [] };
   const unitsOfTwoWords: Array<string> = unitsOfTwoWordsIn(data.locale);
@@ -276,12 +330,16 @@ function checkLanguage(data: {
     }
 
     const placeholders: Array<string> = Array.from(
-      englishText.matchAll(PLACEHOLDER_WITH_A_UNIT),
+      englishText.matchAll(
+        data.symbolsOnly ? PLACEHOLDER_WITH_A_SYMBOL : PLACEHOLDER_WITH_A_UNIT,
+      ),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
     const digits: Array<string> = Array.from(
-      englishText.matchAll(DIGITS_WITH_A_UNIT),
+      englishText.matchAll(
+        data.symbolsOnly ? DIGITS_WITH_A_SYMBOL : DIGITS_WITH_A_UNIT,
+      ),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
@@ -436,9 +494,28 @@ describe("a number keeps its unit on its line", () => {
       locale: english,
       draw: drawThrough(getServerTranslator("en")),
       isEnglish: true,
+      symbolsOnly: true,
     });
 
     expect(checked.breaks).toEqual([]);
+  });
+
+  /*
+   * The server's English holds a unit's symbol and not a duration's word:
+   * what it writes may become a record's text the Dashboard reads back by
+   * its English (#8770). A page's English holds both.
+   */
+  test("the server's English leaves a duration's word to the page (control)", () => {
+    expect(
+      getServerTranslator("en").translateTemplate("Every {{count}} minutes", {
+        count: "5",
+      }),
+    ).toBe("Every 5 minutes");
+    expect(
+      dashboardTranslator("en").translateTemplate("Every {{count}} minutes", {
+        count: "5",
+      }),
+    ).toBe("Every 5\u00A0minutes");
   });
 
   test.each(["en", ...DASHBOARD_LANGUAGES])(

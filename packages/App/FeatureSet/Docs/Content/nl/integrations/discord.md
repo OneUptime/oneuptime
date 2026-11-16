@@ -1,6 +1,6 @@
 # Discord
 
-Post een bericht in een [Discord](https://discord.com)-kanaal wanneer er een incident wordt geopend, zodat de mensen die dat kanaal volgen het meteen weten. De workflowstap **Send Message to Discord** van OneUptime post via de webhook van het kanaal, en een kant-en-klaar sjabloon bouwt de hele workflow voor je. Deze integratie is **uitgaand**: OneUptime post in het kanaal en leest niet wat daar wordt gezegd.
+Post een bericht in een [Discord](https://discord.com)-kanaal wanneer er een incident wordt geopend, zodat de mensen die dat kanaal volgen het meteen weten. De workflowstap **Bericht naar Discord sturen** van OneUptime post via de webhook van het kanaal, en een kant-en-klaar sjabloon bouwt de hele workflow voor je. Deze integratie is **uitgaand**: OneUptime post in het kanaal en leest niet wat daar wordt gezegd.
 
 :::cards
 - [Hoe het werkt](#hoe-het-werkt): Wat de workflow doet wanneer er een incident wordt geopend.
@@ -13,13 +13,13 @@ Post een bericht in een [Discord](https://discord.com)-kanaal wanneer er een inc
 
 ```mermaid title="Van incident naar Discord-bericht"
 flowchart TB
-    declared["Incident gemeld"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
+    declared["Incident gemeld"] --> trigger["Bij aanmaken:<br/>Incident"]
+    trigger --> step["Bericht naar<br/>Discord sturen"]
     step -->|"Succes"| channel["Bericht in<br/>je kanaal"]
     step -->|"Fout"| failed["De run mislukt<br/>en zegt waarom"]
 ```
 
-De stap post de **Message Text** naar de webhook van het kanaal. Hij neemt zijn uitgang **Succes** wanneer Discord het bericht aanneemt, en zijn uitgang **Fout**, met de reden van Discord, wanneer Discord het weigert. Is er niets op **Fout** aangesloten, zoals in het sjabloon, dan mislukt een run die niet kon posten, en zijn **Stappen** zeggen waarom.
+De stap post de **Berichttekst** naar de webhook van het kanaal. Hij neemt zijn uitgang **Succes** wanneer Discord het bericht aanneemt, en zijn uitgang **Fout**, met de reden van Discord, wanneer Discord het weigert. Is er niets op **Fout** aangesloten, zoals in het sjabloon, dan mislukt een run die niet kon posten, en zijn **Stappen** zeggen waarom.
 
 ## Voordat je begint
 
@@ -48,13 +48,13 @@ Begin vanuit het sjabloon, dat de hele workflow voor je bouwt, of vanaf nul.
 3. Houd de naam **Notify Discord on new incident** of wijzig hem, en klik op **Volgende**.
 4. Plak de URL in **Discord Webhook URL** en klik op **Workflow maken**.
 
-De workflow opent in de **Bouwer** met twee stappen: **On Create Incident** en **Send Message to Discord**, die het nummer, de titel, de ernst en de status van het incident post. De URL wordt opgeslagen als geheime variabele `discordWebhookUrl` van de workflow.
+De workflow opent in de **Bouwer** met twee stappen: **Bij aanmaken: Incident** en **Bericht naar Discord sturen**, die het nummer, de titel, de ernst en de status van het incident post. De URL wordt opgeslagen als geheime variabele `discordWebhookUrl` van de workflow.
 @tab Vanaf nul
 1. Sla de URL op als geheime globale variabele: ga naar **Workflows → Globale variabelen**, klik op **Workflowvariabele aanmaken**, noem hem `DISCORD_WEBHOOK_URL` en klik op **Volgende**. Plak de URL in **Inhoud**, zet **Geheim** aan en klik op **Workflowvariabele aanmaken**.
 2. Ga naar **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
-3. Klik in de **Bouwer** op **Kies wat deze workflow start** en kies **On Create Incident** onder **Populair**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je bericht toont, zoals **Incident Number With Prefix**.
-4. Klik op **Component toevoegen**, zoek naar `discord` en klik op **Send Message to Discord**. Verbind de uitgang **Succes** van de trigger met deze stap.
-5. Klik op de nieuwe stap. Klik in **Discord Incoming Webhook URL** op **{ }** en kies `DISCORD_WEBHOOK_URL` onder **Global variables**. Schrijf het bericht in **Message Text** en voeg de velden van het incident in met **{ }**.
+3. Klik in de **Bouwer** op **Kies wat deze workflow start** en kies **Bij aanmaken: Incident** onder **Populair**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je bericht toont, zoals **Incident Number With Prefix**.
+4. Klik op **Component toevoegen**, zoek naar `discord` en klik op **Bericht naar Discord sturen**. Verbind de uitgang **Succes** van de trigger met deze stap.
+5. Klik op de nieuwe stap. Klik in **Discord-webhook-URL voor inkomende berichten** op **{ }** en kies `DISCORD_WEBHOOK_URL` onder **Global variables**. Schrijf het bericht in **Berichttekst** en voeg de velden van het incident in met **{ }**.
 :::
 
 Een bericht vanaf nul leest de velden van het incident met verwijzingen zoals deze:
@@ -75,7 +75,7 @@ Om te testen zonder een incident te openen, klik je op **Workflow uitvoeren** en
 
 - **Opmaken met de Markdown van Discord.** De tekst wordt verstuurd zoals hij is getypt, dus de Markdown van Discord werkt erin: sterretjes rond een woord maken het vet, en een URL verschijnt als link.
 - **Let op de limiet van 2.000 tekens.** Discord neemt berichten tot 2.000 tekens aan. Een langer bericht wordt ingekort en eindigt op "… (truncated — see OneUptime for the full text)", in plaats van te worden geweigerd.
-- **Meer posten dan nieuwe incidenten.** Bouw een andere workflow op **On Update Incident** voor statuswijzigingen, of op **On Create Alert** voor waarschuwingen, met dezelfde stap. Om alleen sommige incidenten te posten, zet je een blok **If / Else** voor de stap.
+- **Meer posten dan nieuwe incidenten.** Bouw een andere workflow op **Bij bijwerken: Incident** voor statuswijzigingen, of op **Bij aanmaken: Waarschuwing** voor waarschuwingen, met dezelfde stap. Om alleen sommige incidenten te posten, zet je een blok **Als / Anders** voor de stap.
 - **Alleen de eigen adressen van Discord.** De stap post naar een `https`-URL op `discord.com` of `discordapp.com`, en volgt geen doorverwijzingen, dus een URL die ergens anders heen wijst, stopt de run.
 
 ## Problemen oplossen
@@ -91,7 +91,7 @@ Discord beperkt hoe vaak één webhook kan posten. Een piek van incidenten kan d
 :::
 
 :::details De run stopt met "Discord Webhook URL must be an https URL on discord.com or discordapp.com"
-**Discord Incoming Webhook URL** bevat iets anders dan een Discord-webhook, of de variabele die het leest is leeg. Plak de URL uit **Copy Webhook URL** opnieuw.
+**Discord-webhook-URL voor inkomende berichten** bevat iets anders dan een Discord-webhook, of de variabele die het leest is leeg. Plak de URL uit **Copy Webhook URL** opnieuw.
 :::
 
 ## Volgende stappen

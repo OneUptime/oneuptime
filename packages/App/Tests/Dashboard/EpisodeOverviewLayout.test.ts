@@ -279,7 +279,7 @@ describe("episode overview layout", () => {
       expect(startTile).toContain("icon={IconProp.Calendar}");
       // The time, then its zone, smaller (EventStartTileValue).
       expect(startTile).toContain(
-        'timing.durationStartsAt ? (<EventStartTileValue startedAt={timing.durationStartsAt} />) : ("-")',
+        "timing.durationStartsAt ? (<EventStartTileValue startedAt={timing.durationStartsAt} />) : undefined",
       );
       expect(startTile).toContain(
         "description={getEventStartedByText({ user: episode?.createdByUser, isCreatedAutomatically: episode?.isManuallyCreated === false, }, translator)}",

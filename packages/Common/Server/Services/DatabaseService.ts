@@ -38,6 +38,7 @@ import RelationListPermission, {
 import UpdatePermission from "../Types/Database/Permissions/UpdatePermission";
 import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePermission";
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import SortValidator from "../Types/Database/Permissions/SortValidator";
 import RuleOwningTeams from "../Utils/Rules/RuleOwningTeams";
 import TeamOwnedRulePermission, {
   TeamOwnedRuleColumn,
@@ -9218,6 +9219,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       findBy.props,
     );
 
+    /*
+     * The order the caller asked for, and who asked: checked against the
+     * model once the read is permitted (SortValidator, below) - as they
+     * wrote it, before the service reads it its own way (getReadSort), and
+     * as who they are, before a hook can stand in for them (ProjectService
+     * reads as root for someone with no project).
+     */
+    const askedSort: Sort<TBaseModel> | undefined = findBy.sort;
+    const asker: DatabaseCommonInteractionProps = { ...findBy.props };
+
     findBy.sort = this.getReadSort(findBy.sort);
 
     const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
@@ -9248,6 +9259,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       onBeforeFind.query,
     );
 
+    /*
+     * The order the caller asked for is held to their read of each column
+     * it names, as the select is (#8839): an order says what a column holds.
+     */
     const result: {
       query: Query<TBaseModel>;
       select: Select<TBaseModel> | null;
@@ -9257,10 +9272,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       onBeforeFind.query,
       onBeforeFind.select || null,
       onBeforeFind.props,
+      askedSort,
     );
 
     onBeforeFind.query = result.query;
     onBeforeFind.select = result.select || undefined;
+
+    /*
+     * A sort the database could not order the list by as written - a field
+     * the model does not have, a relation given only a direction, a
+     * relation of many records - is refused as bad data, saying what to
+     * send, rather than failing in TypeORM as a server fault (#8141). Every
+     * sort TypeORM reads as written passes untouched. After the permission
+     * checks, so a caller who may not read the list is told that first.
+     */
+    SortValidator.checkSort({
+      modelType: this.modelType,
+      sort: askedSort,
+      props: asker,
+    });
 
     return {
       findBy: onBeforeFind,
@@ -9431,21 +9461,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * does not exist`. Callers should not have to know that, so close the gap
    * here for every sort rather than leaving each call site to remember.
    *
-   * Deliberately runs *after* the read-permission check. ORDER BY is not
-   * permission-checked, so a column being sorted on is already reaching the
-   * database - adding it to the select must not be able to turn a query that
-   * worked into a permission error. The values never reach the caller.
+   * Deliberately runs *after* the read-permission check, which holds the
+   * order the caller asked for to their read of each column it names
+   * (SortValidator.checkSortPermission, #8839): a column the caller sorts by
+   * is one they may read, so adding it to the select must not be able to
+   * turn a query that worked into a permission error. A service's own order
+   * (getReadSort: a label's sort key) is the service's, and is added too.
+   * The values never reach the caller.
    *
-   * That last sentence is exactly why owner-only columns are excluded below.
-   * Running after the gate means anything added here was never gated, so
-   * `sort: { webhookUrl: "ASC" }` is a way of writing a column into the select
-   * that ModelPermission has already finished looking at. The column is
-   * stripped off the returned rows again, but "the caller only learns the
-   * ORDER of everyone's webhook URLs" is not a defence - order is a comparison
-   * oracle, and a handful of paged requests reconstructs the value. A caller
-   * who may genuinely read the column has already put it in the select
-   * themselves, in which case the first filter clause below has already
-   * returned false and nothing here applies to them.
+   * Owner-only columns are still never added below for anyone but root and
+   * a master admin, a second lock on the same door: order is a comparison
+   * oracle, and a handful of paged requests reconstructs the value. The sort
+   * check refuses one unless the read is pinned to the caller's own records,
+   * and a caller who may genuinely read the column has already put it in the
+   * select themselves, in which case the first filter clause below has
+   * already returned false and nothing here applies to them.
    */
   private addSortColumnsToSelect(findBy: FindBy<TBaseModel>): Array<string> {
     /*

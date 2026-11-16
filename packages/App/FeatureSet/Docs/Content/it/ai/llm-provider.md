@@ -15,7 +15,7 @@ Un provider LLM è il modello dietro ogni funzionalità di IA di OneUptime: inda
 - **Domande**: **Chiedi all'IA** risponde a partire dai dati del tuo progetto, con una fonte per ogni affermazione. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
 - **Bozze**: **Bozza con IA** nelle note di incidenti, avvisi e manutenzioni programmate, e i postmortem, scritti su richiesta o quando un incidente si risolve.
 - **Codice**: pull request che correggono eccezioni, tracce lente e le cause trovate dalle indagini, da OneUptime o da GitHub. Vedi [Codice](/docs/ai/ai-agent).
-- **Tutto il resto**: il triage di AI Insights, i passaggi di IA dei flussi di lavoro e dei runbook, e le risposte in Slack e Microsoft Teams.
+- **Tutto il resto**: il triage di Insight IA, i passaggi di IA dei flussi di lavoro e dei runbook, e le risposte in Slack e Microsoft Teams.
 
 ## Quale provider usa l'IA
 
@@ -280,7 +280,7 @@ Vedi la [guida vLLM del chart Helm](https://github.com/OneUptime/oneuptime/blob/
 - **Dai ai provider nomi chiari**, come "Production OpenAI" o "Development Ollama", così un collega sa qual è quale.
 - **Tieni le chiavi nel campo Chiave API.** Le chiavi API sono cifrate a riposo, e solo i Proprietari del progetto e gli Amministratori del progetto le leggono.
 - **Prova dopo ogni modifica**, con **Test** sul provider.
-- **Tieni d'occhio quanto costa l'IA.** Ogni chiamata è elencata con i suoi token e il suo costo in **Impostazioni del progetto → IA → Registri IA**.
+- **Tieni d'occhio quanto costa l'IA.** Ogni chiamata è elencata con i suoi token e il suo costo in **Impostazioni del progetto → IA → Log IA**.
 
 ## Risoluzione dei problemi
 

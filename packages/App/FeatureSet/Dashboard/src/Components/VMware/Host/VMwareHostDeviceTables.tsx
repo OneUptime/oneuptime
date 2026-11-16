@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import useResizableColumns, {
   ResizableColumns,
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
@@ -45,7 +46,7 @@ import {
 
 function formatBytesPerSecond(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return ValueFormatter.formatValue(value, "By/s");
@@ -76,8 +77,11 @@ function renderTroubleRate(value: number | null): ReactElement {
   );
 }
 
-function renderLatency(value: number | null): ReactElement {
-  const text: string = formatVMwareMilliseconds(value);
+function renderLatency(
+  value: number | null,
+  translator: Translator,
+): ReactElement {
+  const text: string = formatVMwareMilliseconds(value, translator);
 
   if (value === null || value < VMWARE_DISK_LATENCY_WARN_MS) {
     return <span>{text}</span>;
@@ -355,6 +359,9 @@ export interface StorageDevicesProps {
 export const VMwareHostStorageDevicesCard: FunctionComponent<
   StorageDevicesProps
 > = (props: StorageDevicesProps): ReactElement => {
+  // The latency cells' figures, in the reader's digits (#8803).
+  const translator: Translator = useTranslator();
+
   if (props.devices.length === 0) {
     return <></>;
   }
@@ -390,13 +397,13 @@ export const VMwareHostStorageDevicesCard: FunctionComponent<
               title: "Read latency",
               description: VMWARE_METRIC_DESCRIPTIONS.hostPageDeviceLatency,
               render: (device: VMwareStorageDeviceRow): ReactElement => {
-                return renderLatency(device.readLatencyMs);
+                return renderLatency(device.readLatencyMs, translator);
               },
             },
             {
               title: "Write latency",
               render: (device: VMwareStorageDeviceRow): ReactElement => {
-                return renderLatency(device.writeLatencyMs);
+                return renderLatency(device.writeLatencyMs, translator);
               },
             },
           ]}

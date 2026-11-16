@@ -52,7 +52,7 @@ En policy som flera regler lägger till körs en gång. En allvarlighetsgrad kö
 **Grundläggande** är öppet; de andra avsnitten börjar ihopfällda tills du klickar på dem.
 
 - **Översikt** visar **Detaljer för jourpolicy** och sedan **Policyn i korthet**: hur många nivåer och mottagare policyn har, hur lång tid det dröjer till dess sista nivå och hur ofta den upprepas. **Mottagarnas beredskap** säger om alla som den kan larma kan nås nu, och **Jourpolicyns flöde** visar vad som har ändrats: personer, team och scheman som lagts till eller tagits bort, åsidosättningar och överlämningar. Dess regler för Slack, Microsoft Teams och Mattermost publicerar dem i dina kanaler, en överlämning på en rad: se [Jourmeddelanden](/docs/workspace-connections/slack#jourmeddelanden).
-- **Ägare** är personerna och teamen som ansvarar för policyn. När en utlarmning från den inte hittar någon regel för någon, eller inte kan levereras, får de ett e-postmeddelande; en policy utan ägare skickar i stället e-post till projektets ägare.
+- **Ägare** är personerna och teamen som ansvarar för policyn. När en utlarmning från den inte hittar någon regel för någon, eller inte kan levereras, får de ett e-postmeddelande; en policy utan ägare skickar i stället e-post till Projektägare.
 - **Aviseringsloggar** visar varje meddelande som policyn har skickat, med en flik per kanal.
 - **Användaråsidosättningar** täcker upp för personer bara i den här policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 - **Inställningar** har **Exportera Jourpolicy** och kortet som arkiverar policyn.
@@ -85,8 +85,10 @@ Den som larmas igen bekräftar från meddelandet eller med **Bekräfta igen** p�
 
 En incident, ett larm eller en episod kör var och en av sina policyer för sig, samtidigt.
 
-- Den som har jour i två av dem larmas av båda, en gång av var och en: OneUptime slår inte ihop larm från olika policyer. Inom en policy larmas den som en nivå nämner två gånger, personligen och via ett team eller ett schema, bara en gång.
+- Den som har jour i två av dem larmas bara en gång. När en policys nivå når någon som en annan policy redan larmar om den, larmas personen inte en gång till: policyns exekveringslogg visar personen som **Redan larmad**, och incidentens flöde och policyns meddelande i Slack och Microsoft Teams nämner den policy som larmar personen. Nivån väntar ändå ut sina minuter före nästa nivå, precis som för alla den har larmat. Ett svar på det enda larmet gäller för båda policyerna. Inom en policy larmas den som en nivå nämner två gånger, personligen och via ett team eller ett schema, bara en gång.
 - En bekräftelse av incidenten eller larmet stoppar inom en minut alla policyer som körs för den, var den än bekräftas: från vilket larm om den som helst, på dess egen sida, i mobilappen eller i Slack eller Microsoft Teams. Ingen nästa nivå larmas, och inga samtal eller sms som fortfarande väntar går ut. Aviseringar som redan har skickats förblir skickade.
+
+Ingen går miste om ett larm för att hen bara larmas en gång. Personens larm kan sluta utan att hen har svarat: hen eskalerar det från ett av dess meddelanden, vilket bara eskalerar den policyn, det går inte att skicka, eller dess policy slutar. Då larmar den andra policyn själv personen inom en minut, utan att skicka om det som redan har nått hen. **Eskalera** på incidentens sida eller i mobilappen eskalerar båda. Ett nytt larm, en policy som har startats manuellt och ett larm som någon har skickat från Slack eller Microsoft Teams larmar alltid sina personer själva, även den som en annan policy larmar. Ett larm till observatörer och ett larm till mottagare slås aldrig ihop.
 
 Vissa larm fortsätter efter bekräftelsen, tills någon de har larmat svarar eller den är löst: ett nytt larm, ett larm till observatörer, ett larm som någon har skickat till personer från Slack eller Microsoft Teams, och en policy som har startats manuellt.
 
@@ -123,7 +125,7 @@ Du hittar exekveringsloggar på tre ställen:
 - under **Jour → Avancerad → Exekveringsloggar**, för varje policy, där direkta utlarmningar från arbetsflöden och chatt visas som **Direkt utlarmning**;
 - på en incidents eller ett larms sida **Jourexekveringar**.
 
-Varje rad visar vad som startade körningen, när, dess **Status** och vem som bekräftade den. **Visa tidslinje** öppnar dess **Tidslinje för körningen**: varje eskaleringsregel, vem den larmade, via vilket schema och hur varje utlarmning slutade. **Aviserad via** visar hur varje utlarmning nådde personen: telefonsamtal, SMS, e-post, push-avisering och så vidare. Ett schema där ingen har jour visar **Ingen hade jour** i stället för en person. En nivå som inte larmade någon säger varför, med **Gick vidare direkt** under: policyn väntade inte på den. I OneUptime Cloud kräver exekveringsloggar abonnemanget **Growth**.
+Varje rad visar vad som startade körningen, när, dess **Status** och vem som bekräftade den. **Visa tidslinje** öppnar dess **Tidslinje för körningen**: varje eskaleringsregel, vem den larmade, via vilket schema och hur varje utlarmning slutade. **Aviserad via** visar hur varje utlarmning nådde personen: telefonsamtal, SMS, e-post, push-avisering och så vidare. Ett schema där ingen har jour visar **Ingen hade jour** i stället för en person. En nivå som inte larmade någon säger varför, med **Gick vidare direkt** under: policyn väntade inte på den. En person som en annan policy redan larmade visar **Redan larmad**: se [När flera policyer larmar](#när-flera-policyer-larmar). I OneUptime Cloud kräver exekveringsloggar abonnemanget **Growth**.
 
 ## Arkivera eller ta bort en policy
 
@@ -176,7 +178,7 @@ Policyn är arkiverad: en arkiverad policy finns kvar på incidenterna och larme
 :::
 
 :::details Någon larmades två gånger om en incident
-Personen har jour i två av de policyer som incidenten kör, och varje policy larmar sina egna personer. En bekräftelse av incidenten från något av de två larmen stoppar båda. Lägg båda teamen eller schemana i samma nivå i en policy, så larmas personen bara en gång.
+Den som har jour i två av de policyer som incidenten kör larmas bara en gång, av den första policyn som når personen. Den andra larmar personen också när den är ett nytt larm, en policy som har startats manuellt, ett larm som skickats från Slack eller Microsoft Teams eller ett larm till observatörer, som larmar sina personer själva, eller när personens första larm var över innan den andra nådde hen: hen eskalerade det, eller dess policy hade slutat. En person som den andra policyn inte larmade en gång till visar **Redan larmad** i dess **Visa tidslinje**.
 :::
 
 :::details En policy fortsatte att larma efter att incidenten bekräftats

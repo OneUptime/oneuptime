@@ -111,7 +111,7 @@ flowchart TB
 - 排除項目同時適用於批次同步和個別同步。它們儲存在範本上，而不是在每次同步時分別選擇。
 - 新的監測器仍以範本中的欄位值開始。排除項目只影響對現有監測器的同步。
 - 條件一律會同步。只同步條件時，監測間隔、標籤和其他監測器層級的設定保持不變。
-- 現有範本在您設定之前沒有欄位排除項目。Network Device 監測器會繼續自動保留它們自己的裝置繫結，網路探索匯入為裝置建立的 Ping、IP、Port 和 NTP 監測器也會繼續檢查各裝置自己的位址。
+- 現有範本在您設定之前沒有欄位排除項目。網路裝置 監測器會繼續自動保留它們自己的裝置繫結，網路探索匯入為裝置建立的 Ping、IP、Port 和 NTP 監測器也會繼續檢查各裝置自己的位址。
 
 對於有多個步驟的範本，受保護的值會依步驟 ID 比對。個別建立的單一步驟監測器也可以接收單一步驟範本。如果某個受保護的步驟無法比對，同步會在任何監測器更新之前遭到拒絕，因此新增或重新排序的步驟不會意外複製另一個步驟的目標位址或認證資訊。
 
@@ -144,22 +144,22 @@ flowchart TB
 :::details 依監測器類型列出的 doNotSyncFields 欄位名稱
 | 監測器類型 | 欄位名稱 |
 | --- | --- |
-| 網站、API、Ping、IP、連接埠、SSL Certificate、NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| 網站、API、Ping、IP、連接埠、SSL 憑證、NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | 僅 API | `requestHeaders`, `requestType`, `requestBody` |
 | 網站和 API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication`（用戶端憑證、金鑰和密碼短語一起） |
 | 連接埠、NTP | `monitorDestinationPort` |
-| Synthetic Monitor、Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| 合成監測器、自訂 JavaScript 程式碼 | `customCode` |
+| 合成監測器 | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver`（DNS 伺服器和連接埠一起）, `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | 網域 | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| 日誌、Security Events、追蹤、AI / LLM、指標、例外、設定檔 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`（監測器的整個設定） |
+| SQL 查詢 | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| 資料庫健康狀況 | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| 外部狀態頁面 | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| 日誌、安全事件、追蹤、AI / LLM、指標、例外、設定檔 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`（監測器的整個設定） |
 | 探測器狀態 | `probeStatusMonitor.probeIds` |
 
-基礎設施監測器（Kubernetes、Docker Container、主機、Podman Container、Proxmox、Docker Swarm、Ceph、儲存陣列、IoT Device）可以保護它們的資源選擇器、篩選條件（主機除外）、指標查詢和查詢時間範圍。這些名稱列在該類型範本的 **範本同步設定** 中。
+基礎設施監測器（Kubernetes、Docker 容器、主機、Podman 容器、Proxmox、Docker Swarm、Ceph、儲存陣列、IoT 裝置）可以保護它們的資源選擇器、篩選條件（主機除外）、指標查詢和查詢時間範圍。這些名稱列在該類型範本的 **範本同步設定** 中。
 :::
 
 ## 疑難排解

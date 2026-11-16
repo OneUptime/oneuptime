@@ -1,13 +1,13 @@
 # Docker Swarm-övervakning
 
-En Docker Swarm-monitor övervakar containrarna bakom ett Swarm-klusters tjänsteuppgifter och säger till när en uppgift startar om, går varm eller får slut på minne. Den läser de containermått som OneUptimes Docker Swarm-agent skickar, så ingenting undersöks utifrån: installera agenten och skapa sedan monitorn från en mall eller din egen fråga.
+En Docker Swarm-monitor övervakar containrarna bakom ett Swarm-klusters tjänsteuppgifter och säger till när en uppgift startar om, går varm eller får slut på minne. Den läser de containermätvärden som OneUptimes Docker Swarm-agent skickar, så ingenting undersöks utifrån: installera agenten och skapa sedan monitorn från en mall eller din egen fråga.
 
 Från version 0.161.3 av sina filer skickar agenten också varje minut swarmens eget tillstånd, så att en monitor kan bevaka själva noderna och tjänsterna: en nod som inte är redo, eller en tjänst som kör färre repliker än den vill.
 
 :::cards
 - [Skapa monitorn](#skapa-en-docker-swarm-monitor): Sex steg i instrumentpanelen.
 - [Mallar](#färdiga-larmmallar): Sju färdiga larm, en incident per nod, tjänst eller uppgift.
-- [Mätvärden](#insamlade-mätvärden): De containermått som du kan varna på.
+- [Mätvärden](#insamlade-mätvärden): De containermätvärden som du kan varna på.
 - [Filter](#monitorinställningar): Begränsa en monitor till en tjänst, en uppgift eller en avbildning.
 :::
 
@@ -17,9 +17,9 @@ OneUptimes Docker Swarm-agent körs på en managernod. Dess insamlare läser con
 
 Varje minut läser pollern också från managern om varje nod är redo och hur många repliker varje tjänst vill ha och kör, och skickar det som mätvärden. Så får **Node Not Ready** och **Service Replicas Mismatch** veta om en nod eller en tjänst som har problem inom en minut eller två, inte fem.
 
-Insamlaren ser bara containrar på den nod den körs på. För mått från varje nod kör du insamlaren på varje nod med samma `DOCKER_SWARM_CLUSTER_NAME`.
+Insamlaren ser bara containrar på den nod den körs på. För mätvärden från varje nod kör du insamlaren på varje nod med samma `DOCKER_SWARM_CLUSTER_NAME`.
 
-En Docker Swarm-monitor är knuten till ett kluster. Varje minut kör den sin fråga över klustrets containermått och jämför resultatet med sina kriterier.
+En Docker Swarm-monitor är knuten till ett kluster. Varje minut kör den sin fråga över klustrets containermätvärden och jämför resultatet med sina kriterier.
 
 ```mermaid title="Från ett Swarm-kluster till en incident"
 flowchart TB
@@ -63,7 +63,7 @@ En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larm
 
 - **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Docker Swarm Metric** och ange sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till vissa uppgifter.
-- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje uppgift för sig.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mätvärden**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje uppgift för sig.
 
 ### Kontrollera kriterierna
 
@@ -89,7 +89,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Docker Swarm Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 > [!NOTE]
 > **Tjänstenamn** och **Nodnamn** kräver agentens filer från version 0.161.2 och framåt: äldre skickar varken tjänsten eller noden. [Uppgradera agenten](/docs/telemetry/docker-swarm#uppgradera-agenten) på varje nod som den körs på.
@@ -125,7 +125,7 @@ Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret 
 
 ## Insamlade mätvärden
 
-Agentens insamlare använder OpenTelemetry-mottagaren `docker_stats`, så måtten är de vanliga containermåtten, en serie per uppgiftscontainer. Det finns inga mått `docker_swarm_*`: noder, tjänster och uppgifter följs som inventering, på klustrets sidor **Tjänster**, **Uppgifter**, **Noder** och relaterade sidor.
+Agentens insamlare använder OpenTelemetry-mottagaren `docker_stats`, så mätvärdena är de vanliga containermätvärdena, en serie per uppgiftscontainer. Det finns inga mätvärden `docker_swarm_*`: noder, tjänster och uppgifter följs som inventering, på klustrets sidor **Tjänster**, **Uppgifter**, **Noder** och relaterade sidor.
 
 Bredvid dem skickar agentens inventeringspoller från version 0.161.3 av dess filer varje minut swarmens eget tillstånd: de tre mätvärdena under [Swarm](#swarm).
 
@@ -192,11 +192,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
+| 1 | Kontrollera om _monitornamn_ är offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitornamn_ är offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mätvärde som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Felsökning
 

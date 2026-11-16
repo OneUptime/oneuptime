@@ -142,6 +142,7 @@ const AgentUpgradeModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={title}
+      isTitleTranslated={true}
       description={description}
       onClose={props.onClose}
       closeButtonText="Close"

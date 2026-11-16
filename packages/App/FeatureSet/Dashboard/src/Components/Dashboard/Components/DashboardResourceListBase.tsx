@@ -92,8 +92,9 @@ export interface ResourceListNameCellProps {
   /*
    * The name the cell shows - a row's name or title, an image, a
    * namespace, a host, a cluster - whose words decide which way it reads.
+   * None, and the cell draws the quiet dash (DashboardWidgetLine, #8262).
    */
-  name: string;
+  name?: string | undefined;
   // The cell's classes: its padding and colour, and truncate.
   className: string;
   // What the cell draws, when it is not just the name: a link around it.

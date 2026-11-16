@@ -80,7 +80,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | **Metrica OpenStack** | Metrica personalizzata | Una metrica dal [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Metrica personalizzata | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Ultimi 15 minuti**; i template impostano il proprio. |
-| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggrega per**, **Filtra per attributi**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 Un filtro restringe solo una serie che porta la sua etichetta: `openstack_nova_up` non ha un progetto, quindi un filtro sul progetto la lascia com'è.
 
@@ -774,8 +774,8 @@ Un monitor che non costruisci da un template parte con due criteri:
 
 | Ordine | Criterio | Corrisponde quando | Poi |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | La prima query non ha dati per tutta la finestra | Imposta il monitor su **Offline** e dichiara l'incidente "_monitor name_ is offline", che si risolve da solo quando il monitor si riprende. |
-| 2 | Check if _monitor name_ is online | La prima query ha dati | Imposta il monitor su **Operativo**. |
+| 1 | Verifica se _nome del monitor_ è offline | La prima query non ha dati per tutta la finestra | Imposta il monitor su **Offline** e dichiara l'incidente "_nome del monitor_ è offline", che si risolve da solo quando il monitor si riprende. |
+| 2 | Verifica se _nome del monitor_ è online | La prima query ha dati | Imposta il monitor su **Operativo**. |
 
 > [!IMPORTANT]
 > Un valore pari a `0` è un dato, quindi una metrica che spesso vale zero, come riavvii o errori, non manda il monitor offline. Per ricevere un avviso su un valore, parti da un template o aggiungi un criterio con una soglia. Quando non arrivano affatto dati e nessun criterio corrisponde, il monitor mantiene il suo stato e gli incidenti aperti restano aperti: il silenzio non è un rientro. Il tempo in cui OneUptime stesso non riceveva dati non è mai assenza di dati: un controllo la cui finestra lo contiene aspetta, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).

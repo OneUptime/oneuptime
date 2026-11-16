@@ -1,4 +1,4 @@
-# OpenStack-overvåking
+# OpenStack-monitor
 
 En OpenStack-monitor overvåker én sky - API-ene, arbeiderne bak dem, hypervisorer, instanser, nettverk, lagringspooler og prosjektkvoter - og varsler deg når et API slutter å svare, en arbeider går ned, en hypervisor ikke har mer å gi eller en pool fylles opp. Den leser `openstack_*`-seriene som OneUptime OpenStack Agent samler inn fra openstack-exporter, eller en sonde samler inn fra skyens API-er.
 
@@ -80,7 +80,7 @@ Klikk **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den hve
 | **OpenStack-måling** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det rullerende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 15 minutter**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 Et filter avgrenser bare en serie som har etiketten sin: `openstack_nova_up` har ikke noe prosjekt, så et prosjektfilter lar den være som den er.
 
@@ -233,7 +233,7 @@ Sju maler til leser en skys logger i stedet for målingene, så de er Logs-monit
 | Database Connection Lost | Tjenestelogger | Kritisk | `DBConnectionError`, `SQL connection failed`, eller MySQLs `Lost connection` og `Can't connect`, **siste 5 minutter** | 5 eller flere | Færre enn 5 |
 | Too Many Errors from a Service | Tjenestelogger | Advarsel | `ERROR`- og `CRITICAL`-linjer, per tjeneste og maskin, **siste 5 minutter** | 50 eller flere | Færre enn 50 |
 | Token Validation Failing | Tjenestelogger | Kritisk | En tjenestes `Authorization failed for token`, **siste 5 minutter** | 10 eller flere. Én er noens gamle økt. En kontroller hvis Fernet-nøkler avviker fra de andres, leses som dette, og ingen linje sier mer, så sammenlign `/etc/keystone/fernet-keys` på hver | Færre enn 10 |
-| Instance Action Failed | Hendelser | Advarsel | `compute.exception` og enhver `instance.*.error`, per instans, hendelse og årsak, **siste 15 minutter**. Trenger [varsler](/docs/telemetry/openstack#slå-på-varsler) eller en sonde | En eller flere | Ingen igjen i vinduet |
+| Instance Action Failed | Hendelser | Advarsling | `compute.exception` og enhver `instance.*.error`, per instans, hendelse og årsak, **siste 15 minutter**. Trenger [varslinger](/docs/telemetry/openstack#slå-på-varslinger) eller en sonde | En eller flere | Ingen igjen i vinduet |
 | Scheduling Failed | Hendelser | Advarsel | En compute-oppgaves feil som navngir `NoValidHost`, som `compute_task.build_instances.error`, som er det Nova sender. Cinders `scheduler.create_volume` også, og `scheduler.select_destinations.error`, som Novas dokumentasjon navngir og testskyene våre aldri sendte. Per instans, hendelse og årsak, **siste 15 minutter**. Trenger det samme | En eller flere | Ingen igjen i vinduet |
 
 ### Hva skyen hviler på
@@ -774,11 +774,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Passer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og oppretter hendelsen «_monitor name_ is offline», som løses av seg selv når monitoren gjenopprettes. |
-| 2 | Check if _monitor name_ is online | Den første spørringen har data | Setter monitoren til **I drift**. |
+| 1 | Sjekk om _monitornavn_ er offline | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Offline** og oppretter hendelsen «_monitornavn_ er offline», som løses av seg selv når monitoren gjenopprettes. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Setter monitoren til **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å varsle på en verdi starter du fra en mal eller legger til et kriterium med en terskel. Når ingen data kommer inn i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin og åpne hendelser forblir åpne: stillhet er ikke gjenoppretting. Tid da OneUptime selv ikke mottok data, er aldri ingen data: en sjekk hvis vindu inneholder den, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren offline. For å varsle på en verdi starter du fra en mal eller legger til et kriterium med en terskel. Når ingen data kommer inn i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin og åpne hendelser forblir åpne: stillhet er ikke gjenoppretting. Tid da OneUptime selv ikke mottok data, er aldri ingen data: en sjekk hvis vindu inneholder den, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 

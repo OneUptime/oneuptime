@@ -118,7 +118,7 @@ inboundEmail:
 
 Tillämpa dem sedan: kör `npm run start` på Docker Compose, vilket återskapar containrarna med de nya värdena, eller uppgradera Helm-releasen på Kubernetes.
 
-### Skapa en Incoming Email-monitor
+### Skapa en Inkommande e-post-monitor
 
 [Skapa en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#skapa-en-monitor-för-inkommande-e-post). Dess sida **Översikt** visar adressen, till exempel `monitor-abc123def456@inbound.yourdomain.com`, och dess kriterier avgör vilka e-postmeddelanden som skapar ett larm och vilka som löser det.
 
@@ -137,7 +137,7 @@ Skicka ett e-postmeddelande till monitorns adress, med ett ämne som matchar des
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Underdomänen som är konfigurerad för inkommande e-post. Inkommande e-post är av tills den är satt. | Ja | Tom |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemlighet som det sista segmentet i webhookens URL måste matcha: `/incoming-email/sendgrid/YOUR_SECRET`. Varje e-postmeddelande avvisas så länge den är tom eller en platshållare. | Ja | Tom |
 
-Vad en Incoming Email-monitor kan matcha på – ämnet, avsändaren, innehållet, mottagaren och om ett meddelande kom fram i tid – står i [Tillgängliga filtertyper](/docs/monitor/incoming-email-monitor#tillgängliga-filtertyper).
+Vad en Inkommande e-post-monitor kan matcha på – ämnet, avsändaren, innehållet, mottagaren och om ett meddelande kom fram i tid – står i [Tillgängliga filtertyper](/docs/monitor/incoming-email-monitor#tillgängliga-filtertyper).
 
 ## Felsökning
 

@@ -123,7 +123,7 @@ Las **Reglas del propietario** añaden usuarios y equipos propietarios a las ale
 
 ## Reglas de privacidad y de runbook
 
-Las **Reglas de privacidad** hacen privadas las alertas nuevas que coinciden, antes de que se ejecute nada más: solo sus propietarios y los administradores y propietarios del proyecto pueden verlas. Una regla tiene dos pasos: **Coincidencia**, las alertas que hace privadas, y luego **Nombre**, ya rellenado como "Hacer privadas las alertas". Consulta [Alertas privadas](/docs/alerts/index#alertas-privadas).
+Las **Reglas de privacidad** hacen privadas las alertas nuevas que coinciden, antes de que se ejecute nada más: solo sus propietarios y los Administradores del proyecto y Propietarios del proyecto pueden verlas. Una regla tiene dos pasos: **Coincidencia**, las alertas que hace privadas, y luego **Nombre**, ya rellenado como "Hacer privadas las alertas". Consulta [Alertas privadas](/docs/alerts/index#alertas-privadas).
 
 Las **Reglas de runbook** ponen en marcha un runbook cuando coincide una alerta nueva, salvo que la alerta se haya creado resuelta. Consulta [Reglas de runbook](/docs/runbooks/rules).
 
@@ -178,7 +178,7 @@ La tarjeta **Próximo número** de debajo fija el número que reciben la próxim
 
 ## Flujos de trabajo
 
-Cada modelo de alerta tiene disparadores y acciones de flujo de trabajo con su nombre: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** y **On Delete Alert**, lo mismo para **Episodio de alerta**, **Cronología de estados de la alerta** y los demás, y acciones como **Create One Alert** y **Update One Alert**. Las definiciones de campos personalizados de alerta son la única excepción: no tienen disparadores de flujo de trabajo. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
+Cada modelo de alerta tiene disparadores y acciones de flujo de trabajo con su nombre: **Al crear Alerta**, **Al actualizar Alerta**, **Al crear o actualizar Alerta** y **Al eliminar Alerta**, lo mismo para **Episodio de alerta**, **Cronología de estados de la alerta** y los demás, y acciones como **Crear Alerta (individual)** y **Actualizar Alerta (individual)**. Las definiciones de campos personalizados de alerta son la única excepción: no tienen disparadores de flujo de trabajo. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 
 ## Quién puede cambiarlos
 

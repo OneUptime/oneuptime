@@ -65,7 +65,7 @@ describe("MonitorProbe column access control", () => {
   const accessControl: Record<string, ColumnAccessControl> =
     new MonitorProbe().getColumnAccessControlForAllColumns();
 
-  it("lets a project owner choose the probe when attaching one", () => {
+  it("lets a Project Owner choose the probe when attaching one", () => {
     expect(
       wouldFormShowField({
         accessControl,
@@ -104,7 +104,7 @@ describe("MonitorProbe column access control", () => {
     ).toBe(false);
   });
 
-  it("still lets a project owner toggle isEnabled, so the edit form is not empty", () => {
+  it("still lets a Project Owner toggle isEnabled, so the edit form is not empty", () => {
     /*
      * ModelForm only surfaces a permission error when it drops *every* field.
      * isEnabled surviving is why the silent drop of "Probe" produced no

@@ -14,9 +14,10 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import { OAUTH2_TOKEN_STATUS_LABELS } from "./WorkflowVariableTokenStatusLabels";
 
 /*
  * The "Access Token" card on an OAuth 2.0 variable's page: what state its
@@ -61,17 +62,8 @@ const formatDate: FormatDateFunction = (date: Date): string => {
   return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
 };
 
-/*
- * What the pill calls each status. The pill looks its text up, so these are
- * the keys it finds.
- */
-export const OAUTH2_TOKEN_STATUS_LABELS: Record<OAuth2TokenStatus, string> = {
-  [OAuth2TokenStatus.NotFetched]: translationKey("Not fetched yet"),
-  [OAuth2TokenStatus.Valid]: translationKey("Valid"),
-  [OAuth2TokenStatus.Expired]: translationKey("Expired"),
-  [OAuth2TokenStatus.NoExpiry]: translationKey("No expiry reported"),
-  [OAuth2TokenStatus.RefreshFailed]: translationKey("Refresh failed"),
-};
+// What the pill calls each status: in a React-free sibling, for App's tests.
+export { OAUTH2_TOKEN_STATUS_LABELS };
 
 const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

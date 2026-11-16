@@ -1088,7 +1088,7 @@ function getNativePushPrerequisites(target: ProxmoxPushTarget): Array<string> {
   return [
     "Proxmox VE **9.0 or later**",
     "The Proxmox web UI, to add a metric server under *Datacenter → Metric Server*",
-    `Every node can reach \`${target.server}\` on port ${target.port}`,
+    `Every node can reach \`${target.server}\` on port \`${target.port}\``,
   ];
 }
 
@@ -1199,7 +1199,7 @@ function getNativePushGuide(context: GuideContext): SetupGuideContent {
   const keyStep: SetupGuideKeyStep = {
     description:
       "Proxmox VE sends its metrics with this key, in the x-oneuptime-token header. Pick an existing key or create a new one — the settings below update to use it.",
-    endpointLabel: "OTLP metrics endpoint",
+    endpointLabel: translationKey("OTLP metrics endpoint"),
     endpointValue: `${context.oneuptimeUrl}${PROXMOX_NATIVE_PUSH_PATH}`,
   };
 

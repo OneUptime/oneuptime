@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The first run of the infrastructure lists, in a real browser: the real
@@ -941,4 +942,18 @@ test("in German, the list's description and Add Host on the showcase are transla
   await expect(headerButton(page, "Host hinzufügen")).toBeVisible();
   await expect(showcaseButton(page)).toHaveText("Host hinzufügen");
   await screenshot(page, "hosts-first-run-de");
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? HOSTS : `${HOSTS}?lang=${language}`;
+  },
 });

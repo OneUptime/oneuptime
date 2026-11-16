@@ -748,7 +748,7 @@ describe("an on-call policy's card", () => {
         {
           label: "Regel 2 — Database team",
           value:
-            'Alarmiert Benutzer "Ana", Team "SRE", eskaliert dann nach 5 Minuten',
+            'Alarmiert Benutzer "Ana", Team "SRE", eskaliert dann nach 5\u00A0Minuten',
         },
       ],
     });

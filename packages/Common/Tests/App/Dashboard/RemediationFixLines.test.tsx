@@ -52,6 +52,14 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 import { openRemediationFixes } from "./RemediationFixHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/project/*/get-item"]);
 
 /*
  * A FIX ON THE AI CARD'S REMEDIATION STEP READS AS LINES (block 43's UI

@@ -33,7 +33,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Per i budget dell'istanza e di un progetto, l'Admin Dashboard.** Su un'installazione self-hosted, solo l'amministratore dell'istanza li imposta. I proprietari e gli amministratori di un progetto ne vedono i budget, ma non possono modificarli.
+- **Per i budget dell'istanza e di un progetto, l'Admin Dashboard.** Su un'installazione self-hosted, solo l'amministratore dell'istanza li imposta. I Proprietari del progetto e gli Amministratori del progetto vedono i budget di un progetto, ma non possono modificarli.
 - **Per il budget proprio di una chiave, un ruolo che modifica le chiavi di acquisizione.** Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Edit Ingestion Key.
 - **Per vedere i budget, un ruolo che vede l'utilizzo del progetto.** I ruoli che vedono la pagina [Utilizzo della telemetria](/docs/telemetry/usage) vi vedono i budget del progetto.
 
@@ -46,11 +46,11 @@ Nell'Admin Dashboard, andate in **Impostazioni → Telemetria → Budget di acqu
 
 ### Impostare i budget giornalieri
 
-Nella scheda **Budget giornalieri predefiniti**, fate clic su **Modifica budget giornalieri predefiniti**, inserite un numero di GB per ogni segnale da limitare, ad esempio **Registri (GB al giorno)**, e fate clic su **Salva modifiche**. Lasciate vuoto un segnale per non avere limiti.
+Nella scheda **Budget giornalieri predefiniti**, fate clic su **Modifica budget giornalieri predefiniti**, inserite un numero di GB per ogni segnale da limitare, ad esempio **Log (GB al giorno)**, e fate clic su **Salva modifiche**. Lasciate vuoto un segnale per non avere limiti.
 
 ### Impostare i limiti di frequenza, se vi servono
 
-Nella scheda **Limiti di frequenza predefiniti**, fate clic su **Modifica limiti di frequenza predefiniti** e inserite un numero di MB al secondo per un segnale, ad esempio **Registri (MB al secondo)**. Un limite di frequenza impedisce a un singolo picco di esaurire in pochi minuti il budget di un giorno.
+Nella scheda **Limiti di frequenza predefiniti**, fate clic su **Modifica limiti di frequenza predefiniti** e inserite un numero di MB al secondo per un segnale, ad esempio **Log (MB al secondo)**. Un limite di frequenza impedisce a un singolo picco di esaurire in pochi minuti il budget di un giorno.
 :::
 
 La scheda **Avviso e azzeramento** contiene la soglia di avviso e l'ora in cui si azzera il giorno di budget: vedete [L'avviso e l'azzeramento](#lavviso-e-lazzeramento).
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## L'avviso e l'azzeramento
 
-- **L'avviso.** Quando un budget giornaliero supera la soglia di avviso, l'80% a meno che l'amministratore dell'istanza non la cambi, i proprietari del progetto ricevono un'e-mail, e gli explorer mostrano un banner sopra i dati di quel segnale. Ricevono un'altra e-mail quando il budget è esaurito. Ogni budget invia ogni e-mail al massimo una volta al giorno.
+- **L'avviso.** Quando un budget giornaliero supera la soglia di avviso, l'80% a meno che l'amministratore dell'istanza non la cambi, i Proprietari del progetto ricevono un'e-mail, e gli explorer mostrano un banner sopra i dati di quel segnale. Ricevono un'altra e-mail quando il budget è esaurito. Ogni budget invia ogni e-mail al massimo una volta al giorno.
 - **L'azzeramento.** Ogni giorno di budget ricomincia alle 00:00 UTC, a meno che l'amministratore dell'istanza non lo cambi. La scheda **Avviso e azzeramento** imposta **Soglia di avviso (%)**, da 1 a 99, **Ora di azzeramento**, come HH:MM, e **Fuso orario dell'azzeramento**: fate clic su **Modifica avviso e azzeramento**.
 - **Ora legale.** L'azzeramento segue l'orologio del fuso orario, quindi il giorno di budget in cui cambia l'ora dura un'ora in meno o in più. Un'ora di azzeramento che il cambio d'ora salta avviene altrettanto tempo dopo il salto.
 - **Un azzeramento modificato inizia un nuovo giorno.** Cambiare l'ora di azzeramento o il fuso orario inizia subito un nuovo giorno di budget, senza nulla ancora conteggiato.

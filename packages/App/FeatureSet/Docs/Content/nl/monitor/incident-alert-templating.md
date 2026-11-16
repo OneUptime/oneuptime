@@ -452,17 +452,17 @@ De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.co
 
 ### Metriek- en infrastructuurmonitoren
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- en IoT Device-monitoren hebben één eigen variabele:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Opslagarray- en IoT-apparaat-monitoren hebben één eigen variabele:
 
 | Variabele | Wat ze bevat | Type |
 | --- | --- | --- |
 | `metricName` | De naam van de metriek die de eerste query van de monitor leest, zoals `container.cpu.time`. | `string` |
 
-Gegroepeerd hebben ze ook de waarde van elk attribuut in **Groeperen op**, en `seriesLabels`: zie [Waarden van een gegroepeerde monitor](#waarden-van-een-gegroepeerde-monitor). De templates van de IoT Device-monitor groeperen per apparaat, dus een monitor die met een ervan is gemaakt, heeft ook `{{device.id}}`.
+Gegroepeerd hebben ze ook de waarde van elk attribuut in **Groeperen op**, en `seriesLabels`: zie [Waarden van een gegroepeerde monitor](#waarden-van-een-gegroepeerde-monitor). De templates van de IoT-apparaat-monitor groeperen per apparaat, dus een monitor die met een ervan is gemaakt, heeft ook `{{device.id}}`.
 
 ### Andere monitortypen
 
-Logs-, Traces-, Exceptions-, Security Events-, AI / LLM- en SQL Query-monitoren hebben geen eigen variabelen. Gebruik de [variabelen van elke monitor](#variabelen-van-elke-monitor), en op een gegroepeerde Logs-monitor de [groepswaarden](#waarden-van-een-gegroepeerde-monitor).
+Logs-, Traces-, Exceptions-, Beveiligingsgebeurtenissen-, AI / LLM- en SQL-query-monitoren hebben geen eigen variabelen. Gebruik de [variabelen van elke monitor](#variabelen-van-elke-monitor), en op een gegroepeerde Logs-monitor de [groepswaarden](#waarden-van-een-gegroepeerde-monitor).
 
 ## Voorbeelden
 

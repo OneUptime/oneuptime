@@ -145,12 +145,12 @@ describe("in German", () => {
 
   const cases: Array<[string, string]> = [
     ["* * * * *", "Jede Minute"],
-    ["*/5 * * * *", "Alle 5 Minuten"],
+    ["*/5 * * * *", "Alle 5\u00A0Minuten"],
     ["0 * * * *", "Jede Stunde, zur vollen Stunde"],
     ["15 * * * *", "Jede Stunde zur Minute 15"],
     ["5 * * * *", "Jede Stunde zur Minute 05"],
-    ["0 */2 * * *", "Alle 2 Stunden"],
-    ["5 */6 * * *", "Alle 6 Stunden zur Minute 05"],
+    ["0 */2 * * *", "Alle 2\u00A0Stunden"],
+    ["5 */6 * * *", "Alle 6\u00A0Stunden zur Minute 05"],
     ["30 9 * * *", "Jeden Tag um 09:30 (UTC)"],
     ["0 9 * * 1", "Jede Woche am Montag um 09:00 (UTC)"],
     [
@@ -159,7 +159,7 @@ describe("in German", () => {
     ],
     ["0 0 1 * *", "Jeden Monat am 1. um 00:00 (UTC)"],
     ["0 12 1,15 * *", "Jeden Monat am 1. und 15. um 12:00 (UTC)"],
-    ["0 0 1 */3 *", "Alle 3 Monate am 1. um 00:00 (UTC)"],
+    ["0 0 1 */3 *", "Alle 3\u00A0Monate am 1. um 00:00 (UTC)"],
     // A yearly schedule names its dates as German writes a date.
     ["0 0 1 1 *", "Jedes Jahr am 1. Januar um 00:00 (UTC)"],
     [
@@ -297,12 +297,12 @@ describe("in every language", () => {
    */
   test.each<[string, string | null]>([
     ["30 9 * * *", "هر روز ساعت ۰۹:۳۰ (UTC)"],
-    ["5 */6 * * *", "هر ۶ ساعت در دقیقهٔ ۰۵"],
+    ["5 */6 * * *", "هر ۶\u00A0ساعت در دقیقهٔ ۰۵"],
     ["15 * * * *", "هر ساعت در دقیقهٔ ۱۵"],
     ["0 9 * * 1", "هر هفته دوشنبه ساعت ۰۹:۰۰ (UTC)"],
     ["0 9 1,15 * *", "هر ماه روز ۱ و ۱۵ ساعت ۰۹:۰۰ (UTC)"],
     ["0 0 1 1 *", null],
-    ["*/20 * * * *", "هر ۲۰ دقیقه"],
+    ["*/20 * * * *", "هر ۲۰\u00A0دقیقه"],
   ])(
     "fa: %s reads every figure in Persian digits",
     (expression: string, expected: string | null) => {
@@ -346,11 +346,11 @@ describe("in every language", () => {
     );
 
     expect(describeCronSchedule("*/20 * * * *", oneForm)).toBe(
-      "Каждые 20 минут",
+      "Каждые 20\u00A0минут",
     );
     // 0, 21 and 42 past the hour: CronTab reads it as every 21 minutes.
     expect(describeCronSchedule("*/21 * * * *", oneForm)).toBe(
-      "Каждую 21 минуту",
+      "Каждую 21\u00A0минуту",
     );
   });
 });
@@ -358,7 +358,7 @@ describe("in every language", () => {
 describe("a monitor's interval", () => {
   test("in English without a translator, as it always read", () => {
     expect(MonitorCheckScheduleUtil.describeInterval("*/5 * * * *")).toBe(
-      "Every 5 minutes",
+      "Every 5\u00A0minutes",
     );
     expect(MonitorCheckScheduleUtil.describeInterval(undefined)).toBe(
       "Every minute",
@@ -370,13 +370,13 @@ describe("a monitor's interval", () => {
 
     expect(
       MonitorCheckScheduleUtil.describeInterval("*/5 * * * *", german),
-    ).toBe("Alle 5 Minuten");
+    ).toBe("Alle 5\u00A0Minuten");
     // No interval, or one that never runs, is checked every minute.
     expect(MonitorCheckScheduleUtil.describeInterval(undefined, german)).toBe(
       "Jede Minute",
     );
     expect(MonitorCheckScheduleUtil.describeInterval("5m", german)).toBe(
-      "Alle 5 Minuten",
+      "Alle 5\u00A0Minuten",
     );
   });
 });

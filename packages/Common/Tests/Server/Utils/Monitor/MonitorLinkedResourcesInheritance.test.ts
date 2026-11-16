@@ -24,7 +24,9 @@ import LinkedAffectedResources, {
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
-import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
+import MonitorResourceContextUtil, {
+  MonitorRecordResources,
+} from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import { SeriesResolvedResourceIds } from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
 import logger from "../../../../Server/Utils/Logger";
 import Dictionary from "../../../../Types/Dictionary";
@@ -157,6 +159,9 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
   let readLinks: SpyInstance<
     typeof MonitorResourceContextUtil.resolveLinkedResourcesForMonitor
   >;
+  let readConfigResources: SpyInstance<
+    typeof MonitorResourceContextUtil.resolveResourceContextForMonitor
+  >;
 
   beforeEach(() => {
     /*
@@ -177,7 +182,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
       .spyOn(ProjectScopedReferenceValidator, "isUsableInProject")
       .mockResolvedValue(true);
 
-    jest
+    readConfigResources = jest
       .spyOn(MonitorResourceContextUtil, "resolveResourceContextForMonitor")
       .mockImplementation(async () => {
         return stepContext;
@@ -226,6 +231,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
   async function evaluateIncidents(options?: {
     matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
     createIncidents?: boolean;
+    recordResources?: MonitorRecordResources | undefined;
   }): Promise<void> {
     await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
       criteriaInstance: criteriaInstance({
@@ -236,6 +242,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
       rootCause: "The website returned 502",
       autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
       matchesPerSeries: options?.matchesPerSeries,
+      recordResources: options?.recordResources,
       props: {},
     });
   }
@@ -243,6 +250,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
   async function evaluateAlerts(options?: {
     matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
     createAlerts?: boolean;
+    recordResources?: MonitorRecordResources | undefined;
   }): Promise<void> {
     await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
       criteriaInstance: criteriaInstance({
@@ -253,6 +261,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
       rootCause: "The website returned 502",
       autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
       matchesPerSeries: options?.matchesPerSeries,
+      recordResources: options?.recordResources,
       props: {},
     });
   }
@@ -425,6 +434,162 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
 
     expect(createdAlerts).toHaveLength(0);
     expect(readLinks).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Issue #8118: an evaluation that opens an incident and an alert used to
+   * read the links twice, once per creator - a dozen statements - and the
+   * resources the monitor's config names twice too. MonitorResource hands
+   * both creators the same MonitorRecordResources, so each is read once.
+   */
+  it("an evaluation that opens an incident and an alert reads the links, and the config resources, once for both", async () => {
+    stepContext = resolved({ serviceIds: [SERVICE_ID] });
+    linkedContext = resolved({ kubernetesClusterIds: [CLUSTER_ID] });
+
+    const recordResources: MonitorRecordResources =
+      MonitorResourceContextUtil.forEvaluation({ monitor: websiteMonitor() });
+
+    await evaluateIncidents({ recordResources: recordResources });
+    await evaluateAlerts({ recordResources: recordResources });
+
+    expect(createdIncidents).toHaveLength(1);
+    expect(createdAlerts).toHaveLength(1);
+    expect(readLinks).toHaveBeenCalledTimes(1);
+    expect(readConfigResources).toHaveBeenCalledTimes(1);
+
+    // Both records are linked to all of it, as when each read its own.
+    for (const record of [createdIncidents[0]!, createdAlerts[0]!]) {
+      expect(idsOn(record.kubernetesClusters)).toEqual([CLUSTER_ID]);
+      expect(idsOn(record.services)).toEqual([SERVICE_ID]);
+    }
+  });
+
+  it("several incidents and alerts of one evaluation still read each once", async () => {
+    linkedContext = resolved({ kubernetesClusterIds: [CLUSTER_ID] });
+
+    const recordResources: MonitorRecordResources =
+      MonitorResourceContextUtil.forEvaluation({ monitor: websiteMonitor() });
+
+    await evaluateIncidents({
+      matchesPerSeries: [series("eu"), series("us")],
+      recordResources: recordResources,
+    });
+    await evaluateAlerts({
+      matchesPerSeries: [series("eu"), series("us")],
+      recordResources: recordResources,
+    });
+
+    expect(createdIncidents).toHaveLength(2);
+    expect(createdAlerts).toHaveLength(2);
+    expect(readLinks).toHaveBeenCalledTimes(1);
+    expect(readConfigResources).toHaveBeenCalledTimes(1);
+  });
+
+  it("an evaluation that opens nothing reads neither", async () => {
+    const recordResources: MonitorRecordResources =
+      MonitorResourceContextUtil.forEvaluation({ monitor: websiteMonitor() });
+
+    await evaluateIncidents({
+      createIncidents: false,
+      recordResources: recordResources,
+    });
+    await evaluateAlerts({
+      createAlerts: false,
+      recordResources: recordResources,
+    });
+    await evaluateIncidents({
+      matchesPerSeries: [],
+      recordResources: recordResources,
+    });
+
+    expect(createdIncidents).toHaveLength(0);
+    expect(createdAlerts).toHaveLength(0);
+    expect(readLinks).not.toHaveBeenCalled();
+    expect(readConfigResources).not.toHaveBeenCalled();
+  });
+
+  it("a creator called without them reads its own, as before", async () => {
+    linkedContext = resolved({ kubernetesClusterIds: [CLUSTER_ID] });
+
+    await evaluateIncidents();
+    await evaluateAlerts();
+
+    expect(readLinks).toHaveBeenCalledTimes(2);
+    expect(readConfigResources).toHaveBeenCalledTimes(2);
+    expect(idsOn(createdIncidents[0]!.kubernetesClusters)).toEqual([
+      CLUSTER_ID,
+    ]);
+    expect(idsOn(createdAlerts[0]!.kubernetesClusters)).toEqual([CLUSTER_ID]);
+  });
+});
+
+describe("MonitorResourceContextUtil.forEvaluation", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("reads nothing until asked, then each once, however often it is asked", async () => {
+    const links: SeriesResolvedResourceIds = resolved({
+      kubernetesClusterIds: [CLUSTER_ID],
+    });
+    const config: SeriesResolvedResourceIds = resolved({
+      serviceIds: [SERVICE_ID],
+    });
+
+    const readLinks: SpyInstance<
+      typeof MonitorResourceContextUtil.resolveLinkedResourcesForMonitor
+    > = jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(links);
+    const readConfig: SpyInstance<
+      typeof MonitorResourceContextUtil.resolveResourceContextForMonitor
+    > = jest
+      .spyOn(MonitorResourceContextUtil, "resolveResourceContextForMonitor")
+      .mockResolvedValue(config);
+
+    const monitor: Monitor = websiteMonitor();
+    const recordResources: MonitorRecordResources =
+      MonitorResourceContextUtil.forEvaluation({ monitor: monitor });
+
+    expect(readLinks).not.toHaveBeenCalled();
+    expect(readConfig).not.toHaveBeenCalled();
+
+    // Asked at once by two creators: still one read each.
+    const [firstLinks, secondLinks, firstConfig, secondConfig] =
+      await Promise.all([
+        recordResources.getLinkedResources(),
+        recordResources.getLinkedResources(),
+        recordResources.getResourceContext(),
+        recordResources.getResourceContext(),
+      ]);
+
+    expect(firstLinks).toBe(links);
+    expect(secondLinks).toBe(links);
+    expect(firstConfig).toBe(config);
+    expect(secondConfig).toBe(config);
+    expect(await recordResources.getLinkedResources()).toBe(links);
+
+    expect(readLinks).toHaveBeenCalledTimes(1);
+    expect(readConfig).toHaveBeenCalledTimes(1);
+    expect(readLinks.mock.calls[0]![0].monitor).toBe(monitor);
+    expect(readConfig.mock.calls[0]![0].monitor).toBe(monitor);
+  });
+
+  it("two evaluations read their own", async () => {
+    const readLinks: SpyInstance<
+      typeof MonitorResourceContextUtil.resolveLinkedResourcesForMonitor
+    > = jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(resolved());
+
+    await MonitorResourceContextUtil.forEvaluation({
+      monitor: websiteMonitor(),
+    }).getLinkedResources();
+    await MonitorResourceContextUtil.forEvaluation({
+      monitor: websiteMonitor(),
+    }).getLinkedResources();
+
+    expect(readLinks).toHaveBeenCalledTimes(2);
   });
 });
 

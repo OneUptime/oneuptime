@@ -27,7 +27,7 @@ flowchart TB
 ## Før du begynder
 
 - **Et forbundet Google Cloud-projekt.** Forbind det først under **Cloud → Forbind**: se [Forbind en cloudkonto](/docs/telemetry/cloud-accounts).
-- **En projektejer eller administrator.** Kun de kan oprette en streamnøgle og stoppe streaming.
+- **En Projektejer eller Projektadministrator.** Kun de kan oprette en streamnøgle og stoppe streaming.
 - **Google Cloud Shell**, logget ind som **Owner** af projekterne eller som en, der må oprette tjenestekonti, Pub/Sub-emner og log-sinks i dem.
 - **En HTTPS-adresse, på en selvhostet OneUptime.** Pub/Sub pusher kun til `https://`-adresser, med et certifikat, som Google stoler på, og adressen skal kunne nås fra Google Cloud.
 

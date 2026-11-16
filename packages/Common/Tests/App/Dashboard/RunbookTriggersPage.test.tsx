@@ -469,9 +469,9 @@ describe("the Schedule card of a runbook with no schedule", () => {
 
     expect(runs).toHaveLength(3);
     // On the zone's clock, with how far off each is; no year this year.
-    expect(runs[0]).toBe("Thu, Oct 15, 09:00 BSTin 2 hours");
-    expect(runs[1]).toBe("Fri, Oct 16, 09:00 BSTin 1 day");
-    expect(runs[2]).toBe("Mon, Oct 19, 09:00 BSTin 4 days");
+    expect(runs[0]).toBe("Thu, Oct 15, 09:00 BSTin 2\u00A0hours");
+    expect(runs[1]).toBe("Fri, Oct 16, 09:00 BSTin 1\u00A0day");
+    expect(runs[2]).toBe("Mon, Oct 19, 09:00 BSTin 4\u00A0days");
 
     // The day buttons say which days are picked.
     expect(

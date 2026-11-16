@@ -132,7 +132,7 @@ Vul onder **Regel** een **Naam** in, zoals "Fast burn". Een nieuwe regel staat a
 
 ### Het verbruiksvenster instellen
 
-Stel onder **Verbruiksvenster** de **Drempel voor verbruikssnelheid** in (bijvoorbeeld `14.4`), de **Lang venster (minuten)** en de **Kort venster (minuten)**, en eventueel de **Onderdrukking van opnieuw afgaan (minuten)**.
+Stel onder **Verbruiksvenster** de **Drempel voor verbruikssnelheid** in (bijvoorbeeld `14.4`), de **Lang venster (minuten)** en de **Kort venster (minuten)**, en eventueel de **Onderdrukking van opnieuw afgaan (minuten)**. De regel van een SLO voor aanvragen heeft ook een **Minimaal aantal aanvragen**, bijvoorbeeld `100`: de regel slaat een lang venster over dat minder aanvragen bevat dan dat. De regel van een SLO voor een metriek heeft op dezelfde manier een **Minimaal aantal gebeurtenissen**, in gebeurtenissen van zijn metriek.
 
 ### Kiezen wat hij meldt
 
@@ -151,10 +151,12 @@ OneUptime controleert de getallen van een regel als u hem opslaat:
 | **Kort venster (minuten)** | Groter dan 0. |
 | **Lang venster (minuten)** | Langer dan het korte venster. |
 | **Onderdrukking van opnieuw afgaan (minuten)** | 0 of meer. Leeg betekent de lengte van het lange venster. |
+| **Minimaal aantal aanvragen** | Een geheel getal, 0 of meer. Leeg betekent geen minimum. |
+| **Minimaal aantal gebeurtenissen** | Een geheel getal, 0 of meer. Leeg betekent geen minimum. |
 
 Elk antwoord op **Wanneer hij afgaat** opent iets. De API weigert een regel die geen waarschuwing zou maken en geen incident zou melden, omdat hij bij elke evaluatie zou worden gecontroleerd zonder ooit iets te melden.
 
-De regeltabel toont voor elke regel de drempel, de vensters en de onderdrukking, wat hij meldt (en of de waarschuwing of het incident alleen met de hand wordt opgelost, of privé is), de ernstniveaus, het bereikbaarheidsbeleid, de eigenaren en de labels.
+De regeltabel toont voor elke regel de drempel, de vensters en de onderdrukking, wat hij meldt (en of de waarschuwing of het incident alleen met de hand wordt opgelost, of privé is), de ernstniveaus, het bereikbaarheidsbeleid, de eigenaren en de labels. Voor een SLO voor aanvragen toont hij ook het minimum van elke regel onder de vensters.
 
 > [!TIP]
 > Een goed begin: houd de drie standaardregels, stuur de regel voor snel verbruik met een hoge ernst naar uw bereikbaarheidsbeleid dat mensen oproept, laat de regel voor langzaam verbruik een waarschuwing met lagere ernst geven voor kantooruren, en laat de regel voor een langzaam lek een ticket blijven voor het verantwoordelijke team. Werkt uw team met incidenten, kies dan **Een incident melden** voor de regel voor snel verbruik, of **Beide** om ook een waarschuwing te krijgen.
@@ -276,7 +278,7 @@ Regels voor verbruikssnelheid blijven stil terwijl een van de monitoren van de S
 :::
 
 :::details Is er een minimaal aantal metingen?
-Niet voor SLO's die worden gemeten aan de beschikbaarheid van monitoren. Beschikbaarheid wordt in seconden gemeten, dus elke seconde van het venster is een meting en er is geen geval met weinig verkeer om tegen te beschermen. Een minimaal aantal metingen doet er alleen toe voor op gebeurtenissen gebaseerde SLI's, die nog niet beschikbaar zijn.
+Niet voor SLO's die worden gemeten aan de beschikbaarheid van monitoren. Beschikbaarheid wordt in seconden gemeten, dus elke seconde van het venster is een meting en er is geen geval met weinig verkeer om tegen te beschermen. De regel van een SLO voor aanvragen heeft er wel een: stel zijn **Minimaal aantal aanvragen** in, en de regel slaat een lang venster met minder aanvragen dan dat over, zodat een rustig uur met één mislukte aanvraag op vijf niemand oproept.
 :::
 
 ## Volgende stappen

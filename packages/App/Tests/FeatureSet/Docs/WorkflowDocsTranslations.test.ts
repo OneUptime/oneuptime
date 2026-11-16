@@ -12,6 +12,7 @@ import {
 import {
   dashboardLocale,
   drawnActionLabel,
+  drawnLabelOnPage,
   isActionLabel,
 } from "./DocsDashboardLabels";
 import {
@@ -418,11 +419,11 @@ describe.each(LANGUAGES)("%s workflow pages", (language: string) => {
       const missing: Array<string> = checkedLabels(entry.page)
         .filter((label: string): boolean => {
           return !translated.includes(
-            `**${drawnActionLabel(language, label)}**`,
+            `**${drawnLabelOnPage(language, entry.page, label)}**`,
           );
         })
         .map((label: string): string => {
-          return `${label} -> ${drawnActionLabel(language, label)}`;
+          return `${label} -> ${drawnLabelOnPage(language, entry.page, label)}`;
         });
 
       expect(missing).toEqual([]);
@@ -505,9 +506,16 @@ describe("the label helpers, on these pages' buttons", () => {
   });
 
   it("leave text no template draws in English", () => {
-    expect(isActionLabel("Send Message to Teams")).toBe(false);
+    // A record step's title is built from its model's name, and has no key yet.
+    expect(isActionLabel("On Create Incident")).toBe(false);
+    expect(drawnActionLabel("de", "On Create Incident")).toBe(
+      "On Create Incident",
+    );
+  });
+
+  it("read a built-in step's title as the Builder draws it (#8359)", () => {
     expect(drawnActionLabel("de", "Send Message to Teams")).toBe(
-      "Send Message to Teams",
+      "Nachricht an Teams senden",
     );
   });
 

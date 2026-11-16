@@ -71,7 +71,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 | Anrop | Vad det skickar |
 | --- | --- |
 | `track(name, properties?)` | En händelse som **Händelser**, **Trattar** och **Kvarhållning av användare** räknar, och en markör på uppspelningens tidslinje när sessionen spelas in. `name` ≤ 64 tecken; ≤ 20 egenskaper med sträng-, tal- eller booleska värden, nyckel ≤ 40 tecken, värde ≤ 200 tecken. |
-| `metric(name, value, attributes?)` | Ett tal som din sida har mätt, som en punkt i ett av applikationens mätvärden (se [Instrumentpaneler och aviseringar](#instrumentpaneler-och-aviseringar)). `name` ≤ 100 tecken av bokstäver, siffror, `_`, `.`, `-` och `/`, som börjar med en bokstav och inte med `oneuptime.`; `value` ett ändligt tal; `attributes` som egenskaperna för `track()`. |
+| `metric(name, value, attributes?)` | Ett tal som din sida har mätt, som en punkt i ett av applikationens mätvärden (se [Instrumentpaneler och larm](#instrumentpaneler-och-larm)). `name` ≤ 100 tecken av bokstäver, siffror, `_`, `.`, `-` och `/`, som börjar med en bokstav och inte med `oneuptime.`; `value` ett ändligt tal; `attributes` som egenskaperna för `track()`. |
 
 Innan inspelaren har laddats lägger du samma anrop i `window.OneUptimeReplayQueue` som `["track", name, properties]` och `["metric", name, value, attributes]` (se [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
@@ -122,7 +122,7 @@ Varje rad är en kohort och hur många personer den har, och varje cell andelen 
 - **Redigera** byter namn på en, och **Ta bort** tar bort den för alla. **Rensa vy** stänger den som är öppen och behåller det sidan visar.
 - En länk till en som har tagits bort, eller som du inte får se, säger det, och sidan öppnas utan den.
 
-## Instrumentpaneler och aviseringar
+## Instrumentpaneler och larm
 
 Varje händelse räknas också, minut för minut, som ett av applikationens mätvärden, och varje anrop till `metric()` är en punkt i ett eget mätvärde, under det namn anropet anger. Rita dem på applikationens sida **Mätvärden**, lägg till dem på en instrumentpanel eller avisera på dem med en metrikövervakning; **Öppna Mätvärden** under **Alla händelser** öppnar sidan.
 

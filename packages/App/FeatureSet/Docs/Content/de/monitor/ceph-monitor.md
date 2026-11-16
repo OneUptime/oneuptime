@@ -4,7 +4,7 @@ Ein Ceph-Monitor überwacht einen Ceph-Cluster — seinen Zustand, seine Health-
 
 :::cards
 - [Den Monitor erstellen](#einen-ceph-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-alarmvorlagen): 24 fertige Alarme für einen verstummten Cluster, Zustand, OSDs, Placement Groups und Kapazität.
+- [Vorlagen](#fertige-warnungsvorlagen): 24 fertige Warnungen für einen verstummten Cluster, Zustand, OSDs, Placement Groups und Kapazität.
 - [Health-Checks](#health-check-serien): Bei jedem Ceph-Health-Check nach Namen alarmieren.
 - [Metriken](#gesammelte-metriken): Jede `ceph_*`-Serie, auf die der Monitor alarmieren kann.
 :::
@@ -42,7 +42,7 @@ flowchart TB
 
 - **Installieren Sie den Ceph Agent** auf einem Rechner, der jeden mgr-Daemon auf Port 9283 erreicht, und tragen Sie alle in `CEPH_MGR_ENDPOINTS` ein. Die [Anleitung zum Ceph Agent](/docs/telemetry/ceph) beschreibt die Installation.
 - **Prüfen Sie, ob der Cluster registriert ist.** Er erscheint etwa eine Minute nach der ersten Abfrage unter **Produkte → Infrastruktur → Ceph → Alle Cluster**, benannt nach `CEPH_CLUSTER_NAME` des Agenten.
-- **Für Alarme auf Health-Checks** brauchen Sie Ceph Quincy oder neuer. Ältere Versionen exportieren `ceph_health_detail` nicht.
+- **Für Warnungen auf Health-Checks** brauchen Sie Ceph Quincy oder neuer. Ältere Versionen exportieren `ceph_health_detail` nicht.
 
 ## Einen Ceph-Monitor erstellen
 
@@ -63,7 +63,7 @@ Wählen Sie unter **Ceph-Monitor-Konfiguration** den Cluster in **Ceph-Cluster**
 
 Ein neuer Monitor beginnt mit **Cluster Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Ändern** — wählen Sie eine andere [Vorlage](#fertige-alarmvorlagen). Sie setzt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Ändern** — wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie setzt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
 - **Custom Metric** (unter **Weitere Felder**) — wählen Sie eine Metrik in **Ceph-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. **OSD** und **Pool-ID** grenzen sie auf einen Daemon oder Pool ein. Eine Metrik, die pro Pool oder pro Daemon geführt wird, wird Pool für Pool oder Daemon für Daemon beurteilt, mit einem Vorfall für jeden.
 - **Erweitert** (unter **Weitere Felder**) — bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, zum Beispiel ein Verhältnis der belegten Kapazität aus `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Mit **Gruppieren nach** `ceph_daemon` oder `pool_id` wird jeder Daemon oder Pool einzeln bewertet.
 
@@ -97,7 +97,7 @@ Datenserien von Pools tragen nur das Label `pool_id`: Der Name des Pools existie
 
 `ceph_health_detail` exportiert **eine Serie pro Health-Check**, mit den Labels `name` (zum Beispiel `OSD_NEARFULL` oder `RECENT_CRASH`) und `severity`. Die Serie eines Checks steht auf `1`, solange der Check aktiv ist, und auf `0`, nachdem er aufgehoben wurde; ein Check, der nie ausgelöst hat, hat keine Serie. Um auf einen beliebigen Ceph-Health-Check zu alarmieren, filtern Sie auf seinen `name`, lösen mit **Maximum** über `0` aus und erholen sich bei `0` mit **Bei keinen Daten** auf **Treat As Zero** — genau so sind die Health-Check-Vorlagen gebaut. `ceph_daemon_health_metrics` funktioniert genauso pro Daemon, mit einem Label `type` (zum Beispiel `SLOW_OPS`) und `ceph_daemon`.
 
-## Fertige Alarmvorlagen
+## Fertige Warnungsvorlagen
 
 Die Liste unter **Worüber benachrichtigt wird** bietet 24 Vorlagen für einen verstummten Cluster, Cluster-Zustand, OSDs, Placement Groups und Kapazität. Jede baut einen vollständigen Monitor — Abfragen, Label-Filter, eine Gruppierung, ein auslösendes und ein erholendes Kriterium. Die Schwellenwerte sind Ausgangspunkte, die Sie anpassen können.
 
@@ -161,7 +161,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 - **Health-Check-Vorlagen** erholen sich, wenn der Check verschwindet: Ihre Erholungskriterien zählen eine fehlende Serie als 0.
 - **Daemon Slow Operations** hat eine Serie pro Daemon. Hat kein Daemon mehr eine Serie, gibt es nichts mehr zu lesen. Die Vorlage erholt sich dann nur, wenn `ceph_health_status` im selben Fenster eingetroffen ist, sodass ein gestoppter Agent nichts schließt.
 
-Manche Alarme haben keine Vorlage. Eine PG-Ungleichverteilung braucht Statistik über mehrere Serien, die Kriterien nicht berechnen können. Eine Kapazitätsprognose braucht eine Wachstumskurve, die stattdessen das Dashboard des Clusters zeichnet. Für vorhergesagte Plattenausfälle und veraltetes Scrubbing gibt es keine mgr-Metrik, und NVMe-oF, RBD-Mirroring und cephadm brauchen andere Exporter.
+Manche Warnungen haben keine Vorlage. Eine PG-Ungleichverteilung braucht Statistik über mehrere Serien, die Kriterien nicht berechnen können. Eine Kapazitätsprognose braucht eine Wachstumskurve, die stattdessen das Dashboard des Clusters zeichnet. Für vorhergesagte Plattenausfälle und veraltetes Scrubbing gibt es keine mgr-Metrik, und NVMe-oF, RBD-Mirroring und cephadm brauchen andere Exporter.
 
 ## Gesammelte Metriken
 
@@ -244,8 +244,8 @@ Ein Monitor, den Sie nicht aus einer Vorlage bauen, beginnt mit zwei Kriterien:
 
 | Reihenfolge | Kriterium | Trifft zu, wenn | Dann |
 | --- | --- | --- | --- |
-| 1 | Check if _Monitorname_ is offline | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Setzt den Monitor auf **Offline** und ruft den Vorfall "_Monitorname_ is offline" aus, der sich selbst behebt, wenn sich der Monitor erholt. |
-| 2 | Check if _Monitorname_ is online | Die erste Abfrage hat Daten | Setzt den Monitor auf **Betriebsbereit**. |
+| 1 | Prüfen, ob _Monitorname_ offline ist | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Setzt den Monitor auf **Offline** und ruft den Vorfall "_Monitorname_ ist offline" aus, der sich selbst behebt, wenn sich der Monitor erholt. |
+| 2 | Prüfen, ob _Monitorname_ online ist | Die erste Abfrage hat Daten | Setzt den Monitor auf **Betriebsbereit**. |
 
 > [!IMPORTANT]
 > Ein Wert von `0` sind Daten: Eine Metrik, die oft null ist, etwa Neustarts oder Fehler, setzt den Monitor nicht auf offline. Um bei einem Wert benachrichtigt zu werden, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Kommen gar keine Daten an und trifft kein Kriterium zu, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.

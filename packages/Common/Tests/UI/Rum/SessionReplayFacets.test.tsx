@@ -89,7 +89,7 @@ describe("session replay standard facets", () => {
     ["osName", "macOS", "osNames", ["macOS"]],
     ["deviceType", "Mobile", "deviceTypes", ["mobile"]],
     ["countryCode", "United Kingdom (GB)", "countryCodes", ["GB"]],
-    ["minDurationSeconds", "At least 2 minutes", "minDurationMs", 120000],
+    ["minDurationSeconds", "At least 2\u00A0minutes", "minDurationMs", 120000],
   ])(
     "%s selects a server filter and keeps the other facets",
     (

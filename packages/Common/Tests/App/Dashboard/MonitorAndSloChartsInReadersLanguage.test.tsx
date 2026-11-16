@@ -37,6 +37,7 @@ import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "../../../Utils/Slo/SloEval
 import {
   dashboardTranslator,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 
 /*
@@ -168,6 +169,10 @@ function probedGerman(): Record<string, string> {
   )) {
     english.push(
       MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+        metric,
+        MonitorType.Website,
+      ),
+      MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
         metric,
         MonitorType.Website,
       ),
@@ -377,9 +382,31 @@ describe("a monitor's Metrics tab", () => {
         expect(chart.legend).toBe(title);
         // A series no probe names is named by its metric.
         expect(chart.series).toBe(title);
+        // The line under the title says what the metric is (#8468).
+        expect(chart.description).toBe(
+          wordIn(
+            code,
+            MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+              chart.metric as MonitorMetricType,
+              MonitorType.Website,
+            ),
+          ),
+        );
       }
     },
   );
+
+  test("German says what a website monitor's DNS lookup time is, under its chart", async () => {
+    drawIn("de", <MonitorMetricsElement monitorId={MONITOR_ID} />);
+
+    expect(
+      (await charts()).find((chart: Chart): boolean => {
+        return chart.metric === MonitorMetricType.DnsLookupTime;
+      })?.description,
+    ).toBe(
+      "Zeit für das Auflösen des Hostnamens in eine IP-Adresse. Spitzen hier deuten auf den DNS-Anbieter hin, nicht auf den überwachten Dienst.",
+    );
+  });
 
   test("German reads Antwortzeit over a website monitor's chart", async () => {
     drawIn("de", <MonitorMetricsElement monitorId={MONITOR_ID} />);
@@ -410,9 +437,24 @@ describe("a monitor's Metrics tab", () => {
 
         expect({ metric: chart.metric, title: chart.title }).toEqual({
           metric: chart.metric,
-          title: readDashboardLocale(code)[english],
+          title: readDashboardLocaleAsDrawn(code)[english],
         });
         expect(chart.title).not.toBe(english);
+
+        const englishDescription: string =
+          MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+            chart.metric as MonitorMetricType,
+            MonitorType.Server,
+          );
+
+        expect({
+          metric: chart.metric,
+          description: chart.description,
+        }).toEqual({
+          metric: chart.metric,
+          description: readDashboardLocaleAsDrawn(code)[englishDescription],
+        });
+        expect(chart.description).not.toBe(englishDescription);
       }
     },
   );
@@ -421,7 +463,12 @@ describe("a monitor's Metrics tab", () => {
     drawIn("probed", <MonitorMetricsElement monitorId={MONITOR_ID} />);
 
     for (const chart of await charts()) {
-      for (const word of [chart.title, chart.legend, chart.series]) {
+      for (const word of [
+        chart.title,
+        chart.legend,
+        chart.series,
+        chart.description,
+      ]) {
         expect(word).not.toContain(TWICE);
         expect(word.startsWith(PROBE)).toBe(true);
       }

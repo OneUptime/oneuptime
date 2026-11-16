@@ -37,7 +37,7 @@ sequenceDiagram
 
 Andate in **Monitor** e fate clic su **Crea monitor**.
 
-### Scegliere Incoming Email
+### Scegliere Email in arrivo
 
 In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Email in arrivo** sotto **Monitoraggio in entrata**, oppure digitate `email` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
@@ -114,10 +114,10 @@ Il codice o il link si trova in **Corpo dell'email (testo)**. **Corpo dell'email
 Completate la verifica come vi indica l'email.
 :::
 
-Se nel frattempo è arrivata un'altra email, la scheda non mostra più l'email di verifica. Aprite **Registri di monitoraggio**, trovate l'email di verifica dal suo oggetto nella colonna **E-mail** e fate clic su **Visualizza riepilogo** su quella riga.
+Se nel frattempo è arrivata un'altra email, la scheda non mostra più l'email di verifica. Aprite **Log di monitoraggio**, trovate l'email di verifica dal suo oggetto nella colonna **E-mail** e fate clic su **Visualizza riepilogo** su quella riga.
 
 > [!IMPORTANT]
-> **Anche i vostri criteri la vedono.** L'email di verifica viene valutata come qualsiasi altra email. Una formulazione come "if you received this in error" corrisponde al criterio predefinito `error` e segna il monitor offline. Per evitarlo, disattivate **Controlla questo monitor** nella scheda **Monitoraggio** della pagina **Impostazioni** del monitor mentre verificate (vi chiede conferma). Un monitor con il monitoraggio disattivato registra comunque l'email, e la scheda **Riepilogo del monitor** continua a mostrarla. Però non valuta nulla, quindi l'email non ha una riga in **Registri di monitoraggio**: leggetela prima che arrivi un'altra email. Quando avete finito, premete **Attiva il monitoraggio** nel banner in cima alle pagine del monitor, oppure riattivate l'interruttore.
+> **Anche i vostri criteri la vedono.** L'email di verifica viene valutata come qualsiasi altra email. Una formulazione come "if you received this in error" corrisponde al criterio predefinito `error` e segna il monitor offline. Per evitarlo, disattivate **Controlla questo monitor** nella scheda **Monitoraggio** della pagina **Impostazioni** del monitor mentre verificate (vi chiede conferma). Un monitor con il monitoraggio disattivato registra comunque l'email, e la scheda **Riepilogo del monitor** continua a mostrarla. Però non valuta nulla, quindi l'email non ha una riga in **Log di monitoraggio**: leggetela prima che arrivi un'altra email. Quando avete finito, premete **Attiva il monitoraggio** nel banner in cima alle pagine del monitor, oppure riattivate l'interruttore.
 
 **La verifica appartiene all'indirizzo.** Se [reimpostate o personalizzate l'indirizzo](#reimpostare-o-personalizzare-lindirizzo-email), il servizio vede un nuovo destinatario, e dovete verificare di nuovo.
 
@@ -259,7 +259,7 @@ Da quel momento il criterio tratta ogni email a sé:
 | Una risposta automatica, come un messaggio di assenza | Non apre nulla. |
 | Un'email arrivata dopo che il monitor ha aperto 20 incidenti da email nell'ultima ora | Non apre nulla, così un loop di posta o un'ondata di email non può allertare il vostro team all'infinito. |
 
-Ogni email riceve comunque una riga in **Registri di monitoraggio**, e **Visualizza riepilogo** su quella riga dice cosa ha aperto l'email, o perché non ha aperto nulla. Quando il criterio crea anche avvisi, l'interruttore si chiama **Apri un nuovo incidente e un nuovo avviso per ogni email**, e ogni email apre allo stesso modo un avviso tutto suo.
+Ogni email riceve comunque una riga in **Log di monitoraggio**, e **Visualizza riepilogo** su quella riga dice cosa ha aperto l'email, o perché non ha aperto nulla. Quando il criterio crea anche avvisi, l'interruttore si chiama **Apri un nuovo incidente e un nuovo avviso per ogni email**, e ogni email apre allo stesso modo un avviso tutto suo.
 
 Questi incidenti restano aperti finché qualcuno non li risolve. Con **Risoluzione automatica dell'incidente** attiva, vengono risolti anche quando un'email successiva corrisponde a un altro criterio, come ogni incidente; un'email successiva che corrisponde allo stesso criterio non risolve mai quelli precedenti. Un controllo delle email mancanti (**Email ricevuta**) non è un'email, quindi apre ancora un solo incidente alla volta.
 
@@ -310,7 +310,7 @@ Fate clic su **Mostra altri dettagli** per vedere il resto:
 
 ### Email precedenti
 
-La scheda mostra solo l'email più recente. Ogni email valutata dal monitor viene anche scritta in **Registri di monitoraggio**: la colonna **E-mail** ne mostra oggetto e mittente, e **Visualizza riepilogo** sulla sua riga mostra l'email intera come fa la scheda. Un monitor con il monitoraggio disattivato non valuta nulla, quindi le email che riceve non hanno righe. Se uno dei vostri criteri controlla **Email ricevuta**, il monitor scrive anche una riga a ogni controllo delle email mancanti. La colonna **E-mail** indica "Scheduled check" su quelle righe, e il loro **Visualizza riepilogo** mostra l'email più recente al momento del controllo, oppure "No email yet" se non ne era arrivata nessuna. I registri di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
+La scheda mostra solo l'email più recente. Ogni email valutata dal monitor viene anche scritta in **Log di monitoraggio**: la colonna **E-mail** ne mostra oggetto e mittente, e **Visualizza riepilogo** sulla sua riga mostra l'email intera come fa la scheda. Un monitor con il monitoraggio disattivato non valuta nulla, quindi le email che riceve non hanno righe. Se uno dei vostri criteri controlla **Email ricevuta**, il monitor scrive anche una riga a ogni controllo delle email mancanti. La colonna **E-mail** indica "Scheduled check" su quelle righe, e il loro **Visualizza riepilogo** mostra l'email più recente al momento del controllo, oppure "No email yet" se non ne era arrivata nessuna. I registri di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
 
 ## Configurazione self-hosted
 
@@ -342,7 +342,7 @@ Finché non è configurato, la scheda dell'indirizzo del monitor indica che la r
 
 1. Verificate che i vostri criteri corrispondano al contenuto dell'email. Ricordate che l'indirizzo del monitor stesso appare come `[REDACTED]`, e che un'email solo HTML ha il corpo vuoto.
 2. Controllate che il monitoraggio sia attivo: pagina **Impostazioni** del monitor, scheda **Monitoraggio**.
-3. Aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** sulla riga dell'email per vedere cosa hanno letto i criteri.
+3. Aprite **Log di monitoraggio** e fate clic su **Visualizza riepilogo** sulla riga dell'email per vedere cosa hanno letto i criteri.
 4. Controllate l'ordine dei criteri: decide il primo che corrisponde.
 5. Se il criterio apre un incidente per ogni email, l'email potrebbe essere una risposta, una seconda consegna o una risposta automatica, oppure il monitor ha già aperto 20 incidenti da email nell'ultima ora. **Visualizza riepilogo** sulla riga dell'email dice quale.
 

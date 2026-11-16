@@ -329,7 +329,13 @@ describe("what it says once OneUptime is up", () => {
     );
   });
 
-  test.each(["localhost", "localhost:8080", "127.0.0.1"])(
+  test.each([
+    "localhost",
+    "localhost:8080",
+    "127.0.0.1",
+    "[::1]",
+    "[::1]:8080",
+  ])(
     "HOST=%s: it says only this computer can open it, and what to set for the others",
     (host) => {
       const result = statusCheck({
@@ -340,6 +346,26 @@ describe("what it says once OneUptime is up", () => {
       expect(result.output).toContain(
         `Only this computer can open http://${host}. To open OneUptime from other computers, set HOST in config.env to this server's domain name or IP address, then run npm start again.`,
       );
+    },
+  );
+
+  test.each([
+    ["[2001:db8::1]", "http://[2001:db8::1]"],
+    ["[2001:db8::1]:8080", "http://[2001:db8::1]:8080"],
+    ["203.0.113.5:8080", "http://203.0.113.5:8080"],
+  ])(
+    "HOST=%s is opened at %s, a web address another computer can open",
+    (host, address) => {
+      const result = statusCheck({
+        config: configWith([`HOST=${host}`, "HTTP_PROTOCOL=http"]),
+      });
+
+      expect(result.output).toContain(`Open ${address} in your browser.`);
+      expect(result.output).toContain(
+        `Then finish setting up this server: ${address}/admin/setup`,
+      );
+      expect(result.output).not.toContain("Only this computer can open");
+      expect(new URL(`${address}/admin/setup`).pathname).toBe("/admin/setup");
     },
   );
 

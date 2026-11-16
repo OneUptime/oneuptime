@@ -917,7 +917,7 @@ describe("the helpers, on these pages' shapes", () => {
       "Monitor Log Retention (Days)",
     );
     expect(adminDashboardLabel("da", "Monitor Log Retention (Days)")).toBe(
-      "Opbevaring af overvågningslogfiler (dage)",
+      "Opbevaring af monitorlogfiler (dage)",
     );
     expect(isActionLabel("Monitor Log Retention (Days)")).toBe(false);
   });

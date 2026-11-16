@@ -79,7 +79,9 @@ const DEFAULT_CAPTURE_GEO: boolean = true;
 const DEFAULT_SAME_ORIGIN_TRACE_PROPAGATION: boolean = true;
 
 // What the sentences read without a translator: English, as a test reads them.
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 function countSelectors(value: Array<string> | null | undefined): number {
   return Array.isArray(value)

@@ -1256,8 +1256,9 @@ describe("Passkey settings registration", () => {
       });
       expect(code).toHaveAttribute("autocomplete", "one-time-code");
       expect(code).toHaveAttribute("inputmode", "numeric");
+      // The page holds the figure to its duration's word (#8811).
       expect(code).toHaveAccessibleDescription(
-        /Codes refresh every 30 seconds/,
+        /Codes refresh every 30\u00A0seconds/,
       );
       expect(API.post).not.toHaveBeenCalled();
     });

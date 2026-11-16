@@ -45,11 +45,11 @@ U hebt een rol nodig die SLO's mag aanmaken: Projecteigenaar, Projectbeheerder o
 :::steps
 ### SLO's openen
 
-Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste groep, naast monitoren en incidenten. Klik op **Service Level Objective aanmaken**.
+Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste groep, naast monitoren en incidenten. Klik op **Serviceniveaudoelstelling aanmaken**.
 
 ### Kiezen wat de SLO meet
 
-Laat onder **Wat het meet** de keuze **Beschikbaarheid van monitoren** staan om te meten welk deel van de tijd monitoren beschikbaar zijn. Kies **Succes van aanvragen** of **Latentie van aanvragen** om in plaats daarvan de aanvragen van services te meten, en kies hun **Services**: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos). Klik op **Volgende**.
+Laat onder **Wat het meet** de keuze **Beschikbaarheid van monitoren** staan om te meten welk deel van de tijd monitoren beschikbaar zijn. Kies **Succes van aanvragen** of **Latentie van aanvragen** om in plaats daarvan de aanvragen van services te meten, en kies hun **Services**: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos). Kies **Metriek** om de goede gebeurtenissen te tellen in een teller of een histogram dat uw services sturen: zie [SLO's op basis van een metriek](/docs/slo/request-slos#slos-op-basis-van-een-metriek). Klik op **Volgende**.
 
 ### Een naam en een doel geven
 
@@ -61,7 +61,7 @@ Vul een **Naam** in, bijvoorbeeld "API Availability", en een **Doel (%)**: het d
 
 ### De SLO opslaan
 
-Klik op **Service Level Objective aanmaken**. OneUptime opent de nieuwe SLO. Het **Overzicht** van een SLO voor monitorbeschikbaarheid toont **Choose what this SLO measures**, omdat hij nog geen monitoren heeft.
+Klik op **Serviceniveaudoelstelling aanmaken**. OneUptime opent de nieuwe SLO. Het **Overzicht** van een SLO voor monitorbeschikbaarheid toont **Choose what this SLO measures**, omdat hij nog geen monitoren heeft.
 
 ### Monitoren koppelen
 
@@ -161,6 +161,7 @@ Open een SLO om zijn pagina's in het zijmenu te zien:
 | --- | --- |
 | **Overzicht** | De status, de kerncijfers, de verbranding van het foutbudget, recente activiteit, open waarschuwingen en incidenten en de regels voor verbruikssnelheid. |
 | **Metrieken** | De `oneuptime.slo.*`-metrics van de SLO, zijn foutbudgetgeschiedenis op lange termijn en de metrics van de incidenten en waarschuwingen die hem raken. Zie [SLO-metrics en -dashboards](/docs/slo/metrics). |
+| **Maandrapport** | Hoe de SLO het elke kalendermaand en over de hele periode deed. Zie [Het maandrapport](#het-maandrapport). |
 | **Incidenten** | De incidenten die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gemeld. De badge telt de open incidenten. |
 | **Waarschuwingen** | De waarschuwingen die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gegeven. De badge telt de open waarschuwingen. |
 | **Feed** | Wat er met de SLO is gebeurd, als tijdlijn. Zie [SLO-feed en auditlogboeken](/docs/slo/feed-and-audit-logs). |
@@ -201,7 +202,7 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 
 | Kaart | Wat u wijzigt | Goed om te weten |
 | --- | --- | --- |
-| **Wat het meet** | **Wat het meet**, **Services** en **Latentiedrempel (ms)**, met **Bewerken wat het meet**. | Een SLO voor aanvragen telt zijn aanvragen na een wijziging opnieuw vanaf het begin. |
+| **Wat het meet** | **Wat het meet**, **Services**, **Latentiedrempel (ms)**, **Aanvraagfilter** en **Metriek**, met **Bewerken wat het meet**. | Een SLO voor aanvragen telt zijn aanvragen na een wijziging opnieuw vanaf het begin. |
 | **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43 min, 12 sec downtime per venster van 30 dagen". |
 | **Nalevingsperiode** | **Type venster**, **Venster (dagen)** en **Tijdzone**, met **Periode bewerken**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
 | **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Alleen SLO's voor monitorbeschikbaarheid. Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
@@ -209,6 +210,31 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 | **SLO archiveren** | **Archiveren** of **Uit het archief halen**. | Zie [Een SLO archiveren](#een-slo-archiveren). |
 
 Na een wijziging van wat hij meet, het doel, de periode of de downtimeberekening evalueert OneUptime de SLO opnieuw bij de volgende uitvoering.
+
+### Het maandrapport
+
+Het **Maandrapport** toont hoe de SLO het deed in elke kalendermaand van de afgelopen **3 maanden**, **6 maanden**, **9 maanden** of **12 maanden**, of van een kalenderjaar. Elke maand toont zijn SLI, zijn uitvaltijd (bij een aanvraag-SLO de mislukte of trage aanvragen, bij een metriek-SLO de slechte gebeurtenissen), het deel van zijn foutbudget dat hij gebruikte, en zijn resultaat:
+
+| Resultaat | Wat het betekent |
+| --- | --- |
+| Voldaan | De maand is voorbij en zijn SLI haalde het doel. |
+| Niet gehaald | De maand is voorbij en haalde het doel niet, of de maand loopt nog en heeft al meer uitvaltijd dan de hele maand toestaat. |
+| Op koers | De maand loopt nog en zijn SLI tot nu toe haalt het doel. |
+| Onder het doel | De maand loopt nog en zijn SLI tot nu toe ligt onder het doel. |
+| Geen gegevens | Die maand is niets gemeten. |
+
+De rij **Totaal** meet de hele periode als één geheel. Een SLO met meerdere monitoren krijgt ook een tabel **Per monitor**: de eigen SLI van elke monitor in elke maand, met eerst de monitor die de SLO het meest kostte. **CSV downloaden** slaat het rapport op als bestand voor een spreadsheet.
+
+Voor het rapport wordt niets extra opgeslagen. Elke maand wordt bij het openen berekend uit de statusgeschiedenis van de monitoren, met de monitoren, uitvaltijdstatussen en het doel van de SLO zoals ze nu zijn, zodat het rapport teruggaat tot vóór het aanmaken van de SLO. De maanden van een aanvraag-SLO komen uit de aanvragen die OneUptime ervoor telde, die van een metriek-SLO uit de gebeurtenissen van zijn metriek; OneUptime bewaart ze 400 dagen. De maanden volgen de tijdzone van de SLO, of UTC als die er geen heeft.
+
+De API antwoordt met hetzelfde rapport:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Vraag met `months` 1 tot 24 maanden op die eindigen met de huidige maand, of een kalenderjaar met `year`, zoals `year=2025`.
 
 ## Een SLO archiveren
 
@@ -265,6 +291,8 @@ Een banner bovenaan de pagina's van de SLO zegt wat hem verhindert te meten:
 | **Geen services gekozen** | Een SLO voor aanvragen heeft geen services, dus er zijn geen aanvragen om te tellen. | Kies zijn services onder **Instellingen** → **Wat het meet**. |
 | **Geen latentiedrempel** | Een SLO voor latentie van aanvragen heeft geen drempel, dus geen enkele aanvraag kan als snel genoeg tellen. | Stel de **Latentiedrempel (ms)** in onder **Instellingen** → **Wat het meet**. |
 | **Wachten op aanvragen** | Geen van de services van een SLO voor aanvragen heeft in zijn venster al een aanvraag afgehandeld. | Controleer of de services traces naar OneUptime sturen. De cijfers verschijnen na de volgende evaluatie die een aanvraag telt. |
+| **Geen metriek om te tellen** | Een SLO voor een metriek heeft geen metriek die hij kan tellen: er is geen metriek gekozen, of er is niet ingesteld hoe zijn goede gebeurtenissen van de andere worden onderscheiden. | Kies de metriek, en de voorwaarde of waarde voor zijn goede gebeurtenissen, onder **Instellingen** → **Wat het meet**. |
+| **Wachten op de metriek** | Geen van de services van een SLO voor een metriek heeft in zijn venster al een gebeurtenis van zijn metriek gestuurd. | Controleer of de services de metriek naar OneUptime sturen, onder de naam die de SLO telt. De cijfers verschijnen na de volgende evaluatie die een gebeurtenis telt. |
 
 ## Volgende stappen
 

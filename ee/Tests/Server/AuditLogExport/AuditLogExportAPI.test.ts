@@ -22,9 +22,11 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 });
 
 import AuditLogExportAPI, {
+  AuditLogExportEntriesLostAt,
   AuditLogExportTest,
   describeTestSuccess,
 } from "../../../Server/AuditLogExport/API/AuditLogExportAPI";
+import { AuditLogExportEntryReader } from "../../../Server/AuditLogExport/AuditLogExporter";
 import AuditLogExportArea from "../../../Server/AuditLogExport/Index";
 import AuditLogExportDestinationRegistry from "../../../Server/AuditLogExport/Destinations/DestinationRegistry";
 import {
@@ -42,6 +44,7 @@ import { EnterpriseServerModuleShape } from "Common/Server/Enterprise/Enterprise
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import AuditLogExportService from "Common/Server/Services/AuditLogExportService";
+import CoreAuditLogService from "Common/Server/Services/AuditLogService";
 import { ExpressRouter } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
@@ -590,7 +593,7 @@ describe("the router", () => {
     ).toEqual([]);
   });
 
-  test("holds exactly the two test routes, both POST", () => {
+  test("holds exactly the two test routes and the two deadline reads, all POST", () => {
     expect(
       layers.map((layer: RouteLayer): [string, Record<string, boolean>] => {
         return [layer.route!.path, layer.route!.methods];
@@ -598,7 +601,23 @@ describe("the router", () => {
     ).toEqual([
       ["/audit-log-export/test", { post: true }],
       ["/audit-log-export/instance/test", { post: true }],
+      ["/audit-log-export/entries-lost-at", { post: true }],
+      ["/audit-log-export/instance/entries-lost-at", { post: true }],
     ]);
+  });
+
+  // #7186: the reads ask what the test routes ask of who is calling.
+  test("a project's deadline read authenticates the user first; the instance's asks for a master admin first", () => {
+    const projectStack: Array<{ handle: unknown }> = layers[2]!.route!.stack;
+    const instanceStack: Array<{ handle: unknown }> = layers[3]!.route!.stack;
+
+    expect(projectStack[0]!.handle).toBe(UserMiddleware.getUserMiddleware);
+    expect(projectStack[1]!.handle).toBe(
+      UserMiddleware.requireUserAuthentication,
+    );
+    expect(instanceStack[0]!.handle).toBe(
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+    );
   });
 
   test("the project's route authenticates the user first; the instance's asks for a master admin first", () => {
@@ -627,5 +646,326 @@ describe("the router", () => {
     ]) {
       expect(paths).not.toContain(corePath);
     }
+  });
+});
+
+/*
+ * WHEN A FAILING EXPORT'S WAITING ENTRIES START TO BE DELETED (#7186): what
+ * the View Error dialog's read answers, as each caller - the soonest date
+ * stamped on the entries the export has not sent, over the window the
+ * exporter would send next, and when it was read - held to the gate of
+ * reading the export.
+ */
+describe("reading when a failing export's waiting entries start to be deleted", () => {
+  const NOW: Date = new Date("2026-11-16T09:30:00.000Z");
+  const ENTRIES_LOST_AT: Date = new Date("2026-11-18T14:00:00.000Z");
+  const FAILING_ID: string = "9ba7b821-9dad-41d1-80b4-00c04fd43101";
+  const HEALTHY_ID: string = "9ba7b822-9dad-41d1-80b4-00c04fd43101";
+  const TURNED_OFF_ID: string = "9ba7b823-9dad-41d1-80b4-00c04fd43101";
+  const OTHER_FAILING_ID: string = "9ba7b824-9dad-41d1-80b4-00c04fd43101";
+  const INSTANCE_FAILING_ID: string = "9ba7b825-9dad-41d1-80b4-00c04fd43101";
+  const CURSOR_ENTRY_ID: string = "9ba7b826-9dad-41d1-80b4-00c04fd43101";
+
+  let exports: InMemoryTable;
+  let soonest: jest.Mock;
+  let originalReader: AuditLogExportEntryReader;
+
+  const exportRow: (data: {
+    id: string;
+    projectId: string | null;
+    failingSince?: Date | null;
+    isEnabled?: boolean;
+  }) => Record<string, unknown> = (data: {
+    id: string;
+    projectId: string | null;
+    failingSince?: Date | null;
+    isEnabled?: boolean;
+  }): Record<string, unknown> => {
+    return {
+      _id: data.id,
+      projectId: data.projectId,
+      name: "SIEM webhook",
+      destinationType: "webhook",
+      config: { url: "https://93.184.216.34/audit" },
+      secrets: JSON.stringify({ headerValue: "Bearer stored-token" }),
+      isEnabled: data.isEnabled ?? true,
+      startsAt: new Date("2026-11-01T00:00:00.000Z"),
+      createdAt: new Date("2026-10-30T00:00:00.000Z"),
+      cursorCreatedAt: new Date("2026-11-15T10:00:00.000Z"),
+      cursorEntryId: CURSOR_ENTRY_ID,
+      failingSince:
+        data.failingSince === undefined
+          ? new Date("2026-11-15T11:00:00.000Z")
+          : data.failingSince,
+      lastError: data.failingSince === null ? null : "HTTP 401",
+      version: 1,
+    };
+  };
+
+  beforeEach(() => {
+    for (const silenced of ["debug", "info", "warn", "error"] as const) {
+      jest.spyOn(logger, silenced).mockImplementation((): void => {
+        return undefined;
+      });
+    }
+
+    setTestBillingEnabled(false);
+    installFakeEnterpriseModuleWithFeatures([EnterpriseFeature.AuditLogs]);
+    stubProjectDirectory({});
+
+    exports = useInMemoryTable(AuditLogExportService, [
+      exportRow({ id: FAILING_ID, projectId: PROJECT_A }),
+      exportRow({ id: HEALTHY_ID, projectId: PROJECT_A, failingSince: null }),
+      exportRow({ id: TURNED_OFF_ID, projectId: PROJECT_A, isEnabled: false }),
+      exportRow({ id: OTHER_FAILING_ID, projectId: PROJECT_B }),
+      exportRow({ id: INSTANCE_FAILING_ID, projectId: null }),
+    ]);
+
+    soonest = jest.fn(async (): Promise<Date | null> => {
+      return ENTRIES_LOST_AT;
+    }) as unknown as jest.Mock;
+    originalReader = AuditLogExportEntriesLostAt.reader;
+    AuditLogExportEntriesLostAt.reader = {
+      findSoonestRetentionDateForExport: soonest,
+      findEntriesForExport: jest.fn(),
+    } as unknown as AuditLogExportEntryReader;
+  });
+
+  afterEach(() => {
+    AuditLogExportEntriesLostAt.reader = originalReader;
+    jest.restoreAllMocks();
+    uninstallEnterpriseModule();
+  });
+
+  describe("a project's", () => {
+    test.each([
+      ["a project owner", [Permission.ProjectOwner]],
+      ["a project admin", [Permission.ProjectAdmin]],
+    ])(
+      "%s reads when a failing export's waiting entries start to be deleted, and when that was read",
+      async (_who: string, permissions: Array<Permission>) => {
+        const answer: JSONObject =
+          await AuditLogExportEntriesLostAt.readProjectExport({
+            body: { exportId: FAILING_ID },
+            props: member(permissions),
+            now: NOW,
+          });
+
+        expect(answer).toEqual({
+          entriesLostAt: ENTRIES_LOST_AT.toISOString(),
+          readAt: NOW.toISOString(),
+        });
+      },
+    );
+
+    test("over the entries the export would send next: its own project's, from its Export from to now, after its cursor", async () => {
+      await AuditLogExportEntriesLostAt.readProjectExport({
+        body: { exportId: FAILING_ID },
+        props: OWNER,
+        now: NOW,
+      });
+
+      expect(soonest).toHaveBeenCalledTimes(1);
+
+      const window: {
+        projectId: ObjectID | null;
+        startsAt: Date;
+        until: Date;
+        after: { createdAt: Date; id: ObjectID } | null;
+      } = soonest.mock.calls[0]![0] as never;
+
+      expect(window.projectId?.toString()).toBe(PROJECT_A);
+      expect(window.startsAt.toISOString()).toBe("2026-11-01T00:00:00.000Z");
+      expect(window.until.toISOString()).toBe(NOW.toISOString());
+      expect(window.after?.createdAt.toISOString()).toBe(
+        "2026-11-15T10:00:00.000Z",
+      );
+      expect(window.after?.id.toString()).toBe(CURSOR_ENTRY_ID);
+    });
+
+    test("nothing waiting says no date", async () => {
+      soonest.mockResolvedValue(null as never);
+
+      expect(
+        await AuditLogExportEntriesLostAt.readProjectExport({
+          body: { exportId: FAILING_ID },
+          props: OWNER,
+          now: NOW,
+        }),
+      ).toEqual({ entriesLostAt: null, readAt: NOW.toISOString() });
+    });
+
+    test.each([
+      ["a healthy export, which has nothing waiting long", HEALTHY_ID],
+      [
+        "a turned-off export, which sends nothing until it is on",
+        TURNED_OFF_ID,
+      ],
+    ])(
+      "%s says no date, and the audit log is not read",
+      async (_which: string, exportId: string) => {
+        expect(
+          await AuditLogExportEntriesLostAt.readProjectExport({
+            body: { exportId },
+            props: OWNER,
+            now: NOW,
+          }),
+        ).toEqual({ entriesLostAt: null, readAt: NOW.toISOString() });
+        expect(soonest).not.toHaveBeenCalled();
+      },
+    );
+
+    // The dialog then leaves the line out rather than say a wrong date.
+    test("a read the audit log cannot answer fails", async () => {
+      soonest.mockRejectedValue(new Error("TIMEOUT_EXCEEDED") as never);
+
+      await expect(
+        AuditLogExportEntriesLostAt.readProjectExport({
+          body: { exportId: FAILING_ID },
+          props: OWNER,
+          now: NOW,
+        }),
+      ).rejects.toThrow("TIMEOUT_EXCEEDED");
+    });
+
+    test.each([
+      ["a project member", [Permission.ProjectMember]],
+      ["a settings admin", [Permission.SettingsAdmin]],
+      ["someone who reads the audit log", [Permission.ReadAuditLog]],
+    ])(
+      "%s, who may not read the export, is refused, and the audit log is not read",
+      async (_who: string, permissions: Array<Permission>) => {
+        await expect(
+          AuditLogExportEntriesLostAt.readProjectExport({
+            body: { exportId: FAILING_ID },
+            props: member(permissions),
+            now: NOW,
+          }),
+        ).rejects.toThrow();
+        expect(soonest).not.toHaveBeenCalled();
+      },
+    );
+
+    test("another project's export, or the instance's, is never found", async () => {
+      for (const exportId of [OTHER_FAILING_ID, INSTANCE_FAILING_ID]) {
+        await expect(
+          AuditLogExportEntriesLostAt.readProjectExport({
+            body: { exportId },
+            props: OWNER,
+            now: NOW,
+          }),
+        ).rejects.toThrow();
+      }
+
+      expect(soonest).not.toHaveBeenCalled();
+    });
+
+    test("an owner of the other project reads only their own", async () => {
+      await expect(
+        AuditLogExportEntriesLostAt.readProjectExport({
+          body: { exportId: FAILING_ID },
+          props: member([Permission.ProjectOwner], PROJECT_B),
+          now: NOW,
+        }),
+      ).rejects.toThrow();
+
+      const answer: JSONObject =
+        await AuditLogExportEntriesLostAt.readProjectExport({
+          body: { exportId: OTHER_FAILING_ID },
+          props: member([Permission.ProjectOwner], PROJECT_B),
+          now: NOW,
+        });
+
+      expect(answer["entriesLostAt"]).toBe(ENTRIES_LOST_AT.toISOString());
+      expect(
+        (
+          soonest.mock.calls[0]![0] as { projectId: ObjectID }
+        ).projectId.toString(),
+      ).toBe(PROJECT_B);
+    });
+
+    test("a bad export id is a sentence, not a crash", async () => {
+      for (const body of [
+        { exportId: "not-an-id" },
+        { exportId: 7 },
+        {},
+        null,
+        "exportId",
+      ]) {
+        await expect(
+          AuditLogExportEntriesLostAt.readProjectExport({
+            body,
+            props: OWNER,
+            now: NOW,
+          }),
+        ).rejects.toThrow("A valid export ID is required.");
+      }
+    });
+
+    test("a request without a project is refused", async () => {
+      await expect(
+        AuditLogExportEntriesLostAt.readProjectExport({
+          body: { exportId: FAILING_ID },
+          props: { ...OWNER, tenantId: undefined } as never,
+          now: NOW,
+        }),
+      ).rejects.toThrow();
+      expect(soonest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the instance's", () => {
+    test("a master admin reads the instance's export, over every project's entries", async () => {
+      const answer: JSONObject =
+        await AuditLogExportEntriesLostAt.readInstanceExport({
+          body: { exportId: INSTANCE_FAILING_ID },
+          props: MASTER_ADMIN,
+          now: NOW,
+        });
+
+      expect(answer).toEqual({
+        entriesLostAt: ENTRIES_LOST_AT.toISOString(),
+        readAt: NOW.toISOString(),
+      });
+      expect(
+        (soonest.mock.calls[0]![0] as { projectId: ObjectID | null }).projectId,
+      ).toBeNull();
+    });
+
+    test("the instance's route does not read a project's export", async () => {
+      await expect(
+        AuditLogExportEntriesLostAt.readInstanceExport({
+          body: { exportId: FAILING_ID },
+          props: MASTER_ADMIN,
+          now: NOW,
+        }),
+      ).rejects.toThrow("The export no longer exists.");
+      expect(soonest).not.toHaveBeenCalled();
+    });
+
+    test("an export that is gone is said so", async () => {
+      await expect(
+        AuditLogExportEntriesLostAt.readInstanceExport({
+          body: { exportId: "9ba7b899-9dad-41d1-80b4-00c04fd43101" },
+          props: MASTER_ADMIN,
+          now: NOW,
+        }),
+      ).rejects.toThrow("The export no longer exists.");
+    });
+  });
+
+  test("the exports were only read, never written", async () => {
+    await AuditLogExportEntriesLostAt.readProjectExport({
+      body: { exportId: FAILING_ID },
+      props: OWNER,
+      now: NOW,
+    });
+
+    expect(exports.updates).toEqual([]);
+    expect(exports.inserts).toEqual([]);
+  });
+
+  test("by default it reads the audit log itself", () => {
+    expect(originalReader).toBe(CoreAuditLogService);
   });
 });

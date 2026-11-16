@@ -195,8 +195,8 @@ Faites référence à la sortie d'un bloc précédent ainsi :
 | Après un bloc comme…                                     | Lisez                                                                                  |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Un bloc **API** dont l'ID est `lookup-user`              | Son code de statut : `{{local.components.lookup-user.returnValues.response-status}}`. Son corps : `{{local.components.lookup-user.returnValues.response-body}}`. |
-| Un bloc **Run Custom JavaScript** dont l'ID est `transform` | Ce qu'il a renvoyé : `{{local.components.transform.returnValues.returnValue}}`.     |
-| Un déclencheur **On Create Incident** dont l'ID est `incident-on-create-1` | Le titre de l'incident : `{{local.components.incident-on-create-1.returnValues.model.title}}`. Les déclencheurs d'enregistrement renvoient l'enregistrement comme `model`, dans lequel vous descendez. |
+| Un bloc **Exécuter du JavaScript personnalisé** dont l'ID est `transform` | Ce qu'il a renvoyé : `{{local.components.transform.returnValues.returnValue}}`.     |
+| Un déclencheur **À la création : Incident** dont l'ID est `incident-on-create-1` | Le titre de l'incident : `{{local.components.incident-on-create-1.returnValues.model.title}}`. Les déclencheurs d'enregistrement renvoient l'enregistrement comme `model`, dans lequel vous descendez. |
 
 Les valeurs des blocs n'existent que pendant l'exécution en cours. Chaque nouvelle exécution repart de zéro.
 
@@ -208,16 +208,16 @@ Presque tous les champs de texte acceptent des variables :
 - Le texte du message sur Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - L'objet et le corps d'un e-mail.
 - Les en-têtes et les champs du corps (à l'intérieur des valeurs de chaîne).
-- Les deux côtés d'un bloc **If / Else**.
+- Les deux côtés d'un bloc **Si / Sinon**.
 
-Dans les champs JSON — **Data (JSON Object)** et **Requête** sur les composants d'enregistrement, le **Corps de la requête** d'un bloc API, les **Arguments** de **Run Custom JavaScript** — une référence est remplie selon l'endroit où elle se trouve :
+Dans les champs JSON — **Données (objet JSON)** et **Requête** sur les composants d'enregistrement, le **Corps de la requête** d'un bloc API, les **Arguments** de **Exécuter du JavaScript personnalisé** — une référence est remplie selon l'endroit où elle se trouve :
 
 - **Entre guillemets, c'est du texte.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` place la valeur dans la chaîne. Les guillemets, les barres obliques inverses et les sauts de ligne de la valeur sont échappés : le JSON reste valide et la valeur reste une seule chaîne.
 - **Seule, c'est la valeur elle-même.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` insère l'objet entier, une liste reste une liste et un nombre reste un nombre. Un texte qui est lui-même du JSON — `5`, `true`, ou un objet qu'un bloc a renvoyé sous forme de texte JSON — est inséré comme cette valeur. Tout autre texte est inséré comme une chaîne.
 
-Une référence entre les guillemets d'une clé est aussi du texte. S'il vous faut construire une structure dynamiquement, construisez-la dans un bloc **Run Custom JavaScript**, puis transmettez sa sortie au bloc suivant.
+Une référence entre les guillemets d'une clé est aussi du texte. S'il vous faut construire une structure dynamiquement, construisez-la dans un bloc **Exécuter du JavaScript personnalisé**, puis transmettez sa sortie au bloc suivant.
 
-Le bloc **Run Custom JavaScript** ne reçoit pas les variables automatiquement — rien n'est injecté dans le bac à sable. Placez `{{global.variables.NAME}}` (ou n'importe quelle référence de composant) dans le champ JSON **Arguments** du bloc ; ces valeurs sont substituées avant l'exécution du script et arrivent comme `args`.
+Le bloc **Exécuter du JavaScript personnalisé** ne reçoit pas les variables automatiquement — rien n'est injecté dans le bac à sable. Placez `{{global.variables.NAME}}` (ou n'importe quelle référence de composant) dans le champ JSON **Arguments** du bloc ; ces valeurs sont substituées avant l'exécution du script et arrivent comme `args`.
 
 ## Boucler sur des tableaux
 
@@ -238,8 +238,8 @@ Par exemple, ce **Texte du message** liste chaque alerte envoyée par un webhook
 Un webhook arrive avec un corps comme `{ "service": "checkout", "status": "failed" }`. Pour en faire un incident OneUptime :
 
 1. Un déclencheur **Webhook** avec l'ID `ci-webhook`.
-2. Un bloc **If / Else** : **Valeur à vérifier** est le champ `status` du Request Body du webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparaison** est **est égal à**, et **Comparer avec** est `failed`.
-3. Depuis la branche **Oui**, un bloc **Create One Incident** avec :
+2. Un bloc **Si / Sinon** : **Valeur à vérifier** est le champ `status` du Request Body du webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparaison** est **est égal à**, et **Comparer avec** est `failed`.
+3. Depuis la branche **Oui**, un bloc **Créer : Incident (un seul)** avec :
    - Titre : `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Description : `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -291,7 +291,7 @@ Deux points à surveiller :
 - **Utilisez { } (ou tapez `{{`).** Cela insère les ID exacts de composant, de valeur de retour et de variable qu'attend le moteur d'exécution, et ne propose que des valeurs qui existent quand le bloc s'exécute.
 - **Les noms de variables sont sensibles à la casse.** `{{global.variables.MyKey}}` et `{{global.variables.mykey}}` sont différents.
 - **Une référence qui ne se résout pas est laissée telle quelle, pas vidée.** Faire référence à quelque chose qui n'existe pas n'est pas une erreur, et ne donne pas non plus une chaîne vide : les accolades passent telles quelles, si bien que `{{local.components.api-get-1.returnValues.body}}` avec un ID d'étape mal tapé se retrouve mot pour mot dans votre message Slack, votre URL ou le corps de votre requête, et l'exécution indique quand même **Exécuté**. L'onglet **Étapes** de l'exécution affiche sur l'étape un avertissement qui nomme toute référence passée telle quelle, et marque le paramètre où elle se trouvait **Non résolu** ; le journal de l'exécution contient la même ligne d'avertissement. L'exception est un identifiant qu'un composant de données lit ou écrit, comme `_id` dans sa **Requête** : là, l'étape s'arrête avant de lire ou d'écrire quoi que ce soit, prend sa sortie **Erreur** et indique quelle référence ne s'est pas résolue et quoi vérifier.
-- **Un champ sans contenu arrive vide.** Tous les enregistrements n'ont pas tous les champs. Une alerte qu'aucun moniteur n'a déclenchée, par exemple issue d'un SLO ou créée à la main, n'a pas de moniteur, donc `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` n'a rien à donner : dans un message il n'y a rien à cet endroit, et seul en JSON il vaut `null`. Il en va de même pour une description que personne n'a écrite, un champ personnalisé que l'enregistrement ne contient pas, un **Find One** qui n'a trouvé aucun enregistrement, une liste sans cet élément et un champ que le bloc ne transmet pas, ce qui ajoute aussi sur l'étape un avertissement indiquant quoi ajouter à ses **Fields to pass on**. Une URL et un bloc qui lit ou écrit des enregistrements font exception, car un vide changerait ce sur quoi le bloc agit : la référence y reste telle quelle, et un ID arrête le bloc. Pour prendre un autre chemin, vérifiez la valeur avec **est vide** dans un **If / Else**. Pour nommer le SLO à l'origine d'une alerte, transmettez son nom et utilisez `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
+- **Un champ sans contenu arrive vide.** Tous les enregistrements n'ont pas tous les champs. Une alerte qu'aucun moniteur n'a déclenchée, par exemple issue d'un SLO ou créée à la main, n'a pas de moniteur, donc `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` n'a rien à donner : dans un message il n'y a rien à cet endroit, et seul en JSON il vaut `null`. Il en va de même pour une description que personne n'a écrite, un champ personnalisé que l'enregistrement ne contient pas, un **Find One** qui n'a trouvé aucun enregistrement, une liste sans cet élément et un champ que le bloc ne transmet pas, ce qui ajoute aussi sur l'étape un avertissement indiquant quoi ajouter à ses **Champs à transmettre**. Une URL et un bloc qui lit ou écrit des enregistrements font exception, car un vide changerait ce sur quoi le bloc agit : la référence y reste telle quelle, et un ID arrête le bloc. Pour prendre un autre chemin, vérifiez la valeur avec **est vide** dans un **Si / Sinon**. Pour nommer le SLO à l'origine d'une alerte, transmettez son nom et utilisez `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Le panneau des problèmes ne peut pas vérifier les noms de variables.** Il signale les références de composant qu'il ne peut pas associer — un ID d'étape inconnu, une valeur de retour inconnue, une racine mal formée — avant l'enregistrement. Il ne peut pas savoir si une variable existe. Les paramètres d'un bloc, eux, le peuvent : une référence à une variable manquante y apparaît comme une puce orange. Sinon, une variable renommée n'est repérée que par le journal de l'exécution.
 - **Les espaces à l'intérieur des accolades ne sont pas supprimés.** `{{ local.variables.NAME }}` est une recherche différente de `{{local.variables.NAME}}` et ne se résout jamais. La seule exception est l'intérieur d'un bloc `{{#each}}`, où les noms sont nettoyés.
 

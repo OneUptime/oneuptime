@@ -360,6 +360,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor, or add a status page subscriber, can reach anything you allowed.",
     "The response body comes back.",
     "Redirects are never followed",
+    "OneUptime connects to the address it checked.",
+    "Through an outbound proxy, the proxy connects.",
     "Scope by probe rather than instance-wide where you can.",
   ],
   [ARCHITECTURE_PAGE]: ["ingress", "app"],
@@ -464,6 +466,12 @@ const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
 // \s takes the no-break spaces French and others group digits with.
 const DIGIT_GROUP: RegExp = /(\d)[\s.,'\u066c](\d{3})(?!\d)/g;
 const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
+/*
+ * A name a digit is part of, which states no number: Korean names
+ * two-factor authentication "2단계 인증" (two-step authentication), as its
+ * Dashboard does (#8774).
+ */
+const NAME_WITH_A_DIGIT: RegExp = /2단계 인증/g;
 // A line that starts a list item, a table row, a heading, a component, an image or a quote.
 const NOT_PARAGRAPH_TEXT: RegExp = /^\s*(?:[-*>|#:@]|\d+\.|!\[)/;
 // What a word is made of: letters, their marks and digits.
@@ -813,6 +821,7 @@ function tables(markdown: string): Array<Array<Array<string>>> {
 function numbersIn(text: string): Array<string> {
   return Array.from(
     toLatinDigits(text)
+      .replace(NAME_WITH_A_DIGIT, "")
       .replace(DIGIT_GROUP, "$1$2")
       .replace(DECIMAL_MARK, "$1.$2")
       .matchAll(NUMBER),
@@ -1640,6 +1649,9 @@ describe("the helpers, on these pages' shapes", () => {
     expect(numbersIn("TCP 5228–5230 and 443")).toEqual(["443", "5228", "5230"]);
     expect(numbersIn("TCP ۵۲۲۸–۵۲۳۰ و ۴۴۳")).toEqual(["443", "5228", "5230"]);
     expect(numbersIn("version 1,5.0")).toEqual(["1.5", "0"].sort());
+    // Korean's two-factor authentication is a name, not a 2; a step's 2 still is.
+    expect(numbersIn("비밀번호 로그인, 2단계 인증, 팀")).toEqual([]);
+    expect(numbersIn("2단계: 앱 연결")).toEqual(["2"]);
   });
 
   it("find a label as words of their own, and in Chinese, Japanese or Korean beside the words around it", () => {

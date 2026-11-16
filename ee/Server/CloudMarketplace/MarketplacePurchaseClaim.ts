@@ -423,7 +423,7 @@ export default class MarketplacePurchaseClaim {
         return "This project was bought from a OneUptime reseller, which bills it.";
       case MarketplacePurchaseProjectRefusal.NotBillingManager:
       default:
-        return "Only the project's owners, or people who manage its billing, can change how it is billed.";
+        return "Only the Project Owners, or people who manage its billing, can change how it is billed.";
     }
   }
 

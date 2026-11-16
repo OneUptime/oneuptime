@@ -29,7 +29,7 @@ Un risultato coperto da una regola di pulizia viene contrassegnato come ripulito
 
 | Archivio | Cosa viene letto | Dove punta un risultato |
 | --- | --- | --- |
-| Registri | Ogni attributo, e il corpo | `attributes.<key>`, `body` |
+| Log | Ogni attributo, e il corpo | `attributes.<key>`, `body` |
 | Tracce | Ogni attributo degli span, e gli attributi di ogni evento degli span | `attributes.<key>`, `events.<event>.<key>` |
 | Eccezioni | Il messaggio, lo stack trace e gli attributi | `message`, `stackTrace`, `attributes.<key>` |
 | Conversazioni IA | I prompt e le risposte di ogni chiamata IA, sotto le chiavi in cui li mettono le convenzioni GenAI, e ogni altro attributo | La chiave in cui si trovano, come `gen_ai.input.messages` o `gen_ai.prompt[].content` |
@@ -74,7 +74,7 @@ Per escludere qualcosa, aggiungilo alle **Esclusioni dalla scansione** dell'arch
 :::steps
 ### Apri il risultato
 
-Apri l'archivio di telemetria - i **Registri** di un servizio, per esempio - e il risultato.
+Apri l'archivio di telemetria - i **Log** di un servizio, per esempio - e il risultato.
 
 ### Premi Ripulisci
 

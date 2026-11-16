@@ -28,6 +28,8 @@ export interface AITemplate {
 
 export interface GenerateFromAIModalProps {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description?: string;
   onClose: () => void;
   onGenerate: (data: GenerateAIRequestData) => Promise<string>;
@@ -105,6 +107,7 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
   return (
     <Modal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={
         props.description ||
         "AI will generate content based on the available data."

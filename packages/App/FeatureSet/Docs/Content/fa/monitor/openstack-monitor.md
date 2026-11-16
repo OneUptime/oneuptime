@@ -543,7 +543,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | `openstack_cloudkitty_rated` | | Max | CloudKitty برای یک پروژه در یک ماه چه امتیازی داده، ساعتی یک بار، بر اساس پروژه و ماه. یک عدد، به هر واحدی که نرخ‌هایش هستند. فقط پراب این را می‌فرستد. |
 | `openstack_container_infra_total_clusters` | `count` | Max | Magnum برای این credential چند cluster فهرست کرد. |
 | `openstack_container_infra_cluster_status` | | Max | یک سری برای هر cluster، با `uuid`، `name`، `stack_id`، `status`، `node_count`، `master_count` و `project_id`. مقدارش یک کد است، پس label مربوط به `status` آن را بخوانید. `project_id` از exporter خالی می‌آید. |
-| `openstack_container_infra_cluster_masters` | `count` | Max | از هر cluster چند node مربوط به control plane خواسته شده است. |
+| `openstack_container_infra_cluster_masters` | `count` | Max | از هر cluster چند node مربوط به صفحه کنترل خواسته شده است. |
 | `openstack_container_infra_cluster_nodes` | `count` | Max | از هر cluster چند node مربوط به worker خواسته شده است. |
 | `openstack_container_infra_agent_state` | | Min | اینکه Magnum هر `magnum-conductor` را up فهرست می‌کند. فقط پراب این را می‌فرستد. |
 
@@ -774,8 +774,8 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 
 | ترتیب | معیار | وقتی مطابقت دارد | آن‌گاه |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | کوئری اول در کل پنجره داده ندارد | مانیتور را **آفلاین** علامت می‌زند و حادثه «_monitor name_ is offline» را اعلام می‌کند، که وقتی مانیتور بازیابی شود خودش حل می‌شود. |
-| 2 | Check if _monitor name_ is online | کوئری اول داده دارد | مانیتور را **عملیاتی** علامت می‌زند. |
+| 1 | بررسی آفلاین بودن _نام مانیتور_ | کوئری اول در کل پنجره داده ندارد | مانیتور را **آفلاین** علامت می‌زند و حادثه «_نام مانیتور_ آفلاین است» را اعلام می‌کند، که وقتی مانیتور بازیابی شود خودش حل می‌شود. |
+| 2 | بررسی آنلاین بودن _نام مانیتور_ | کوئری اول داده دارد | مانیتور را **عملیاتی** علامت می‌زند. |
 
 > [!IMPORTANT]
 > مقدار `0` داده است، پس متریکی که اغلب صفر است، مانند restartها یا خطاها، مانیتور را آفلاین نمی‌کند. برای هشدار روی یک مقدار، از یک قالب شروع کنید یا معیاری با آستانه اضافه کنید. وقتی اصلاً داده‌ای نمی‌رسد و هیچ معیاری مطابقت ندارد، مانیتور وضعیتش را نگه می‌دارد و حادثه‌های باز باز می‌مانند: سکوت بازیابی نیست. زمانی که خود OneUptime دریافت نمی‌کرد هرگز بدون داده نیست: بررسی‌ای که پنجره‌اش آن را در بر دارد به‌جای آن صبر می‌کند، همان‌طور که [وقتی OneUptime داده دریافت نمی‌کند](/docs/monitor/when-oneuptime-is-not-receiving) توضیح می‌دهد.

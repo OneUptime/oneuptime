@@ -85,10 +85,17 @@ import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactor
 import TwoFactorBackupCode from "Common/Server/Utils/TwoFactorBackupCode";
 import TwoFactorBackupCodeNotification from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import UserSessionService, {
+  RevokeSessionOptions,
   SessionMetadata,
   SessionRenewalDecision,
 } from "Common/Server/Services/UserSessionService";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import SessionEndedException from "Common/Types/Exception/SessionEndedException";
+import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
+import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
 import {
   SecondFactor,
@@ -106,7 +113,9 @@ import {
 } from "Common/Types/UserSession/SessionLength";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  SessionToSignOut,
+} from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -2510,12 +2519,99 @@ router.post(
         CookieUtil.getRefreshTokenFromExpressRequest(req) ||
         (req.body.refreshToken as string | undefined);
 
-      if (refreshToken) {
-        await UserSessionService.revokeSessionByRefreshToken(refreshToken, {
-          cause: SessionEndCause.SignedOut,
-          // Where they signed out from, for the audit log's entry.
-          requestOrigin: RequestOriginUtil.fromRequest(req),
-        });
+      const revokeOptions: RevokeSessionOptions = {
+        cause: SessionEndCause.SignedOut,
+        // Where they signed out from, for the audit log's entry.
+        requestOrigin: RequestOriginUtil.fromRequest(req),
+      };
+
+      let hasEndedSession: boolean = refreshToken
+        ? await UserSessionService.revokeSessionByRefreshToken(
+            refreshToken,
+            revokeOptions,
+          )
+        : false;
+
+      /*
+       * The refresh token matched no live session: the session it named
+       * may have been renewed by a request whose answer never reached the
+       * client - the server rotates the refresh token at every renewal and
+       * keeps only the new one - and would stay signed in on the server
+       * though its person signed out (issue #8592). The access token the
+       * client still holds names that session: its own signature says so,
+       * expired or not (DecodeOptions.acceptExpired, for this and nothing
+       * else), and only its user's live session is ended.
+       */
+      if (!hasEndedSession) {
+        const accessToken: string | undefined =
+          UserMiddleware.getAccessTokenFromExpressRequest(req);
+        let sessionOfAccessToken: SessionToSignOut | null = null;
+
+        if (accessToken) {
+          try {
+            /*
+             * Whose session it is and which, and nothing else: no claim of
+             * the token grants anything here - whether its person is a
+             * master admin is answered by readRequestSession alone
+             * (MasterAdminSessionClaimGuard).
+             */
+            const { userId, sessionId }: JSONWebTokenData = JSONWebToken.decode(
+              accessToken,
+              JsonWebTokenPurpose.UserSession,
+              { acceptExpired: true },
+            );
+
+            sessionOfAccessToken = sessionId ? { userId, sessionId } : null;
+          } catch {
+            // Not a session's token OneUptime signed: nothing to end.
+            sessionOfAccessToken = null;
+          }
+        }
+
+        if (sessionOfAccessToken) {
+          hasEndedSession = await UserSessionService.revokeLiveSessionOfUser(
+            {
+              userId: sessionOfAccessToken.userId,
+              sessionId: sessionOfAccessToken.sessionId,
+            },
+            revokeOptions,
+          );
+        }
+      }
+
+      /*
+       * Still nothing ended: a browser whose renewal's answer was lost, and
+       * whose access-token cookie has gone since - it lives fifteen
+       * minutes - sends no token that names its session (issue #8638). Its
+       * sign-out cookie still does (CookieUtil.setUserCookie): signed for
+       * that and nothing else, sent only to this route, and read from the
+       * cookie only. As above, only that live session of its own user is
+       * ended.
+       */
+      if (!hasEndedSession) {
+        const sessionSignOutToken: string | undefined =
+          CookieUtil.getSessionSignOutTokenFromExpressRequest(req);
+        let sessionToSignOut: SessionToSignOut | null = null;
+
+        if (sessionSignOutToken) {
+          try {
+            sessionToSignOut =
+              JSONWebToken.decodeSessionToSignOut(sessionSignOutToken);
+          } catch {
+            // Not a sign-out cookie OneUptime signed, or one that ran out.
+            sessionToSignOut = null;
+          }
+        }
+
+        if (sessionToSignOut) {
+          await UserSessionService.revokeLiveSessionOfUser(
+            {
+              userId: sessionToSignOut.userId,
+              sessionId: sessionToSignOut.sessionId,
+            },
+            revokeOptions,
+          );
+        }
       }
 
       CookieUtil.removeAllCookies(req, res);
@@ -3275,6 +3371,28 @@ const login: LoginFunction = async (options: {
       }
 
       /*
+       * A failed attempt on this account, for the audit log of every project
+       * its person is a member of (issue #6788). Recorded once this request
+       * has been answered, and nothing about it reaches the answer: an
+       * address nobody has is never recorded, so an answer that waited for
+       * the audit log would say the account exists (FailedSignInAuditLog).
+       */
+      const recordFailedSignIn: (reason: SignInFailureReason) => void = (
+        reason: SignInFailureReason,
+      ): void => {
+        FailedSignInAuditLog.record({
+          req: req,
+          userId: alreadySavedUser.id!,
+          reason: reason,
+          signIn: {
+            method: isMagicLinkSignIn
+              ? SignInMethod.SignInLink
+              : SignInMethod.Password,
+          },
+        });
+      };
+
+      /*
        * Verified once, against this user's own salt, and reused for the
        * final gate below. Re-verifying there would repeat the legacy-hash
        * upgrade write on every login of an un-upgraded account.
@@ -3293,6 +3411,8 @@ const login: LoginFunction = async (options: {
         }));
 
       if (!isPasswordValid) {
+        recordFailedSignIn(SignInFailureReason.WrongPassword);
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -3313,6 +3433,8 @@ const login: LoginFunction = async (options: {
        * told to somebody who has already proved they own the account.
        */
       if (alreadySavedUser.isBlocked) {
+        recordFailedSignIn(SignInFailureReason.AccountBlocked);
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -3328,7 +3450,19 @@ const login: LoginFunction = async (options: {
        * holder is told why; ahead of the address check, so nobody is mailed a
        * verification link for a sign-in that cannot happen.
        */
-      await SsoRequiredSignIn.assertNonSsoSignInAllowed(alreadySavedUser);
+      try {
+        await SsoRequiredSignIn.assertNonSsoSignInAllowed(alreadySavedUser);
+      } catch (err) {
+        // The rule refused it - not a rule that could not be read.
+        if (
+          err instanceof BadDataException &&
+          err.message === SSO_REQUIRED_SIGN_IN_MESSAGE
+        ) {
+          recordFailedSignIn(SignInFailureReason.SingleSignOnRequired);
+        }
+
+        throw err;
+      }
 
       /*
        * An unverified address gets no session, on any stage. This is the gate
@@ -3350,6 +3484,8 @@ const login: LoginFunction = async (options: {
        * verified when the link is spent instead (spendMagicLink).
        */
       if (!alreadySavedUser.isEmailVerified && !isMagicLinkSignIn) {
+        recordFailedSignIn(SignInFailureReason.EmailNotVerified);
+
         /*
          * The link is the same "please verify" email a sign-up sends, so it
          * is counted with them, per caller and per address
@@ -3517,6 +3653,10 @@ const login: LoginFunction = async (options: {
             });
 
           if (codeCheck.outcome !== TwoFactorCodeCheckOutcome.Allowed) {
+            if (codeCheck.outcome === TwoFactorCodeCheckOutcome.Waiting) {
+              recordFailedSignIn(SignInFailureReason.TooManyWrongCodes);
+            }
+
             return sendCodeNotChecked({
               req,
               res,
@@ -3563,6 +3703,9 @@ const login: LoginFunction = async (options: {
             }
           } finally {
             if (!isVerified) {
+              // Counted as a wrong code, whichever way it went wrong.
+              recordFailedSignIn(SignInFailureReason.WrongAuthenticatorCode);
+
               await tellOwnerAboutWrongCode({
                 req,
                 user: alreadySavedUser,
@@ -3590,10 +3733,19 @@ const login: LoginFunction = async (options: {
         } else if (verifyWebAuthn) {
           const credential: any = data["credential"];
 
-          await UserWebAuthnService.verifyAuthentication({
-            userId: alreadySavedUser.id!.toString(),
-            credential: credential,
-          });
+          try {
+            await UserWebAuthnService.verifyAuthentication({
+              userId: alreadySavedUser.id!.toString(),
+              credential: credential,
+            });
+          } catch (err) {
+            // The key's answer was refused - not a database that failed.
+            if (err instanceof BadDataException) {
+              recordFailedSignIn(SignInFailureReason.SecurityKeyNotAccepted);
+            }
+
+            throw err;
+          }
         } else if (verifyBackupCode) {
           /*
            * A single-use recovery code, standing in for an authenticator the
@@ -3672,6 +3824,10 @@ const login: LoginFunction = async (options: {
             });
 
           if (backupCodeCheck.outcome !== TwoFactorCodeCheckOutcome.Allowed) {
+            if (backupCodeCheck.outcome === TwoFactorCodeCheckOutcome.Waiting) {
+              recordFailedSignIn(SignInFailureReason.TooManyWrongCodes);
+            }
+
             return sendCodeNotChecked({
               req,
               res,
@@ -3710,6 +3866,8 @@ const login: LoginFunction = async (options: {
               });
           } finally {
             if (!isBackupCodeConsumed) {
+              recordFailedSignIn(SignInFailureReason.WrongBackupCode);
+
               await tellOwnerAboutWrongCode({
                 req,
                 user: alreadySavedUser,
@@ -3883,6 +4041,8 @@ const login: LoginFunction = async (options: {
           });
 
           if (!isEnrolmentCodeVerified) {
+            recordFailedSignIn(SignInFailureReason.WrongAuthenticatorCode);
+
             return Response.sendErrorResponse(
               req,
               res,

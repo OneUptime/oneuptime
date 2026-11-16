@@ -515,7 +515,7 @@ describe("WorkspaceMemberActions.changeState", (): void => {
 
       await expect(refusal).rejects.toThrow(
         new NotAuthorizedException(
-          `You do not have permission to change this ${kind.noun}: your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+          `You do not have permission to change this ${kind.noun}: your access in this project does not include this ${kind.noun}. Ask a Project Admin for access to it.`,
         ),
       );
       await expect(refusal).rejects.not.toThrow("not found");

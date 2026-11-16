@@ -461,9 +461,10 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 modelAPI={props.modelAPI}
                 title={
                   modalType === ModalType.Create && props.createFormTitle
-                    ? props.createFormTitle
+                    ? translator.translateText(props.createFormTitle) ||
+                      props.createFormTitle
                     : modalType === ModalType.Edit && editFormTitle
-                      ? editFormTitle
+                      ? translator.translateText(editFormTitle) || editFormTitle
                       : translateNamedAction(translator, {
                           template:
                             modalType === ModalType.Create
@@ -478,6 +479,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                           },
                         })
                 }
+                isTitleTranslated={true}
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
                 name={

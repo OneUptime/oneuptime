@@ -105,8 +105,8 @@ const CODE: string = "731904";
  * script.
  */
 const CALLERS: Array<[string, Array<Permission>, boolean]> = [
-  ["a project owner", [Permission.ProjectOwner], false],
-  ["a project admin", [Permission.ProjectAdmin], false],
+  ["a Project Owner", [Permission.ProjectOwner], false],
+  ["a Project Admin", [Permission.ProjectAdmin], false],
   ["a project member", [Permission.ProjectMember], false],
   ["a status page admin", [Permission.StatusPageAdmin], false],
   ["a status page member", [Permission.StatusPageMember], false],

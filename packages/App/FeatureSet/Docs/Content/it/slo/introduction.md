@@ -45,11 +45,11 @@ Ti serve un ruolo che possa creare SLO: Proprietario del progetto, Amministrator
 :::steps
 ### Aprire gli SLO
 
-Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo gruppo, accanto a monitor e incidenti. Fai clic su **Crea: Service Level Objective**.
+Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo gruppo, accanto a monitor e incidenti. Fai clic su **Crea: Obiettivo del livello di servizio**.
 
 ### Scegliere cosa misura
 
-In **Cosa misura**, lascia **Disponibilità dei monitor** per misurare la quota di tempo in cui i monitor sono disponibili. Scegli invece **Successo delle richieste** o **Latenza delle richieste** per misurare le richieste dei servizi, e scegli i loro **Servizi**: vedi [SLO di richieste e latenza](/docs/slo/request-slos). Fai clic su **Avanti**.
+In **Cosa misura**, lascia **Disponibilità dei monitor** per misurare la quota di tempo in cui i monitor sono disponibili. Scegli invece **Successo delle richieste** o **Latenza delle richieste** per misurare le richieste dei servizi, e scegli i loro **Servizi**: vedi [SLO di richieste e latenza](/docs/slo/request-slos). Scegli **Metrica** per contare gli eventi buoni di un contatore o di un istogramma inviato dai tuoi servizi: vedi [SLO basati su una metrica](/docs/slo/request-slos#slo-basati-su-una-metrica). Fai clic su **Avanti**.
 
 ### Dargli un nome e fissare un obiettivo
 
@@ -61,7 +61,7 @@ Inserisci un **Nome**, per esempio «API Availability», e un **Obiettivo (%)**:
 
 ### Salvare lo SLO
 
-Fai clic su **Crea: Service Level Objective**. OneUptime apre il nuovo SLO. La **Panoramica** di uno SLO di disponibilità dei monitor mostra **Choose what this SLO measures**, perché non ha ancora monitor.
+Fai clic su **Crea: Obiettivo del livello di servizio**. OneUptime apre il nuovo SLO. La **Panoramica** di uno SLO di disponibilità dei monitor mostra **Choose what this SLO measures**, perché non ha ancora monitor.
 
 ### Collegare i monitor
 
@@ -140,7 +140,7 @@ OneUptime assegna uno stato a ogni SLO valutato:
 | **A rischio** | Il budget rimanente è sceso alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
 | **Budget esaurito** | Il budget è stato speso tutto, o superato. |
 | **Configurato male** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. Uno SLO di richieste è configurato male se non ha servizi, se non ha una soglia di latenza, o finché i suoi servizi non hanno servito una richiesta nella sua finestra. |
-| **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione pianificata. Riprende da solo appena uno di essi torna a essere monitorato. |
+| **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione programmata. Riprende da solo appena uno di essi torna a essere monitorato. |
 
 Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **A rischio** o **Budget esaurito**: vedi [Budget di errore](/docs/slo/error-budget).
 
@@ -161,19 +161,20 @@ Apri uno SLO per vedere le sue pagine nel menu laterale:
 | --- | --- |
 | **Panoramica** | Lo stato, i numeri principali, il consumo del budget di errore, l'attività recente, gli avvisi e gli incidenti aperti e le regole del tasso di consumo. |
 | **Metriche** | Le metriche `oneuptime.slo.*` dello SLO, la cronologia a lungo termine del suo budget di errore e le metriche degli incidenti e degli avvisi che lo riguardano. Vedi [Metriche e dashboard degli SLO](/docs/slo/metrics). |
+| **Report mensile** | Come è andato lo SLO in ogni mese di calendario e sull'intero periodo. Vedi [Il report mensile](#il-report-mensile). |
 | **Incidenti** | Gli incidenti dichiarati dalle sue regole del tasso di consumo e dalla sua policy del budget di errore. Il badge conta quelli aperti. |
 | **Avvisi** | Gli avvisi generati dalle sue regole del tasso di consumo e dalla sua policy del budget di errore. Il badge conta quelli aperti. |
-| **Feed** | Cosa è successo allo SLO, come cronologia. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs). |
+| **Feed** | Cosa è successo allo SLO, come cronologia. Vedi [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs). |
 | **Monitor** | I monitor che misura, e se ognuno è stato collegato da una persona o da una regola. Solo per gli SLO di disponibilità dei monitor. |
 | **Regole dei monitor** | Le regole che collegano i monitor corrispondenti. Solo per gli SLO di disponibilità dei monitor. |
 | **Regole di tasso di consumo** | Le regole che generano avvisi e dichiarano incidenti quando il budget si consuma troppo in fretta. |
 | **Policy del budget di errore** | Cosa il team ha concordato di fare mentre il budget di errore si esaurisce, e gli avvisi e gli incidenti che genera ogni livello della policy. Vedi [Policy del budget di errore](/docs/slo/error-budget-policy). |
 | **Proprietari** | Gli utenti e i team che vengono a sapere dei suoi cambi di stato. |
 | **Impostazioni** | Cosa misura, l'obiettivo, il periodo di conformità, il calcolo dell'inattività, l'interruttore di valutazione e la scheda di archiviazione. |
-| **Registri di audit** | Chi ha cambiato lo SLO, le sue regole e i suoi proprietari, e quando. |
+| **Log di audit** | Chi ha cambiato lo SLO, le sue regole e i suoi proprietari, e quando. |
 | **Elimina SLO** | Elimina lo SLO definitivamente e risolve gli avvisi e gli incidenti di tasso di consumo che aveva aperti. |
 
-**Monitor** si trova in una sezione **Configurazione**, **Regole dei monitor**, **Regole di tasso di consumo** e **Policy del budget di errore** in una sezione **Regole**, e **Proprietari**, **Impostazioni**, **Registri di audit** e **Elimina SLO** in una sezione **Gestione**. Tutte e tre partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
+**Monitor** si trova in una sezione **Configurazione**, **Regole dei monitor**, **Regole di tasso di consumo** e **Policy del budget di errore** in una sezione **Regole**, e **Proprietari**, **Impostazioni**, **Log di audit** e **Elimina SLO** in una sezione **Gestione**. Tutte e tre partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
 
 Quando qualcosa impedisce a uno SLO di misurare, un banner in cima a ciascuna delle sue pagine dice cosa non va e rimanda alla pagina che lo risolve: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 
@@ -201,7 +202,7 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 
 | Scheda | Cosa cambi | Da sapere |
 | --- | --- | --- |
-| **Cosa misura** | **Cosa misura**, **Servizi** e **Soglia di latenza (ms)**, con **Modifica cosa misura**. | Dopo una modifica, uno SLO di richieste riconta le sue richieste dall'inizio. |
+| **Cosa misura** | **Cosa misura**, **Servizi**, **Soglia di latenza (ms)**, **Filtro delle richieste** e **Metrica**, con **Modifica cosa misura**. | Dopo una modifica, uno SLO di richieste riconta le sue richieste dall'inizio. |
 | **Obiettivo** | **Obiettivo (%)** e **Soglia a rischio (%)**, con **Modifica l'obiettivo**. | Mostra l'inattività che l'obiettivo consente, per esempio «43 min 12 s di downtime per finestra di 30 giorni». |
 | **Periodo di conformità** | **Tipo di finestra**, **Finestra (giorni)** e **Fuso orario**, con **Modifica il periodo**. | Le regole del tasso di consumo mantengono le loro soglie quando cambia la finestra, quindi rivedile dopo. |
 | **Calcolo del downtime** | **Modalità multi-monitor** e **Stati del monitor per i tempi di inattività**, con **Modifica il calcolo del downtime**. | Solo per gli SLO di disponibilità dei monitor. Senza stati si contano tutti gli stati non operativi, compresi quelli aggiunti dopo. |
@@ -209,6 +210,31 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 | **Archivia: SLO** | **Archivia** o **Annulla archiviazione**. | Vedi [Archiviare uno SLO](#archiviare-uno-slo). |
 
 Dopo una modifica a cosa misura, all'obiettivo, al periodo o al calcolo dell'inattività, OneUptime rivaluta lo SLO all'esecuzione successiva.
+
+### Il report mensile
+
+Il **Report mensile** mostra come è andato lo SLO in ogni mese di calendario degli ultimi **3 mesi**, **6 mesi**, **9 mesi** o **12 mesi**, o di un anno solare. Ogni mese mostra il suo SLI, la sua inattività (per uno SLO delle richieste, le richieste non riuscite o lente; per uno SLO di metrica, gli eventi problematici), la quota del suo budget di errore che ha usato e il suo risultato:
+
+| Risultato | Cosa significa |
+| --- | --- |
+| Soddisfatto | Il mese è concluso e il suo SLI ha raggiunto l'obiettivo. |
+| Non raggiunto | Il mese è concluso e non ha raggiunto l'obiettivo, oppure il mese è in corso e ha già più inattività di quanta ne consenta l'intero mese. |
+| In linea | Il mese è in corso e il suo SLI finora raggiunge l'obiettivo. |
+| Sotto l'obiettivo | Il mese è in corso e il suo SLI finora è sotto l'obiettivo. |
+| Nessun dato | Quel mese non è stato misurato nulla. |
+
+La riga **Totale** misura l'intero periodo come uno solo. Uno SLO con più monitor ha anche una tabella **Per monitor**: lo SLI di ciascun monitor in ogni mese, con per primo il monitor che è costato di più allo SLO. **Scarica CSV** salva il report in un file per un foglio di calcolo.
+
+Per il report non viene salvato nient'altro. Ogni mese viene calcolato dalla cronologia degli stati dei monitor quando lo apri, con i monitor, gli stati di inattività e l'obiettivo dello SLO come sono adesso, quindi risale anche a prima della creazione dello SLO. I mesi di uno SLO delle richieste derivano dalle richieste che OneUptime ha contato per esso, e quelli di uno SLO di metrica dagli eventi della sua metrica, conservati per 400 giorni. I mesi seguono il fuso orario dello SLO, o UTC se non ne ha uno.
+
+L'API risponde con lo stesso report:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Chiedi con `months` da 1 a 24 mesi che terminano con il mese corrente, o un anno solare con `year`, ad esempio `year=2025`.
 
 ## Archiviare uno SLO
 
@@ -265,6 +291,8 @@ Un banner in cima alle pagine dello SLO dice cosa gli impedisce di misurare:
 | **Nessun servizio scelto** | Uno SLO di richieste non ha servizi, quindi non ha richieste da contare. | Scegli i suoi servizi in **Impostazioni** → **Cosa misura**. |
 | **Nessuna soglia di latenza** | Uno SLO di latenza delle richieste non ha una soglia, quindi nessuna richiesta può contare come abbastanza veloce. | Imposta la **Soglia di latenza (ms)** in **Impostazioni** → **Cosa misura**. |
 | **In attesa di richieste** | Nessuno dei servizi di uno SLO di richieste ha ancora servito una richiesta nella sua finestra. | Controlla che i servizi inviino tracce a OneUptime. I numeri compaiono dopo la prossima valutazione che conta una richiesta. |
+| **Nessuna metrica da contare** | Uno SLO di metrica non ha una metrica che possa contare: non ne è stata scelta nessuna, oppure manca come distinguere i suoi eventi buoni. | Scegli la metrica, e la sua condizione o il suo valore per gli eventi buoni, in **Impostazioni** → **Cosa misura**. |
+| **In attesa della sua metrica** | Nessuno dei servizi di uno SLO di metrica ha ancora inviato un evento della sua metrica nella sua finestra. | Controlla che i servizi inviino la metrica a OneUptime, con il nome che lo SLO conta. I numeri compaiono dopo la prossima valutazione che conta un evento. |
 
 ## Passi successivi
 

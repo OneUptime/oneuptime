@@ -4,14 +4,14 @@ Der OneUptime-Ceph-Agent überwacht einen Ceph-Cluster: seinen Zustand, das Moni
 
 :::cards
 - [Agent installieren](#agent-installieren): Das mgr-Modul aktivieren, dann das Installationsskript oder Docker Compose.
-- [Was der Agent erfasst](#was-der-agent-erfasst): Die Serien hinter den Ceph-Seiten, Metriken und Alarmvorlagen.
+- [Was der Agent erfasst](#was-der-agent-erfasst): Die Serien hinter den Ceph-Seiten, Metriken und Warnungsvorlagen.
 - [KI-Agent](#ki-agent): OneUptime AI den Cluster lesen lassen, während sie untersucht.
 - [Fehlerbehebung](#fehlerbehebung): Ein Diagnoseskript und die üblichen Probleme.
 :::
 
 ## So funktioniert es
 
-Der Agent besteht aus zwei Containern, die Sie mit Docker Compose auf einem Rechner ausführen. Ein OpenTelemetry Collector scrapt das mgr-Modul `prometheus` auf jedem mgr-Daemon alle 30 Sekunden. Nur der aktive mgr antwortet mit Metriken; fällt er auf einen Standby um, fließen die Metriken daher ohne Änderung weiter. Der Ceph-KI-Agent daneben lässt OneUptime AI lesende `ceph`-Befehle ausführen, während sie einen Vorfall oder Alarm untersucht.
+Der Agent besteht aus zwei Containern, die Sie mit Docker Compose auf einem Rechner ausführen. Ein OpenTelemetry Collector scrapt das mgr-Modul `prometheus` auf jedem mgr-Daemon alle 30 Sekunden. Nur der aktive mgr antwortet mit Metriken; fällt er auf einen Standby um, fließen die Metriken daher ohne Änderung weiter. Der Ceph-KI-Agent daneben lässt OneUptime AI lesende `ceph`-Befehle ausführen, während sie einen Vorfall oder eine Warnung untersucht.
 
 ```mermaid title="Von Ihrem Ceph-Cluster zu OneUptime"
 flowchart TB
@@ -129,11 +129,11 @@ Die eigenen Einstellungen des KI-Agents stehen unter [KI-Agent](#ki-agent).
 
 ## Was der Agent erfasst
 
-Der Agent sendet alles, was das mgr-Modul `prometheus` exportiert. Die Ceph-Seiten, der Metrikkatalog und die Alarmvorlagen von OneUptime bauen auf diesen Serien auf:
+Der Agent sendet alles, was das mgr-Modul `prometheus` exportiert. Die Ceph-Seiten, der Metrikkatalog und die Warnungsvorlagen von OneUptime bauen auf diesen Serien auf:
 
 | Kategorie | Metriken |
 | --- | --- |
-| Cluster-Zustand | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (eine Serie pro Integritätsprüfung, 1 solange sie aktiv ist und 0, nachdem sie aufgehoben wurde, mit den Labels `name` und `severity`, ab Quincy; Grundlage der Alarmvorlagen für Integritätsprüfungen und der Prüfungen, die **Erfordert Aufmerksamkeit** in der Übersicht zeigt), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (pro Daemon, nach `type` geschlüsselt), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Cluster-Zustand | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (eine Serie pro Integritätsprüfung, 1 solange sie aktiv ist und 0, nachdem sie aufgehoben wurde, mit den Labels `name` und `severity`, ab Quincy; Grundlage der Warnungsvorlagen für Integritätsprüfungen und der Prüfungen, die **Erfordert Aufmerksamkeit** in der Übersicht zeigt), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (pro Daemon, nach `type` geschlüsselt), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, pro OSD über das Label `ceph_daemon` (etwa `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Die Datenserien tragen nur ein Label `pool_id`; der Name des Pools steht auf `ceph_pool_metadata`. |
 | Placement Groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (alle pro Pool, nach `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -247,9 +247,9 @@ Haben Sie den Ceph-Client des KI-Agents angelegt, entfernen Sie ihn auf einem Ad
 
 ## KI-Agent
 
-Die `docker-compose.yml` des Agents führt außerdem den **Ceph-KI-Agent** aus, `oneuptime-ceph-ai-agent` (Image `oneuptime/resource-ai-agent:release`). Während OneUptime AI einen Vorfall oder Alarm auf diesem Cluster untersucht, führt sie darüber lesende `ceph`-Befehle aus — `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls` — und wendet, nur wenn Sie es erlauben, Korrekturen an, etwa ein OSD wieder auf in zu setzen oder `noout` zu löschen. Er registriert sich wie der Collector als der Cluster namens `CEPH_CLUSTER_NAME` und erscheint in OneUptime auf der Seite **KI → KI-Agent** des Clusters.
+Die `docker-compose.yml` des Agents führt außerdem den **Ceph-KI-Agent** aus, `oneuptime-ceph-ai-agent` (Image `oneuptime/resource-ai-agent:release`). Während OneUptime AI einen Vorfall oder eine Warnung auf diesem Cluster untersucht, führt sie darüber lesende `ceph`-Befehle aus — `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls` — und wendet, nur wenn Sie es erlauben, Korrekturen an, etwa ein OSD wieder auf in zu setzen oder `noout` zu löschen. Er registriert sich wie der Collector als der Cluster namens `CEPH_CLUSTER_NAME` und erscheint in OneUptime auf der Seite **KI → KI-Agent** des Clusters.
 
-- **KI-Untersuchungen sind standardmäßig aktiviert.** Sobald der Agent verbunden ist, untersucht OneUptime AI Vorfälle und Alarme auf diesem Cluster mit ihm, und die **Übersicht** des Clusters zeigt den Status des Agents an. Zum Beenden setzen Sie `ONEUPTIME_AI_INVESTIGATION=false` dort, wo der Agent läuft (**Ändern** unter **Was die KI tun darf** auf der Seite des KI-Agents zeigt, wie), oder lassen den Agent weg.
+- **KI-Untersuchungen sind standardmäßig aktiviert.** Sobald der Agent verbunden ist, untersucht OneUptime AI Vorfälle und Warnungen auf diesem Cluster mit ihm, und die **Übersicht** des Clusters zeigt den Status des Agents an. Zum Beenden setzen Sie `ONEUPTIME_AI_INVESTIGATION=false` dort, wo der Agent läuft (**Ändern** unter **Was die KI tun darf** auf der Seite des KI-Agents zeigt, wie), oder lassen den Agent weg.
 - **Sein eigener Ceph-Client ist die harte Grenze.** Er verbindet sich als `client.oneuptime-ai`, mit der minimalen `ceph.conf` des Clusters und dem Keyring dieses Clients in einem Ordner `ceph/` neben `docker-compose.yml` (schreibgeschützt unter `/etc/ceph` eingehängt). Mit Lese-Caps kann nichts, was er ausführt, den Cluster ändern. Bei einer Neuinstallation bietet `install.sh` an, den Client anzulegen; ein erneuter Lauf tut das nie. Legen Sie nie den Admin-Keyring in diesen Ordner.
 - Er ist **schreibgeschützt**, sofern Sie nicht `ONEUPTIME_AI_ALLOW_WRITES=true` setzen und dem Client die Caps für die Korrekturen geben (das README des Agents listet sie auf); `ONEUPTIME_AI_WRITE_TARGETS` (zum Beispiel `osd.*,cluster`) begrenzt, was eine Korrektur antasten darf. `ONEUPTIME_AI_FIXES` in derselben `.env` legt fest, wie Korrekturen ablaufen — `ask-for-approval` (ein Mensch genehmigt jede), `automatic` oder `bypass-approval` —, und die Seite des KI-Agents zeigt es schreibgeschützt an ([Was die KI tun darf, vom Agent festgelegt](/docs/ai/infrastructure-ai-agents#was-die-ki-tun-darf-vom-agenten-festgelegt)).
 - Er verbindet sich ausgehend mit den Monitoren (TCP 3300 und 6789) sowie den mgr- und OSD-Daemons (TCP 6800–7300), läuft als UID 1000 ohne Capabilities und führt nie `auth`, `config-key`, `tell` oder etwas aus, das Daten löscht. Löschen Sie den Dienst `oneuptime-ceph-ai-agent` aus `docker-compose.yml`, wenn Sie OneUptime AI nicht verwenden.

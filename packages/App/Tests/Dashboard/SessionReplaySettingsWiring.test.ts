@@ -904,8 +904,12 @@ describe("Replay access log page", () => {
       AUDIT_PAGE.match(WATCH_BUCKET_PATTERN);
 
     expect(bucket?.[1]).toBeDefined();
+    // "< 15s", the bucket in the reader's short unit and digits (#8455).
     expect(AUDIT_PAGE).toContain(
-      "return `< ${SESSION_REPLAY_WATCH_BUCKET_SECONDS}s`;",
+      "return `< ${formatCompactDuration(translator, {",
+    );
+    expect(AUDIT_PAGE).toContain(
+      "seconds: SESSION_REPLAY_WATCH_BUCKET_SECONDS,",
     );
     expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
       `Rounded down to ${bucket?.[1]}-second steps`,

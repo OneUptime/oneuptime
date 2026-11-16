@@ -641,9 +641,7 @@ const IncidentEpisodeView: FunctionComponent<
           value={
             timing.durationStartsAt ? (
               <EventStartTileValue startedAt={timing.durationStartsAt} />
-            ) : (
-              "-"
-            )
+            ) : undefined
           }
           description={getEventStartedByText(
             {
@@ -683,7 +681,9 @@ const IncidentEpisodeView: FunctionComponent<
           variant="segment"
           label="Incidents"
           icon={IconProp.Alert}
-          value={incidentCount === undefined ? "-" : incidentCount.toString()}
+          value={
+            incidentCount === undefined ? undefined : incidentCount.toString()
+          }
         />
       </EventStatBar>
 

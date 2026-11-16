@@ -1,3 +1,4 @@
+import { NO_BREAK_SPACE } from "../NoBreakSpaces";
 /*
  * Timeouts are configured per step and stored on the step config in
  * milliseconds. Both the dashboard (which edits them) and the Worker (which
@@ -164,19 +165,19 @@ export function getTimeoutValidationError(
    * so they get the same message.
    */
   if (seconds <= 0 || inMs <= 0) {
-    return "Timeout must be greater than 0 seconds.";
+    return `Timeout must be greater than 0${NO_BREAK_SPACE}seconds.`;
   }
 
   if (inMs < bounds.minInMs) {
-    return `Minimum is ${bounds.minInMs / 1000} second${
+    return `Minimum is ${bounds.minInMs / 1000}${NO_BREAK_SPACE}second${
       bounds.minInMs === 1000 ? "" : "s"
     }.`;
   }
 
   if (inMs > bounds.maxInMs) {
-    return `Maximum is ${bounds.maxInMs / 1000} seconds (${
+    return `Maximum is ${bounds.maxInMs / 1000}${NO_BREAK_SPACE}seconds (${
       bounds.maxInMs / 60000
-    } minutes).`;
+    }${NO_BREAK_SPACE}minutes).`;
   }
 
   return null;

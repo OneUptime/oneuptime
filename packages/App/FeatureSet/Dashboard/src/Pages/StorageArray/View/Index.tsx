@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
@@ -144,7 +146,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -1343,7 +1345,7 @@ const StorageArrayOverview: FunctionComponent<
           iconColor="amber"
           value={
             openAlerts === null || openAlerts === undefined
-              ? "—"
+              ? undefined
               : String(openAlerts)
           }
           sublabel={translator.translateTemplate(
@@ -1361,7 +1363,7 @@ const StorageArrayOverview: FunctionComponent<
           iconColor="emerald"
           value={
             unhealthyHardware === null || unhealthyHardware === undefined
-              ? "—"
+              ? undefined
               : String(unhealthyHardware)
           }
           sublabel={
@@ -1385,7 +1387,7 @@ const StorageArrayOverview: FunctionComponent<
             value={
               storageArray.fileSystemCount === null ||
               storageArray.fileSystemCount === undefined
-                ? "—"
+                ? undefined
                 : String(storageArray.fileSystemCount)
             }
             sublabel={translator.translatePlural(
@@ -1402,7 +1404,7 @@ const StorageArrayOverview: FunctionComponent<
             value={
               storageArray.volumeCount === null ||
               storageArray.volumeCount === undefined
-                ? "—"
+                ? undefined
                 : String(storageArray.volumeCount)
             }
             sublabel={translator.translatePlural(
@@ -1509,7 +1511,7 @@ const StorageArrayOverview: FunctionComponent<
                     </Link>
                   </div>
                   <div className="text-sm font-semibold text-gray-900">
-                    {row.value}
+                    {getValueOrQuietDash(row.value)}
                   </div>
                 </div>
               );

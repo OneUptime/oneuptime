@@ -1,4 +1,5 @@
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   composedValue,
   createTranslator,
@@ -51,7 +52,9 @@ import {
  * Without a translator they read exactly as SloOverviewText does - what the
  * tests compare them with.
  */
-const ENGLISH: Translator = createTranslator(undefined);
+const ENGLISH: Translator = createTranslator(undefined, undefined, {
+  drawsOnPage: true,
+});
 
 // The worker's and SloHealth's fallback: the column's default.
 const getWindowDays: (windowDays: number | undefined | null) => number = (
@@ -280,8 +283,6 @@ export const getSloAllowedDowntimeTextInLanguage: (
     { duration: duration },
   );
 };
-
-const EM_DASH: string = "—";
 
 /*
  * A share of the error budget as a duration in a sentence: "12m 30s", and
@@ -526,14 +527,14 @@ export const getSloBudgetRunwayTextInLanguage: (
   switch (runway.kind) {
     case SloBudgetRunwayKind.NotEvaluated:
       return {
-        value: EM_DASH,
+        value: EMPTY_VALUE_MARK,
         description:
           translator.translateText(SLO_NOT_EVALUATED_TEXT) ||
           SLO_NOT_EVALUATED_TEXT,
       };
     case SloBudgetRunwayKind.NotProjected:
       return {
-        value: EM_DASH,
+        value: EMPTY_VALUE_MARK,
         description:
           translator.translateText(runway.description) || runway.description,
       };

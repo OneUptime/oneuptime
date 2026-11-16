@@ -190,7 +190,7 @@ describe("the Overview's lines", () => {
     });
 
     expect(linesOf(summary)).toEqual([
-      "Runs every 15 minutes · UTC",
+      "Runs every 15\u00A0minutes · UTC",
       RunbookTriggersSummaryCopy.webhookOn,
     ]);
   });

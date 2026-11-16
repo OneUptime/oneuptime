@@ -31,7 +31,7 @@ OneUptime har ingen egen gateway: den ville holdt på leverandørnøklene dine o
 
 ## Før du begynner
 
-- En ingestion-nøkkel: åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, og klikk på **Opprett ingestion-nøkkel**.
+- En inntaksnøkkel: åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, og klikk på **Opprett inntaksnøkkel**.
 - OTLP-basis-URL-en din: `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` hvis du hoster OneUptime selv. OneUptime tar imot OTLP over HTTP, i protobuf og i JSON.
 - Nøkkelen følger med i hodet `x-oneuptime-token` på hver eksportforespørsel.
 
@@ -294,6 +294,6 @@ Tilkoblingstesten feilet. Sjekk at endpointet slutter på `/v1/traces`, og at he
 - [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Samtaler, varsler, forbruk og daglige kostnadsbudsjetter for disse kallene.
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Sett en gateway foran verktøy som ikke sender telemetri selv.
 - [Circuit breakers for AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stopp en løpsk agent når varselet slår til.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Varsle på span-mønstre, som et verktøy som kalles i en løkke.
+- [Trase-monitor](/docs/monitor/traces-monitor): Varsle på span-mønstre, som et verktøy som kalles i en løkke.
 - [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts): Regningen for kontoene bak gatewayen, uten kode.
 :::

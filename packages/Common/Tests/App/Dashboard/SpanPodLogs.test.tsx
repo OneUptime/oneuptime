@@ -258,15 +258,15 @@ describe("an eBPF span, whose logs carry no trace ID", () => {
     await screen.findByTestId("span-pod-log-lines");
 
     expect(linesIn("before")).toEqual([
-      "Information Is Protobuf: false (earlier request) -50 ms",
+      "Information Is Protobuf: false (earlier request) -50\u00A0ms",
     ]);
     expect(linesIn("during")).toEqual([
-      "Information Product Type: Traces +1.27 ms",
-      "Information Is Protobuf: true +1.28 ms",
-      "Information Added traces ingestion job: traces-1793088129234000000 +3.24 ms",
+      "Information Product Type: Traces +1.27\u00A0ms",
+      "Information Is Protobuf: true +1.28\u00A0ms",
+      "Information Added traces ingestion job: traces-1793088129234000000 +3.24\u00A0ms",
     ]);
     expect(linesIn("after")).toEqual([
-      "Warning Request finished (later request) +60 ms",
+      "Warning Request finished (later request) +60\u00A0ms",
     ]);
     expect(screen.getByTestId("span-pod-logs-before")).toHaveTextContent(
       "Before the span",
@@ -408,7 +408,7 @@ describe("Advanced", () => {
         .map((choice: HTMLElement) => {
           return choice.textContent;
         }),
-    ).toEqual(["±100 ms", "±1 s", "±10 s", "±1m"]);
+    ).toEqual(["±100\u00A0ms", "±1\u00A0s", "±10\u00A0s", "±1m"]);
     expect(screen.getByTestId("span-pod-logs-padding-100")).toHaveAttribute(
       "aria-checked",
       "true",
@@ -420,8 +420,8 @@ describe("Advanced", () => {
       await screen.findByText("Product Type: Logs (later request)"),
     ).toBeInTheDocument();
     expect(linesIn("before")).toEqual([
-      "Information Product Type: Traces (earlier request) -233 ms",
-      "Information Is Protobuf: false (earlier request) -50 ms",
+      "Information Product Type: Traces (earlier request) -233\u00A0ms",
+      "Information Is Protobuf: false (earlier request) -50\u00A0ms",
     ]);
     expect(screen.getByTestId("span-pod-logs-window")).toHaveTextContent(
       "from 1 s before this span to 1 s after it.",

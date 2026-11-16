@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import IncidentElement from "../../../Components/Incident/Incident";
@@ -85,8 +86,12 @@ import RunbookTriggersSummaryElement, {
 } from "../../../Components/Runbook/Triggers/RunbookTriggersSummary";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Link from "Common/UI/Components/Link/Link";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The Activity card's tiles. Last Run and Total Runs are the Overview's way
@@ -180,7 +185,9 @@ function triggerSourceElement(
               { modelId: new ObjectID(sm._id as string) },
             )}
           >
-            <span>{sm.title || translateText("View")}</span>
+            <span>
+              {getValueOrQuietDash(sm.title || translateText("View"))}
+            </span>
           </AppLink>
         </span>
       );
@@ -188,7 +195,7 @@ function triggerSourceElement(
     return (
       <span className="text-sm text-gray-700">
         {translateTemplate("Maintenance: {{title}}", {
-          title: sm.title || "—",
+          title: sm.title || EMPTY_VALUE_MARK,
         })}
       </span>
     );
@@ -687,7 +694,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 </Link>
               </div>
               <div className="text-3xl font-semibold text-gray-900">
-                {stats.isLoaded ? stats.totalRuns : "—"}
+                {stats.isLoaded ? stats.totalRuns : <EmptyFigure />}
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {translator.translateText("All executions on record")}

@@ -1475,10 +1475,22 @@ describe("the project's forms", () => {
       (sloForm.steps || []).map((step: FormStepFacts): string | null => {
         return step.id;
       }),
-    ).toEqual(["measures", "objective"]);
-    expect(countFormRows(sloForm)).toBe(6);
+      // A Metric SLO's metric has a step of its own (#8445).
+    ).toEqual(["measures", "metric", "objective"]);
+    expect(countFormRows(sloForm)).toBe(12);
 
-    for (const stepId of ["measures", "objective"]) {
+    /*
+     * What it measures, with a request SLO's optional filter (#8444), then
+     * the objective. A Metric SLO's metric (#8445) is the five rows more:
+     * getSloMetricFields builds them with the step it is handed, which this
+     * scan reads as none, so it counts them in the form, not on a step -
+     * App/Tests/Dashboard/SloCreateForm counts that step from the fields.
+     */
+    for (const [stepId, rows] of [
+      ["measures", 4],
+      ["metric", 0],
+      ["objective", 3],
+    ] as Array<[string, number]>) {
       expect({
         step: stepId,
         rows: countFieldRows(
@@ -1486,7 +1498,7 @@ describe("the project's forms", () => {
             return candidate.stepId === stepId;
           }),
         ),
-      }).toEqual({ step: stepId, rows: 3 });
+      }).toEqual({ step: stepId, rows: rows });
     }
 
     expect(
@@ -1497,7 +1509,12 @@ describe("the project's forms", () => {
         .map((candidate: FormFieldFacts): string => {
           return candidate.key;
         }),
-    ).toEqual(["sliType", "services", "latencyThresholdInMilliseconds"]);
+    ).toEqual([
+      "sliType",
+      "services",
+      "latencyThresholdInMilliseconds",
+      "requestFilter",
+    ]);
     expect(
       sloForm.fields
         .filter((candidate: FormFieldFacts): boolean => {

@@ -62,6 +62,12 @@ import {
   getOnCallPolicyStartedOnResolvedRecordMessage,
   isOnCallPolicyStartedByHand,
 } from "Common/Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
+import {
+  getOnCallPageMergedMessage,
+  isOnCallPageACover,
+  isOnCallPageMergeable,
+} from "Common/Types/OnCallDutyPolicy/OnCallPageMerge";
+import { isOnCallPageLineReached } from "Common/Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import {
   DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
@@ -805,7 +811,7 @@ describe("what runs a policy", () => {
       readCommonSource("Server/Utils/Workspace/WorkspaceCommands.ts"),
     ).toContain('Page = "page"');
     expect(readCommonSource("Types/Workflow/Components/OnCall.ts")).toContain(
-      'title: "Page an On-Call Policy"',
+      'title: translationKey("Page an On-Call Policy"),',
     );
     expect(english(ON_CALL_POLICIES)).toContain(
       "| Chat and workflows | `/oneuptime page` in Slack or Microsoft Teams, and a workflow's **Page an On-Call Policy** step |",
@@ -907,7 +913,7 @@ describe("a policy's pages", () => {
     expect(owners).toContain("if (policyOwners.length > 0) {");
     expect(owners.slice(0, 2500)).toContain("await ProjectService.getOwners(");
     expect(english(ON_CALL_POLICIES)).toContain(
-      "When a page it sends finds no rule for someone, or cannot be delivered, they are emailed; a policy with no owners emails the project's owners instead.",
+      "When a page it sends finds no rule for someone, or cannot be delivered, they are emailed; a policy with no owners emails the Project Owners instead.",
     );
   });
 
@@ -1497,7 +1503,12 @@ describe("when several policies page", () => {
     "UserOnCallLog/ExecutePendingExecutions.ts",
   ];
 
-  it("pages someone on call in two policies once by each, and someone a level names twice once", () => {
+  /*
+   * #7837: somebody two of a record's policies page is paged once - the
+   * second policy's page of them is merged into their open page from the
+   * first (OnCallPageMerge). OnCallConcurrentPaging (Common) runs it.
+   */
+  it("pages someone on call in two policies once, and someone a level names twice once", () => {
     const levels: string = readCommonSource(
       "Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
     );
@@ -1505,17 +1516,85 @@ describe("when several policies page", () => {
       levels.indexOf("public async startRuleExecution("),
     );
 
-    // Each run of a level keeps whom it has paged, and pages each once.
+    // Each run of a level keeps whom it has paged, and pages each once...
     expect(levelRun).toContain("const uniqueUserIds: Array<ObjectID> = [];");
     expect(levelRun).toMatch(
-      /if \(!alreadyNotified\(pagedUserId\)\) \{\s*uniqueUserIds\.push\(pagedUserId\);\s*await startUserNotificationRuleExecution\(/,
+      /if \(!alreadyNotified\(pagedUserId\)\) \{\s*uniqueUserIds\.push\(pagedUserId\);/,
+    );
+    // ...and merges its page of somebody another policy is paging into that page.
+    expect(levelRun).toContain("await OnCallPageMerge.findCovers(");
+    expect(levelRun).toContain(
+      "OnCallDutyExecutionLogTimelineStatus.AlreadyPaged",
+    );
+    expect(getOnCallPageMergedMessage({ policyName: "Payments" })).toBe(
+      "Already paged about this by Payments, so not paged again.",
+    );
+
+    // The level waits for somebody merged, as for anybody it paged.
+    expect(
+      isOnCallPageLineReached(
+        OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+      ),
+    ).toBe(true);
+
+    expect(severalPolicies()).toContain(
+      "Someone on call in two of them is paged once. When a policy's level reaches someone another policy is already paging about it, it does not page them again: its execution log shows them as **Already Paged**",
     );
     expect(severalPolicies()).toContain(
-      "Someone on call in two of them is paged by both, once by each: OneUptime does not merge the pages of different policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.",
+      "The level still waits its minutes before the next level, as it does for anybody it paged. Answering that one page answers it for both policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.",
     );
-    // So the way to page them once is one level of one policy.
     expect(troubleshooting()).toContain(
-      "They are on call in two of the policies the incident runs, and each policy pages its own people. Acknowledging the incident from either page stops both. To have them paged once, put both teams or schedules in one level of one policy.",
+      "Someone on call in two of the policies the incident runs is paged once, by the first policy to reach them.",
+    );
+    expect(troubleshooting()).toContain(
+      "A person the second policy did not page again shows **Already Paged** in its **View Timeline**.",
+    );
+  });
+
+  it("merges only the pages of a policy that ends on the acknowledgement, and never an observer's page with a responder's", () => {
+    const anObserverPage: OnCallAcknowledgePageRun = {
+      onCallDutyPolicyId: POLICY_ID,
+      isObserverPage: true,
+    };
+
+    for (const run of [startedByOneUptime, startedByAWorkflow]) {
+      expect(isOnCallPageMergeable(run)).toBe(true);
+    }
+
+    // A page again, a page to observers, a page from a chat, a policy started by hand.
+    for (const page of pagesThatGoOn) {
+      expect({
+        page: page.name,
+        merged: isOnCallPageMergeable(page.run),
+      }).toEqual({ page: page.name, merged: false });
+    }
+
+    expect(isOnCallPageMergeable(aTestPage)).toBe(false);
+
+    // What a page is merged into: a responder's page of a policy.
+    expect(isOnCallPageACover(startedByHand)).toBe(true);
+    expect(isOnCallPageACover(anObserverPage)).toBe(false);
+    expect(isOnCallPageACover({ triggeredByUserId: PERSON_ID })).toBe(false);
+
+    expect(severalPolicies()).toContain(
+      "A page again, a policy started by hand and a page someone sent from Slack or Microsoft Teams always page their people themselves, even someone another policy is paging. An observer's page and a responder's page are never merged.",
+    );
+  });
+
+  it("hands the page over when the one it stands on ends without an answer, and answers it with that one", () => {
+    const worker: string = readWorkerSource(
+      "UserOnCallLog/ExecutePendingExecutions.ts",
+    );
+
+    expect(worker).toContain("UserNotificationExecutionStatus.AlreadyPaged,");
+    expect(worker).toContain("await OnCallPageMerge.readMergedPage(");
+    expect(worker).toContain("getOnCallPageMergeTakenOverMessage(");
+    expect(
+      readCommonSource("Server/Services/UserOnCallLogTimelineService.ts"),
+    ).toContain("await this.answerMergedPages(page);");
+
+    expect(severalPolicies()).toContain(
+      "Nobody misses a page for being paged once. Their page can end without their answer: they escalate it from one of its messages, which escalates that policy only, it cannot be sent, or its policy stops. Then the other policy pages them itself within a minute, without sending again what reached them. **Escalate** on the incident's page or in the mobile app escalates both.",
     );
   });
 
@@ -2867,7 +2946,7 @@ describe("the weekly readiness email", () => {
     );
     expect(digest).toContain("await ProjectService.sendEmailToProjectOwners(");
     expect(english(READINESS_AND_REPORTS)).toContain(
-      "When anyone in it is **Unreachable** or **Needs setup**, the project's owners get one email",
+      "When anyone in it is **Unreachable** or **Needs setup**, the Project Owners get one email",
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
       "A week with everyone ready sends nothing",

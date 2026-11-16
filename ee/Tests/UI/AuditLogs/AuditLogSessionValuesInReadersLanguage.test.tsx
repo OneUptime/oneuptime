@@ -158,10 +158,10 @@ describe("a stored value, as the reader reads it", () => {
       SESSION_END_CAUSE_DESCRIPTIONS[SessionEndCause.Expired];
 
     const expected: Record<string, string> = {
-      en: "Not used for 30 days",
-      de: "30 Tage nicht genutzt",
+      en: "Not used for 30\u00A0days",
+      de: "30\u00A0Tage nicht genutzt",
       ar: "أيام عدم الاستخدام: 30",
-      fa: "۳۰ روز بدون استفاده",
+      fa: "۳۰\u00A0روز بدون استفاده",
     };
 
     for (const language of LANGUAGES) {
@@ -281,7 +281,7 @@ describe("the Changes column's summary", () => {
         ],
         translator: dashboardTranslator("de"),
       }),
-    ).toBe("30 Tage nicht genutzt");
+    ).toBe("30\u00A0Tage nicht genutzt");
   });
 
   test("Persian sets the provider apart with its own bullet", () => {

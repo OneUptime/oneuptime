@@ -3,6 +3,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import {
   OwnerNotificationDeliveryStatus,
+  OwnerNotificationFeedStatus,
   OwnerNotificationKind,
 } from "../../../Types/Notification/OwnerNotificationDelivery";
 import ObjectID from "../../../Types/ObjectID";
@@ -10,16 +11,19 @@ import OwnerNotificationDeliveryService, {
   OwnerNotificationDeliveryRow,
   OwnerNotificationEvent,
 } from "../../Services/OwnerNotificationDeliveryService";
+import ProjectService from "../../Services/ProjectService";
 import UserService from "../../Services/UserService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
 
 /*
- * EVERY OWNER TOLD ONCE, HOWEVER THE WORKER STOPS (issue #8199).
+ * EVERY OWNER TOLD ONCE, HOWEVER THE WORKER STOPS (issues #8199, #8509).
  *
- * An owner notification job (IncidentOwners, AlertOwners) takes the record
- * it tells the owners of - marks the incident created, the state change,
- * the note, the owner row as notified, or moves a reminder on - so that a
+ * An owner notification job (IncidentOwners, AlertOwners, and those of
+ * episodes, monitors, scheduled maintenance, status pages, SLOs and network
+ * devices) takes the record it tells the owners of - marks the incident
+ * created, the state change, the note, the owner row as notified, or moves
+ * a reminder on - so that a
  * record whose notification keeps failing is never read again on every
  * run. Then it tells each owner. A worker stopped hard in between - an
  * out-of-memory kill, a node lost - used to leave every owner it had not
@@ -59,13 +63,31 @@ import logger, { LogAttributes } from "../Logger";
  * Should the rows themselves not be written - the database refused them -
  * the job tells its owners as it did before they were kept: once, and lost
  * to a stop.
+ *
+ * THE FEED ITEM (#8510). A job whose notification writes a feed item on its
+ * record - the entry naming whom it reached - says so when it plans
+ * (writesFeedItem), and the rows keep it as still to write until the job
+ * says it is written (feedItemWritten). A run that told its last owner and
+ * stopped before the feed item leaves it so, and resume() hands it to a
+ * later run - one alone, once no row of the notification moved for
+ * RESUME_AFTER_MINUTES - to write from whom the rows say was told. It is
+ * written at least once rather than at most: a stop between the feed item
+ * and saying so writes it again, which is better than a feed that never
+ * says who was told.
+ *
+ * OWNERS LEFT OUT (#7987). A job may leave some of the owners it read out
+ * of its notification - those a record's on-call page reached already are
+ * not told it was created a second time (OwnersReachedByAPage) - by handing
+ * them to plan() as leaveOut. They get no row, so no run tells them, not
+ * even one that takes up what a stopped run left; the delivery hands them
+ * back (leftOut) for the job's feed item to name apart from those told.
  */
 
 // Which notification: as OwnerNotificationEvent, with the occurrence left to 1.
 export interface OwnerNotificationOf {
   kind: OwnerNotificationKind;
   projectId: ObjectID;
-  // The incident or alert the owners are told of.
+  // The record the owners are told of: an incident, an alert, a monitor...
   resourceId: ObjectID;
   // The record whose notification it is.
   eventId: ObjectID;
@@ -98,21 +120,48 @@ export class OwnerNotificationDelivery {
   // Whom a run before this one told already: it stopped before it was done.
   public readonly toldEarlier: Array<User>;
 
+  /*
+   * The owners this run left out of the notification on purpose (plan's
+   * leaveOut): told of the record some other way already - its on-call page
+   * reached them (OwnersReachedByAPage). This run wrote no row for them, so
+   * no run that takes up what it left tells them. For the job's feed item
+   * to name apart from those it notified: never one of `owners` or
+   * `toldEarlier`. Empty for a delivery taken up from a stopped run, which
+   * does not know them.
+   */
+  public readonly leftOut: Array<User>;
+
+  /*
+   * Taken up only to write the feed item a run that told every owner
+   * stopped before writing (#8510): nobody is to be told, and the feed item
+   * names whom the rows say was told (toldEarlier).
+   */
+  public readonly isFeedLeftUnwritten: boolean;
+
   private readonly toTell: Map<string, OwnerToTellNow>;
   private setOutToTell: number = 0;
+  // Whether the rows keep the feed item as still to write.
+  private isFeedTracked: boolean;
 
   public constructor(data: {
     notification: OwnerNotificationEvent;
     isProjectOwners: boolean;
     owners: Array<OwnerToTellNow>;
     toldEarlier: Array<User>;
+    leftOut?: Array<User> | undefined;
+    feedStatus?: OwnerNotificationFeedStatus | null | undefined;
+    isFeedLeftUnwritten?: boolean | undefined;
   }) {
     this.notification = data.notification;
     this.isProjectOwners = data.isProjectOwners;
+    this.isFeedTracked =
+      data.feedStatus === OwnerNotificationFeedStatus.Pending;
+    this.isFeedLeftUnwritten = Boolean(data.isFeedLeftUnwritten);
     this.owners = data.owners.map((owner: OwnerToTellNow): User => {
       return owner.user;
     });
     this.toldEarlier = data.toldEarlier;
+    this.leftOut = data.leftOut || [];
     this.toTell = new Map<string, OwnerToTellNow>();
 
     for (const owner of data.owners) {
@@ -127,6 +176,31 @@ export class OwnerNotificationDelivery {
    */
   public get hasSetOutToTellAnyone(): boolean {
     return this.setOutToTell > 0;
+  }
+
+  /*
+   * Whether this run has anything to do for the notification: owners to
+   * tell, or the feed item a stopped run left unwritten.
+   */
+  public get hasWorkToDo(): boolean {
+    return this.owners.length > 0 || this.isFeedLeftUnwritten;
+  }
+
+  /*
+   * Whether this run writes the notification's feed item: it set out to tell
+   * an owner, or it took up the feed item a stopped run left unwritten.
+   */
+  public get isFeedItemToWrite(): boolean {
+    return this.hasSetOutToTellAnyone || this.isFeedLeftUnwritten;
+  }
+
+  /*
+   * Says the job wrote the notification's feed item, so no later run writes
+   * it again (#8510). Never throws: should it not be said, a later run
+   * writes the feed item a second time.
+   */
+  public async feedItemWritten(): Promise<void> {
+    await this.settleFeedItem(OwnerNotificationFeedStatus.Written);
   }
 
   /*
@@ -152,6 +226,7 @@ export class OwnerNotificationDelivery {
       try {
         isThisRuns = await OwnerNotificationDeliveryService.startTelling(
           toTell.rowId,
+          OneUptimeDate.getCurrentDate(),
         );
       } catch (error) {
         logger.error(
@@ -188,6 +263,7 @@ export class OwnerNotificationDelivery {
           status: isSent
             ? OwnerNotificationDeliveryStatus.Sent
             : OwnerNotificationDeliveryStatus.Failed,
+          at: OneUptimeDate.getCurrentDate(),
         });
       } catch (error) {
         // Left as being told: never told again, so told once at most.
@@ -202,9 +278,9 @@ export class OwnerNotificationDelivery {
   }
 
   /*
-   * The owners this run has not set out to tell yet are not told: their
-   * notification can no longer reach them (the record it is about is gone).
-   * Never throws.
+   * The owners this run has not set out to tell yet are not told, and the
+   * feed item still to write is not written: the notification can no longer
+   * reach them (the record it is about is gone). Never throws.
    */
   public async giveUp(reason: string): Promise<void> {
     const owners: Array<OwnerToTellNow> = [...this.toTell.values()];
@@ -219,20 +295,53 @@ export class OwnerNotificationDelivery {
         return rowId !== null;
       });
 
-    if (owners.length === 0) {
+    if (owners.length > 0) {
+      logger.warn(
+        `Not telling ${owners.length} owner(s) of ${this.describe()}: ${reason}.`,
+        this.logAttributes(),
+      );
+
+      try {
+        await OwnerNotificationDeliveryService.giveUpTelling(
+          rowIds,
+          OneUptimeDate.getCurrentDate(),
+        );
+      } catch (error) {
+        logger.error(
+          `Could not record that ${owners.length} owner(s) of ${this.describe()} are not told: ${error}.`,
+          this.logAttributes(),
+        );
+      }
+    } else if (this.isFeedLeftUnwritten) {
+      logger.warn(
+        `Not writing the feed item of ${this.describe()}: ${reason}.`,
+        this.logAttributes(),
+      );
+    }
+
+    await this.settleFeedItem(OwnerNotificationFeedStatus.NotWritten);
+  }
+
+  private async settleFeedItem(
+    feedStatus:
+      | OwnerNotificationFeedStatus.Written
+      | OwnerNotificationFeedStatus.NotWritten,
+  ): Promise<void> {
+    if (!this.isFeedTracked) {
       return;
     }
 
-    logger.warn(
-      `Not telling ${owners.length} owner(s) of ${this.describe()}: ${reason}.`,
-      this.logAttributes(),
-    );
+    this.isFeedTracked = false;
 
     try {
-      await OwnerNotificationDeliveryService.giveUpTelling(rowIds);
+      await OwnerNotificationDeliveryService.settleFeedItem({
+        event: this.notification,
+        feedStatus: feedStatus,
+        at: OneUptimeDate.getCurrentDate(),
+      });
     } catch (error) {
       logger.error(
-        `Could not record that ${owners.length} owner(s) of ${this.describe()} are not told: ${error}.`,
+        `Could not record that the feed item of ${this.describe()} is ${feedStatus === OwnerNotificationFeedStatus.Written ? "written" : "not written"}: ${error}.${feedStatus === OwnerNotificationFeedStatus.Written ? " A later run writes it again." : ""}`,
         this.logAttributes(),
       );
     }
@@ -278,15 +387,40 @@ export default class OwnerNotificationDeliveries {
    * record (see the top of this file), and hands back whom this run is to
    * tell - each owner who was not told or set out to be told already, in the
    * order given - and whom a run before it told. Never throws: should the
-   * rows not be written, every owner given is to be told, as before.
+   * rows not be written, every owner given is to be told, as before - but
+   * for those it leaves out.
    */
   public static async plan(data: {
     notification: OwnerNotificationOf;
     owners: Array<User>;
     isProjectOwners: boolean;
+    /*
+     * Whether the job writes a feed item naming whom the notification
+     * reached: its rows then keep it as still to write, so a later run
+     * writes it should this one stop before it does (#8510).
+     */
+    writesFeedItem: boolean;
+    /*
+     * Of `owners`, the ones not to tell after all: told of the record some
+     * other way already - its on-call page reached them
+     * (OwnersReachedByAPage). They get no row, so neither this run nor one
+     * that takes up what it left tells them, and the delivery hands them
+     * back (leftOut). One a run before this one wrote down or told already
+     * is told as planned, and is not named as left out.
+     */
+    leaveOut?: Array<User> | undefined;
   }): Promise<OwnerNotificationDelivery> {
     const notification: OwnerNotificationEvent = toEvent(data.notification);
-    const owners: Array<User> = onceEach(data.owners);
+    const toLeaveOut: Set<string> = new Set<string>(
+      onceEach(data.leaveOut || []).map(userKey),
+    );
+    const given: Array<User> = onceEach(data.owners);
+    const owners: Array<User> = given.filter((user: User): boolean => {
+      return !toLeaveOut.has(userKey(user));
+    });
+    const leftOut: Array<User> = given.filter((user: User): boolean => {
+      return toLeaveOut.has(userKey(user));
+    });
 
     if (owners.length === 0) {
       return new OwnerNotificationDelivery({
@@ -294,6 +428,7 @@ export default class OwnerNotificationDeliveries {
         isProjectOwners: data.isProjectOwners,
         owners: [],
         toldEarlier: [],
+        leftOut: leftOut,
       });
     }
 
@@ -309,6 +444,7 @@ export default class OwnerNotificationDeliveries {
           };
         }),
         at: OneUptimeDate.getCurrentDate(),
+        writesFeedItem: data.writesFeedItem,
       });
     } catch (error) {
       logger.error(
@@ -323,6 +459,7 @@ export default class OwnerNotificationDeliveries {
           return { user: user, rowId: null };
         }),
         toldEarlier: [],
+        leftOut: leftOut,
       });
     }
 
@@ -334,6 +471,91 @@ export default class OwnerNotificationDeliveries {
       }),
       rows: rows,
       known: owners,
+      isFeedLeftUnwritten: false,
+      leftOut: leftOut,
+    });
+  }
+
+  /*
+   * plan(), for the record's owners as `findOwners` reads them - or the
+   * project's owners, told in their place, when it reads none. A failure to
+   * read them tells nobody, as it did when it came after the take, and says
+   * so. Never throws.
+   */
+  public static async planForOwnersOf(data: {
+    notification: OwnerNotificationOf;
+    findOwners: () => Promise<Array<User>>;
+    /*
+     * The project's owners, read here (ProjectService.getOwners) when not
+     * given. A job telling of many records of one project hands a read it
+     * makes once for all of them (OwnerNotificationBacklog, issue #7974).
+     */
+    findProjectOwners?: (() => Promise<Array<User>>) | undefined;
+    writesFeedItem: boolean;
+    /*
+     * Of the owners read - the record's, or the project's in their place -
+     * the ones to leave out (plan's leaveOut): those the record's on-call
+     * page reached already (OwnersReachedByAPage). Should it fail, nobody
+     * is left out, and it says so.
+     */
+    findOwnersToLeaveOut?:
+      | ((owners: Array<User>) => Promise<Array<User>>)
+      | undefined;
+  }): Promise<OwnerNotificationDelivery> {
+    let owners: Array<User> = [];
+    let isProjectOwners: boolean = false;
+
+    try {
+      owners = await data.findOwners();
+
+      if (owners.length === 0) {
+        isProjectOwners = true;
+
+        if (data.findProjectOwners) {
+          owners = await data.findProjectOwners();
+        } else {
+          owners = await ProjectService.getOwners(data.notification.projectId);
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `Could not read whom ${data.notification.kind} ${data.notification.eventId.toString()} is to tell: ${error}. Telling nobody.`,
+        {
+          projectId: data.notification.projectId.toString(),
+          ownerNotificationKind: data.notification.kind,
+          resourceId: data.notification.resourceId.toString(),
+          eventId: data.notification.eventId.toString(),
+        } as LogAttributes,
+      );
+      owners = [];
+      isProjectOwners = false;
+    }
+
+    let leaveOut: Array<User> = [];
+
+    if (data.findOwnersToLeaveOut && owners.length > 0) {
+      try {
+        leaveOut = await data.findOwnersToLeaveOut(owners);
+      } catch (error) {
+        logger.error(
+          `Could not read whom of the owners of ${data.notification.kind} ${data.notification.eventId.toString()} to leave out: ${error}. Telling every one of them.`,
+          {
+            projectId: data.notification.projectId.toString(),
+            ownerNotificationKind: data.notification.kind,
+            resourceId: data.notification.resourceId.toString(),
+            eventId: data.notification.eventId.toString(),
+          } as LogAttributes,
+        );
+        leaveOut = [];
+      }
+    }
+
+    return await this.plan({
+      notification: data.notification,
+      owners: owners,
+      isProjectOwners: isProjectOwners,
+      writesFeedItem: data.writesFeedItem,
+      leaveOut: leaveOut,
     });
   }
 
@@ -401,6 +623,7 @@ export default class OwnerNotificationDeliveries {
             exhausted.map((row: OwnerNotificationDeliveryRow): ObjectID => {
               return row.id;
             }),
+            now,
           );
 
           logger.error(
@@ -443,12 +666,127 @@ export default class OwnerNotificationDeliveries {
           toTell: toTell,
           rows: rows,
           known: [],
+          isFeedLeftUnwritten: false,
         });
 
         await data.notify(delivery);
       } catch (error) {
         logger.error(
           `Telling the owners a stopped run left to be told of ${notification.kind} ${notification.eventId.toString()} failed: ${error}. A later run tries again.`,
+          attributes,
+        );
+        logger.error(error, attributes);
+      }
+    }
+
+    await this.resumeFeedItems({
+      kinds: data.kinds,
+      notify: data.notify,
+      now: now,
+      attemptedBefore: attemptedBefore,
+    });
+  }
+
+  /*
+   * Writes the feed items a stopped run left unwritten after telling every
+   * owner (#8510): each taken up by one run alone, once no row of its
+   * notification moved for RESUME_AFTER_MINUTES, and handed to `notify` with
+   * nobody to tell and whom the rows say was told. Never throws.
+   */
+  private static async resumeFeedItems(data: {
+    kinds: Array<OwnerNotificationKind>;
+    notify: (delivery: OwnerNotificationDelivery) => Promise<void>;
+    now: Date;
+    attemptedBefore: Date;
+  }): Promise<void> {
+    let notifications: Array<OwnerNotificationEvent> = [];
+
+    try {
+      notifications =
+        await OwnerNotificationDeliveryService.findFeedItemsLeftUnwritten({
+          kinds: data.kinds,
+          attemptedBefore: data.attemptedBefore,
+          limit: this.TAKEN_UP_PER_RUN_AT_MOST,
+        });
+    } catch (error) {
+      logger.error(
+        `Could not read the feed items a stopped run of ${data.kinds.join(", ")} left unwritten: ${error}`,
+      );
+      return;
+    }
+
+    for (const notification of notifications) {
+      const attributes: LogAttributes = {
+        projectId: notification.projectId.toString(),
+        ownerNotificationKind: notification.kind,
+        resourceId: notification.resourceId.toString(),
+        eventId: notification.eventId.toString(),
+      };
+
+      try {
+        const rows: Array<OwnerNotificationDeliveryRow> =
+          await OwnerNotificationDeliveryService.takeUpFeedItemLeftUnwritten({
+            event: notification,
+            attemptedBefore: data.attemptedBefore,
+            at: data.now,
+          });
+
+        // Another run took it up first, or one is still at it.
+        if (rows.length === 0) {
+          continue;
+        }
+
+        const told: Array<OwnerNotificationDeliveryRow> = rows.filter(
+          (row: OwnerNotificationDeliveryRow): boolean => {
+            return row.status === OwnerNotificationDeliveryStatus.Sent;
+          },
+        );
+
+        const isExhausted: boolean = rows.some(
+          (row: OwnerNotificationDeliveryRow): boolean => {
+            return row.attempts > this.ATTEMPTS_AT_MOST;
+          },
+        );
+
+        if (isExhausted || told.length === 0) {
+          await OwnerNotificationDeliveryService.settleFeedItem({
+            event: notification,
+            feedStatus: OwnerNotificationFeedStatus.NotWritten,
+            at: data.now,
+          });
+
+          if (isExhausted) {
+            logger.error(
+              `Gave up writing the feed item of ${notification.kind} ${notification.eventId.toString()}: each of the ${this.ATTEMPTS_AT_MOST} runs that set out to notify its owners stopped before it was written.`,
+              attributes,
+            );
+          }
+
+          continue;
+        }
+
+        logger.warn(
+          `A run of the owner notifications stopped after telling the owners of ${notification.kind} ${notification.eventId.toString()} and before writing its feed item: writing it, naming the ${told.length} owner(s) it told.`,
+          attributes,
+        );
+
+        const delivery: OwnerNotificationDelivery = await this.deliveryOf({
+          notification: notification,
+          isProjectOwners: rows.every(
+            (row: OwnerNotificationDeliveryRow): boolean => {
+              return row.isProjectOwner;
+            },
+          ),
+          toTell: [],
+          rows: rows,
+          known: [],
+          isFeedLeftUnwritten: true,
+        });
+
+        await data.notify(delivery);
+      } catch (error) {
+        logger.error(
+          `Writing the feed item a stopped run left unwritten of ${notification.kind} ${notification.eventId.toString()} failed: ${error}. A later run tries again.`,
           attributes,
         );
         logger.error(error, attributes);
@@ -467,6 +805,9 @@ export default class OwnerNotificationDeliveries {
     toTell: Array<OwnerNotificationDeliveryRow>;
     rows: Array<OwnerNotificationDeliveryRow>;
     known: Array<User>;
+    isFeedLeftUnwritten: boolean;
+    // Whom plan() left out (its leaveOut); none for one taken up.
+    leftOut?: Array<User> | undefined;
   }): Promise<OwnerNotificationDelivery> {
     const told: Array<OwnerNotificationDeliveryRow> = data.rows.filter(
       (row: OwnerNotificationDeliveryRow): boolean => {
@@ -545,7 +886,10 @@ export default class OwnerNotificationDeliveries {
       );
 
       try {
-        await OwnerNotificationDeliveryService.giveUpTelling(gone);
+        await OwnerNotificationDeliveryService.giveUpTelling(
+          gone,
+          OneUptimeDate.getCurrentDate(),
+        );
       } catch (error) {
         logger.error(
           `Could not record that ${gone.length} owner(s) whose user is gone are not told: ${error}.`,
@@ -556,10 +900,34 @@ export default class OwnerNotificationDeliveries {
       }
     }
 
+    /*
+     * Of those left out, none a run has written down to be told, is telling
+     * or told - one before this one, before the page reached them: they are
+     * told as planned, and the feed item must not say they were not.
+     */
+    const planned: Set<string> = new Set<string>(
+      data.rows
+        .filter((row: OwnerNotificationDeliveryRow): boolean => {
+          return row.status !== OwnerNotificationDeliveryStatus.Failed;
+        })
+        .map((row: OwnerNotificationDeliveryRow): string => {
+          return row.userId.toString().toLowerCase();
+        }),
+    );
+
     return new OwnerNotificationDelivery({
       notification: data.notification,
       isProjectOwners: data.isProjectOwners,
       owners: owners,
+      leftOut: (data.leftOut || []).filter((user: User): boolean => {
+        return !planned.has(userKey(user));
+      }),
+      // Alike on every row of the notification.
+      feedStatus:
+        data.rows.find((row: OwnerNotificationDeliveryRow): boolean => {
+          return row.feedStatus === OwnerNotificationFeedStatus.Pending;
+        })?.feedStatus || null,
+      isFeedLeftUnwritten: data.isFeedLeftUnwritten,
       toldEarlier: inOrder(told)
         .map((row: OwnerNotificationDeliveryRow): User | undefined => {
           return users.get(row.userId.toString().toLowerCase());

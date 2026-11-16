@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -83,6 +84,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 export interface ComponentProps {
   /** What the user is investigating, e.g. `CPU by host · 12:01–12:14`. */
   title?: string | undefined;
+  // The title is in the reader's words already, drawn as given (SideOver's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   /** The pinned window under investigation (a zoom, a bucket, a spike). */
   window: InBetween<Date>;
   /**
@@ -662,6 +665,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
   return (
     <SideOver
       title={props.title || "Investigate window"}
+      isTitleTranslated={Boolean(props.title) && props.isTitleTranslated}
       description={formatPinnedWindow()}
       size={SideOverSize.Large}
       onClose={props.onClose}
@@ -901,7 +905,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                         {stat.label}
                       </p>
                       <p className="mt-1 text-lg font-semibold tabular-nums text-gray-900">
-                        {stat.value}
+                        {getFigure(stat.value)}
                       </p>
                     </div>
                   );

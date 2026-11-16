@@ -263,7 +263,7 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 :::details Agenten rapporterer ikke
 - Kontrollér, at tjenesten kører: `sudo oneuptime-infrastructure-agent status`.
 - Læs dens log: `sudo oneuptime-infrastructure-agent logs -n 50`. En linje `Metrics successfully pushed to OneUptime server` betyder, at OneUptime har modtaget en rapport, ikke at det har accepteret den: OneUptime svarer, før det kontrollerer den hemmelige nøgle. At monitorens fane **Metrikker** viser diagrammer over serveren, viser, at det har accepteret dem.
-- Agenten kontrollerer den hemmelige nøgle, når den starter, og afslutter, hvis OneUptime afviser den, med logningen `Secret key is invalid`. Sammenlign nøglen med den på monitorens side **Indstillinger** under **Nulstil hemmelig nøgle for serverovervågning**. Så længe OneUptime ikke kan nås, logger agenten `The secret key could not be verified with OneUptime yet` og prøver igen.
+- Agenten kontrollerer den hemmelige nøgle, når den starter, og afslutter, hvis OneUptime afviser den, med logningen `Secret key is invalid`. Sammenlign nøglen med den på monitorens side **Indstillinger** under **Nulstil hemmelig nøgle for servermonitor**. Så længe OneUptime ikke kan nås, logger agenten `The secret key could not be verified with OneUptime yet` og prøver igen.
 - Sørg for, at serveren kan nå din OneUptime-URL over HTTPS, og at ingen firewall blokerer udgående forbindelser.
 :::
 

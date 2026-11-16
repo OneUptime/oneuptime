@@ -73,10 +73,10 @@ Um incidente declarado por meio de um formulário é um incidente comum, com alg
 
 - **Oculto das páginas de status.** **Visível na página de status** fica desativado, assim como **Notificar assinantes da página de status**. Até que um responder o publique, nada do incidente chega a uma página de status ou a um assinante — exceto a mudança de status de monitor de um modelo, descrita acima.
 - **Declarado por ninguém.** O remetente não é um usuário do OneUptime, então nenhum usuário fica registrado como quem declarou o incidente.
-- **Os proprietários dele são avisados.** Os proprietários que as configurações e o modelo indicam são adicionados assim que os canais do Slack e do Microsoft Teams do incidente existem, e são notificados — a notificação **Incidente criado** do incidente espera até que eles sejam os proprietários dele, para chegar a eles e não aos proprietários do projeto.
+- **Os proprietários dele são avisados.** Os proprietários que as configurações e o modelo indicam são adicionados assim que os canais do Slack e do Microsoft Teams do incidente existem, e são notificados — a notificação **Incidente criado** do incidente espera até que eles sejam os proprietários dele, para chegar a eles e não aos Proprietários do projeto.
 - **Uma nota privada registra o envio** — consulte [A nota privada](#a-nota-privada).
 
-Tudo o que é executado para um novo incidente também é executado para estes: as regras de privacidade, de proprietários, de rótulos, de plantão e de runbooks, as políticas de plantão e os fluxos de trabalho **On Create Incident**. As regras de plantão correspondem aos incidentes de um formulário como a quaisquer outros — inclusive pelo título e pela descrição, que o remetente escreveu.
+Tudo o que é executado para um novo incidente também é executado para estes: as regras de privacidade, de proprietários, de rótulos, de plantão e de runbooks, as políticas de plantão e os fluxos de trabalho **Ao criar: Incidente**. As regras de plantão correspondem aos incidentes de um formulário como a quaisquer outros — inclusive pelo título e pela descrição, que o remetente escreveu.
 
 :::steps
 #### Leia o que o remetente escreveu

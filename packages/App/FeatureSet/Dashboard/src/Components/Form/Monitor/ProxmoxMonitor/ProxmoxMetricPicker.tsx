@@ -9,6 +9,7 @@ import {
   getAllProxmoxMetricCategories,
   ProxmoxMetricDefinition,
   ProxmoxMetricCategory,
+  getProxmoxMetricCategoryLabel,
 } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -35,8 +36,11 @@ const ProxmoxMetricPicker: FunctionComponent<ComponentProps> = (
         },
       );
 
+      // The group's heading, a key of the catalog's (#8653).
+      const heading: string = getProxmoxMetricCategoryLabel(category);
+
       return {
-        label: category,
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: ProxmoxMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

@@ -1070,9 +1070,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           value={
             alertStartedAt ? (
               <EventStartTileValue startedAt={alertStartedAt} />
-            ) : (
-              "-"
-            )
+            ) : undefined
           }
           note={getImpactBeforeStartText(
             {
@@ -1742,7 +1740,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 title: "Private Alert",
                 description:
-                  "Only the alert's owners, project admins and project owners can see it.",
+                  "Only the alert's owners, Project Admins and Project Owners can see it.",
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
                 collapsibleSection: advancedSection,

@@ -4,13 +4,13 @@ import Permission, {
 } from "../../../../Types/Permission";
 
 /*
- * The words a refusal of one column says, for the four things a request does
+ * The words a refusal of one column says, for the five things a request does
  * with a column: give a new record a value in it (create), change it
- * (update), read it back (select) and filter by it (query) - in the
- * database's permission checks (ColumnPermission, SelectPermission,
- * QueryPermission) and the analytics database's (AnalyticsDatabase
- * ModelPermission) alike, so the same refusal reads the same wherever it
- * comes from.
+ * (update), read it back (select), filter by it (query) and order a list by
+ * it (sort) - in the database's permission checks (ColumnPermission,
+ * SelectPermission, QueryPermission, SortValidator) and the analytics
+ * database's (AnalyticsDatabase ModelPermission) alike, so the same refusal
+ * reads the same wherever it comes from.
  *
  * A refusal is two sentences. The first names what was refused, in the
  * words it always had: clients read them. The generated Terraform provider
@@ -24,7 +24,7 @@ import Permission, {
  * to end "You need any one of these permissions:" with nothing after it.
  */
 
-export type ColumnOperation = "create" | "update" | "select" | "query";
+export type ColumnOperation = "create" | "update" | "select" | "query" | "sort";
 
 // Why nobody may: the column is the server's, for each operation.
 export const NO_PERMISSION_ALLOWS: Record<ColumnOperation, string> = {
@@ -36,6 +36,7 @@ export const NO_PERMISSION_ALLOWS: Record<ColumnOperation, string> = {
     "No permission allows it: the column is not readable through the API.",
   query:
     "No permission allows it: the column cannot be filtered on through the API.",
+  sort: "No permission allows it: a list cannot be sorted by the column through the API.",
 };
 
 /*
@@ -101,6 +102,30 @@ export default class ColumnRefusalMessage {
     permissions: Array<Permission>;
   }): string {
     return `You do not have permissions to query on - ${data.column}. ${ColumnRefusalMessage.getWhoMay("query", data.permissions)}`;
+  }
+
+  /*
+   * A column a sort orders a list by that the caller may not read: where
+   * each record falls in the order says what it holds (#8839).
+   */
+  public static getSortRefusal(data: {
+    column: string;
+    permissions: Array<Permission>;
+  }): string {
+    return `You do not have permissions to sort on - ${data.column}. ${ColumnRefusalMessage.getWhoMay("sort", data.permissions)}`;
+  }
+
+  /*
+   * A column of a related record a sort orders a list by through a
+   * relation - `{ probe: { key: "ASC" } }` - that the caller may not read.
+   */
+  public static getRelationSortRefusal(data: {
+    column: string;
+    relatedModelName: string;
+    relationColumn: string;
+    permissions: Array<Permission>;
+  }): string {
+    return `You do not have permissions to sort on - ${data.column} of ${data.relatedModelName} through ${data.relationColumn}. ${ColumnRefusalMessage.getWhoMay("sort", data.permissions)}`;
   }
 
   /*

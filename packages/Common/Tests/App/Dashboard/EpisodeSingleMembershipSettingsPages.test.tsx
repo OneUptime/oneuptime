@@ -369,7 +369,7 @@ describe.each(PAGES)(
       }
     });
 
-    test("a project owner turns it on: exactly its column is saved, at once, with no dialog", async () => {
+    test("a Project Owner turns it on: exactly its column is saved, at once, with no dialog", async () => {
       openPage(pageCase);
 
       const control: HTMLElement = await theSwitch(pageCase);
@@ -453,7 +453,7 @@ describe.each(PAGES)(
       },
     );
 
-    test("the switch writes the column the server reads, and needs a project owner or admin", () => {
+    test("the switch writes the column the server reads, and needs a Project Owner or Project Admin", () => {
       expect(pageCase.copy.column).toBe(pageCase.column);
       expect(
         getProjectColumnsUpdatePermissions([

@@ -13,9 +13,9 @@ Apri un incidente [ServiceNow](https://www.servicenow.com) per ogni incidente di
 
 ```mermaid title="Due flussi di lavoro, un incidente ServiceNow"
 flowchart TB
-    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>Alla creazione:<br/>Incidente"]
     create -->|"POST incident"| sn["Incidente ServiceNow"]
-    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>On Update Incident"]
+    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>All'aggiornamento:<br/>Incidente"]
     update --> find["Trova il record<br/>per correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,11 +54,11 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
 
 ### Creare il record
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://your-instance.service-now.com/api/now/table/incident`. In **Altri campi**, imposta i suoi **Intestazioni della richiesta** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **Chiamata API POST (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://your-instance.service-now.com/api/now/table/incident`. In **Altri campi**, imposta i suoi **Intestazioni della richiesta** su:
 
 ```json
 {
@@ -81,7 +81,7 @@ E il suo **Corpo della Richiesta** su:
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `201` con il nuovo record, il suo `sys_id` e il suo `number`, come `INC0012345`. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **Chiamata API POST (JSON)** mostra una risposta `201` con il nuovo record, il suo `sys_id` e il suo `number`, come `INC0012345`. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 `urgency` e `impact` accettano `1` per alto, `2` per medio e `3` per basso, e ServiceNow ricava la priorità dai due. Qualsiasi altra colonna della tabella `incident` può andare nel corpo, con il suo nome di colonna.
@@ -91,9 +91,9 @@ Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **In
 Un flusso di lavoro ha un solo trigger, quindi per risolvere serve un secondo flusso di lavoro, avviato quando cambia lo stato di un incidente.
 
 :::steps
-### Aggiungere il trigger On Update Incident
+### Aggiungere il trigger «All'aggiornamento: Incidente»
 
-Crea un flusso di lavoro chiamato `Resolve ServiceNow incidents` e scegli **On Update Incident** come trigger. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Fields to pass on**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
+Crea un flusso di lavoro chiamato `Resolve ServiceNow incidents` e scegli **All'aggiornamento: Incidente** come trigger. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Campi da passare**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Crea un flusso di lavoro chiamato `Resolve ServiceNow incidents` e scegli **On U
 
 ### Controllare che l'incidente sia risolto
 
-Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
+Aggiungi un blocco **Se / Altrimenti** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
 
 ### Trovare il record
 
-Aggiungi un blocco **API Get (JSON)** dopo il lato **Sì**, con gli stessi **Intestazioni della richiesta** e questo **URL**:
+Aggiungi un blocco **Chiamata API GET (JSON)** dopo il lato **Sì**, con gli stessi **Intestazioni della richiesta** e questo **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,7 +113,7 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Risolvere il record
 
-Aggiungi un blocco **API Patch (JSON)** dopo il **Successo** del blocco di ricerca, con gli stessi **Intestazioni della richiesta** e questo **URL**:
+Aggiungi un blocco **Chiamata API PATCH (JSON)** dopo il **Successo** del blocco di ricerca, con gli stessi **Intestazioni della richiesta** e questo **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}

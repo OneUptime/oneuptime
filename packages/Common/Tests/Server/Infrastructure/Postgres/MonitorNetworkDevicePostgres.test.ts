@@ -550,6 +550,56 @@ describePostgres("MonitorNetworkDevice and its triggers, on Postgres", () => {
     }
   });
 
+  /*
+   * The device page's Monitors card asks the same table
+   * (NetworkDeviceWatchingMonitorsAPI, issue #8101): the ids of the monitors
+   * whose steps name the device, in its project, each once - a monitor
+   * naming it in two steps included - and none of another project's, of
+   * another type, or of a deleted monitor.
+   */
+  test("the ids the device page reads are the device's watchers in its project, each once", async () => {
+    const device: string = ObjectID.generate().toString();
+    const watcher: string = await insertMonitor({
+      steps: stepsNaming(device),
+    });
+    const twice: string = await insertMonitor({
+      steps: stepsNaming(device, deviceA, device),
+    });
+    const deleted: string = await insertMonitor({
+      steps: stepsNaming(device),
+    });
+    await database.query(
+      `UPDATE "Monitor" SET "deletedAt" = now() WHERE "_id" = $1`,
+      [deleted],
+    );
+    await insertMonitor({
+      steps: stepsNaming(device),
+      project: otherProjectId,
+    });
+    await insertMonitor({
+      monitorType: MonitorType.API,
+      steps: stepsNaming(device),
+    });
+    // Watches another device only.
+    await insertMonitor({ steps: stepsNaming(deviceB) });
+
+    const monitorIds: Array<string> =
+      await MonitorNetworkDeviceService.findMonitorIdsWatching({
+        projectId: projectId,
+        deviceIds: [device],
+      });
+
+    expect([...monitorIds].sort()).toEqual([watcher, twice].sort());
+
+    // A device nothing watches names none.
+    expect(
+      await MonitorNetworkDeviceService.findMonitorIdsWatching({
+        projectId: projectId,
+        deviceIds: [ObjectID.generate().toString()],
+      }),
+    ).toEqual([]);
+  });
+
   test("the lookup reads the device index, however many monitors the project has", async () => {
     await database.query(
       `INSERT INTO "Monitor" ("_id", "projectId", "name", "slug", "monitorType", "currentMonitorStatusId", "version", "monitorSteps")

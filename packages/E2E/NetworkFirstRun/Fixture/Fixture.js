@@ -42,8 +42,8 @@ import {
 import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
-import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import NetworkLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Network/Layout";
 import NetworkOverview from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Overview";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -443,13 +443,27 @@ API.fetch = async (options) => {
   return handleApi(options.method || "GET", options);
 };
 
+/*
+ * English, the fallback, is in the bundle; German is a chunk of its own,
+ * loaded only by a page drawn in that language, as the Dashboard loads a
+ * locale (src/Utils/I18nLocaleLoader.ts), and built as the Dashboard ships
+ * them (server.js, SuiteHelpers/FixtureLocalesBuild.js). Imported whole,
+ * they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
   fallbackLng: "en",
-  resources: {
-    en: { translation: en },
-    de: { translation: de },
-  },
+  resources: await localeResources({
+    language: language,
+    english: en,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
 });
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.

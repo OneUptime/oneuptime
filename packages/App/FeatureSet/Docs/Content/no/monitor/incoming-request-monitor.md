@@ -1,4 +1,4 @@
-# Innkommende forespørsel-overvåking
+# Innkommende forespørsel-monitor
 
 En monitor for innkommende forespørsler gir deg en URL som andre systemer sender HTTP-forespørsler til. OneUptime evaluerer hver forespørsel mot kriteriene dine og kan endre monitorens status, erklære hendelser og tilkalle dem som har vakt.
 
@@ -12,7 +12,7 @@ Begge bruker samme monitortype. Det som skiller dem, er kriteriene du konfigurer
 :::cards
 - [Opprett monitoren](#opprett-en-monitor-for-innkommende-forespørsler): Få en heartbeat-URL i noen få trinn.
 - [Send et heartbeat](#send-et-heartbeat): Fra curl, cron, Node.js, Python eller Go.
-- [Varsle når kallene stopper](#marker-som-frakoblet-hvis-det-ikke-kommer-noe-heartbeat-på-10-minutter-en-dødmannsbryter): Gjør monitoren til en dødmannsbryter.
+- [Varsle når kallene stopper](#marker-som-offline-hvis-det-ikke-kommer-noe-heartbeat-på-10-minutter-en-dødmannsbryter): Gjør monitoren til en dødmannsbryter.
 - [Motta varsler](#motta-varsler-fra-et-annet-system): Én hendelse per varsel fra Alertmanager eller Grafana.
 - [Abonner på SNS eller Event Grid](#abonnere-på-amazon-sns-eller-azure-event-grid): Bekreft abonnementet med ett klikk.
 :::
@@ -54,7 +54,7 @@ Under **Monitortype** velger du **Innkommende forespørsel** — den er en av de
 
 ### Gå gjennom kriteriene
 
-Trinnet **Kriterier** starter med [standardkriteriene](#hva-du-får-fra-start). For et heartbeat klikker du på **Legg til kriterier** og gir det nye kriteriet et filter **Innkommende forespørsel** / **Ikke mottatt innen (minutter)** som endrer statusen til frakoblet og erklærer en hendelse, med **Løs hendelse automatisk** slått på. Dra det deretter øverst i listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for hvorfor.
+Trinnet **Kriterier** starter med [standardkriteriene](#hva-du-får-fra-start). For et heartbeat klikker du på **Legg til kriterier** og gir det nye kriteriet et filter **Innkommende forespørsel** / **Ikke mottatt innen (minutter)** som endrer statusen til offline og erklærer en hendelse, med **Løs hendelse automatisk** slått på. Dra det deretter øverst i listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for hvorfor.
 
 ### Opprett monitoren
 
@@ -95,7 +95,7 @@ Hvis du vil bruke felt inne i forespørselsteksten — `{{requestBody.status}}` 
 | `application/json` | Den tolkede JSON-en. |
 | `application/x-www-form-urlencoded` | Det tolkede skjemaet. Nøkler i hakeparenteser nestes (`alerts[0][status]=firing`), og alle verdier er strenger. |
 | `text/plain` | Den tolkede JSON-en, når teksten er et JSON-objekt eller en JSON-matrise: slik sender Amazon SNS meldingene sine. All annen tekst gir en tom forespørselstekst. |
-| Alt annet, eller ingen | En tom tekst (`{}`), så hver henvisning til `requestBody` blir til ingenting. |
+| Alt annet, eller ingen | En tom tekst (`{}`), så ingen henvisning til `requestBody` løses opp, og en mal skriver den ordrett. |
 
 Tekster på opptil 50 MB godtas; en større avvises med en `413`. Ikke komprimer teksten med `Content-Encoding: gzip`: da lagres den ikke som JSON, og stier inn i den blir ikke løst opp.
 
@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Krev en hemmelighet ved hver forespørsel
 
-Alle som har URL-en til en overvåker, kan sende den forespørsler. En prosjekteier eller -administrator kan få alle overvåkere av innkommende forespørsler i prosjektet til også å kreve en av prosjektets egne hemmeligheter, uansett hvem som satte opp overvåkeren: slå på **Krev en hemmelighet ved hver forespørsel**. En forespørsel uten hemmelighet avvises med `401` og årsaken, før den teller som heartbeat, lagres som overvåkerens siste forespørsel eller når noen kriterier. En forespørsel med hemmelighet går videre til overvåkerens egne kriterier, som før.
+Alle som har URL-en til en monitor, kan sende den forespørsler. En Prosjekteier eller Prosjektadministrator kan få alle monitorer av innkommende forespørsler i prosjektet til også å kreve en av prosjektets egne hemmeligheter, uansett hvem som satte opp monitoren: slå på **Krev en hemmelighet ved hver forespørsel**. En forespørsel uten hemmelighet avvises med `401` og årsaken, før den teller som heartbeat, lagres som monitorens siste forespørsel eller når noen kriterier. En forespørsel med hemmelighet går videre til monitorens egne kriterier, som før.
 
 :::steps
 ### Opprett en hemmelighet
@@ -201,6 +201,10 @@ Gå til **Monitorer → Innstillinger → Hemmeligheter for innkommende forespø
 ### Send den fra alle avsendere
 
 Send hemmeligheten i headeren `X-OneUptime-Secret`, eller som Bearer-token i headeren `Authorization`, avhengig av hva avsenderen din kan sette.
+
+### Finn avsenderne du har glemt
+
+Så snart prosjektet har en hemmelighet, sjekker OneUptime hver forespørsel for en, uten å avvise noen ennå. **Forespørsler uten hemmelighet** på samme side viser hver monitor av innkommende forespørsler som har fått en forespørsel uten gyldig hemmelighet de siste 24 timene, og hvorfor: Det ble ikke sendt noen, eller det ble sendt en feil. Rett de avsenderne. En overvåker der avsenderne er rettet, viser et senere tidspunkt under **Sist med hemmelighet** enn under **Sist uten hemmelighet**, og forsvinner fra listen innen 24 timer.
 
 ### Slå på kravet
 
@@ -223,7 +227,7 @@ OneUptime lagrer aldri hemmeligheten: Den fjerner headeren fra forespørselen og
 
 ## Overvåkingskriterier
 
-Du kan konfigurere kriterier som avgjør når tjenesten din regnes som online, redusert eller frakoblet. Hvert kriteriefilter har en **Filtertype** (hva det ses på), et **Filtervilkår** (hvordan det sammenlignes) og en **Verdi**.
+Du kan konfigurere kriterier som avgjør når tjenesten din regnes som online, redusert eller offline. Hvert kriteriefilter har en **Filtertype** (hva det ses på), et **Filtervilkår** (hvordan det sammenlignes) og en **Verdi**.
 
 ### Hva du får fra start
 
@@ -231,7 +235,7 @@ En ny monitor for innkommende forespørsler opprettes med to kriterier som leser
 
 | Kriterium | Filtertype | Filtervilkår | Verdi | Virkning |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Forespørselstekst | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
+| Offline  | Forespørselstekst | Inneholder | `error` | Markerer monitoren som offline, åpner en hendelse |
 | Online   | Forespørselstekst | Inneholder ikke | `error` | Markerer monitoren som online |
 
 Dette passer for det vanlige tilfellet der avsenderen rapporterer sin egen helse i nyttelasten: en forespørsel der teksten nevner `error`, tar monitoren ned, og den neste forespørselen uten ordet får monitoren opp igjen og løser hendelsen. En forespørsel helt uten tekst regnes som "inneholder ikke `error`", så et rent heartbeat-kall holder monitoren online.
@@ -268,7 +272,7 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 
 ### Eksempler på kriterier
 
-#### Marker som frakoblet hvis det ikke kommer noe heartbeat på 10 minutter (en dødmannsbryter)
+#### Marker som offline hvis det ikke kommer noe heartbeat på 10 minutter (en dødmannsbryter)
 
 | Felt | Verdi |
 | --- | --- |
@@ -288,7 +292,7 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 > Legg dødmannsbryteren **over** standardkriteriene. Kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør. Bakgrunnskontrollen leser den siste forespørselen på nytt, så standardkriteriet for online — "Forespørselstekst Inneholder ikke `error`" — fortsetter å samsvare med den, og et kriterium under det kommer aldri til. **Legg til kriterier** legger til et kriterium nederst: dra det opp.
 
 > [!WARNING]
-> En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Innkommende forespørsel**. En monitor der kriteriene bare sjekker forespørselsteksten, Forespørselshode eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli frakoblet av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Innkommende forespørsel**.
+> En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Innkommende forespørsel**. En monitor der kriteriene bare sjekker forespørselsteksten, Forespørselshode eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli offline av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Innkommende forespørsel**.
 
 Bakgrunnskontrollen teller hele minutter og utløses så snart *mer* enn verdien har gått: "Ikke mottatt innen (minutter): 10" utløses omtrent 11 minutter etter den siste forespørselen (kontrollen kjører hvert 30. sekund). En monitor som aldri har mottatt en forespørsel, behandles som om opprettelsestidspunktet var den siste forespørselen, så det samme kriteriet på en helt ny monitor utløses omtrent 11 minutter etter at du oppretter den, selv om avsenderen aldri ble koblet til. Bare minutter da OneUptime tok imot, teller med: minutter mens OneUptime selv starter på nytt, oppgraderes eller tar igjen etterslep, teller ikke, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -345,7 +349,7 @@ Kortet **Monitor-sammendrag** på monitorens **Oversikt** viser hva hver foresp�
 En webhook beskriver bare det som står i den nyttelasten, så OneUptime løser aldri en hendelse fordi nøkkelen sluttet å dukke opp. En hendelse løses bare når en nyttelast uttrykkelig sier at den nøkkelen er over. To ting må begge være sanne:
 
 1. **Field that signals recovery** og **Value that means recovered** er fylt inn og samsvarer med nyttelasten. Sammenligningen er nøyaktig og skiller mellom store og små bokstaver — `Resolved` samsvarer ikke med `resolved`.
-2. Hendelsen til kriteriet har **Løs hendelse automatisk** slått på, under **Flere felt** i hendelsesskjemaet. Uten det ignoreres samsvarende meldinger om at problemet er over, og hendelsene forblir åpne. (Det samme gjelder varsler og **Løs varsel automatisk**.) Standardkriteriet for frakoblet starter med det slått på; en hendelse du selv legger til i et kriterium, starter med det slått av.
+2. Hendelsen til kriteriet har **Løs hendelse automatisk** slått på, under **Flere felt** i hendelsesskjemaet. Uten det ignoreres samsvarende meldinger om at problemet er over, og hendelsene forblir åpne. (Det samme gjelder varsler og **Løs varsel automatisk**.) Standardkriteriet for offline starter med det slått på; en hendelse du selv legger til i et kriterium, starter med det slått av.
 
 **Max incidents per request** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi taket er også usynlige for løsningen, så i en nyttelast med flere særskilte nøkler enn taket lukker ikke et varsel som melder `resolved` forbi taket, hendelsen sin.
 
@@ -428,10 +432,14 @@ Event Grid validerer et endepunkt som sender en kode tilbake til Event Grid, ell
 :::
 
 :::details Avsenderen min får en 401
-Prosjektet krever en hemmelighet ved hver forespørsel, og forespørselen sendte ingen, eller en som ikke er prosjektets: Svaret sier hvilken. Send en av prosjektets hemmeligheter i headeren `X-OneUptime-Secret` eller som Bearer-token, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser. En avvist forespørsel når aldri overvåkeren.
+Prosjektet krever en hemmelighet ved hver forespørsel, og forespørselen sendte ingen, eller en som ikke er prosjektets: Svaret sier hvilken. Send en av prosjektets hemmeligheter i headeren `X-OneUptime-Secret` eller som Bearer-token, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser. En avvist forespørsel når aldri monitoren.
 :::
 
-:::details Monitoren blir aldri frakoblet når heartbeats stopper
+:::details Monitoren får ikke lenger forespørsler etter at en hemmelighet ble påkrevd
+Avsenderne sender ingen hemmelighet, eller en feil, så hver forespørsel de sender, avvises. En linje under monitorens **Heartbeat URL** sier når den siste avviste forespørselen kom, og **Forespørsler uten hemmelighet** viser hver monitor som har fått en de siste 24 timene, og hvorfor. Send en av prosjektets hemmeligheter fra disse avsenderne, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser.
+:::
+
+:::details Monitoren blir aldri offline når heartbeats stopper
 Bare et kriterium med **Innkommende forespørsel** (**Ikke mottatt innen (minutter)**) kan merke stillhet. Legg til et hvis det ikke finnes, og dra det over standardkriteriene: standardkriteriet for online samsvarer med den siste forespørselen ved hver bakgrunnskontroll, og det første kriteriet som samsvarer, avgjør.
 :::
 

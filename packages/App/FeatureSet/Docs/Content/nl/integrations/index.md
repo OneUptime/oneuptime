@@ -16,7 +16,7 @@ Elke integratie verplaatst gegevens in één richting of in beide. **Inkomend**:
 ```mermaid title="Inkomend en uitgaand"
 flowchart TB
     tool["Alerting- of<br/>beveiligingstool"] -->|"inkomend"| record["Incident of<br/>waarschuwing,<br/>dienst opgeroepen"]
-    record -->|"uitgaand"| workflow["Workflow, zoals<br/>On Create Incident"]
+    record -->|"uitgaand"| workflow["Workflow, zoals<br/>Bij aanmaken: Incident"]
     workflow -->|"API-aanroep<br/>of bericht"| other["Ticket-, oproep-<br/>of chattool"]
     other -.->|"webhook terug"| record
 ```
@@ -118,7 +118,7 @@ Begin voor een alertingtool met een [monitor voor inkomende verzoeken](/docs/mon
 1. Open **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul beginnen**. Geef de workflow een naam en klik op **Workflow maken**.
 2. Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Webhook**. Klik op de trigger en daarna op **URL kopiëren**.
 3. Stuur in de andere tool de webhook naar die URL als een `POST` met `Content-Type: application/json`.
-4. Voeg de blokken toe die erop reageren. Ze lezen het verzoek met verwijzingen zoals `{{local.components.webhook-1.returnValues.request-body.status}}`: een **If / Else**-blok om een veld te controleren, en daarna **Create One Incident** om een incident te melden.
+4. Voeg de blokken toe die erop reageren. Ze lezen het verzoek met verwijzingen zoals `{{local.components.webhook-1.returnValues.request-body.status}}`: een **Als / Anders**-blok om een veld te controleren, en daarna **Incident aanmaken (één record)** om een incident te melden.
 5. Zet **Ingeschakeld** aan bovenaan de **Bouwer**, stuur een test vanuit de andere tool en open **Logboeken → Uitvoeringen** om te zien wat er binnenkwam.
 :::
 
@@ -128,8 +128,8 @@ De URL is het enige inloggegeven, dus behandel hem als een wachtwoord. Zie [Webh
 
 :::steps
 1. Sla de API-sleutel van de tool op als geheime globale variabele, zoals [hieronder](#inloggegevens-veilig-houden) beschreven.
-2. Maak een workflow, klik op het gestippelde blok en kies een gebeurtenistrigger, zoals **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je wilt versturen, zoals **Beschrijving**.
-3. Klik op **Component toevoegen** en voeg een **API Post (JSON)**-blok toe. Verbind de **Succes**-punt van de trigger ermee.
+2. Maak een workflow, klik op het gestippelde blok en kies een gebeurtenistrigger, zoals **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je wilt versturen, zoals **Beschrijving**.
+3. Klik op **Component toevoegen** en voeg een **API-aanroep POST (JSON)**-blok toe. Verbind de **Succes**-punt van de trigger ermee.
 4. Vul de **URL** in, de **Aanvraagheaders** met de `Authorization`-header en de **Verzoeklichaam** met de velden van het incident, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klik op **Workflow uitvoeren**, kies onder **Incident** een incident en voer hem uit. Een testuitvoering stuurt het verzoek echt. Zet daarna **Ingeschakeld** aan.
 :::

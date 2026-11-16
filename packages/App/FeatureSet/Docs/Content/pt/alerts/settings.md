@@ -16,7 +16,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. As seções **Regras** 
 | Página de regras             | O que faz                                                                                      |
 | ---------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Regras de agrupamento**    | Reúne alertas relacionados em episódios. Veja [Episódios de alertas e regras de agrupamento](/docs/alerts/episodes). |
-| **Regras de Plantão**        | Executa políticas de plantão para os alertas e episódios correspondentes.                      |
+| **Regras de plantão**        | Executa políticas de plantão para os alertas e episódios correspondentes.                      |
 | **Regras de incidentes** | Declara um incidente a partir dos alertas correspondentes, na hora ou quando um alerta continua sem resolução. |
 | **Regras de proprietário**   | Adiciona proprietários aos alertas e episódios correspondentes.                                |
 | **Regras de runbook**        | Inicia runbooks para os alertas correspondentes.                                               |
@@ -56,9 +56,9 @@ flowchart TB
 As regras diferem na forma como várias correspondências são resolvidas:
 
 - **Regras de agrupamento**, **Regras de incidentes** e **Regras de lembrete** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
-- **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
+- **Regras de plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
 
-**Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Regras de alertas**, para alertas, e **Regras de episódios**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
+**Regras de plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Regras de alertas**, para alertas, e **Regras de episódios**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
 
 A maioria das regras atua sobre alertas e episódios criados depois que você as salva. Para aplicar uma regra de proprietário, de rótulos ou de privacidade aos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de lembrete são a exceção: salvar uma faz todos os alertas abertos corresponderem novamente.
 
@@ -75,7 +75,7 @@ Com duas ou mais condições, escolha **Corresponder a todas**, em que todas pre
 
 ## Regras de plantão
 
-**Alertas → Regras → Regras de Plantão** torna os acionamentos automáticos. Cada regra correspondente adiciona suas políticas ao novo alerta, e o alerta as executa junto com as políticas que já tinha, cada uma uma vez.
+**Alertas → Regras → Regras de plantão** torna os acionamentos automáticos. Cada regra correspondente adiciona suas políticas ao novo alerta, e o alerta as executa junto com as políticas que já tinha, cada uma uma vez.
 
 :::steps
 ### Escolher os alertas
@@ -123,7 +123,7 @@ As **Regras de proprietário** adicionam usuários e equipes proprietários aos 
 
 ## Regras de privacidade e de runbook
 
-As **Regras de privacidade** tornam privados os novos alertas que correspondem, antes que qualquer outra coisa seja executada: só seus proprietários e os administradores e proprietários do projeto podem vê-los. Uma regra tem duas etapas: **Corresponder**, os alertas que ela torna privados, e depois **Nome**, já preenchido como "Tornar privados os alertas". Veja [Alertas privados](/docs/alerts/index#alertas-privados).
+As **Regras de privacidade** tornam privados os novos alertas que correspondem, antes que qualquer outra coisa seja executada: só seus proprietários e os Administradores do projeto e Proprietários do projeto podem vê-los. Uma regra tem duas etapas: **Corresponder**, os alertas que ela torna privados, e depois **Nome**, já preenchido como "Tornar privados os alertas". Veja [Alertas privados](/docs/alerts/index#alertas-privados).
 
 As **Regras de runbook** iniciam um runbook quando um novo alerta corresponde, a menos que o alerta tenha sido criado resolvido. Veja [Regras de runbook](/docs/runbooks/rules).
 
@@ -178,7 +178,7 @@ O cartão **Próximo número** abaixo define o número que o próximo alerta e o
 
 ## Workflows
 
-Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, o mesmo para **Episódio de alertas**, **Linha do tempo de estado do alerta** e os demais, e ações como **Create One Alert** e **Update One Alert**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
+Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **Ao criar: Alerta**, **Ao atualizar: Alerta**, **Ao criar ou atualizar: Alerta** e **Ao excluir: Alerta**, o mesmo para **Episódio de alertas**, **Linha do tempo de estado do alerta** e os demais, e ações como **Criar: Alerta (um registro)** e **Atualizar: Alerta (um registro)**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
 
 ## Quem pode alterar isso
 

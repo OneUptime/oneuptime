@@ -779,7 +779,7 @@ describe("the last run's values, in the Run Workflow panel", () => {
     componentType: ComponentType.Trigger,
   } as unknown as NodeDataProp;
 
-  type LoadMock = jest.Mock<
+  type LoadMock = Mock<
     () => Promise<{ runId: string; scheduledAt: Date | null } | null>
   >;
 

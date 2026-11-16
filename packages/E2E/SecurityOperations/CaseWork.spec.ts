@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
@@ -43,6 +44,18 @@ const OPEN_CASES_PATH: string = `${PRODUCT}/cases`;
 // The SHA-256 the fixture's Okta export was kept with (CaseWorkFixture.js).
 const OKTA_EXPORT_SHA256: string =
   "9f2c1a7e4b8d3f60c5e1a2b7d9083e4f6a1c5b2d8e7f9a0b3c4d5e6f7a8b9c0d";
+
+/*
+ * The line under the Okta export's name, as read from the page: its file,
+ * and its size held to its unit by a no-break space (#8717).
+ */
+const OKTA_EXPORT_META: string = `okta-system-log-2026-10-14.json · ${withUnit("470.8", "KB")}`;
+
+// Who added each piece of evidence and when, a number held to its unit (#8456).
+const ADDED_LINES: Array<string> = [
+  "Added by Diego Alvarez an hour ago",
+  `Added by Maya Chen ${withUnit(3, "hours")} ago`,
+];
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -760,7 +773,7 @@ test.describe("a case's evidence", () => {
     });
     expect(metas).toEqual([
       "https://acme-commerce.okta.example/admin/users?filter=sprayed",
-      "okta-system-log-2026-10-14.json · 470.8 KB",
+      OKTA_EXPORT_META,
     ]);
     await expect(page.getByTestId("security-case-evidence-sha256")).toHaveText(
       "9f2c1a7e…9c0d",
@@ -773,10 +786,7 @@ test.describe("a case's evidence", () => {
      * Who added each and when, a line under it - the table's one column,
      * so no name is cut short and the rows never scroll sideways.
      */
-    expect(await addedLines(page)).toEqual([
-      "Added by Diego Alvarez an hour ago",
-      "Added by Maya Chen 3 hours ago",
-    ]);
+    expect(await addedLines(page)).toEqual(ADDED_LINES);
     // The table's header names one column: Evidence.
     const header: Locator = page
       .locator("#security-case-evidence-table-body")
@@ -876,7 +886,7 @@ test.describe("a case's evidence", () => {
     });
     expect(metas).toEqual([
       "https://acme-commerce.okta.example/admin/users?filter=sprayed",
-      "okta-system-log-2026-10-14.json · 470.8 KB",
+      OKTA_EXPORT_META,
     ]);
   });
 
@@ -951,10 +961,9 @@ test.describe("a case's evidence", () => {
       });
 
       // Each piece of evidence says who added it and when, at every width.
-      expect(await addedLines(page), `added lines at ${width}`).toEqual([
-        "Added by Diego Alvarez an hour ago",
-        "Added by Maya Chen 3 hours ago",
-      ]);
+      expect(await addedLines(page), `added lines at ${width}`).toEqual(
+        ADDED_LINES,
+      );
 
       /*
        * From md up a table: beside the side menu its card is 620 to 760px
@@ -1069,9 +1078,12 @@ test.describe("a case with nothing on it yet", () => {
     const noTasks: Locator = page.getByTestId("security-case-tasks-empty");
     await expect(noTasks).toBeVisible({ timeout: 30000 });
     await expect(noTasks).toContainText("No tasks yet");
-    // As every empty list with a locked Create says it.
+    /*
+     * As every empty list with a locked Create says it, the role named as
+     * the role picker draws it (#8520).
+     */
     await expect(page.getByTestId("security-case-tasks-empty-note")).toHaveText(
-      "You don't have permission to create these. Ask a project admin for access.",
+      "You don't have permission to create these. Ask a Project Admin for access.",
     );
     await expect(page.getByTestId("security-case-task-add-input")).toHaveCount(
       0,
@@ -1400,9 +1412,8 @@ test.describe("response targets", () => {
     // A time is never split across two lines: "48" here, "min" under it.
     for (const time of await lines.all()) {
       const text: string = (await time.textContent()) || "";
-      const noBreak: string = String.fromCharCode(0xa0);
       expect(text).not.toContain("48 min");
-      expect(text.includes(`48${noBreak}min`) || !text.includes("48")).toBe(
+      expect(text.includes(withUnit(48, "min")) || !text.includes("48")).toBe(
         true,
       );
     }

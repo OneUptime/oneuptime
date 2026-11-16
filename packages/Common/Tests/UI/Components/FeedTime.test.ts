@@ -442,17 +442,19 @@ describe("how long ago, at any distance", () => {
 
   test("a moment ahead of this clock is still a minute ago, never 'in 2 minutes'", () => {
     expect(getFeedTimeAgoDistance(-90)).toEqual({ count: 1, unit: "minute" });
-    expect(formatFeedTimeAgo(ago(-90), clock({ now }))).toBe("1 minute ago");
+    expect(formatFeedTimeAgo(ago(-90), clock({ now }))).toBe(
+      "1\u00A0minute ago",
+    );
   });
 
   test.each<[number, string]>([
-    [20, "1 minute ago"],
-    [7 * MINUTE, "7 minutes ago"],
-    [2 * HOUR, "2 hours ago"],
-    [23 * HOUR, "1 day ago"],
-    [3 * DAY, "3 days ago"],
-    [40 * DAY, "1 month ago"],
-    [400 * DAY, "1 year ago"],
+    [20, "1\u00A0minute ago"],
+    [7 * MINUTE, "7\u00A0minutes ago"],
+    [2 * HOUR, "2\u00A0hours ago"],
+    [23 * HOUR, "1\u00A0day ago"],
+    [3 * DAY, "3\u00A0days ago"],
+    [40 * DAY, "1\u00A0month ago"],
+    [400 * DAY, "1\u00A0year ago"],
   ])(
     "%s seconds ago is %s - always a number, never 'now', 'yesterday' or 'last month'",
     (seconds: number, words: string) => {
@@ -508,9 +510,9 @@ describe("how long ago, at any distance", () => {
       // A language no other test here formats with, so no formatter is cached.
       expect(
         formatFeedTimeAgo(ago(3 * HOUR), clock({ now, language: "is" })),
-      ).toBe("3 hours ago");
+      ).toBe("3\u00A0hours ago");
       expect(formatFeedTimeAgo(ago(30), clock({ now, language: "is" }))).toBe(
-        "1 minute ago",
+        "1\u00A0minute ago",
       );
     } finally {
       Object.defineProperty(Intl, "RelativeTimeFormat", {

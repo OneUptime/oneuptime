@@ -16,6 +16,7 @@ import MonitorStepDatabaseMonitor, {
 import {
   DatabaseMetricDefinition,
   DatabaseMetricGroup,
+  getDatabaseMetricGroupLabel,
   getDatabaseMetricsByGroup,
 } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import SqlDatabaseType, {
@@ -43,16 +44,6 @@ export interface ComponentProps {
   monitorStepDatabaseMonitor: MonitorStepDatabaseMonitor;
   onChange: (value: MonitorStepDatabaseMonitor) => void;
 }
-
-const groupTitles: Record<DatabaseMetricGroup, string> = {
-  [DatabaseMetricGroup.Connections]: translationKey("Connections"),
-  [DatabaseMetricGroup.Activity]: translationKey("Activity"),
-  [DatabaseMetricGroup.Throughput]: translationKey("Throughput"),
-  [DatabaseMetricGroup.Locks]: translationKey("Locks and Blocking"),
-  [DatabaseMetricGroup.Storage]: translationKey("Storage"),
-  [DatabaseMetricGroup.Replication]: translationKey("Replication"),
-  [DatabaseMetricGroup.Maintenance]: translationKey("Maintenance"),
-};
 
 const groupDescriptions: Record<DatabaseMetricGroup, string> = {
   [DatabaseMetricGroup.Connections]: translationKey(
@@ -554,7 +545,8 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
                   return (
                     <Toggle
                       key={group}
-                      title={groupTitles[group]}
+                      // The group's name, the summary's too (#8609).
+                      title={getDatabaseMetricGroupLabel(group)}
                       description={description}
                       value={enabledMetricGroups.includes(group)}
                       onChange={(value: boolean) => {

@@ -1,9 +1,9 @@
-# 事件与告警模板
+# 事件与警报模板
 
-当监视器的条件声明事件或创建告警时，它会用你编写的模板填写标题、描述和补救备注。在其中放入 `{{variable}}` 占位符(例如 `{{monitorName}}` 或 `{{responseStatusCode}}`)，每个事件就会用打开它的那次检查中的值说明出了什么问题。
+当监视器的条件声明事件或创建警报时，它会用你编写的模板填写标题、描述和补救备注。在其中放入 `{{variable}}` 占位符(例如 `{{monitorName}}` 或 `{{responseStatusCode}}`)，每个事件就会用打开它的那次检查中的值说明出了什么问题。
 
 :::cards
-- [在哪里编写模板](#在哪里编写模板): 条件所创建的事件或告警的标题、描述和补救备注。
+- [在哪里编写模板](#在哪里编写模板): 条件所创建的事件或警报的标题、描述和补救备注。
 - [基本用法](#基本用法): 占位符、进入对象的路径，以及列表。
 - [所有监视器都有的变量](#所有监视器都有的变量): 监视器的名称，以及越过阈值的资源。
 - [按监视器类型划分的变量](#按监视器类型划分的变量): 每种检查报告的内容。
@@ -11,7 +11,7 @@
 
 ## 模板的工作方式
 
-模板只在条件创建事件或告警时填写一次。OneUptime 从监视器和匹配的那次检查中收集变量，把每个值放到它的占位符所在的位置，然后保存结果。之后修改模板，只会改变此后创建的事件和告警，不会改变已经打开的那些。
+模板只在条件创建事件或警报时填写一次。OneUptime 从监视器和匹配的那次检查中收集变量，把每个值放到它的占位符所在的位置，然后保存结果。之后修改模板，只会改变此后创建的事件和警报，不会改变已经打开的那些。
 
 ```mermaid title="从一次检查到事件的文本"
 flowchart TB
@@ -34,9 +34,9 @@ flowchart TB
 
 进入 **监视器**，打开该监视器，然后在其侧边菜单中点击 **标准**。点击 **编辑条件**。
 
-### 开启事件或告警
+### 开启事件或警报
 
-在条件的 **操作** 下，开启 **当过滤器匹配时，声明事件。** 或 **当过滤器匹配时，创建警报。** 其下方会打开事件或告警的表单。
+在条件的 **操作** 下，开启 **当过滤器匹配时，声明事件。** 或 **当过滤器匹配时，创建警报。** 其下方会打开事件或警报的表单。
 
 ### 编写标题
 
@@ -48,7 +48,7 @@ flowchart TB
 
 ### 保存条件
 
-点击 **保存更改**。该条件创建的下一个事件或告警会使用新的模板。
+点击 **保存更改**。该条件创建的下一个事件或警报会使用新的模板。
 :::
 
 ## 基本用法
@@ -86,16 +86,16 @@ Checkout API returned 502 in 842 ms
 
 ### 描述和补救备注中的值
 
-描述和补救备注是 Markdown：它们显示在事件或告警的页面、电子邮件，以及其 Slack 和 Microsoft Teams 频道中。模板放入其中的值是被监控系统发送的内容——响应正文或标头、入站请求或邮件、设备或序列的标签——因此每个值都以文本形式放入。无论模板把它放在哪里，读起来都和发送时完全一样；其中的链接、图片、HTML 标签或像 `<!channel>` 这样的 Slack 提及都会显示为文本，而不会生效。值中的裸网址仍会变成链接，但会显示它指向哪里。你在模板本身中编写的 Markdown 会按你写的样子渲染。
+描述和补救备注是 Markdown：它们显示在事件或警报的页面、电子邮件，以及其 Slack 和 Microsoft Teams 频道中。模板放入其中的值是被监控系统发送的内容——响应正文或标头、入站请求或邮件、设备或序列的标签——因此每个值都以文本形式放入。无论模板把它放在哪里，读起来都和发送时完全一样；其中的链接、图片、HTML 标签或像 `<!channel>` 这样的 Slack 提及都会显示为文本，而不会生效。值中的裸网址仍会变成链接，但会显示它指向哪里。你在模板本身中编写的 Markdown 会按你写的样子渲染。
 
 值可以是任意大小——响应正文或数兆字节的日志——通知仍会带着它发出。每个渠道只承载它能接受的部分，对它来说过长的描述会被截断(有换行时在换行处截断)，并以 "… (truncated — see OneUptime for the full text)" 结尾：
 
-- **电子邮件**：每条描述、备注或根本原因最多承载约 256 KB 的邮件正文，更长时末尾的说明会链接到事件或告警。整封邮件(正文和截图)保持在 3 MB 以下，所有邮件服务器和 Microsoft Graph 都能接受：正文旁放不下的截图会被省略，并在原处留下说明。
-- **事件或告警的页面** 会显示全部内容。超过 128 KB 且排版耗时较长的描述会以纯文本逐行显示。
+- **电子邮件**：每条描述、备注或根本原因最多承载约 256 KB 的邮件正文，更长时末尾的说明会链接到事件或警报。整封邮件(正文和截图)保持在 3 MB 以下，所有邮件服务器和 Microsoft Graph 都能接受：正文旁放不下的截图会被省略，并在原处留下说明。
+- **事件或警报的页面** 会显示全部内容。超过 128 KB 且排版耗时较长的描述会以纯文本逐行显示。
 - **Slack** 最多承载 Slack 能显示的消息长度(约 30,000 个字符)。**Microsoft Teams** 通过 OneUptime 应用发送的消息约承载 40,000 个字符，通过传入 Webhook(状态页订阅者、工作流)约承载 12,000 个字符——按消息发送时测量，因此表格按其转换后的 HTML 计算。
 - **短信、电话、推送通知、WhatsApp 和 Telegram** 承载各自提供商所接受的内容：请参阅 [各级别如何呼叫人员](/docs/on-call/escalation-rules#各级别如何呼叫人员)。
 
-每个渠道渲染文本所需的时间都随长度增长。会让渲染器耗时长得多的部分——超过 64 KB 的行、由普通行组成的长段落、充满从未闭合的 `*`、`_` 或 `[` 的段落、嵌套超过十六层的引用或列表，以及在事件或告警页面上超过一千行的表格或列表——会在原处以纯文本显示，描述的其余部分照常渲染。
+每个渠道渲染文本所需的时间都随长度增长。会让渲染器耗时长得多的部分——超过 64 KB 的行、由普通行组成的长段落、充满从未闭合的 `*`、`_` 或 `[` 的段落、嵌套超过十六层的引用或列表，以及在事件或警报页面上超过一千行的表格或列表——会在原处以纯文本显示，描述的其余部分照常渲染。
 
 ## 高级用法
 
@@ -117,7 +117,7 @@ Checkout API returned 502 in 842 ms
 - 对不是列表的路径或空列表进行循环，不会输出任何内容。
 - 循环可以嵌套：位于另一个循环内的 `{{#each}}` 会读取每个外层项的内层列表。
 
-例如，一个接收以下告警通知的 [入站请求监视器](/docs/monitor/incoming-request-monitor)：
+例如，一个接收以下警报通知的 [入站请求监视器](/docs/monitor/incoming-request-monitor)：
 
 ```json title="Request body"
 {
@@ -199,7 +199,7 @@ Alerts for payments:
 当条件开启了 **Group incidents and alerts by a payload field** 时，分组键也会成为变量，以分组路径的 **最后一段** 命名：按 `requestBody.alerts[*].labels.alertname` 分组会得到 `{{alertname}}`，按 `requestBody.alerts[*].fingerprint` 分组会得到 `{{fingerprint}}`。完整的 `requestBody` 仍在旁边可用。
 
 > [!NOTE]
-> `[*]` 只在分组路径字段中有效。在模板中它什么也读不到，因此占位符会原样保留。`{{requestBody.alerts[0].annotations.summary}}` 始终读取负载中的第一个告警，而不是事件所针对的那个告警：请使用分组变量和负载的公共字段，例如 `commonLabels` 和 `commonAnnotations`。请参阅 [入站请求监视器](/docs/monitor/incoming-request-monitor)。
+> `[*]` 只在分组路径字段中有效。在模板中它什么也读不到，因此占位符会原样保留。`{{requestBody.alerts[0].annotations.summary}}` 始终读取负载中的第一个警报，而不是事件所针对的那个警报：请使用分组变量和负载的公共字段，例如 `commonLabels` 和 `commonAnnotations`。请参阅 [入站请求监视器](/docs/monitor/incoming-request-monitor)。
 
 ### 入站邮件监视器
 
@@ -351,7 +351,7 @@ Alerts for payments:
 
 #### 显示截图
 
-`screenshots` 中的每一项都是脚本截取的一张截图，位于脚本为它起的名称之下(`screenshots["login-page"] = await page.screenshot()`)，以 base64 文本形式保存。要在事件或告警的描述或补救备注中显示它，请把它包在一张图片里：
+`screenshots` 中的每一项都是脚本截取的一张截图，位于脚本为它起的名称之下(`screenshots["login-page"] = await page.screenshot()`)，以 base64 文本形式保存。要在事件或警报的描述或补救备注中显示它，请把它包在一张图片里：
 
 ```text title="Description template"
 {{syntheticResponses[0].scriptError}}
@@ -359,7 +359,7 @@ Alerts for payments:
 ![Login page](data:image/png;base64,{{syntheticResponses[0].screenshots.login-page}})
 ```
 
-这样，截图就会出现在事件或告警的页面上、显示该事件的状态页上、有关它的电子邮件通知中，以及有关它的 Slack 和 Microsoft Teams 消息中。在电子邮件中，截图作为附件并显示在正文里，Gmail、Outlook 和 Apple Mail 都能显示，因此值班人员无需打开 OneUptime 就能看到页面当时的样子。
+这样，截图就会出现在事件或警报的页面上、显示该事件的状态页上、有关它的电子邮件通知中，以及有关它的 Slack 和 Microsoft Teams 消息中。在电子邮件中，截图作为附件并显示在正文里，Gmail、Outlook 和 Apple Mail 都能显示，因此值班人员无需打开 OneUptime 就能看到页面当时的样子。
 
 - 会显示 PNG、JPEG、GIF 和 WebP 截图。`image/png` 也适用于 JPEG 截图(`page.screenshot({ type: "jpeg" })`)。
 - 一封邮件最多承载 2 MB 的图片，最多 20 张。放不下的图片会被替换为带有其替代文本的说明，所以请为每张图片提供替代文本。JPEG 截图比 PNG 小得多，而失败运行的一张截图通常比每次运行的每张截图更能说明问题。
@@ -411,8 +411,8 @@ Alerts for payments:
 | `interfacesDown` | 管理状态为启用但运行状态为关闭的接口。 | `number` |
 | `interfaceWalkFailure` | 接口遍历失败时的错误。 | `string` |
 | `tables` | 设备的 SNMP 表，按键：每个表的 `rowCount`、`rows`、`unhealthyRowCount` 和 `unhealthyRows`，如 `{{tables.ipsec_tunnels.unhealthyRowCount}}`。 | `Object` |
-| `snmpTable` | 逐行告警所针对的 SNMP 表。 | `string` |
-| `snmpTableRow` | 逐行告警所针对的行：一条隧道、一个无线电、一个邻居。 | `string` |
+| `snmpTable` | 逐行警报所针对的 SNMP 表。 | `string` |
+| `snmpTableRow` | 逐行警报所针对的行：一条隧道、一个无线电、一个邻居。 | `string` |
 | `trapOid` | 陷阱的 OID。仅在 SNMP 陷阱触发检查时。 | `string` |
 | `trapSourceIp` | 陷阱的来源地址。仅在 SNMP 陷阱触发检查时。 | `string` |
 | `trapVarbinds` | 陷阱的 varbind，每个形如 `{oid, value}`。仅在 SNMP 陷阱触发检查时。 | `Array<Object>` |
@@ -452,17 +452,17 @@ Alerts for payments:
 
 ### 指标和基础设施监视器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、Storage Array 和 IoT Device 监视器各有一个自己的变量：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、存储阵列 和 IoT 设备 监视器各有一个自己的变量：
 
 | 变量 | 内容 | 类型 |
 | --- | --- | --- |
 | `metricName` | 监视器的第一个查询所读取的指标的名称，例如 `container.cpu.time`。 | `string` |
 
-分组时，它们还有每个 **分组依据** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT Device 监视器的模板按设备分组，因此用模板创建的监视器还有 `{{device.id}}`。
+分组时，它们还有每个 **分组依据** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT 设备 监视器的模板按设备分组，因此用模板创建的监视器还有 `{{device.id}}`。
 
 ### 其他监视器类型
 
-Logs、Traces、Exceptions、Security Events、AI / LLM 和 SQL Query 监视器没有自己的变量。请使用 [所有监视器都有的变量](#所有监视器都有的变量)，在分组的 Logs 监视器上还可以使用 [分组的值](#分组监视器的值)。
+Logs、Traces、Exceptions、安全事件、AI / LLM 和 SQL 查询 监视器没有自己的变量。请使用 [所有监视器都有的变量](#所有监视器都有的变量)，在分组的 Logs 监视器上还可以使用 [分组的值](#分组监视器的值)。
 
 ## 示例
 
@@ -547,7 +547,7 @@ SNMP walk: {{responseTimeInMs}} ms
 {{/each}}
 ```
 
-### Alertmanager 或 Grafana 告警
+### Alertmanager 或 Grafana 警报
 
 ```text title="Title"
 [{{requestBody.status}}] {{requestBody.receiver}}
@@ -591,5 +591,5 @@ SNMP walk: {{responseTimeInMs}} ms
 - [JavaScript 表达式](/docs/monitor/javascript-expression): 在条件的判断中使用同样的占位符。
 - [声明事件](/docs/incidents/declaring-incidents): 条件声明事件之后会发生什么。
 - [合成监控](/docs/monitor/synthetic-monitor): 截取描述可以显示的截图。
-- [入站请求监控](/docs/monitor/incoming-request-monitor): 把 Webhook 变成以每个告警命名的事件。
+- [入站请求监控](/docs/monitor/incoming-request-monitor): 把 Webhook 变成以每个警报命名的事件。
 :::

@@ -51,7 +51,7 @@ Das Einschalten nimmt keinen Vorfall aus einer Episode heraus: Ein Vorfall, der 
 
 ## Wer hinzufügen darf
 
-Zum Hinzufügen braucht man die Berechtigung, Vorfälle zu einer Episode hinzuzufügen. Die Rollen Projektinhaber, Projektadministrator, Projektmitglied, Vorfall-Administrator und Vorfall-Mitglied haben sie, ebenso eine eigene Rolle mit Create Incident Episode Member. Sie können nur Vorfälle hinzufügen, die Sie sehen können: Einen privaten Vorfall können nur seine Eigentümer und die Eigentümer und Admins des Projekts hinzufügen. Zu neuer Episode hinzufügen braucht außerdem die Berechtigung, eine Episode zu erstellen. Können Sie eine Aktion nicht nutzen, ist sie gesperrt, und ihr Tooltip nennt die fehlende Berechtigung.
+Zum Hinzufügen braucht man die Berechtigung, Vorfälle zu einer Episode hinzuzufügen. Die Rollen Projektinhaber, Projektadministrator, Projektmitglied, Vorfall-Administrator und Vorfall-Mitglied haben sie, ebenso eine eigene Rolle mit Create Incident Episode Member. Sie können nur Vorfälle hinzufügen, die Sie sehen können: Einen privaten Vorfall können nur seine Eigentümer und die Projektinhaber und Projektadministratoren hinzufügen. Zu neuer Episode hinzufügen braucht außerdem die Berechtigung, eine Episode zu erstellen. Können Sie eine Aktion nicht nutzen, ist sie gesperrt, und ihr Tooltip nennt die fehlende Berechtigung.
 
 ## Mit der API
 

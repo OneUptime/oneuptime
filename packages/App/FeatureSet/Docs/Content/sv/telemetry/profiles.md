@@ -35,11 +35,11 @@ Du behöver en intagningsnyckel för telemetri av typen **Server**. Om du inte h
 
 Gå till **Produkter → Projektinställningar**, öppna **Telemetri och APM** i sidomenyn och välj **Intagningsnycklar**.
 
-![Listan ”Intagningsnycklar”, med ”Skapa ingestion-nyckel” markerad](screen:ingestion-keys)
+![Listan ”Intagningsnycklar”, med ”Skapa intagningsnyckel” markerad](screen:ingestion-keys)
 
 ### Skapa en nyckel
 
-Klicka på **Skapa ingestion-nyckel**. Dialogrutan har redan nyckelns namn ifyllt och **Server** valt (den sorts nyckel som en applikation eller en collector skickar med), så klicka på **Skapa ingestion-nyckel** för att skapa den, eller byt namn på den först.
+Klicka på **Skapa intagningsnyckel**. Dialogrutan har redan nyckelns namn ifyllt och **Server** valt (den sorts nyckel som en applikation eller en collector skickar med), så klicka på **Skapa intagningsnyckel** för att skapa den, eller byt namn på den först.
 
 ### Kopiera hemligheten
 
@@ -309,7 +309,7 @@ När en funktion i din egen kod tar minst 5 % av profilens tid eller minne, elle
 | --- | --- |
 | **Flamdiagram** | Varje stapel är en funktion i anropsstacken, och dess bredd är proportionell mot tiden eller resurserna den förbrukade. Klicka på en funktion för att zooma in och se vilka som anropar den och vilka den anropar. |
 | **Top functions** | Profilens funktioner, sorterade efter egen eller total tid. **Bara min kod** döljer biblioteksramar. |
-| **Diff vs. baseline** | Profilen jämförd med en tidigare period (**jämfört med för 1 timme sedan**, **jämfört med igår** eller **jämfört med förra veckan**), med funktionerna under **Störst försämring** och **Störst förbättring**. |
+| **Skillnad mot baslinjen** | Profilen jämförd med en tidigare period (**jämfört med för 1 timme sedan**, **jämfört med igår** eller **jämfört med förra veckan**), med funktionerna under **Störst försämring** och **Störst förbättring**. |
 
 **Ladda ned pprof** sparar profilen för lokala verktyg som `go tool pprof`.
 

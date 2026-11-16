@@ -216,6 +216,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
                         ? "login.passkey.tryAgain"
                         : "login.passkey.signIn",
                   )}
+                  isTitleTranslated={true}
                   dataTestId="mobile-passkey-sign-in"
                   buttonStyle={ButtonStyleType.PRIMARY}
                   className="w-full justify-center"
@@ -278,6 +279,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
             <div className="mt-5 text-center">
               <Button
                 title={t("mobilePasskey.cancel")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.SECONDARY_LINK}
                 onClick={cancel}
               />

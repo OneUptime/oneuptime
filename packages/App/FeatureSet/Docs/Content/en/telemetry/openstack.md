@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+Archiving the cloud turns none of this off. An archived cloud is only hidden from the lists: it is still collected, and its API checks and lifecycle check keep running. Turn a check off to stop it.
+
 ## AI agent
 
 The agent's `docker-compose.yml` also runs the **OpenStack AI agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this cloud it runs read-only `openstack` commands through it — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — and cites what it ran. There is no `openstack` binary in the agent and no shell: each command becomes one `GET` to the service that answers it, with the agent's own credential. The agent registers with the same `OPENSTACK_CLOUD_NAME` the collector reports, so it serves this cloud.

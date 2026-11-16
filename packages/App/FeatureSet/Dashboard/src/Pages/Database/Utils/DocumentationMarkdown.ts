@@ -42,7 +42,10 @@ import {
 } from "Common/Types/DatabaseServer/DatabaseSystem";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The in-app install guide for the OneUptime Database Agent — the product
@@ -278,7 +281,7 @@ function isForkOfEngine(engine: DatabaseAgentEngine, system: string): boolean {
  * One line under each engine in the product page's picker: the config it
  * runs, and for a fork the name it reports.
  */
-function getDatabaseAgentSystemDescription(system: string): string {
+export function getDatabaseAgentSystemDescription(system: string): string {
   const engine: DatabaseAgentEngine = getDatabaseAgentEngine(
     system,
   ) as DatabaseAgentEngine;
@@ -288,16 +291,102 @@ function getDatabaseAgentSystemDescription(system: string): string {
     : `Runs the collector's ${receiverName} receiver.`;
 }
 
+export interface DatabaseAgentSystemPickerWords {
+  label: string;
+  description: string;
+}
+
+/*
+ * The picker's words for each engine, as the locale files hold them. The
+ * card looks an option's label and description up whole (SetupGuideCard),
+ * so each is written out here and marked as a key: a line built at run
+ * time ("Runs the collector's mysql receiver.") was in no locale file and
+ * read English in every language, and so were the forks' names (#8341).
+ * Each is what getDatabaseSystemDisplayName and
+ * getDatabaseAgentSystemDescription say for its engine; a test holds them
+ * together, and an engine missing here still gets those.
+ */
+export const DATABASE_AGENT_SYSTEM_PICKER_WORDS: Readonly<
+  Record<string, DatabaseAgentSystemPickerWords>
+> = {
+  postgresql: {
+    label: translationKey("PostgreSQL"),
+    description: translationKey("Runs the collector's postgresql receiver."),
+  },
+  mysql: {
+    label: translationKey("MySQL"),
+    description: translationKey("Runs the collector's mysql receiver."),
+  },
+  mariadb: {
+    label: translationKey("MariaDB"),
+    description: translationKey(
+      "Runs the mysql receiver and reports the server as MariaDB.",
+    ),
+  },
+  "microsoft.sql_server": {
+    label: translationKey("SQL Server"),
+    description: translationKey("Runs the collector's sqlserver receiver."),
+  },
+  "oracle.db": {
+    label: translationKey("Oracle"),
+    description: translationKey("Runs the collector's oracledb receiver."),
+  },
+  redis: {
+    label: translationKey("Redis"),
+    description: translationKey("Runs the collector's redis receiver."),
+  },
+  valkey: {
+    label: translationKey("Valkey"),
+    description: translationKey(
+      "Runs the redis receiver and reports the server as Valkey.",
+    ),
+  },
+  keydb: {
+    label: translationKey("KeyDB"),
+    description: translationKey(
+      "Runs the redis receiver and reports the server as KeyDB.",
+    ),
+  },
+  dragonfly: {
+    label: translationKey("Dragonfly"),
+    description: translationKey(
+      "Runs the redis receiver and reports the server as Dragonfly.",
+    ),
+  },
+  memcached: {
+    label: translationKey("Memcached"),
+    description: translationKey("Runs the collector's memcached receiver."),
+  },
+  mongodb: {
+    label: translationKey("MongoDB"),
+    description: translationKey("Runs the collector's mongodb receiver."),
+  },
+  elasticsearch: {
+    label: translationKey("Elasticsearch"),
+    description: translationKey("Runs the collector's elasticsearch receiver."),
+  },
+  opensearch: {
+    label: translationKey("OpenSearch"),
+    description: translationKey(
+      "Runs the elasticsearch receiver and reports the server as OpenSearch.",
+    ),
+  },
+};
+
 /*
  * The product page's picker: every engine the agent monitors, forks
  * included, keyed by the DATABASE_SYSTEM it installs under.
  */
 export const DATABASE_AGENT_SYSTEM_OPTIONS: Array<SetupGuideOption> =
   getDatabaseAgentSystems().map((system: string): SetupGuideOption => {
+    const words: DatabaseAgentSystemPickerWords | undefined =
+      DATABASE_AGENT_SYSTEM_PICKER_WORDS[system];
+
     return {
       key: system,
-      label: getDatabaseSystemDisplayName(system),
-      description: getDatabaseAgentSystemDescription(system),
+      label: words?.label || getDatabaseSystemDisplayName(system),
+      description:
+        words?.description || getDatabaseAgentSystemDescription(system),
     };
   });
 
@@ -781,8 +870,10 @@ function getMonitoringUserMarkdown(
   return placement === "document" ? text : text.trim();
 }
 
-const MONITORING_USER_INTRO: string =
-  "Give the agent its own login with read access to the engine's statistics — never an administrator, and never an application's own login.";
+// A step's description, which the card looks up: a key of the locale files.
+const MONITORING_USER_INTRO: string = translationKey(
+  "Give the agent its own login with read access to the engine's statistics — never an administrator, and never an application's own login.",
+);
 
 /*
  * How install.sh treats the monitoring login per config (its LOGIN
@@ -2423,9 +2514,15 @@ function getOwnCollectorRecipe(data: {
 }): OwnCollectorRecipe {
   const descriptor: DatabaseSystemDescriptor | null =
     getDatabaseSystemDescriptor(data.database.dbSystem);
-  const engineLabel: string = getDatabaseSystemDisplayName(
-    data.database.dbSystem,
-  );
+  /*
+   * An engine the catalog does not know is named as the data reported it,
+   * in a code span: any name at all can come in, and a code span is what a
+   * guide's words in another language are found without (#8780) - so its
+   * sentences read in the reader's language whatever the engine is called.
+   */
+  const engineLabel: string = descriptor
+    ? getDatabaseSystemDisplayName(data.database.dbSystem)
+    : `\`${getDatabaseSystemDisplayName(data.database.dbSystem).replace(/`/g, "")}\``;
   const system: string =
     normalizeDatabaseSystem(data.database.dbSystem) || "unknown";
   const source: DatabaseEngineMetricsSource = descriptor

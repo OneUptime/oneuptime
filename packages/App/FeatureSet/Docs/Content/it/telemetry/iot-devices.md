@@ -276,7 +276,7 @@ OneUptime riconosce questi nomi di metriche `iot_*`. Invia solo quelli che hanno
 
 | Nome della metrica | Significato |
 | --- | --- |
-| `iot_device_up` | Disponibilità: `1` significa attivo e raggiungibile, `0` non attivo. La legge il monitor IoT Device. |
+| `iot_device_up` | Disponibilità: `1` significa attivo e raggiungibile, `0` non attivo. La legge il monitor Dispositivo IoT. |
 | `iot_device_info` | Solo identità. Porta `device.id`, la classe, il tipo e il firmware, così un dispositivo compare nell'inventario prima di riportare letture. |
 | `iot_battery_percent` | Carica della batteria, da `0` a `100` (%). |
 | `iot_signal_strength_dbm` | Intensità del segnale wireless in dBm, come l'RSSI Wi-Fi, LoRa o cellulare. |

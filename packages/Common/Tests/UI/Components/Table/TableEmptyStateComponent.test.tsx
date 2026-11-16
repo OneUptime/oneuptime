@@ -578,7 +578,7 @@ describe("an action that is running", () => {
 describe("the note", () => {
   test("is small print under the actions, translated", () => {
     dictionary = {
-      "You don't have permission to create these. Ask a project admin for access.":
+      "You don't have permission to create these. Ask a Project Admin for access.":
         "Sie haben keine Berechtigung, diese zu erstellen.",
     };
 
@@ -586,7 +586,7 @@ describe("the note", () => {
       <TableEmptyState
         kind={TableEmptyStateKind.Empty}
         title="No labels yet"
-        note="You don't have permission to create these. Ask a project admin for access."
+        note="You don't have permission to create these. Ask a Project Admin for access."
       />,
     );
 

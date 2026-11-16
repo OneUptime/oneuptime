@@ -88,7 +88,7 @@ En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan kryss
 Åpne hver av dem under **Monitorer** og sjekk de første resultatene. En heartbeat-monitor har en ny adresse: Pek jobben som kaller den, dit.
 
 ### Velg hvem som får beskjed
-Legg til eiere på monitorene dine, eller en vaktretningslinje under **Vakt** > **Vaktretningslinjer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
+Legg til eiere på monitorene dine, eller en vaktpolicy under **Vakt** > **Vaktpolicyer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
 
 ### Slå av kontrollene i StatusCake
 Når OneUptime kontrollerer de samme tingene, setter du dem på pause i StatusCake, så ingen får beskjed to ganger.
@@ -111,7 +111,7 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 ## Neste trinn
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Hvordan OneUptime varsler før et sertifikat utløper.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Hvordan OneUptime varsler før et sertifikat utløper.
 - [Bytt fra Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma): Hent kontrollene dine over fra Uptime Kuma.
 :::

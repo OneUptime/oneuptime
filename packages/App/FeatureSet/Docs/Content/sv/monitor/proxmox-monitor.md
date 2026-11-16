@@ -1,6 +1,6 @@
 # Proxmox-övervakning
 
-En Proxmox-monitor övervakar ett Proxmox VE-kluster – dess noder, VM:ar och LXC-containrar, lagring, HA-tillstånd, täckning av säkerhetskopieringsjobb och lagringsreplikering – och säger till när en nod går offline, en gäst stannar eller lagringen fylls. Den läser måtten `pve_*` som OneUptimes Proxmox-agent samlar in, så ingenting undersöks utifrån.
+En Proxmox-monitor övervakar ett Proxmox VE-kluster – dess noder, VM:ar och LXC-containrar, lagring, HA-tillstånd, täckning av säkerhetskopieringsjobb och lagringsreplikering – och säger till när en nod går offline, en gäst stannar eller lagringen fylls. Den läser mätvärdena `pve_*` som OneUptimes Proxmox-agent samlar in, så ingenting undersöks utifrån.
 
 :::cards
 - [Skapa monitorn](#skapa-en-proxmox-monitor): Sex steg i instrumentpanelen.
@@ -11,7 +11,7 @@ En Proxmox-monitor övervakar ett Proxmox VE-kluster – dess noder, VM:ar och L
 
 ## Så fungerar det
 
-OneUptimes Proxmox-agent körs på en maskin som når Proxmox VE-API:t. Var 30:e sekund hämtar den data från klusterinsamlarna i prometheus-pve-exporter en gång och från nodinsamlarna en gång för varje nod, märker varje serie med resursen den beskriver och skickar måtten till OneUptime över OTLP, stämplade med klustrets namn, `proxmox.cluster.name`. De första data registrerar klustret. Proxmox VE 9 och senare kan i stället pusha mått själv, utan att något installeras; se [den inbyggda pushen](#den-inbyggda-pushen-i-proxmox-ve).
+OneUptimes Proxmox-agent körs på en maskin som når Proxmox VE-API:t. Var 30:e sekund hämtar den data från klusterinsamlarna i prometheus-pve-exporter en gång och från nodinsamlarna en gång för varje nod, märker varje serie med resursen den beskriver och skickar mätvärdena till OneUptime över OTLP, stämplade med klustrets namn, `proxmox.cluster.name`. De första data registrerar klustret. Proxmox VE 9 och senare kan i stället pusha mätvärden själv, utan att något installeras; se [den inbyggda pushen](#den-inbyggda-pushen-i-proxmox-ve).
 
 En Proxmox-monitor är knuten till ett kluster. Varje minut kör den sin fråga över klustrets mätvärden och jämför resultatet med sina kriterier.
 
@@ -56,7 +56,7 @@ En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larm
 
 - **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdena, filtren, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Proxmox Metric** och ange sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en typ av resurs eller till en resurs.
-- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**, till exempel en minnesprocent från `pve_memory_usage_bytes / pve_memory_size_bytes`. Använd **Gruppera efter** `id` för att bedöma varje resurs för sig.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mätvärden**, till exempel en minnesprocent från `pve_memory_usage_bytes / pve_memory_size_bytes`. Använd **Gruppera efter** `id` för att bedöma varje resurs för sig.
 
 ### Kontrollera kriterierna
 
@@ -82,7 +82,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Proxmox Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 ## Resursidentitet
 
@@ -159,7 +159,7 @@ Varje nod och varje säkerhetskopieringsjobb får en egen incident och ett eget 
 
 ### Den inbyggda pushen i Proxmox VE
 
-Proxmox VE 9 och senare kan pusha mått via sin inbyggda OpenTelemetry-måttserver, utan att något installeras – se [guiden för Proxmox-agenten](/docs/telemetry/proxmox). OneUptime gör om pushen till samma serier `pve_*`, så katalogen och mallarna för CPU, minne och lagring fungerar med den.
+Proxmox VE 9 och senare kan pusha mätvärden via sin inbyggda OpenTelemetry-mätvärdesserver, utan att något installeras – se [guiden för Proxmox-agenten](/docs/telemetry/proxmox). OneUptime gör om pushen till samma serier `pve_*`, så katalogen och mallarna för CPU, minne och lagring fungerar med den.
 
 **Node Offline** och **Cluster Quorum at Risk** fungerar också: varje nod pushar bara sin egen status, så en nod som slutar rapportera rapporteras som nere (`pve_up` = 0) av de noder som fortfarande lever – se [När en nod slutar rapportera](/docs/telemetry/proxmox#när-en-nod-slutar-rapportera). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** och **Replication Failing** behöver data som bara agenten samlar in. De två [larmen på aviseringar](#larm-på-proxmox-ves-aviseringar) fungerar också med den: Proxmox VE skickar sina aviseringar själv.
 
@@ -214,7 +214,7 @@ CPU- och minnesserierna rapporteras också för varje gäst, på id:na `qemu/*` 
 | --- | --- | --- |
 | `pve_ha_state` | — | En serie per HA-tillstånd (`started`, `stopped`, `error`, …) för varje HA-resurs, 1 på dess aktuella tillstånd. Filtrera på etiketten `state` för att varna på ett tillstånd. |
 
-### Säkerhetskopiering
+### Säkerhetskopia
 
 Från exporterns insamlare `backup-info` på klusternivå. De rapporterar bara täckning av säkerhetskopierings-**jobb**:
 
@@ -260,11 +260,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
+| 1 | Kontrollera om _monitornamn_ är offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitornamn_ är offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mätvärde som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Felsökning
 
@@ -272,7 +272,7 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 Kluster registrerar sig själva utifrån agentens data. Kontrollera att agenten körs och skickar data (se [guiden för Proxmox-agenten](/docs/telemetry/proxmox)), och att `PROXMOX_CLUSTER_NAME` är angivet.
 :::
 
-:::details Gästmått saknas
+:::details Gästmätvärden saknas
 Gästserier kommer från exporterns klusterinsamlare, som den medföljande konfigurationen slår på med insamlingsparametern `cluster=1`. Om du har ändrat insamlarkonfigurationen återställer du den.
 :::
 
@@ -284,12 +284,12 @@ Mallen tar genomsnittet av `pve_cpu_usage_ratio` per `id`, så varje nod kontrol
 Med den inbyggda pushen i Proxmox VE ser en nod som har tagits ur klustret likadan ut som en som har gått ned: den slutade rapportera, så de noder som fortfarande lever fortsätter att rapportera den som nere. Öppna nodens sida och klicka på **Ta bort nod** – noden försvinner och dess larm löses. Annars förblir den offline i upp till 7 dagar. Agenten har inte det här problemet: den frågar klustret, som inte längre listar noden.
 :::
 
-:::details Mått för säkerhetskopiering eller replikering saknas
+:::details Mätvärden för säkerhetskopiering eller replikering saknas
 `pve_not_backed_up_*` kommer från exporterns insamlare `backup-info` och `pve_replication_*` från dess insamlare `replication`. Båda är påslagna som standard och täcks av den medföljande konfigurationen: `cluster=1` en gång, och `node=1` för varje nod i `PVE_NODES`. En nod som saknas i `PVE_NODES` skickar inga replikeringsjobb, och dess gäster inga flaggor för start vid uppstart, så **Guest Down** utlöses aldrig för dem. Om du kör en egen exporter kontrollerar du att du inte har stängt av dem. `pve_replication_*` finns bara när klustret har jobb för lagringsreplikering.
 :::
 
 :::details Räknare som pve_network_receive_bytes bara växer
-Serier för nätverks- och disk-I/O är räknare över hela livstiden, och kriterier jämför råa värden: det finns ingen rate-operator, och **Convert to per-second rate** i frågebyggaren ändrar bara diagrammet. Visa dem som en takt i ett diagram, eller varna på deras ökning med en formel, till exempel en **Maximum**-fråga minus en **Minimum**-fråga på samma räknare.
+Serier för nätverks- och disk-I/O är räknare över hela livstiden, och kriterier jämför råa värden: det finns ingen rate-operator, och **Räkna om till takt per sekund** i frågebyggaren ändrar bara diagrammet. Visa dem som en takt i ett diagram, eller varna på deras ökning med en formel, till exempel en **Maximum**-fråga minus en **Minimum**-fråga på samma räknare.
 :::
 
 ## Nästa steg

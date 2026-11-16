@@ -127,6 +127,18 @@ import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsMode
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import {
+  withDurationWordsHeld,
+  withPlainSpaces,
+} from "../../../Types/NoBreakSpaces";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/resource-ai-access/status"]);
 
 const D: Record<ContainerHostMetric, string> =
   CONTAINER_HOST_METRIC_DESCRIPTIONS;
@@ -176,7 +188,8 @@ const COLUMN_TITLES: Array<[string, ContainerHostMetric]> = [
   ["Status", "containerStatus"],
   ["CPU", "containerCpu"],
   ["Memory", "containerMemory"],
-  ["Restarts (15 min)", "containerRestarts"],
+  // Its header is drawn, its figure held to its unit (#8811).
+  ["Restarts (15\u00A0min)", "containerRestarts"],
   ["Last Started", "containerUptime"],
 ];
 
@@ -931,7 +944,7 @@ describe.each(RUNTIME_CASES)(
         const tile: HTMLElement = aboutButtons(title)[0]!;
 
         expect(cardOf(tile).querySelector("div.text-2xl")).not.toBeNull();
-        expect(await tooltipTextOf(tile)).toBe(D[key]);
+        expect(await tooltipTextOf(tile)).toBe(withDurationWordsHeld(D[key]));
       }
     });
 
@@ -962,7 +975,7 @@ describe.each(RUNTIME_CASES)(
         const button: HTMLElement = aboutButtons(title)[0]!;
 
         expect(button.closest("h2")).toHaveTextContent(title);
-        expect(await tooltipTextOf(button)).toBe(D[key]);
+        expect(await tooltipTextOf(button)).toBe(withDurationWordsHeld(D[key]));
       }
     });
 
@@ -975,7 +988,9 @@ describe.each(RUNTIME_CASES)(
 
       const chip: HTMLElement = aboutButtons("2 containers")[0]!;
 
-      expect(await tooltipTextOf(chip)).toBe(D.containers);
+      expect(await tooltipTextOf(chip)).toBe(
+        withDurationWordsHeld(D.containers),
+      );
       // The count opens the Containers list.
       expect(
         screen.getByTestId("container-host-hero-containers"),
@@ -983,7 +998,7 @@ describe.each(RUNTIME_CASES)(
 
       // Its health beside the connection, with the rules in its (i).
       expect(await tooltipTextOf(aboutButtons("Host health")[0]!)).toBe(
-        D.hostHealth,
+        withDurationWordsHeld(D.hostHealth),
       );
 
       const osChip: HTMLElement = screen
@@ -1016,7 +1031,7 @@ describe.each(RUNTIME_CASES)(
         ...LIST_TITLES,
         ...HERO_TITLES,
       ].map((pair: [string, ContainerHostMetric]): string => {
-        return D[pair[1]];
+        return withDurationWordsHeld(D[pair[1]]);
       });
 
       expect(new Set(texts)).toEqual(new Set(expected));
@@ -1349,8 +1364,9 @@ describe.each(RUNTIME_CASES)(
           name: `About ${title}`,
         });
 
-        expect(button.closest("th")).toHaveTextContent(title);
-        expect(await tooltipTextOf(button)).toBe(D[key]);
+        // toHaveTextContent reads a no-break space as a space.
+        expect(button.closest("th")).toHaveTextContent(withPlainSpaces(title));
+        expect(await tooltipTextOf(button)).toBe(withDurationWordsHeld(D[key]));
       }
     });
 
@@ -1380,7 +1396,7 @@ describe.each(RUNTIME_CASES)(
             }) || null;
 
         expect(button.parentElement!.closest("button, a")).toBeNull();
-        expect(sortButton).toHaveTextContent(title);
+        expect(sortButton).toHaveTextContent(withPlainSpaces(title));
         expect(sortButton!.contains(button)).toBe(false);
       }
     });

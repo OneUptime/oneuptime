@@ -15,7 +15,7 @@ Un agente de IA rara vez falla bloqueándose. Falla siguiendo adelante: reintent
 flowchart TB
     agent["Tu agente envía<br/>spans gen_ai.*"] --> ingest["OneUptime"]
     ingest --> wire{"Detonante: alerta de<br/>presupuesto o de bucle"}
-    wire -->|"Alerta creada"| workflow["Flujo de trabajo:<br/>On Create Alert"]
+    wire -->|"Alerta creada"| workflow["Flujo de trabajo:<br/>Al crear Alerta"]
     workflow -->|"API Post (JSON)"| endpoint["Tu endpoint de parada"]
     endpoint --> runner["El ejecutor pausa<br/>o detiene el agente"]
 ```
@@ -125,19 +125,19 @@ Abre **Productos → Flujos de trabajo** y haz clic en **Crear flujo de trabajo*
 
 ### Añade el desencadenante
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en el panel **Añadir desencadenante**. Haz clic en el desencadenante: **Fields to pass on** empieza con el título, así que haz clic en **Añadir campo**, marca la descripción y haz clic en **Guardar**. El ID del bloque, `alert-on-create-1`, es como los bloques posteriores se refieren a él.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Al crear Alerta** en el panel **Añadir desencadenante**. Haz clic en el desencadenante: **Campos que pasar** empieza con el título, así que haz clic en **Añadir campo**, marca la descripción y haz clic en **Guardar**. El ID del bloque, `alert-on-create-1`, es como los bloques posteriores se refieren a él.
 
 ### Comprueba el título
 
-Haz clic en **Añadir componente**, elige **If / Else** y conecta el punto **Éxito** del desencadenante con él. Pon **Valor que comprobar** en el título de la alerta (haz clic en **{ }** y elígelo), **Comparación** en **contiene** y **Comparar con** en el comienzo que comparten los títulos de tus detonantes, como `LLM budget exceeded`.
+Haz clic en **Añadir componente**, elige **Si / Si no** y conecta el punto **Éxito** del desencadenante con él. Pon **Valor que comprobar** en el título de la alerta (haz clic en **{ }** y elígelo), **Comparación** en **contiene** y **Comparar con** en el comienzo que comparten los títulos de tus detonantes, como `LLM budget exceeded`.
 
 ### Llama a tu endpoint
 
-Añade **API Post (JSON)** y conecta el punto **Sí** del **If / Else** con él. Pon su **URL** en tu endpoint, como `https://agents.example.com/circuit-breaker`, y rellena las cabeceras y el cuerpo de abajo.
+Añade **Llamada a API POST (JSON)** y conecta el punto **Sí** del **Si / Si no** con él. Pon su **URL** en tu endpoint, como `https://agents.example.com/circuit-breaker`, y rellena las cabeceras y el cuerpo de abajo.
 
 ### Avisa de un fallo
 
-Añade **Send Message to Slack**, o **Send Email**, y conecta el punto **Error** del bloque de API con él. Un disyuntor que no consigue dispararse es la única alerta que una persona tiene que ver.
+Añade **Enviar mensaje a Slack**, o **Enviar correo**, y conecta el punto **Error** del bloque de API con él. Un disyuntor que no consigue dispararse es la única alerta que una persona tiene que ver.
 
 ### Actívalo
 
@@ -164,7 +164,7 @@ Su **Cuerpo de la solicitud**:
 }
 ```
 
-Para reaccionar a varios detonantes, empieza todos sus títulos igual, o encadena más bloques **If / Else** desde el punto **No**. Consulta [Crear un flujo de trabajo](/docs/workflows/authoring) para el lienzo y [Variables](/docs/workflows/variables) para las referencias `{{…}}`.
+Para reaccionar a varios detonantes, empieza todos sus títulos igual, o encadena más bloques **Si / Si no** desde el punto **No**. Consulta [Crear un flujo de trabajo](/docs/workflows/authoring) para el lienzo y [Variables](/docs/workflows/variables) para las referencias `{{…}}`.
 
 ## Prueba el disyuntor
 
@@ -180,7 +180,7 @@ Para reaccionar a varios detonantes, empieza todos sus títulos igual, o encaden
 - Un presupuesto cuenta el día UTC, así que su porcentaje vuelve a 0 a medianoche UTC. Una alerta de presupuesto puede entonces resolverse, y el siguiente día malo abre una alerta nueva que vuelve a disparar el disyuntor.
 - Un monitor mantiene su alerta abierta mientras se cumplen sus criterios. Con **Resolver alerta automáticamente** activado, la alerta se resuelve cuando dejan de cumplirse, y la siguiente superación abre una alerta nueva.
 - Rearmar es una decisión de una persona en los dos lados: resuelve la alerta en OneUptime y rearma el disyuntor en tu ejecutor.
-- Cada alerta nueva del proyecto inicia el flujo de trabajo. El **If / Else** es lo que mantiene las demás alertas lejos del disyuntor: no lo quites.
+- Cada alerta nueva del proyecto inicia el flujo de trabajo. El **Si / Si no** es lo que mantiene las demás alertas lejos del disyuntor: no lo quites.
 
 ## Solución de problemas
 
@@ -189,7 +189,7 @@ Comprueba que **Habilitado** está activado en la parte superior del **Construct
 :::
 
 :::details El flujo de trabajo se ejecuta, pero siempre toma la rama No
-El título está vacío o no coincide. Un campo que no está en **Fields to pass on** del desencadenante llega vacío, así que añade ahí el título. Después compara el título de la alerta con **Comparar con**: **contiene** debe encontrar ese texto exacto en él.
+El título está vacío o no coincide. Un campo que no está en **Campos que pasar** del desencadenante llega vacío, así que añade ahí el título. Después compara el título de la alerta con **Comparar con**: **contiene** debe encontrar ese texto exacto en él.
 :::
 
 :::details Tu endpoint responde 401
@@ -201,7 +201,7 @@ El **Intervalo de tiempo** del monitor es más corto que los 15 minutos entre pu
 :::
 
 :::details La petición nunca llega a tu endpoint
-Abre la ejecución en **Flujos de trabajo → Registros → Ejecuciones** y el paso **API Post (JSON)**: indica por qué falló la petición. En OneUptime Cloud, el endpoint debe ser accesible desde internet; una instalación autoalojada rechaza las direcciones de red privadas salvo que un administrador las permita.
+Abre la ejecución en **Flujos de trabajo → Registros → Ejecuciones** y el paso **Llamada a API POST (JSON)**: indica por qué falló la petición. En OneUptime Cloud, el endpoint debe ser accesible desde internet; una instalación autoalojada rechaza las direcciones de red privadas salvo que un administrador las permita.
 :::
 
 ## Próximos pasos

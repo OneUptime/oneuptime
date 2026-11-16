@@ -16,9 +16,9 @@ Stuur OneUptime-incidenten naar [Opsgenie](https://www.atlassian.com/software/op
 
 ```mermaid title="Twee workflows, één Opsgenie-alert"
 flowchart TB
-    declared["Incident gemeld"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> create["Workflow 1:<br/>Bij aanmaken:<br/>Incident"]
     create -->|"POST /v2/alerts"| og["Opsgenie-alert"]
-    resolved["Incident opgelost"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incident opgelost"] --> update["Workflow 2:<br/>Bij bijwerken:<br/>Incident"]
     update -->|"sluiten via alias"| og
 ```
 
@@ -49,11 +49,11 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### De alert aanmaken
 
-Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **URL** in op `https://api.opsgenie.com/v2/alerts`, of `https://api.eu.opsgenie.com/v2/alerts` in Europa. Stel onder **Meer velden** de **Aanvraagheaders** in op:
+Klik op **Component toevoegen**, voeg een **API-aanroep POST (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **URL** in op `https://api.opsgenie.com/v2/alerts`, of `https://api.eu.opsgenie.com/v2/alerts` in Europa. Stel onder **Meer velden** de **Aanvraagheaders** in op:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ En de **Verzoeklichaam** op:
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een `202`-antwoord, en de alert verschijnt kort daarna in Opsgenie. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API-aanroep POST (JSON)** toont een `202`-antwoord, en de alert verschijnt kort daarna in Opsgenie. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 Het schema van Opsgenie is het woord `GenieKey`, een spatie en dan de sleutel. Opsgenie beperkt `message` tot 130 tekens, en de prioriteiten lopen van `P1` tot `P5`: zie [Prioriteiten toewijzen](#prioriteiten-toewijzen) om die van elk incident mee te sturen.
@@ -83,9 +83,9 @@ Het schema van Opsgenie is het woord `GenieKey`, een spatie en dan de sleutel. O
 Een workflow heeft één trigger, dus voor het sluiten is een tweede workflow nodig, die start wanneer de status van een incident verandert.
 
 :::steps
-### De trigger On Update Incident toevoegen
+### De trigger "Bij bijwerken: Incident" toevoegen
 
-Maak een workflow met de naam `Close Opsgenie alerts` en kies **On Update Incident** als trigger. Klik in **Fields to watch** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
+Maak een workflow met de naam `Close Opsgenie alerts` en kies **Bij bijwerken: Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Maak een workflow met de naam `Close Opsgenie alerts` en kies **On Update Incide
 
 ### Controleren dat het incident is opgelost
 
-Voeg na de trigger een **If / Else**-blok toe. Stel **Te controleren waarde** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Vergelijking** op **is waar**.
+Voeg na de trigger een **Als / Anders**-blok toe. Stel **Te controleren waarde** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Vergelijking** op **is waar**.
 
 ### De alert sluiten
 
-Voeg na de **Ja**-kant een **API Post (JSON)**-blok toe, met dezelfde **Aanvraagheaders** en deze **URL**:
+Voeg na de **Ja**-kant een **API-aanroep POST (JSON)**-blok toe, met dezelfde **Aanvraagheaders** en deze **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,10 +114,10 @@ Zet **Ingeschakeld** aan en los daarna in OneUptime een testincident op. Opsgeni
 
 ## Prioriteiten toewijzen
 
-Om de ernst van elk incident als Opsgenie-prioriteit mee te sturen, voeg je tussen de trigger en het **API Post (JSON)**-blok een **Run Custom JavaScript**-blok toe.
+Om de ernst van elk incident als Opsgenie-prioriteit mee te sturen, voeg je tussen de trigger en het **API-aanroep POST (JSON)**-blok een **Eigen JavaScript uitvoeren**-blok toe.
 
-1. Klik in de **Fields to pass on** van de trigger op **Veld toevoegen**, open **Ernst van incident** en kies **Naam**.
-2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript-code** op:
+1. Klik in de **Velden om door te geven** van de trigger op **Veld toevoegen**, open **Ernst van incident** en kies **Naam**.
+2. Stel de **Argumenten** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript-code** op:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie antwoordt `202` voordat het verzoek is verwerkt, dus een verzoek dat he
 :::
 
 :::details De workflow draait nooit
-Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **Nee**-kant van het **If / Else**-blok nam, is een update die geen oplossing was.
+Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **Nee**-kant van het **Als / Anders**-blok nam, is een update die geen oplossing was.
 :::
 
 ## Volgende stappen

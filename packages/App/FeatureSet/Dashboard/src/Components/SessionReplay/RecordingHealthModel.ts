@@ -45,7 +45,9 @@ import {
  * as it always was, which is what the node tests read.
  */
 
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A fixed word or sentence in the translator's language.
 function translateLine(text: string, translator: Translator): string {

@@ -30,7 +30,7 @@ flowchart TB
 ## Prima di iniziare
 
 - **Un account AWS collegato.** Collegalo prima in **Cloud → Collega**: vedi [Collegare un account cloud](/docs/telemetry/cloud-accounts).
-- **Un proprietario o un amministratore del progetto.** Solo loro possono creare una chiave del flusso e interrompere la trasmissione.
+- **Un Proprietario del progetto o un Amministratore del progetto.** Solo loro possono creare una chiave del flusso e interrompere la trasmissione.
 - **AWS CloudShell in quell'account**, con l'accesso di qualcuno che può creare stack CloudFormation e ruoli IAM.
 - **Un indirizzo HTTPS, per un OneUptime self-hosted.** Firehose consegna solo a indirizzi `https://` sulla porta 443, con un certificato di cui AWS si fida, e l'indirizzo deve essere raggiungibile da AWS.
 
@@ -43,7 +43,7 @@ Vai in **Cloud → Collega** e, nella riga dell'account AWS, scegli **Trasmetti 
 
 ### Scegliere cosa trasmettere
 
-**Metriche** trasmette ogni metrica chiave di ogni risorsa, una volta al minuto: le metriche che OneUptime mostra nei grafici e con cui valuta ogni risorsa. **Metriche e log** aggiunge CloudWatch Logs, e **Registri** trasmette solo CloudWatch Logs.
+**Metriche** trasmette ogni metrica chiave di ogni risorsa, una volta al minuto: le metriche che OneUptime mostra nei grafici e con cui valuta ogni risorsa. **Metriche e log** aggiunge CloudWatch Logs, e **Log** trasmette solo CloudWatch Logs.
 
 Per i log, indica i **Gruppi di log** uno per riga, per nome nella **Regione** accanto o per ARN nella loro regione, oppure scegli **Tutti i gruppi di log dell'account, anche quelli nuovi**. Un comando sottoscrive al massimo 50 gruppi di log per nome, in al massimo 10 regioni.
 
@@ -79,8 +79,8 @@ La finestra chiede ogni pochi secondi cosa è arrivato. Firehose consegna entro 
 | --- | --- |
 | Metriche | Sulle risorse cloud che misurano, con i nomi e gli attributi che danno loro le letture della connessione |
 | Log | Nell'esploratore dei log, sotto il servizio di telemetria della connessione, con l'account, la regione e il gruppo di log come attributi |
-| Log di un gruppo di log che AWS chiama come una risorsa | Anche su quella risorsa: la sua pagina in Cloud ottiene una scheda **Registri** |
-| Log di un servizio App Runner, di un ambiente Elastic Beanstalk o di un task o un cluster ECS | Anche sul suo ambiente in Piattaforme applicative: la sua scheda **Registri** |
+| Log di un gruppo di log che AWS chiama come una risorsa | Anche su quella risorsa: la sua pagina in Cloud ottiene una scheda **Log** |
+| Log di un servizio App Runner, di un ambiente Elastic Beanstalk o di un task o un cluster ECS | Anche sul suo ambiente in Piattaforme applicative: la sua scheda **Log** |
 
 Un gruppo di log viene archiviato sotto una risorsa quando AWS gli ha dato il nome di una:
 

@@ -1,4 +1,6 @@
 import Route from "Common/Types/API/Route";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import ObjectID from "Common/Types/ObjectID";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import {
@@ -74,7 +76,8 @@ export interface ComponentProps {
 
 interface Figure {
   label: string;
-  value: string;
+  // None, and it draws the quiet dash (#8262).
+  value?: string | undefined;
   detail?: string | undefined;
   testId: string;
   tone?: "warning" | "critical" | undefined;
@@ -132,10 +135,12 @@ const FigureGrid: FunctionComponent<{ figures: Array<Figure> }> = (props: {
             <dd
               className={`mt-1 text-lg font-semibold ${figure.tone === "critical" ? "text-red-600" : figure.tone === "warning" ? "text-amber-700" : "text-gray-900"}`}
             >
-              {figure.value}
+              {getFigure(figure.value)}
             </dd>
             {figure.detail ? (
-              <dd className="text-xs text-gray-500">{figure.detail}</dd>
+              <dd className="text-xs text-gray-500">
+                {getValueOrQuietDash(figure.detail, { isSmall: true })}
+              </dd>
             ) : (
               <></>
             )}
@@ -197,7 +202,7 @@ const LinkedList: FunctionComponent<{
                     </span>
                     {row.detail ? (
                       <span className="block truncate text-xs text-gray-500">
-                        {row.detail}
+                        {getValueOrQuietDash(row.detail, { isSmall: true })}
                       </span>
                     ) : (
                       <></>
@@ -338,7 +343,7 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
             ? "…"
             : value
               ? formatMessageQueueHeadlineFull(value, translator)
-              : "—",
+              : undefined,
         detail:
           entry?.status === "ready" && !value
             ? translator.translateText("Not reported in this range")

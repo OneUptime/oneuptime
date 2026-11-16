@@ -63,7 +63,7 @@ En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal ad
 
 - **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) – vælg én metrik i **Docker Swarm Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til bestemte opgaver.
-- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver opgave for sig.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg metrikker**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver opgave for sig.
 
 ### Kontrollér kriterierne
 
@@ -87,9 +87,9 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **Containernavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.container.name`. En opgaves container hedder `<service>.<slot>.<taskid>`, f.eks. `web.1.abc123`. |
 | **Container-image** | Custom Metric, Avanceret | Valgfri. Matcher `resource.container.image.name` med eller uden det digest, Swarm fastlåser til imaget: `nginx:latest` matcher også `nginx:latest@sha256:…`, et digest, du skriver, udelades, og et navn uden tag betyder `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
+| **Aggregering** | Custom Metric | Hvordan metrikker kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner angiver deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 > [!NOTE]
 > **Tjenestenavn** og **Nodenavn** kræver agentens filer fra version 0.161.2 og frem: ældre filer sender hverken tjenesten eller noden. [Opgradér agenten](/docs/telemetry/docker-swarm#opgradering-af-agenten) på hver node, den kører på.
@@ -192,8 +192,8 @@ En monitor, som du ikke bygger ud fra en skabelon, starter med to kriterier:
 
 | Rækkefølge | Kriterium | Matcher, når | Så |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hændelsen "_monitor name_ is offline", som løser sig selv, når monitoren kommer sig. |
-| 2 | Check if _monitor name_ is online | Den første forespørgsel har data | Markerer monitoren som **I drift**. |
+| 1 | Tjek, om _monitornavn_ er offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hændelsen "_monitornavn_ er offline", som løser sig selv, når monitoren kommer sig. |
+| 2 | Tjek, om _monitornavn_ er online | Den første forespørgsel har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
 > En værdi på `0` er data, så en metrik, der ofte er nul, som genstarter eller fejl, gør ikke monitoren offline. For at få en advarsel om en værdi skal du starte fra en skabelon eller tilføje et kriterium med en tærskel. Når der slet ikke kommer data, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: stilhed er ikke en bedring. Tid, hvor OneUptime selv ikke modtog data, tæller aldrig som manglende data: en kontrol, hvis vindue indeholder den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.

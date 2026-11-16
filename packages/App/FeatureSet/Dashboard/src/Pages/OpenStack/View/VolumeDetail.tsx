@@ -249,7 +249,7 @@ const VolumeOverview: FunctionComponent<{
           value={
             row.diskCapacityBytes === undefined ||
             row.diskCapacityBytes === null
-              ? "—"
+              ? undefined
               : formatOpenStackBytes(row.diskCapacityBytes)
           }
           description="What this volume holds room for, as Cinder reports it."
@@ -258,7 +258,7 @@ const VolumeOverview: FunctionComponent<{
           title="In state for"
           icon={IconProp.Clock}
           iconColor="slate"
-          value={timeInState || "—"}
+          value={timeInState}
           description="How long since OneUptime saw this volume's status change. One already in this state when OneUptime first saw it counts from then."
         />
       </div>

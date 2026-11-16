@@ -530,7 +530,7 @@ describe("the Add a probe dialog", () => {
     expect(
       within(dialog()).getByTestId("add-probe-key-hidden"),
     ).toHaveTextContent(
-      "Only project owners and admins can see a probe's key. Ask one of them to run Network probe: it is under Monitors → Settings → Probes.",
+      "Only Project Owners and Project Admins can see a probe's key. Ask one of them to run Network probe: it is under Monitors → Settings → Probes.",
     );
 
     /*

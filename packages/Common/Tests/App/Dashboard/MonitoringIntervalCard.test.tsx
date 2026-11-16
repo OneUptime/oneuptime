@@ -235,11 +235,11 @@ describe("the Monitoring Interval card", () => {
   test("a cron the list does not have shows in words, in its place on the list", () => {
     renderCard({ monitorType: MonitorType.API, interval: "*/3 * * * *" });
 
-    expect(shownValue()).toBe("Every 3 minutes");
+    expect(shownValue()).toBe("Every 3\u00A0minutes");
     expect(offered()).toEqual([
       "Every Minute",
       "Every 2 Minutes",
-      "Every 3 minutes",
+      "Every 3\u00A0minutes",
       ...EVERY_INTERVAL.slice(2),
     ]);
   });

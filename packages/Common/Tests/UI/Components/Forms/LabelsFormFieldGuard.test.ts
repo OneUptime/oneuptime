@@ -965,10 +965,16 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
   {
     file: `${DASHBOARD}/Pages/Slo/Slos.tsx`,
     label: "ModelTable: SLOs",
-    steps: ["measures", "objective"],
+    // A Metric SLO's metric has a step of its own (#8445).
+    steps: ["measures", "metric", "objective"],
     rows: {
       measures: {
-        open: ["sliType", "services", "latencyThresholdInMilliseconds"],
+        open: [
+          "sliType",
+          "services",
+          "latencyThresholdInMilliseconds",
+          "requestFilter",
+        ],
         folded: [],
       },
       objective: {

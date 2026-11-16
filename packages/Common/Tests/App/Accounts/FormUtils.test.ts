@@ -633,15 +633,15 @@ describe("isKnownFormMessage", () => {
 
 describe("formatFormRetryAfter", () => {
   test.each([
-    [1, "in 1 second"],
-    [45, "in 45 seconds"],
-    [59.2, "in 60 seconds"],
-    [60, "in 1 minute"],
-    [61, "in 2 minutes"],
-    [900, "in 15 minutes"],
-    [3599, "in 60 minutes"],
-    [3600, "in 1 hour"],
-    [5400, "in 2 hours"],
+    [1, "in 1\u00A0second"],
+    [45, "in 45\u00A0seconds"],
+    [59.2, "in 60\u00A0seconds"],
+    [60, "in 1\u00A0minute"],
+    [61, "in 2\u00A0minutes"],
+    [900, "in 15\u00A0minutes"],
+    [3599, "in 60\u00A0minutes"],
+    [3600, "in 1\u00A0hour"],
+    [5400, "in 2\u00A0hours"],
   ])(
     "%s seconds is %j - rounded up, never early",
     (seconds: number, text: string) => {
@@ -657,8 +657,8 @@ describe("formatFormRetryAfter", () => {
   );
 
   test("in the submitter's language", () => {
-    expect(formatFormRetryAfter(900, "de")).toBe("in 15 Minuten");
-    expect(formatFormRetryAfter(3600, "ja")).toBe("1 時間後");
+    expect(formatFormRetryAfter(900, "de")).toBe("in 15\u00A0Minuten");
+    expect(formatFormRetryAfter(3600, "ja")).toBe("1\u00A0時間後");
   });
 
   test("a language tag the browser cannot use leaves the wait unsaid", () => {

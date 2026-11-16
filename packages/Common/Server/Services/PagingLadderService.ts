@@ -94,7 +94,7 @@ export const PAGING_LADDER_ADMIN_WRITE_PERMISSIONS: ReadonlyArray<Permission> =
   ];
 
 export const PAGING_LADDER_NOT_ALLOWED_MESSAGE: string =
-  "You can change your own ladder. To change a member's, ask a project admin, or someone who may edit members' notification rules.";
+  "You can change your own ladder. To change a member's, ask a Project Admin, or someone who may edit members' notification rules.";
 
 export const PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE: string =
   "A step names a notification method that is not verified, or is not theirs in this project. Verify it in Notification Methods, or choose another method, then save.";

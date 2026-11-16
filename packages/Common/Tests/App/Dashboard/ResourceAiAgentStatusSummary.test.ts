@@ -294,7 +294,7 @@ describe.each(ALL_AI_RESOURCE_TYPES)(
       expect(summary.connectionSentence).toBe(
         `The ${descriptor.agentName} is offline.`,
       );
-      expect(summary.connectionDetails[0]).toBe("last seen 3 hours ago");
+      expect(summary.connectionDetails[0]).toBe("last seen 3\u00A0hours ago");
     });
 
     test("no agent yet: Not installed, nothing to show under it, and what needs attention", () => {

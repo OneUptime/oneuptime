@@ -76,7 +76,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 
 ### 工作流做什么
 
-在 **Webhook** 触发器之后， **Check With JavaScript** 步骤 `read-event-1` 读取媒介类型发送的 `event`，再由 **Incident From Another Tool**（警报模板中为 **Alert From Another Tool** ）按问题的事件 ID 执行它所代表的操作：
+在 **Webhook** 触发器之后， **用 JavaScript 检查** 步骤 `read-event-1` 读取媒介类型发送的 `event`，再由 **来自其他工具的事件**（警报模板中为 **来自其他工具的警报** ）按问题的事件 ID 执行它所代表的操作：
 
 | 事件类型 | 工作流做什么 |
 | --- | --- |
@@ -102,7 +102,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 使用你自己的严重程度时，Disaster 和 High 对应最严重的一个，Average 和 Warning 对应中间的一个，Information 和 Not classified 对应最轻的一个。Zabbix 把严重程度编号为 0（Not classified）到 5（Disaster），模板读取的是编号，所以在 Zabbix 中重命名严重程度不会改变任何东西。
 
 - 要按名称把某个严重程度映射到你的某个严重程度，请编辑 `read-event-1` 步骤中的 `SEVERITY_BY_NAME`，例如 Warning 对应 `{ 2: 'Minor Incident' }`。
-- 要让 Average 问题也呼叫值班人员，请把 `if-page-1` **If / Else** 步骤的 **比较对象** 设为 `3`。
+- 要让 Average 问题也呼叫值班人员，请把 `if-page-1` **如果 / 否则** 步骤的 **比较对象** 设为 `3`。
 
 ### 把确认和备注发送回 Zabbix
 
@@ -126,7 +126,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 
 ### 在 Zabbix 6.0 上
 
-Zabbix 6.0 从请求正文而不是 `Authorization` 标头中读取 API 令牌。在每个调用 Zabbix 的模板的 **Update Zabbix Problem** 步骤中，打开 **更多字段** 下的 **Zabbix 6.0**。Zabbix 7.2 及更高版本会拒绝正文中的令牌，所以升级时请再次关闭它。
+Zabbix 6.0 从请求正文而不是 `Authorization` 标头中读取 API 令牌。在每个调用 Zabbix 的模板的 **更新 Zabbix 问题** 步骤中，打开 **更多字段** 下的 **Zabbix 6.0**。Zabbix 7.2 及更高版本会拒绝正文中的令牌，所以升级时请再次关闭它。
 
 ## 用监视器接收问题
 
@@ -171,7 +171,7 @@ https://oneuptime.com/heartbeat/<secret key>
 自托管安装使用自己的主机来代替 `oneuptime.com`。
 :::
 
-监视器按原样读取请求的 JSON：`"status":"1"`，没有空格。每项设置的作用请参见 [接收来自其他系统的告警](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警)。在 Zabbix 中所做的更新也以 `"status":"1"` 发送，监视器会再次把它读作该问题，不会创建第二个事件。
+监视器按原样读取请求的 JSON：`"status":"1"`，没有空格。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。在 Zabbix 中所做的更新也以 `"status":"1"` 发送，监视器会再次把它读作该问题，不会创建第二个事件。
 
 ## 配置 Zabbix
 

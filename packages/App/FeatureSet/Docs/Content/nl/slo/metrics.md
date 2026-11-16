@@ -97,8 +97,8 @@ De [SLO-widget](/docs/dashboards/widgets#slo) toont de SLI, het resterende budge
 
 | Instelling | Hoe hij zich gedraagt |
 | --- | --- |
-| **Service Level Objective** | Zet de widget vast op één SLO. De kiezer toont SLO's die niet gearchiveerd zijn. |
-| **Follow SLO Variable** | Toont de SLO die in een dashboardvariabele is gekozen: een variabele **Telemetrie-attribuut** op de sleutel `sloName`. Wordt genegeerd zolang een SLO is vastgezet. |
+| **Serviceniveaudoelstelling** | Zet de widget vast op één SLO. De kiezer toont SLO's die niet gearchiveerd zijn. |
+| **SLO-variabele volgen** | Toont de SLO die in een dashboardvariabele is gekozen: een variabele **Telemetrie-attribuut** op de sleutel `sloName`. Wordt genegeerd zolang een SLO is vastgezet. |
 
 Op een [openbaar dashboard](/docs/dashboards/sharing) laat een widget die een variabele volgt kijkers elke niet-gearchiveerde SLO van het project op naam kiezen. Een vastgezette widget toont alleen zijn eigen SLO, en blijft de laatste cijfers tonen van een SLO die later wordt gearchiveerd.
 

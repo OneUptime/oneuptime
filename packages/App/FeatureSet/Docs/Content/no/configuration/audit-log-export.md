@@ -1,6 +1,6 @@
 # Eksport av revisjonslogg
 
-Send revisjonsloggen, etter hvert som den registreres, til lagring eller en tjeneste du velger: Amazon S3 eller S3-kompatibel lagring, Google Cloud Storage, Azure Blob Storage, en webhook eller syslog. Behold oppføringene der så lenge compliance-gjennomgangene dine krever, og søk i dem i ditt SIEM. Et prosjekts eiere og administratorer eksporterer revisjonsloggen fra prosjektinnstillingene, og master-admins eksporterer loggen for alle prosjekter fra Admin Dashboard. Den er en del av Enterprise-abonnementet i OneUptime Cloud og av Enterprise Edition når du selvhoster.
+Send revisjonsloggen, etter hvert som den registreres, til lagring eller en tjeneste du velger: Amazon S3 eller S3-kompatibel lagring, Google Cloud Storage, Azure Blob Storage, en webhook eller syslog. Behold oppføringene der så lenge compliance-gjennomgangene dine krever, og søk i dem i ditt SIEM. Prosjekteiere og Prosjektadministratorer eksporterer et prosjekts revisjonslogg fra prosjektinnstillingene, og master-admins eksporterer loggen for alle prosjekter fra Admin Dashboard. Den er en del av Enterprise-abonnementet i OneUptime Cloud og av Enterprise Edition når du selvhoster.
 
 :::cards
 - [Sett opp en eksport](#sett-opp-en-eksport): Velg et mål, test det, lagre det.
@@ -140,7 +140,7 @@ Hver oppføring er ett JSON-objekt, med nøklene alltid i denne rekkefølgen:
 | `id` | Oppføringens ID. Den samme oppføringen, sendt to ganger, har den samme ID-en. |
 | `createdAt` | Når endringen ble registrert, i UTC. |
 | `projectId` | Prosjektet endringen ble gjort i. |
-| `action` | `Create`, `Update`, `Delete` eller `Download`, eller for en økt `SignIn`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` eller `Download`, eller for en pålogging eller en økt `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Hva som ble endret. |
 | `rootResourceType`, `rootResourceId` | Ressursen den hører til, for eksempel et SLO for regelen sin. |
 | `userId`, `userName`, `userEmail`, `userType` | Hvem som gjorde endringen. |
@@ -173,11 +173,11 @@ En ny eksport sender versjon 2. En eksport som ble lagret før versjon 2, fortse
 
 ## Når et mål feiler
 
-En batch prøves tre ganger med noen sekunders mellomrom, og så venter eksporten før den prøver igjen: ett minutt, så to, fire og så videre, opptil en time. Raden sier **Feiler**, og **Vis feil** viser hva målet svarte og når neste forsøk kommer.
+En batch prøves tre ganger med noen sekunders mellomrom, og så venter eksporten før den prøver igjen: ett minutt, så to, fire og så videre, opptil en time. Raden sier **Feiler**, og **Vis feil** viser hva målet svarte, når neste forsøk kommer, og fra når oppføringene som venter på å bli sendt, begynner å bli slettet, eller, når det tidspunktet er passert, siden når de blir slettet.
 
 Ingenting hoppes over: Oppføringene venter i revisjonsloggen, og den neste leveringen som lykkes, tar igjen fra den eldste. Hver oppføring slettes likevel når den er eldre enn oppbevaringstiden den ble registrert med, sendt eller ikke, så rett en eksport som feiler innen den tiden. En lengre oppbevaringstid gjelder bare oppføringer som registreres etter at du endrer den.
 
-En eksport som feiler, sender e-post til dem som kan rette den: prosjektets eiere for et prosjekts eksport, og alle master-admins for instansens. Den første e-posten kommer etter 30 minutter med feil, med det målet svarte. Den andre kommer en dag før den første av oppføringene eksporten ikke har sendt, slettes, med når oppføringer begynner å gå tapt. Har det tidspunktet allerede passert, som når **Eksporter fra** går lenger tilbake enn oppbevaringstiden, kommer den andre e-posten i stedet for den første etter 30 minutter og sier at oppføringer går tapt nå. Hver sendes én gang mens feilene varer, og en levering som lykkes, nullstiller begge.
+En eksport som feiler, sender e-post til dem som kan rette den: Prosjekteiere for et prosjekts eksport, og alle master-admins for instansens. Den første e-posten kommer etter 30 minutter med feil, med det målet svarte. Den andre kommer en dag før den første av oppføringene eksporten ikke har sendt, slettes, med når oppføringer begynner å gå tapt. Har det tidspunktet allerede passert, som når **Eksporter fra** går lenger tilbake enn oppbevaringstiden, kommer den andre e-posten i stedet for den første etter 30 minutter og sier at oppføringer går tapt nå. Hver sendes én gang mens feilene varer, og en levering som lykkes, nullstiller begge.
 
 Velg **Slå av** i menyen på raden for å pause en eksport: Den beholder plassen sin, og **Slå på** sender det som ble registrert i mellomtiden. I OneUptime Cloud slutter et prosjekt som forlater Enterprise-abonnementet å eksportere, og eksportene venter under oppgraderingskortet, der de kan slås av eller slettes. Når du selvhoster, stopper eksporten så lenge lisensen ikke inkluderer revisjonslogger, og fortsetter der den stoppet så snart en lisens gjør det.
 

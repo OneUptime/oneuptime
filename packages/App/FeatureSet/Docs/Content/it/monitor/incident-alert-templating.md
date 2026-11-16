@@ -367,7 +367,7 @@ Lo screenshot compare quindi nella pagina dell'incidente o dell'avviso, nelle pa
 - Il caricamento su Slack richiede il permesso `files:write` dell'app. Se il tuo workspace ha collegato Slack prima che OneUptime lo chiedesse, ricollega Slack in **Impostazioni del progetto → Area di lavoro → Slack** (su un server self-hosted, aggiungi prima il permesso alla tua app Slack - vedi [Integrazione Slack](/docs/self-hosted/slack-integration#immagini-nei-messaggi)).
 - Uno screenshot che una chat non può mostrare - un WebP, uno oltre quei limiti, uno che Slack o Teams rifiutano, o qualsiasi screenshot in un messaggio inviato tramite un webhook in ingresso - viene mostrato come il suo testo alternativo, o «[image]» quando non ne ha, quindi dai un testo alternativo a ogni immagine. Il base64 dell'immagine non raggiunge mai la chat.
 - Viene mostrata solo un'immagine che scrivi nel modello. Un'immagine in un valore riportato dalla pagina o dallo script monitorato - un messaggio di errore, una riga di log - appare comunque come testo (vedi [Valori nelle descrizioni e nelle note di rimedio](#valori-nelle-descrizioni-e-nelle-note-di-rimedio)).
-- OneUptime AI legge il testo intorno a uno screenshot, non lo screenshot. Ciò che un'indagine, un postmortem o una nota redatti, il passaggio AI di un runbook o il passaggio AI di un flusso di lavoro danno al modello ha una breve nota al posto dell'immagine, come `[image omitted: PNG, 340 KB]`: un modello legge testo, non immagini, e il base64 di uno screenshot sarebbe centinaia di migliaia di token a ogni chiamata. L'attività dell'indagine indica cosa è stato omesso.
+- OneUptime AI legge il testo intorno a uno screenshot, non lo screenshot. Ciò che un'indagine, un postmortem o una nota redatti, il passaggio IA di un runbook o il passaggio IA di un flusso di lavoro danno al modello ha una breve nota al posto dell'immagine, come `[image omitted: PNG, 340 KB]`: un modello legge testo, non immagini, e il base64 di uno screenshot sarebbe centinaia di migliaia di token a ogni chiamata. L'attività dell'indagine indica cosa è stato omesso.
 
 Per mostrare lo screenshot di ogni esecuzione fallita, metti l'immagine in un ciclo. Qui lo script salva ogni screenshot come `screenshots["failure"]`:
 
@@ -452,17 +452,17 @@ I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.databa
 
 ### Monitor di metriche e infrastruttura
 
-I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array e IoT Device hanno una variabile propria:
+I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Array di storage e IoT Device hanno una variabile propria:
 
 | Variabile | Cosa contiene | Tipo |
 | --- | --- | --- |
 | `metricName` | Il nome della metrica che legge la prima query del monitor, come `container.cpu.time`. | `string` |
 
-Se raggruppati, hanno anche il valore di ogni attributo di **Raggruppa per**, e `seriesLabels`: vedi [Valori di un monitor raggruppato](#valori-di-un-monitor-raggruppato). I modelli del monitor IoT Device raggruppano per dispositivo, quindi un monitor creato da uno di essi ha anche `{{device.id}}`.
+Se raggruppati, hanno anche il valore di ogni attributo di **Raggruppa per**, e `seriesLabels`: vedi [Valori di un monitor raggruppato](#valori-di-un-monitor-raggruppato). I modelli del monitor Dispositivo IoT raggruppano per dispositivo, quindi un monitor creato da uno di essi ha anche `{{device.id}}`.
 
 ### Altri tipi di monitor
 
-I monitor Logs, Traces, Exceptions, Security Events, AI / LLM e SQL Query non hanno variabili proprie. Usa le [variabili di ogni monitor](#variabili-di-ogni-monitor) e, su un monitor Logs raggruppato, i [valori del gruppo](#valori-di-un-monitor-raggruppato).
+I monitor Logs, Traces, Exceptions, Eventi di sicurezza, IA / LLM e SQL Query non hanno variabili proprie. Usa le [variabili di ogni monitor](#variabili-di-ogni-monitor) e, su un monitor Logs raggruppato, i [valori del gruppo](#valori-di-un-monitor-raggruppato).
 
 ## Esempi
 

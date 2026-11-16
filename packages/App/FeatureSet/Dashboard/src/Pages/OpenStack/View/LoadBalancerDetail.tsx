@@ -201,7 +201,7 @@ const LoadBalancerOverview: FunctionComponent<{
           ),
           description: "The project that owns this load balancer.",
         }
-      : { key: "project", label: "Project", value: "—" },
+      : { key: "project", label: "Project", value: undefined },
   );
   if (row.regionName) {
     detailRows.push({
@@ -215,9 +215,7 @@ const LoadBalancerOverview: FunctionComponent<{
       key: "pools",
       label: "Pools",
       value:
-        pools.length === 0 ? (
-          "—"
-        ) : (
+        pools.length === 0 ? undefined : (
           <span className="flex flex-col gap-1">
             {pools.map((pool: OpenStackResource): ReactElement => {
               return (
@@ -242,9 +240,7 @@ const LoadBalancerOverview: FunctionComponent<{
       key: "listeners",
       label: "Listeners",
       value:
-        listeners.length === 0 ? (
-          "—"
-        ) : (
+        listeners.length === 0 ? undefined : (
           <span className="flex flex-col gap-1">
             {listeners.map((listener: OpenStackResource): ReactElement => {
               return (
@@ -266,9 +262,7 @@ const LoadBalancerOverview: FunctionComponent<{
         key: "amphorae",
         label: "Amphorae",
         value:
-          amphorae.length === 0 ? (
-            "—"
-          ) : (
+          amphorae.length === 0 ? undefined : (
             <span className="flex flex-col gap-1">
               {amphorae.map((amphora: OpenStackResource): ReactElement => {
                 return (
@@ -333,17 +327,14 @@ const LoadBalancerOverview: FunctionComponent<{
                   ? "amber"
                   : "emerald"
             }
-            value={operating || "—"}
+            value={operating}
             description="What its health checks make of it, in Octavia's word. Provisioning can read ACTIVE while this reads ERROR."
           />
           <GoldenMetricTile
             title="In state for"
             icon={IconProp.Clock}
             iconColor="slate"
-            value={
-              getOpenStackTimeInState(row, OneUptimeDate.getCurrentDate()) ||
-              "—"
-            }
+            value={getOpenStackTimeInState(row, OneUptimeDate.getCurrentDate())}
             description="How long since OneUptime saw this load balancer's provisioning status change. One already in this state when OneUptime first saw it counts from then."
           />
         </>

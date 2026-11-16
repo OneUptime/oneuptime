@@ -11,7 +11,7 @@ Ce qu'il faut savoir avant de confier un vrai trafic à un flux de travail : com
 
 ## Activer ou désactiver un flux de travail
 
-Chaque flux de travail a un interrupteur **Activé** en haut de son **Constructeur**, et sur sa page **Vue d'ensemble**. Quand il est désactivé, son déclencheur est en pause — les appels de webhook, les e-mails entrants, les heures planifiées, les événements OneUptime et les étapes **Execute Workflow** d'autres flux de travail ne le lancent pas. **Exécuter le flux de travail** et **Run just this step**, si : une exécution que vous lancez vous-même pendant que le flux de travail est désactivé est une **Exécution de test**. Les nouveaux flux de travail démarrent désactivés.
+Chaque flux de travail a un interrupteur **Activé** en haut de son **Constructeur**, et sur sa page **Vue d'ensemble**. Quand il est désactivé, son déclencheur est en pause — les appels de webhook, les e-mails entrants, les heures planifiées, les événements OneUptime et les étapes **Exécuter un autre flux de travail** d'autres flux de travail ne le lancent pas. **Exécuter le flux de travail** et **Run just this step**, si : une exécution que vous lancez vous-même pendant que le flux de travail est désactivé est une **Exécution de test**. Les nouveaux flux de travail démarrent désactivés.
 
 Servez-vous de cet interrupteur comme du feu vert « prêt à partir » :
 
@@ -22,14 +22,14 @@ Servez-vous de cet interrupteur comme du feu vert « prêt à partir » :
 4. Basculez **Activé** quand il est prêt : à partir de là, son déclencheur se produit sur de vrais événements.
 :::
 
-Désactiver un flux de travail empêche son déclencheur de lancer de nouvelles exécutions. Une exécution déjà en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Sleep** est annulée à son réveil. Les exécutions de test continuent. Pour en activer ou en désactiver plusieurs à la fois, sélectionnez-les dans la liste **Flux de travail** et choisissez **Activer** ou **Désactiver** sous **Actions groupées**.
+Désactiver un flux de travail empêche son déclencheur de lancer de nouvelles exécutions. Une exécution déjà en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Pause** est annulée à son réveil. Les exécutions de test continuent. Pour en activer ou en désactiver plusieurs à la fois, sélectionnez-les dans la liste **Flux de travail** et choisissez **Activer** ou **Désactiver** sous **Actions groupées**.
 
 ## Archiver un flux de travail
 
 Archivez un flux de travail dont vous n'avez plus besoin mais que vous voulez conserver. Un flux de travail archivé :
 
-- **Ne s'exécute jamais**, quel que soit le déclencheur. Les exécutions manuelles et **Run just this step**, les appels de webhook, les planifications, les événements OneUptime, les e-mails entrants et les étapes **Execute Workflow** des autres flux de travail sont tous refusés. Un appel de webhook vers un flux de travail archivé reçoit une erreur qui indique que le flux de travail est archivé.
-- **Arrête les exécutions en attente.** Une exécution endormie dans une étape **Sleep** est annulée à son réveil, et une exécution mise en file mais pas encore démarrée se termine par "Workflow was archived before this run started, so it did not run."
+- **Ne s'exécute jamais**, quel que soit le déclencheur. Les exécutions manuelles et **Run just this step**, les appels de webhook, les planifications, les événements OneUptime, les e-mails entrants et les étapes **Exécuter un autre flux de travail** des autres flux de travail sont tous refusés. Un appel de webhook vers un flux de travail archivé reçoit une erreur qui indique que le flux de travail est archivé.
+- **Arrête les exécutions en attente.** Une exécution endormie dans une étape **Pause** est annulée à son réveil, et une exécution mise en file mais pas encore démarrée se termine par "Workflow was archived before this run started, so it did not run."
 - **Quitte la liste des flux de travail.** Vous le trouvez sous **Flux de travail → Avancé → Archivé**.
 - **Garde tout.** Ses étapes, ses variables, ses propriétaires, ses étiquettes et son historique d'exécutions restent tels quels.
 
@@ -81,7 +81,7 @@ Dans la liste **Flux de travail**, cliquez sur **Importer du JSON** et choisisse
 Le fichier contient le nom du flux de travail, sa description, son état d'activation et son graphe. Il ne contient volontairement pas :
 
 - **La clé secrète du webhook.** Une nouvelle clé est générée à la création du flux de travail : un flux de travail importé a donc une autre URL de webhook — copiez-la depuis le déclencheur Webhook du nouveau flux de travail. Tout ce qui appelait l'original doit être redirigé.
-- **L'adresse e-mail entrante.** Un flux de travail importé avec un déclencheur Incoming Email reçoit sa propre adresse — copiez-la depuis le déclencheur du nouveau flux de travail. Tout ce qui écrivait à l'original doit recevoir la nouvelle adresse.
+- **L'adresse e-mail entrante.** Un flux de travail importé avec un déclencheur E-mail entrant reçoit sa propre adresse — copiez-la depuis le déclencheur du nouveau flux de travail. Tout ce qui écrivait à l'original doit recevoir la nouvelle adresse.
 - **Les variables globales.** Un bloc qui lit `{{global.variables.MY_SECRET}}` garde cette référence, mais la valeur n'est pas dans le fichier. Créez les variables dans le projet de destination avant d'exécuter le flux de travail importé.
 - **Les propriétaires et les étiquettes.** Les règles d'étiquettes et de propriétaires de votre projet s'appliquent au flux de travail importé, comme si vous l'aviez créé à la main.
 
@@ -96,19 +96,19 @@ Les déclencheurs webhook vous donnent une URL unique. Quiconque connaît l'URL 
 - Traitez l'URL comme un mot de passe. Ne la partagez pas publiquement et ne la committez pas dans un dépôt public. Le déclencheur Webhook masque la clé secrète de l'URL tant que vous ne cliquez pas sur **Afficher**, et **Copier l'URL** copie l'URL sans l'afficher.
 - Si l'URL fuite, cliquez sur le déclencheur Webhook dans le **Constructeur** puis sur **Réinitialiser l'URL**. Le flux de travail reçoit une nouvelle URL et l'ancienne cesse de fonctionner immédiatement.
 - Si le déclencheur indique que son URL se termine par l'ID du flux de travail, réinitialisez-la. Les flux de travail créés avant que les URL de webhook aient leur propre clé secrète utilisent à la place l'ID du flux de travail, et toute personne qui peut ouvrir le flux de travail peut le voir.
-- Pour les flux de travail sensibles, demandez au système appelant d'envoyer un jeton partagé dans un en-tête (comme `X-Webhook-Token`) et vérifiez-le avec un bloc **If / Else** avant de faire quoi que ce soit d'important. Enregistrez le jeton attendu comme variable secrète.
+- Pour les flux de travail sensibles, demandez au système appelant d'envoyer un jeton partagé dans un en-tête (comme `X-Webhook-Token`) et vérifiez-le avec un bloc **Si / Sinon** avant de faire quoi que ce soit d'important. Enregistrez le jeton attendu comme variable secrète.
 - Pour les flux de travail très sensibles, préférez un déclencheur d'événement OneUptime et une étape d'import manuelle à un webhook public.
 
 Seules les personnes qui peuvent modifier le flux de travail — **Propriétaire du projet**, **Administrateur du projet**, **Administrateur des flux de travail** ou **Edit Workflow** — peuvent voir ou réinitialiser son URL de webhook. Quiconque a l'URL peut démarrer le flux de travail depuis n'importe où, sans se connecter : tous les autres voient donc une note qui dit à qui s'adresser. Cela inclut un **Membre des flux de travail**, qui exécute le flux de travail à la main depuis le **Constructeur**.
 
 ## Sécurité des e-mails entrants
 
-Le déclencheur Incoming Email donne au flux de travail sa propre adresse, et quiconque connaît l'adresse peut lui écrire. La partie avant le `@` est la clé secrète du flux de travail : traitez donc l'adresse comme un mot de passe :
+Le déclencheur E-mail entrant donne au flux de travail sa propre adresse, et quiconque connaît l'adresse peut lui écrire. La partie avant le `@` est la clé secrète du flux de travail : traitez donc l'adresse comme un mot de passe :
 
 - Ne la publiez pas et ne la mettez pas dans un dépôt public. Le déclencheur masque la clé tant que vous ne cliquez pas sur **Afficher**, et **Copier l'adresse** copie l'adresse sans l'afficher.
-- Si l'adresse fuite, cliquez sur le déclencheur Incoming Email dans le **Constructeur** puis sur **Réinitialiser l'adresse**. Le flux de travail reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment.
-- N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **De** ne prouve donc pas qui l'a envoyé. Avant qu'un flux de travail fasse quoi que ce soit d'important, vérifiez une information que seul le véritable expéditeur connaît — un jeton dans l'objet ou dans un en-tête — avec un bloc **If / Else**. Enregistrez le jeton attendu comme variable secrète.
-- La clé est masquée dans tout ce que reçoit l'exécution — **À**, **CC**, les en-têtes et les corps — car le journal de l'exécution est visible par toute personne qui peut lire les exécutions du flux de travail.
+- Si l'adresse fuite, cliquez sur le déclencheur E-mail entrant dans le **Constructeur** puis sur **Réinitialiser l'adresse**. Le flux de travail reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment.
+- N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **De** ne prouve donc pas qui l'a envoyé. Avant qu'un flux de travail fasse quoi que ce soit d'important, vérifiez une information que seul le véritable expéditeur connaît — un jeton dans l'objet ou dans un en-tête — avec un bloc **Si / Sinon**. Enregistrez le jeton attendu comme variable secrète.
+- La clé est masquée dans tout ce que reçoit l'exécution — **À**, **Cc**, les en-têtes et les corps — car le journal de l'exécution est visible par toute personne qui peut lire les exécutions du flux de travail.
 
 Seules les personnes qui peuvent modifier le flux de travail — **Propriétaire du projet**, **Administrateur du projet**, **Administrateur des flux de travail** ou **Edit Workflow** — peuvent voir ou réinitialiser son adresse. Tous les autres voient une note qui dit à qui s'adresser.
 
@@ -120,27 +120,27 @@ Les adresses qu'un bloc peut atteindre dépendent du bloc :
 
 | Blocs                                                      | Bouclage, lien local, métadonnées cloud                                      | Adresses de réseau privé                                                                                                                  |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Les blocs **API** et **Mattermost**, et les requêtes de **Run Custom JavaScript** | Refusées, sauf si l'hôte exact est nommé dans `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Refusées, sauf si un administrateur auto-hébergé les autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** et les URL de jeton OAuth 2.0      | Refusées                                                                     | Refusées sur OneUptime Cloud. Autorisées sur une installation auto-hébergée, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`     |
+| Les blocs **API** et **Mattermost**, et les requêtes de **Exécuter du JavaScript personnalisé** | Refusées, sauf si l'hôte exact est nommé dans `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Refusées, sauf si un administrateur auto-hébergé les autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **Envoyer un e-mail**, **IRC** et les URL de jeton OAuth 2.0      | Refusées                                                                     | Refusées sur OneUptime Cloud. Autorisées sur une installation auto-hébergée, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`     |
 | Slack, Microsoft Teams, Discord et Telegram                | Refusées                                                                     | Refusées : chacun n'envoie qu'aux adresses de son propre service                                                                          |
 
 Voir [Accès au réseau privé](/docs/self-hosted/private-network-access) pour savoir comment un administrateur auto-hébergé les ouvre.
 
 ## Composants IA
 
-**Generate Text with AI** envoie une requête à un LLM : le fournisseur LLM par défaut du projet, ou le fournisseur global de l'installation quand le projet n'en a pas. Configurez les fournisseurs sous **Paramètres du projet → IA → Fournisseurs LLM**, et ne mettez jamais la clé d'API d'un fournisseur ni un point de terminaison de votre choix dans un flux de travail.
+**Générer du texte avec l'IA** envoie une requête à un LLM : le fournisseur LLM par défaut du projet, ou le fournisseur global de l'installation quand le projet n'en a pas. Configurez les fournisseurs sous **Paramètres du projet → IA → Fournisseurs LLM**, et ne mettez jamais la clé d'API d'un fournisseur ni un point de terminaison de votre choix dans un flux de travail.
 
 Ce que reçoit le fournisseur, et ce que le modèle peut en faire :
 
-- **Uniquement ce que vous mettez dans le bloc.** OneUptime envoie une consigne de sécurité fixe, puis les **System Instructions**, le **Prompt** et le **Contexte** du bloc, avec leurs références remplies. **Contexte** vient en dernier, après un marqueur, et la consigne de sécurité indique au modèle que tout ce qui suit le marqueur est une donnée non fiable, même un texte qui ressemble à des instructions.
+- **Uniquement ce que vous mettez dans le bloc.** OneUptime envoie une consigne de sécurité fixe, puis les **Instructions système**, le **Prompt** et le **Contexte** du bloc, avec leurs références remplies. **Contexte** vient en dernier, après un marqueur, et la consigne de sécurité indique au modèle que tout ce qui suit le marqueur est une donnée non fiable, même un texte qui ressemble à des instructions.
 - **Rien d'autre.** Les données du déclencheur, l'historique du flux de travail, les sorties des autres blocs, les enregistrements du projet, la télémétrie et les secrets ne sont jamais joints. Ils ne quittent OneUptime que si vous y faites référence dans l'un de ces trois paramètres.
 - **Du texte, et aucun outil.** Le modèle ne peut pas interroger OneUptime, faire de requêtes HTTP ni modifier de données. Les paramètres supplémentaires d'un fournisseur ne laissent passer qu'une liste autorisée de champs de réglage de la génération : ils ne peuvent pas remplacer les messages, ajouter des outils, une recherche web ou d'autres sources de données, demander autre chose que du texte ou plusieurs réponses, activer le streaming, faire conserver la requête par le fournisseur, ni relever la limite de sortie du bloc. Les champs que OneUptime ne connaît pas sont écartés.
 - **Le modèle est le choix de votre administrateur.** Si la génération doit rester hors ligne, choisissez un modèle qui ne va rien chercher de lui-même du côté du fournisseur.
 
 Ce qui est journalisé :
 
-- Le journal de l'exécution masque les **System Instructions**, le **Prompt**, le **Contexte** et la **Réponse** du bloc. Les blocs suivants peuvent quand même les utiliser pendant l'exécution, et un bloc dans lequel vous en insérez un le journalise selon ses propres règles : en insérer un revient à choisir de l'afficher.
-- Le fournisseur, le modèle, le nombre de jetons, le **LLM Log ID** et un message d'erreur sans risque restent visibles, pour l'exploitation et la facturation. L'erreur brute d'un fournisseur est tenue à l'écart de tous les journaux, car un fournisseur peut y répéter la requête.
+- Le journal de l'exécution masque les **Instructions système**, le **Prompt**, le **Contexte** et la **Réponse** du bloc. Les blocs suivants peuvent quand même les utiliser pendant l'exécution, et un bloc dans lequel vous en insérez un le journalise selon ses propres règles : en insérer un revient à choisir de l'afficher.
+- Le fournisseur, le modèle, le nombre de jetons, le **ID du journal LLM** et un message d'erreur sans risque restent visibles, pour l'exploitation et la facturation. L'erreur brute d'un fournisseur est tenue à l'écart de tous les journaux, car un fournisseur peut y répéter la requête.
 - Chaque appel est listé sous **Paramètres du projet → IA → Journaux IA** avec son fournisseur, son modèle, son statut, ses jetons, son coût et sa facturation, sans le prompt, la réponse ni l'erreur brute.
 
 Ce dont le bloc a besoin, et ce qu'il coûte :
@@ -151,9 +151,9 @@ Ce dont le bloc a besoin, et ce qu'il coûte :
 
 | Limite                                                       | Valeur                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** et **Contexte** ensemble  | 50 000 caractères                                                         |
+| **Instructions système**, **Prompt** et **Contexte** ensemble  | 50 000 caractères                                                         |
 | **Température**                                              | De `0` à `1`                                                              |
-| **Maximum Output Tokens**                                    | De `1` à `4096`, `1024` par défaut                                        |
+| **Nombre maximal de jetons en sortie**                                    | De `1` à `4096`, `1024` par défaut                                        |
 | Une requête                                                  | Une seule tentative, 60 secondes au plus                                  |
 | Appels simultanés                                            | 3 par projet. Les suivants prennent **Erreur**, et une exécution ultérieure peut réessayer. |
 
@@ -196,7 +196,7 @@ Les étapes qui lisent et modifient des enregistrements OneUptime — les compos
   - modifier ou supprimer une entrée de fil d'activité (fils des incidents, des alertes, des épisodes, des moniteurs, des politiques d'astreinte et des maintenances planifiées) ;
   - écrire un journal de notification (journaux des SMS, des appels, des e-mails, de WhatsApp, de Telegram, des notifications push, des webhooks et des messages d'espace de travail) ;
   - les valeurs que OneUptime définit au fil des événements : si le CNAME d'un domaine personnalisé est vérifié, les interrupteurs de protection d'une équipe (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), quel rôle d'incident est le rôle principal et s'il peut être supprimé, si un propriétaire ou un membre a été notifié, les heures et le nombre de rappels, qui est d'astreinte maintenant et ensuite sur un planning, la progression d'une exécution d'astreinte, le taux de consommation et le budget d'erreur actuels d'un SLO, un moniteur mis en pause par un incident ou un événement de maintenance, le jeton de réinitialisation du mot de passe et la dernière connexion d'un utilisateur privé d'une page de statut, les informations qu'un service déclare sur lui-même (version, environnement d'exécution, cloud), et la dernière exécution d'une règle de détection ou d'un flux de menaces ;
-  - déclarer un incident à partir d'un modèle en envoyant `createdIncidentTemplateId` à **Create One Incident** — choisissez plutôt le modèle sous le paramètre **Modèle d'incident** de l'étape : l'étape déclare alors l'incident à partir de lui, en tant qu'Administrateur du projet, et enregistre le modèle ;
+  - déclarer un incident à partir d'un modèle en envoyant `createdIncidentTemplateId` à **Créer : Incident (un seul)** — choisissez plutôt le modèle sous le paramètre **Modèle d'incident** de l'étape : l'étape déclare alors l'incident à partir de lui, en tant qu'Administrateur du projet, et enregistre le modèle ;
   - changer l'enregistrement auquel appartient un enregistrement après sa création, comme le moniteur auquel se rapporte une ligne de propriétaire ou l'incident sur lequel figure une note.
 - **Au nom de personne.** Un enregistrement créé par un flux de travail n'a pas de créateur, et le journal d'audit nomme le flux de travail, sous son nom du moment, comme auteur de la modification.
 
@@ -220,24 +220,24 @@ La fenêtre est glissante : chaque exécution enregistrée par le projet, à la 
 
 | Limite                                                       | Par défaut         | Paramètre auto-hébergé          |
 | ------------------------------------------------------------ | ------------------ | ------------------------------- |
-| Une exécution, depuis son démarrage ou son réveil après un **Sleep** | 2 minutes | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Un bloc **Run Custom JavaScript**                            | 5 secondes         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Un bloc **Sleep**                                            | 30 jours au plus   | —                               |
+| Une exécution, depuis son démarrage ou son réveil après un **Pause** | 2 minutes | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Un bloc **Exécuter du JavaScript personnalisé**                            | 5 secondes         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Un bloc **Pause**                                            | 30 jours au plus   | —                               |
 
-Le moteur d'exécution vérifie l'échéance avant et après chaque bloc, et marque une exécution en retard **Délai dépassé** dès que la main lui revient. Il ne peut pas interrompre un bloc en cours de route : les blocs qui attendent le réseau ont donc leurs propres délais : une requête Generate Text with AI abandonne au bout de 60 secondes au plus, et une demande de jeton OAuth 2.0 au bout de 20. Une attente sur un bloc **Sleep** ne compte pas dans la durée d'une exécution : l'exécution est mise de côté et reçoit 2 nouvelles minutes à son réveil.
+Le moteur d'exécution vérifie l'échéance avant et après chaque bloc, et marque une exécution en retard **Délai dépassé** dès que la main lui revient. Il ne peut pas interrompre un bloc en cours de route : les blocs qui attendent le réseau ont donc leurs propres délais : une requête Generate Text with AI abandonne au bout de 60 secondes au plus, et une demande de jeton OAuth 2.0 au bout de 20. Une attente sur un bloc **Pause** ne compte pas dans la durée d'une exécution : l'exécution est mise de côté et reçoit 2 nouvelles minutes à son réveil.
 
 ## Limite d'appels entre flux de travail
 
-Le composant **Execute Workflow** permet à un flux de travail d'en démarrer un autre. Pour éviter les boucles où le flux de travail A démarre B, qui redémarre A, une chaîne de flux de travail qui se démarrent les uns les autres est refusée quand elle reviendrait vers un flux de travail qui en fait déjà partie, ou dépasserait 10 flux de travail de profondeur. Le bloc **Execute Workflow** prend alors sa sortie **Erreur**, et l'erreur montre la chaîne.
+Le composant **Exécuter un autre flux de travail** permet à un flux de travail d'en démarrer un autre. Pour éviter les boucles où le flux de travail A démarre B, qui redémarre A, une chaîne de flux de travail qui se démarrent les uns les autres est refusée quand elle reviendrait vers un flux de travail qui en fait déjà partie, ou dépasserait 10 flux de travail de profondeur. Le bloc **Exécuter un autre flux de travail** prend alors sa sortie **Erreur**, et l'erreur montre la chaîne.
 
-Si vous avez réellement besoin d'une longue chaîne (comme une tâche qui traite un élément par exécution), il est en général plus simple de boucler dans un seul flux de travail avec **Run Custom JavaScript**.
+Si vous avez réellement besoin d'une longue chaîne (comme une tâche qui traite un élément par exécution), il est en général plus simple de boucler dans un seul flux de travail avec **Exécuter du JavaScript personnalisé**.
 
 ## Quand un flux de travail n'est pas le bon outil
 
 Quelques cas où il vaut mieux choisir autre chose :
 
 - **Calculs lourds ou gros volumes de données** — les flux de travail sont conçus pour un travail de liaison léger, pas pour le calcul intensif. Exécutez les traitements lourds dans votre propre infrastructure et laissez un flux de travail les lancer.
-- **Calcul actif de longue durée** — une exécution dispose de 2 minutes par défaut. Pour un délai passif comme « faire A, attendre deux heures, faire B », utilisez le composant **Sleep** ; il met l'exécution de côté et la reprend plus tard sans occuper de worker.
+- **Calcul actif de longue durée** — une exécution dispose de 2 minutes par défaut. Pour un délai passif comme « faire A, attendre deux heures, faire B », utilisez le composant **Pause** ; il met l'exécution de côté et la reprend plus tard sans occuper de worker.
 - **Réponse aux incidents étape par étape avec des personnes dans la boucle** — c'est le rôle des [Runbooks](/docs/runbooks/index). Les flux de travail servent à l'automatisation sans surveillance.
 
 ## Étapes suivantes

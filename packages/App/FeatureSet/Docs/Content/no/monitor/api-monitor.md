@@ -1,4 +1,4 @@
-# API-overvåking
+# API-monitor
 
 En API-monitor kaller et HTTP-endepunkt etter en tidsplan, med metoden, hodene og brødteksten du velger, og sjekker det som kommer tilbake: statuskoden, svartiden, hodene og brødteksten. Bruk den for REST-, JSON- og GraphQL-endepunkter, helsesjekker og alle kall brukerne dine er avhengige av.
 
@@ -28,15 +28,15 @@ sequenceDiagram
     O->>O: Sjekk kriteriene<br/>fra topp til bunn
 ```
 
-Sonden sjekker API-ets sertifikat slik en nettleser gjør, også om utstederen har tilbakekalt det. Et tilbakekalt sertifikat får sjekken til å mislykkes på samme måte som et utløpt: monitoren blir frakoblet, og feilårsaken sier at sertifikatet ble tilbakekalt. **Tillat selvsignerte sertifikater** slår av disse sjekkene for monitorens eget vertsnavn.
+Sonden sjekker API-ets sertifikat slik en nettleser gjør, også om utstederen har tilbakekalt det. Et tilbakekalt sertifikat får sjekken til å mislykkes på samme måte som et utløpt: monitoren blir offline, og feilårsaken sier at sertifikatet ble tilbakekalt. **Tillat selvsignerte sertifikater** slår av disse sjekkene for monitorens eget vertsnavn.
 
-En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke API-et ditt som frakoblet.
+En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke API-et ditt som offline.
 
 ## Før du starter
 
 - **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når API-et.** Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran API-et, tillater du [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses). Et API på et privat nettverk trenger en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket, som får nå private adresser: se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
-- **Påloggingsdata som overvåkingshemmeligheter.** Trenger API-et en nøkkel eller et token, lagrer du det først som en [overvåkingshemmelighet](/docs/monitor/monitor-secrets), så monitoren bare har en referanse til den.
+- **Påloggingsdata som overvåkingshemmeligheter.** Trenger API-et en nøkkel eller et token, lagrer du det først som en [monitorhemmelighet](/docs/monitor/monitor-secrets), så monitoren bare har en referanse til den.
 
 ## Opprett en API-monitor
 
@@ -55,11 +55,11 @@ Angi endepunktets fullstendige URL under **API-URL**, som `https://api.example.c
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser hva API-et svarte.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser hva API-et svarte.
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når API-et ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. For også å sjekke hva API-et returnerer, legger du til et filter og klikker så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når API-et ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. For også å sjekke hva API-et returnerer, legger du til et filter og klikker så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -70,7 +70,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ### API-URL
 
-Endepunktet som skal kalles, som fullstendig URL med skjema, som `https://api.example.com/v1/health`. Du kan sette en [overvåkingshemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`.
+Endepunktet som skal kalles, som fullstendig URL med skjema, som `https://api.example.com/v1/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`.
 
 ### Dynamiske URL-plassholdere
 
@@ -114,7 +114,7 @@ Disse innstillingene er brettet sammen under **Flere felt**. Den sammenbrettede 
 | **Tidsavbrudd for forespørsel (sekunder)** | `60` | Hvor lenge det ventes på hvert forsøk. Maksimum er 60 sekunder. |
 | **Nye forsøk ved feil** | Sondens standard, som regel `3` | Hvor mange ganger et mislykket forsøk gjentas. Maksimum er 3. Se [Nye forsøk og tidsavbrudd](#nye-forsøk-og-tidsavbrudd). |
 
-Forespørselshoder og forespørselens brødtekst kan bruke [overvåkingshemmeligheter](/docs/monitor/monitor-secrets), for eksempel et hode `Authorization` med verdien `Bearer {{monitorSecrets.ApiKey}}`.
+Forespørselshoder og forespørselens brødtekst kan bruke [monitorhemmeligheter](/docs/monitor/monitor-secrets), for eksempel et hode `Authorization` med verdien `Bearer {{monitorSecrets.ApiKey}}`.
 
 #### Ikke følg omdirigeringer
 
@@ -143,7 +143,7 @@ Det tilsvarer curls flagg `--cert` og `--key`:
 curl --cert client.crt --key client.key https://api.example.com/health
 ```
 
-For å holde nøkkelen utenfor monitorens innstillinger lagrer du sertifikatet og nøkkelen som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets) og angir `{{monitorSecrets.NAME}}` i disse feltene. Hemmeligheter fylles inn på serveren, og verdiene deres vises aldri i dashbordet.
+For å holde nøkkelen utenfor monitorens innstillinger lagrer du sertifikatet og nøkkelen som [monitorhemmeligheter](/docs/monitor/monitor-secrets) og angir `{{monitorSecrets.NAME}}` i disse feltene. Hemmeligheter fylles inn på serveren, og verdiene deres vises aldri i dashbordet.
 
 Klientsertifikatet presenteres bare så lenge forespørselen blir på URL-ens opprinnelse. Etter en omdirigering til en annen opprinnelse fortsetter sonden uten det.
 
@@ -155,7 +155,7 @@ Disse feilene prøves på nytt: tilkoblingsfeil, tidsavbrudd, svar `4xx` og `5xx
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når API-et regnes som tilkoblet, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
+Kriterier avgjør når API-et regnes som tilkoblet, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
@@ -178,12 +178,12 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny API-monitor starter med to kriterier, så den fungerer uten at du endrer noe:
 
-- **Frakoblet** — API-et svarer ikke, eller svarer med en statuskode på `400` eller høyere (eller under `200`). Monitoren merkes som **Frakoblet**, og en hendelse opprettes. Hendelsen løser seg selv når API-et er tilbake.
+- **Offline** — API-et svarer ikke, eller svarer med en statuskode på `400` eller høyere (eller under `200`). Monitoren merkes som **Offline**, og en hendelse opprettes. Hendelsen løser seg selv når API-et er tilbake.
 - **Oppe** — API-et svarer med en hvilken som helst statuskode `2xx` eller `3xx`, som `200`, `201`, `202` eller `204`. Monitoren merkes som **I drift**.
 
-I listen over kriterier har de navn etter monitoren: _Check if (name) is offline_ og _Check if (name) is online_.
+I listen over kriterier har de navn etter monitoren: "Sjekk om _monitornavn_ er offline" og "Sjekk om _monitornavn_ er tilkoblet".
 
-Et endepunkt som svarer `201 Created` eller `204 No Content`, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det frakoblede, i stedet for de to statuskodefiltrene hvert av dem har. For også å sjekke hva API-et returnerer, legger du til et filter **Svartekst** eller **JavaScript-uttrykk** i det frakoblede kriteriet.
+Et endepunkt som svarer `201 Created` eller `204 No Content`, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det offline, i stedet for de to statuskodefiltrene hvert av dem har. For også å sjekke hva API-et returnerer, legger du til et filter **Svartekst** eller **JavaScript-uttrykk** i det offline kriteriet.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer.
 
@@ -220,7 +220,7 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
 | Merk API-et som redusert når det er tregt | **Svartid (i ms)** | **Større enn** | `1000` |
-| Frakoblet når helsesjekken melder et problem | **Svartekst** | **Inneholder ikke** | `"status":"ok"` |
+| Offline når helsesjekken melder et problem | **Svartekst** | **Inneholder ikke** | `"status":"ok"` |
 | Det samme, lest fra den tolkede JSON-en | **JavaScript-uttrykk** | **Evalueres til sann** | `"{{responseBody.status}}" !== "ok"` |
 | Godta bare `201` fra en `POST` | **Statuskode for svar** | **Lik** | `201` |
 
@@ -228,12 +228,12 @@ For å komme gjennom en omstart slår du på **Evaluer disse kriteriene over en 
 
 ## Feilsøking
 
-:::details API-et svarer på forespørslene mine, men monitoren er frakoblet
+:::details API-et svarer på forespørslene mine, men monitoren er offline
 Sonden fikk et annet svar enn deg. Hendelsens rotårsak og **Overvåkingslogger** på monitoren viser hva sonden så. Sjekk at sonden sender det API-et forventer: metoden, hodet `Authorization`, brødteksten. En brannmur eller en hastighetsbegrenser foran API-et kan også blokkere sondene: tillat [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses).
 :::
 
 :::details Monitoren sender `{{monitorSecrets.NAME}}` bokstavelig
-Monitoren får ikke bruke hemmeligheten, eller navnet stemmer ikke. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for hvem som får bruke en hemmelighet.
+Monitoren får ikke bruke hemmeligheten, eller navnet stemmer ikke. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets) for hvem som får bruke en hemmelighet.
 :::
 
 :::details Sjekken feiler med "unsafe cross-origin redirect"
@@ -248,7 +248,7 @@ Sonden leser høyst 512 KiB av et svar, og dette er større. Kall et endepunkt s
 
 :::cards
 - [JavaScript-uttrykk](/docs/monitor/javascript-expression): Sjekk felt dypt inne i et JSON-svar.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold API-nøkler og tokener utenfor monitorinnstillingene.
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk en nettside i stedet for et endepunkt.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Hold API-nøkler og tokener utenfor monitorinnstillingene.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Sjekk en nettside i stedet for et endepunkt.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett detaljer fra svaret inn i titlene på hendelser og varsler.
 :::

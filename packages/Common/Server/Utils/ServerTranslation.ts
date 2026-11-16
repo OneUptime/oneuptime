@@ -248,15 +248,33 @@ const isolatingValues: (translator: Translator) => Translator = (
 };
 
 /*
+ * How a server translator is used. readByAPerson: what it words is a
+ * message a person reads - an email a mail client draws as a browser draws
+ * a page, a no-break space included - so its English holds a duration's
+ * figure to its word too ("for 2\u00A0hours", drawsOnPage, #8811). Without
+ * it, English the server may also write into a record keeps a plain space
+ * there, so what is stored still matches what reads it back.
+ */
+export interface ServerTranslatorOptions {
+  readByAPerson?: boolean | undefined;
+}
+
+/*
  * The translator for `language` - any tag, read as one of the languages
  * OneUptime writes in ("de-AT" is German, an unknown one English). English
  * looks nothing up: its templates are filled as they are written.
  */
 export const getServerTranslator: (
   language?: string | null | undefined,
-) => Translator = (language?: string | null | undefined): Translator => {
+  options?: ServerTranslatorOptions,
+) => Translator = (
+  language?: string | null | undefined,
+  options?: ServerTranslatorOptions,
+): Translator => {
   const code: string = toReaderLanguage(language);
-  const cached: Translator | undefined = translators.get(code);
+  const drawsOnPage: boolean = Boolean(options?.readByAPerson);
+  const cacheKey: string = drawsOnPage ? `${code}|read` : code;
+  const cached: Translator | undefined = translators.get(cacheKey);
 
   if (cached) {
     return cached;
@@ -267,14 +285,14 @@ export const getServerTranslator: (
 
   const lookingUp: Translator =
     code === DEFAULT_READER_LANGUAGE || !dictionary
-      ? createTranslator(undefined, DEFAULT_READER_LANGUAGE)
-      : createTranslator(lookupIn(code, dictionary), code);
+      ? createTranslator(undefined, DEFAULT_READER_LANGUAGE, { drawsOnPage })
+      : createTranslator(lookupIn(code, dictionary), code, { drawsOnPage });
 
   const translator: Translator = isRightToLeftLanguage(code)
     ? isolatingValues(lookingUp)
     : lookingUp;
 
-  translators.set(code, translator);
+  translators.set(cacheKey, translator);
 
   return translator;
 };

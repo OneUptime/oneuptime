@@ -85,11 +85,11 @@ Varje logg lagras med en av sju allvarlighetsgrader. För loggar från OpenTelem
 | Allvarlighetsgrad | OpenTelemetrys allvarlighetsnummer |
 | --- | --- |
 | **Spår** | 1–4 |
-| **Debug** | 5–8 |
+| **Felsökning** | 5–8 |
 | **Information** | 9–12 |
 | **Varning** | 13–16 |
 | **Fel** | 17–20 |
-| **Fatal** | 21–24 |
+| **Fatalt** | 21–24 |
 | **Ospecificerad** | Allt annat |
 
 En logg utan allvarlighetsnummer får sin allvarlighetsgrad från sin allvarlighetstext, med stora eller små bokstäver: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` och `FATAL`, deras numrerade steg som `WARN2`, och stavningar som `warning`, `notice`, `critical` och `emerg`. All annan text lämnar allvarlighetsgraden ospecificerad.
@@ -125,7 +125,7 @@ En loggmonitor som skapats i Skapa monitor börjar med regeln för det du valde 
 
 | Val | Regel | Vad som händer |
 | --- | --- | --- |
-| **För många fel** | **Loggens allvarlighetsgrad** **Fel** och **Fatal**, **Fler än** `10` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
+| **För många fel** | **Loggens allvarlighetsgrad** **Fel** och **Fatalt**, **Fler än** `10` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
 | **Ett meddelande dyker upp** | **Fler än** `0` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
 | **Loggar uteblir** | **Exakt** `0` under **Senaste 10 minuterna** | Deklarerar en incident, som löser sig själv |
 

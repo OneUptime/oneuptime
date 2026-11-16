@@ -53,7 +53,7 @@
       "signIn": "使用通行密钥登录",
       "inProgress": "使用密码前，请完成或取消通行密钥登录。",
       "helpTitle": "初次使用通行密钥？",
-      "help": "通行密钥让您用指纹、面容或设备 PIN 码登录，无需密码。要添加通行密钥，请先使用密码或 SSO 登录，然后打开用户配置 → 安全 → Passkeys。",
+      "help": "通行密钥让您用指纹、面容或设备 PIN 码登录，无需密码。要添加通行密钥，请先使用密码或 SSO 登录，然后打开用户配置 → 安全 → 通行密钥。",
       "preparing": "正在准备通行密钥…",
       "waiting": "请查看您的设备",
       "waitingDescription": "按照浏览器或密码管理器的提示操作。",
@@ -91,8 +91,8 @@
       "lostAccessSecurityKey": "无法使用安全密钥？"
     },
     "twoFactorEnrolment": {
-      "title": "设置双重身份验证",
-      "subtitle": "您的管理员要求此账户使用双重身份验证。请立即设置以完成登录。",
+      "title": "设置双因素身份验证",
+      "subtitle": "您的管理员要求此账户使用双因素身份验证。请立即设置以完成登录。",
       "scanInstruction": "请使用 Google Authenticator、Microsoft Authenticator 或 1Password 等身份验证器应用扫描此二维码。",
       "codeFieldDescription": "请输入身份验证器应用显示的六位数验证码。",
       "submitButton": "验证并登录",
@@ -255,7 +255,7 @@
     "complete": "通行密钥已验证。请返回应用完成登录。",
     "returnToApp": "返回应用",
     "cancel": "取消并返回应用",
-    "setup": "在网页控制台的“用户配置 → 安全 → Passkeys”中创建通行密钥。"
+    "setup": "在网页控制台的“用户配置 → 安全 → 通行密钥”中创建通行密钥。"
   },
   "mcpAuthorize": {
     "title": "连接 MCP 客户端",
@@ -556,6 +556,12 @@
   "Try again in a moment.": "请稍后重试。",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "请重试。如果仍然失败，请联系 OneUptime 支持团队并提供这个参考编号：",
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "请重试。如果仍然失败，请把这个参考编号提供给负责运行您的 OneUptime 服务器的人：",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容太大，服务器无法接受，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容超过了 OneUptime 单次请求可接受的 50 MB，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
+  "What was sent was too large for the server to accept.": "发送的内容太大，服务器无法接受。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "发送的内容超过了 OneUptime 单次请求可接受的 50 MB。",
+  "Try again with less at once, such as a smaller file.": "请一次发送更少的内容（例如更小的文件）后重试。",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "如果是 OneUptime 前面的代理拒绝了它，请将该代理的请求大小上限提高到 50 MB，与 OneUptime 本身接受的大小相同（在 nginx 中为 client_max_body_size 50M）。",
   "This form is not available. It may have been turned off, or the link may be out of date.": "此表单不可用。它可能已被关闭，或者链接已过期。",
   "This form can only be opened from an allowed network.": "此表单只能从允许的网络中打开。",
   "Too many submissions from your network. Please wait a few minutes and try again.": "来自您网络的提交过多。请等待几分钟后重试。",
@@ -631,9 +637,5 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  },
-  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容太大，服务器无法接受，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
-  "What was sent was too large for the server to accept.": "发送的内容太大，服务器无法接受。",
-  "Try again with less at once, such as a smaller file.": "请一次发送更少的内容（例如更小的文件）后重试。",
-  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "如果是 OneUptime 前面的代理拒绝了它，请将该代理的请求大小上限提高到 50 MB，与 OneUptime 本身接受的大小相同（在 nginx 中为 client_max_body_size 50M）。"
+  }
 }

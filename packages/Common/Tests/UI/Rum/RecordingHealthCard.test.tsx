@@ -465,7 +465,7 @@ describe("buildInstallationCheckRows", () => {
 
     expect(chunk.state).toBe("waiting");
     expect(chunk.detail).toContain(
-      "a chunk should land within about 15 seconds",
+      "a chunk should land within about 15\u00A0seconds",
     );
     expect(chunk.detail).toContain("the install is broken");
     expect(chunk.detail).not.toContain("usually working correctly");

@@ -157,14 +157,14 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 
 عامل هر چیزی را که آرایه صادر می‌کند می‌فرستد؛ سری‌های زیر فهرستی است که فرم مانیتور ارائه می‌دهد. هر مقدار یک gauge است که خود آرایه محاسبه می‌کند – تأخیرها میکروثانیه به ازای هر عملیات‌اند و توان عملیاتی بر ثانیه – پس به محاسبه نرخ نیازی نیست. **فیلتر** فیلتر برچسبی است که به سری معنایی را می‌دهد که سطرش می‌گوید؛ فرم آن را برایتان اعمال می‌کند.
 
-### Array Health
+### سلامت آرایه
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | یک سری به ازای هر هشدار باز روی آرایه (مقدار ۱)، با برچسب‌های `severity` (`critical`، `warning`، `info`، `hidden`)، `category`، `code`، `component_type` و `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | یک سری به ازای هر هشدار باز روی FlashBlade (مقدار ۱)، با برچسب‌های `severity` (`info`، `warning`، `critical`)، `code`، `component_name`، `component_type`، `summary` و `kburl` (مقاله پایگاه دانش Pure) |
 
-### Capacity
+### ظرفیت
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefb_array_space_bytes` | `type=array`، `space=empty` | FlashBlade | `bytes` | ظرفیت استفاده‌نشده FlashBlade |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | کاهش داده در سراسر FlashBlade |
 
-### Performance
+### کارایی
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`، `protocol=all` | FlashBlade | `bytes/s` | بایت خوانده‌شده در ثانیه در همه پروتکل‌ها |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`، `protocol=all` | FlashBlade | `bytes/s` | بایت نوشته‌شده در ثانیه در همه پروتکل‌ها |
 
-### Volumes
+### حجم‌ها
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | فضای فیزیکی که هر حجم پس از کاهش داده مصرف می‌کند |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | نسبت کاهش داده هر حجم |
 
-### Hosts
+### میزبان‌ها
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec` | FlashArray | `ops/s` | عملیات خواندن در ثانیه هر میزبان |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec` | FlashArray | `ops/s` | عملیات نوشتن در ثانیه هر میزبان |
 
-### Replication
+### تکثیر
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | ترافیک همتاسازی هر پاد، با برچسب‌های `direction` و `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | میانگین تأخیر نوشتن آینه‌ای هر پاد ActiveCluster |
 
-### Hardware
+### سخت‌افزار
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | خطاها در ثانیه روی هر رابط Ethernet و Fibre Channel – خطاهای پایدار معمولاً یعنی کابل، ماژول نوری یا پورت سوئیچ خراب |
 | `purefb_hardware_health` | — | FlashBlade | — | سلامت هر قطعه سخت‌افزاری (bladeها، ماژول‌های fabric، منابع تغذیه، فن‌ها، ...): ۱ = سالم، ۲ = بی‌استفاده، ۰ = ناسالم. کمینه را به ازای هر `name` بگیرید |
 
-### File Systems
+### سامانه‌های فایل
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | فضای فیزیکی که هر سیستم فایل مصرف می‌کند |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | سهمی از اندازه تأمین‌شده هر سیستم فایل که هنوز در دسترس است، از ۰ تا ۱ – نزدیک ۰ یعنی در آستانه پر کردن سهمیه‌اش است |
 
-### Buckets
+### باکت‌ها
 
 | متریک | فیلتر | پلتفرم | یکا | توضیح |
 | --- | --- | --- | --- | --- |
@@ -287,8 +287,8 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 
 | ترتیب | معیار | وقتی برقرار است که | سپس |
 | --- | --- | --- | --- |
-| ۱ | Check if _monitor name_ is offline | پرس‌وجوی اول در کل بازه هیچ داده‌ای ندارد | مانیتور را **آفلاین** علامت می‌زند و حادثه «_monitor name_ is offline» را اعلام می‌کند، که با بهبود مانیتور خودش برطرف می‌شود. |
-| ۲ | Check if _monitor name_ is online | پرس‌وجوی اول داده دارد | مانیتور را **عملیاتی** علامت می‌زند. |
+| ۱ | بررسی آفلاین بودن _نام مانیتور_ | پرس‌وجوی اول در کل بازه هیچ داده‌ای ندارد | مانیتور را **آفلاین** علامت می‌زند و حادثه «_نام مانیتور_ آفلاین است» را اعلام می‌کند، که با بهبود مانیتور خودش برطرف می‌شود. |
+| ۲ | بررسی آنلاین بودن _نام مانیتور_ | پرس‌وجوی اول داده دارد | مانیتور را **عملیاتی** علامت می‌زند. |
 
 > [!IMPORTANT]
 > مقدار `0` هم داده است، پس متریکی که اغلب صفر است، مانند راه‌اندازی‌های دوباره یا خطاها، مانیتور را آفلاین نمی‌کند. برای هشدار روی یک مقدار، از یک الگو شروع کنید یا معیاری با آستانه اضافه کنید. وقتی هیچ داده‌ای نمی‌رسد و هیچ معیاری برقرار نیست، مانیتور وضعیتش را نگه می‌دارد و رخدادهای باز، باز می‌مانند: سکوت به معنای بهبود نیست. زمانی که خود OneUptime داده دریافت نمی‌کرد هرگز «بدون داده» به حساب نمی‌آید: بررسی‌ای که بازه‌اش چنین زمانی دارد منتظر می‌ماند، همان‌طور که [وقتی OneUptime داده دریافت نمی‌کند](/docs/monitor/when-oneuptime-is-not-receiving) توضیح می‌دهد.

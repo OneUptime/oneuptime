@@ -208,14 +208,14 @@ Twilio는 음성 합성으로 메시지를 읽어 주므로, 들리길 원하는
 
 수신 통화 로그는 워크플로 트리거로 쓸 수 있습니다.
 
-- **On Create Incoming Call Log** 는 전화가 들어올 때 실행됩니다.
-- **On Update Incoming Call Log** 는 통화가 진행되면서 실행됩니다. **Ended At** 을 설정하는 업데이트가 통화의 끝입니다.
+- **Incoming Call 로그 생성 시** 는 전화가 들어올 때 실행됩니다.
+- **Incoming Call 로그 업데이트 시** 는 통화가 진행되면서 실행됩니다. **Ended At** 을 설정하는 업데이트가 통화의 끝입니다.
 
 부재중 전화에만 대응하려면(예: Slack이나 Microsoft Teams에 게시하거나 티켓을 열려면):
 
 :::steps
-1. **On Update Incoming Call Log** 트리거를 추가합니다. **Fields to watch** 를 **Ended At** 으로 설정하고, **Status**, **Caller Phone Number**, **Routing Phone Number** 처럼 사용할 필드를 선택합니다.
-2. **If / Else** 단계를 추가합니다. 트리거의 **Status** 를 비교 연산 **같지 않음** 과 `Completed` 로 확인합니다.
+1. **Incoming Call 로그 업데이트 시** 트리거를 추가합니다. **지켜볼 필드** 를 **Ended At** 으로 설정하고, **Status**, **Caller Phone Number**, **Routing Phone Number** 처럼 사용할 필드를 선택합니다.
+2. **조건 분기** 단계를 추가합니다. 트리거의 **Status** 를 비교 연산 **같지 않음** 과 `Completed` 로 확인합니다.
 3. 내 단계를 **예** 포트에 연결합니다.
 :::
 

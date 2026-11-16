@@ -864,9 +864,10 @@ describe("query_monitors read by id leaves its card in the reader's language (#7
         { label: "Owner teams", value: "SRE, DBA" },
       ],
     });
+    // German calls a monitor "Monitor", as its menu does (#8628).
     expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
       {
-        kind: "Überwachung",
+        kind: "Monitor",
         line: "Offline",
         facts: [
           { label: "Typ", value: "Website" },
@@ -905,13 +906,12 @@ describe("query_monitors read by id leaves its card in the reader's language (#7
       );
 
       for (const english of [
-        "Monitor",
         "Disabled",
         "Last status",
         "Off - not checked",
         "Yes - not monitored",
-        // German writes Website as English does.
-        ...(language === "de" ? [] : ["Website"]),
+        // German writes Monitor (#8628) and Website as English does.
+        ...(language === "de" ? [] : ["Monitor", "Website"]),
       ]) {
         expect({ language, english, drawn }).toEqual({
           language,

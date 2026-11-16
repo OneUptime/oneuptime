@@ -7,6 +7,7 @@ import {
   meetsErrorMessageRule,
   TOO_LARGE_PHRASES,
 } from "../../../Types/Exception/ErrorMessageRule";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -127,10 +128,15 @@ describe("isEmptyErrorPhrase", () => {
 
   test("a long message in any script is read in linear time", () => {
     const long: string = "接続が拒否されました。".repeat(20_000);
-    const started: number = Date.now();
+    const read: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        return isEmptyErrorPhrase(long);
+      },
+      limitInMs: 2_000,
+    });
 
-    expect(isEmptyErrorPhrase(long)).toBe(false);
-    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(read.result).toBe(false);
+    expect(read.inMs).toBeLessThan(2_000);
   });
 
   test("every phrase on the list is in the lower-case words it is compared as", () => {
@@ -376,9 +382,14 @@ describe("isTooLargePhrase", () => {
 
   test("a long message is read in linear time", () => {
     const long: string = "Request Entity Too Large ".repeat(40_000);
-    const started: number = Date.now();
+    const read: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        return isTooLargePhrase(long);
+      },
+      limitInMs: 2_000,
+    });
 
-    expect(isTooLargePhrase(long)).toBe(false);
-    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(read.result).toBe(false);
+    expect(read.inMs).toBeLessThan(2_000);
   });
 });

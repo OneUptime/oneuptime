@@ -10,10 +10,15 @@ import {
   DatabaseMetricDefinition,
   DatabaseMetricGroup,
   getDatabaseMetricCategoryDescription,
+  getDatabaseMetricCategoryLabel,
   getDatabaseMetricCategoryOrder,
   getDatabaseMetricsByCategory,
 } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
+import {
+  DatabaseCollectionIssueText,
+  getDatabaseCollectionIssueText,
+} from "Common/Utils/Monitor/DatabaseCollectionIssueReading";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import Link from "Common/UI/Components/Link/Link";
 import URL from "Common/Types/API/URL";
@@ -27,7 +32,7 @@ import {
   SummaryFacts,
   SummaryView,
 } from "./SummaryFacts";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
@@ -42,8 +47,9 @@ export interface ComponentProps {
  * engine does not keep, a grant that was never made. Rendering the row as
  * "Not collected" rather than dropping it is the whole point of this view -
  * an operator chasing a blank chart needs to see which series is blank.
+ * A key, looked up where the row draws it (#8354).
  */
-const NOT_COLLECTED: string = "Not collected";
+const NOT_COLLECTED: string = translationKey("Not collected");
 
 const formatMetricValue: (
   definition: DatabaseMetricDefinition,
@@ -254,14 +260,30 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * One group the check could not read: its name as the form's Metric
+   * Groups switch says it, OneUptime's words about it, and the database's
+   * own error as written, in a line of its own direction (#8609).
+   */
   const renderGroupStatus: (
     status: DatabaseMetricGroupStatus,
   ) => ReactElement = (status: DatabaseMetricGroupStatus): ReactElement => {
+    const issue: DatabaseCollectionIssueText = getDatabaseCollectionIssueText({
+      translator: translator,
+      status: status,
+    });
+
     return (
-      <div key={status.group}>
-        <span className="font-medium">{status.group}</span>
+      <div key={status.group} data-testid="database-collection-issue">
+        <span className="font-medium">{issue.group}</span>
         <span className="mx-2 text-gray-400">—</span>
-        <span>{status.message}</span>
+        <span>{issue.words}</span>
+        {issue.asWritten && (
+          <ProbeMessageLine
+            message={issue.asWritten}
+            dataTestId="database-collection-issue-message"
+          />
+        )}
       </div>
     );
   };
@@ -401,8 +423,11 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
           return (
             <div key={category} className="space-y-3">
               <div>
+                {/* The group's heading, a key of the catalog's (#8354). */}
                 <h3 className="text-sm font-medium text-gray-700">
-                  {category}
+                  {translator.translateText(
+                    getDatabaseMetricCategoryLabel(category),
+                  )}
                 </h3>
                 {/* What the group holds, a key of the catalog's (#8014). */}
                 <p className="text-xs text-gray-500">
@@ -434,7 +459,9 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
                         return (
                           <tr key={definition.id}>
                             <td className="px-4 py-2 text-sm text-gray-500">
-                              {definition.friendlyName}
+                              {translator.translateText(
+                                definition.friendlyName,
+                              )}
                             </td>
                             <td
                               className={`px-4 py-2 text-sm ${
@@ -443,7 +470,9 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
                                   : "text-gray-900 font-mono"
                               }`}
                             >
-                              {formatted}
+                              {formatted === NOT_COLLECTED
+                                ? translator.translateText(NOT_COLLECTED)
+                                : formatted}
                             </td>
                           </tr>
                         );

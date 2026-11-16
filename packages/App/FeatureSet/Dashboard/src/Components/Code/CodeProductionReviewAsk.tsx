@@ -113,6 +113,7 @@ const CodeProductionReviewAsk: FunctionComponent<ComponentProps> = (
       {isOpen ? (
         <Modal
           title={words(PRODUCTION_REVIEW_ASK_COPY.button)}
+          isTitleTranslated={true}
           modalWidth={ModalWidth.Normal}
           onClose={() => {
             setIsOpen(false);

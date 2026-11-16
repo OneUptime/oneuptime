@@ -95,7 +95,7 @@ Hvis du vil bruge felter inde i brødteksten — `{{requestBody.status}}` i en h
 | `application/json` | Den fortolkede JSON. |
 | `application/x-www-form-urlencoded` | Den fortolkede formular. Nøgler i firkantede parenteser indlejres (`alerts[0][status]=firing`), og alle værdier er strenge. |
 | `text/plain` | Den fortolkede JSON, når teksten er et JSON-objekt eller et JSON-array: sådan sender Amazon SNS sine beskeder. Al anden tekst bliver en tom brødtekst. |
-| Alt andet eller ingen | En tom brødtekst (`{}`), så enhver henvisning til `requestBody` ender som ingenting. |
+| Alt andet eller ingen | En tom brødtekst (`{}`), så ingen henvisning til `requestBody` løses op, og en skabelon skriver den ordret. |
 
 Brødtekster på op til 50 MB accepteres; en større afvises med en `413`. Komprimér ikke brødteksten med `Content-Encoding: gzip`: så gemmes den ikke som JSON, og stier ind i den bliver ikke løst op.
 
@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Kræv en hemmelighed ved hver anmodning
 
-Alle, der har en overvågnings URL, kan sende den anmodninger. En projektejer eller -administrator kan få alle overvågninger af indgående anmodninger i projektet til også at kræve en af projektets egne hemmeligheder, uanset hvem der har sat overvågningen op: slå **Kræv en hemmelighed ved hver anmodning** til. En anmodning uden en hemmelighed afvises med `401` og årsagen, før den tæller som heartbeat, gemmes som overvågningens seneste anmodning eller når nogen kriterier. En anmodning med en hemmelighed går videre til overvågningens egne kriterier som hidtil.
+Alle, der har en monitor URL, kan sende den anmodninger. En Projektejer eller Projektadministrator kan få alle monitorer af indgående anmodninger i projektet til også at kræve en af projektets egne hemmeligheder, uanset hvem der har sat monitoren op: slå **Kræv en hemmelighed ved hver anmodning** til. En anmodning uden en hemmelighed afvises med `401` og årsagen, før den tæller som heartbeat, gemmes som monitorens seneste anmodning eller når nogen kriterier. En anmodning med en hemmelighed går videre til monitorens egne kriterier som hidtil.
 
 :::steps
 ### Opret en hemmelighed
@@ -201,6 +201,10 @@ Gå til **Monitorer → Indstillinger → Hemmeligheder til indgående anmodning
 ### Send den fra alle afsendere
 
 Send hemmeligheden i headeren `X-OneUptime-Secret` eller som Bearer-token i headeren `Authorization`, alt efter hvad din afsender kan sætte.
+
+### Find de afsendere, du har glemt
+
+Så snart projektet har en hemmelighed, tjekker OneUptime hver anmodning for en, uden at afvise nogen endnu. **Anmodninger uden hemmelighed** på samme side viser hver monitor af indgående anmodninger, der har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer, og hvorfor: Der blev ikke sendt nogen, eller der blev sendt en forkert. Ret de afsendere. En monitor, hvis afsendere er rettet, viser et senere tidspunkt under **Sidst med hemmelighed** end under **Sidst uden hemmelighed** og forsvinder fra listen inden for 24 timer.
 
 ### Slå kravet til
 
@@ -428,7 +432,11 @@ Event Grid validerer et endpoint, der sender en kode tilbage til Event Grid, ell
 :::
 
 :::details Min afsender får en 401
-Projektet kræver en hemmelighed ved hver anmodning, og anmodningen sendte ingen eller en, der ikke er projektets: Svaret siger hvilken. Send en af projektets hemmeligheder i headeren `X-OneUptime-Secret` eller som Bearer-token, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser. En afvist anmodning når aldrig frem til overvågningen.
+Projektet kræver en hemmelighed ved hver anmodning, og anmodningen sendte ingen eller en, der ikke er projektets: Svaret siger hvilken. Send en af projektets hemmeligheder i headeren `X-OneUptime-Secret` eller som Bearer-token, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser. En afvist anmodning når aldrig frem til monitoren.
+:::
+
+:::details Monitoren får ikke længere anmodninger, efter at der kræves en hemmelighed
+Dens afsendere sender ingen hemmelighed eller en forkert, så hver anmodning, de sender, afvises. En linje under monitorens **Heartbeat URL** siger, hvornår den seneste afviste anmodning kom, og **Anmodninger uden hemmelighed** viser hver monitor, der har fået en inden for de seneste 24 timer, og hvorfor. Send en af projektets hemmeligheder fra de afsendere, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser.
 :::
 
 :::details Monitoren går aldrig offline, når heartbeats stopper

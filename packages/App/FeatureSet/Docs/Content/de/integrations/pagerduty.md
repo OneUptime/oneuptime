@@ -16,9 +16,9 @@ Senden Sie OneUptime-Vorfälle an [PagerDuty](https://www.pagerduty.com). Ein Wo
 
 ```mermaid title="Zwei Workflows, ein PagerDuty-Vorfall"
 flowchart TB
-    declared["Vorfall gemeldet"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Vorfall gemeldet"] --> create["Workflow 1:<br/>Bei Erstellung:<br/>Vorfall"]
     create -->|"trigger"| pd["PagerDuty-Vorfall"]
-    resolved["Vorfall behoben"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Vorfall behoben"] --> update["Workflow 2:<br/>Bei Aktualisierung:<br/>Vorfall"]
     update -->|"resolve"| pd
 ```
 
@@ -48,11 +48,11 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** un
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger: Seine **Fields to pass on** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Vorfall**. Klicken Sie auf den Trigger: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
 
 ### Das Auslöseereignis senden
 
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **URL** auf `https://events.pagerduty.com/v2/enqueue` und seinen **Anfragetext** auf:
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API-Aufruf POST (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **URL** auf `https://events.pagerduty.com/v2/enqueue` und seinen **Anfragetext** auf:
 
 ```json
 {
@@ -72,7 +72,7 @@ Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**
 
 ### Testen und dann einschalten
 
-Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine `202`-Antwort mit `"status": "success"`, und PagerDuty eröffnet einen Vorfall. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API-Aufruf POST (JSON)** zeigt eine `202`-Antwort mit `"status": "success"`, und PagerDuty eröffnet einen Vorfall. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
 :::
 
 Der Baustein sendet JSON, er braucht also keinen `Content-Type`-Header. Der `severity` von PagerDuty ist einer von `critical`, `error`, `warning` und `info`: Um den jeweils eigenen Schweregrad jedes Vorfalls zu senden, siehe [Schweregrade zuordnen](#schweregrade-zuordnen).
@@ -82,9 +82,9 @@ Der Baustein sendet JSON, er braucht also keinen `Content-Type`-Header. Der `sev
 Ein Workflow hat einen Trigger, das Beheben braucht also einen zweiten Workflow, der startet, wenn sich der Status eines Vorfalls ändert.
 
 :::steps
-### Den Trigger On Update Incident hinzufügen
+### Den Trigger „Bei Aktualisierung: Vorfall“ hinzufügen
 
-Legen Sie einen Workflow namens `Resolve PagerDuty incidents` an und wählen Sie **On Update Incident** als Trigger. Klicken Sie in **Fields to watch** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Fields to pass on** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
+Legen Sie einen Workflow namens `Resolve PagerDuty incidents` an und wählen Sie **Bei Aktualisierung: Vorfall** als Trigger. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Weiterzugebende Felder** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ Legen Sie einen Workflow namens `Resolve PagerDuty incidents` an und wählen Sie
 
 ### Prüfen, ob der Vorfall behoben ist
 
-Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Zu prüfender Wert** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Vergleich** auf **ist wahr**.
+Fügen Sie nach dem Trigger einen **Wenn / Sonst**-Baustein hinzu. Setzen Sie **Zu prüfender Wert** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Vergleich** auf **ist wahr**.
 
 ### Das Behebungsereignis senden
 
-Fügen Sie nach der Seite **Ja** einen **API Post (JSON)**-Baustein hinzu, mit derselben **URL** und diesem **Anfragetext**:
+Fügen Sie nach der Seite **Ja** einen **API-Aufruf POST (JSON)**-Baustein hinzu, mit derselben **URL** und diesem **Anfragetext**:
 
 ```json
 {
@@ -115,10 +115,10 @@ Wer `isResolvedState` statt des Namens eines Status prüft, muss nach dem Umbene
 
 ## Schweregrade zuordnen
 
-Um den Schweregrad jedes Vorfalls zu senden, fügen Sie zwischen dem Trigger und dem **API Post (JSON)**-Baustein einen **Run Custom JavaScript**-Baustein hinzu und lesen seine Antwort im Body.
+Um den Schweregrad jedes Vorfalls zu senden, fügen Sie zwischen dem Trigger und dem **API-Aufruf POST (JSON)**-Baustein einen **Eigenes JavaScript ausführen**-Baustein hinzu und lesen seine Antwort im Body.
 
-1. Klicken Sie in den **Fields to pass on** des Triggers auf **Feld hinzufügen**, öffnen Sie **Vorfallsschweregrad** und wählen Sie **Name**.
-2. Setzen Sie die **Arguments** des Bausteins auf `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` und seinen **JavaScript-Code** auf:
+1. Klicken Sie in den **Weiterzugebende Felder** des Triggers auf **Feld hinzufügen**, öffnen Sie **Vorfallsschweregrad** und wählen Sie **Name**.
+2. Setzen Sie die **Argumente** des Bausteins auf `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` und seinen **JavaScript-Code** auf:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ Die Namen oben sind die drei Schweregrade, mit denen ein neues Projekt beginnt. 
 ## Fehlerbehebung
 
 :::details PagerDuty antwortet mit 400
-Der Antwort-Body sagt, was PagerDuty abgelehnt hat, und der Schritt **API Post (JSON)** der Ausführung zeigt ihn. Meist ist der Routing-Schlüssel kein Integrationsschlüssel der Events API v2: Kopieren Sie ihn erneut aus den **Integrations** des Dienstes. Auch ein Ereignis ohne `summary`, `source` oder `severity` wird abgelehnt.
+Der Antwort-Body sagt, was PagerDuty abgelehnt hat, und der Schritt **API-Aufruf POST (JSON)** der Ausführung zeigt ihn. Meist ist der Routing-Schlüssel kein Integrationsschlüssel der Events API v2: Kopieren Sie ihn erneut aus den **Integrations** des Dienstes. Auch ein Ereignis ohne `summary`, `source` oder `severity` wird abgelehnt.
 :::
 
 :::details Das Behebungsereignis schließt nichts
@@ -146,7 +146,7 @@ Beide Ereignisse müssen genau denselben `dedup_key` tragen. Prüfen Sie, dass b
 :::
 
 :::details Der Workflow läuft nie
-Prüfen Sie, dass er eingeschaltet ist: **Aktiviert**, oben in seinem **Editor**. Öffnen Sie dann **Protokolle → Ausführungen**: Eine Ausführung, die die Seite **Nein** des **If / Else**-Bausteins genommen hat, ist eine Aktualisierung, die keine Behebung war.
+Prüfen Sie, dass er eingeschaltet ist: **Aktiviert**, oben in seinem **Editor**. Öffnen Sie dann **Protokolle → Ausführungen**: Eine Ausführung, die die Seite **Nein** des **Wenn / Sonst**-Bausteins genommen hat, ist eine Aktualisierung, die keine Behebung war.
 :::
 
 :::details PagerDuty zeigt einen Verweis statt eines Werts

@@ -9,6 +9,10 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import {
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+} from "../SuiteHelpers/LocaleChunks";
 
 /*
  * CREATE MONITOR, IN A REAL BROWSER.
@@ -498,6 +502,314 @@ async function atRest(page: Page): Promise<void> {
   });
 }
 
+/*
+ * HOW MORE'S LINE NAMES THE CHOICE IT FOLDS AWAY, AS DRAWN (#8380).
+ *
+ * Folded, More's line names the type it holds after a dot: "Weitere
+ * Monitortypen · Ausgewählt: Kubernetes". The words keep the dot on their
+ * line, and the choice is one unit (inline-block, never wider than the
+ * column): it sits on the words' line when it fits beside them, and goes
+ * under them, whole, when it does not, as a More fields line's entries do
+ * (FoldedSection). Only a choice wider than a line by itself wraps, between
+ * its words: German's "Ausgewählt: Benutzerdefinierter JavaScript-Code" is
+ * wider than a 390px phone's line. It is never cut off - a fold never cuts
+ * off what it holds (Docs/ux/README.md#folds) - since a phone has no pointer
+ * to show a cut name's tooltip, and the line is there so that nothing in
+ * force is out of sight.
+ *
+ * Everything is read in one frame (one evaluate), as SuiteHelpers/Frames
+ * reads boxes: the words, the choice, and each line the browser broke the
+ * choice into, from where it drew each of its letters.
+ */
+
+interface LineBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface ChoiceLine {
+  // What the line holds, from its first letter to its last.
+  text: string;
+  // Where the line starts, in the page's reading direction.
+  start: number;
+  // This line's last letter, what follows it, and the next line's first.
+  breakAfter: string;
+}
+
+type ReadingDirection = "ltr" | "rtl";
+
+interface MoreLineLayout {
+  direction: ReadingDirection;
+  title: LineBox;
+  choice: LineBox;
+  // The column the words and the choice share: as wide as a line can be.
+  column: LineBox;
+  lines: Array<ChoiceLine>;
+  text: string;
+  // The choice's width on one line, unbroken.
+  widthOnOneLine: number;
+  // The elements of the line that hold more than they show.
+  cutOff: Array<string>;
+  textOverflow: string;
+  viewportWidth: number;
+  lineHeight: number;
+}
+
+async function moreLineLayout(page: Page): Promise<MoreLineLayout> {
+  await expect(page.getByTestId("card-select-more-selection")).toBeVisible();
+
+  return more(page).evaluate((button: Element): MoreLineLayout => {
+    interface Letter {
+      offset: number;
+      rect: DOMRect;
+    }
+
+    const boxOfElement: (element: Element) => LineBox = (
+      element: Element,
+    ): LineBox => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    };
+    const offsetOf: (letter: Letter) => number = (letter: Letter): number => {
+      return letter.offset;
+    };
+
+    const title: Element = button.querySelector(
+      "[data-testid='card-select-more-title']",
+    )!;
+    const choice: HTMLElement = button.querySelector(
+      "[data-testid='card-select-more-selection']",
+    ) as HTMLElement;
+    const column: HTMLElement = choice.parentElement!;
+    const direction: ReadingDirection =
+      getComputedStyle(button).direction === "rtl" ? "rtl" : "ltr";
+
+    // Each letter where the browser drew it; a space has no place of its own.
+    const letters: Array<Letter> = [];
+    let text: string = "";
+    const range: Range = document.createRange();
+    const walker: TreeWalker = document.createTreeWalker(
+      choice,
+      NodeFilter.SHOW_TEXT,
+    );
+
+    const space: RegExp = /\s/;
+
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      const value: string = node.nodeValue || "";
+
+      for (let index: number = 0; index < value.length; index++) {
+        if (space.test(value[index]!)) {
+          continue;
+        }
+
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        const rect: DOMRect = range.getBoundingClientRect();
+
+        // A joiner (Persian's half-space) is drawn as nothing.
+        if (rect.width === 0 && rect.height === 0) {
+          continue;
+        }
+
+        letters.push({ offset: text.length + index, rect });
+      }
+
+      text += value;
+    }
+
+    // A letter whose middle is a line below the line's first starts a new line.
+    const groups: Array<Array<Letter>> = [];
+
+    for (const letter of letters) {
+      const group: Array<Letter> | undefined = groups[groups.length - 1];
+      const middleOf: (rect: DOMRect) => number = (rect: DOMRect): number => {
+        return rect.top + rect.height / 2;
+      };
+
+      if (
+        group &&
+        Math.abs(middleOf(letter.rect) - middleOf(group[0]!.rect)) <
+          letter.rect.height / 2
+      ) {
+        group.push(letter);
+      } else {
+        groups.push([letter]);
+      }
+    }
+
+    const lines: Array<ChoiceLine> = groups.map(
+      (group: Array<Letter>, index: number): ChoiceLine => {
+        const first: number = Math.min(...group.map(offsetOf));
+        const last: number = Math.max(...group.map(offsetOf));
+        const next: Array<Letter> | undefined = groups[index + 1];
+        const starts: Array<number> = group.map((letter: Letter): number => {
+          return direction === "ltr" ? letter.rect.left : letter.rect.right;
+        });
+
+        return {
+          text: text.slice(first, last + 1),
+          start:
+            direction === "ltr" ? Math.min(...starts) : Math.max(...starts),
+          breakAfter: next
+            ? text.slice(last, Math.min(...next.map(offsetOf)) + 1)
+            : "",
+        };
+      },
+    );
+
+    // The choice once more, on one line and out of the flow, to measure it.
+    const unbroken: HTMLElement = choice.cloneNode(true) as HTMLElement;
+    unbroken.removeAttribute("id");
+    unbroken.removeAttribute("data-testid");
+    unbroken.style.position = "absolute";
+    unbroken.style.visibility = "hidden";
+    unbroken.style.whiteSpace = "nowrap";
+    unbroken.style.maxWidth = "none";
+    unbroken.style.width = "auto";
+    column.appendChild(unbroken);
+    const widthOnOneLine: number = unbroken.getBoundingClientRect().width;
+    unbroken.remove();
+
+    const cutOff: Array<string> = [];
+    const parts: Array<[string, Element]> = [
+      ["the choice", choice],
+      ["its column", column],
+      ["More", button],
+    ];
+
+    for (const [name, element] of parts) {
+      if (element.scrollWidth > element.clientWidth + 1) {
+        cutOff.push(name);
+      }
+    }
+
+    return {
+      direction,
+      title: boxOfElement(title),
+      choice: boxOfElement(choice),
+      column: boxOfElement(column),
+      lines,
+      text: choice.textContent || "",
+      widthOnOneLine,
+      cutOff,
+      textOverflow: getComputedStyle(choice).textOverflow,
+      viewportWidth: window.innerWidth,
+      lineHeight: parseFloat(getComputedStyle(button).lineHeight),
+    };
+  });
+}
+
+// Where a box starts, in the page's reading direction.
+function startOf(box: LineBox, direction: ReadingDirection): number {
+  return direction === "ltr" ? box.x : box.x + box.width;
+}
+
+// A space, where a line may break between words.
+const SPACE: RegExp = /\s/;
+
+type ChoicePlace =
+  | "beside its words"
+  | "under its words"
+  | "wrapped under its words";
+
+/*
+ * The choice is named whole: on the words' line and one line tall, or on a
+ * line of its own under them and flush with them - wrapped there, between
+ * its words, only when it is wider than a line by itself - and nothing of
+ * it cut off or past the screen's edge. Answers where it went.
+ */
+function expectChoiceNamedWhole(
+  layout: MoreLineLayout,
+  what: string,
+): ChoicePlace {
+  const { title, choice, lines, direction }: MoreLineLayout = layout;
+
+  expect(lines.length, `${what}: its letters are drawn`).toBeGreaterThan(0);
+  expect(layout.cutOff, `${what}: nothing holds more than it shows`).toEqual(
+    [],
+  );
+  expect(layout.textOverflow, `${what}: no ellipsis`).not.toBe("ellipsis");
+  expect(choice.x, `${what}: inside the screen`).toBeGreaterThanOrEqual(-0.5);
+  expect(
+    choice.x + choice.width,
+    `${what}: inside the screen`,
+  ).toBeLessThanOrEqual(layout.viewportWidth + 0.5);
+
+  // On the words' line: all of it, never its start there and the rest under.
+  if (choice.y < title.y + title.height - 2) {
+    expect(lines.length, `${what}: beside its words, on one line`).toBe(1);
+    expect(
+      Math.abs(choice.y + choice.height / 2 - (title.y + title.height / 2)),
+      `${what}: beside its words, level with them`,
+    ).toBeLessThan(2);
+    return "beside its words";
+  }
+
+  expect(
+    Math.abs(startOf(choice, direction) - startOf(title, direction)),
+    `${what}: flush with its words`,
+  ).toBeLessThan(2);
+  expect(choice.width, `${what}: no wider than its column`).toBeLessThanOrEqual(
+    layout.column.width + 0.5,
+  );
+
+  // Each of its lines starts where its words do.
+  for (const line of lines) {
+    expect(
+      Math.abs(line.start - startOf(title, direction)),
+      `${what}: "${line.text}" starts under its words`,
+    ).toBeLessThan(2);
+  }
+
+  if (lines.length === 1) {
+    expect(choice.height, `${what}: one line tall`).toBeLessThanOrEqual(
+      layout.lineHeight + 1,
+    );
+    return "under its words";
+  }
+
+  // Wrapped only because it is wider than a line by itself...
+  expect(
+    layout.widthOnOneLine,
+    `${what}: wraps only when wider than a line by itself`,
+  ).toBeGreaterThan(layout.column.width - 1);
+
+  // ...and only between its words: at a space, or after a hyphen.
+  for (const line of lines.slice(0, -1)) {
+    expect(
+      SPACE.test(line.breakAfter) || line.breakAfter.startsWith("-"),
+      `${what}: "${line.text}" ends between words, not inside one (${JSON.stringify(line.breakAfter)})`,
+    ).toBe(true);
+  }
+
+  return "wrapped under its words";
+}
+
+// A link that names a type among the rest, then Change, then More folded.
+async function foldAwayLinkedChoice(
+  page: Page,
+  type: string,
+  language: "en" | "de" | "fa",
+): Promise<void> {
+  await openCreate(
+    page,
+    `?monitorType=${encodeURIComponent(type)}${language === "en" ? "" : `&lang=${language}`}`,
+  );
+
+  await expect(summary(page)).toHaveAttribute("data-card-select-value", type);
+  await page.getByTestId("card-select-change").click();
+  await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+  await more(page).click();
+  await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+}
+
 test.describe("More monitor types folds the rest away again", () => {
   test("pressed again, it folds the rest away: aria-expanded, the chevron, focus, and the form back where it was", async ({
     page,
@@ -699,44 +1011,193 @@ test.describe("More monitor types folds the rest away again", () => {
       .toBe("underline");
   });
 
-  test("on a phone, in German, the choice it folds away wraps under its words, whole", async ({
+  /*
+   * On a phone, More's line names the choice it folds away whole (#8380).
+   * This test used to open on Custom JavaScript Code, whose name was English
+   * in every language - "Ausgewählt: Custom JavaScript Code" fit a 390px
+   * line under the words - and held the choice to one line. Since the type
+   * names are worded in every language (2351d870f14), German's
+   * "Ausgewählt: Benutzerdefinierter JavaScript-Code" is wider than that
+   * line by itself, and wraps under the words. The German is right, and so
+   * is the wrap: a fold never cuts off what it holds (Docs/ux/README.md#folds),
+   * and a phone has no pointer for a cut name's tooltip. So a choice that
+   * fits a line is held to one line, and one that does not to wrapping only
+   * between its words, never cut off, each test with a type of its kind.
+   */
+  test("on a phone, in German, a choice that does not fit beside its words goes under them, whole, on one line", async ({
     page,
   }: {
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await openCreate(page, "?monitorType=Custom%20JavaScript%20Code&lang=de");
-
-    await page.getByTestId("card-select-change").click();
-    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
-    await more(page).click();
-    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+    await foldAwayLinkedChoice(page, "Synthetic Monitor", "de");
 
     const selection: Locator = page.getByTestId("card-select-more-selection");
-    await expect(selection).toHaveText("Ausgewählt: Custom JavaScript Code");
+    await expect(selection).toHaveText("Ausgewählt: Synthetischer Monitor");
     await expect(page.getByTestId("card-select-more-title")).toHaveText(
       "Weitere Monitortypen",
     );
+    await expect(more(page)).toHaveAccessibleDescription(
+      "Ausgewählt: Synthetischer Monitor",
+    );
 
     // On a line of its own, under the words: one line tall, never cut in two.
-    const title: { x: number; y: number; height: number } = await boxOf(
-      page.getByTestId("card-select-more-title"),
+    const layout: MoreLineLayout = await moreLineLayout(page);
+    expect(expectChoiceNamedWhole(layout, "Synthetic Monitor")).toBe(
+      "under its words",
     );
-    const named: { x: number; y: number; height: number } =
-      await boxOf(selection);
-    const lineHeight: number = await more(page).evaluate(
-      (element: Element): number => {
-        return parseFloat(getComputedStyle(element).lineHeight);
-      },
-    );
-    expect(named.y).toBeGreaterThan(title.y + title.height - 2);
-    expect(Math.abs(named.x - title.x)).toBeLessThan(2);
-    expect(named.height).toBeLessThanOrEqual(lineHeight + 1);
+    expect(
+      layout.lines.map((line: ChoiceLine): string => {
+        return line.text;
+      }),
+    ).toEqual(["Ausgewählt: Synthetischer Monitor"]);
     await expectNoSidewaysScroll(page);
 
     await atRest(page);
     await screenshot(page, "create-monitor-more-folded-selection-de-phone");
   });
+
+  test("on a phone, in German, a choice wider than a line by itself wraps under its words, between its words, and is never cut off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await foldAwayLinkedChoice(page, "Custom JavaScript Code", "de");
+
+    // The type's own German words, whole: on the line and in its description.
+    const selection: Locator = page.getByTestId("card-select-more-selection");
+    await expect(selection).toHaveText(
+      "Ausgewählt: Benutzerdefinierter JavaScript-Code",
+    );
+    await expect(more(page)).toHaveAccessibleName("Weitere Monitortypen");
+    await expect(more(page)).toHaveAccessibleDescription(
+      "Ausgewählt: Benutzerdefinierter JavaScript-Code",
+    );
+
+    const layout: MoreLineLayout = await moreLineLayout(page);
+    expect(expectChoiceNamedWhole(layout, "Custom JavaScript Code")).toBe(
+      "wrapped under its words",
+    );
+
+    // Every letter of it is drawn, on lines that end between its words.
+    expect(
+      layout.lines
+        .map((line: ChoiceLine): string => {
+          return line.text;
+        })
+        .join(" ")
+        .replace(/- /g, "-"),
+    ).toBe("Ausgewählt: Benutzerdefinierter JavaScript-Code");
+    expect(layout.lines.length).toBeLessThanOrEqual(3);
+    // Wider than the line, so it fills the column, no more.
+    expect(Math.abs(layout.choice.width - layout.column.width)).toBeLessThan(1);
+    await expectNoSidewaysScroll(page);
+
+    /*
+     * More grows to hold its last line, so nothing under it is drawn over
+     * it: the form's More fields line is further down.
+     */
+    const [selectionBox, moreBox, fieldsLine] = await boxesInOneFrame([
+      selection,
+      more(page),
+      page.getByTestId("folded-section-header").first(),
+    ]);
+    expect(selectionBox!.y + selectionBox!.height).toBeLessThanOrEqual(
+      moreBox!.y + moreBox!.height + 0.5,
+    );
+    expect(fieldsLine!.y).toBeGreaterThanOrEqual(moreBox!.y + moreBox!.height);
+
+    await atRest(page);
+    await screenshot(
+      page,
+      "create-monitor-more-folded-selection-de-phone-wrapped",
+    );
+  });
+
+  test("on a phone, in English, a short choice stays on its words' line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await foldAwayLinkedChoice(page, "IP", "en");
+
+    await expect(page.getByTestId("card-select-more-selection")).toHaveText(
+      "Selected: IP",
+    );
+
+    const layout: MoreLineLayout = await moreLineLayout(page);
+    expect(expectChoiceNamedWhole(layout, "IP")).toBe("beside its words");
+    await expectNoSidewaysScroll(page);
+  });
+
+  for (const language of ["en", "de", "fa"]) {
+    test(`on a phone, in ${language}, every type More folds away is named whole: beside its words, or under them, wrapped only when wider than a line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // Three clicks a type, for every type More holds.
+      test.setTimeout(240000);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openCreate(page, language === "en" ? "" : `?lang=${language}`);
+
+      await more(page).click();
+      await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+      const folded: Array<string> = (await shownTypes(page)).filter(
+        (type: string): boolean => {
+          return !COMMON_TYPES.includes(type);
+        },
+      );
+
+      // The catalog's rest, the long German and Persian names among them.
+      expect(folded.length).toBeGreaterThan(20);
+      expect(folded).toContain("Custom JavaScript Code");
+
+      const places: Map<string, ChoicePlace> = new Map();
+
+      for (const type of folded) {
+        // More is open: pick the type, then Change, then fold More away.
+        await option(page, type).click();
+        await expect(summary(page)).toHaveAttribute(
+          "data-card-select-value",
+          type,
+        );
+        await page.getByTestId("card-select-change").click();
+        await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+        await expect(option(page, type)).toHaveAttribute(
+          "aria-checked",
+          "true",
+        );
+        await more(page).click();
+        await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+
+        const layout: MoreLineLayout = await moreLineLayout(page);
+
+        expect(layout.direction).toBe(language === "fa" ? "rtl" : "ltr");
+        places.set(type, expectChoiceNamedWhole(layout, `${language} ${type}`));
+
+        // Open again, for the next type.
+        await more(page).click();
+        await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+      }
+
+      await expectNoSidewaysScroll(page);
+
+      // Each way of naming it is met, so none of the checks above went unread.
+      if (language === "en") {
+        expect(places.get("IP")).toBe("beside its words");
+      }
+
+      if (language === "de") {
+        expect(places.get("Synthetic Monitor")).toBe("under its words");
+        expect(places.get("Custom JavaScript Code")).toBe(
+          "wrapped under its words",
+        );
+      }
+    });
+  }
 
   test("a search hides More, and clearing it brings More back as it was left", async ({
     page,
@@ -2596,4 +3057,38 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
 
     await screenshot(page, "create-monitor-limit-dark");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * German and Persian whole, 15 MB of JSON in every page's scripts, parsed on
+ * every page load of every test. English is in the bundle now, and each
+ * other language a chunk of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "de", "fa"]) {
+    test(`a page in ${language} loads its own locale and no other, in its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.clock.setFixedTime(NOW);
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return code === "en" ? CREATE_PATH : `${CREATE_PATH}?lang=${code}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return shown.getByTestId("card-select-more-title").filter({
+              hasText: dashboardWord(code, "More monitor types"),
+            });
+          },
+        },
+        language,
+      );
+    });
+  }
 });

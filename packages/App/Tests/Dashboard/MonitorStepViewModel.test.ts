@@ -1007,7 +1007,7 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
   it("shows the log filter, window, severity and attributes", () => {
     expect(getRow(MonitorType.Logs, "logBody")?.value).toBe("timeout");
     expect(getRow(MonitorType.Logs, "lastXSecondsOfLogs")?.value).toBe(
-      "5 minutes",
+      "5\u00A0minutes",
     );
     expect(getRow(MonitorType.Logs, "severityTexts")?.value).toEqual([
       LogSeverity.Error,
@@ -1035,7 +1035,7 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
       "POST /checkout",
     );
     expect(getRow(MonitorType.Traces, "lastXSecondsOfSpans")?.value).toBe(
-      "2 minutes",
+      "2\u00A0minutes",
     );
   });
 
@@ -1048,7 +1048,7 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
     ]);
     expect(
       getRow(MonitorType.Exceptions, "lastXSecondsOfExceptions")?.value,
-    ).toBe("10 minutes");
+    ).toBe("10\u00A0minutes");
     expect(getRow(MonitorType.Exceptions, "includeResolved")?.value).toBe(true);
     expect(getRow(MonitorType.Exceptions, "includeArchived")?.value).toBe(
       false,
@@ -2233,9 +2233,9 @@ describe("MonitorStepViewModel.getRows — an AI / LLM monitor", () => {
     expect(row(rows, "llmBadAnswerIssues")?.valueType).toBe(
       MonitorStepViewValueType.ArrayOfText,
     );
-    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("30 seconds");
+    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("30\u00A0seconds");
     expect(row(rows, "llmModel")?.value).toBe("gpt-4o");
-    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("30 minutes");
+    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("30\u00A0minutes");
     expect(row(rows, "llmTelemetryServices")?.valueType).toBe(
       MonitorStepViewValueType.TelemetryServices,
     );
@@ -2255,7 +2255,7 @@ describe("MonitorStepViewModel.getRows — an AI / LLM monitor", () => {
       "Empty",
       "Flagged",
     ]);
-    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("15 minutes");
+    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("15\u00A0minutes");
     expect(row(rows, "llmSlowAnswerSeconds")).toBeUndefined();
     expect(row(rows, "llmModel")).toBeUndefined();
     expect(row(rows, "llmTelemetryServices")).toBeUndefined();
@@ -2274,7 +2274,7 @@ describe("MonitorStepViewModel.getRows — an AI / LLM monitor", () => {
     expect(row(rows, "llmBadAnswerIssues")?.placeholder).toBe(
       "Only slow answers count",
     );
-    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("45 seconds");
+    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("45\u00A0seconds");
   });
 
   it("with no problem picked and no slow limit, every problem counts", () => {

@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -141,7 +142,10 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
     );
   }
   if (backup.state === "ok" && backup.bytes !== null) {
-    const duration: string = formatProxmoxDuration(backup.durationSeconds);
+    const duration: string = formatProxmoxDuration(
+      backup.durationSeconds,
+      translator,
+    );
     backupDetails.push(
       duration
         ? translator.translateTemplate("{{size}} in {{duration}}", {
@@ -168,7 +172,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
         ? tx("Failed")
         : backup.state === "not-in-job"
           ? tx("None")
-          : "—";
+          : EMPTY_VALUE_MARK;
   const backupSublabel: string =
     backupDetails.length > 0
       ? backupDetails.join(" · ")
@@ -285,7 +289,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
     });
   }
   const uptime: string =
-    row.isUp !== false ? formatUptime(row.uptimeSeconds) : "";
+    row.isUp !== false ? formatUptime(row.uptimeSeconds, translator) : "";
   if (uptime) {
     detailRows.push({
       key: "uptime",

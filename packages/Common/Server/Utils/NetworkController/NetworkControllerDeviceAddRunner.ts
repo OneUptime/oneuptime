@@ -148,9 +148,9 @@ export const DEVICE_ADD_CONNECTION_OFF: string =
 export const DEVICE_ADD_PROBE_NOT_ATTACHABLE: string =
   "Pick a probe of this project, or none.";
 export const DEVICE_ADD_MAY_NOT_CREATE_DEVICES: string =
-  "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.";
+  "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.";
 export const DEVICE_ADD_MAY_NOT_CREATE_SITES: string =
-  "You may not create network sites in this project, so the devices cannot be put in sites named after their Meraki networks. Add them without sites, or ask a project owner or admin.";
+  "You may not create network sites in this project, so the devices cannot be put in sites named after their Meraki networks. Add them without sites, or ask a Project Owner or Project Admin.";
 export const DEVICE_ADD_CONNECTION_GONE: string =
   "The connection no longer exists.";
 export const DEVICE_ADD_NAME_TAKEN_REASON: string =

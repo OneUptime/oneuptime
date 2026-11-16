@@ -51,7 +51,7 @@ Kortet viser hvert felt på den nye hendelsen og hvor verdien kommer fra:
 | **Etiketter** | Etikettene innsenderen valgte, sammen med de innstillingene alltid legger til. Uten noen av delene, hendelsesmalens. |
 | **Påvirkning startet** | Svaret på **Påvirkning startet**, når skjemaet spør om det. |
 | **Hendelsesmal** | Skjemaets innstilling **Hendelsesmal**. Den fyller ut alt svarene og innstillingene lar stå uangitt. |
-| **Vaktretningslinjer** | Policyene innstillingene nevner, kjørt for hver hendelse skjemaet oppretter. Uten noen, hendelsesmalens. |
+| **Vaktpolicyer** | Policyene innstillingene nevner, kjørt for hver hendelse skjemaet oppretter. Uten noen, hendelsesmalens. |
 | **Eiere** | Personene og teamene innstillingene nevner, sammen med malens eiere. De får beskjed om hver hendelse. |
 | **Egendefinerte felt** | Svaret på hvert spørsmål om et egendefinert felt — med mindre feltet kopierer verdien sin fra et egendefinert monitorfelt og hendelsens monitorer har en; malen fyller ut resten. |
 | **Statussider** | Vises aldri på statussider, og abonnenter får ikke beskjed, før noen i teamet ditt publiserer den. |
@@ -65,7 +65,7 @@ Kortet viser hvert felt på den nye hendelsen og hvor verdien kommer fra:
 Velg en **Hendelsesmal** i innstillingene, så opprettes hver hendelse skjemaet oppretter, ut fra den, på samme måte som serveren bruker en mal overalt — se [Slik brukes en mal](/docs/incidents/settings#slik-brukes-en-mal). Svarene og skjemaets innstillinger kommer først, og malen fyller ut alt annet: den innledende tilstanden, beskrivelsen, alvorlighetsgraden, de berørte ressursene, vaktpolicyene, eierne, etikettene, verdiene i egendefinerte felt og en endring av monitorstatus.
 
 > [!WARNING]
-> **Pass på monitorene.** Å opprette en hendelse på en monitor via et skjema påvirker monitoren nøyaktig som å opprette en hendelse på den manuelt: den aktive overvåkingen av monitoren settes på pause til hendelsen er løst, og en mals **Endre overvåkingsstatus til** endrer monitorens status med en gang — på hver statusside som viser monitoren, selv mens selve hendelsen er skjult. Med et skjema kan alle med lenken gjøre dette. Knytt bare monitorer til via et skjema når hver innsending skal sette dem på pause.
+> **Pass på monitorene.** Å opprette en hendelse på en monitor via et skjema påvirker monitoren nøyaktig som å opprette en hendelse på den manuelt: den aktive overvåkingen av monitoren settes på pause til hendelsen er løst, og en mals **Endre monitorstatus til** endrer monitorens status med en gang — på hver statusside som viser monitoren, selv mens selve hendelsen er skjult. Med et skjema kan alle med lenken gjøre dette. Knytt bare monitorer til via et skjema når hver innsending skal sette dem på pause.
 
 ### Slik ser hendelsen ut
 
@@ -73,10 +73,10 @@ En hendelse som er opprettet via et skjema, er en vanlig hendelse med noen få e
 
 - **Skjult fra statussider.** **Synlig på statussiden** er slått av, og det samme er **Varsle statussideabonnenter**. Til en responder publiserer den, når ingenting om hendelsen en statusside eller en abonnent — bortsett fra en mals endring av monitorstatus, ovenfor.
 - **Opprettet av ingen.** Innsenderen er ikke en OneUptime-bruker, så ingen bruker registreres som den som opprettet hendelsen.
-- **Eierne får beskjed.** Eierne innstillingene og malen nevner, legges til så snart hendelsens Slack- og Microsoft Teams-kanaler finnes, og får varsel — hendelsens varsel **Hendelse opprettet** venter til de er eierne, så det går til dem i stedet for til prosjektets eiere.
+- **Eierne får beskjed.** Eierne innstillingene og malen nevner, legges til så snart hendelsens Slack- og Microsoft Teams-kanaler finnes, og får varsling — hendelsens varsling **Hendelse opprettet** venter til de er eierne, så det går til dem i stedet for til Prosjekteiere.
 - **Et privat notat registrerer innsendingen** — se [Det private notatet](#det-private-notatet).
 
-Alt som kjører for en ny hendelse, kjører også for disse: personvern-, eier-, etikett-, vakt- og runbook-regler, vaktpolicyer og arbeidsflyter med **On Create Incident**. Vaktregler matcher et skjemas hendelser som alle andre — også på tittelen og beskrivelsen, som innsenderen skrev.
+Alt som kjører for en ny hendelse, kjører også for disse: personvern-, eier-, etikett-, vakt- og runbook-regler, vaktpolicyer og arbeidsflyter med **Ved oppretting: Hendelse**. Vaktregler matcher et skjemas hendelser som alle andre — også på tittelen og beskrivelsen, som innsenderen skrev.
 
 :::steps
 #### Les det innsenderen skrev
@@ -89,7 +89,7 @@ Slå på **Synlig på statussiden** fra hendelsens side **Innstillinger**.
 
 #### Gi abonnentene beskjed, hvis de skal vite det
 
-Fordi hendelsen ble opprettet med **Varsle statussideabonnenter** slått av, sender publisering ikke varselet "hendelse opprettet". For å gi abonnentene beskjed publiserer du et offentlig notat med **Varsle statussideabonnenter** krysset av — se [Publiser et offentlig notat](/docs/incidents/notes-owners-and-feed#publiser-et-offentlig-notat).
+Fordi hendelsen ble opprettet med **Varsle statussideabonnenter** slått av, sender publisering ikke varslingen "hendelse opprettet". For å gi abonnentene beskjed publiserer du et offentlig notat med **Varsle statussideabonnenter** krysset av — se [Publiser et offentlig notat](/docs/incidents/notes-owners-and-feed#publiser-et-offentlig-notat).
 :::
 
 ## Slik blir en innsending til en vedlikeholdshendelse
@@ -119,7 +119,7 @@ En innsending er noens forespørsel, og en forespørsel gjennomgås før den pub
 | Trinn | Hendelsesskjema | Vedlikeholdsskjema |
 | --- | --- | --- |
 | **Standardverdier** | **Standardtittel**, **Alvorlighetsgrad**, **Hendelsesmal** | **Standardtittel** |
-| **Knytt alltid til** | **Monitorer**, **Etiketter**, **Vaktretningslinjer** | **Monitorer**, **Statussider**, **Etiketter** |
+| **Knytt alltid til** | **Monitorer**, **Etiketter**, **Vaktpolicyer** | **Monitorer**, **Statussider**, **Etiketter** |
 | **Eiere** | **Eiere** | **Eiere** |
 | **Publisering** | — | **Vis på statussider**, **Varsle abonnenter** |
 

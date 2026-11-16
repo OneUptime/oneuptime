@@ -1215,7 +1215,7 @@ describe("commandsSwitchedOff", () => {
         settingsUrl: SETTINGS_URL,
       }),
     ).toBe(
-      `🚫 I cannot do that:\n\n> GitHub commands are switched off for this repository.\n\nA project admin can turn them back on in OneUptime, with this repository's [Respond to GitHub Commands](${SETTINGS_URL}) switch.\n\n${SIGNATURE}`,
+      `🚫 I cannot do that:\n\n> GitHub commands are switched off for this repository.\n\nA Project Admin can turn them back on in OneUptime, with this repository's [Respond to GitHub Commands](${SETTINGS_URL}) switch.\n\n${SIGNATURE}`,
     );
   });
 
@@ -1243,11 +1243,11 @@ describe("commandsSwitchedOff", () => {
     const sentence: string | undefined = body
       .split("\n")
       .find((line: string): boolean => {
-        return line.startsWith("A project admin");
+        return line.startsWith("A Project Admin");
       });
 
     expect(sentence).toBe(
-      `A project admin can turn them back on in OneUptime, with this repository's [Respond to GitHub Commands](${SETTINGS_URL}) switch.`,
+      `A Project Admin can turn them back on in OneUptime, with this repository's [Respond to GitHub Commands](${SETTINGS_URL}) switch.`,
     );
     expect(sentence).not.toContain(": [");
   });
@@ -1259,7 +1259,7 @@ describe("commandsSwitchedOff", () => {
     });
 
     expect(body).toContain(
-      "A project admin can turn them back on in Acme Reliability, with this repository's [Respond to GitHub Commands]",
+      "A Project Admin can turn them back on in Acme Reliability, with this repository's [Respond to GitHub Commands]",
     );
     expect(body).not.toContain("back on in OneUptime");
   });
@@ -1271,7 +1271,7 @@ describe("commandsSwitchedOff", () => {
     });
 
     expect(body).toBe(
-      `🚫 I cannot do that:\n\n> GitHub commands are switched off for this repository.\n\nA project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.\n\n${SIGNATURE}`,
+      `🚫 I cannot do that:\n\n> GitHub commands are switched off for this repository.\n\nA Project Admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.\n\n${SIGNATURE}`,
     );
     expect(body).not.toContain("](");
   });

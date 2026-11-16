@@ -95,7 +95,7 @@ Se você quiser acessar campos dentro do corpo (`{{requestBody.status}}` em um t
 | `application/json` | O JSON analisado. |
 | `application/x-www-form-urlencoded` | O formulário analisado. Chaves entre colchetes são aninhadas (`alerts[0][status]=firing`), e cada valor é uma string. |
 | `text/plain` | O JSON analisado, quando o texto é um objeto ou um array JSON: o Amazon SNS envia suas mensagens assim. Qualquer outro texto é um corpo vazio. |
-| Qualquer outro, ou nenhum | Um corpo vazio (`{}`), então toda referência a `requestBody` não resolve nada. |
+| Qualquer outro, ou nenhum | Um corpo vazio (`{}`), então nenhuma referência a `requestBody` é resolvida, e um modelo a imprime literalmente. |
 
 Corpos de até 50 MB são aceitos; um maior é recusado com um `413`. Não comprima o corpo com `Content-Encoding: gzip`: ele não é armazenado como JSON, e os caminhos dentro dele não serão resolvidos.
 
@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Exigir um segredo em toda requisição
 
-Qualquer pessoa que tenha a URL de um monitor pode enviar requisições a ele. Um proprietário ou administrador do projeto pode fazer cada monitor de requisições recebidas do projeto exigir também um dos segredos do próprio projeto, não importa quem configurou o monitor: ative **Exigir um segredo em toda requisição**. Uma requisição sem nenhum é recusada com `401` e o motivo, antes de contar como heartbeat, de ser guardada como a última requisição do monitor ou de chegar a qualquer critério. Uma requisição com um segue para os critérios do próprio monitor, como antes.
+Qualquer pessoa que tenha a URL de um monitor pode enviar requisições a ele. Um Proprietário do projeto ou Administrador do projeto pode fazer cada monitor de requisições recebidas do projeto exigir também um dos segredos do próprio projeto, não importa quem configurou o monitor: ative **Exigir um segredo em toda requisição**. Uma requisição sem nenhum é recusada com `401` e o motivo, antes de contar como heartbeat, de ser guardada como a última requisição do monitor ou de chegar a qualquer critério. Uma requisição com um segue para os critérios do próprio monitor, como antes.
 
 :::steps
 ### Crie um segredo
@@ -201,6 +201,10 @@ Vá em **Monitores → Configurações → Segredos de requisição recebida** e
 ### Envie-o de cada remetente
 
 Envie o segredo no cabeçalho `X-OneUptime-Secret`, ou como token Bearer no cabeçalho `Authorization`, conforme o que seu remetente conseguir definir.
+
+### Encontre os remetentes que faltam
+
+Assim que o projeto tem um segredo, o OneUptime verifica cada requisição, ainda sem recusar nenhuma. **Requisições sem segredo**, na mesma página, lista cada monitor de requisições recebidas que recebeu uma requisição sem um segredo válido nas últimas 24 horas, e por quê: nenhum segredo foi enviado, ou um errado. Corrija esses remetentes. Um monitor cujos remetentes foram corrigidos mostra em **Última com segredo** um horário posterior ao de **Última sem segredo**, e sai da lista em até 24 horas.
 
 ### Ative a exigência
 
@@ -429,6 +433,10 @@ O `200` é enviado antes de a requisição ser validada, então não prova que e
 
 :::details Meu remetente recebe um 401
 O projeto exige um segredo em toda requisição, e a requisição não enviou nenhum, ou enviou um que não é do projeto: a resposta diz qual dos dois. Envie um dos segredos do projeto no cabeçalho `X-OneUptime-Secret` ou como token Bearer, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Uma requisição recusada nunca chega ao monitor.
+:::
+
+:::details O monitor parou de receber requisições depois que um segredo passou a ser exigido
+Seus remetentes não enviam nenhum segredo, ou enviam um errado, então toda requisição que eles enviam é recusada. Uma linha abaixo da **Heartbeat URL** do monitor diz quando chegou a última requisição recusada, e **Requisições sem segredo** lista cada monitor que recebeu uma nas últimas 24 horas, e por quê. Envie um dos segredos do projeto a partir desses remetentes, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição).
 :::
 
 :::details O monitor nunca fica offline quando os heartbeats param

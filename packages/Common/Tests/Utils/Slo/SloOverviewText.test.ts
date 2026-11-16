@@ -21,14 +21,14 @@ describe("getSloWindowText", () => {
   test("rolling windows name their length", () => {
     expect(
       getSloWindowText({ windowType: SloWindowType.Rolling, windowDays: 30 }),
-    ).toBe("Rolling 30 days");
-    expect(getSloWindowText({ windowDays: 1 })).toBe("Rolling 1 day");
+    ).toBe("Rolling 30\u00A0days");
+    expect(getSloWindowText({ windowDays: 1 })).toBe("Rolling 1\u00A0day");
   });
 
   test("a missing or unusable length reads as the 30-day default", () => {
-    expect(getSloWindowText({ windowDays: null })).toBe("Rolling 30 days");
-    expect(getSloWindowText({ windowDays: 0 })).toBe("Rolling 30 days");
-    expect(getSloWindowText({ windowDays: NaN })).toBe("Rolling 30 days");
+    expect(getSloWindowText({ windowDays: null })).toBe("Rolling 30\u00A0days");
+    expect(getSloWindowText({ windowDays: 0 })).toBe("Rolling 30\u00A0days");
+    expect(getSloWindowText({ windowDays: NaN })).toBe("Rolling 30\u00A0days");
   });
 
   test("calendar months name their timezone, defaulting to UTC", () => {
@@ -56,8 +56,8 @@ describe("getSloWindowText", () => {
 
 describe("getSloWindowPhrase", () => {
   test("completes a sentence", () => {
-    expect(getSloWindowPhrase({ windowDays: 7 })).toBe("the last 7 days");
-    expect(getSloWindowPhrase({ windowDays: 1 })).toBe("the last 1 day");
+    expect(getSloWindowPhrase({ windowDays: 7 })).toBe("the last 7\u00A0days");
+    expect(getSloWindowPhrase({ windowDays: 1 })).toBe("the last 1\u00A0day");
     expect(
       getSloWindowPhrase({
         windowType: SloWindowType.CalendarMonth,

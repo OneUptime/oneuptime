@@ -57,7 +57,7 @@ Gå til **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. **
 
 ### Navngiv nøglen, og vælg dens type
 
-Klik på **Opret ingestion-nøgle**. Dialogen starter med navnet **Servernøgle** og typen **Server**. Vælg **Nøgletype**, og omdøb nøglen efter det, der skal bruge den, for eksempel `checkout-collector`. En **Beskrivelse** ligger under **Avanceret**.
+Klik på **Opret indtagelsesnøgle**. Dialogen starter med navnet **Servernøgle** og typen **Server**. Vælg **Nøgletype**, og omdøb nøglen efter det, der skal bruge den, for eksempel `checkout-collector`. En **Beskrivelse** ligger under **Avanceret**.
 
 ### Tilføj en browsernøgles origins
 
@@ -65,10 +65,10 @@ En **Browser**-nøgle beder om sine **Tilladte oprindelser** i det næste trin, 
 
 ### Opret nøglen, og kopiér dens hemmelighed
 
-Klik på **Opret ingestion-nøgle**. Nøglens egen side åbner: kopiér dens **Hemmelig nøgle**, og giv den til dine afsendere.
+Klik på **Opret indtagelsesnøgle**. Nøglens egen side åbner: kopiér dens **Hemmelig nøgle**, og giv den til dine afsendere.
 :::
 
-Hvert produkts **Opsætningsvejledning** starter med **Vælg en ingestion-nøgle**, som viser de nøgler, vejledningen kan bruge, og opretter en på stedet. Kodestumperne i vejledningen indeholder derefter den nøgle.
+Hvert produkts **Opsætningsvejledning** starter med **Vælg en indtagelsesnøgle**, som viser de nøgler, vejledningen kan bruge, og opretter en på stedet. Kodestumperne i vejledningen indeholder derefter den nøgle.
 
 ## Send telemetri med nøglen
 
@@ -108,7 +108,7 @@ En origin er et skema, en vært og en valgfri port: `https://app.example.com` d�
 
 ## Udskift, slå fra eller slet en nøgle
 
-En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for at vise** og dens **Last Used At**: sidste gang OneUptime accepterede data, der blev sendt med den.
+En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for at vise** og dens **Senest brugt den**: sidste gang OneUptime accepterede data, der blev sendt med den.
 
 | For at | Gør dette | Hvad afsendere ser |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for a
 | Erstatte en lækket hemmelighed | Klik på **Nulstil hemmelig nøgle**, og bekræft. Nøglen beholder sine indstillinger og får en ny hemmelighed. | `401`, indtil de sender den nye hemmelighed |
 | Stoppe en nøgle for altid | Klik på **Slet Indtagelsesnøgle** nederst på dens side. | `401` |
 
-For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, flytte dine afsendere over til den og slette den gamle nøgle, når dens **Last Used At** holder op med at ændre sig. **Last Used At** opdateres hvert par minutter, ikke ved hver anmodning.
+For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, flytte dine afsendere over til den og slette den gamle nøgle, når dens **Senest brugt den** holder op med at ændre sig. **Senest brugt den** opdateres hvert par minutter, ikke ved hver anmodning.
 
 ## Fejlfinding
 

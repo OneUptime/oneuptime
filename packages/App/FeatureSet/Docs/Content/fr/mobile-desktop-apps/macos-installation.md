@@ -67,7 +67,7 @@ Dans l'application, ouvrez **Paramètres utilisateur → Méthodes de notificati
 Cliquez sur **Enregistrer l'appareil**, gardez la valeur proposée dans **Nom de l'appareil**, par exemple `Safari on macOS`, ou modifiez-la, puis cliquez de nouveau sur **Enregistrer l'appareil**. Quand macOS ou le navigateur demande si OneUptime peut envoyer des notifications, choisissez **Autoriser**.
 
 ### Envoyer un test
-Dans la boîte de dialogue **Browser Registered**, cliquez sur **Send Test Notification**. Si rien n'apparaît, regardez les réglages de notification du Mac : voir [Dépannage](#dépannage).
+Dans la boîte de dialogue **Navigateur enregistré**, cliquez sur **Envoyer une notification de test**. Si rien n'apparaît, regardez les réglages de notification du Mac : voir [Dépannage](#dépannage).
 :::
 
 Un navigateur ne peut pas sonner malgré un mode de concentration comme Ne pas déranger. Pour les alertes qui doivent vous réveiller, utilisez l'application mobile avec les alertes critiques : voir [Installation iOS](/docs/mobile-desktop-apps/ios-installation#sonner-malgré-le-mode-silencieux).

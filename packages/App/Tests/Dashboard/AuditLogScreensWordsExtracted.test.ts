@@ -37,6 +37,17 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 const SCREENS: string = "ee/Dashboard/AuditLogs";
 
+/*
+ * The screens are the Enterprise Edition's. The App Test job deletes ee/
+ * before it runs (core is the Community Edition by construction), and the
+ * extractor reads a root that is not there as no words, so their words are
+ * held to it where ee/ is checked out: the Enterprise Edition Test workflow
+ * (test.ee.yaml) runs this with ee/ present.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_ROOT, SCREENS),
+);
+
 const SESSION_LABELS: string =
   "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts";
 
@@ -88,7 +99,14 @@ describe("the roots the extractor reads", () => {
     expect(rootOf(SESSION_LABELS).kind).toBe("keys");
   });
 
-  test("the rest of ee/Dashboard is not read yet: each screen comes in as its words are routed", () => {
+  /*
+   * Each Enterprise screen comes in as its words are routed through the
+   * translator: Team Compliance, the SCIM pages, the retention overrides and
+   * the Enterprise settings' license notice joined the audit log in #8296 and
+   * #8461, and every other screen the Dashboard draws from ee/Dashboard in
+   * #8634 (EnterpriseScreensWordsExtracted holds them to their words).
+   */
+  test("the rest of ee/Dashboard comes in as each screen's words are routed", () => {
     const enterpriseRoots: Array<string> = SOURCE_ROOTS.filter(
       (root: SourceRoot): boolean => {
         return root.directory.startsWith("ee/");
@@ -97,7 +115,19 @@ describe("the roots the extractor reads", () => {
       return root.directory;
     });
 
-    expect(enterpriseRoots).toEqual([SCREENS]);
+    expect(enterpriseRoots).toEqual([
+      SCREENS,
+      "ee/Dashboard/TeamCompliance",
+      "ee/Dashboard/Identity",
+      "ee/Dashboard/TelemetryRetention",
+      "ee/Dashboard/EnterpriseSettings",
+      "ee/Dashboard/CustomRoles",
+      "ee/Dashboard/AuditLogExport",
+      "ee/Dashboard/IpAllowlists",
+      "ee/Dashboard/License",
+      "ee/Dashboard/StatusPageAccessControls",
+      "ee/Dashboard/StatusPageBranding",
+    ]);
   });
 });
 
@@ -138,6 +168,10 @@ describe("the words the audit log's screens draw", () => {
   ];
 
   test("are found by the extractor", () => {
+    if (!ENTERPRISE_PRESENT) {
+      return;
+    }
+
     const found: Set<string> = textsOf(extractedFrom(SCREENS));
 
     for (const text of DRAWN) {
@@ -149,6 +183,10 @@ describe("the words the audit log's screens draw", () => {
   });
 
   test("a count is found with both its forms", () => {
+    if (!ENTERPRISE_PRESENT) {
+      return;
+    }
+
     const plurals: Map<string, string | undefined> = new Map(
       extractedFrom(SCREENS)
         .filter((entry: ExtractedString): boolean => {

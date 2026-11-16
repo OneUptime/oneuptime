@@ -77,7 +77,9 @@ import ReplayScreenshotActions from "./ReplayScreenshotActions";
  * which it keeps in English with their wording (ReplayEngineError).
  */
 
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A fixed string in `translator`'s language, where a string is required.
 function translateLine(text: string, translator: Translator): string {

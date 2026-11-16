@@ -1,6 +1,6 @@
 # AWS Security Hub
 
-把 [AWS Security Hub](https://aws.amazon.com/security-hub/) 的发现结果导入 OneUptime 的安全事件：GuardDuty、Inspector、Macie 和 IAM Access Analyzer 的发现结果，Security Hub 自己的控制检查，以及合作伙伴产品的发现结果。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的发现结果呼叫值班人员。OneUptime 使用你创建的、只允许一个只读操作的访问密钥读取它们，不会在 AWS 中更改任何内容。无需设置代理、EventBridge 规则或 S3 导出。
+把 [AWS Security Hub](https://aws.amazon.com/security-hub/) 的发现结果导入 OneUptime 的安全事件：GuardDuty、Inspector、Macie 和 IAM Access Analyzer 的发现结果，Security Hub 自己的控制检查，以及合作伙伴产品的发现结果。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的发现结果呼叫值班人员。OneUptime 使用你创建的、只允许一个只读操作的访问密钥读取它们，不会在 AWS 中更改任何内容。无需设置代理、EventBridge 规则或 S3 导出。
 
 :::cards
 - [设置连接](#设置连接): 一个 IAM 策略、一个访问密钥，以及连接的表单。

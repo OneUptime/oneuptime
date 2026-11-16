@@ -56,21 +56,21 @@ Klik op de metriek in de **Kijker**. De verkenner opent met één query, `a`, vo
 
 ### Kiezen hoe u aggregeert
 
-Kies onder **Aggregate by** hoe de waarden in elk punt van de grafiek worden gecombineerd: Avg, de standaard, Sum, Min, Max, Count, of een percentiel, P50, P75, P90, P95 of P99. Een percentiel van een histogrammetriek, zoals de duur van een verzoek, wordt berekend uit de buckets.
+Kies onder **Aggregeren op** hoe de waarden in elk punt van de grafiek worden gecombineerd: Avg, de standaard, Sum, Min, Max, Count, of een percentiel, P50, P75, P90, P95 of P99. Een percentiel van een histogrammetriek, zoals de duur van een verzoek, wordt berekend uit de buckets.
 
 ### Filteren en groeperen
 
-Open **Filters & grouping**. **Filter by attributes** houdt de datapunten waarvan de attributen overeenkomen, zoals één `http.route`, en **Groeperen op** tekent één lijn per waarde van de attributen die u kiest, zoals één lijn per host.
+Open **Filters en groepering**. **Filteren op attributen** houdt de datapunten waarvan de attributen overeenkomen, zoals één `http.route`, en **Groeperen op** tekent één lijn per waarde van de attributen die u kiest, zoals één lijn per host.
 
 ### De grafiek aanpassen
 
-Open **Display Settings** om het **Chart type** te kiezen (lijn, vlak of staaf), een **Warning Threshold** en een **Critical Threshold** in de grafiek te tekenen, of **Convert to per-second rate** aan te zetten.
+Open **Weergave-instellingen** om het **Grafiektype** te kiezen (lijn, vlak of staaf), een **Waarschuwingsdrempel** en een **Kritieke drempel** in de grafiek te tekenen, of **Omzetten naar snelheid per seconde** aan te zetten.
 :::
 
 > [!TIP]
-> Een teller die alleen maar stijgt, zoals `system.disk.io`, leest het best als snelheid. Zet **Convert to per-second rate** aan om te tonen hoe snel hij verandert in plaats van zijn lopende totaal; de verkenner stelt dat voor als hij zo'n teller herkent.
+> Een teller die alleen maar stijgt, zoals `system.disk.io`, leest het best als snelheid. Zet **Omzetten naar snelheid per seconde** aan om te tonen hoe snel hij verandert in plaats van zijn lopende totaal; de verkenner stelt dat voor als hij zo'n teller herkent.
 
-Elke query tekent zijn eigen grafiek. Om een query in dezelfde grafiek als de vorige te tekenen, zet u **Overlay with previous query** aan in de **Display Settings** ervan.
+Elke query tekent zijn eigen grafiek. Om een query in dezelfde grafiek als de vorige te tekenen, zet u **Over de vorige query leggen** aan in de **Weergave-instellingen** ervan.
 
 ## Query's combineren met een formule
 
@@ -195,7 +195,7 @@ Start de collector opnieuw. Elke service waarvan de traces erdoorheen gaan, vers
 ## Problemen oplossen
 
 :::details De grafiek van een teller stijgt alleen maar
-Het is een cumulatieve teller. Zet **Convert to per-second rate** aan in de **Display Settings** van de query.
+Het is een cumulatieve teller. Zet **Omzetten naar snelheid per seconde** aan in de **Weergave-instellingen** van de query.
 :::
 
 :::details De lijst meldt dat er geen metrieken zijn gevonden

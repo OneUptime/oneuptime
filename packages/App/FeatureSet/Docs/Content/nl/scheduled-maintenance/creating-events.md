@@ -90,7 +90,7 @@ Op het moment dat je op **Onderhoudsgebeurtenis aanmaken** klikt, werkt OneUptim
 5. **Runbook-regels starten** de runbooks die bij de gebeurtenis passen.
 6. **Herinneringen worden ingepland**, wanneer een herinneringsregel past, voor haar eigenaren.
 
-Binnen een minuut na haar publicatie, die meteen is tenzij je een **Publiceren op** hebt gekozen, krijgen de abonnees van haar statuspagina's bericht dat ze gepland is, tenzij je **Wanneer de gebeurtenis wordt gepland** hebt uitgezet. De workflowtrigger **On Create Maintenance Event** start elke workflow die erop is gebouwd, en haar eigenaren horen ervan als ze die melding hebben aangezet: zie [Meldingsinstellingen](/docs/notifications/notification-settings).
+Binnen een minuut na haar publicatie, die meteen is tenzij je een **Publiceren op** hebt gekozen, krijgen de abonnees van haar statuspagina's bericht dat ze gepland is, tenzij je **Wanneer de gebeurtenis wordt gepland** hebt uitgezet. De workflowtrigger **Bij aanmaken: Onderhoudsgebeurtenis** start elke workflow die erop is gebouwd, en haar eigenaren horen ervan als ze die melding hebben aangezet: zie [Meldingsinstellingen](/docs/notifications/notification-settings).
 
 ## Later publiceren
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | De schakelaar **Wanneer de gebeurtenis wordt gepland**. De andere twee momenten hebben eigen velden. |
 | `publishOnStatusPageAt`                               | Wanneer de gebeurtenis op haar statuspagina's wordt gepubliceerd en haar abonnees bericht krijgen dat ze gepland is. Weggelaten: meteen. |
 
-Dezelfde gebeurtenis als code is de Terraform-resource `oneuptime_scheduled_maintenance_event`: zie [Voorbeelden](/docs/terraform/examples#gepland-onderhoud). Een workflow maakt er een met zijn stap **Create One Maintenance Event**, en `/oneuptime maintenance` opent het formulier in Slack: zie [Slack](/docs/workspace-connections/slack#incidenten-en-onderhoud-aanmaken-vanuit-slack).
+Dezelfde gebeurtenis als code is de Terraform-resource `oneuptime_scheduled_maintenance_event`: zie [Voorbeelden](/docs/terraform/examples#gepland-onderhoud). Een workflow maakt er een met zijn stap **Onderhoudsgebeurtenis aanmaken (één record)**, en `/oneuptime maintenance` opent het formulier in Slack: zie [Slack](/docs/workspace-connections/slack#incidenten-en-onderhoud-aanmaken-vanuit-slack).
 
 ## Probleemoplossing
 

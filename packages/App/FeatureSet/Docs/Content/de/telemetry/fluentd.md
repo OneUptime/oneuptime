@@ -31,17 +31,17 @@ Fluentd sendet Datensätze gebündelt als JSON, mit Ihrem Ingestion-Schlüssel i
 
 Gehen Sie zu **Produkte → Projekteinstellungen**, öffnen Sie im Seitenmenü **Telemetrie & APM** und wählen Sie **Ingestion-Schlüssel**.
 
-![Die Liste „Ingestion-Schlüssel“, „Aufnahmeschlüssel erstellen“ ist markiert](screen:ingestion-keys)
+![Die Liste „Ingestion-Schlüssel“, „Ingestion-Schlüssel erstellen“ ist markiert](screen:ingestion-keys)
 
 ### Einen Schlüssel erstellen
 
-Klicken Sie auf **Aufnahmeschlüssel erstellen**. Im Dialog ist der Name des Schlüssels schon ausgefüllt und **Server** gewählt – die Art von Schlüssel, mit der eine Anwendung oder ein Collector sendet. Klicken Sie also auf **Aufnahmeschlüssel erstellen**, um ihn zu erstellen, oder benennen Sie ihn vorher um.
+Klicken Sie auf **Ingestion-Schlüssel erstellen**. Im Dialog ist der Name des Schlüssels schon ausgefüllt und **Server** gewählt – die Art von Schlüssel, mit der eine Anwendung oder ein Collector sendet. Klicken Sie also auf **Ingestion-Schlüssel erstellen**, um ihn zu erstellen, oder benennen Sie ihn vorher um.
 
 ### Das Geheimnis kopieren
 
 Der neue Schlüssel öffnet sich auf einer eigenen Seite. Kopieren Sie seinen **Geheimer Schlüssel**: Das ist das `YOUR_SERVICE_TOKEN` in der Konfiguration unten.
 
-![Die Seite eines Telemetrie-Aufnahmeschlüssels mit seinem geheimen Schlüssel](/docs/static/images/TelemetryIngestionKeyView.png)
+![Die Seite eines Telemetrie-Ingestion-Schlüssels mit seinem geheimen Schlüssel](/docs/static/images/TelemetryIngestionKeyView.png)
 :::
 
 ## Fluentd konfigurieren
@@ -82,6 +82,10 @@ Fügen Sie einen `<match>`-Abschnitt hinzu, der Datensätze an OneUptime sendet.
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Fügen Sie einen `<match>`-Abschnitt hinzu, der Datensätze an OneUptime sendet.
 
 `json_array true` sendet jeden Chunk des Puffers als ein JSON-Array, und `flush_interval 10s` sendet den Puffer alle 10 Sekunden. `chunk_limit_size 900k` hält jede Anfrage unter 1 MB, dem Höchstwert, den OneUptime an diesem Endpunkt annimmt.
 
+`@type file` hält die noch zu sendenden Batches in dem Ordner, den `path` nennt, sodass ein Neustart von Fluentd keinen davon verliert; ein Puffer im Arbeitsspeicher, die Voreinstellung von Fluentd, verliert, was er hält. Der Benutzer von Fluentd muss in diesen Ordner schreiben können: `/var/log/fluent` ist der von fluent-package, `/var/log/td-agent` der von td-agent und `/fluentd/log` der des Images `fluent/fluentd`. `total_limit_size 512m` hält dort höchstens 512 MB; ist er voll, nimmt Fluentd keine Datensätze mehr an, bis ein Batch gesendet ist.
+
 `retryable_response_codes 429,502,503,504` sendet einen Batch erneut, wenn OneUptime ausgelastet ist (`429`) oder neu startet (`502`, `503`, `504`); ohne diese Einstellung verwirft Fluentd einen Batch bei jeder Antwort außer `503`. `retry_max_interval 30s` wartet zwischen zwei Versuchen höchstens 30 Sekunden, und `retry_timeout 72h` verwirft einen Batch, der nach 72 Stunden noch immer nicht gesendet werden kann. Der Filter `record_transformer` fügt jedem Datensatz die Zeit hinzu, die Fluentd ihm gegeben hat, als `fluentd_time`: Der HTTP-Output sendet nur den Datensatz, und OneUptime liest die Zeit eines Logs daraus.
 
 ### Fluentd neu starten
@@ -113,7 +119,7 @@ Wenige Sekunden nach dem nächsten Flush erscheinen die Logs unter **Produkte �
 
 ## Vollständiges Beispiel
 
-Diese Konfiguration empfängt Datensätze über das Forward-Protokoll von Fluentd auf Port `24224` und sendet sie alle an OneUptime:
+Diese Konfiguration empfängt Datensätze über das Forward-Protokoll von Fluentd auf Port `24224`, nur von diesem Host, und sendet sie alle an OneUptime:
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Diese Konfiguration empfängt Datensätze über das Forward-Protokoll von Fluent
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Diese Konfiguration empfängt Datensätze über das Forward-Protokoll von Fluent
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Diese Konfiguration empfängt Datensätze über das Forward-Protokoll von Fluent
 </label>
 ```
 
-Um verschiedene Quellen als verschiedene Dienste zu senden, verwenden Sie einen `<match>`-Abschnitt pro Tag, jeden mit seinem eigenen `x-oneuptime-service-name`.
+`bind 127.0.0.1` nimmt Datensätze nur von diesem Host an, etwa die des Docker-Logtreibers `fluentd`, der an `localhost:24224` sendet. Um verschiedene Quellen als verschiedene Dienste zu senden, verwenden Sie einen `<match>`-Abschnitt pro Tag, jeden mit seinem eigenen `x-oneuptime-service-name` und seinem eigenen Puffer-`path`: Mit zwei Puffern auf einem Pfad startet Fluentd nicht.
+
+## Datensätze von anderen Hosts annehmen
+
+Mit `bind 0.0.0.0` und ohne Abschnitt `<security>` kann jeder, der Port `24224` erreicht, Logs unter Ihrem Ingestion-Schlüssel an OneUptime senden. Um Datensätze von Fluentd oder Fluent Bit auf anderen Hosts anzunehmen, lauschen Sie auf jeder Adresse, verlangen von jedem Absender einen gemeinsamen Schlüssel und verwenden TLS. Ersetzen Sie den Abschnitt `<source>` des vollständigen Beispiels durch:
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` und `private_key_path` sind ein Zertifikat für den Namen dieses Hosts, hier `fluentd.example.com`, und sein Schlüssel, die der Benutzer von Fluentd lesen können muss. Fluentd warnt, wenn der Schlüssel keine Passphrase hat; `private_key_passphrase` setzt eine. Ersetzen Sie `YOUR_SHARED_KEY` durch ein langes zufälliges Geheimnis, etwa eines aus `openssl rand -base64 32`, und geben Sie jedem Absender dasselbe:
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+Der `forward`-Output von Fluent Bit nimmt dieselben Einstellungen: `Shared_Key`, `Self_Hostname`, `tls On` und `tls.ca_file`.
+
+Ein Absender ohne den Schlüssel oder ohne TLS wird abgewiesen. Der Schlüssel selbst geht nie über das Netz: Jede Seite beweist, dass sie ihn hat. Ohne TLS kann jeder im Netz zwischen den Hosts die Datensätze lesen. Öffnen Sie Port `24224` in der Firewall des Hosts nur für die Hosts, die senden. Läuft Fluentd aus der Docker-Compose-Datei der Logs-Anleitung, veröffentlichen Sie den Port auch dort auf jeder Adresse, `"24224:24224"`, und binden Sie den Ordner des Zertifikats in den Container ein.
 
 ## Wie Datensätze gelesen werden
 
@@ -209,11 +274,15 @@ Die Anfrage ist größer als 1 MB, der Höchstwert, den OneUptime an diesem Endp
 :::
 
 :::details Fluentd protokolliert `429`, `502`, `503` oder `504`
-OneUptime ist ausgelastet oder startet neu. Mit `retryable_response_codes 429,502,503,504` im Abschnitt `<match>`, wie in der Konfiguration oben, behält Fluentd den Batch und sendet ihn erneut; ohne diese Einstellung verwirft Fluentd den Batch.
+OneUptime ist ausgelastet oder startet neu. Mit `retryable_response_codes 429,502,503,504` im Abschnitt `<match>`, wie in der Konfiguration oben, behält Fluentd den Batch und sendet ihn erneut; ohne diese Einstellung verwirft Fluentd den Batch. Mit `@type file` im Abschnitt `<buffer>` behält Fluentd den Batch auch, wenn es neu startet.
 :::
 
 :::details Logs zeigen den Zeitpunkt, zu dem OneUptime sie empfangen hat, nicht ihre eigene Zeit
-OneUptime liest die Zeit eines Logs aus seinem Datensatz, und der HTTP-Output von Fluentd sendet nur den Datensatz. Ein Abschnitt `<parse>` nimmt das Feld `time` aus dem Datensatz heraus: Fügen Sie ihm `keep_time_key true` hinzu. Fügen Sie außerdem den Filter `record_transformer` aus der Konfiguration oben hinzu: Er fügt jedem Datensatz die Zeit hinzu, die Fluentd ihm gegeben hat, als `fluentd_time`.
+OneUptime liest die Zeit eines Logs aus seinem Datensatz, und der HTTP-Output von Fluentd sendet nur den Datensatz. Ein Abschnitt `<parse>` nimmt das Feld `time` als Zeit des Ereignisses aus dem Datensatz heraus: Fügen Sie ihm `time_key fluentd_time` hinzu, damit er die Zeit keines Datensatzes liest und `time` lässt, wie es ist. Fügen Sie außerdem den Filter `record_transformer` aus der Konfiguration oben hinzu: Er fügt jedem Datensatz die Zeit hinzu, die Fluentd ihm gegeben hat, als `fluentd_time`.
+:::
+
+:::details Eine JSON-Zeile, deren `time` `null`, `true`, eine Liste oder ein Objekt ist, kommt nie an
+Der Parser `json` von Fluentd liest das Feld `time` einer Zeile als Zeit des Ereignisses und verwirft ohne Warnung eine Zeile, deren `time` weder Text noch eine Zahl ist. Fügen Sie seinem Abschnitt `<parse>` `time_key fluentd_time` hinzu, wie oben: Dann lässt Fluentd `time` im Datensatz, wie es ist. Mit dem Filter `record_transformer` oben speichert OneUptime den Log zu dem Zeitpunkt, zu dem Fluentd ihn gelesen hat, `fluentd_time`; ohne ihn zu dem Zeitpunkt, zu dem OneUptime ihn empfängt.
 :::
 
 :::details Logs kommen unter dem Dienst `Fluentd` an

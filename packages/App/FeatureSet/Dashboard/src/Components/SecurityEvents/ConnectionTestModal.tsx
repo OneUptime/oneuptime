@@ -115,6 +115,8 @@ export interface InlineConnectionTestProps {
    */
   settingsKey?: string | undefined;
   buttonTitle?: string | undefined;
+  // The buttonTitle is in the reader's words already, drawn as given (Button's isTitleTranslated).
+  isButtonTitleTranslated?: boolean | undefined;
   description?: string | undefined;
   /*
    * Why the button cannot run yet (a missing credential, no provider
@@ -204,6 +206,9 @@ export const InlineConnectionTest: FunctionComponent<
       </p>
       <Button
         title={props.buttonTitle || translationKey("Test these settings")}
+        isTitleTranslated={
+          Boolean(props.buttonTitle) && props.isButtonTitleTranslated
+        }
         buttonStyle={ButtonStyleType.OUTLINE}
         disabled={Boolean(props.disabledReason) || isRunning}
         isLoading={isRunning}
@@ -244,6 +249,8 @@ export const InlineConnectionTest: FunctionComponent<
 
 export interface ComponentProps {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description?: string | undefined;
   providerTitle?: string | undefined;
   runTest: () => Promise<SecurityConnectorTestReport>;
@@ -315,6 +322,7 @@ const ConnectionTestModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={
         props.description ||
         translationKey(

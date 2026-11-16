@@ -51,6 +51,7 @@ const CloudConnectionTestDialog: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate("Test {{name}}", {
         name: props.connection.name || "",
       })}
+      isTitleTranslated={true}
       description="A small read with the saved settings. Nothing is imported or stored."
       modalWidth={ModalWidth.Medium}
       closeButtonText="Close"

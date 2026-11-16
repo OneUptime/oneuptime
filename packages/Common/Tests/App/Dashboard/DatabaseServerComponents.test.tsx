@@ -1457,7 +1457,7 @@ describe("DatabaseMetricChartModal", () => {
       "true",
     );
     // 4 ms in seconds reads as a latency, not "0".
-    expect(lastChart().yFormatter!(0.004)).toBe("4 ms");
+    expect(lastChart().yFormatter!(0.004)).toBe("4\u00A0ms");
     expect(screen.getByTestId("database-metric-chart-note")).toHaveTextContent(
       "percentiles",
     );

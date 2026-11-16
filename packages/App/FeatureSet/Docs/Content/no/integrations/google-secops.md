@@ -23,7 +23,7 @@ Hver vei normaliserer det som kommer inn, til [OCSF](https://schema.ocsf.io/), O
 ## Før du begynner
 
 - For den administrerte koblingen, i OneUptime, rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan lese tilkoblinger, men ikke opprette dem.
-- For webhooken og UDM-videresendingen en inntaksnøkkel: åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, og klikk på **Opprett ingestion-nøkkel**.
+- For webhooken og UDM-videresendingen en inntaksnøkkel: åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, og klikk på **Opprett inntaksnøkkel**.
 - For den administrerte koblingen retten til å opprette en Google Cloud-tjenestekonto i prosjektet som SecOps-instansen din er knyttet til.
 
 ## Send varsler fra en SOAR-playbook
@@ -201,7 +201,7 @@ Gå gjennom disse punktene i rekkefølge. Hvert kan skilles fra det neste i **Di
 2. **Hvor ofte reglene kjører, og deteksjonsforsinkelse.** Deteksjoner opprettes når regelen kjører, og det kan være opptil en time eller en dag etter hendelsene de beskriver. Koblingen poller etter opprettelsestid, så de kommer med den første pollen etter at Google har opprettet dem, ikke på deteksjonstiden. En regel du nettopp har aktivert, har ikke opprettet noe ennå, og en stille leier har ingenting å opprette. Tilgjengelighetskontrollen rapporterer hvor mange deteksjoner som ble opprettet de siste 24 timene og 7 dagene; null med og uten **Deteksjoner** betyr at Google ennå ikke har noe OneUptime kan importere.
 3. **Les tallene fra den siste kjøringen.** I Diagnostics er **Returnert av Google SecOps** med null i **Importert til OneUptime** og et tilsvarende tall i **Allerede importert** koblingen som virker som tenkt: de deteksjonene ble importert av en tidligere poll. **Avvist**-poster er objekter som Google returnerte, og som ikke er deteksjoner i det hele tatt.
 4. **Poller noe i det hele tatt?** Last Polled med `Never` og en tom Last Error betyr at ingen poll er fullført for denne tilkoblingen. Test tilkoblingen rapporterer **Background workers** (prosesser som forbruker Worker-køen), **Poll scheduler** (registreringen av planleggeren med ett minutts takt) og **Planlagt henting** (denne tilkoblingens egen tidsplan, inkludert en forsinket poll eller en kjøring som sitter fast i kø). Se punktet om feilsøking nedenfor for utrullingsinnstillingene som forårsaker det.
-5. **Se på riktig sted.** Hendelser lagres under deteksjonstiden, som kan ligge timer eller dager før tidspunktet de ble opprettet og importert, så et filter på «siste time» i Security Events skjuler en deteksjon om i går som ble importert for et minutt siden. Bruk **Vis hendelser i dette tidsrommet** på en kjøring i Diagnostics: den åpner hendelsestidsrommet for deteksjonene den kjøringen returnerte.
+5. **Se på riktig sted.** Hendelser lagres under deteksjonstiden, som kan ligge timer eller dager før tidspunktet de ble opprettet og importert, så et filter på «siste time» i Sikkerhetshendelser skjuler en deteksjon om i går som ble importert for et minutt siden. Bruk **Vis hendelser i dette tidsrommet** på en kjøring i Diagnostics: den åpner hendelsestidsrommet for deteksjonene den kjøringen returnerte.
 
 ## Slik settes alvorlighetsgraden
 

@@ -257,7 +257,7 @@ describe("Inventory's Asset Details card says where each detail came from (issue
     });
 
     expect(textOf("inventory-asset-details-source")).toBe(
-      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+      "Read over SNMP by discovery scan Store subnets, 2\u00A0hours ago.",
     );
     for (const field of [
       "hostname",
@@ -339,10 +339,10 @@ describe("Inventory's Asset Details card says where each detail came from (issue
     });
 
     expect(textOf("inventory-asset-details-source")).toBe(
-      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+      "Read over SNMP by discovery scan Store subnets, 2\u00A0hours ago.",
     );
     expect(textOf("inventory-asset-details-found-by")).toBe(
-      "Last found at its address by discovery scan Store subnets, 10 minutes ago.",
+      "Last found at its address by discovery scan Store subnets, 10\u00A0minutes ago.",
     );
 
     const order: Array<string> = Array.from(
@@ -396,7 +396,7 @@ describe("Inventory's Asset Details card says where each detail came from (issue
 
     await waitFor((): void => {
       expect(textOf("inventory-asset-details-source")).toBe(
-        "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+        "Read over SNMP by discovery scan Store subnets, 2\u00A0hours ago.",
       );
     });
 
@@ -404,7 +404,7 @@ describe("Inventory's Asset Details card says where each detail came from (issue
       expect({
         field,
         line: textOf(`inventory-asset-${field}-value-source`),
-      }).toEqual({ field, line: "Its SNMP poll · 3 days ago" });
+      }).toEqual({ field, line: "Its SNMP poll · 3\u00A0days ago" });
     }
     expect(
       screen.queryByTestId("inventory-asset-hostname-value-source"),
@@ -683,7 +683,7 @@ describe("Inventory's Asset Details card says where each detail came from (issue
 
     expect(getItemMock).not.toHaveBeenCalled();
     expect(textOf("inventory-asset-details-source")).toBe(
-      "Reported by its collector, 3 minutes ago.",
+      "Reported by its collector, 3\u00A0minutes ago.",
     );
     expect(
       screen.queryByTestId("inventory-asset-hostname-value-source"),
@@ -732,7 +732,7 @@ describe("the device's own Inventory card says where each value came from (issue
 
     expect(screen.getByText("Discovery")).toBeInTheDocument();
     expect(textOf("device-inventory-source")).toBe(
-      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+      "Read over SNMP by discovery scan Store subnets, 2\u00A0hours ago.",
     );
     // The scan that read it found it: not said a second time.
     expect(
@@ -763,11 +763,11 @@ describe("the device's own Inventory card says where each value came from (issue
 
     await waitFor((): void => {
       expect(textOf("device-inventory-found-by")).toBe(
-        "Last found at its address by discovery scan Store subnets, 10 minutes ago.",
+        "Last found at its address by discovery scan Store subnets, 10\u00A0minutes ago.",
       );
     });
     expect(textOf("device-inventory-source")).toBe(
-      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+      "Read over SNMP by discovery scan Store subnets, 2\u00A0hours ago.",
     );
   });
 
@@ -1025,7 +1025,7 @@ describe("why a device's details are unknown", () => {
      * was first read, and nothing under the MAC.
      */
     expect(textOf("inventory-asset-details-source")).toContain(
-      "Read over SNMP by its probe, 3 minutes ago.",
+      "Read over SNMP by its probe, 3\u00A0minutes ago.",
     );
     expect(
       screen.queryByTestId("inventory-asset-macAddress-value-source"),

@@ -151,7 +151,7 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hvor længe der ventes på at oprette en forbindelse. |
 | **Statement Timeout (ms)** | `15000` | `60000` | Den hårde grænse for, hvor længe forespørgslen må køre. |
-| **Max Rows** | `100` | `1000` | Den øvre grænse for, hvor mange rækker der læses tilbage fra databasen. |
+| **Maks. rækker** | `100` | `1000` | Den øvre grænse for, hvor mange rækker der læses tilbage fra databasen. |
 
 En værdi over maksimum sænkes til maksimum.
 
@@ -231,7 +231,7 @@ Tilføj kriterier for at afgøre, hvornår monitoren betragtes som online, forri
 | **SQL-forespørgselsfejl** | Forespørgslens fejlmeddelelse. Advar, når den er (eller ikke er) tom eller matcher en bestemt streng. |
 | **JavaScript-udtryk** | Evaluér et brugerdefineret JavaScript-udtryk over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` og `isOnline`. Se [JavaScript-udtryk](/docs/monitor/javascript-expression#monitorer-for-sql-forespørgsler). |
 
-Numeriske tærskler er hele tal: skriv `10`, ikke `10.5`. SQL Query-filtre kan ikke evalueres over en tidsperiode; hver kontrol står for sig selv.
+Numeriske tærskler er hele tal: skriv `10`, ikke `10.5`. SQL-forespørgsel-filtre kan ikke evalueres over en tidsperiode; hver kontrol står for sig selv.
 
 En ny SQL-forespørgsel-monitor starter med to kriterier: **SQL er online** er falsk — monitoren går offline og erklærer en hændelse, der løser sig selv — og **SQL er online** er sand, hvilket markerer den som online. **Tilføj kriterier** tilføjer et nederst; træk det op over online-kriteriet, fordi kriterierne tjekkes oppefra, og det første, der matcher, afgør det.
 

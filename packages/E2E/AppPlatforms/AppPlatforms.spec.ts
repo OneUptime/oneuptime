@@ -4,6 +4,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * App Platforms, in a browser, against the offline fixture
@@ -2585,4 +2586,20 @@ test.describe("in the reader's language", () => {
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-app-overview-390-fa");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en"
+      ? `${CHECKOUT}/documentation`
+      : `${CHECKOUT}/documentation?lang=${language}`;
+  },
 });

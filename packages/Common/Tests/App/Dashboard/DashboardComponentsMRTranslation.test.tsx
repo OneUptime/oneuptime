@@ -302,23 +302,23 @@ describe("on-call layer summaries in German", () => {
       "Rotiert täglich",
     );
     expect(summarizeRotation(rotation(EventInterval.Week, 3))).toBe(
-      "Rotiert alle 3 Wochen",
+      "Rotiert alle 3\u00A0Wochen",
     );
   });
 
   test("window lengths and relative starts take the German form for their count", () => {
     expect(formatWindowSpan(NOW, new Date(NOW.getTime() + 14 * DAY_MS))).toBe(
-      "2 Wochen",
+      "2\u00A0Wochen",
     );
     expect(formatWindowSpan(NOW, new Date(NOW.getTime() + 91 * DAY_MS))).toBe(
-      "3 Monate",
+      "3\u00A0Monate",
     );
     expect(formatRelativeStart(new Date(NOW.getTime() + HOUR_MS), NOW)).toBe(
-      "in 1 Stunde",
+      "in 1\u00A0Stunde",
     );
     expect(
       formatRelativeStart(new Date(NOW.getTime() + 5 * HOUR_MS), NOW),
-    ).toBe("in 5 Stunden");
+    ).toBe("in 5\u00A0Stunden");
   });
 
   test("the start date is filled into the German sentence", () => {
@@ -799,7 +799,7 @@ describe("plain helpers in German", () => {
 
   test("the stale-device tooltip fills its window into the German sentence", () => {
     expect(getStaleTooltip(15)).toBe(
-      "In den letzten 15 Minuten wurde keine Abfrage versucht; der Status kann veraltet sein.",
+      "In den letzten 15\u00A0Minuten wurde keine Abfrage versucht; der Status kann veraltet sein.",
     );
   });
 
@@ -808,7 +808,7 @@ describe("plain helpers in German", () => {
       getMessageQueueLivenessLabel(MessageQueueLivenessStatus.NotSeenRecently),
     ).toBe("Länger nicht gesehen");
     expect(getMessageQueueLivenessDescription()).toBe(
-      `Kürzlich gesehen: In den letzten ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} Minuten hat die Erkennung Spans oder Broker-Metriken mit dieser Warteschlange gefunden. Sie läuft alle ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} Minuten über die letzten ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} Minuten Telemetrie und über die letzten ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} Minuten Cloud-Monitoring-Metriken, die verspätet eintreffen.`,
+      `Kürzlich gesehen: In den letzten ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES}\u00A0Minuten hat die Erkennung Spans oder Broker-Metriken mit dieser Warteschlange gefunden. Sie läuft alle ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}\u00A0Minuten über die letzten ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}\u00A0Minuten Telemetrie und über die letzten ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES}\u00A0Minuten Cloud-Monitoring-Metriken, die verspätet eintreffen.`,
     );
   });
 });

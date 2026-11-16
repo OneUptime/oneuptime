@@ -61,7 +61,7 @@ flowchart LR
 | Windows 이벤트 | Windows, Sysmon, Microsoft Defender의 로그인, 새 프로세스, 변경된 계정과 그룹, 설치된 서비스, 지워진 로그 |
 | AWS CloudTrail | 콘솔 로그인, AWS 계정에서의 변경, AWS가 거부한 호출 |
 | Google Cloud 감사 로그 | Google Cloud 프로젝트에서의 변경, Google이 거부한 호출, Google Cloud와 공유되는 Google Workspace 로그인 |
-| Azure 활동 및 Entra ID 로그 | Azure 구독에서의 변경, Defender for Cloud 알림, Microsoft Entra ID 로그인과 디렉터리 변경 |
+| Azure 활동 및 Entra ID 로그 | Azure 구독에서의 변경, Defender for Cloud 경고, Microsoft Entra ID 로그인과 디렉터리 변경 |
 | OpenStack 감사 기록 | Keystone의 로그인 실패, 역할 부여와 변경, 감사 필터가 각 API에서 본 내용, 전 세계에 열린 보안 그룹, 공개로 전환된 이미지 |
 | CEF | Common Event Format을 보내는 방화벽, IDS, WAF 및 기타 보안 제품의 위협, 차단된 연결, 로그인 |
 | LEEF | Log Event Extended Format을 보내는 제품의 같은 내용. 많은 제품이 IBM QRadar용으로 이 형식을 보냅니다 |
@@ -73,7 +73,7 @@ flowchart LR
 
 로그는 그대로 남습니다. 보안에 중요한 줄만 이벤트가 되며, 웹 서버가 제공한 모든 페이지나 API의 모든 읽기가 이벤트가 되지는 않습니다.
 
-CEF나 LEEF 탐지 결과, FortiGate의 IPS 탐지 결과처럼 보안 제품이 로그에 기록하는 위협은 연결된 제품의 알림처럼 케이스를 엽니다. 어느 심각도부터 열지는 **내 로그**의 **케이스를 여는 심각도**에서 정하며, 다른 심각도를 고르지 않는 한 **높음 이상**이고 **없음**으로 둘 수도 있습니다.
+CEF나 LEEF 탐지 결과, FortiGate의 IPS 탐지 결과처럼 보안 제품이 로그에 기록하는 위협은 연결된 제품의 경고처럼 케이스를 엽니다. 어느 심각도부터 열지는 **내 로그**의 **케이스를 여는 심각도**에서 정하며, 다른 심각도를 고르지 않는 한 **높음 이상**이고 **없음**으로 둘 수도 있습니다.
 
 **클라우드**에서 연결한 AWS 계정, Google Cloud 프로젝트, Azure 구독에는 로그 파이프라인이 필요 없습니다. **연결**의 **내 OneUptime 데이터**에서 **클라우드 감사 로그**를 켜면 그 감사 로그를 계정과 함께 읽습니다. [클라우드 계정의 감사 로그 읽기](/docs/telemetry/security-events#클라우드-계정의-감사-로그-읽기)를 참고하세요.
 

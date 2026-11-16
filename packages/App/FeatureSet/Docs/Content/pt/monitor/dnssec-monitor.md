@@ -103,7 +103,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de DNSSEC novo começa com dois critérios:
 
-- **Cadeia quebrada** — **Cadeia DNSSEC válida** é **Falso**. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ DNSSEC chain is broken" é criado. O incidente se resolve sozinho assim que a cadeia volta a ser válida.
+- **Cadeia quebrada** — **Cadeia DNSSEC válida** é **Falso**. O monitor é marcado como **Offline** e um incidente chamado "A cadeia DNSSEC de _nome do monitor_ está quebrada" é criado. O incidente se resolve sozinho assim que a cadeia volta a ser válida.
 - **Cadeia válida** — o monitor é marcado como **Operacional**.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Quando nenhum corresponde, o monitor mostra o seu status padrão: **Operacional**, a menos que você escolha outro em **Mais campos**, abaixo dos critérios.

@@ -1,3 +1,4 @@
+import { getOnCallPageAcknowledgedByMessage } from "../../Types/OnCallDutyPolicy/OnCallPageEnding";
 import ProjectMilestoneService from "./ProjectMilestoneService";
 import ActivationMilestone, {
   isNotificationDeliveredStatus,
@@ -27,6 +28,8 @@ import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallPageMerge from "../Utils/OnCall/OnCallPageMerge";
+import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import OneUptimeDate from "../../Types/Date";
 import {
   OnCallObserverPageRecordKind,
@@ -626,6 +629,12 @@ export class Service extends DatabaseService<Model> {
       | undefined;
     // The page's project, for what a test page's acknowledgement records.
     projectId?: ObjectID | undefined;
+    /*
+     * This is a page merged into the one the person answered
+     * (OnCallPageMerge), answered with it: the pages merged into the one
+     * they answered are answered by that answer, not by this one again.
+     */
+    isAnsweredWithAnotherPage?: boolean | undefined;
   }): Promise<void> {
     if (page.userNotificationEventType === UserNotificationEventType.TestPage) {
       await this.acknowledgeTestPage(page);
@@ -705,7 +714,11 @@ export class Service extends DatabaseService<Model> {
           userName: user.name?.toString() || "",
           userEmail: user.email?.toString() || "",
         })
-      : `${entityLabel} acknowledged by ${user.name} (${user.email})`;
+      : getOnCallPageAcknowledgedByMessage({
+          recordLabel: entityLabel,
+          userName: `${user.name}`,
+          userEmail: `${user.email}`,
+        });
 
     await UserOnCallLogService.updateOneById({
       id: page.userOnCallLogId,
@@ -833,6 +846,73 @@ export class Service extends DatabaseService<Model> {
         executionLogId: page.onCallDutyPolicyExecutionLogId,
         acknowledgedAt: page.acknowledgedAt,
       });
+    }
+
+    if (!page.isAnsweredWithAnotherPage) {
+      await this.answerMergedPages(page);
+    }
+  }
+
+  /*
+   * ONE ANSWER FOR EVERY RUN ONE PAGE STOOD FOR (OnCallPageMerge). A person
+   * two policies paged about one record was paged once: the other policy's
+   * page of them was merged into their open page, and sent nothing. Their
+   * answer to a page about the record - a responder's, never an observer's,
+   * which says only that they have seen it - answers each of their merged
+   * pages about it too, so each run records them as who acknowledged it.
+   *
+   * Never throws: the answer they gave stands. A merged page left
+   * unanswered here is answered within a minute, when the person's-log
+   * worker finds the page it stood on answered.
+   */
+  private async answerMergedPages(page: {
+    userOnCallLogId: ObjectID;
+    userId: ObjectID;
+    triggeredByIncidentId?: ObjectID | undefined;
+    triggeredByAlertId?: ObjectID | undefined;
+    triggeredByAlertEpisodeId?: ObjectID | undefined;
+    triggeredByIncidentEpisodeId?: ObjectID | undefined;
+    acknowledgedAt: Date;
+    projectId?: ObjectID | undefined;
+  }): Promise<void> {
+    try {
+      const mergedPages: Array<UserOnCallLog> =
+        await OnCallPageMerge.findMergedPagesToAnswer({
+          projectId: page.projectId,
+          userId: page.userId,
+          record: page,
+        });
+
+      for (const mergedPage of mergedPages) {
+        if (
+          !mergedPage.id ||
+          mergedPage.id.toString() === page.userOnCallLogId.toString()
+        ) {
+          continue;
+        }
+
+        await this.acknowledgePage({
+          userOnCallLogId: mergedPage.id,
+          userId: page.userId,
+          onCallDutyPolicyExecutionLogId:
+            mergedPage.onCallDutyPolicyExecutionLogId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            mergedPage.onCallDutyPolicyExecutionLogTimelineId,
+          triggeredByIncidentId: mergedPage.triggeredByIncidentId,
+          triggeredByAlertId: mergedPage.triggeredByAlertId,
+          triggeredByAlertEpisodeId: mergedPage.triggeredByAlertEpisodeId,
+          triggeredByIncidentEpisodeId: mergedPage.triggeredByIncidentEpisodeId,
+          acknowledgedAt: page.acknowledgedAt,
+          userNotificationEventType: mergedPage.userNotificationEventType,
+          projectId: page.projectId,
+          isAnsweredWithAnotherPage: true,
+        });
+      }
+    } catch (err) {
+      logger.error(
+        `Could not answer the pages merged into on-call log ${page.userOnCallLogId.toString()}; each is answered at the person's-log worker's next run.`,
+      );
+      logger.error(err as Error);
     }
   }
 

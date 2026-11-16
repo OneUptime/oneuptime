@@ -228,13 +228,13 @@ function archiveCardTitles(page: string): Array<string> {
  * The banners' titles were here, in English, until the banner worded them
  * in every language (#8446), and the audit log card's Edit Audit Log
  * Settings and Audit logging is off until the audit log table did: each
- * page now names them as its Dashboard draws them.
+ * page now names them as its Dashboard draws them. So is the SLO widget's
+ * Follow SLO Variable, which the widget settings now word too.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [MONITOR_RULES]: ["Auto-Add Monitors With Labels"],
   [METRICS]: [
     "Monitor Metric Retention (Days)",
-    "Follow SLO Variable",
     "SLO Dashboard",
     "Error Budget & Burn Rate",
     "Lowest Error Budget Remaining",
@@ -245,6 +245,15 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Selected SLO",
     "SLI History",
     "Burn Rate History",
+  ],
+  /*
+   * The SLOs workflow templates and their wizard's settings: catalog content,
+   * which Create Workflow draws as written in every language (#8447).
+   */
+  [RELEASE_CHECKS]: [
+    "Turn a LaunchDarkly flag off when an SLO burns too fast",
+    "Turn an Unleash flag off when an SLO burns too fast",
+    "Burn Rate Rule ID",
   ],
 };
 
@@ -1526,7 +1535,9 @@ describe("the helpers, on these pages' shapes", () => {
     expect(asRead(drawnBudgetFigure("de", "43m 12s") || "")).toBe(
       "43 Min., 12 Sek.",
     );
-    expect(drawnBudgetFigure("fa", "44m 38s")).toBe("۴۴ دقیقه ۳۸ ثانیه");
+    expect(drawnBudgetFigure("fa", "44m 38s")).toBe(
+      "۴۴\u00A0دقیقه ۳۸\u00A0ثانیه",
+    );
     expect(asRead(drawnBudgetFigure("es", "7h 12m") || "")).toBe("7 h 12 min");
 
     // Two parts read exactly as the Dashboard's own compact duration.
@@ -1548,7 +1559,7 @@ describe("the helpers, on these pages' shapes", () => {
       "1 Min., 0 Sek.",
     );
     expect(drawnBudgetFigure("fa", "2h 9m 36s")).toBe(
-      "۲ ساعت ۹ دقیقه ۳۶ ثانیه",
+      "۲\u00A0ساعت ۹\u00A0دقیقه ۳۶\u00A0ثانیه",
     );
 
     // In English, each reads exactly as written.

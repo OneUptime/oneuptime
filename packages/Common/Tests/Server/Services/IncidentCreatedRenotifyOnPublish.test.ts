@@ -25,6 +25,17 @@ import {
   test,
 } from "@jest/globals";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * A request the write sends that these tests leave unanswered: an
+ * incident's update is announced to the Workflow service (DatabaseService
+ * onTriggerWorkflow, which does not wait for it), and what is written does
+ * not depend on it. Refused at once, as the network refused it, and logged
+ * as an announcement that could not be made
+ * (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/workflow/model/*/incident/on-update"]);
 
 /*
  * The read of the rows a caller's update may write, which the update path

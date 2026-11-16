@@ -3,7 +3,10 @@ import {
   clearTokens,
   clearTokensIfCurrent,
   getCachedAccessToken,
+  getSignInRevision,
+  getTokenRevision,
   getTokens,
+  storeRenewedTokens,
   storeTokens,
   type StoredTokens,
 } from "./keychain";
@@ -411,5 +414,166 @@ describe("canceling an old passkey cannot erase a newer password or SSO session"
     });
     await storeTokens(newSession);
     expect(await persistedSession()).toEqual(newSession);
+  });
+});
+
+/*
+ * A RENEWAL'S TOKENS BELONG TO THE TOKENS IT STARTED FROM (issue #8382).
+ *
+ * The server rotates the refresh token at every renewal, so what a renewal
+ * brings back must not land on anything written after it read the tokens
+ * it renewed: over a sign-out it would sign the next launch in again, and
+ * over a newer sign-in it would put the older session back.
+ */
+describe("storeRenewedTokens: a compare-and-store over the tokens a renewal started from", () => {
+  test("nothing written since: stored, and the cache follows", async () => {
+    await storeTokens(makeTokens());
+    const revision: number = getTokenRevision();
+
+    const renewed: StoredTokens = makeTokens({
+      accessToken: "renewed-access",
+      refreshToken: "renewed-refresh",
+    });
+
+    expect(await storeRenewedTokens(renewed, revision)).toBe(true);
+    expect(await persistedSession()).toEqual(renewed);
+    expect(getCachedAccessToken()).toBe("renewed-access");
+  });
+
+  test("cleared since (a sign-out): not stored, and storage stays empty", async () => {
+    await storeTokens(makeTokens());
+    const revision: number = getTokenRevision();
+
+    await clearTokens();
+
+    expect(
+      await storeRenewedTokens(
+        makeTokens({ accessToken: "renewed-access" }),
+        revision,
+      ),
+    ).toBe(false);
+    expect(await persistedSession()).toBeNull();
+    expect(getCachedAccessToken()).toBeNull();
+    expect(await getTokens()).toBeNull();
+  });
+
+  test("a sign-in since: not stored, and the newer sign-in's tokens stay", async () => {
+    await storeTokens(makeTokens());
+    const revision: number = getTokenRevision();
+
+    const newer: StoredTokens = makeTokens({
+      accessToken: "newer-sign-in",
+      refreshToken: "newer-refresh",
+    });
+    await storeTokens(newer);
+
+    expect(
+      await storeRenewedTokens(
+        makeTokens({ accessToken: "renewed-access" }),
+        revision,
+      ),
+    ).toBe(false);
+    expect(await persistedSession()).toEqual(newer);
+    expect(getCachedAccessToken()).toBe("newer-sign-in");
+  });
+
+  test("another renewal since: the older renewal's answer is not stored over it", async () => {
+    await storeTokens(makeTokens());
+    const revision: number = getTokenRevision();
+
+    const first: StoredTokens = makeTokens({ refreshToken: "first-renewal" });
+    expect(await storeRenewedTokens(first, revision)).toBe(true);
+
+    expect(
+      await storeRenewedTokens(
+        makeTokens({ refreshToken: "stale-renewal" }),
+        revision,
+      ),
+    ).toBe(false);
+    expect(await persistedSession()).toEqual(first);
+  });
+
+  test("a sign-out queued while a renewal's read was still waiting on storage wins", async () => {
+    await storeTokens(makeTokens());
+
+    // The revision is read, then the sign-out is queued before the tokens are.
+    const revision: number = getTokenRevision();
+    const clearing: Promise<void> = clearTokens();
+    const read: StoredTokens | null = await getTokens();
+    await clearing;
+
+    expect(read).toBeNull();
+    expect(
+      await storeRenewedTokens(
+        makeTokens({ accessToken: "renewed" }),
+        revision,
+      ),
+    ).toBe(false);
+    expect(await persistedSession()).toBeNull();
+  });
+
+  test("the comparison and the write leave no gap: a sign-out right after waits its turn and wins", async () => {
+    await storeTokens(makeTokens());
+    const revision: number = getTokenRevision();
+
+    const storing: Promise<boolean> = storeRenewedTokens(
+      makeTokens({ accessToken: "renewed" }),
+      revision,
+    );
+    const clearing: Promise<void> = clearTokens();
+
+    expect(await storing).toBe(true);
+    await clearing;
+
+    expect(await persistedSession()).toBeNull();
+    expect(getCachedAccessToken()).toBeNull();
+  });
+});
+
+describe("getSignInRevision counts the sign-ins that stored tokens, and nothing else", () => {
+  test("a sign-in counts; a renewal and a sign-out do not", async () => {
+    const before: number = getSignInRevision();
+
+    await storeTokens(makeTokens());
+
+    expect(getSignInRevision()).toBe(before + 1);
+
+    await storeRenewedTokens(
+      makeTokens({ refreshToken: "renewed" }),
+      getTokenRevision(),
+    );
+
+    expect(getSignInRevision()).toBe(before + 1);
+
+    await clearTokens();
+
+    expect(getSignInRevision()).toBe(before + 1);
+
+    await storeTokens(makeTokens({ accessToken: "next-sign-in" }));
+
+    expect(getSignInRevision()).toBe(before + 2);
+  });
+
+  test("every write moves the token revision on: a sign-in, a renewal and a sign-out", async () => {
+    const start: number = getTokenRevision();
+
+    await storeTokens(makeTokens());
+    await storeRenewedTokens(
+      makeTokens({ refreshToken: "renewed" }),
+      start + 1,
+    );
+    await clearTokens();
+
+    expect(getTokenRevision()).toBe(start + 3);
+  });
+
+  test("a renewal refused by the comparison moves nothing", async () => {
+    await storeTokens(makeTokens());
+    const revision: number = getTokenRevision();
+    const signIns: number = getSignInRevision();
+
+    expect(await storeRenewedTokens(makeTokens(), revision - 1)).toBe(false);
+    expect(getTokenRevision()).toBe(revision);
+    expect(getSignInRevision()).toBe(signIns);
   });
 });

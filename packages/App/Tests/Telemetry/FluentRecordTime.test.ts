@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { JSONObject } from "Common/Types/JSON";
 import FluentRecordTimeUtil, {
   EARLIEST_RECORD_TIME_MS,
@@ -323,10 +324,18 @@ describe("only a time a log has", () => {
     expect(read(padded)).toBeNull();
     expect(read("1".repeat(MAX_TIME_TEXT_LENGTH + 1))).toBeNull();
     // A long run of digits takes no time to turn down.
-    const started: number = Date.now();
-    expect(read(`${"9".repeat(100000)}`)).toBeNull();
-    expect(read(`2026-11-14T08:00:00${" ".repeat(100000)}x`)).toBeNull();
-    expect(Date.now() - started).toBeLessThan(1000);
+    const turnedDown: FastestRun<Array<RecordTimeRead | null>> = fastestRun({
+      run: (): Array<RecordTimeRead | null> => {
+        return [
+          read(`${"9".repeat(100000)}`),
+          read(`2026-11-14T08:00:00${" ".repeat(100000)}x`),
+        ];
+      },
+      limitInMs: 1000,
+    });
+
+    expect(turnedDown.result).toEqual([null, null]);
+    expect(turnedDown.inMs).toBeLessThan(1000);
   });
 });
 
@@ -399,6 +408,65 @@ describe("a record's time", () => {
       "fluentd_time",
     );
   });
+
+  /*
+   * The values Fluentd's json parser dropped a line for when it read the
+   * line's time itself (issue #8241). The guide's file no longer has it
+   * read one, so such a line arrives, and its time is read here.
+   */
+  const NOT_TEXT_OR_NUMBER: Array<[string, unknown]> = [
+    ["null", null],
+    ["true", true],
+    ["false", false],
+    ["a list", [1763107202]],
+    ["an empty list", []],
+    ["an object", { s: 1 }],
+    ["an empty object", {}],
+  ];
+
+  test.each(NOT_TEXT_OR_NUMBER)(
+    "a time field that holds %s: the time Fluentd read the line, whichever field it is in",
+    (_label: string, value: unknown) => {
+      for (const field of FLUENT_RECORD_TIME_FIELDS.filter(
+        (name: string): boolean => {
+          return name !== FLUENTD_EVENT_TIME_FIELD;
+        },
+      )) {
+        expect({
+          field,
+          read: readRecord({
+            [field]: value as JSONObject,
+            message: "x",
+            fluentd_time: FLUENTD,
+          }),
+        }).toEqual({
+          field,
+          read: {
+            timeUnixNano: "1794737832834701377",
+            timeDate: new Date("2026-11-15T10:17:12.834Z"),
+            field: FLUENTD_EVENT_TIME_FIELD,
+          },
+        });
+      }
+    },
+  );
+
+  test.each(NOT_TEXT_OR_NUMBER)(
+    "every time field holds %s: the time it arrived",
+    (_label: string, value: unknown) => {
+      const record: JSONObject = { message: "x" };
+
+      for (const field of FLUENT_RECORD_TIME_FIELDS) {
+        record[field] = value as JSONObject;
+      }
+
+      expect(readRecord(record)).toEqual({
+        timeUnixNano: `${ARRIVED_AT.getTime()}000000`,
+        timeDate: ARRIVED_AT,
+        field: null,
+      });
+    },
+  );
 
   test("no time at all: the time it arrived, in milliseconds' nanoseconds", () => {
     for (const record of [

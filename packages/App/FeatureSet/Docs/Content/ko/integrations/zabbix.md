@@ -36,14 +36,14 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 
 | 방법 | 사용하는 경우 |
 | --- | --- |
-| 워크플로 템플릿(권장) | 각 문제를 Zabbix 심각도에 맞는 인시던트나 알림으로 만들고, High와 Disaster에는 온콜을 호출하고, 복구 시 해결하고, 사람들이 Zabbix에서 한 일을 기록하고, OneUptime에서 Zabbix를 인지하거나 닫고 싶을 때. |
+| 워크플로 템플릿(권장) | 각 문제를 Zabbix 심각도에 맞는 인시던트나 경고로 만들고, High와 Disaster에는 온콜을 호출하고, 복구 시 해결하고, 사람들이 Zabbix에서 한 일을 기록하고, OneUptime에서 Zabbix를 인지하거나 닫고 싶을 때. |
 | 수신 요청 모니터 | 워크플로 없이, 어떤 플랜에서든 인시던트를 만들고, 상태가 Zabbix를 따르는 모니터를 원할 때. Zabbix로는 아무것도 돌아가지 않습니다. |
 
 두 방법 모두 같은 미디어 유형에서 같은 JSON을 받으므로, 하나로 시작했다가 나중에 Zabbix의 URL 하나만 바꿔 전환할 수 있습니다.
 
 ## 템플릿으로 시작하기
 
-**워크플로 만들기** 대화 상자의 카테고리 목록에서 **Zabbix** 아래에 Zabbix 템플릿 6개가 있습니다. 인시던트용 3개, 그다음 같은 3개의 알림용입니다.
+**워크플로 만들기** 대화 상자의 카테고리 목록에서 **Zabbix** 아래에 Zabbix 템플릿 6개가 있습니다. 인시던트용 3개, 그다음 같은 3개의 경고용입니다.
 
 | 템플릿 | 하는 일 | 필요한 입력 |
 | --- | --- | --- |
@@ -51,12 +51,12 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 | Declare an incident for each Zabbix problem | Zabbix가 모든 이벤트를 보내는 워크플로입니다. 문제마다 인시던트를 선언하고, High와 Disaster에는 온콜을 호출하고, Zabbix에서 한 업데이트를 기록하고, 복구 시 인시던트를 해결합니다. | Zabbix URL |
 | Acknowledge or close the Zabbix problem with the incident | 인시던트가 인지되면 그 문제를 인지합니다. 해결되면 문제를 닫거나, Zabbix가 수동으로 닫는 것을 허용하지 않으면 인지합니다. | Zabbix URL, Zabbix API Token |
 | Copy incident private notes to the Zabbix problem | 인시던트의 각 비공개 메모를 그 문제에 메시지로 추가합니다. | Zabbix URL, Zabbix API Token |
-| **알림** | | |
-| Create an alert for each Zabbix problem | 인시던트와 같지만, 문제마다 알림을 만듭니다. | Zabbix URL |
-| Acknowledge or close the Zabbix problem with the alert | 인시던트와 같지만, 알림의 상태를 따릅니다. | Zabbix URL, Zabbix API Token |
-| Copy alert private notes to the Zabbix problem | 알림의 각 비공개 메모를 그 문제에 메시지로 추가합니다. | Zabbix URL, Zabbix API Token |
+| **경고** | | |
+| Create an alert for each Zabbix problem | 인시던트와 같지만, 문제마다 경고를 만듭니다. | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the alert | 인시던트와 같지만, 경고의 상태를 따릅니다. | Zabbix URL, Zabbix API Token |
+| Copy alert private notes to the Zabbix problem | 경고의 각 비공개 메모를 그 문제에 메시지로 추가합니다. | Zabbix URL, Zabbix API Token |
 
-**Declare an incident for each Zabbix problem**으로 시작하고, 알림이라면 **Create an alert for each Zabbix problem**으로 시작하세요. 이 템플릿이 연 인시던트나 알림은 문제의 이벤트 ID를 사용자 지정 필드 `zabbixEventId`에 보관하고, 나머지 두 템플릿은 이것으로 문제를 찾습니다.
+**Declare an incident for each Zabbix problem**으로 시작하고, 경고가라면 **Create an alert for each Zabbix problem**으로 시작하세요. 이 템플릿이 연 인시던트나 경고는 문제의 이벤트 ID를 사용자 지정 필드 `zabbixEventId`에 보관하고, 나머지 두 템플릿은 이것으로 문제를 찾습니다.
 
 ### 템플릿에 필요한 입력
 
@@ -76,7 +76,7 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 
 ### 워크플로가 하는 일
 
-**웹훅** 트리거 다음에는 **Check With JavaScript** 단계 `read-event-1`이 미디어 유형이 보내는 `event`를 읽고, **Incident From Another Tool**(경고 템플릿에서는 **Alert From Another Tool**)이 문제의 이벤트 ID로 그 뜻대로 처리합니다:
+**웹훅** 트리거 다음에는 **JavaScript로 확인** 단계 `read-event-1`이 미디어 유형이 보내는 `event`를 읽고, **다른 도구의 인시던트**(경고 템플릿에서는 **다른 도구의 경고**)이 문제의 이벤트 ID로 그 뜻대로 처리합니다:
 
 | 이벤트 | 워크플로가 하는 일 |
 | --- | --- |
@@ -88,9 +88,9 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 
 ### 심각도
 
-새 프로젝트에서 템플릿은 Zabbix의 심각도 6개를 다음 인시던트 및 알림 심각도에 매핑합니다:
+새 프로젝트에서 템플릿은 Zabbix의 심각도 6개를 다음 인시던트 및 경고 심각도에 매핑합니다:
 
-| Zabbix 심각도 | 인시던트 | 알림 | 온콜 |
+| Zabbix 심각도 | 인시던트 | 경고 | 온콜 |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | 호출함 |
 | High | Critical Incident | High | 호출함 |
@@ -102,7 +102,7 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 직접 만든 심각도가 있으면 Disaster와 High는 가장 심각한 것으로, Average와 Warning은 중간 것으로, Information과 Not classified는 가장 덜 심각한 것으로 갑니다. Zabbix는 심각도에 0(Not classified)부터 5(Disaster)까지 번호를 매기고 템플릿은 번호를 읽으므로, Zabbix에서 심각도 이름을 바꿔도 아무것도 바뀌지 않습니다.
 
 - 이름으로 심각도를 직접 만든 심각도에 매핑하려면 `read-event-1` 단계의 `SEVERITY_BY_NAME`을 편집하세요. 예를 들어 Warning이라면 `{ 2: 'Minor Incident' }`입니다.
-- Average 문제에도 호출하려면 `if-page-1` **If / Else** 단계의 **비교 대상**을 `3`으로 설정하세요.
+- Average 문제에도 호출하려면 `if-page-1` **조건 분기** 단계의 **비교 대상**을 `3`으로 설정하세요.
 
 ### 인지와 메모를 Zabbix로 돌려보내기
 
@@ -126,7 +126,7 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 
 ### Zabbix 6.0에서
 
-Zabbix 6.0은 API 토큰을 `Authorization` 헤더가 아니라 요청 본문에서 읽습니다. Zabbix를 호출하는 각 템플릿의 **Update Zabbix Problem** 단계에서 **추가 필드** 아래의 **Zabbix 6.0**을 켜세요. Zabbix 7.2 이상은 본문의 토큰을 거부하므로 업그레이드할 때 다시 끄세요.
+Zabbix 6.0은 API 토큰을 `Authorization` 헤더가 아니라 요청 본문에서 읽습니다. Zabbix를 호출하는 각 템플릿의 **Zabbix 문제 업데이트** 단계에서 **추가 필드** 아래의 **Zabbix 6.0**을 켜세요. Zabbix 7.2 이상은 본문의 토큰을 거부하므로 업그레이드할 때 다시 끄세요.
 
 ## 모니터로 문제 받기
 
@@ -171,7 +171,7 @@ https://oneuptime.com/heartbeat/<secret key>
 자체 호스팅 설치에서는 `oneuptime.com` 대신 자체 호스트가 들어갑니다.
 :::
 
-모니터는 요청의 JSON을 쓰인 그대로 읽습니다. `"status":"1"`처럼 공백이 없어야 합니다. 각 설정이 하는 일은 [다른 시스템에서 알림 받기](/docs/monitor/incoming-request-monitor#다른-시스템의-알림-수신)를 참고하세요. Zabbix에서 한 업데이트도 `"status":"1"`로 전송되며, 모니터는 이를 다시 문제로 읽고 새 인시던트를 열지 않습니다.
+모니터는 요청의 JSON을 쓰인 그대로 읽습니다. `"status":"1"`처럼 공백이 없어야 합니다. 각 설정이 하는 일은 [다른 시스템에서 경고 받기](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)를 참고하세요. Zabbix에서 한 업데이트도 `"status":"1"`로 전송되며, 모니터는 이를 다시 문제로 읽고 새 인시던트를 열지 않습니다.
 
 ## Zabbix 구성
 
@@ -288,7 +288,7 @@ Zabbix에는 세 가지가 필요합니다. OneUptime으로 보내는 미디어 
 5. **Add**를 클릭하고 액션이 활성화되어 있는지 확인합니다.
 :::
 
-일부 문제는 인시던트 템플릿으로, 나머지는 알림 템플릿으로 보내려면 `OneUptime` 사용자에게 `OneUptime` 유형의 미디어를 두 개 주세요. 각각 한 워크플로의 URL로 보내며, 받아야 할 심각도를 지정합니다.
+일부 문제는 인시던트 템플릿으로, 나머지는 경고 템플릿으로 보내려면 `OneUptime` 사용자에게 `OneUptime` 유형의 미디어를 두 개 주세요. 각각 한 워크플로의 URL로 보내며, 받아야 할 심각도를 지정합니다.
 
 ## 테스트하기
 

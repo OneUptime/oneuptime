@@ -205,6 +205,7 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
   return (
     <SideOver
       title={topologyNodeName(translator, node)}
+      isTitleTranslated={true}
       description={description}
       onClose={props.onClose}
       size={SideOverSize.Small}

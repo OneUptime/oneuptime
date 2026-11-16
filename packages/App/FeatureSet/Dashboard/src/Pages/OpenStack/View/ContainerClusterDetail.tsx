@@ -189,7 +189,7 @@ const ContainerClusterOverview: FunctionComponent<{
       : {
           key: "project",
           label: "Project",
-          value: "—",
+          value: undefined,
           description: NO_PROJECT_DESCRIPTION,
         },
   );
@@ -227,21 +227,21 @@ const ContainerClusterOverview: FunctionComponent<{
           title="Control plane nodes"
           icon={IconProp.ServerStack}
           iconColor="blue"
-          value={controlPlane === null ? "—" : `${controlPlane}`}
+          value={controlPlane === null ? undefined : `${controlPlane}`}
           description="How many this cluster was asked for, which is what Magnum reports whether or not they came up."
         />
         <GoldenMetricTile
           title="Worker nodes"
           icon={IconProp.ServerStack}
           iconColor="blue"
-          value={workers === null ? "—" : `${workers}`}
+          value={workers === null ? undefined : `${workers}`}
           description="How many this cluster was asked for, which is what Magnum reports whether or not they came up."
         />
         <GoldenMetricTile
           title="In state for"
           icon={IconProp.Clock}
           iconColor="slate"
-          value={getOpenStackTimeInState(row, now) || "—"}
+          value={getOpenStackTimeInState(row, now)}
           description="How long since OneUptime saw this cluster's status change. One already in this state when OneUptime first saw it counts from then."
         />
       </div>

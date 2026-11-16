@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * An on-call policy's acknowledgement timeout (issue #5123): page again
@@ -510,4 +511,18 @@ test.describe("on a 390px phone", () => {
     await expectNoSidewaysScroll(page);
     await screenshot(page, "dialog-de-390");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? PAGE_PATH : `${PAGE_PATH}?lang=${language}`;
+  },
 });

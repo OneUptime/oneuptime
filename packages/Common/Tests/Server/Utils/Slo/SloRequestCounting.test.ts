@@ -21,6 +21,9 @@ import {
   SloRequestCounts,
 } from "../../../../Utils/Slo/SloRequestSli";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import crypto from "crypto";
+import { SpyInstance } from "jest-mock";
 
 /*
  * SloRequestCounting: how a request SLO's requests are counted from its
@@ -281,7 +284,7 @@ describe("SloRequestCounting.countRange", () => {
   });
 
   test("an empty range reads nothing", async () => {
-    const query: jest.SpiedFunction<typeof SpanService.executeQuery> = jest
+    const query: SpyInstance<typeof SpanService.executeQuery> = jest
       .spyOn(SpanService, "executeQuery")
       .mockResolvedValue(resultOf([]) as never);
 
@@ -420,10 +423,9 @@ describe("SloRequestCounting.readWindowSums", () => {
   });
 
   test("reads nothing when this evaluation counted the whole read range itself", async () => {
-    const query: jest.SpiedFunction<typeof SloHistoryService.executeQuery> =
-      jest
-        .spyOn(SloHistoryService, "executeQuery")
-        .mockResolvedValue(resultOf([]) as never);
+    const query: SpyInstance<typeof SloHistoryService.executeQuery> = jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(resultOf([]) as never);
 
     const sums: Array<SloRequestCounts> =
       await SloRequestCounting.readWindowSums({
@@ -469,6 +471,198 @@ describe("SloRequestCounting.readWindowSums", () => {
         readFrom: SETTLED_END,
         readTo: SETTLED_END,
         excludedRanges: [],
+      }),
+    ).toEqual([{ goodCount: 0, totalCount: 0 }]);
+  });
+});
+
+describe("SloRequestCounting.buildRangeSumsStatement", () => {
+  /*
+   * An SLO's monthly report sums its counted steps one month at a time:
+   * each range [from, to) over the same newest-version steps a window sum
+   * reads, in one query.
+   */
+  const JANUARY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2026, 0, 1),
+    Date.UTC(2026, 1, 1),
+  );
+  const FEBRUARY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2026, 1, 1),
+    Date.UTC(2026, 2, 1),
+  );
+
+  test("sums each range between its start and its end, from the newest version of every step that has both counts", () => {
+    const statement: Statement = SloRequestCounting.buildRangeSumsStatement({
+      projectId: PROJECT_ID,
+      sloId: SLO_ID,
+      ranges: [JANUARY, FEBRUARY],
+    });
+
+    const sql: string = oneLine(statement);
+
+    expect(sql).toMatch(
+      /sumIf\(good, bucketStart >= \{p\d+:DateTime\} AND bucketStart < \{p\d+:DateTime\}\) AS good0/,
+    );
+    expect(sql).toMatch(
+      /sumIf\(total, bucketStart >= \{p\d+:DateTime\} AND bucketStart < \{p\d+:DateTime\}\) AS total0/,
+    );
+    expect(sql).toContain("AS good1");
+    expect(sql).toContain("AS total1");
+    expect(sql).toMatch(
+      /argMaxIf\(value, version, metricName = \{p\d+:String\}\) AS good/,
+    );
+    expect(sql).toContain("GROUP BY bucketStart HAVING countIf(metricName =");
+    // Nothing is excluded: a report reads what earlier evaluations kept.
+    expect(sql).not.toContain("AND NOT (");
+    expect(paramValues(statement)).toContain("good.count");
+    expect(paramValues(statement)).toContain("total.count");
+    expect(paramValues(statement)).toContain(SLO_ID.toString());
+  });
+
+  test("reads from the first range's start to the last range's end, and no further", () => {
+    const statement: Statement = SloRequestCounting.buildRangeSumsStatement({
+      projectId: PROJECT_ID,
+      sloId: SLO_ID,
+      ranges: [FEBRUARY, JANUARY],
+    });
+
+    const sql: string = oneLine(statement);
+
+    const paramsOf: (pattern: RegExp) => [string, string] = (
+      pattern: RegExp,
+    ): [string, string] => {
+      const match: RegExpMatchArray | null = sql.match(pattern);
+      expect(match).not.toBeNull();
+      return [match![1]!, match![2]!];
+    };
+
+    const [, februaryEnd] = paramsOf(
+      /sumIf\(good, bucketStart >= \{(p\d+):DateTime\} AND bucketStart < \{(p\d+):DateTime\}\) AS good0/,
+    );
+    const [januaryStart] = paramsOf(
+      /sumIf\(good, bucketStart >= \{(p\d+):DateTime\} AND bucketStart < \{(p\d+):DateTime\}\) AS good1/,
+    );
+    const [readFrom, readTo] = paramsOf(
+      /AND bucketStart >= \{(p\d+):DateTime\} AND bucketStart < \{(p\d+):DateTime\} GROUP BY/,
+    );
+
+    expect(statement.query_params[readFrom]).toEqual(
+      statement.query_params[januaryStart],
+    );
+    expect(statement.query_params[readTo]).toEqual(
+      statement.query_params[februaryEnd],
+    );
+  });
+});
+
+describe("SloRequestCounting.readRangeSums", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const JANUARY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2026, 0, 1),
+    Date.UTC(2026, 1, 1),
+  );
+  const FEBRUARY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2026, 1, 1),
+    Date.UTC(2026, 2, 1),
+  );
+  const EMPTY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2025, 11, 1),
+    Date.UTC(2025, 11, 1),
+  );
+
+  test("reads one sum per range, in the ranges' order", async () => {
+    jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(
+        resultOf([
+          { good0: "990", total0: "1000", good1: 50, total1: 60 },
+        ]) as never,
+      );
+
+    expect(
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [JANUARY, FEBRUARY],
+      }),
+    ).toEqual([
+      { goodCount: 990, totalCount: 1000 },
+      { goodCount: 50, totalCount: 60 },
+    ]);
+  });
+
+  test("a range that holds no time is zero, and is left out of the query", async () => {
+    const query: jest.SpiedFunction<typeof SloHistoryService.executeQuery> =
+      jest
+        .spyOn(SloHistoryService, "executeQuery")
+        .mockResolvedValue(
+          resultOf([{ good0: 7, total0: 8, good1: 3, total1: 4 }]) as never,
+        );
+
+    const sums: Array<SloRequestCounts> =
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [EMPTY, JANUARY, EMPTY, FEBRUARY],
+      });
+
+    expect(sums).toEqual([
+      { goodCount: 0, totalCount: 0 },
+      { goodCount: 7, totalCount: 8 },
+      { goodCount: 0, totalCount: 0 },
+      { goodCount: 3, totalCount: 4 },
+    ]);
+
+    const sql: string = oneLine(query.mock.calls[0]![0] as Statement);
+    expect(sql).toContain("AS good1");
+    expect(sql).not.toContain("AS good2");
+  });
+
+  test("reads nothing when no range holds any time", async () => {
+    const query: jest.SpiedFunction<typeof SloHistoryService.executeQuery> =
+      jest.spyOn(SloHistoryService, "executeQuery");
+
+    expect(
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [EMPTY, EMPTY],
+      }),
+    ).toEqual([
+      { goodCount: 0, totalCount: 0 },
+      { goodCount: 0, totalCount: 0 },
+    ]);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  test("no row at all, or a count that is not a number, sums to zero", async () => {
+    jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(resultOf([]) as never);
+
+    expect(
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [JANUARY],
+      }),
+    ).toEqual([{ goodCount: 0, totalCount: 0 }]);
+
+    jest.restoreAllMocks();
+    jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(
+        resultOf([{ good0: "NaN", total0: null }] as never) as never,
+      );
+
+    expect(
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [JANUARY],
       }),
     ).toEqual([{ goodCount: 0, totalCount: 0 }]);
   });
@@ -537,7 +731,7 @@ describe("SloRequestCounting.measure", () => {
   // Every step of every range counted as 100 requests, `bad` of them bad.
   function stubCounts(
     bad: number = 1,
-  ): jest.SpiedFunction<typeof SloRequestCounting.countRange> {
+  ): SpyInstance<typeof SloRequestCounting.countRange> {
     return jest
       .spyOn(SloRequestCounting, "countRange")
       .mockImplementation(async (args: CountRangeArgs) => {
@@ -558,7 +752,7 @@ describe("SloRequestCounting.measure", () => {
       });
   }
 
-  function stubInsert(): jest.SpiedFunction<
+  function stubInsert(): SpyInstance<
     typeof SloHistoryService.insertHistoryRows
   > {
     return jest
@@ -567,19 +761,16 @@ describe("SloRequestCounting.measure", () => {
   }
 
   test("a new SLO counts the newest 6 hours and older pieces, keeps them, and sums them from memory", async () => {
-    const countRange: jest.SpiedFunction<typeof SloRequestCounting.countRange> =
+    const countRange: SpyInstance<typeof SloRequestCounting.countRange> =
       stubCounts();
-    const insert: jest.SpiedFunction<
-      typeof SloHistoryService.insertHistoryRows
-    > = stubInsert();
-    const readSums: jest.SpiedFunction<
-      typeof SloRequestCounting.readWindowSums
-    > = jest.spyOn(SloRequestCounting, "readWindowSums");
-    const historyQuery: jest.SpiedFunction<
-      typeof SloHistoryService.executeQuery
-    > = jest
-      .spyOn(SloHistoryService, "executeQuery")
-      .mockResolvedValue(resultOf([]) as never);
+    const insert: SpyInstance<typeof SloHistoryService.insertHistoryRows> =
+      stubInsert();
+    const readSums: SpyInstance<typeof SloRequestCounting.readWindowSums> =
+      jest.spyOn(SloRequestCounting, "readWindowSums");
+    const historyQuery: SpyInstance<typeof SloHistoryService.executeQuery> =
+      jest
+        .spyOn(SloHistoryService, "executeQuery")
+        .mockResolvedValue(resultOf([]) as never);
 
     const measurement: SloRequestMeasurement = await SloRequestCounting.measure(
       {
@@ -626,15 +817,15 @@ describe("SloRequestCounting.measure", () => {
   });
 
   test("an evaluation that carries on reads the earlier steps from SloHistory and adds the new ones", async () => {
-    const countRange: jest.SpiedFunction<typeof SloRequestCounting.countRange> =
+    const countRange: SpyInstance<typeof SloRequestCounting.countRange> =
       stubCounts(0);
     stubInsert();
-    const readSums: jest.SpiedFunction<
-      typeof SloRequestCounting.readWindowSums
-    > = jest.spyOn(SloRequestCounting, "readWindowSums").mockResolvedValue([
-      { goodCount: 5000, totalCount: 5100 },
-      { goodCount: 800, totalCount: 900 },
-    ]);
+    const readSums: SpyInstance<typeof SloRequestCounting.readWindowSums> = jest
+      .spyOn(SloRequestCounting, "readWindowSums")
+      .mockResolvedValue([
+        { goodCount: 5000, totalCount: 5100 },
+        { goodCount: 800, totalCount: 900 },
+      ]);
 
     const measurement: SloRequestMeasurement = await SloRequestCounting.measure(
       {
@@ -677,9 +868,7 @@ describe("SloRequestCounting.measure", () => {
   test("a window older than what is counted is summed from the oldest counted step", async () => {
     stubCounts();
     stubInsert();
-    const readSums: jest.SpiedFunction<
-      typeof SloRequestCounting.readWindowSums
-    > = jest
+    const readSums: SpyInstance<typeof SloRequestCounting.readWindowSums> = jest
       .spyOn(SloRequestCounting, "readWindowSums")
       .mockResolvedValue([{ goodCount: 0, totalCount: 0 }]);
 
@@ -731,7 +920,7 @@ describe("SloRequestCounting.measure", () => {
     jest
       .spyOn(SloRequestCounting, "readWindowSums")
       .mockResolvedValue([{ goodCount: 0, totalCount: 0 }]);
-    const error: jest.SpiedFunction<typeof logger.error> = jest
+    const error: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {
         return undefined;
@@ -798,9 +987,8 @@ describe("SloRequestCounting.measure", () => {
     jest
       .spyOn(SloRequestCounting, "countRange")
       .mockRejectedValue(new Error("ClickHouse is down"));
-    const insert: jest.SpiedFunction<
-      typeof SloHistoryService.insertHistoryRows
-    > = stubInsert();
+    const insert: SpyInstance<typeof SloHistoryService.insertHistoryRows> =
+      stubInsert();
 
     await expect(
       SloRequestCounting.measure({
@@ -861,6 +1049,159 @@ describe("SloRequestCounting.measure", () => {
     );
     expect(measurement.firstAccumulatedBucketStartAt).toEqual(
       at(SETTLED_END.getTime() - 60 * MINUTE),
+    );
+  });
+});
+
+/*
+ * A request filter (#8444): which of the services' requests count. Each
+ * term is compiled by the span table's own statement generator, so a glob,
+ * a "-", a list or a comparison means here what it means in the Traces
+ * explorer, and every value is a typed parameter - never inlined.
+ */
+describe("SloRequestCounting and a request filter", () => {
+  const range: SloRequestCountingRange = rangeOf(
+    SETTLED_END.getTime() - STEP,
+    SETTLED_END.getTime(),
+  );
+
+  const FILTER: string =
+    '@http.route:/checkout* -@http.route:/checkout/health name:"POST /checkout" @http.request.method:[POST, PUT] @http.response.status_code:>=200';
+
+  test("an SLO without a filter keeps the fingerprint it had before filters", () => {
+    const before: string = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          version: 1,
+          sliType: SliType.RequestSuccess,
+          serviceIds: [SERVICE_A.toString(), SERVICE_B.toString()].sort(),
+          latencyThresholdInMilliseconds: null,
+        }),
+      )
+      .digest("hex");
+
+    expect(SloRequestCounting.getFingerprint(SUCCESS)).toBe(before);
+    for (const empty of ["", "   ", null, undefined]) {
+      expect(
+        SloRequestCounting.getFingerprint({ ...SUCCESS, requestFilter: empty }),
+      ).toBe(before);
+    }
+  });
+
+  test("a filter starts the counting again; the same filter, trimmed, does not", () => {
+    const filtered: string = SloRequestCounting.getFingerprint({
+      ...SUCCESS,
+      requestFilter: "@http.route:/checkout*",
+    });
+
+    expect(filtered).not.toBe(SloRequestCounting.getFingerprint(SUCCESS));
+    expect(
+      SloRequestCounting.getFingerprint({
+        ...SUCCESS,
+        requestFilter: "  @http.route:/checkout*  ",
+      }),
+    ).toBe(filtered);
+    expect(
+      SloRequestCounting.getFingerprint({
+        ...SUCCESS,
+        requestFilter: "@http.route:/cart*",
+      }),
+    ).not.toBe(filtered);
+  });
+
+  test("each term narrows the count after the services, its values as typed parameters", () => {
+    const statement: Statement = SloRequestCounting.buildCountStatement({
+      projectId: PROJECT_ID,
+      config: { ...SUCCESS, requestFilter: FILTER },
+      range: range,
+    });
+    const sql: string = oneLine(statement);
+
+    // After the SLO's own filters, before the grouping.
+    expect(sql.indexOf("AND retentionDate >= now()")).toBeLessThan(
+      sql.indexOf("arrayExists"),
+    );
+    expect(sql.indexOf("arrayExists")).toBeLessThan(sql.indexOf("GROUP BY"));
+
+    // A glob: matched as the explorer matches it, by pattern.
+    expect(sql).toMatch(
+      /arrayExists\(\(k, v\) -> lowerUTF8\(k\) = lowerUTF8\(\{p\d+:String\}\) AND \(v ILIKE \{p\d+:String\}\)/,
+    );
+    // "-": anything but.
+    expect(sql).toMatch(
+      /\{p\d+:Identifier\}\[\{p\d+:String\}\] != \{p\d+:String\}/,
+    );
+    // name: the span's own name.
+    expect(sql).toMatch(/\{p\d+:Identifier\} = \{p\d+:String\}/);
+    // A list, and a number.
+    expect(sql).toMatch(/\[\{p\d+:String\}\] IN \{p\d+:Array\(String\)\}/);
+    expect(sql).toMatch(/toFloat64OrNull\(.*\) >= \{p\d+:Double\}/);
+
+    const values: Array<unknown> = paramValues(statement);
+
+    expect(values).toEqual(
+      expect.arrayContaining([
+        "http.route",
+        "/checkout%",
+        "/checkout/health",
+        "name",
+        "POST /checkout",
+        ["POST", "PUT"],
+        200,
+      ]),
+    );
+
+    // Never written into the SQL itself.
+    expect(sql).not.toContain("/checkout");
+    expect(sql).not.toContain("POST");
+  });
+
+  test("a filter that cannot be read is refused, never counted as every request", () => {
+    expect(() => {
+      SloRequestCounting.buildCountStatement({
+        projectId: PROJECT_ID,
+        config: { ...SUCCESS, requestFilter: "checkout" },
+        range: range,
+      });
+    }).toThrow(BadDataException);
+  });
+
+  test("no filter adds nothing", () => {
+    const plain: string = oneLine(
+      SloRequestCounting.buildCountStatement({
+        projectId: PROJECT_ID,
+        config: SUCCESS,
+        range: range,
+      }),
+    );
+    const empty: string = oneLine(
+      SloRequestCounting.buildCountStatement({
+        projectId: PROJECT_ID,
+        config: { ...SUCCESS, requestFilter: "  " },
+        range: range,
+      }),
+    );
+
+    expect(empty).toBe(plain);
+    expect(plain).not.toContain("arrayExists");
+  });
+
+  test("the release check's recent count reads the same filter, beside its version", () => {
+    const statement: Statement = SloRequestCounting.buildRecentCountStatement({
+      projectId: PROJECT_ID,
+      config: { ...LATENCY, requestFilter: "-@http.route:/health" },
+      range: range,
+      serviceVersion: "1.4.2",
+    });
+
+    expect(paramValues(statement)).toEqual(
+      expect.arrayContaining([
+        "resource.service.version",
+        "1.4.2",
+        "http.route",
+        "/health",
+      ]),
     );
   });
 });

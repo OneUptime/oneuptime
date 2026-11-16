@@ -46,7 +46,7 @@ Lagre monitoren. Filteret evalueres ved monitorens neste sjekk.
 
 ## Variabler etter monitortype
 
-JavaScript-uttrykk tilbys for monitorer av typen Website, API, Innkommende forespørsel, Incoming Email, SQL Query og Database Health.
+JavaScript-uttrykk tilbys for monitorer av typen Website, API, Innkommende forespørsel, Innkommende e-post, SQL-spørring og Databasehelse.
 
 ### Nettsted- og API-monitorer
 
@@ -78,11 +78,11 @@ JavaScript-uttrykk tilbys for monitorer av typen Website, API, Innkommende fores
 
 ### Monitorer for databasehelse
 
-`isOnline`, `engineVersion`, `connectionError`, `collectedGroups`, `unavailableGroups` og `metrics`. Se [Variabler for JavaScript-uttrykk](/docs/monitor/database-health-monitor#variabler-for-javascript-uttrykk) på siden om databasehelse-overvåking.
+`isOnline`, `engineVersion`, `connectionError`, `collectedGroups`, `unavailableGroups` og `metrics`. Se [Variabler for JavaScript-uttrykk](/docs/monitor/database-health-monitor#variabler-for-javascript-uttrykk) på siden om databasehelse-monitor.
 
 ### Monitorer for innkommende e-post
 
-Filteret tilbys, men ingen e-postfelt er knyttet til det: et uttrykk kan ikke lese emnet, avsenderen, brødteksten eller mottakeren. Bruk e-postfiltertypene i stedet — se [Innkommende e-post-overvåking](/docs/monitor/incoming-email-monitor#tilgjengelige-filtertyper).
+Filteret tilbys, men ingen e-postfelt er knyttet til det: et uttrykk kan ikke lese emnet, avsenderen, brødteksten eller mottakeren. Bruk e-postfiltertypene i stedet — se [Innkommende e-post-monitor](/docs/monitor/incoming-email-monitor#tilgjengelige-filtertyper).
 
 ## Eksempler
 
@@ -164,6 +164,6 @@ En plassholder i anførselstegn er alene en ikke-tom streng, og den er alltid tr
 
 :::cards
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Bruk de samme plassholderne i titler og beskrivelser av hendelser.
-- [API-overvåking](/docs/monitor/api-monitor): Sjekk et HTTP-endepunkt og svaret fra det.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Vurder forespørsler som andre systemer sender deg.
+- [API-monitor](/docs/monitor/api-monitor): Sjekk et HTTP-endepunkt og svaret fra det.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Vurder forespørsler som andre systemer sender deg.
 :::

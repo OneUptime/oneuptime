@@ -11,6 +11,8 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
 
 export interface ComponentProps {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's own prop).
+  isTitleTranslated?: boolean | undefined;
   description: string | ReactElement;
   /*
    * Gives the dialog a way out: the footer's Cancel button, the header's X and
@@ -97,6 +99,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       isLoading={props.isLoading}
       onSubmit={props.onSubmit}
       onClose={props.onClose ? props.onClose : undefined}

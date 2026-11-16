@@ -32,7 +32,7 @@ Eine Gruppe von Personen in einem Projekt, deren Berechtigungen bestimmen, was i
 
 Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
-### Überwachung
+### Monitor
 
 Prüft eine Sache, die Sie betreiben, etwa eine Website, eine API, einen Server oder einen Kubernetes-Cluster, und entscheidet, ob sie funktioniert. Treffen die Kriterien des Monitors zu, ändert er seinen Status und kann einen Vorfall melden oder eine Warnung erstellen.
 
@@ -414,11 +414,11 @@ Ein kleiner Prozess, den Sie in Ihrer eigenen Infrastruktur betreiben und der di
 
 Auch genannt: **Runbook-Agents**. Siehe [Runbook-Agents](/docs/runbooks/agents).
 
-### Aufnahmeschlüssel
+### Ingestion-Schlüssel
 
 Der Schlüssel, mit dem etwas Telemetrie in Ihr Projekt senden darf: Anwendungen mit OpenTelemetry, Collectors und Agenten. Er gehört in den Header `x-oneuptime-token`, und ein API-Schlüssel des Projekts funktioniert an seiner Stelle nicht.
 
-Auch genannt: **Telemetrie-Aufnahmeschlüssel**, `oneuptime.apiKey`. Siehe [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys).
+Auch genannt: **Telemetrie-Ingestion-Schlüssel**, `oneuptime.apiKey`. Siehe [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys).
 
 ### API-Schlüssel
 

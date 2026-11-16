@@ -186,6 +186,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
     return (
       <Modal
         title={title}
+        isTitleTranslated={true}
         isBodyLoading={true}
         modalWidth={ModalWidth.Medium}
         onClose={props.onClose}
@@ -657,6 +658,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
   return (
     <BasicFormModal<JSONObject>
       title={title}
+      isTitleTranslated={true}
       // What arrives once it is connected, in the reader's words.
       description={definition.summary}
       name={

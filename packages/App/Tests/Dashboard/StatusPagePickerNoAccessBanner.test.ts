@@ -281,7 +281,7 @@ describe("the status page picker's access banner stays removed", () => {
         expect(text).not.toContain(removed);
       }
 
-      expect(text).not.toContain("Ask a project admin");
+      expect(text).not.toContain("Ask a Project Admin");
     }
   });
 

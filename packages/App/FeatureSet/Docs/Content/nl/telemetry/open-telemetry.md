@@ -50,9 +50,9 @@ flowchart TB
 
 1. Ga naar **Producten → Projectinstellingen**.
 2. Open in het zijmenu **Telemetrie & APM** en kies **Ingestiesleutels**.
-3. Klik op **Inname-sleutel aanmaken**. Het dialoogvenster vult een naam in en kiest het sleuteltype **Server**, waarmee een applicatie of een collector stuurt. Geef hem eventueel een andere naam en klik dan op **Inname-sleutel aanmaken**.
+3. Klik op **Ingestiesleutel aanmaken**. Het dialoogvenster vult een naam in en kiest het sleuteltype **Server**, waarmee een applicatie of een collector stuurt. Geef hem eventueel een andere naam en klik dan op **Ingestiesleutel aanmaken**.
 
-![De lijst "Ingestiesleutels", met "Inname-sleutel aanmaken" omcirkeld](screen:ingestion-keys)
+![De lijst "Ingestiesleutels", met "Ingestiesleutel aanmaken" omcirkeld](screen:ingestion-keys)
 
 De nieuwe sleutel opent op een eigen pagina. Kopieer de **Geheime sleutel** — dat is het token dat je als `x-oneuptime-token` stuurt.
 
@@ -410,7 +410,7 @@ De pagina van elke sleutel, onder **Projectinstellingen → Telemetrie & APM →
 | **Ingeschakeld** | Zet dit uit om met de sleutel gestuurde gegevens meteen niet meer te accepteren, zonder hem te verwijderen. |
 | **Verloopt om** | Na deze datum wordt de sleutel geweigerd. Leeg betekent dat hij nooit verloopt. |
 | **Requests Per Minute Limit** | Het maximale aantal OTLP/HTTP-verzoeken per minuut dat met de sleutel wordt geaccepteerd, over alle clients die hem gebruiken. Leeg betekent geen limiet bij een serversleutel, en 6.000 bij een browsersleutel. |
-| **Last Used At** | Wanneer voor het laatst gegevens met de sleutel zijn geaccepteerd. Gebruik dit om sleutels te vinden die je veilig kunt roteren of verwijderen. |
+| **Laatst gebruikt op** | Wanneer voor het laatst gegevens met de sleutel zijn geaccepteerd. Gebruik dit om sleutels te vinden die je veilig kunt roteren of verwijderen. |
 
 **Geheime sleutel opnieuw instellen** op de pagina van de sleutel vervangt het geheim. Elke applicatie en collector die met het oude stuurt, wordt geweigerd tot je hem bijwerkt. Voor browsersleutels, het veilig vervangen van een sleutel en wat elke weigering betekent, zie [Ingestiesleutels](/docs/telemetry/ingestion-keys).
 

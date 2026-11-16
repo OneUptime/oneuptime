@@ -26,6 +26,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { getJestSpyOn } from "../../Spy";
 
 type Spy = ReturnType<typeof getJestSpyOn>;
@@ -60,11 +61,18 @@ const PROJECT_ID: ObjectID = new ObjectID(
 
 const ROOT: DatabaseCommonInteractionProps = { isRoot: true };
 
-// An audit reader of the project: what the Dashboard reads the log as.
+/*
+ * An audit reader of the project: what the Dashboard reads the log as. Its
+ * project is on the Enterprise plan, which the audit log is read on, and
+ * says so, as the Dashboard's session does: with billing on (Common Test's
+ * config.env) a reader without a plan has it read from Postgres.
+ */
 const AUDIT_READER: DatabaseCommonInteractionProps = {
   userId: new ObjectID("75800000-0000-4000-8000-0000000000b2"),
   userType: UserType.User,
   tenantId: PROJECT_ID,
+  currentPlan: PlanType.Enterprise,
+  isSubscriptionUnpaid: false,
   userTenantAccessPermission: {
     [PROJECT_ID.toString()]: {
       projectId: PROJECT_ID,

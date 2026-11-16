@@ -151,7 +151,7 @@ Selecteer de **Sondes** die de database bereiken en een **Bewakingsinterval**, e
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hoe lang er op het opzetten van een verbinding wordt gewacht. |
 | **Statement Timeout (ms)** | `15000` | `60000` | De harde bovengrens voor hoe lang de query mag lopen. |
-| **Max Rows** | `100` | `1000` | De bovengrens van rijen die uit de database worden teruggelezen. |
+| **Max. rijen** | `100` | `1000` | De bovengrens van rijen die uit de database worden teruggelezen. |
 
 Een waarde boven het maximum wordt verlaagd tot het maximum.
 
@@ -231,7 +231,7 @@ Voeg criteria toe om te bepalen wanneer de monitor als online, verminderd of off
 | **SQL-queryfout** | De foutmelding van de query. Waarschuw als die (niet) leeg is, of overeenkomt met een bepaalde tekenreeks. |
 | **JavaScript-expressie** | Een eigen JavaScript-expressie evalueren over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` en `isOnline`. Zie [JavaScript-expressies](/docs/monitor/javascript-expression#sql-querymonitoren). |
 
-Numerieke drempels zijn gehele getallen: schrijf `10`, niet `10.5`. SQL Query-filters kunnen niet over een periode worden geëvalueerd; elke controle staat op zichzelf.
+Numerieke drempels zijn gehele getallen: schrijf `10`, niet `10.5`. SQL-query-filters kunnen niet over een periode worden geëvalueerd; elke controle staat op zichzelf.
 
 Een nieuwe SQL-query-monitor begint met twee criteria: **SQL is online** is onwaar (de monitor gaat offline en verklaart een incident dat zichzelf oplost) en **SQL is online** is waar, wat hem als online markeert. **Criteria toevoegen** voegt er een onderaan toe; sleep het boven het online-criterium, want criteria worden van boven af gecontroleerd en het eerste dat overeenkomt, beslist.
 

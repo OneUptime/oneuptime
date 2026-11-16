@@ -51,12 +51,12 @@ Jeder Dienst zeigt seinen Status, berechnet aus den Aufrufen, die er in den letz
 | Status | Wann |
 | --- | --- |
 | **Fehlerfrei** | Höchstens 1 % der empfangenen Aufrufe sind fehlgeschlagen. |
-| **Some errors** | Mehr als 1 % und weniger als 5 % sind fehlgeschlagen. |
-| **High error rate** | 5 % oder mehr sind fehlgeschlagen. |
-| **Entry point** | Er hat keine Aufrufe empfangen, aber selbst welche gemacht: ein Web-Frontend oder ein geplanter Job. |
-| **No calls observed** | Er hat weder Aufrufe gemacht noch empfangen. |
+| **Einige Fehler** | Mehr als 1 % und weniger als 5 % sind fehlgeschlagen. |
+| **Hohe Fehlerrate** | 5 % oder mehr sind fehlgeschlagen. |
+| **Einstiegspunkt** | Er hat keine Aufrufe empfangen, aber selbst welche gemacht: ein Web-Frontend oder ein geplanter Job. |
+| **Keine Aufrufe beobachtet** | Er hat weder Aufrufe gemacht noch empfangen. |
 
-Ein Dienst mit einem aktiven Vorfall oder einer aktiven Warnung zeigt stattdessen deren Anzahl, und wie ein Dienst mit **Some errors** oder einer **High error rate** zählt er als Dienst, der Aufmerksamkeit braucht.
+Ein Dienst mit einem aktiven Vorfall oder einer aktiven Warnung zeigt stattdessen deren Anzahl, und wie ein Dienst mit dem Status **Einige Fehler** oder **Hohe Fehlerrate** zählt er als Dienst, der Aufmerksamkeit braucht.
 
 :::steps
 ### Die Dienste finden, die Aufmerksamkeit brauchen
@@ -84,7 +84,7 @@ Klicken Sie auf einen Pfeil, um seine Anfragerate, Fehlerrate und durchschnittli
 
 ## Die eigene Karte einer Ressource öffnen
 
-Ein vCenter, ein Kubernetes-Cluster, ein Host, ein Docker- oder Podman-Host, ein Docker-Swarm-, Proxmox- oder Ceph-Cluster und ein Storage-Array haben jeweils eine eigene Seite **Topologie**. Sie zeichnet diese eine Ressource im Detail, aus ihrem eigenen Inventar: was worin liegt, jeden Teil gefärbt nach seinem Zustand, und jeden offenen Vorfall und Alarm an dem Teil, den er betrifft.
+Ein vCenter, ein Kubernetes-Cluster, ein Host, ein Docker- oder Podman-Host, ein Docker-Swarm-, Proxmox- oder Ceph-Cluster und ein Storage-Array haben jeweils eine eigene Seite **Topologie**. Sie zeichnet diese eine Ressource im Detail, aus ihrem eigenen Inventar: was worin liegt, jeden Teil gefärbt nach seinem Zustand, und jeden offenen Vorfall und Warnung an dem Teil, den er betrifft.
 
 - **Als Baum lesen.** Die Ressource steht oben, und die Teile jedes Teils stehen rechts daneben, mit ihm verbunden durch eine Linie, die rot oder orange wird, wo etwas Aufmerksamkeit erfordert. Teile mit einem Problem darin öffnen sich von selbst, die runde Schaltfläche an einem Teil öffnet oder schließt ihn, und die Pfeiltasten bewegen sich durch die Karte.
 - **Finden, was Aufmerksamkeit erfordert.** **Erfordert Aufmerksamkeit** behält nur die Teile mit Problemen und den Weg zu jedem, und die Suche findet einen Teil überall in der Ressource.

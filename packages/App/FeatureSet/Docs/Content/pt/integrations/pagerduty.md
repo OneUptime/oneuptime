@@ -16,9 +16,9 @@ Envie os incidentes do OneUptime para o [PagerDuty](https://www.pagerduty.com). 
 
 ```mermaid title="Dois workflows, um incidente no PagerDuty"
 flowchart TB
-    declared["Incidente declarado"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> create["Workflow 1:<br/>Ao criar: Incidente"]
     create -->|"trigger"| pd["Incidente no PagerDuty"]
-    resolved["Incidente resolvido"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incidente resolvido"] --> update["Workflow 2:<br/>Ao atualizar:<br/>Incidente"]
     update -->|"resolve"| pd
 ```
 
@@ -48,11 +48,11 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Ao criar: Incidente**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
 
 ### Enviar o evento de disparo
 
-Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://events.pagerduty.com/v2/enqueue` e o **Corpo da Requisição** como:
+Clique em **Adicionar componente**, adicione um bloco **Chamada de API POST (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://events.pagerduty.com/v2/enqueue` e o **Corpo da Requisição** como:
 
 ```json
 {
@@ -72,7 +72,7 @@ Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligu
 
 ### Testar e depois ativar
 
-Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **API Post (JSON)** mostra uma resposta `202` com `"status": "success"`, e o PagerDuty abre um incidente. Depois, ative **Habilitado** no topo do **Construtor**.
+Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **Chamada de API POST (JSON)** mostra uma resposta `202` com `"status": "success"`, e o PagerDuty abre um incidente. Depois, ative **Habilitado** no topo do **Construtor**.
 :::
 
 O bloco envia JSON, então não precisa de cabeçalho `Content-Type`. A `severity` do PagerDuty é uma entre `critical`, `error`, `warning` e `info`: para enviar a de cada incidente, veja [Mapear as gravidades](#mapear-as-gravidades).
@@ -82,9 +82,9 @@ O bloco envia JSON, então não precisa de cabeçalho `Content-Type`. A `severit
 Um workflow tem um só gatilho, então resolver exige um segundo workflow, iniciado quando o estado de um incidente muda.
 
 :::steps
-### Adicionar o gatilho On Update Incident
+### Adicionar o gatilho "Ao atualizar: Incidente"
 
-Crie um workflow chamado `Resolve PagerDuty incidents` e escolha **On Update Incident** como gatilho. Em **Fields to watch**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Fields to pass on**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
+Crie um workflow chamado `Resolve PagerDuty incidents` e escolha **Ao atualizar: Incidente** como gatilho. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Campos a repassar**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ Crie um workflow chamado `Resolve PagerDuty incidents` e escolha **On Update Inc
 
 ### Verificar que o incidente está resolvido
 
-Adicione um bloco **If / Else** depois do gatilho. Defina **Valor a verificar** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparação** como **é verdadeiro**.
+Adicione um bloco **Se / Senão** depois do gatilho. Defina **Valor a verificar** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparação** como **é verdadeiro**.
 
 ### Enviar o evento de resolução
 
-Adicione um bloco **API Post (JSON)** depois do lado **Sim**, com a mesma **URL** e este **Corpo da Requisição**:
+Adicione um bloco **Chamada de API POST (JSON)** depois do lado **Sim**, com a mesma **URL** e este **Corpo da Requisição**:
 
 ```json
 {
@@ -115,10 +115,10 @@ Verificar `isResolvedState` em vez do nome de um estado continua funcionando qua
 
 ## Mapear as gravidades
 
-Para enviar a gravidade de cada incidente, adicione um bloco **Run Custom JavaScript** entre o gatilho e o bloco **API Post (JSON)**, e leia a resposta dele no corpo.
+Para enviar a gravidade de cada incidente, adicione um bloco **Executar JavaScript personalizado** entre o gatilho e o bloco **Chamada de API POST (JSON)**, e leia a resposta dele no corpo.
 
-1. Em **Fields to pass on** do gatilho, clique em **Adicionar campo**, abra **Severidade do incidente** e escolha **Nome**.
-2. Defina os **Arguments** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **Código JavaScript** dele como:
+1. Em **Campos a repassar** do gatilho, clique em **Adicionar campo**, abra **Severidade do incidente** e escolha **Nome**.
+2. Defina os **Argumentos** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **Código JavaScript** dele como:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ Os nomes acima são as três gravidades com que um projeto novo começa. Use os 
 ## Solução de problemas
 
 :::details O PagerDuty responde 400
-O corpo da resposta diz o que o PagerDuty recusou, e a etapa **API Post (JSON)** da execução o mostra. Geralmente a routing key não é uma chave de integração Events API v2: copie-a de novo das **Integrations** do serviço. Um evento sem `summary`, `source` ou `severity` também é recusado.
+O corpo da resposta diz o que o PagerDuty recusou, e a etapa **Chamada de API POST (JSON)** da execução o mostra. Geralmente a routing key não é uma chave de integração Events API v2: copie-a de novo das **Integrations** do serviço. Um evento sem `summary`, `source` ou `severity` também é recusado.
 :::
 
 :::details O evento de resolução não fecha nada
@@ -146,7 +146,7 @@ Os dois eventos precisam levar exatamente a mesma `dedup_key`. Verifique se os d
 :::
 
 :::details O workflow nunca roda
-Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **Não** do bloco **If / Else** é uma atualização que não era uma resolução.
+Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **Não** do bloco **Se / Senão** é uma atualização que não era uma resolução.
 :::
 
 :::details O PagerDuty mostra uma referência em vez de um valor

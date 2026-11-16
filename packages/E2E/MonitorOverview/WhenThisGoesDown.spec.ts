@@ -359,8 +359,9 @@ test.describe("When this goes down", () => {
   }) => {
     const card: Locator = await open(page);
 
+    // The role named as the role picker draws it (#8520).
     await expect(card.getByTestId("who-is-told-summary")).toHaveText(
-      "OneUptime marks it Offline and opens a Critical incident. It emails the project's owners (Ana Lopez). It pages Ana Lopez and Ben Ito through Primary On-Call.",
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the Project Owners (Ana Lopez). It pages Ana Lopez and Ben Ito through Primary On-Call.",
     );
     await expect(card.getByTestId("who-is-told-no-breaks")).toBeVisible();
     await shoot(card, "1440");
@@ -487,7 +488,7 @@ test.describe("When this goes down", () => {
     const card: Locator = await open(page, { whoIsTold: "rules" });
 
     await expect(card.getByTestId("who-is-told-summary")).toHaveText(
-      "OneUptime marks it Offline and opens a Critical incident. It emails the owners added by owner rules (Ben Ito and Checkout SRE). It pages Ana Lopez and Ben Ito through Primary On-Call.",
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the owners added by owner rules (Ben Ito and Checkout SRE). It pages Ana Lopez and Ben Ito through Primary On-Call.",
     );
     await card.getByTestId("who-is-told-chain-toggle").click();
 
@@ -558,7 +559,7 @@ test.describe("When this goes down", () => {
 
     card = await open(page, { whoIsTold: "nobody", lang: "de" });
     await expect(card.getByTestId("who-is-told-summary")).toContainText(
-      "OneUptime setzt den Status auf Offline und öffnet einen Vorfall mit Schweregrad Critical.",
+      "OneUptime setzt den Status auf Offline und öffnet einen Vorfall (Critical).",
     );
     await expect(card.getByTestId("who-is-told-break")).toContainText(
       "Niemand wird alarmiert: Keine Bereitschaftsregel passt zu Vorfällen dieser Überwachung.",
@@ -781,7 +782,7 @@ test.describe("When this goes down", () => {
     await card.getByRole("button", { name: "Try again" }).click();
 
     await expect(card.getByTestId("who-is-told-summary")).toContainText(
-      "OneUptime marks it Offline and opens a Critical incident.",
+      "OneUptime marks it Offline and opens an incident (Critical).",
     );
     await expect(card.getByTestId("who-is-told-error")).toHaveCount(0);
     await expect(card.getByTestId("who-is-told-try-again")).toHaveCount(0);
@@ -891,7 +892,7 @@ test.describe("When this goes down", () => {
 
     await card.getByRole("button", { name: "Try again" }).click();
     await expect(card.getByTestId("who-is-told-summary")).toContainText(
-      "OneUptime marks it Offline and opens a Critical incident.",
+      "OneUptime marks it Offline and opens an incident (Critical).",
     );
 
     // In Persian on a phone: the sentence in its words, the reference in code.

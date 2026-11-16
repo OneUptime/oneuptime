@@ -30,7 +30,7 @@ flowchart TB
 - **Monitorer med overvågning slået fra tæller ikke.** Intet tjekker en monitor, hvis overvågning er slået fra, så dens status er kun det, dens sidste kontrol så. Gruppen udelader den af sin status: en monitor, der stod på **Offline**, da dens overvågning blev slået fra, gør ikke gruppen **Offline**. Gruppens oppetid og **Oppetidgraf** beholder monitorens historik, indtil dens overvågning blev slået fra, og udelader tiden derefter, både på dashboardet og på statussider. Slås den til igen, tæller monitoren med fra det øjeblik.
 - **En tom gruppe er driftsklar.** En gruppe uden monitorer, eller kun med arkiverede, viser din driftsklare status. Indtil du tilføjer en monitor, viser dashboardet **Ingen monitorer endnu** i stedet for gruppens status.
 - **Overvågning slået fra viser Deaktiveret.** Når overvågning er slået fra for alle monitorer i en gruppe, tjekker intet dem, så dashboardet viser **Deaktiveret** i stedet for gruppens status, og dens **Oppetidgraf** og oppetid slutter, hvor overvågningen blev slået fra for den sidste af dem. En statusside viser gruppen som **Ikke overvåget**.
-- **Rækkefølgen er din.** Hvilken status der er den værste, følger rækkefølgen under **Overvågninger → Indstillinger → Monitorstatus**. Se [Monitorstatusser](/docs/monitor/criteria-and-statuses#monitorstatusser).
+- **Rækkefølgen er din.** Hvilken status der er den værste, følger rækkefølgen under **Monitorer → Indstillinger → Monitorstatus**. Se [Monitorstatusser](/docs/monitor/criteria-and-statuses#monitorstatusser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside, der rummer rækker. En monitorgruppe er én række, der står for flere monitorer, og enhver statusside kan vise den.
 
@@ -59,7 +59,7 @@ Slår du kontakten fra igen, skjules **Monitorgrupper** i menuen. Ingen gruppe s
 :::steps
 ### Åbn Monitorgrupper
 
-Gå til **Overvågninger → Monitorgrupper**. Kortet **Monitorgrupper** viser hver gruppe med dens **Aktuel status**, etiketter og ejere.
+Gå til **Monitorer → Monitorgrupper**. Kortet **Monitorgrupper** viser hver gruppe med dens **Aktuel status**, etiketter og ejere.
 
 ### Opret gruppen
 
@@ -74,7 +74,7 @@ Klik på **Opret Monitorgruppe**, indtast et **Navn** og, hvis du vil, en **Besk
 Klik på **Oversigt**. **Aktuel status** viser gruppens status lige nu, og **Oppetidgraf** viser dens seneste 90 dage, én søjle pr. dag.
 :::
 
-For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række under **Overvågninger i gruppe**. Selve monitoren ændres ikke. En monitor kan høre til mere end én gruppe.
+For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række under **Monitorer i gruppe**. Selve monitoren ændres ikke. En monitor kan høre til mere end én gruppe.
 
 ## En gruppes sider
 
@@ -82,8 +82,8 @@ For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række unde
 
 | Side | Hvad den viser |
 | --- | --- |
-| **Oversigt** | **Detaljer om overvågningsgruppe**, **Aktuel status**, **Overvågning** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Tilføj monitorer** i stedet for grafen. |
-| **Monitorer** | **Overvågninger i gruppe**, med **Tilføj monitorer** og **Fjern**. |
+| **Oversigt** | **Detaljer om monitorgruppe**, **Aktuel status**, **Overvågning** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Tilføj monitorer** i stedet for grafen. |
+| **Monitorer** | **Monitorer i gruppe**, med **Tilføj monitorer** og **Fjern**. |
 | **Hændelser** | Hændelserne på enhver monitor i gruppen. |
 | **Advarsler** | Advarslerne på enhver monitor i gruppen. |
 | **Ejere** | De personer og teams, der er ansvarlige for gruppen. Den ligger under **Avanceret**, som starter foldet sammen. |

@@ -139,7 +139,7 @@ describe("SloWidgetFormat", () => {
 
     it("does not round a sub-minute remainder down to a misleading 0 min", () => {
       expect(formatErrorBudgetRemainingSeconds(20)).toBe(
-        "under 1 min remaining",
+        "under 1\u00A0min remaining",
       );
     });
 
@@ -156,7 +156,7 @@ describe("SloWidgetFormat", () => {
 
     it("handles a sub-minute overage without a bare 0", () => {
       expect(formatErrorBudgetRemainingSeconds(-20)).toBe(
-        "under 1 min over budget",
+        "under 1\u00A0min over budget",
       );
     });
 
@@ -864,5 +864,23 @@ describe("a request SLO's budget line", () => {
 
     expect(tile.value).toBe("68%");
     expect(tile.subline).toBeNull();
+  });
+});
+
+// A Metric SLO's events are whatever its metric counts (#8445).
+describe("a Metric SLO's budget line", () => {
+  test.each([
+    [120, "120 bad events remaining"],
+    [1, "1 bad event remaining"],
+    [0, "0 bad events remaining"],
+    [-50, "50 bad events over budget"],
+    [-1, "1 bad event over budget"],
+  ])("%s left reads %s", (remaining: number, expected: string) => {
+    expect(
+      formatErrorBudgetRemainingRequests({
+        sliType: SliType.Metric,
+        remainingEvents: remaining,
+      }),
+    ).toBe(expected);
   });
 });

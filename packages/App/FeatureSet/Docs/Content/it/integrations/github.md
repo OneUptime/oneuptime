@@ -1,6 +1,6 @@
 # GitHub
 
-OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi repository tramite la GitHub App di OneUptime, e l'AI di OneUptime apre pull request che correggono ciò che trova, e risponde quando la menzioni in una issue o in una pull request. Oppure costruisci un flusso di lavoro che apre una issue GitHub per ogni incidente, così il lavoro che ne segue viene tracciato nel repository a cui appartiene il servizio.
+OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi repository tramite la GitHub App di OneUptime, e l'IA di OneUptime apre pull request che correggono ciò che trova, e risponde quando la menzioni in una issue o in una pull request. Oppure costruisci un flusso di lavoro che apre una issue GitHub per ogni incidente, così il lavoro che ne segue viene tracciato nel repository a cui appartiene il servizio.
 
 :::cards
 - [Scegliere come collegarsi](#scegliere-come-collegarsi): La GitHub App o un flusso di lavoro, e cosa fa ciascuno.
@@ -15,7 +15,7 @@ OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi re
 flowchart TB
     app["La GitHub App"] --> repos["I tuoi repository,<br/>importati"]
     repos --> pr["Pull request di<br/>correzione<br/>dall'AI di OneUptime"]
-    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>Alla creazione:<br/>Incidente"]
     workflow -->|"POST issues"| issue["Issue GitHub"]
 ```
 
@@ -25,7 +25,7 @@ I due sono indipendenti, e puoi usarne uno o entrambi. La GitHub App lavora nei 
 
 | Modo | Cosa fa | Di cosa ha bisogno |
 | --- | --- | --- |
-| La GitHub App | Importa i tuoi repository. L'AI di OneUptime vi apre pull request che correggono eccezioni, trace lente e le cause trovate dalle sue indagini, e risponde alle menzioni in issue e pull request. | Un'organizzazione o un account su cui installare l'app. Su OneUptime Cloud, il piano **Growth**. |
+| La GitHub App | Importa i tuoi repository. L'IA di OneUptime vi apre pull request che correggono eccezioni, trace lente e le cause trovate dalle sue indagini, e risponde alle menzioni in issue e pull request. | Un'organizzazione o un account su cui installare l'app. Su OneUptime Cloud, il piano **Growth**. |
 | Un flusso di lavoro | Apre una issue GitHub per ogni incidente, nel repository che scegli. | Un token GitHub che possa creare issue, e un flusso di lavoro di due blocchi. |
 
 ## Collegare i tuoi repository
@@ -62,11 +62,11 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione** e **Incident Number With Prefix**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione** e **Incident Number With Prefix**.
 
 ### Aprire la issue
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://api.github.com/repos/your-org/your-repo/issues`, con il proprietario e il nome del tuo repository. In **Altri campi**, imposta le sue **Intestazioni della richiesta** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **Chiamata API POST (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://api.github.com/repos/your-org/your-repo/issues`, con il proprietario e il nome del tuo repository. In **Altri campi**, imposta le sue **Intestazioni della richiesta** su:
 
 ```json
 {
@@ -88,7 +88,7 @@ E il suo **Corpo della Richiesta** su:
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passo **API Post (JSON)** mostra una risposta `201` con la nuova issue, con il suo `number` e il suo `html_url`. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passo **Chiamata API POST (JSON)** mostra una risposta `201` con la nuova issue, con il suo `number` e il suo `html_url`. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 La issue resta aperta quando l'incidente viene risolto, perché il lavoro che ne segue di solito dura più dell'incidente. Per ticket allineati all'incidente in entrambe le direzioni, vedi [Jira](/docs/integrations/jira).
@@ -97,11 +97,11 @@ La issue resta aperta quando l'incidente viene risolto, perché il lavoro che ne
 
 - **GitHub Enterprise Server.** Invia invece la richiesta al tuo server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Un server su un indirizzo di rete privato ha bisogno di un OneUptime self-hosted il cui amministratore lo consenta: vedi [Accesso alla rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
 - **Assegnala.** Aggiungi `"assignees": ["octocat"]` o `"milestone": 3` al corpo. GitHub scarta senza dire nulla etichette, assegnatari e milestone quando il token non può fare push nel repository.
-- **Solo alcuni incidenti.** Metti un blocco **If / Else** tra il trigger e il blocco API, e apri issue solo sul suo lato **Sì**, per esempio per una gravità.
+- **Solo alcuni incidenti.** Metti un blocco **Se / Altrimenti** tra il trigger e il blocco API, e apri issue solo sul suo lato **Sì**, per esempio per una gravità.
 
 ## Risoluzione dei problemi
 
-Il passo **API Post (JSON)** prende **Errore** quando GitHub rifiuta la richiesta. I suoi **Response Status** e **Corpo della Risposta** nell'esecuzione dicono perché.
+Il passo **Chiamata API POST (JSON)** prende **Errore** quando GitHub rifiuta la richiesta. I suoi **Stato della risposta** e **Corpo della Risposta** nell'esecuzione dicono perché.
 
 :::details GitHub risponde 401
 Il token è sbagliato, scaduto o revocato. Creane uno nuovo e sostituisci il contenuto di `GITHUB_TOKEN`.
@@ -123,7 +123,7 @@ Il proprietario o il repository nell'**URL** è sbagliato, oppure il token non p
 ## Prossimi passi
 
 :::cards
-- [GitHub App](/docs/ai/github-app): Chiedi all'AI di OneUptime una modifica, una revisione o una review direttamente da GitHub.
+- [GitHub App](/docs/ai/github-app): Chiedi all'IA di OneUptime una modifica, una revisione o una review direttamente da GitHub.
 - [GitLab](/docs/integrations/gitlab): Lo stesso flusso di lavoro, per le issue GitLab.
 - [Componenti del flusso di lavoro](/docs/workflows/components#api): Ogni impostazione dei blocchi API.
 - [Panoramica delle integrazioni](/docs/integrations/index): Gli schemi dietro ogni integrazione.

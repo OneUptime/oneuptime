@@ -11,6 +11,7 @@ import {
   translationKey,
   Translator,
 } from "../Types/Translator";
+import { withDurationWordsHeld } from "../Types/NoBreakSpaces";
 
 /*
  * A cron schedule in words, in a reader's language: "Alle 5 Minuten", "Jede
@@ -33,7 +34,9 @@ import {
  * which is cron's own terms rather than a sentence.
  *
  * Without a translator, and in English, this is getHumanReadableDescription
- * word for word. Null when the expression cannot be parsed.
+ * word for word, each figure held to the duration's word after it ("Every
+ * 5 minutes", #8695), as CronTab holds it. Null when the expression cannot
+ * be parsed.
  */
 
 // 1 January 2023 was a Sunday: weekday 0.
@@ -474,9 +477,15 @@ export const describeCronSchedule: (
     return english;
   }
 
-  return describeShape({
-    shape: shape,
-    english: english,
-    translator: translator,
-  });
+  /*
+   * The English sentence a template writes keeps its plain spaces: hold its
+   * figures as CronTab's English does. A language's own words are its own.
+   */
+  return withDurationWordsHeld(
+    describeShape({
+      shape: shape,
+      english: english,
+      translator: translator,
+    }),
+  );
 };

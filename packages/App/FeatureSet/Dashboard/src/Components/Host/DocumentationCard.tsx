@@ -10,6 +10,7 @@ import {
   getHostSetupGuide,
   resolveHostInstallMethod,
 } from "../../Pages/Host/Utils/DocumentationMarkdown";
+import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Host/Utils/DocumentationTranslations";
 
 export interface ComponentProps {
   title: string;
@@ -37,6 +38,7 @@ const HostDocumentationCard: FunctionComponent<ComponentProps> = (
           method: resolveHostInstallMethod(context.option),
         });
       }}
+      translations={HOST_DOCUMENTATION_TRANSLATIONS}
     />
   );
 };

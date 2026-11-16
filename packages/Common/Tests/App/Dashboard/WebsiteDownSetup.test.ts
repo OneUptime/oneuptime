@@ -1293,10 +1293,10 @@ describe("who is told, said only when it is true (#7409)", () => {
       "You are emailed as the monitor's owner.",
     );
     expect(line(WhoIsToldMode.OwnerEmailOnly, false)).toBe(
-      "The project's owners are emailed about incidents nobody owns.",
+      "Project Owners are emailed about incidents nobody owns.",
     );
     expect(line(WhoIsToldMode.OwnerEmailOnly, null)).toBe(
-      "The project's owners are emailed about incidents nobody owns.",
+      "Project Owners are emailed about incidents nobody owns.",
     );
     for (const isMonitorOwner of [true, false, null]) {
       expect(line(WhoIsToldMode.ExistingPolicy, isMonitorOwner)).toBe(
@@ -1323,7 +1323,7 @@ describe("a payment method, said before Start checking (#7367)", () => {
     expect(
       getPaymentNeededText({ translator: english, mayAddPaymentMethod: false }),
     ).toBe(
-      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Ask a project owner to add a payment method before you start checking.",
+      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Ask a Project Owner to add a payment method before you start checking.",
     );
   });
 
@@ -1751,7 +1751,7 @@ describe("the summary, read from the records", () => {
         ),
         "who_is_told",
       ),
-    ).toBe("The project's owners are emailed about incidents nobody owns.");
+    ).toBe("Project Owners are emailed about incidents nobody owns.");
   });
 
   test.each([

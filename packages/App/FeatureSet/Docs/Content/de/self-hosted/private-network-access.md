@@ -4,7 +4,7 @@ OneUptime verweigert bestimmte ausgehende Anfragen an Hosts, die in einen privat
 
 > Webhook URL resolves to a private, loopback, or link-local address and is not allowed
 
-Für das gehostete Produkt ist diese Voreinstellung richtig: Dort kann sich jeder registrieren, und ein Webhook-Ziel ist nicht vertrauenswürdige Eingabe. Auf einer selbst gehosteten Instanz steht sie etwas Alltäglichem im Weg: einen Alarm an ein selbst gehostetes Mattermost, Jira oder Ticketsystem zu senden, das nur in Ihrem eigenen Netzwerk existiert.
+Für das gehostete Produkt ist diese Voreinstellung richtig: Dort kann sich jeder registrieren, und ein Webhook-Ziel ist nicht vertrauenswürdige Eingabe. Auf einer selbst gehosteten Instanz steht sie etwas Alltäglichem im Weg: eine Warnung an ein selbst gehostetes Mattermost, Jira oder Ticketsystem zu senden, das nur in Ihrem eigenen Netzwerk existiert.
 
 Diese Seite erklärt, wie Sie das bewusst und eng begrenzt erlauben. Drei Schalter entscheiden darüber, jeder für seine eigene Art von Verbindung, und sie werden auf verschiedenen Maschinen konfiguriert:
 
@@ -12,7 +12,7 @@ Diese Seite erklärt, wie Sie das bewusst und eng begrenzt erlauben. Drei Schalt
 | --- | --- | --- |
 | Workflows, Projekt-Webhooks, Benutzer-Webhooks der Bereitschaft | Die Umgebung des **API-Servers** | Private Adressen verweigert |
 | Datenquellen, LLM-Anbieter, SMTP-Server, OIDC-Discovery und andere Verbindungen | Die Umgebung des **API-Servers** | Private Adressen erlaubt |
-| **Monitore** vom Typ API, Website, External Status Page und Custom JavaScript Code | Die eigene Umgebung der **Sonde** | Private Adressen verweigert |
+| **Monitore** vom Typ API, Website, Externe Statusseite und Benutzerdefinierter JavaScript-Code | Die eigene Umgebung der **Sonde** | Private Adressen verweigert |
 
 ```mermaid title="Drei Schalter, jeder für seine eigene Art von Verbindung"
 flowchart LR
@@ -30,7 +30,7 @@ flowchart LR
     Monitors -->|"standardmäßig aus"| Private
 ```
 
-Netzwerknahe Monitortypen wie Ping, Port, SSL-Zertifikat, DNS, DNSSEC, SNMP / Netzwerkgerät, SQL-Abfrage, Datenbankzustand, Synthetic und Network Path nutzen ihre eigenen Transporte. Die Einstellung auf dieser Seite regelt die HTTP-Transporte, die beliebige Antwortinhalte an ein Projekt zurückgeben: Monitore vom Typ API, Website, External Status Page und Custom JavaScript Code.
+Netzwerknahe Monitortypen wie Ping, Port, SSL-Zertifikat, DNS, DNSSEC, SNMP / Netzwerkgerät, SQL-Abfrage, Datenbankzustand, Synthetic und Network Path nutzen ihre eigenen Transporte. Die Einstellung auf dieser Seite regelt die HTTP-Transporte, die beliebige Antwortinhalte an ein Projekt zurückgeben: Monitore vom Typ API, Website, Externe Statusseite und Benutzerdefinierter JavaScript-Code.
 
 :::cards
 - [Webhooks und Workflows](#webhooks-und-workflows): Einem Webhook erlauben, in Ihr Netzwerk zu senden.
@@ -59,7 +59,7 @@ Diese Ziele sind abgedeckt, weil das Ziel eine URL ist, die ein authentifizierte
 - **API**-Komponenten in Workflows (GET / POST / PUT / PATCH / DELETE)
 - Die **Mattermost**-Komponente in Workflows
 - HTTP-Anfragen der Workflow-Komponente **Custom JavaScript**
-- Projekt-Webhook-Benachrichtigungen (Incidents, Alarme, Monitore, Bereitschaft, geplante Wartung, Statusseiten-Ereignisse)
+- Projekt-Webhook-Benachrichtigungen (Incidents, Warnungen, Monitore, Bereitschaft, geplante Wartung, Statusseiten-Ereignisse)
 - **Benutzer-Webhooks** der Bereitschaft
 - Webhook-Abonnenten von Statusseiten, die Ihr Team im Dashboard, mit einem API-Schlüssel oder per Workflow hinzufügt
 
@@ -144,7 +144,7 @@ Ist sie an, wird ein abgelehnter Hostname gemeldet, ohne zu sagen, wozu er aufge
 
 ## Sonden und Monitore
 
-Vier Monitortypen sind betroffen: **API**, **Website**, **Externe Statusseite** und **Benutzerdefinierter JavaScript-Code**. Auf einer Standard-Sonde können sie öffentliche HTTP(S)-Ziele erreichen, verweigern aber privaten Adressraum. Monitore vom Typ API, Website und External Status Page validieren DNS-Ergebnisse für jede Verbindung, legen sie fest und prüfen jede Weiterleitung erneut; Custom JavaScript Code wendet dieselbe Adressrichtlinie in seiner Sandbox-Brücke an.
+Vier Monitortypen sind betroffen: **API**, **Website**, **Externe Statusseite** und **Benutzerdefinierter JavaScript-Code**. Auf einer Standard-Sonde können sie öffentliche HTTP(S)-Ziele erreichen, verweigern aber privaten Adressraum. Monitore vom Typ API, Website und Externe Statusseite validieren DNS-Ergebnisse für jede Verbindung, legen sie fest und prüfen jede Weiterleitung erneut; Benutzerdefinierter JavaScript-Code wendet dieselbe Adressrichtlinie in seiner Sandbox-Brücke an.
 
 Den Schalter liest der **Sondenprozess aus seiner eigenen Umgebung**, nicht aus der des API-Servers, und jede Sonde liest ihn: die mit Docker Compose mitgelieferten, die vom Helm-Chart bereitgestellten und jede [eigene Sonde](/docs/probe/custom-probe), die Sie selbst betreiben. Wer eine Sonde bereitstellt, kontrolliert ihre Umgebung und weiß, welches Netzwerk diese Sonde sehen kann – eine eigene Sonde ist meist eine andere Maschine, oft von einer anderen Person betrieben, und sie liest nie die Konfiguration des API-Servers.
 
@@ -187,7 +187,7 @@ Führen Sie den Workflow oder Monitor erneut aus. Wird er weiterhin abgelehnt, n
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – eine private (eigene) Sonde hat den Monitor ausgeführt, und ihr Schalter ist aus. Beachten Sie, dass er auf der Sonde gesetzt wird, nicht auf dem API-Server.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – eine mitgelieferte (globale) Sonde hat den Monitor ausgeführt, und ihr Schalter ist aus. Schalten Sie ihn wie oben beschrieben für diese Sonde ein, wenn jedes Projekt auf der Instanz dieses Netzwerk erreichen darf; andernfalls wählen Sie für den Monitor eine private Sonde.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – eine globale Sonde mit `BILLING_ENABLED=true` in ihrer Umgebung hat den Monitor ausgeführt. Automatisch registrierte globale Sonden bleiben dort rein öffentlich, egal was ihr Schalter sagt; stellen Sie eine private Sonde im Netzwerk des Ziels bereit und wählen Sie sie für den Monitor.
-- _"Monitor target host ... could not be reached."_ – ein Monitor vom Typ API, Website oder External Status Page, dessen Ziel ein **Hostname** ist, meldet dies sowohl, wenn der Name zu einer abgelehnten Adresse aufgelöst wird, als auch, wenn DNS fehlschlägt, sodass sich mit einem Monitor nicht ermitteln lässt, welche internen Namen es gibt. Die zugehörigen Fehlerdetails nennen in beiden Fällen `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`; sie sagen nicht, welcher Fall vorlag. Zeigt der Name auf eine private Adresse, prüfen Sie im Start-Log der Sonde deren Richtlinie für private Netzwerke; ist sie aus, ist die Lösung dieselbe wie bei den Meldungen oben. Mit `LOG_LEVEL=DEBUG` protokolliert die Sonde außerdem den genauen Grund für jeden abgelehnten Namen.
+- _"Monitor target host ... could not be reached."_ – ein Monitor vom Typ API, Website oder Externe Statusseite, dessen Ziel ein **Hostname** ist, meldet dies sowohl, wenn der Name zu einer abgelehnten Adresse aufgelöst wird, als auch, wenn DNS fehlschlägt, sodass sich mit einem Monitor nicht ermitteln lässt, welche internen Namen es gibt. Die zugehörigen Fehlerdetails nennen in beiden Fällen `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`; sie sagen nicht, welcher Fall vorlag. Zeigt der Name auf eine private Adresse, prüfen Sie im Start-Log der Sonde deren Richtlinie für private Netzwerke; ist sie aus, ist die Lösung dieselbe wie bei den Meldungen oben. Mit `LOG_LEVEL=DEBUG` protokolliert die Sonde außerdem den genauen Grund für jeden abgelehnten Namen.
 - _"Request URL could not be reached."_ – dieselbe Regel für einen Monitor vom Typ **Benutzerdefinierter JavaScript-Code**: Ein Skript, das einen **Hostnamen** anfragt, erhält dies sowohl, wenn der Name zu einer abgelehnten Adresse aufgelöst wird, als auch, wenn DNS fehlschlägt. Mit `LOG_LEVEL=DEBUG` protokolliert die Sonde den genauen Grund.
 - _"Webhook URL could not be reached."_ oder, aus einem Workflow, _"Request URL could not be reached."_ – die Instanz läuft mit `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (oder `BILLING_ENABLED=true`), sodass ein abgelehnter **Hostname** nicht erklärt wird: Er wurde entweder zu einer abgelehnten Adresse aufgelöst oder gar nicht. Mit `LOG_LEVEL=DEBUG` protokolliert die App oder der Worker, welcher Fall es war, und die Adresse.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ – das Ziel liegt in der verbotenen Stufe. Für einen Webhook nennen Sie den genauen Host oder CIDR in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`, wenn Sie ihn wirklich brauchen. Für einen Monitor gibt es keine Ausnahme.
@@ -201,6 +201,8 @@ Dies zu öffnen ändert tatsächlich, was Ihre OneUptime-Instanz erreichen kann;
 - **Wer einen Workflow oder einen Monitor vom Typ API, Website, External Status Page oder Custom JavaScript Code erstellen oder einer Statusseite einen Abonnenten hinzufügen kann, erreicht alles, was Sie erlaubt haben.** Behandeln Sie die Mitgliedschaft in diesen Projekten entsprechend.
 - **Der Antworttext kommt zurück.** Eine API-Komponente in einem Workflow gibt Status, Header und Body in das Workflow-Log zurück; ein erlaubter Host ist also lesbar, nicht nur beschreibbar.
 - **Weiterleitungen werden bei Webhook-Anfragen nie befolgt**, sodass ein erlaubter öffentlicher Host den Server nicht mit einem zweiten Sprung auf einen internen weiterleiten kann.
+- **OneUptime verbindet sich mit der Adresse, die es geprüft hat.** Der Hostname eines Webhooks wird einmal aufgelöst, wenn seine URL geprüft wird, und die Anfrage geht an eine Adresse, die diese Auflösung freigegeben hat; ein Name, der einen Moment später anders antwortet (DNS-Rebinding), bekommt die Verbindung also nie. TLS prüft das Zertifikat weiterhin gegen den Namen in der URL.
+- **Über einen ausgehenden Proxy verbindet sich der Proxy.** Sendet der API-Server über einen Proxy aus `HTTPS_PROXY`, `HTTP_PROXY` oder `ALL_PROXY` (außer für die Hosts in `NO_PROXY`), gehen Webhooks weiterhin über ihn: OneUptime prüft die Adresse trotzdem zuerst und folgt nie einer Weiterleitung, aber der Proxy löst den Namen auf und baut die Verbindung auf. Sperren Sie private und Link-Local-Ziele auf dem Proxy selbst, vor allem `169.254.169.254`.
 - **Begrenzen Sie wo möglich pro Sonde statt instanzweit.** Eine in einem Netzwerk bereitgestellte Sonde ist eine engere Freigabe, als den ausgehenden Verkehr des API-Servers zu öffnen.
 
 ## Nächste Schritte

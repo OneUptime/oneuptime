@@ -493,7 +493,7 @@ describe("SharedCalendarFeedCard below the plan", () => {
     currentPlanForTest = null;
   });
 
-  test("Publish is replaced by the upgrade notice, even for a project admin", async () => {
+  test("Publish is replaced by the upgrade notice, even for a Project Admin", async () => {
     getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
 
     render(

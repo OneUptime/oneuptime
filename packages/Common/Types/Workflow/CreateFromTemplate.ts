@@ -1,4 +1,5 @@
 import Dictionary from "../Dictionary";
+import { translationKey } from "../Translator";
 import { Argument, ComponentInputType } from "./Component";
 
 /*
@@ -40,12 +41,13 @@ const SETTINGS: Dictionary<CreateFromTemplateSetting> = {
   Incident: {
     argument: {
       id: INCIDENT_TEMPLATE_ARGUMENT_ID,
-      name: "Incident Template",
+      name: translationKey("Incident Template"),
       type: ComponentInputType.IncidentTemplateSelect,
       required: false,
-      description:
+      description: translationKey(
         "Declare the incident from one of this project's incident templates. The template fills in what JSON Object leaves out: the title, description, severity, initial state, monitors and other resources, on-call policies, labels, status pages, custom fields and owners. Anything you set in JSON Object wins over the template's.",
-      placeholder: "Select an incident template",
+      ),
+      placeholder: translationKey("Select an incident template"),
     },
     templateColumn: "createdIncidentTemplateId",
   },

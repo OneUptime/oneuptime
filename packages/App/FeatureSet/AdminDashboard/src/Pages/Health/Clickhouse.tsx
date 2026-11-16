@@ -7,6 +7,7 @@ import ClickhouseCapacitySettings from "./ClickhouseCapacitySettings";
 import EnterpriseHealthUpgrade from "./EnterpriseHealthUpgrade";
 import HealthPage from "./HealthPage";
 import Route from "Common/Types/API/Route";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -34,8 +35,10 @@ const HealthClickhouse: FunctionComponent = (): ReactElement => {
         renderUpsell={(): ReactElement => {
           return (
             <EnterpriseHealthUpgrade
-              featureName="ClickHouse cluster health"
-              featureDescription="Shard reachability, the distributed-DDL queue, replica and replication-queue state and the Keeper connection for the ClickHouse backing this instance."
+              featureName={translationKey("ClickHouse cluster health")}
+              featureDescription={translationKey(
+                "Shard reachability, the distributed-DDL queue, replica and replication-queue state and the Keeper connection for the ClickHouse backing this instance.",
+              )}
               showEveryEditionNote={false}
             />
           );

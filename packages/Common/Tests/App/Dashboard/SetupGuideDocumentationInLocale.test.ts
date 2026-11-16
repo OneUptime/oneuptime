@@ -19,6 +19,7 @@ import {
   translateSetupGuidePiece,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideTranslation";
 import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "../../../Types/Dashboard/DashboardLanguage";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   DASHBOARD_LANGUAGES,
   isWordedInDashboardLocale,
@@ -28,6 +29,10 @@ import {
   SETUP_GUIDE_DOCUMENTATION_PRODUCTS,
   SetupGuideDocumentationProduct,
 } from "../../Helpers/SetupGuideDocumentationProducts";
+import {
+  ONE_WORD_RULES,
+  SentenceRule,
+} from "../../Helpers/OneWordPerThingRules";
 import { SetupGuideWay } from "../../Helpers/SetupGuideWays";
 
 /*
@@ -55,11 +60,66 @@ const CODE_SPAN: RegExp = /`[^`\n]+`/g;
 
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 
+/*
+ * A run in single asterisks: a guide writes another product's own menus
+ * that way, as that product draws them (vSphere's *Configure → System →
+ * Advanced System Settings*), so an "Advanced" there is not this guide's
+ * section.
+ */
+const ITALIC_SPAN: RegExp = /(?<![*\w])\*(?!\*)[^*\n]+?(?<!\*)\*(?![*\w])/g;
+
 // A letter of the Arabic script: Arabic's and Persian's words.
 const ARABIC_SCRIPT: RegExp = /\p{Script=Arabic}/u;
 
 // A half-width ? or ! right after a Chinese or Japanese character.
 const HALF_WIDTH_AFTER_CJK: RegExp = /[\u3040-\u30ff\u3400-\u9fff][?!]/u;
+
+// A bold mark, and what CommonMark reads beside one: space and punctuation.
+const BOLD_MARK: RegExp = /\*\*/g;
+
+const MARKDOWN_SPACE: RegExp = /\s/u;
+
+const MARKDOWN_PUNCTUATION: RegExp = /[\p{P}\p{S}]/u;
+
+/*
+ * What a piece quotes rather than says: code, a link (its text is the title
+ * of the page it opens), a quote, an address and a placeholder - as the
+ * docs check reads a docs line (OneWordInSentencesPerThing). Its bold runs
+ * are its words: a Dashboard word among them is held to the locale below.
+ */
+const QUOTED: RegExp =
+  /`[^`]*`|\[[^\]]*\]\([^)]*\)|«[^»]*»|“[^”]*”|„[^“”]*[“”]|「[^」]*」|『[^』]*』|"[^"]*"|https?:\/\/\S+|\{\{[^}]*\}\}/g;
+
+/*
+ * The rules of `language` a piece breaks: its English names the thing (in
+ * its words, not its code) and its words still say the word the language
+ * dropped for it. A bold run that is the locale's word for something the
+ * Dashboard draws (`localeWords`) names that thing, as the locale words it
+ * - the Device Registry is Italian's Registro dei dispositivi - and is held
+ * to the locale by its own check.
+ */
+function droppedWordsIn(
+  english: string,
+  translated: string,
+  language: string,
+  localeWords: ReadonlySet<string>,
+): Array<SentenceRule> {
+  const named: string = english.replace(CODE_SPAN, " ");
+  const said: string = translated
+    .replace(/\*\*([^*]+)\*\*/g, (run: string, words: string): string => {
+      return localeWords.has(words) ? " " : run;
+    })
+    .replace(QUOTED, " ");
+
+  return ONE_WORD_RULES.filter((rule: SentenceRule): boolean => {
+    return (
+      rule.language === language &&
+      rule.english.test(named) &&
+      !(rule.except && rule.except.test(named)) &&
+      rule.dropped.test(said)
+    );
+  });
+}
 
 // Each language's words for each product, as its module exports them.
 const MODULES: Record<string, Record<string, SetupGuideTranslation>> = {};
@@ -97,6 +157,20 @@ function markdownsOf(content: SetupGuideContent): Array<string> {
 function keysOf(content: SetupGuideContent): Array<string> {
   const keys: Array<string> = [];
 
+  /*
+   * The key step: what it asks, and the label and hint over the address it
+   * shows (IngestionKeySelector words both, as the card words the rest).
+   */
+  for (const text of [
+    content.keyStep?.description,
+    content.keyStep?.endpointLabel,
+    content.keyStep?.endpointHint,
+  ]) {
+    if (text) {
+      keys.push(text);
+    }
+  }
+
   for (const step of content.steps) {
     keys.push(step.title);
     if (step.description) {
@@ -127,16 +201,13 @@ function keysOf(content: SetupGuideContent): Array<string> {
   return keys;
 }
 
-// A text, read as a regular expression matching only itself.
-function asPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /*
  * The locale key a title is: itself, or - for a title the guide fills in
  * with translateTemplate, in the reader's language where it is drawn
  * ('Host shows up as "docker-host" or a container ID') - the template it
- * fills.
+ * fills. Of the templates the text fits, the one with the most words of
+ * its own: "A refused key, or metrics that arrive 11 to 17 minutes late."
+ * fills its own sentence's template, not "{{from}} to {{to}}".
  */
 function keyOf(text: string): string {
   const english: Record<string, string> = readDashboardLocale("en");
@@ -145,20 +216,24 @@ function keyOf(text: string): string {
     return text;
   }
 
-  const template: string | undefined = Object.keys(english).find(
-    (key: string): boolean => {
-      if (!key.includes("{{")) {
-        return false;
-      }
-      const pattern: string = key
-        .split(/\{\{\s*[\w.]+\s*\}\}/)
-        .map(asPattern)
-        .join(".+");
-      return new RegExp(`^${pattern}$`).test(text);
-    },
-  );
+  let best: { key: string; literal: number } | undefined = undefined;
 
-  return template || text;
+  for (const key of Object.keys(english)) {
+    if (!key.includes("{{")) {
+      continue;
+    }
+    const literals: Array<string> = key.split(/\{\{\s*[\w.]+\s*\}\}/);
+    const pattern: string = literals.map(escapeRegExp).join(".+");
+    if (!new RegExp(`^${pattern}$`).test(text)) {
+      continue;
+    }
+    const literal: number = literals.join("").length;
+    if (!best || literal > best.literal) {
+      best = { key, literal };
+    }
+  }
+
+  return best ? best.key : text;
 }
 
 function codeBlocks(text: string): Array<string> {
@@ -207,6 +282,55 @@ function boldRuns(text: string): Array<string> {
 
 function withoutEndMark(text: string): string {
   return text.replace(/[\s:.]+$/, "");
+}
+
+// The start or end of a text reads as a space beside a mark.
+function isMarkdownSpace(character: string | undefined): boolean {
+  return character === undefined || MARKDOWN_SPACE.test(character);
+}
+
+function isMarkdownPunctuation(character: string | undefined): boolean {
+  return character !== undefined && MARKDOWN_PUNCTUATION.test(character);
+}
+
+/*
+ * The bold marks of a text that CommonMark (LazyMarkdownViewer) would draw
+ * as asterisks: each odd ** has to open a bold run and each even one close
+ * it. A mark beside punctuation, a code span's backtick or a bracket, only
+ * does so with a space or more punctuation on its other side, so a Korean
+ * particle or an Arabic "و" glued to the mark leaves it showing, as in
+ * "**`web-1`**용". Code spans are read as their backticks.
+ */
+function boldMarksThatShow(text: string): Array<string> {
+  const read: string = text.replace(CODE_SPAN, (span: string): string => {
+    return "`" + "x".repeat(span.length - 2) + "`";
+  });
+
+  return Array.from(read.matchAll(BOLD_MARK))
+    .filter((match: RegExpMatchArray, nth: number): boolean => {
+      const at: number = match.index!;
+      const before: string | undefined = read[at - 1];
+      const after: string | undefined = read[at + 2];
+
+      if (nth % 2 === 0) {
+        return (
+          isMarkdownSpace(after) ||
+          (isMarkdownPunctuation(after) &&
+            !isMarkdownSpace(before) &&
+            !isMarkdownPunctuation(before))
+        );
+      }
+
+      return (
+        isMarkdownSpace(before) ||
+        (isMarkdownPunctuation(before) &&
+          !isMarkdownSpace(after) &&
+          !isMarkdownPunctuation(after))
+      );
+    })
+    .map((match: RegExpMatchArray): string => {
+      return text.slice(Math.max(0, match.index! - 12), match.index! + 14);
+    });
 }
 
 beforeAll(async () => {
@@ -282,19 +406,68 @@ describe.each(
       }
     });
 
+    /*
+     * As its translations, alone or as what a guide in its reader's
+     * language is handed (Databases: the product guide, not a database's
+     * own tab).
+     */
     test("the card hands the guide its words", () => {
       const card: string = fs.readFileSync(product.cardFile, "utf8");
 
-      expect(card).toContain(`translations={${product.translationsConstant}}`);
+      expect(card).toMatch(
+        new RegExp(
+          `translations=\\{[^{}]*\\b${product.translationsConstant}\\b[^{}]*\\}`,
+        ),
+      );
     });
 
+    /*
+     * The key step's description is the card's own sentence, drawn under the
+     * key picker of the guide's first step. Written as a plain string, the
+     * i18n extractor never saw it and it read in English in every language
+     * (VMware's, Kubernetes's, Storage Array's; #8341). A card that sets
+     * none draws the shared one, which is worded with SetupGuideCard.
+     */
+    test("the card's key step description is a locale key, worded in every language", () => {
+      const card: string = fs.readFileSync(product.cardFile, "utf8");
+      const prop: RegExpMatchArray | null = card.match(
+        /keyStepDescription=(\{\s*translationKey\(\s*)?"((?:[^"\\]|\\.)*)"/,
+      );
+
+      if (!prop) {
+        return;
+      }
+
+      const description: string = JSON.parse(`"${prop[2]}"`) as string;
+
+      expect({ description, isAKey: Boolean(prop[1]) }).toEqual({
+        description,
+        isAKey: true,
+      });
+      expect(readDashboardLocale("en")[description]).toBe(description);
+
+      for (const language of DASHBOARD_LANGUAGES) {
+        const worded: string | undefined =
+          readDashboardLocale(language)[description];
+
+        expect({
+          language,
+          worded: worded !== undefined && worded !== description,
+        }).toEqual({ language, worded: true });
+      }
+    });
+
+    /*
+     * The shortest is a database's own tab for an engine inside the
+     * application (SQLite): its intro, the SDK step and the page's topics.
+     */
     test("the guide has pieces to word, in every way through it", () => {
       expect(WAYS[product.name]!.length).toBeGreaterThan(3);
 
       for (const way of WAYS[product.name]!) {
         expect({
           way: way.label,
-          pieces: getSetupGuideWordPieces(way.content).length > 5,
+          pieces: getSetupGuideWordPieces(way.content).length >= 3,
         }).toEqual({ way: way.label, pieces: true });
       }
     });
@@ -530,6 +703,44 @@ describe.each(
         expect(halfWidthAfterTheirText).toEqual([]);
       });
 
+      test("every bold run opens and closes as Markdown reads it, its asterisks never drawn", () => {
+        const showing: Array<string> = Object.values(
+          MODULES[product.name]![language]!,
+        ).flatMap((translated: string): Array<string> => {
+          return boldMarksThatShow(translated);
+        });
+
+        expect(showing).toEqual([]);
+      });
+
+      /*
+       * A guide says a thing with the one word its language's Dashboard
+       * says (#8714, #8691): "log" for an Italian log, 경고 for a Korean
+       * alert, "måling" for a Norwegian metric, and so on, as the locale
+       * files and the docs are held to the same rules.
+       */
+      test("says each thing with the one word its language says for it", () => {
+        const localeWords: ReadonlySet<string> = new Set(
+          Object.values(readDashboardLocale(language)),
+        );
+        const saidOtherwise: Array<{ english: string; thing: string }> = [];
+
+        for (const [english, translated] of Object.entries(
+          MODULES[product.name]![language]!,
+        )) {
+          for (const rule of droppedWordsIn(
+            english,
+            translated,
+            language,
+            localeWords,
+          )) {
+            saidOtherwise.push({ english, thing: rule.thing });
+          }
+        }
+
+        expect(saidOtherwise).toEqual([]);
+      });
+
       test("Advanced and Troubleshooting are named as the guide's own sections are", () => {
         const locale: Record<string, string> = readDashboardLocale(language);
 
@@ -539,7 +750,7 @@ describe.each(
           for (const section of ["Advanced", "Troubleshooting"]) {
             if (
               new RegExp(`\\b${section}\\b`).test(
-                english.replace(CODE_SPAN, ""),
+                english.replace(CODE_SPAN, "").replace(ITALIC_SPAN, ""),
               )
             ) {
               expect({
@@ -667,5 +878,135 @@ describe("the checks above (negative control)", () => {
       locale["Overview"],
     );
     expect(isWordedInDashboardLocale("Overview", "de")).toBe(true);
+  });
+
+  test("a word a language dropped for a thing is caught where the English names the thing, and its other senses are not", () => {
+    const none: ReadonlySet<string> = new Set<string>();
+    const korean: string = "Investigate incidents and alerts on this cluster";
+
+    expect(
+      droppedWordsIn(
+        korean,
+        "이 클러스터의 인시던트와 알림을 조사합니다",
+        "ko",
+        none,
+      ),
+    ).toHaveLength(1);
+    expect(
+      droppedWordsIn(
+        korean,
+        "이 클러스터의 인시던트와 경고를 조사합니다",
+        "ko",
+        none,
+      ),
+    ).toEqual([]);
+    // A notification's 알림 stays, as the locale's does.
+    expect(
+      droppedWordsIn(
+        "Email alerts go to the team",
+        "이메일 알림은 팀에 갑니다",
+        "ko",
+        none,
+      ),
+    ).toEqual([]);
+
+    const logs: string =
+      "Its logs, and the devices on the **Device Registry** tab";
+
+    expect(
+      droppedWordsIn(
+        logs,
+        "I suoi registri e i dispositivi nella scheda **Registro dei dispositivi**",
+        "it",
+        new Set(["Registro dei dispositivi"]),
+      ),
+    ).toHaveLength(1);
+    // The Device Registry is a registro, as the locale words it.
+    expect(
+      droppedWordsIn(
+        logs,
+        "I suoi log e i dispositivi nella scheda **Registro dei dispositivi**",
+        "it",
+        new Set(["Registro dei dispositivi"]),
+      ),
+    ).toEqual([]);
+    // A bold run the locale does not word is the guide's own words.
+    expect(
+      droppedWordsIn(
+        "The **Container Logs** row",
+        "La riga **Registri dei container**",
+        "it",
+        none,
+      ),
+    ).toHaveLength(1);
+    // What a piece quotes in code is not its words.
+    expect(
+      droppedWordsIn(
+        "Check the logs: `docker logs agent`",
+        "Controlla i log: `registri`",
+        "it",
+        none,
+      ),
+    ).toEqual([]);
+
+    expect(
+      droppedWordsIn(
+        "Stamped on every metric",
+        "Satt på hver metrikk",
+        "no",
+        none,
+      ),
+    ).toHaveLength(1);
+    expect(
+      droppedWordsIn(
+        "Stamped on every metric",
+        "Satt på hver måling",
+        "no",
+        none,
+      ),
+    ).toEqual([]);
+  });
+
+  test("a bold mark glued to a word on its punctuation side is caught, and one set apart is not", () => {
+    expect(
+      boldMarksThatShow("이 명령은 **`web-1`**용으로 설치합니다"),
+    ).toHaveLength(1);
+    expect(
+      boldMarksThatShow("**(k8s-file 로그 드라이버)**을 참조하세요"),
+    ).toHaveLength(1);
+    expect(boldMarksThatShow("في الخطوة 1، و**`swarm-1`** اسمًا")).toHaveLength(
+      1,
+    );
+    expect(boldMarksThatShow("** loose** and **loose **")).toHaveLength(2);
+
+    expect(
+      boldMarksThatShow("이 명령은 **`web-1`** 호스트용으로 설치합니다"),
+    ).toEqual([]);
+    expect(boldMarksThatShow("وأدخل **`swarm-1`** اسمًا")).toEqual([]);
+    expect(
+      boldMarksThatShow(
+        "die **Übersicht**, der **`json-file`**-Treiber und (**N**)",
+      ),
+    ).toEqual([]);
+    expect(boldMarksThatShow("`a**b` **`ceph-1`**: ok")).toEqual([]);
+  });
+
+  test("another product's italic menu path is set aside, and a bold run or the guide's own section is not", () => {
+    const strip: (text: string) => string = (text: string): string => {
+      return text.replace(ITALIC_SPAN, "");
+    };
+
+    expect(
+      strip("open *Configure → System → Advanced System Settings*, set it"),
+    ).toBe("open , set it");
+    expect(strip("see **OneUptime AI agent** under Advanced")).toBe(
+      "see **OneUptime AI agent** under Advanced",
+    );
+    expect(strip("a VM is *powered on*; one is *powered off*")).toBe(
+      "a VM is ; one is ",
+    );
+    expect(strip("`a*b` and 2 * 3 under Troubleshooting")).toBe(
+      "`a*b` and 2 * 3 under Troubleshooting",
+    );
   });
 });

@@ -363,10 +363,12 @@ export default interface Field<TEntity> {
   defaultValue?: boolean | string | Date | number | undefined;
   /*
    * An edit form starts this field on its defaultValue when the record
-   * holds nothing for it (null), not only when it holds no key at all:
-   * the server's one settings row, whose SMTP port is empty on a fresh
-   * server, starts on 587 rather than an empty box that looks filled in
-   * by its placeholder (#6875). A value the record holds is kept.
+   * holds nothing for it (null, or text of only spaces), not only when it
+   * holds no key at all: the server's one settings row, whose SMTP port is
+   * empty on a fresh server, starts on 587 rather than an empty box that
+   * looks filled in by its placeholder (#6875), and its From Name, "" on a
+   * fresh server, on the product's name (#8183). A value the record holds
+   * is kept.
    */
   startsOnDefaultWhenEmpty?: boolean | undefined;
   getDefaultValue?:

@@ -68,7 +68,7 @@ Hver monitor kontrolleres fra prosjektets sonder, akkurat som en du oppretter se
 ## Hva som ikke overføres
 
 - **Oppetidshistorikk, svartider og hendelser.** OneUptime begynner å kontrollere når importen er ferdig.
-- **Varsler.** Velg i OneUptime hvem som får beskjed, som beskrevet i [Fullfør byttet](#fullfør-byttet).
+- **Varslinger.** Velg i OneUptime hvem som får beskjed, som beskrevet i [Fullfør byttet](#fullfør-byttet).
 - **Passord, og headere som kan inneholde en hemmelighet.** En monitor som logger inn, eller som sender en `Authorization`-, informasjonskapsel- eller token-header, overføres uten den: Legg den til med en [monitorhemmelighet](/docs/monitor/monitor-secrets).
 - **Omvendte monitorer**, som regnes som oppe når kontrollen feiler. OneUptime har ingen monitor som gjør det.
 - **Docker-, database-, spillserver-, MQTT- og andre monitorer som OneUptime ikke har noe tilsvarende for.** Forhåndsvisningen nevner hver av dem.
@@ -89,7 +89,7 @@ En forhåndsvisning lagres i én dag. Bare personen som leste filen, kan krysse 
 Åpne hver av dem under **Monitorer** og sjekk de første resultatene. En heartbeat-monitor har en ny adresse: Pek jobben som kaller den, dit.
 
 ### Velg hvem som får beskjed
-Legg til eiere på monitorene dine, eller en vaktretningslinje under **Vakt** > **Vaktretningslinjer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
+Legg til eiere på monitorene dine, eller en vaktpolicy under **Vakt** > **Vaktpolicyer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
 
 ### Slå av kontrollene i Uptime Kuma
 Når OneUptime kontrollerer de samme tingene, setter du dem på pause i Uptime Kuma, så ingen får beskjed to ganger.
@@ -112,7 +112,7 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 ## Neste trinn
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hvordan en heartbeat fungerer i OneUptime.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hvordan en heartbeat fungerer i OneUptime.
 - [Bytt fra UptimeRobot](/docs/moving-to-oneuptime/uptimerobot): Hent kontrollene dine over fra UptimeRobot.
 :::

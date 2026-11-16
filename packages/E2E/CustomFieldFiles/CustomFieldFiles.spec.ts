@@ -8,7 +8,9 @@ import {
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * File and Multiple files custom fields, and a public form's file
@@ -114,7 +116,7 @@ const PERSIAN: Record<string, string> = dashboardLocale("fa");
  * the reader's digits. On a page read from the right the limit is set apart
  * (between U+2068 and U+2069), so it keeps its number first (issue #7233).
  */
-const PERSIAN_SIZE: string = "\u06F1\u06F0 MB";
+const PERSIAN_SIZE: string = withUnit("\u06F1\u06F0", "MB");
 const PERSIAN_LIMIT: string = `\u2068${PERSIAN_SIZE}\u2069`;
 
 function hintWith(
@@ -151,7 +153,8 @@ async function drawnLimits(
 ): Promise<Array<DrawnLimit>> {
   return locator.evaluate(
     (element: Element, size: string): Array<DrawnLimit> => {
-      const [number, unit] = size.split(" ") as [string, string];
+      // The figure and its unit, held together by a no-break space.
+      const [number, unit] = size.split(/[ \u00A0]/) as [string, string];
       const found: Array<DrawnLimit> = [];
       const walker: TreeWalker = document.createTreeWalker(
         element,
@@ -1462,4 +1465,18 @@ test.describe("a public form's file questions", () => {
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "form-fa-1280");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Persian and Arabic whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa", "ar"],
+  address: (language: string): string => {
+    return language === "en" ? CARD_PATH : `${CARD_PATH}?lang=${language}`;
+  },
 });

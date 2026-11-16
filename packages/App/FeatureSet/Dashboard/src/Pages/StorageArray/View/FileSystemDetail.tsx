@@ -27,7 +27,7 @@ const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
     {
       title: "Protocols",
       description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.fileSystemProtocolsColumn,
-      value: getFileSystemProtocols(row).join(", ") || "—",
+      value: getFileSystemProtocols(row).join(", "),
     },
     {
       title: "Provisioned",

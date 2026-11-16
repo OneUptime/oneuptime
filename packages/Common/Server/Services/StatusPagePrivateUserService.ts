@@ -25,6 +25,7 @@ import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
+import { STATUS_PAGE_SESSION_PASSWORD_CHANGED_REASON } from "../../Types/AuditLog/AuditLogStatusPageSession";
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../Utils/StatusPage/StatusPageEmailLogo";
@@ -326,7 +327,7 @@ export class Service extends ProjectReferencesService<Model> {
       for (const userId of updatedItemIds) {
         await StatusPagePrivateUserSessionService.revokeAllSessionsByPrivateUserId(
           userId,
-          { reason: "Password changed" },
+          { reason: STATUS_PAGE_SESSION_PASSWORD_CHANGED_REASON },
         );
       }
     }
