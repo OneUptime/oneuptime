@@ -25,8 +25,8 @@ import {
  * (5 s) from its first row: one App, 100 slots, finished about 22 OTLP
  * batches a second, each job waiting about 4.5 s, its CPU half idle.
  *
- * Now every table is due once flushAtSubmissions submissions (half of
- * TELEMETRY_CONCURRENCY) wait in the writer, and goes when an insert slot
+ * Now every table is due once flushAtSubmissions submissions (four fifths
+ * of TELEMETRY_CONCURRENCY) wait in the writer, and goes when an insert slot
  * is free for it. With every slot busy - a slow ClickHouse - a due table
  * keeps gathering and goes with the next slot that frees, or at maxWaitMs,
  * so ClickHouse still gets fewer, fuller inserts when it is struggling; and
@@ -492,21 +492,30 @@ describe("a due submission (the telemetry-writer tier's)", () => {
 
 describe("jobs that wait for their rows are no longer held for maxWaitMs", () => {
   /*
-   * 100 workers, as TELEMETRY_CONCURRENCY runs them: each takes a job,
-   * hands the writer its logs, spans and metric points, waits for all
-   * three acks, and takes the next. An insert takes 100 ms; CPU is free
-   * here, so how long 1,000 jobs take is how long jobs wait for the writer.
+   * 100 workers, as TELEMETRY_CONCURRENCY runs them, and a backlog of 1,000
+   * jobs: each worker takes a job, hands the writer its rows for one to
+   * three tables (logs, spans, metric points), waits for every ack, and
+   * takes the next. An insert takes 100 ms; CPU is free here, so how long
+   * the jobs take is how long they wait for the writer. firstNineHundredMs
+   * leaves out the last jobs, which nothing comes after to fill the count:
+   * they wait out the window, as the last rows of any burst do.
    */
-  async function runJobs(options: FanInWriterOptions): Promise<{
+  interface JobsRun {
+    firstNineHundredMs: number;
     elapsedMs: number;
     inserts: number;
-  }> {
+  }
+
+  async function runJobs(
+    options: FanInWriterOptions,
+    tablesPerJob: number = 3,
+  ): Promise<JobsRun> {
     const writer: TelemetryFanInWriter = new TelemetryFanInWriter(options);
     const tables: Array<TestTarget> = [
       makeTarget("Logs"),
       makeTarget("Spans"),
       makeTarget("Metrics"),
-    ];
+    ].slice(0, tablesPerJob);
     for (const table of tables) {
       table.latencyMs = 100;
     }
@@ -533,12 +542,17 @@ describe("jobs that wait for their rows are no longer held for maxWaitMs", () =>
       return worker();
     });
 
+    let firstNineHundredMs: number = -1;
     while (finished < 1000) {
       await advance(50, 50);
+      if (firstNineHundredMs < 0 && finished >= 900) {
+        firstNineHundredMs = now;
+      }
     }
 
     await Promise.all(workers);
     return {
+      firstNineHundredMs: firstNineHundredMs,
       elapsedMs: now,
       inserts: tables.reduce((sum: number, table: TestTarget) => {
         return sum + table.inserts.length;
@@ -554,25 +568,39 @@ describe("jobs that wait for their rows are no longer held for maxWaitMs", () =>
     maxWaitMs: 5000,
   };
 
-  test("1,000 jobs on 100 workers take about two seconds, flushing as half the workers wait", async () => {
-    const run: { elapsedMs: number; inserts: number } = await runJobs(
-      makeOptions({ ...PRODUCTION, flushAtSubmissions: 50 }),
+  test("three tables a job: 900 jobs in about two seconds, in few inserts", async () => {
+    const run: JobsRun = await runJobs(
+      makeOptions({ ...PRODUCTION, flushAtSubmissions: 80 }),
     );
 
-    // 2,050 ms when written.
-    expect(run.elapsedMs).toBeLessThanOrEqual(3000);
+    // 1,850 ms, and all 1,000 in 2,050 ms, when written.
+    expect(run.firstNineHundredMs).toBeLessThanOrEqual(2500);
     /*
-     * Still few inserts, each the rows of many jobs: the 3,000 submissions
-     * went in 50 (the window below: 30, in 51 s).
+     * Each insert the rows of many jobs: the 3,000 submissions went in 50
+     * (the window below: 30).
      */
     expect(run.inserts).toBeLessThanOrEqual(60);
   });
 
-  test("the same jobs, with rows waiting maxWaitMs as before, took ten times five seconds", async () => {
-    const run: { elapsedMs: number; inserts: number } = await runJobs(
+  test("one table a job, the count reached only with four fifths of the workers waiting: still about a second", async () => {
+    const run: JobsRun = await runJobs(
+      makeOptions({ ...PRODUCTION, flushAtSubmissions: 80 }),
+      1,
+    );
+
+    /*
+     * 1,250 ms when written; the last jobs, fewer than the count, then
+     * waited out the window: all 1,000 in 6,250 ms.
+     */
+    expect(run.firstNineHundredMs).toBeLessThanOrEqual(2500);
+  });
+
+  test("the same jobs, with rows waiting maxWaitMs as before, took a window per hundred", async () => {
+    const run: JobsRun = await runJobs(
       makeOptions({ ...PRODUCTION, flushAtSubmissions: undefined }),
     );
 
+    expect(run.firstNineHundredMs).toBeGreaterThanOrEqual(9 * 5000);
     expect(run.elapsedMs).toBeGreaterThanOrEqual(10 * 5000);
   });
 });
@@ -597,18 +625,18 @@ describe("readFanInWriterOptionsFromEnv: flushAtSubmissions", () => {
     }
   }
 
-  test("half of TELEMETRY_CONCURRENCY (100 by default); maxWaitMs stays 5 s", () => {
-    expect(readWith(undefined).flushAtSubmissions).toBe(50);
+  test("four fifths of TELEMETRY_CONCURRENCY (100 by default); maxWaitMs stays 5 s", () => {
+    expect(readWith(undefined).flushAtSubmissions).toBe(80);
     expect(readWith(undefined).maxWaitMs).toBe(5000);
-    expect(readWith("300").flushAtSubmissions).toBe(150);
-    expect(readWith("25").flushAtSubmissions).toBe(12);
+    expect(readWith("300").flushAtSubmissions).toBe(240);
+    expect(readWith("24").flushAtSubmissions).toBe(19);
   });
 
   test("never below one; a concurrency the worker would not take is its default", () => {
     expect(readWith("1").flushAtSubmissions).toBe(1);
-    expect(readWith("3").flushAtSubmissions).toBe(1);
-    expect(readWith("0").flushAtSubmissions).toBe(50);
-    expect(readWith("-5").flushAtSubmissions).toBe(50);
-    expect(readWith("lots").flushAtSubmissions).toBe(50);
+    expect(readWith("3").flushAtSubmissions).toBe(2);
+    expect(readWith("0").flushAtSubmissions).toBe(80);
+    expect(readWith("-5").flushAtSubmissions).toBe(80);
+    expect(readWith("lots").flushAtSubmissions).toBe(80);
   });
 });

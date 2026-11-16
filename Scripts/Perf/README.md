@@ -74,7 +74,7 @@ Website, API and Port monitor once a minute:
 - `otlp-load.js`: 20 OpenTelemetry Collectors sending gzipped OTLP/protobuf
   logs, traces and metrics every 4 seconds (500 logs, 250 spans and about
   560 metric points a second; `PERF_OTLP_PERIOD_MS` changes it - at 2
-  seconds the App's telemetry queue falls behind, and a window then measures
+  seconds an App from before #6086 falls behind, and a window then measures
   a backlog rather than a steady load);
 - `browse-load.js`: 5 people on the Dashboard, opening a page every 15
   seconds through the app's own navigation, each page polling as it does.
@@ -121,7 +121,8 @@ node ingest-queue.js 120 10               # the telemetry queue now, every 10 s
 
 `ab-ingest.sh` runs the baseline and this checkout in turn, round after
 round, with the Probe stopped: 4 minutes of the kit's OTLP load (after 2 of
-warm-up) sampled by `cpu-sample.py` for CPU, then a burst - the same 20
+warm-up) sampled by `cpu-sample.py` for CPU and ClickHouse's part log for
+the parts its inserts made and merged, then a burst - the same 20
 collectors every second, 60 batches a second, for 90 seconds - to see how
 many batches a second one App finishes, and how long what was left takes to
 work off. `ingest-queue.js` reads the telemetry queue as the App works it:
@@ -131,6 +132,21 @@ waits for its rows' insert, so a job's run time is mostly how long the
 fan-in writer holds its rows. `ab-ingest-summary.py` prints the rounds side
 by side with the load average at each window's start and end: on a shared
 machine read the rounds, not only the means.
+
+The App's CPU in a window carries every other job it runs too (one that
+runs on the hour lands in one side's window and not the other's). What one
+batch costs ingest itself:
+
+```sh
+node --expose-gc ingest-cost.js /tmp/oneuptime-perf/baseline/packages/App 600 3
+node --expose-gc ingest-cost.js ../../packages/App 600 3
+```
+
+`ingest-cost.js` sends the kit's logs, traces and metrics batches (gzipped
+protobuf, as the queue stores them) through a tree's own payload decoder
+and ingest services in a process of its own, the datastores stubbed and the
+fan-in writer only writing the insert body, and prints the CPU, wall time
+and garbage collection of a batch. Run the two trees in turn, a few times.
 
 ## What each job costs
 

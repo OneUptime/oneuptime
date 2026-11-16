@@ -363,17 +363,20 @@ export function readFanInWriterOptionsFromEnv(): FanInWriterOptions {
      * waits as long as its rows do. With rows waiting out maxWaitMs, one
      * App's TELEMETRY_CONCURRENCY (100) jobs could finish no more than
      * about 100 / 4.5 s = 22 OTLP batches a second while its CPU sat half
-     * idle (#6086). So the rows go once half that many submissions wait on
-     * them - a busy worker never waits out the window - and a quiet one
-     * still sends few, full inserts: ClickHouse writes a part for each (its
-     * own deduplication token keeps it out of the others' async-insert
-     * buffer) and merges every part again. A fixed 200 ms wait, tried
-     * first, made nine times the parts of the 5 s window under the perf
-     * kit's steady load, and ClickHouse used four times the CPU.
+     * idle (#6086). So the rows go once four fifths that many submissions
+     * wait on them - a job hands over one or more (its logs, the exceptions
+     * in them), so that is at most four fifths of the worker's jobs, and a
+     * busy worker never waits out the window - while a quieter one still
+     * sends few, full inserts: ClickHouse writes a part for each (its own
+     * deduplication token keeps it out of the others' async-insert buffer)
+     * and merges every part again. Under the perf kit's steady load (15
+     * batches a second) this inserts a quarter more often than the 5 s
+     * window did (at half the concurrency: twice as often), where a fixed
+     * 200 ms wait made nine times the parts and four times ClickHouse's CPU.
      */
     flushAtSubmissions: Math.max(
       1,
-      Math.floor(readPositiveInt("TELEMETRY_CONCURRENCY", 100) / 2),
+      Math.floor((readPositiveInt("TELEMETRY_CONCURRENCY", 100) * 4) / 5),
     ),
     maxConcurrentInserts: readPositiveInt(
       "TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS",
