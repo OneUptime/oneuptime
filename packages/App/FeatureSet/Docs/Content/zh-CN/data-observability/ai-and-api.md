@@ -39,6 +39,7 @@ AI 代理应该在使用数据之前先检查数据是否新鲜，并在更改�
 | `POST /api/data-observability/pipelines/lineage` | 管道读取和写入的表，以及每张表的当前状态，与其页面所画的相同，请求体为 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | API 密钥 |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | 数据警报的血缘，以及通往导致它的警报和它导致的警报的路径，与其页面所画的相同；对于来自针对单个列的检查的警报，还有其 `column` 以及每个箭头携带的列 | API 密钥 |
 | `POST /api/data-observability/lineage/expand` | 血缘图中某张卡片未绘制的下一批表，与选择其数字时画出的相同：用 `nodeId` 及其 `side` 指明卡片，用 `focusNodeId`、`tables` 和 `dataDashboardIds` 指明已画的内容 | API 密钥 |
+| `POST /api/data-observability/lineage/map` | 项目的血缘地图，与 **血缘地图** 页面绘制的内容一致：写入和读取你的数据的服务、表、管道和仪表板，以及它们之间的箭头，最近发现的排在前面 | API 密钥 |
 | `POST /api/data-observability/checks/apply` | 让项目的检查与一个文件一致，与 `oneuptime data-checks apply` 的作用相同，请求体为 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API 密钥 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 数据产品的“data as of”徽章 | 徽章自己的令牌 |
 

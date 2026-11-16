@@ -39,6 +39,7 @@ De virker begge med et skrivebeskyttet login og svarer som den person eller API-
 | `POST /api/data-observability/pipelines/lineage` | De tabeller, en pipeline læser og skriver, med hvordan hver tabel står nu, som dens side tegner dem, med `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | En API-nøgle |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | En dataadvarsels afstamning, som dens side tegner den, med vejen til den advarsel, der forårsagede den, og til de advarsler, den forårsagede, og for en advarsel fra en kontrol af én kolonne dens `column` og de kolonner, hver pil fører | En API-nøgle |
 | `POST /api/data-observability/lineage/expand` | De næste tabeller, et kort i et afstamningsdiagram ikke tegner, sådan som et valg af dets tal tegner dem: kortet som `nodeId` med dets `side`, og det tegnede som `focusNodeId`, `tables` og `dataDashboardIds` | En API-nøgle |
+| `POST /api/data-observability/lineage/map` | Projektets afstamningskort, som siden **Afstamningskort** tegner det: de tjenester, tabeller, pipelines og dashboards, der skriver og læser dine data, og pilene imellem dem, de senest sete først | En API-nøgle |
 | `POST /api/data-observability/checks/apply` | Få projektets tjek til at matche en fil, som `oneuptime data-checks apply` gør, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nøgle |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Et dataprodukts "data as of"-badge | Badgets eget token |
 

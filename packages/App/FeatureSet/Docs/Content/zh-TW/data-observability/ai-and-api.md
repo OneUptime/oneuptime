@@ -39,6 +39,7 @@ AI 代理應該在使用資料之前，先檢查資料是否新鮮，並在變�
 | `POST /api/data-observability/pipelines/lineage` | 管線讀取和寫入的資料表，以及每張資料表的目前狀態，與其頁面所畫的相同，要求內容為 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | API 金鑰 |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | 資料警示的血緣，以及通往造成它的警示和它造成的警示的路徑，與其頁面所畫的相同；對於來自針對單一欄位的檢查的警示，還有其 `column` 以及每個箭頭攜帶的欄位 | API 金鑰 |
 | `POST /api/data-observability/lineage/expand` | 血緣圖中某張卡片未繪製的下一批資料表，與選取其數字時畫出的相同：以 `nodeId` 及其 `side` 指明卡片，以 `focusNodeId`、`tables` 和 `dataDashboardIds` 指明已畫的內容 | API 金鑰 |
+| `POST /api/data-observability/lineage/map` | 專案的血緣地圖，與 **血緣地圖** 頁面繪製的內容一致：寫入和讀取你的資料的服務、資料表、管線和儀表板，以及它們之間的箭頭，最近發現的排在前面 | API 金鑰 |
 | `POST /api/data-observability/checks/apply` | 讓專案的檢查與一個檔案一致，如同 `oneuptime data-checks apply` 所做的，要求內容為 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API 金鑰 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 資料產品的「data as of」徽章 | 徽章本身的權杖 |
 

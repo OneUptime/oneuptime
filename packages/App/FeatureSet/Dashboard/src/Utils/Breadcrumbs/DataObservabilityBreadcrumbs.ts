@@ -163,6 +163,11 @@ export function getDataObservabilityBreadcrumbs(
       "Data Observability",
       "Warehouse Spend",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_LINEAGE_MAP, [
+      "Project",
+      "Data Observability",
+      "Lineage Map",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
       ["Project", "Data Observability", "Data Products", "Data Product"],
