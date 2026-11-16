@@ -356,6 +356,12 @@ Ce qui est fait au sujet d'un enregistrement privé suit la même règle : alert
 
 Ce qui est fait et envoyé au sujet d'un enregistrement privé n'est lu que par ceux qui peuvent lire l'enregistrement : ses exécutions de politiques d'astreinte, ses exécutions de runbooks, les corrections proposées pour lui, et les journaux des e-mails, SMS, appels, notifications push, messages de discussion, webhooks et requêtes d'IA que OneUptime a envoyés à son sujet. Les personnes alertées à son sujet voient toujours leur alerte.
 
+Supprimer un enregistrement privé supprime tout cela avec lui, quelle que soit la façon dont il est supprimé : un par un ou plusieurs à la fois, depuis le tableau de bord, l'API, Terraform ou MCP, par la rétention des enregistrements résolus ou avec son projet. Les exécutions de runbooks et les corrections sont supprimées avec l'incident ou l'alerte auxquels elles sont liées, privés ou non.
+
+Les commandes qu'un Runner a exécutées pour une exécution de runbook ou une correction, avec ce qu'elles ont affiché, ne sont lues que par ceux qui peuvent lire l'exécution ou la correction. Elles sont supprimées avec l'exécution. Les commandes d'une correction supprimée restent, comme trace de ce qui a été exécuté sur votre infrastructure, et seuls les Propriétaires du projet et les Administrateurs du projet les lisent.
+
+Un enregistrement qui nomme un enregistrement privé sans en faire partie, comme un problème Data Security, un dossier de sécurité, une soumission de formulaire, un enregistrement de session, ou une alerte ou un incident publics dans un épisode privé, est lu comme avant. Seuls ceux qui peuvent lire l'enregistrement privé y voient son titre et ses autres champs : pour tous les autres, un filtre sur ces champs ne le trouve pas, et seuls les Propriétaires du projet et les Administrateurs du projet trient une liste selon eux.
+
 Les flux de travail n'agissent pas sur les enregistrements privés. Les étapes d'un flux de travail agissent en tant qu'Administrateur du projet, mais ne reçoivent jamais sa vue sur les incidents, alertes et épisodes privés : elles n'en trouvent aucun, n'en modifient aucun et ne leur ajoutent rien, et un flux de travail ne démarre ni sur l'un d'eux ni sur ce qui lui appartient. Voir [Ce que les étapes d'un flux de travail peuvent faire](/docs/workflows/configuration#ce-que-les-étapes-dun-flux-de-travail-peuvent-faire).
 
 ### Règles appartenant à des équipes

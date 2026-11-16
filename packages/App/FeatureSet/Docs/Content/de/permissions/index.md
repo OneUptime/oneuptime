@@ -356,6 +356,12 @@ Was mit Bezug auf einen privaten Datensatz getan wird, folgt derselben Regel: je
 
 Was mit Bezug auf einen privaten Datensatz getan und gesendet wird, lesen nur die, die den Datensatz lesen dürfen: seine Läufe von Bereitschaftsrichtlinien, seine Runbook-Läufe, die für ihn vorgeschlagenen Korrekturen und die Protokolle der E-Mails, SMS, Anrufe, Push-Benachrichtigungen, Chatnachrichten, Webhooks und KI-Anfragen, die OneUptime zu ihm gesendet hat. Die Personen, die zu ihm angepiept werden, sehen ihre Benachrichtigung weiterhin.
 
+Wird ein privater Datensatz gelöscht, wird all das mit ihm gelöscht, wie auch immer er gelöscht wird: einzeln oder viele auf einmal, im Dashboard, über die API, Terraform oder MCP, durch die Aufbewahrung gelöster Datensätze oder mit seinem Projekt. Runbook-Läufe und Korrekturen werden mit dem Vorfall oder der Warnung gelöscht, mit dem bzw. der sie verknüpft sind, ob privat oder nicht.
+
+Die Befehle, die ein Runner für einen Runbook-Lauf oder eine Korrektur ausgeführt hat, samt ihrer Ausgabe, lesen nur die, die den Lauf oder die Korrektur lesen dürfen. Sie werden mit dem Lauf gelöscht. Die Befehle einer gelöschten Korrektur bleiben als Nachweis dessen erhalten, was auf Ihrer Infrastruktur ausgeführt wurde, und nur Projektinhaber und Projektadministratoren lesen sie.
+
+Ein Datensatz, der einen privaten nennt, ohne zu ihm zu gehören, etwa ein Data-Security-Problem, ein Sicherheitsfall, eine Formulareinsendung, eine Sitzungsaufzeichnung oder eine öffentliche Warnung oder ein öffentlicher Vorfall in einer privaten Episode, wird wie bisher gelesen. Titel und andere Felder des privaten Datensatzes sehen dort nur die, die ihn lesen dürfen: Für alle anderen findet ihn ein Filter danach nicht, und eine Liste danach sortieren nur Projektinhaber und Projektadministratoren.
+
 Workflows handeln nicht an privaten Datensätzen. Die Schritte eines Workflows handeln als Projektadministrator, bekommen dessen Sicht auf private Vorfälle, Warnungen und Episoden aber nie geliehen: Sie finden keinen, ändern keinen und fügen keinem etwas hinzu, und ein Workflow startet nicht bei einem solchen Datensatz oder bei etwas, das zu ihm gehört. Siehe [Was Workflow-Schritte dürfen](/docs/workflows/configuration#was-workflow-schritte-dürfen).
 
 ### Regeln, die Teams gehören

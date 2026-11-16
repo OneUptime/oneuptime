@@ -356,6 +356,12 @@ Lo que se hace a propósito de un registro privado sigue la misma regla: avisar 
 
 Lo que se hace y se envía a propósito de un registro privado solo lo leen quienes pueden leer el registro: sus ejecuciones de políticas de guardia, sus ejecuciones de runbooks, las correcciones propuestas para él y los registros de los correos, SMS, llamadas, notificaciones push, mensajes de chat, webhooks y solicitudes de IA que OneUptime envió sobre él. Las personas avisadas por él siguen viendo su aviso.
 
+Al eliminar un registro privado se elimina todo esto con él, se elimine como se elimine: de uno en uno o muchos a la vez, desde el panel, la API, Terraform o MCP, por la retención de registros resueltos o junto con su proyecto. Las ejecuciones de runbooks y las correcciones se eliminan con el incidente o la alerta a los que están vinculadas, sean privados o no.
+
+Los comandos que un Runner ejecutó para una ejecución de runbook o una corrección, con lo que imprimieron, solo los leen quienes pueden leer la ejecución o la corrección. Se eliminan con la ejecución. Los comandos de una corrección eliminada se conservan, como registro de lo que se ejecutó en su infraestructura, y solo los Propietarios del proyecto y Administradores del proyecto los leen.
+
+Un registro que nombra uno privado sin formar parte de él, como un problema de Data Security, un caso de seguridad, un envío de formulario, una grabación de sesión, o una alerta o un incidente públicos en un episodio privado, se lee como antes. Solo quienes pueden leer el registro privado ven allí su título y sus demás campos: para cualquier otra persona, un filtro por ellos no lo encuentra, y solo los Propietarios del proyecto y Administradores del proyecto ordenan una lista por ellos.
+
 Los flujos de trabajo no actúan sobre registros privados. Los pasos de un flujo de trabajo actúan como Administrador del proyecto, pero nunca reciben prestada su visión de los incidentes, alertas y episodios privados: no encuentran ninguno, no cambian ninguno ni le añaden nada, y un flujo de trabajo no se inicia con uno ni con nada que le pertenezca. Consulte [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo).
 
 ### Reglas que pertenecen a equipos

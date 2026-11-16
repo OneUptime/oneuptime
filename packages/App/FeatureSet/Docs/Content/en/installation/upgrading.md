@@ -1772,6 +1772,21 @@ working mail server.
   and move what a workflow did with private records to a person, or to the
   record's own on-call and notification rules. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Runbook runs and fixes go with their incident or alert, and other records
+  show a private one only to those who may read it.** Deleting an incident or
+  an alert now deletes its runbook runs and the fixes OneUptime AI proposed for
+  it, as it already deleted its notes, on-call policy runs and logs, however it
+  is deleted. The upgrade deletes the runbook runs and fixes that had already
+  outlived their incident or alert: each fix that names neither, the runs those
+  fixes started, and the runs a runbook rule or auto-remediation started that
+  name no incident, alert or maintenance event. A record that names a private
+  incident, alert or episode without being part of it, such as a Data Security
+  issue, a security case, a form submission or a session replay, now shows
+  that record's title and other fields only to those who may read it. The
+  commands a Runner ran for a runbook run or a fix about a private record,
+  with what they printed, are now read only by those who may read the record,
+  and those of a deleted fix only by Project Owners and Project Admins. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
