@@ -18,6 +18,8 @@ import {
   TeamComplianceIssueJSON,
   TeamComplianceRuleJSON,
   TeamComplianceStatusJSON,
+  TeamComplianceWarningJSON,
+  TeamComplianceWarningKind,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
 import {
@@ -113,6 +115,12 @@ const JOIN_TABLES: Array<string> = [
 
 const CALL_SWITCHED_OFF_WARNING: string =
   "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
+
+// The same warning as data, which the page words in the reader's language (#8632).
+const CALL_SWITCHED_OFF_DETAIL: TeamComplianceWarningJSON = {
+  kind: TeamComplianceWarningKind.ChannelsSwitchedOff,
+  channels: [ComplianceNotificationChannel.Call],
+};
 
 const WHATSAPP_SWITCHED_OFF_WARNING: string =
   "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.";
@@ -720,6 +728,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           nonCompliantCount: 4,
           // The project has calls switched off.
           warnings: [CALL_SWITCHED_OFF_WARNING],
+          warningDetails: [CALL_SWITCHED_OFF_DETAIL],
         },
       ],
     ]);
@@ -800,6 +809,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           compliantCount: 0,
           nonCompliantCount: 6,
           warnings: [CALL_SWITCHED_OFF_WARNING],
+          warningDetails: [CALL_SWITCHED_OFF_DETAIL],
         },
       ],
       [
@@ -821,6 +831,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           compliantCount: 1,
           nonCompliantCount: 5,
           warnings: [],
+          warningDetails: [],
         },
       ],
       [
@@ -836,6 +847,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           compliantCount: 2,
           nonCompliantCount: 4,
           warnings: [CALL_SWITCHED_OFF_WARNING],
+          warningDetails: [CALL_SWITCHED_OFF_DETAIL],
         },
       ],
       [
@@ -863,6 +875,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           compliantCount: 0,
           nonCompliantCount: 0,
           warnings: [],
+          warningDetails: [],
         },
       ],
     ]);
@@ -1040,6 +1053,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           nonCompliantCount: 4,
           // Calls are off for the project; push has no project switch.
           warnings: [CALL_SWITCHED_OFF_WARNING],
+          warningDetails: [CALL_SWITCHED_OFF_DETAIL],
         },
       ],
     ]);

@@ -169,7 +169,7 @@ async function handleApi(method, options) {
         400,
         {
           message:
-            "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+            "OneUptime AI is switched off for this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
           refusalCode: "ai_off",
         },
         {},

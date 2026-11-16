@@ -278,10 +278,11 @@ test.describe("AI > Insights and AI > Logs", () => {
     await expect(
       page.getByTestId("resource-command-jobs-permission-note-title"),
     ).toHaveText("You don't have access to this list");
+    // The role named as the role picker draws it (#8520).
     await expect(
       page.getByTestId("resource-command-jobs-permission-note-description"),
     ).toHaveText(
-      "You need this permission: Read Runbook Execution. Ask a project admin for access.",
+      "You need this permission: Read Runbook Execution. Ask a Project Admin for access.",
     );
     await expect(lock).not.toContainText(/Runner job|Runbook Viewer/);
     await expectNoSidewaysScroll(page);

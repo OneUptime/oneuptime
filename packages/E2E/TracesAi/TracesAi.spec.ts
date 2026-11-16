@@ -991,8 +991,9 @@ test.describe("Traces → AI → a finding", () => {
  */
 const TRIAGE_TIMEOUT_ERROR: string =
   "OpenAICompatible API request failed: the LLM provider did not respond within 120 seconds.";
+// The role named as the role picker draws it (#8520).
 const TRIAGE_REFUSAL: string =
-  "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
+  "OneUptime AI is switched off for this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
 
 function triageCard(page: Page): Locator {
   return page
