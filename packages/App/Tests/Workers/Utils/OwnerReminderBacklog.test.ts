@@ -458,7 +458,10 @@ describe("reading the reminders due", () => {
 
     const told: Array<string> = [];
 
-    await Promise.all([run({ remind: sending(told) }), run({ remind: sending(told) })]);
+    await Promise.all([
+      run({ remind: sending(told) }),
+      run({ remind: sending(told) }),
+    ]);
 
     expect([...told].sort()).toEqual(
       rows

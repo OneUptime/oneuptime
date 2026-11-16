@@ -56,7 +56,10 @@ const SEEDS: Array<RuleSeed> = [
   {
     label: "an incident rule with Other edits and Everything else",
     eventType: "Incident",
-    notificationRule: { ...REST, updatesToPost: ["PrivateNotes", "Edits", "Other"] },
+    notificationRule: {
+      ...REST,
+      updatesToPost: ["PrivateNotes", "Edits", "Other"],
+    },
     expected: ["PrivateNotes", "Edits", "Other", "CustomFields", "Reminders"],
   },
   {
@@ -149,8 +152,7 @@ describePostgres(
           process.env["UPDATES_TO_POST_MIGRATION_TEST_DATABASE_HOST"] ||
           "localhost",
         port: Number(
-          process.env["UPDATES_TO_POST_MIGRATION_TEST_DATABASE_PORT"] ||
-            "5400",
+          process.env["UPDATES_TO_POST_MIGRATION_TEST_DATABASE_PORT"] || "5400",
         ),
         username: process.env["DATABASE_USERNAME"] || "postgres",
         password: process.env["DATABASE_PASSWORD"] || "password",
@@ -208,8 +210,10 @@ describePostgres(
       for (const seed of SEEDS) {
         const rule: JSONObject = await ruleOf(seed.label);
 
-        expect({ seed: seed.label, updatesToPost: rule["updatesToPost"] })
-          .toEqual({ seed: seed.label, updatesToPost: seed.expected });
+        expect({
+          seed: seed.label,
+          updatesToPost: rule["updatesToPost"],
+        }).toEqual({ seed: seed.label, updatesToPost: seed.expected });
 
         // Everything but the list, as it was.
         const rest: JSONObject = { ...rule };
@@ -273,9 +277,9 @@ describePostgres(
       );
 
       expect(
-        (
-          await ruleOf("an incident rule with Other edits and Everything else")
-        )["updatesToPost"],
+        (await ruleOf("an incident rule with Other edits and Everything else"))[
+          "updatesToPost"
+        ],
       ).toEqual(["PrivateNotes", "Edits", "Other"]);
       expect(
         (await ruleOf("an incident rule that ticked the new box already"))[

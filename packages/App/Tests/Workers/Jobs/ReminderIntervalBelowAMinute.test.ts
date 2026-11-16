@@ -345,27 +345,27 @@ async function runTick(subject: Subject): Promise<void> {
 function writesOf(subject: Subject): Array<Record<string, unknown>> {
   expect(subject.service["updateOneById"]).not.toHaveBeenCalled();
 
-  return subject.service["compareAndSetColumnsByIdWithoutHooks"]!.mock.calls.map(
-    (args: Array<unknown>): Record<string, unknown> => {
-      const move: {
-        id: ObjectID;
-        data: Record<string, unknown>;
-        expectedData: Record<string, unknown>;
-      } = args[0] as {
-        id: ObjectID;
-        data: Record<string, unknown>;
-        expectedData: Record<string, unknown>;
-      };
+  return subject.service[
+    "compareAndSetColumnsByIdWithoutHooks"
+  ]!.mock.calls.map((args: Array<unknown>): Record<string, unknown> => {
+    const move: {
+      id: ObjectID;
+      data: Record<string, unknown>;
+      expectedData: Record<string, unknown>;
+    } = args[0] as {
+      id: ObjectID;
+      data: Record<string, unknown>;
+      expectedData: Record<string, unknown>;
+    };
 
-      expect(move.id.toString()).toBe(subject.recordId.toString());
-      expect(move.expectedData).toEqual({
-        nextReminderNotificationAt: DUE_AT,
-        reminderNotificationSentCount: 2,
-      });
+    expect(move.id.toString()).toBe(subject.recordId.toString());
+    expect(move.expectedData).toEqual({
+      nextReminderNotificationAt: DUE_AT,
+      reminderNotificationSentCount: 2,
+    });
 
-      return move.data;
-    },
-  );
+    return move.data;
+  });
 }
 
 beforeEach(() => {

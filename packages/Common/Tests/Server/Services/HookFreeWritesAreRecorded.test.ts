@@ -198,10 +198,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     },
   /*
    * The owner notification jobs' take: a state change marked as told
-   * (isOwnerNotified), by the run that tells its owners (issue #7974).
+   * (isOwnerNotified), by the run that tells its owners (issue #7974). And
+   * a reminder job's move: the next reminder that an incident, an alert or
+   * a maintenance event is still open, and how many went out (issue #9019).
    */
   "packages/App/FeatureSet/Workers/Utils/OwnerNotificationBacklog.ts": {
     "OwnerNotificationBacklog.take *": Why.Bookkeeping,
+    "OwnerNotificationBacklog.move *": Why.Bookkeeping,
   },
   "packages/Common/Server/API/DataObservabilityAPI.ts": {
     "(module) DataStore": Why.Recorded,

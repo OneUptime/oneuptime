@@ -357,18 +357,21 @@ export default class OwnerNotificationBacklog {
         id: ObjectID;
         takes: Array<Promise<boolean>>;
       }): Promise<void> => {
-        const take: (move: OwnerNotificationMove<TRecord>) => Promise<boolean> =
-          (move: OwnerNotificationMove<TRecord>): Promise<boolean> => {
-            const taking: Promise<boolean> = OwnerNotificationBacklog.move({
-              service: data.service,
-              id: input.id,
-              move: move,
-            });
+        const take: (
+          move: OwnerNotificationMove<TRecord>,
+        ) => Promise<boolean> = (
+          move: OwnerNotificationMove<TRecord>,
+        ): Promise<boolean> => {
+          const taking: Promise<boolean> = OwnerNotificationBacklog.move({
+            service: data.service,
+            id: input.id,
+            move: move,
+          });
 
-            input.takes.push(taking);
+          input.takes.push(taking);
 
-            return taking;
-          };
+          return taking;
+        };
 
         await data.notify({
           record: input.record,

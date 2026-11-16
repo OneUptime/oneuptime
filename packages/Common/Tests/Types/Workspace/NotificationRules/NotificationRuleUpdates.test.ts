@@ -326,9 +326,7 @@ describe("the updates each kind of rule chooses from", () => {
           eventType,
           kind,
           offered:
-            NotificationRuleUpdates.getChoosableKinds(eventType).includes(
-              kind,
-            ),
+            NotificationRuleUpdates.getChoosableKinds(eventType).includes(kind),
         });
       }
     }
@@ -337,15 +335,16 @@ describe("the updates each kind of rule chooses from", () => {
   test("a security case's notices are its rules' alone, and its rules choose nothing else (#7936)", () => {
     for (const eventType of CHOOSING) {
       for (const kind of SECURITY_NOTICES) {
-        expect({ eventType, kind, offered: eventType === SECURITY_CASE_RULE })
-          .toEqual({
-            eventType,
-            kind,
-            offered:
-              NotificationRuleUpdates.getChoosableKinds(eventType).includes(
-                kind,
-              ),
-          });
+        expect({
+          eventType,
+          kind,
+          offered: eventType === SECURITY_CASE_RULE,
+        }).toEqual({
+          eventType,
+          kind,
+          offered:
+            NotificationRuleUpdates.getChoosableKinds(eventType).includes(kind),
+        });
       }
     }
   });

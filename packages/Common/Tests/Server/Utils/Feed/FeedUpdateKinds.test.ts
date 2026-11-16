@@ -575,8 +575,9 @@ describe("the writers hand the kinds to the message they post", () => {
     )) {
       expect({ kind, times: 1 }).toEqual({
         kind,
-        times: notices.split(`updateKind:NotificationRuleUpdateKind.${kind},`)
-          .length - 1,
+        times:
+          notices.split(`updateKind:NotificationRuleUpdateKind.${kind},`)
+            .length - 1,
       });
     }
 

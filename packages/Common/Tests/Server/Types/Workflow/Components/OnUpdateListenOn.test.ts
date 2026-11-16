@@ -306,7 +306,11 @@ describe("a reminder moved on reaches only the workflows that watch it", () => {
       runsFor(WORKFLOWS, {
         updatedFields: { reminderNotificationSentCount: 3 },
       }),
-    ).resolves.toEqual([LISTENS_ON_NOTHING, LISTENS_ON_EMPTY, LISTENS_ON_COUNT]);
+    ).resolves.toEqual([
+      LISTENS_ON_NOTHING,
+      LISTENS_ON_EMPTY,
+      LISTENS_ON_COUNT,
+    ]);
 
     // Said false, or not a yes, it is any other update.
     await expect(

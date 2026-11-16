@@ -81,8 +81,9 @@ describe("AddCustomFieldsAndRemindersToUpdatesToPost1809181400026", () => {
     );
 
     // Numbered after the one before it.
+    const trailingNumber: RegExp = /(\d+)$/;
     const numberOf: (name: string) => number = (name: string): number => {
-      return Number(/(\d+)$/.exec(name)?.[1] || "0");
+      return Number(trailingNumber.exec(name)?.[1] || "0");
     };
 
     expect(numberOf(names[index]!)).toBeGreaterThan(
