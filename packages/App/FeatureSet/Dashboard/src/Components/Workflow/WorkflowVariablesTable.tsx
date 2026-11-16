@@ -268,9 +268,7 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
           return Promise.resolve(item);
         }}
         noItemsMessage={
-          isGlobal
-            ? "No global variables found."
-            : "No workflow variables found."
+          isGlobal ? "No global variables yet." : "No workflow variables yet."
         }
         onFetchSuccess={() => {
           if (!hasFetchedOnce) {

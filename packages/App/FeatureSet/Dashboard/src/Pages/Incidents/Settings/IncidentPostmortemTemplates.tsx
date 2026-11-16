@@ -31,7 +31,7 @@ const IncidentPostmortemTemplates: FunctionComponent<PageComponentProps> = (
           description:
             "The headings and questions every postmortem should answer. Apply one on an incident's or an episode's Postmortem page, then fill it in.",
         }}
-        noItemsMessage="No postmortem templates found."
+        noItemsMessage="No postmortem templates yet."
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

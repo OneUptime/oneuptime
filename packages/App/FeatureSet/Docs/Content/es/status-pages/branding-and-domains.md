@@ -158,7 +158,7 @@ En OneUptime Cloud, añadir o cambiar cualquiera de ellos requiere el plan **Gro
 
 De forma predeterminada, una página de estado está disponible en la URL de vista previa de su pantalla **Vista general**. Para ponerla en tu propio nombre de host, ve a **Páginas de estado → tu página → Marca → Dominios personalizados** (`{id}/domains`).
 
-La tarjeta **Dominios personalizados** dice qué hacer: apunta el registro CNAME de cada dominio al registro CNAME de páginas de estado de tu instalación, y OneUptime emite el certificado SSL del dominio y lo renueva por ti. Si no hay nada configurado, la tabla dice **No se encontraron dominios personalizados**, con **Añadir dominio personalizado** debajo. La tabla tiene dos columnas, **Dominio** y **Estado**, y filtros para **Dominio**, **CNAME válido** y **SSL aprovisionado**.
+La tarjeta **Dominios personalizados** dice qué hacer: apunta el registro CNAME de cada dominio al registro CNAME de páginas de estado de tu instalación, y OneUptime emite el certificado SSL del dominio y lo renueva por ti. Si no hay nada configurado, la tabla dice **Todavía no hay dominios personalizados**, con **Añadir dominio personalizado** debajo. La tabla tiene dos columnas, **Dominio** y **Estado**, y filtros para **Dominio**, **CNAME válido** y **SSL aprovisionado**.
 
 Poner la página en tu dominio lleva tres pasos, todos en esta página, y solo los dos primeros son tuyos:
 

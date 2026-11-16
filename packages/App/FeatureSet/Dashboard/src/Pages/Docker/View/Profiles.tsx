@@ -109,7 +109,7 @@ const DockerHostProfiles: FunctionComponent<
     <Fragment>
       <ProfileTable
         profileQuery={profileQuery}
-        noItemsMessage="No performance profiles found for this Docker host."
+        noItemsMessage="No performance profiles for this Docker host yet."
       />
     </Fragment>
   );

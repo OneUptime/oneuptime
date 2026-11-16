@@ -506,7 +506,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
           },
         ]}
         name="Settings > Custom CallSMS Config"
-        noItemsMessage={"No Twilio config found."}
+        noItemsMessage={"No Twilio configs yet."}
         selectMoreFields={{
           /*
            * The numbers the Phone Numbers column shows and counts beside

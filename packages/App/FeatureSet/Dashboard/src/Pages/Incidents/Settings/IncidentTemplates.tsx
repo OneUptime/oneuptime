@@ -232,7 +232,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           description:
             "Ready-made incidents for problems you expect, with the title, severity, monitors and on-call policy filled in. Use one with Create from Template on the Incidents page.",
         }}
-        noItemsMessage={"No incident templates found."}
+        noItemsMessage={"No incident templates yet."}
         topContent={filterBar}
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}

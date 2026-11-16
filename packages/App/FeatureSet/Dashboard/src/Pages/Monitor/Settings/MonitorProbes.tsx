@@ -179,7 +179,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               "/probe/global-probes",
             ),
           }}
-          noItemsMessage={"No probes found."}
+          noItemsMessage={"No global probes yet."}
           showRefreshButton={true}
           searchableFields={["name", "description"]}
           selectMoreFields={{
@@ -278,7 +278,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             key: true,
             iconFileId: true,
           }}
-          noItemsMessage={"No probes found."}
+          noItemsMessage={"No custom probes yet."}
           viewPageRoute={Navigation.getCurrentRoute()}
           formFields={[
             {

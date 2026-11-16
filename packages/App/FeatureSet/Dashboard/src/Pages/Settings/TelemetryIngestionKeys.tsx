@@ -98,7 +98,7 @@ const TelemetryIngestionKeys: FunctionComponent<
             "These keys are used to ingest telemetry data like Logs, Traces and Metrics for your project.",
           titleGlossaryTerm: GlossaryTerm.IngestionKey,
         }}
-        noItemsMessage={"No ingestion keys found."}
+        noItemsMessage={"No ingestion keys yet."}
         formSteps={formSteps}
         formFields={formFields}
         onBeforeCreate={async (

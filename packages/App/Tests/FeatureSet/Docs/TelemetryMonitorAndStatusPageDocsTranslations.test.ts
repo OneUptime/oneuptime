@@ -342,8 +342,8 @@ interface MessageLabel {
 const MESSAGES: Record<string, Array<MessageLabel>> = {
   [BRANDING_AND_DOMAINS]: [
     {
-      english: "No custom domains found",
-      key: "No custom domains found.",
+      english: "No custom domains yet",
+      key: "No custom domains yet.",
     },
   ],
 };
@@ -1566,10 +1566,10 @@ describe("the helpers, on these pages' shapes", () => {
     ).toBe("Show N more of M");
     expect(
       drawnMessage("en", {
-        english: "No custom domains found",
-        key: "No custom domains found.",
+        english: "No custom domains yet",
+        key: "No custom domains yet.",
       }),
-    ).toBe("No custom domains found");
+    ).toBe("No custom domains yet");
     expect("見つかりません。".replace(FULL_STOP, "")).toBe("見つかりません");
   });
 

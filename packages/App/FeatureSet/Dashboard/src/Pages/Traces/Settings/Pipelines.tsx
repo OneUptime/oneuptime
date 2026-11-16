@@ -139,7 +139,7 @@ const TracePipelines: FunctionComponent<
           "Rename, fix and tag spans as they arrive, before they are stored.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No trace pipelines found."}
+      noItemsMessage={"No trace pipelines yet."}
       viewPageRoute={Navigation.getCurrentRoute()}
       formFields={[
         {

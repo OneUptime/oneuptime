@@ -158,7 +158,7 @@ On OneUptime Cloud, adding or changing any of them needs the **Growth** plan. Em
 
 By default a status page is reachable at the preview URL on its **Overview** screen. To put it on your own hostname, go to **Status Pages → your page → Branding → Custom Domains** (`{id}/domains`).
 
-The **Custom Domains** card says what to do: point each domain's CNAME record to your installation's status page CNAME record, and OneUptime issues the domain's SSL certificate and renews it for you. With nothing set up, the table says **No custom domains found**, with **Add Custom Domain** under it. The table has two columns, **Domain** and **Status**, and filters for **Domain**, **CNAME Valid** and **SSL Provisioned**.
+The **Custom Domains** card says what to do: point each domain's CNAME record to your installation's status page CNAME record, and OneUptime issues the domain's SSL certificate and renews it for you. With nothing set up, the table says **No custom domains yet**, with **Add Custom Domain** under it. The table has two columns, **Domain** and **Status**, and filters for **Domain**, **CNAME Valid** and **SSL Provisioned**.
 
 Putting the page on your domain takes three steps, all on this page, and only the first two are yours:
 

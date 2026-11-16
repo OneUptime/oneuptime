@@ -36,7 +36,7 @@ const StorageArrayBuckets: FunctionComponent<
       pluralName="Buckets"
       title="Buckets"
       description="S3 buckets on this FlashBlade with their account, quota, the flash they use, how many objects they hold and their latest performance."
-      noItemsMessage="No buckets found in the inventory yet. Buckets appear here a few minutes after the Storage Array Agent starts scraping the FlashBlade's object store."
+      noItemsMessage="No buckets in the inventory yet. Buckets appear here a few minutes after the Storage Array Agent starts scraping the FlashBlade's object store."
       getDetailRoute={(item: StorageArrayResource): Route => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL] as Route,

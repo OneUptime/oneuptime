@@ -134,7 +134,7 @@ const IncomingCallNumber: () => JSX.Element = (): ReactElement => {
             ? getChannelGatedMethodList(
                 ChannelGatedMethodList.IncomingCallNumber,
               ).noItemsWhileOff
-            : "No phone numbers found. Please add one to receive routed incoming calls."
+            : "No phone numbers yet. Add one to receive routed incoming calls."
         }
         formFields={[
           {

@@ -203,7 +203,7 @@ const Call: () => JSX.Element = (): ReactElement => {
           isChannelOff
             ? getChannelGatedMethodList(ChannelGatedMethodList.Call)
                 .noItemsWhileOff
-            : "No phone numbers found. Please add one to receive notifications."
+            : "No phone numbers yet. Add one to receive notifications."
         }
         formFields={[
           {

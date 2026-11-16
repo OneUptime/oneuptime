@@ -198,7 +198,7 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
           title: "Team Members",
           description: "See a list of members or invite them to this team. ",
         }}
-        noItemsMessage={"No members found for this team."}
+        noItemsMessage={"No members in this team yet."}
         formFields={[
           {
             field: {

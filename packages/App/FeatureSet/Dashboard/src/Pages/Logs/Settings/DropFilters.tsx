@@ -130,7 +130,7 @@ const LogDropFilters: FunctionComponent<
           "Drop or sample the logs you do not need, before they are stored.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No drop filters found."}
+      noItemsMessage={"No drop filters yet."}
       selectMoreFields={{
         samplePercentage: true,
         // Whether each row is on, for Enable and Disable to count.

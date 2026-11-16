@@ -65,7 +65,7 @@ Några snabba regler:
 - Listan över mallar visar bara **Namn** och **Beskrivning**. Rader kan inte redigeras eller tas bort från listan — öppna en mall (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) för att ändra den.
 - Alla som kan redigera en mall kan ändra dess detaljer och dess berörda resurser, **Inledande incidenttillstånd** och **Ändra övervakningsstatus till** inräknade: Projektägare, Projektadministratörer och Projektmedlemmar, Incidentadministratörer och Incidentmedlemmar, och en roll med **Edit Incident Template**.
 - Mallar stöder import och export i JSON, så att du kan flytta en mellan projekt.
-- Utan mallar säger listan **Inga incidentmallar hittades** med **Skapa Incidentmall** direkt under.
+- Utan mallar säger listan **Inga incidentmallar ännu** med **Skapa Incidentmall** direkt under.
 - Utan mallar öppnar också **Skapa från mall** i listan över incidenter en dialog **Inga incidentmallar** som säger var mallar skapas, och dess knapp **Create Template** öppnar **Incidenter → Inställningar → Incidentmallar**.
 
 ### Så tillämpas en mall

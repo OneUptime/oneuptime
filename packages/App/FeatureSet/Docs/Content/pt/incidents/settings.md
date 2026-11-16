@@ -65,7 +65,7 @@ Algumas regras rápidas:
 - A lista de modelos mostra só **Nome** e **Descrição**. As linhas não podem ser editadas nem excluídas pela lista — abra um modelo (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) para alterá-lo.
 - Quem pode editar um modelo pode alterar seus detalhes e seus recursos afetados, incluindo **Estado Inicial do Incidente** e **Alterar status do monitor para**: Proprietários do projeto, Administradores do projeto e Membros do projeto, Administradores de incidentes e Membros de incidentes, e uma função com **Edit Incident Template**.
 - Os modelos aceitam importação e exportação em JSON, então você pode levar um de um projeto para outro.
-- Sem modelos, a lista diz **Nenhum modelo de incidente encontrado** com **Criar: Modelo de incidente** logo abaixo.
+- Sem modelos, a lista diz **Ainda não há modelos de incidente** com **Criar: Modelo de incidente** logo abaixo.
 - Sem modelos também, **Criar a partir de modelo** na lista de incidentes abre uma caixa de diálogo **Nenhum modelo de incidente** que diz onde os modelos são criados, e seu botão **Create Template** abre **Incidentes → Configurações → Modelos de incidentes**.
 
 ### Como um modelo é aplicado
