@@ -44,8 +44,13 @@ import { ExpressRequest, ExpressResponse } from "./Express";
  * An Incoming Request monitor's URL answers one only for a monitor's key, and
  * only once the project's incoming request secret requirement has let the
  * request through (IncomingRequestSecretGate); a workflow's Webhook trigger
- * only for a workflow that is on. Shared by both (and by StartServer, which
- * lets a CloudEvents validation past the CORS middleware).
+ * only for a workflow that is on. Shared by both, and by CorsMiddleware,
+ * which lets a CloudEvents validation past cors to them.
+ *
+ * A probe's incoming request ingress answers every request {} before it
+ * forwards it, a check included: the services that check an endpoint reach
+ * it over the internet, which a probe's plain-HTTP listener on a private
+ * network is not for, so the docs send them to OneUptime's own URL.
  */
 
 export { WebhookVerificationProvider };
@@ -202,8 +207,8 @@ export default class WebhookVerification {
    * Whether a request is a CloudEvents webhook validation - an OPTIONS
    * request naming its sender in WebHook-Request-Origin - rather than a
    * browser's CORS preflight, which always carries
-   * Access-Control-Request-Method. StartServer lets it past the CORS
-   * middleware, which would answer it itself, so the endpoint can.
+   * Access-Control-Request-Method. CorsMiddleware lets it past cors, which
+   * would answer it itself, so the endpoint can.
    */
   public static isCloudEventsValidation(request: {
     method: string;
