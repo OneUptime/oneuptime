@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "按量计费订阅 ID",
       "noTrial": "不在试用期内",
       "changePlanTitle": "更改套餐",
-      "changePlanDescription": "将此项目移到其他套餐。进行中的试用将延续；否则新套餐从现在开始计费，并按比例计入下一张发票。客户无需绑定支付方式：欠款会保留到客户添加支付方式为止。",
+      "changePlanDescription": "将此项目移到其他套餐，并按比例计入下一张发票。进行中的试用将延续。无需支付方式：费用会保留到添加支付方式为止。",
       "changePlanSubmitButton": "更改套餐",
       "changePlanSuccess": "套餐已更改为 {{plan}}。",
       "changePlanFailure": "套餐未更改。请重试。",

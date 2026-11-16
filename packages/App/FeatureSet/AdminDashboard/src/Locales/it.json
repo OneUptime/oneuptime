@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "ID abbonamento a consumo",
       "noTrial": "Nessun periodo di prova attivo",
       "changePlanTitle": "Cambia piano",
-      "changePlanDescription": "Sposta questo progetto su un altro piano. Un periodo di prova in corso resta valido; altrimenti il nuovo piano viene addebitato da subito, in proporzione sulla prossima fattura. Il cliente non ha bisogno di un metodo di pagamento registrato: quanto dovuto resta in sospeso finché non ne aggiunge uno.",
+      "changePlanDescription": "Sposta questo progetto su un altro piano, in proporzione sulla prossima fattura. Un periodo di prova in corso resta valido. Non serve un metodo di pagamento: gli addebiti restano in sospeso finché non ne viene aggiunto uno.",
       "changePlanSubmitButton": "Cambia piano",
       "changePlanSuccess": "Piano cambiato in {{plan}}.",
       "changePlanFailure": "Il piano non è stato cambiato. Riprova.",

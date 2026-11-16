@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "사용량 기반 구독 ID",
       "noTrial": "체험판을 사용하고 있지 않음",
       "changePlanTitle": "요금제 변경",
-      "changePlanDescription": "이 프로젝트를 다른 요금제로 옮깁니다. 진행 중인 체험판은 이어지며, 그렇지 않으면 새 요금제가 지금부터 청구되고 다음 청구서에 일할 계산됩니다. 고객에게 등록된 결제 수단이 없어도 됩니다. 미납액은 결제 수단이 추가될 때까지 대기합니다.",
+      "changePlanDescription": "이 프로젝트를 다른 요금제로 옮기며, 다음 청구서에 일할 계산됩니다. 진행 중인 체험판은 이어집니다. 결제 수단은 필요하지 않으며, 요금은 결제 수단이 추가될 때까지 대기합니다.",
       "changePlanSubmitButton": "요금제 변경",
       "changePlanSuccess": "요금제가 {{plan}}(으)로 변경되었습니다.",
       "changePlanFailure": "요금제가 변경되지 않았습니다. 다시 시도하세요.",

@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "ID de l'abonnement à l'usage",
       "noTrial": "Pas d'essai en cours",
       "changePlanTitle": "Changer de forfait",
-      "changePlanDescription": "Faites passer ce projet à un autre forfait. Un essai en cours est conservé ; sinon, le nouveau forfait est facturé dès maintenant, au prorata sur la prochaine facture. Le client n'a pas besoin d'un moyen de paiement enregistré : ce qu'il doit attend qu'il en ajoute un.",
+      "changePlanDescription": "Faites passer ce projet à un autre forfait, au prorata sur la prochaine facture. Un essai en cours est conservé. Aucun moyen de paiement n'est requis : les montants dus attendent qu'il en soit ajouté un.",
       "changePlanSubmitButton": "Changer de forfait",
       "changePlanSuccess": "Le projet est passé au forfait {{plan}}.",
       "changePlanFailure": "Le forfait n'a pas été changé. Veuillez réessayer.",

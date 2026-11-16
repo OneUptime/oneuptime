@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "ID des nutzungsbasierten Abonnements",
       "noTrial": "Nicht in der Testphase",
       "changePlanTitle": "Tarif ändern",
-      "changePlanDescription": "Stellen Sie dieses Projekt auf einen anderen Tarif um. Eine laufende Testphase bleibt bestehen; sonst wird der neue Tarif ab sofort berechnet, anteilig auf der nächsten Rechnung. Der Kunde braucht keine hinterlegte Zahlungsmethode: Was er schuldet, wartet, bis er eine hinzufügt.",
+      "changePlanDescription": "Stellen Sie dieses Projekt auf einen anderen Tarif um, anteilig auf der nächsten Rechnung. Eine laufende Testphase bleibt bestehen. Eine Zahlungsmethode ist nicht nötig: Die Beträge warten, bis eine hinterlegt ist.",
       "changePlanSubmitButton": "Tarif ändern",
       "changePlanSuccess": "Tarif auf {{plan}} geändert.",
       "changePlanFailure": "Der Tarif wurde nicht geändert. Bitte versuchen Sie es erneut.",

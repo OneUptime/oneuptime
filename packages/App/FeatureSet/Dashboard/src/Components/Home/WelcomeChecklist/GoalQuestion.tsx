@@ -1,3 +1,4 @@
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import {
   WELCOME_GOAL_CARDS,
   WELCOME_JUST_LOOKING_GOAL,
@@ -308,7 +309,7 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
                   )}
                 </span>
                 <span aria-hidden="true" className="text-gray-400">
-                  ·
+                  <InlineSeparator markOnly />
                 </span>
                 <span data-testid="welcome-question-plan-minutes">
                   {translator.translatePlural(

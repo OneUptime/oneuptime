@@ -100,7 +100,9 @@ export default class CodeFixPullRequestOpener {
       typeof codeRepositoryId !== "string" ||
       !ObjectID.isValidUUID(codeRepositoryId)
     ) {
-      throw new BadDataException("codeRepositoryId is required");
+      throw new BadDataException(
+        "The request names no code repository. Send the codeRepositoryId of the repository to open the pull request in.",
+      );
     }
 
     const headRefName: string = CodeFixPullRequestOpener.readBranch(
@@ -115,7 +117,9 @@ export default class CodeFixPullRequestOpener {
     const title: unknown = data["title"];
 
     if (typeof title !== "string" || !title.trim()) {
-      throw new BadDataException("title is required");
+      throw new BadDataException(
+        "The pull request has no title. Send one with the request.",
+      );
     }
 
     const body: unknown = data["body"];
@@ -272,7 +276,7 @@ export default class CodeFixPullRequestOpener {
         error.kind !== CodeHostHttpErrorKind.Conflict
       ) {
         throw new BadDataException(
-          `OneUptime could not open the ${pullRequestTerm}: ${
+          `OneUptime could not open the ${pullRequestTerm}. ${
             error instanceof Error ? error.message : String(error)
           }`,
         );
@@ -301,7 +305,7 @@ export default class CodeFixPullRequestOpener {
 
       if (!existing) {
         throw new BadDataException(
-          `OneUptime could not open the ${pullRequestTerm}: ${error.message}`,
+          `OneUptime could not open the ${pullRequestTerm}. ${error.message}`,
         );
       }
 
@@ -377,7 +381,9 @@ export default class CodeFixPullRequestOpener {
    */
   private static readBranch(value: unknown, field: string): string {
     if (typeof value !== "string" || !value) {
-      throw new BadDataException(`${field} is required`);
+      throw new BadDataException(
+        `The request names no ${field}. Send the name of the branch.`,
+      );
     }
 
     // Git refuses each of these in a branch name.
@@ -404,7 +410,9 @@ export default class CodeFixPullRequestOpener {
       });
 
     if (!isValid) {
-      throw new BadDataException(`${field} is not a branch name Git takes`);
+      throw new BadDataException(
+        `The ${field} is not a branch name Git takes. Send one without spaces, ".." or the characters Git refuses.`,
+      );
     }
 
     return value;

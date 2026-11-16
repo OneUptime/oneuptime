@@ -23,6 +23,7 @@ import path from "path";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ADMIN DASHBOARD > PROJECTS > (PROJECT) > INVOICES, on the real page, in the
@@ -202,8 +203,16 @@ function invoices(): Array<JSONObject> {
   ];
 }
 
-let getSpy: jest.SpiedFunction<typeof BaseAPI.get>;
-let putSpy: jest.SpiedFunction<typeof BaseAPI.put>;
+/*
+ * A spy on BaseAPI's generic get and put, as jest.spyOn types it: the
+ * generic's type argument is its constraint there, so it is spelled out.
+ */
+type SpiedRequest<F extends (...args: Array<never>) => unknown> = SpyInstance<
+  (...args: Parameters<F>) => ReturnType<F>
+>;
+
+let getSpy: SpiedRequest<typeof BaseAPI.get>;
+let putSpy: SpiedRequest<typeof BaseAPI.put>;
 
 interface Request {
   url: URL;
@@ -211,9 +220,7 @@ interface Request {
 }
 
 function requestOf(
-  spy:
-    | jest.SpiedFunction<typeof BaseAPI.get>
-    | jest.SpiedFunction<typeof BaseAPI.put>,
+  spy: SpiedRequest<typeof BaseAPI.get> | SpiedRequest<typeof BaseAPI.put>,
   index: number,
 ): Request {
   return (spy.mock.calls[index] as unknown as Array<Request>)[0]!;
@@ -421,7 +428,7 @@ describe("Admin > Project > Invoices", () => {
 
     expect(
       within(dialog).getByText(
-        "Void invoice ACME-0007 for 22.00 USD? The customer will no longer owe it, and the payment provider stops trying to collect it. This cannot be undone.",
+        "Void invoice ACME-0007 for 22.00 USD? The customer will no longer owe it, and the payment provider stops collecting it. This cannot be undone.",
       ),
     ).toBeInTheDocument();
 
@@ -498,7 +505,7 @@ describe("Admin > Project > Invoices", () => {
   });
 
   test("Download opens the invoice's PDF in a new tab", async () => {
-    const navigateSpy: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {
         return undefined;

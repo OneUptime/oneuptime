@@ -56444,5 +56444,7 @@
   "Test message not sent": "測試訊息未傳送",
   "No projects yet": "尚無專案",
   "Open (pull request)": "開啟中",
-  "Welcome to OneUptime": "歡迎使用 OneUptime"
+  "Welcome to OneUptime": "歡迎使用 OneUptime",
+  "None of this SLO's services sent an event of its metric in these months. Pick a later period, or wait for their metrics to arrive.": "在這些月份中，此 SLO 的服務都沒有傳送指標事件。請選擇更晚的期間，或等待它們的指標到達。",
+  "Riskier fixes, such as stopping something or scaling it to zero, and every fix through an MCP server run only once two different people approve them.": "風險較高的修正（例如停止某個對象或將其縮放到零）以及透過 MCP 伺服器進行的任何修正，只有在兩個不同的人核准後才會執行。"
 }

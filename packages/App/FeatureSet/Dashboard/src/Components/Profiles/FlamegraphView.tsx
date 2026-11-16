@@ -1112,7 +1112,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                 {translator.translateText("Self")}
               </dt>
               <dd className="font-mono">
-                {ProfileUtil.formatPercent(hoveredSelfPct)}
+                {getValueOrQuietDash(ProfileUtil.formatPercent(hoveredSelfPct))}
                 <span className="text-gray-400">
                   {" "}
                   <InlineSeparator markOnly />{" "}
@@ -1131,7 +1131,9 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                 {translator.translateText("Total")}
               </dt>
               <dd className="font-mono">
-                {ProfileUtil.formatPercent(hoveredTotalPct)}
+                {getValueOrQuietDash(
+                  ProfileUtil.formatPercent(hoveredTotalPct),
+                )}
                 <span className="text-gray-400">
                   {" "}
                   <InlineSeparator markOnly />{" "}
