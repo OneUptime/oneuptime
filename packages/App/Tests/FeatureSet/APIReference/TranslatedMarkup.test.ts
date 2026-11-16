@@ -88,6 +88,7 @@ const DATA_TYPES_PAGE: PageFixture = {
     [
       "select",
       "sort",
+      "sortThroughRelation",
       "equalTo",
       "notEqualTo",
       "isNull",
