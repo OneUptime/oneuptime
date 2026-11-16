@@ -305,9 +305,9 @@ beforeEach(() => {
 
   jest
     .spyOn(QueryHelper, "any")
-    .mockImplementation((values: Array<string | ObjectID>) => {
+    .mockImplementation((values: Array<string | ObjectID | number>) => {
       return {
-        in: values.map((value: string | ObjectID): string => {
+        in: values.map((value: string | ObjectID | number): string => {
           return value.toString();
         }),
       } as never;
