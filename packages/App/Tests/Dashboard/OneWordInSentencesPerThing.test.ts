@@ -525,3 +525,92 @@ describe("the single keys and the titles", () => {
     expect(readDashboardLocale(language)[key]).toBe(word);
   });
 });
+
+/*
+ * THE STATES A PAGE DRAWS SIDE BY SIDE READ APART (#8767, #8781).
+ *
+ * A Proxmox node that stopped reporting is Offline; a cluster whose
+ * connection dropped is Disconnected; an integration never linked is Not
+ * connected. Norwegian said Offline and Disconnected both Frakoblet, and
+ * Arabic all three غير متصل, so a page told a node's state from a cluster's
+ * with one word. In every language the Dashboard is read in, the four keys
+ * read four ways.
+ */
+const STATES_DRAWN_TOGETHER: ReadonlyArray<string> = [
+  "Online",
+  "Offline",
+  "Disconnected",
+  "Not connected",
+];
+
+function statesSharingAWord(words: Record<string, string>): Array<string> {
+  const seen: Map<string, string> = new Map<string, string>();
+  const shared: Array<string> = [];
+
+  for (const key of STATES_DRAWN_TOGETHER) {
+    const value: string | undefined = words[key];
+
+    if (value === undefined) {
+      continue;
+    }
+
+    if (seen.has(value)) {
+      shared.push(`${seen.get(value)} = ${key}: ${value}`);
+    } else {
+      seen.set(value, key);
+    }
+  }
+
+  return shared;
+}
+
+const DASHBOARD_LOCALE_LANGUAGES: Array<string> = fs
+  .readdirSync(
+    path.resolve(__dirname, "../../FeatureSet/Dashboard/src/Locales"),
+  )
+  .filter((file: string): boolean => {
+    return file.endsWith(".json");
+  })
+  .map((file: string): string => {
+    return file.replace(/\.json$/, "");
+  });
+
+describe("the states a page draws side by side", () => {
+  test.each(DASHBOARD_LOCALE_LANGUAGES)(
+    "%s words Online, Offline, Disconnected and Not connected four ways",
+    (language: string) => {
+      expect({
+        language,
+        shared: statesSharingAWord(readDashboardLocale(language)),
+      }).toEqual({ language, shared: [] });
+    },
+  );
+
+  test("Norwegian and Arabic word them as #8767 settled", () => {
+    expect(readDashboardLocale("no")["Offline"]).toBe("Offline");
+    expect(readDashboardLocale("no")["Disconnected"]).toBe("Frakoblet");
+    expect(readDashboardLocale("ar")["Offline"]).toBe("غير متصل");
+    expect(readDashboardLocale("ar")["Disconnected"]).toBe("منقطع الاتصال");
+    expect(readDashboardLocale("ar")["Not connected"]).toBe("غير مرتبط");
+  });
+
+  // What the check would see if two states went back to one word.
+  test("finds two states that share a word (negative control)", () => {
+    expect(
+      statesSharingAWord({
+        Online: "Online",
+        Offline: "Frakoblet",
+        Disconnected: "Frakoblet",
+        "Not connected": "Ikke tilkoblet",
+      }),
+    ).toEqual(["Offline = Disconnected: Frakoblet"]);
+    expect(
+      statesSharingAWord({
+        Online: "En línea",
+        Offline: "Sin conexión",
+        Disconnected: "Desconectado",
+        "Not connected": "No conectado",
+      }),
+    ).toEqual([]);
+  });
+});

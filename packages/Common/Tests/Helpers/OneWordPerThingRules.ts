@@ -261,7 +261,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     language: "sv",
     thing: "Alerts",
     english: /\balert/i,
-    except: /notif|notify|notified|remind|notice|announce|\bpush|critical alert/i,
+    except:
+      /notif|notify|notified|remind|notice|announce|\bpush|critical alert/i,
     word: /\blarm/i,
     dropped: /\bavisering/i,
   },
