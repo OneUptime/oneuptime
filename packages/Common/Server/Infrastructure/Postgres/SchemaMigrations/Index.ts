@@ -1025,6 +1025,7 @@ import { AddResolvedRecordRetentionServerLimits1809181000000 } from "./180918100
 import { AddMonitorFirstMeasuredAt1809181100000 } from "./1809181100000-AddMonitorFirstMeasuredAt";
 import { ApiKeyHashedColumn1809181200000 } from "./1809181200000-ApiKeyHashedColumn";
 import { AddMasterApiKeyCreatedByAndHint1809181300000 } from "./1809181300000-AddMasterApiKeyCreatedByAndHint";
+import { DropOnCallExecutionLogStepIndexes1809181400000 } from "./1809181400000-DropOnCallExecutionLogStepIndexes";
 
 export default [
   InitialMigration,
@@ -2054,4 +2055,5 @@ export default [
   AddMonitorFirstMeasuredAt1809181100000,
   ApiKeyHashedColumn1809181200000,
   AddMasterApiKeyCreatedByAndHint1809181300000,
+  DropOnCallExecutionLogStepIndexes1809181400000,
 ];
