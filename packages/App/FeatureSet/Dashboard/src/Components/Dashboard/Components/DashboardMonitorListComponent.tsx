@@ -60,10 +60,13 @@ export interface ComponentProps extends DashboardBaseComponentProps {
  * A row's status in the reader's words, in the table and in its tile. A
  * monitor whose monitoring is off is not checked, so the status it holds is
  * only what its last check saw: the row says Disabled, in gray and in the
- * reader's language, as the Monitors table does. Any other row says its
- * status's name by its list (Common/Utils/DefaultRecordNames): the default
- * "Operational" in the reader's words, a status the project named itself as
- * written - never looked up, so "Open" is never "Abrir".
+ * reader's language, as the Monitors table does - and so for every other
+ * row that says why it has no status a check stands behind (Probes Not
+ * Enabled, Waiting for data, No results yet, Paused: MonitorRowStatus).
+ * Any other row says its status's name by its list
+ * (Common/Utils/DefaultRecordNames): the default "Operational" in the
+ * reader's words, a status the project named itself as written - never
+ * looked up, so "Open" is never "Abrir".
  */
 export const getMonitorListStatusName: (
   status: MonitorListRowStatus,
@@ -72,7 +75,7 @@ export const getMonitorListStatusName: (
   status: MonitorListRowStatus,
   translator: Translator,
 ): string => {
-  if (status.isMonitoringOff) {
+  if (status.isProductWords || status.isMonitoringOff) {
     return translator.translateText(status.text) || status.text;
   }
 
@@ -188,7 +191,11 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         query: query,
         limit: maxRows,
         skip: 0,
-        // With disableActiveMonitoring, so a monitor that is off says so.
+        /*
+         * With what the row rule reads (MonitorRowStatus), so a monitor
+         * whose monitoring is off, that no probe checks or that nothing has
+         * checked yet says so, as the Monitors table does.
+         */
         select: widgetSort.withSortSelect({
           ...MONITOR_LIST_WIDGET_SELECT,
         } as JSONObject) as Select<Monitor>,
@@ -236,7 +243,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       const monitorId: string = (monitor._id as string) || "";
       const name: string =
         (monitor.name as string) || getUnnamedText(translator);
-      // Disabled, in gray, when the monitor's monitoring is off.
+      // What the Monitors table says of it: Disabled, Waiting for data, its status.
       const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
       const statusName: string = getMonitorListStatusName(status, translator);
       const monitorType: string = getMonitorListTypeText(monitor, translator);

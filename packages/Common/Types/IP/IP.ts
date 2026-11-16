@@ -177,6 +177,32 @@ export default class IP extends DatabaseProperty {
    * Note that neither validator trims: callers pass the exact string they mean
    * to validate. Whitespace-padded input is rejected, which is how the IPv4
    * side has always behaved.
+   *
+   * The IPv6 pattern takes every text form of RFC 4291 section 2.2, the
+   * forms Node's net.isIPv6 takes, in three parts:
+   *
+   *   - eight groups of hex digits, or fewer with "::" in place of one or
+   *     more groups of zeros ("2001:db8::1", "::", "1::");
+   *   - six groups' worth of the same, then an IPv4 address in the last 32
+   *     bits: "::ffff:192.0.2.1", "64:ff9b::192.0.2.1",
+   *     "1:2:3:4:5:6:192.0.2.1" and "2001:db8::1:192.0.2.1" alike. The IPv4
+   *     address is written as RFC 3986 writes one, with no leading zeros
+   *     ("::ffff:01.2.3.4" is no address, to Node or a browser either). It
+   *     used to take an IPv4 address only after "::", "::ffff:" or up to four
+   *     groups and "::", so a HOST of [2001:db8::1:192.0.2.1] stopped every
+   *     service at boot (#8927);
+   *   - a link-local address with its zone, "fe80::1%eth0", as it always has.
+   *     No other address takes a zone here.
+   *
+   * Widening it opened nothing: the address checks of outbound requests
+   * (SSRFProtection, the egress guard) read an address with Node's own
+   * parser, which always took every form, and classify an IPv4 address
+   * carried in IPv6 - IPv4-mapped, IPv4-compatible, NAT64, 6to4, Teredo - by
+   * the IPv4 address it carries, however it is spelled.
+   *
+   * npm start (IPV6_ADDRESS in Scripts/Install/Preflight.js) and the Helm
+   * chart (oneuptime.isIpv6Address) hold HOST to this same pattern, and
+   * Tests/Ops/HelmHost.test.js holds the three copies to one another.
    */
   private static isIPv4(str: string): boolean {
     const regexExp: RegExp =
@@ -188,7 +214,7 @@ export default class IP extends DatabaseProperty {
 
   private static isIPv6(str: string): boolean {
     const regexExp: RegExp =
-      /^(?:([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/i;
+      /^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|(?:(?:[0-9a-fA-F]{1,4}:){6}|::(?:[0-9a-fA-F]{1,4}:){0,5}|[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:){0,4}|(?:[0-9a-fA-F]{1,4}:){2}:(?:[0-9a-fA-F]{1,4}:){0,3}|(?:[0-9a-fA-F]{1,4}:){3}:(?:[0-9a-fA-F]{1,4}:){0,2}|(?:[0-9a-fA-F]{1,4}:){4}:(?:[0-9a-fA-F]{1,4}:)?|(?:[0-9a-fA-F]{1,4}:){5}:)(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))$/i;
     return regexExp.test(str);
   }
 

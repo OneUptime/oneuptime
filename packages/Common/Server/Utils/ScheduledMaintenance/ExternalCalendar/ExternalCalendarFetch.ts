@@ -27,7 +27,9 @@ import zlib from "zlib";
  * moment later. On OneUptime Cloud that keeps every private and internal
  * address out of reach; a self-hosted OneUptime may read a calendar on its
  * own network (an Exchange server on 10.0.0.0/8), as it may a data source,
- * and never loopback or a cloud metadata address.
+ * and never loopback or a cloud metadata address. Behind an outbound proxy
+ * the read goes through it, as axios's requests do, the address checked
+ * first; the proxy looks the name up and connects.
  *
  * A redirect is not left to the HTTP client: its Location is checked and
  * pinned like the first address, at most EXTERNAL_CALENDAR_MAX_REDIRECTS
@@ -114,11 +116,17 @@ function failed(
 }
 
 export default class ExternalCalendarFetch {
+  /*
+   * The agents go through the outbound proxy the environment names for the
+   * link (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY, apart from NO_PROXY's hosts),
+   * as every axios request of the server does; without one they dial the
+   * checked addresses only (#8932).
+   */
   public static readonly defaultGuard: ExternalCalendarAddressGuard = async (
     url: string,
   ): Promise<{ url: URL } & PinnedAgents> => {
     const pinned: { url: URL } & PinnedAgents =
-      await DataSourceEgressGuard.assertUrlAllowedAndPin(url, {
+      await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(url, {
         targetLabel: TARGET_LABEL,
       });
 

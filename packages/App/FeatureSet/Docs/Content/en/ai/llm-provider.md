@@ -113,7 +113,7 @@ On **Connection**, the form asks only for what that provider uses, with its own 
 
 ### Test it
 
-**Testing a provider.** **Test**, on the provider's page or in its row's menu, sends the provider a short prompt with its **API Key**, **Model Name**, **Base URL** and **Additional Parameters**, and says whether it answered and called a tool, which OneUptime's AI features need. A failed test says what to check first, then what the provider answered. Whoever may change a provider can test it: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** and **Edit LLM**. Everyone else who can see the provider finds **Test** locked. A Global LLM Provider is tested by a server administrator, in the Admin Dashboard under **Settings → Global LLM Providers**.
+**Testing a provider.** **Test**, on the provider's page or in its row's menu, sends the provider a short prompt with its **API Key**, **Model Name**, **Base URL** and **Additional Parameters**, and says whether it answered and called a tool, which OneUptime's AI features need. A failed test says what to check first, then what the provider answered. Whoever may change a provider can test it: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** and **Edit LLM**. Everyone else who can see the provider finds **Test** locked. A Global LLM Provider is tested by a server administrator, in the Admin Dashboard under **Settings → Global LLM Providers**. OneUptime reads at most 16 MB of a provider's answer, in a test and in every AI feature. A larger answer is not read: the request fails, and the test says so.
 :::
 
 ## Provider-Specific Configuration

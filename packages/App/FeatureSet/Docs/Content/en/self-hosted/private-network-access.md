@@ -50,7 +50,7 @@ Blocked targets fall into two tiers.
 
 The cloud metadata endpoint `169.254.169.254` sits in the forbidden tier for a reason. On a cloud VM it hands out the instance's IAM credentials to anything that can make an HTTP request from the machine, so no blanket setting will ever open it.
 
-IPv6 spellings that carry an IPv4 target inside them — IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo — are classified by the IPv4 address they reach, so they cannot be used to smuggle a forbidden address past a private-tier allowance.
+IPv6 spellings that carry an IPv4 target inside them — IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo — are classified by the IPv4 address they reach, however they are written, so they cannot be used to smuggle a forbidden address past a private-tier allowance.
 
 ## Webhooks and workflows
 
@@ -142,7 +142,7 @@ On Docker Compose, `config.env` has a `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false
 
 With it on, a refused host name is reported without saying what it resolved to, for example _"LLM provider host ollama.internal could not be reached."_ A name that does not resolve at all gets the same message, so project members cannot use these fields to find out which internal names exist. An address typed as an IP is still named along with the reason, for example _"LLM provider host 10.0.4.12 is not allowed: private network address."_ With `LOG_LEVEL=DEBUG`, the app logs the address each refused name resolved to.
 
-Behind an outbound proxy, the connections made over HTTP go through it, as webhooks do: data sources and security event connections read over HTTP, threat intel feeds, LLM providers, OAuth token URLs, custom domain verification, Runbook HTTP steps and the Grafana OnCall import use the proxy set in `HTTPS_PROXY`, `HTTP_PROXY` or `ALL_PROXY`, whether it is named by address or by host name. OneUptime still checks the address first and never follows a redirect, but the proxy looks the name up and makes the connection, so refuse link-local destinations on the proxy itself, `169.254.169.254` above all. A host in `NO_PROXY` is connected to directly, at the address OneUptime checked: list your internal hosts there. Database and SMTP connections, OIDC discovery, external calendars, MCP servers and Git servers always connect directly, without a proxy.
+Behind an outbound proxy, the connections made over HTTP go through it, as webhooks do: data sources and security event connections read over HTTP, threat intel feeds, LLM providers, OAuth token URLs, OIDC single sign-on, external calendars, MCP servers, backups, custom domain verification, Runbook HTTP steps and the Grafana OnCall import use the proxy set in `HTTPS_PROXY`, `HTTP_PROXY` or `ALL_PROXY`, whether it is named by address or by host name. OneUptime still checks the address first and never follows a redirect, but the proxy looks the name up and makes the connection, so refuse link-local destinations on the proxy itself, `169.254.169.254` above all. A host in `NO_PROXY` is connected to directly, at the address OneUptime checked: list your internal hosts there. Database and SMTP connections and Git servers always connect directly, without a proxy.
 
 ## Probes and monitors
 

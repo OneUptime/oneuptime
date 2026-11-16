@@ -1,6 +1,7 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
+import { readSessionIdFromAttributes } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import {
   TelemetryServiceMetadata,
   getScalarEntityKeyColumns,
@@ -1326,10 +1327,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     /*
                      * '' when this log carries no browser session. Read
                      * from the merged attribute object so a resource-level
-                     * session.id counts (see getSessionIdFromAttributes).
+                     * session.id counts (Common/Utils/Telemetry/
+                     * CorrelationIdAttributes, shared with the traces
+                     * ingest and the scrub rules, which keep it).
                      */
-                    sessionId:
-                      this.getSessionIdFromAttributes(attributesObject),
+                    sessionId: readSessionIdFromAttributes(attributesObject),
                     body: body,
                     observedTimeUnixNano:
                       this.toUnixNanoText(observedTimeUnixNano),
@@ -1770,55 +1772,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       logger.error(error);
       throw error;
     }
-  }
-
-  /*
-   * Session replay correlation. `session.id` reaches us in one of two
-   * shapes and we must accept both:
-   *
-   *   - as a log attribute, under the bare key "session.id";
-   *   - as a RESOURCE attribute, which TelemetryUtil.getAttributes
-   *     prefixes with "resource.", so it arrives as
-   *     "resource.session.id".
-   *
-   * Reading only the bare key would look correct in a unit test and fail
-   * in production, because a browser SDK sets session.id ONCE on the
-   * resource rather than on every record.
-   *
-   * Duplicated verbatim in OtelTracesIngestService: the two ingest
-   * services share no base for row building, and a Common helper would
-   * put an ingest-only concern in the shared telemetry utils.
-   */
-  private static readonly sessionIdAttributeKeys: ReadonlyArray<string> = [
-    "session.id",
-    "resource.session.id",
-  ];
-
-  private static getSessionIdFromAttributes(
-    attributes: Record<string, unknown> | undefined,
-  ): string {
-    if (!attributes) {
-      return "";
-    }
-
-    for (const key of this.sessionIdAttributeKeys) {
-      const value: unknown = attributes[key];
-
-      if (typeof value === "string" && value !== "") {
-        return value;
-      }
-
-      /*
-       * A numeric or boolean session id is nonsense but harmless to
-       * coerce; an array or object is not a usable join key, so it falls
-       * through to the next candidate key and ultimately to "".
-       */
-      if (typeof value === "number" || typeof value === "boolean") {
-        return String(value);
-      }
-    }
-
-    return "";
   }
 
   /*

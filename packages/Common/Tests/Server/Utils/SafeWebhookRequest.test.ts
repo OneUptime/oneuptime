@@ -714,14 +714,14 @@ describe("the request goes out on exactly the URL that was checked", () => {
     expect(error).toBeInstanceOf(WebhookAnswerTooLargeException);
     expect(error).toBeInstanceOf(APIException);
     expect((error as WebhookAnswerTooLargeException).message).toBe(
-      "The answer was larger than 1 KB, so it was not read.",
+      "The answer was larger than 1\u00A0KB, so it was not read.",
     );
     expect((error as WebhookAnswerTooLargeException).maxContentLength).toBe(
       1024,
     );
     expect(
       (error as WebhookAnswerTooLargeException).describe("Zabbix's answer"),
-    ).toBe("Zabbix's answer was larger than 1 KB, so it was not read.");
+    ).toBe("Zabbix's answer was larger than 1\u00A0KB, so it was not read.");
     // Nothing of the URL, which can carry a secret.
     expect((error as Error).message).not.toContain(String(server.port));
 
@@ -747,7 +747,9 @@ describe("the request goes out on exactly the URL that was checked", () => {
 
     await expect(
       SafeWebhookRequest.post(server.url(), {}, { validation: MEMBER_POLICY }),
-    ).rejects.toThrow("The answer was larger than 1 MB, so it was not read.");
+    ).rejects.toThrow(
+      "The answer was larger than 1\u00A0MB, so it was not read.",
+    );
 
     server.handler = (
       _request: http.IncomingMessage,

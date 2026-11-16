@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
@@ -15,6 +17,11 @@ import {
   getLinkedResourceKindForEntityType,
   getLinkedResourceQueryField,
 } from "../../FeatureSet/Dashboard/src/Components/Inventory/LinkedResource";
+
+const LINKED_RESOURCE_FILE: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/Dashboard/src/Components/Inventory/LinkedResource.ts",
+);
 
 /*
  * An inventory item owns no incidents, alerts or maintenance windows. It
@@ -181,6 +188,12 @@ describe("the empty-state sentence", () => {
     expect(sentence).not.toMatch(/\. An? /);
   });
 
+  /*
+   * The signal takes its capital from the Translator alone (#7772): it is a
+   * term at the start of a sentence. Nothing capitalises the sentence
+   * afterwards (#7861), so a signal that stopped being a term - one put in
+   * as it is written, "alerts" - would read "alerts are raised..." here.
+   */
   test("starts with the signal, capitalised", () => {
     expect(
       describeMissingLink(EntityType.Container, "alerts").startsWith("Alerts"),
@@ -193,6 +206,32 @@ describe("the empty-state sentence", () => {
     ).toBe(true);
   });
 
+  test.each([
+    ["incidents", "Incidents"],
+    ["alerts", "Alerts"],
+    ["maintenance windows", "Maintenance windows"],
+  ])(
+    "without a type, starts with the signal's capital too: %s",
+    (signal: string, capitalised: string) => {
+      expect(describeMissingLink(undefined, signal)).toBe(
+        `${capitalised} are raised against services, hosts and Kubernetes clusters. This item does not carry its own — look at the service or host it belongs to, which you can find under Connections.`,
+      );
+    },
+  );
+
+  test.each([
+    ["incidents", "Incidents"],
+    ["alerts", "Alerts"],
+    ["maintenance windows", "Maintenance windows"],
+  ])(
+    "with a type, starts with the signal's capital: %s",
+    (signal: string, capitalised: string) => {
+      expect(describeMissingLink(EntityType.KubernetesPod, signal)).toBe(
+        `${capitalised} are raised against services, hosts and Kubernetes clusters. This Kubernetes pod does not carry its own — look at the service or host it belongs to, which you can find under Connections.`,
+      );
+    },
+  );
+
   test("points somewhere the reader can actually go", () => {
     // A dead end is worse than an empty table.
     expect(
@@ -200,9 +239,22 @@ describe("the empty-state sentence", () => {
     ).toContain("Connections");
   });
 
-  test("degrades without an entity type", () => {
-    expect(describeMissingLink(undefined, "incidents").length).toBeGreaterThan(
-      0,
-    );
+  test("degrades without an entity type: the item, not its type, carries none", () => {
+    const sentence: string = describeMissingLink(undefined, "incidents");
+
+    expect(sentence).toContain("This item does not carry its own");
+    expect(sentence).toContain("Connections");
+    expect(sentence).not.toContain("{{");
+  });
+
+  test("capitalises nothing itself: the capital is the Translator's", () => {
+    const code: string = fs
+      .readFileSync(LINKED_RESOURCE_FILE, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/.*$/gm, " ");
+
+    // A module that read nothing would pass anything.
+    expect(code).toContain("describeMissingLink");
+    expect(code).not.toMatch(/capitalizeFirst|toLocaleUpperCase|toUpperCase/);
   });
 });

@@ -36,7 +36,7 @@ Raden högst upp nämner det mest brådskande som är öppet, i en färg som pas
 | Monitorer körs och inget är öppet | **Alla system fungerar** |
 | Projektet har inga monitorer ännu | **Inget övervakas ännu** |
 
-Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
+Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. Hem följer också det den räknar när det ändras: när en incident, ett larm, en monitor, en underhållshändelse eller ett SLO skapas, ändras eller tas bort kommer raden, siffrorna, **Kräver uppmärksamhet** och **Kommande underhåll** i kapp inom några sekunder, utan omladdning. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
 
 Så länge inget övervakas ännu slutar raden med knappen **Skapa din första monitor**, som öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**. Bara den som får skapa monitorer ser den.
 
@@ -89,6 +89,8 @@ flowchart TB
 
 Checklistan försvinner för alla när varje steg är klart. För att dölja den tidigare klickar du på **Dölj**: den döljs då bara för dig, på alla enheter, och en rad blir kvar med **Visa den** och **Så fungerar OneUptime**. Den som har bjudits in till projektet som medlem ser inte checklistan. **Så fungerar OneUptime** finns kvar ett klick bort, i alla projekt: öppna det från **Hjälp** eller med knappen bredvid **Utforska OneUptime**.
 
+**Så fungerar OneUptime** öppnar med **Så hänger det ihop**: de fyra steg ett problem går igenom, **Upptäck**, **Reagera**, **Kommunicera** och **Förbättra**, vart och ett med de produkter som gör det. Sedan kommer kategorierna i menyn **Produkter**, var och en med sina produkter och vad varje produkt är till för: välj en, eller gå vidare med piltangenterna eller **Nästa**. Klicka på en produkt för att öppna den. Produkter som ditt projekt döljer är utelämnade.
+
 ### Kräver uppmärksamhet
 
 **Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna larmen, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller larm började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten, som öppnar samma lista som dess siffra. När inget är öppet står det **Inget kräver din uppmärksamhet**.
@@ -137,7 +139,7 @@ Ett ord med en prickad linje under, som **Sonder** i formuläret för en ny moni
 
 Ovanför varje sidas rubrik visar ett spår som *Projekt › Docker › Inställningar › Ägarregler* var sidan ligger. Varje steg före det sista öppnar sin sida.
 
-- **Listor håller sig själva aktuella.** När en incident eller ett larm skapas, kvitteras eller löses någonstans visar listorna över incidenter, larm och episoder det inom några sekunder, utan omladdning. Medan du är mitt i något på en lista, till exempel med rader markerade eller en dialogruta öppen, väntar den och kommer i kapp när du är klar.
+- **Listor håller sig själva aktuella.** När en incident, ett larm, en monitor eller en underhållshändelse skapas, ändras eller tas bort någonstans visar listorna över incidenter, larm, episoder, monitorer och underhållshändelser det inom några sekunder, utan omladdning, och det gör även antalen bredvid dem i sidomenyerna. Klockans antal, och listorna **Aktiva incidenter**, **Aktiva larm**, **Aktiva incidentepisoder** och **Aktiva larmepisoder**, följer alla projekt du är med i, inte bara det som är öppet. Medan du är mitt i något på en lista, till exempel med rader markerade eller en dialogruta öppen, väntar den och kommer i kapp när du är klar.
 - **På en telefon fälls filterchippen ihop** bakom **Filter**, så att listan börjar högre upp. Chippen du har satt syns fortfarande, med **Rensa alla**. Tryck på **Filter** för att se alla chipp, och igen för att fälla ihop dem.
 - **Kolumner**, i menyn **⋯** på en lista, väljer vilka kolumner listan visar och i vilken ordning, och sparar dem åt dig i den här webbläsaren. En Projektägare eller en Projektadministratör kan också kryssa i **Visa de här kolumnerna för alla i det här projektet** där: alla som inte har valt egna kolumner för listan ser de här, och **Återställ till projektets standard** sätter tillbaka dina egna till dem.
 - **Kompakta rader**, i samma meny, gör raderna i alla listor lägre, så att en lång lista visar ungefär en femtedel fler av dem. Valet sparas i den här webbläsaren.

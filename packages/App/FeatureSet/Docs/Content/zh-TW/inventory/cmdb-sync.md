@@ -63,7 +63,7 @@ flowchart TB
 
 ### 複製金鑰
 
-從金鑰的頁面複製 **API 金鑰**，並讓你的工作可以使用它：
+使用你建立金鑰時 OneUptime 只顯示過一次的那個金鑰，並讓你的工作可以使用它：
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

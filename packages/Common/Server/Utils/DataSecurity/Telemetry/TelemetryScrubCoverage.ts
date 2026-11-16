@@ -37,6 +37,7 @@ import { isCustomDataTypeId } from "../../../../Utils/DataSecurity/CustomDataTyp
 import { DataTypeDetector } from "../../../../Utils/DataSecurity/Detector";
 import { getBuiltInDetectorsOf } from "../../../../Utils/DataSecurity/Detectors/Index";
 import { PatternProblemReason } from "../../../../Utils/LinearRegExp/PatternProblem";
+import { CORRELATION_ID_ATTRIBUTE_KEYS } from "../../../../Utils/Telemetry/CorrelationIdAttributes";
 import LogScrubRuleService from "../../../Services/LogScrubRuleService";
 import TraceScrubRuleService from "../../../Services/TraceScrubRuleService";
 import WorkspaceActionAuthorization from "../../Workspace/WorkspaceActionAuthorization";
@@ -148,6 +149,30 @@ const MAX_KEY_LENGTH: number = 1_024;
 
 export function isSensitiveAttributeKey(key: string): boolean {
   return INGEST_SENSITIVE_KEY_REGEX.test(key.slice(0, MAX_KEY_LENGTH));
+}
+
+/*
+ * Whether a Sensitive Attribute Keys rule hides the value at this place: a
+ * value under a key that looks secret - but for a record's own attribute
+ * that can hold the record's session or conversation id, which the rule
+ * keeps when it does, as the record's column keeps it (#8924,
+ * Utils/Telemetry/CorrelationIdAttributes). Saying such a rule covers it,
+ * or offering one for it, would promise what ingest does not do.
+ */
+function sensitiveKeysRuleHides(target: ScrubTarget): boolean {
+  if (
+    target.key === undefined ||
+    (target.field !== ScrubbedField.Attributes &&
+      target.field !== ScrubbedField.Events) ||
+    !isSensitiveAttributeKey(target.key)
+  ) {
+    return false;
+  }
+
+  return !(
+    target.field === ScrubbedField.Attributes &&
+    CORRELATION_ID_ATTRIBUTE_KEYS.has(target.key)
+  );
 }
 
 // The data type each built-in pattern type finds. Log and trace rules share them.
@@ -357,12 +382,7 @@ function ruleCovers(
 
   if (rule.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     // A key's whole value, whatever the rule's fields say - as ingest runs it.
-    return (
-      target.key !== undefined &&
-      (target.field === ScrubbedField.Attributes ||
-        target.field === ScrubbedField.Events) &&
-      isSensitiveAttributeKey(target.key)
-    );
+    return sensitiveKeysRuleHides(target);
   }
 
   if (!ruleScrubsField(rule, target.field)) {
@@ -769,12 +789,7 @@ function planScrubRule(data: {
   }
 
   // A value under a key that names it: its whole value, whatever its shape.
-  if (
-    target.key !== undefined &&
-    (target.field === ScrubbedField.Attributes ||
-      target.field === ScrubbedField.Events) &&
-    isSensitiveAttributeKey(target.key)
-  ) {
+  if (sensitiveKeysRuleHides(target)) {
     return {
       patternType: SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE,
       scrubAction: redactAction(target.signal),

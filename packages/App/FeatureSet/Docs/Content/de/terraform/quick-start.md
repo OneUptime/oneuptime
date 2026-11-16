@@ -32,7 +32,7 @@ flowchart TB
 
 Öffnen Sie im OneUptime-Dashboard **Projekteinstellungen → Erweitert → API-Schlüssel** und klicken Sie auf **API-Schlüssel erstellen**. Geben Sie einen **Name** an, etwa `terraform`, und wählen Sie unter **Zugriff** die Option **Projektadministrator**: Terraform legt jede Art von Datensatz, die es verwaltet, an, liest, ändert und löscht sie, und **Projektadministrator** darf all das. Für einen engeren Schlüssel wählen Sie **Berechtigungen später wählen** und fügen auf der Seite des Schlüssels nur die Berechtigungen hinzu, die Sie brauchen.
 
-Der Schlüssel läuft in einem Jahr ab. Für ein anderes Datum öffnen Sie **Weitere Felder**, bevor Sie ihn anlegen, oder ändern das Datum später auf der Seite des Schlüssels. Ist der Schlüssel angelegt, öffnet sich seine Seite: Kopieren Sie den **API-Schlüssel** aus der Karte **API-Schlüssel-Details**.
+Der Schlüssel läuft in einem Jahr ab. Für ein anderes Datum öffnen Sie **Weitere Felder**, bevor Sie ihn anlegen, oder ändern das Datum später auf der Seite des Schlüssels. Ist der Schlüssel angelegt, zeigt OneUptime ihn einmal an, im Dialog **Kopieren Sie Ihren API-Schlüssel**: Kopieren Sie ihn, bevor Sie auf **Fertig** klicken.
 
 ### Den Schlüssel für Terraform bereitstellen
 
@@ -218,7 +218,7 @@ Der Provider hat keinen API-Schlüssel gefunden. Exportieren Sie `ONEUPTIME_API_
 :::
 
 :::details Meldung „the OneUptime API returned status 400: Invalid API Key“
-Der Schlüssel ist falsch geschrieben, abgelaufen oder gelöscht, oder er gehört zu einer anderen OneUptime-Instanz als der, auf die `oneuptime_url` zeigt. Kopieren Sie den Schlüssel erneut von seiner Seite, oder legen Sie einen neuen an.
+Der Schlüssel ist falsch geschrieben, abgelaufen oder gelöscht, oder er gehört zu einer anderen OneUptime-Instanz als der, auf die `oneuptime_url` zeigt. Vergleichen Sie ihn damit, wie der Schlüssel auf seiner Seite endet, oder setzen Sie ihn dort zurück, um einen neuen zu erhalten.
 :::
 
 :::details Meldung „the OneUptime API returned status 402: API keys need the Growth plan“

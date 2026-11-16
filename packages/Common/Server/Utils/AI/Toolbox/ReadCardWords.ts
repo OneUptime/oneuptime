@@ -7,6 +7,7 @@ import {
   AI_READ_CARD_KINDS,
   AI_READ_CARD_LINES,
   AI_READ_CARD_NAME,
+  AI_READ_CARD_NOT_CHECKED_YET_LINES,
   AI_READ_CARD_NOUNS,
   AI_READ_CARD_PLURAL_SENTENCES,
   AI_READ_CARD_SENTENCES,
@@ -103,6 +104,12 @@ export interface MonitorCardData {
   statusName?: string | undefined;
   isMonitoringOff: boolean;
   isArchived: boolean;
+  /*
+   * When nothing has checked the monitor yet (issue #8899): the Monitors
+   * table's words for why - one of AI_READ_CARD_LINES' (Waiting for data,
+   * No results yet, Paused, Probes Not Enabled, Probes Disconnected).
+   */
+  notCheckedYet?: string | undefined;
   ownerTeamNames?: string | undefined;
   ownerUserNames?: string | undefined;
 }
@@ -123,16 +130,28 @@ export function getMonitorCardWords(data: MonitorCardData): AIActionCardWords {
   /*
    * A monitor whose monitoring is off is not in that status now: its card
    * says Disabled under its name, and this is the status its last check
-   * saw, said as the last one.
+   * saw, said as the last one. One nothing has checked yet has no status
+   * a check saw - only the one it was created in - so its card names none,
+   * as its own page names no last recorded status.
    */
-  facts.push(
-    ...dataFact(
-      data.isMonitoringOff
-        ? AI_READ_CARD_FACTS.lastStatus
-        : AI_READ_CARD_FACTS.status,
-      data.statusName,
-    ),
-  );
+  const notCheckedYet: string | undefined =
+    !data.isMonitoringOff &&
+    !data.isArchived &&
+    data.notCheckedYet &&
+    AI_READ_CARD_NOT_CHECKED_YET_LINES.includes(data.notCheckedYet)
+      ? data.notCheckedYet
+      : undefined;
+
+  if (!notCheckedYet) {
+    facts.push(
+      ...dataFact(
+        data.isMonitoringOff
+          ? AI_READ_CARD_FACTS.lastStatus
+          : AI_READ_CARD_FACTS.status,
+        data.statusName,
+      ),
+    );
+  }
 
   if (data.isArchived) {
     facts.push(
@@ -157,13 +176,16 @@ export function getMonitorCardWords(data: MonitorCardData): AIActionCardWords {
 
   /*
    * What the Monitors table says of it under its name: Disabled when its
-   * monitoring is off, not the status it was frozen at.
+   * monitoring is off, not the status it was frozen at; why nothing has
+   * checked it when nothing has, not the status it was created in.
    */
   const line: Array<AIActionSentence | string> = data.isMonitoringOff
     ? [aiActionSentence(AI_READ_CARD_LINES.disabled)]
-    : data.statusName
-      ? [data.statusName]
-      : [];
+    : notCheckedYet
+      ? [aiActionSentence(notCheckedYet)]
+      : data.statusName
+        ? [data.statusName]
+        : [];
 
   return {
     kind: aiActionTerm(AI_READ_CARD_KINDS.monitor),

@@ -1,11 +1,16 @@
 import EventName from "../../Utils/EventName";
-import HowOneUptimeWorks, { HOW_IT_WORKS_TITLE } from "./HowOneUptimeWorks";
+import {
+  HOW_IT_WORKS_TITLE,
+  HowOneUptimeWorksDocsLinks,
+} from "./HowOneUptimeWorks";
+import HowOneUptimeWorksOverview from "./HowOneUptimeWorksOverview";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import WasThisClear from "Common/UI/Components/Feedback/WasThisClear";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -16,12 +21,13 @@ import React, {
 /*
  * "HOW ONEUPTIME WORKS", ALWAYS ONE CLICK AWAY.
  *
- * The best explanation of OneUptime the product has - four products in the
- * order a problem flows through them - used to live only inside Home's
- * Welcome checklist, and went for good once the checklist was done or
- * dismissed. This dialog shows it on its own, from any page and in any
- * project however old: Help opens it, Home opens it, and so can anything
- * else that calls openHowOneUptimeWorks.
+ * What OneUptime does and how it fits together, from any page and in any
+ * project however old: the four steps a problem moves through, with the
+ * products that do each, then every product, by category
+ * (HowOneUptimeWorksOverview, #8891). Help opens it, Home opens it, Search
+ * opens it, and so can anything else that calls openHowOneUptimeWorks.
+ * It used to name four products only, as the Welcome checklist's strip
+ * still does.
  *
  * Mounted once in App.tsx, beside the keyboard shortcuts and the command
  * palette, and opened with a window event, so the opener needs nothing but
@@ -51,8 +57,13 @@ export const HOW_ONEUPTIME_WORKS_PRODUCT: string = "oneuptime";
 export const HOW_ONEUPTIME_WORKS_DIALOG_TEST_ID: string =
   "how-oneuptime-works-dialog";
 
-// The topic "Was this clear?" under the map is kept under (#6832).
+// The topic "Was this clear?" under the overview is kept under (#6832).
 export const HOW_ONEUPTIME_WORKS_FEEDBACK_TOPIC: string = "how_oneuptime_works";
+
+// The line under the dialog's title: what it holds.
+export const HOW_ONEUPTIME_WORKS_DESCRIPTION: string = translationKey(
+  "Everything OneUptime does, and how it fits together.",
+);
 
 // Opens the dialog, from anywhere in the dashboard.
 export const openHowOneUptimeWorks: (
@@ -97,32 +108,32 @@ const HowOneUptimeWorksDialog: FunctionComponent = (): ReactElement => {
     setIsOpen(false);
   };
 
+  /*
+   * The focus starts on the first section's tab, as a dialog's starts on
+   * the first thing in its body: the arrow keys walk the sections from
+   * there, and Tab goes on into the section shown.
+   */
   return (
     <Modal
       title={HOW_IT_WORKS_TITLE}
+      description={HOW_ONEUPTIME_WORKS_DESCRIPTION}
       modalWidth={ModalWidth.Large}
       onClose={close}
       closeButtonText="Close"
-      /*
-       * Something to read, not a form: the focus starts on the dialog, so
-       * the first step does not light up, and Tab goes on from there.
-       */
-      isInitialFocusOnDialog={true}
     >
       <div data-testid={HOW_ONEUPTIME_WORKS_DIALOG_TEST_ID}>
-        <HowOneUptimeWorks
+        <HowOneUptimeWorksOverview
           projectId={ProjectUtil.getCurrentProjectId()?.toString() || undefined}
-          isInDialog={true}
-          onStepOpened={close}
+          onProductOpened={close}
         />
         {/*
-         * Whether the map helped (#6832): a quiet thumb up or down, only
-         * where OneUptime may ask this person.
+         * Where the docs say more, and whether this helped (#6832): a quiet
+         * thumb up or down, only where OneUptime may ask this person.
          */}
-        <WasThisClear
-          topic={HOW_ONEUPTIME_WORKS_FEEDBACK_TOPIC}
-          className="mt-4"
-        />
+        <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <WasThisClear topic={HOW_ONEUPTIME_WORKS_FEEDBACK_TOPIC} />
+          <HowOneUptimeWorksDocsLinks className="text-sm" />
+        </div>
       </div>
     </Modal>
   );

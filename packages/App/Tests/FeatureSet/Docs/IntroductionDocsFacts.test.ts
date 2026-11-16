@@ -2396,6 +2396,60 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
+  /*
+   * Home follows what it counts as it changes (#8963): its batch hears every
+   * kind it counts (UseHomeOverview), and Upcoming maintenance its events.
+   */
+  it("says Home follows what it counts as it changes, as the overview and Upcoming maintenance hear it", () => {
+    expect(sectionOf(HOME, "### The headline")).toContain(
+      "Home also follows what it counts as it changes: when an incident, alert, monitor, maintenance event or SLO is created, changed or deleted, the line, the numbers, **Needs attention** and **Upcoming maintenance** catch up within seconds, without a refresh.",
+    );
+
+    const hook: string = oneLine(
+      dashboard("Components/Home/UseHomeOverview.ts"),
+    );
+    const kinds: RegExpMatchArray | null = hook.match(
+      /HOME_OVERVIEW_LIVE_MODEL_TYPES: ReadonlyArray<\{ new \(\): BaseModel; \}> = \[([^\]]+)\]/,
+    );
+
+    expect(
+      (kinds?.[1] || "")
+        .split(",")
+        .map((kind: string): string => {
+          return kind.trim();
+        })
+        .filter(Boolean),
+    ).toEqual([
+      "Incident",
+      "Alert",
+      "Monitor",
+      "ScheduledMaintenance",
+      "ServiceLevelObjective",
+    ]);
+    expect(hook).toContain(
+      "useLiveRefresh({ modelTypes: HOME_OVERVIEW_LIVE_MODEL_TYPES,",
+    );
+
+    const upcoming: string = oneLine(UPCOMING_SOURCE);
+    expect(upcoming).toContain(
+      "UPCOMING_MAINTENANCE_LIVE_MODEL_TYPES: ReadonlyArray<{ new (): BaseModel; }> = [ScheduledMaintenance];",
+    );
+    expect(upcoming).toContain(
+      "useLiveRefresh({ modelTypes: UPCOMING_MAINTENANCE_LIVE_MODEL_TYPES,",
+    );
+
+    // The words the sentence uses for what it follows are the batch's kinds.
+    for (const kind of [
+      "an incident",
+      "alert",
+      "monitor",
+      "maintenance event",
+      "SLO",
+    ]) {
+      expect(sectionOf(HOME, "### The headline")).toContain(kind);
+    }
+  });
+
   it("says where Create your first monitor leads, as the headline links it", () => {
     const card: string = oneLine(
       dashboard("Components/Home/ProjectHealthCard.tsx"),
@@ -2766,6 +2820,45 @@ describe("Home Page & Shortcuts", () => {
         })
         .join(", ")} and **${steps[steps.length - 1]}**.`,
     );
+  });
+
+  /*
+   * The dialog Help, Home and Search open (#8891): its first section and its
+   * four steps, in the order the overview draws them, and its categories.
+   */
+  it("says what How OneUptime works opens on: its first section and its four steps, in their order", () => {
+    const source: string = dashboard(
+      "Components/Home/HowOneUptimeWorksOverview.tsx",
+    );
+    const steps: Array<string> = Array.from(
+      blockFrom(source, "export const HOW_IT_WORKS_LOOP:", "\n];").matchAll(
+        /^ {4}title: translationKey\("([^"]+)"\),$/gm,
+      ),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(steps).toHaveLength(4);
+    expect(source).toContain(
+      'export const HOW_IT_WORKS_LOOP_TAB: string = translationKey(\n  "How it fits together",\n);',
+    );
+    expect(section).toContain(
+      `**How OneUptime works** opens on **How it fits together**: the four steps a problem moves through, ${steps
+        .slice(0, -1)
+        .map((step: string): string => {
+          return `**${step}**`;
+        })
+        .join(
+          ", ",
+        )} and **${steps[steps.length - 1]}**, each with the products that do it.`,
+    );
+    // Then the products menu's categories, walked with the arrow keys or Next.
+    expect(source).toContain('translationKey("Next: {{section}}")');
+    expect(section).toContain(
+      "Then come the categories of the **Products** menu, each listing its products and what each is for: pick one, or move on with the arrow keys or **Next**.",
+    );
+    expect(section).toContain("Products your project hides are left out.");
   });
 
   it("describes every number by its label, what makes it count and the words it shows", () => {

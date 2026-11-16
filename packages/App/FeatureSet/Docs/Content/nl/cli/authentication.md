@@ -199,7 +199,7 @@ Uitvoerformaten en lijstgroottes worden hier niet opgeslagen: geef `-o` en `--li
 :::
 
 :::details De melding "API error (400): Invalid API Key"
-De sleutel is geen API-sleutel van OneUptime, is verlopen of is opnieuw ingesteld. Kopieer hem opnieuw van zijn pagina in **Projectinstellingen → Geavanceerd → API-sleutels**, waar ook zijn datum onder **Verloopt** staat, en log opnieuw in onder dezelfde contextnaam. De opdracht eindigt met code `2`.
+De sleutel is geen API-sleutel van OneUptime, is verlopen of is opnieuw ingesteld. Zoek hem in **Projectinstellingen → Geavanceerd → API-sleutels** op hoe hij eindigt, en controleer zijn datum onder **Verloopt**. Een sleutel die je niet meer hebt, kan niet opnieuw worden getoond: stel hem op zijn pagina opnieuw in, en log met de nieuwe opnieuw in onder dezelfde contextnaam. De opdracht eindigt met code `2`.
 :::
 
 :::details De melding "API error (402): API keys need the Growth plan"

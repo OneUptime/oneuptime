@@ -628,6 +628,36 @@ describe("when Slack refuses, the admin is told plainly, and OneUptime tries aga
     expect(world.state(row).problem).toBeNull();
   });
 
+  /*
+   * Issue #8928: Retry-After is read as RFC 9110 writes it. A date is
+   * waited for (Number() read it as nothing), and no answer puts the next
+   * look more than an hour away (99999 seconds put it 28 hours away).
+   */
+  test("Slack's Retry-After as a date is waited for, and a huge one an hour at most", async () => {
+    const row: WorldGroupRow = groupFor([primary]);
+    await world.sync(row);
+    world.handOff(primary, bob);
+    jest.spyOn(Date, "now").mockReturnValue(Date.parse(START));
+    world.slack.rateLimitOnce.set(
+      "usergroups.users.update",
+      new Date(Date.parse(START) + 10 * 60 * 1000).toUTCString(),
+    );
+
+    await world.sync(row);
+
+    expect(world.groups.get(row.id.toString())!.nextSyncAt).toEqual(
+      new Date(Date.parse(START) + 10 * 60 * 1000),
+    );
+
+    world.slack.rateLimitOnce.set("usergroups.users.update", 99999);
+
+    await world.sync(row);
+
+    expect(world.groups.get(row.id.toString())!.nextSyncAt).toEqual(
+      new Date(Date.parse(START) + 60 * 60 * 1000),
+    );
+  });
+
   test("Slack cannot be reached: tried again two minutes later", async () => {
     world.slack.isDown = true;
     const row: WorldGroupRow = groupFor([primary]);

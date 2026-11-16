@@ -187,7 +187,7 @@ describe("a call to a Mattermost server", () => {
 
     expect(error).toBeInstanceOf(APIException);
     expect((error as Error).message).toBe(
-      "Mattermost's answer was larger than 8 MB, so it was not read.",
+      "Mattermost's answer was larger than 8\u00A0MB, so it was not read.",
     );
     // Nothing of the server's address, nor of the bot's token.
     expect((error as Error).message).not.toMatch(

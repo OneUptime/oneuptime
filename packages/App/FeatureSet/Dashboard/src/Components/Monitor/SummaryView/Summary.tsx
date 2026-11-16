@@ -36,6 +36,11 @@ export interface ComponentProps {
   incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
   incomingEmailMonitorRequest?: IncomingEmailMonitorRequest | undefined;
   incomingEmailMonitorHeartbeatCheckedAt?: Date | undefined;
+  /*
+   * The heartbeat sweep is checking the monitor on its schedule, as the
+   * page judges it on the server's clock (HeartbeatSweepSchedule).
+   */
+  isHeartbeatCheckOnSchedule?: boolean | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   /*
    * The probes attached to this monitor - NOT every probe in the project.
@@ -317,6 +322,7 @@ const Summary: FunctionComponent<ComponentProps> = (
           incomingEmailMonitorHeartbeatCheckedAt={
             props.incomingEmailMonitorHeartbeatCheckedAt
           }
+          isHeartbeatCheckOnSchedule={props.isHeartbeatCheckOnSchedule}
           evaluationSummary={selectedEvaluationSummary}
           probeStatusMonitorResponse={props.probeStatusMonitorResponse}
         />
