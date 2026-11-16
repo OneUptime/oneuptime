@@ -18,8 +18,8 @@ import ScheduledMaintenanceCalendarSettings from "../../App/FeatureSet/Dashboard
 import ScheduledMaintenanceSideMenu from "../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/SideMenu";
 import { PREVIOUS_VIEW_STORAGE_KEY } from "../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceView";
 import { getHiddenCalendarsStorageKey } from "../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceCalendarOverlays";
-import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
+import EN from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../SuiteHelpers/FixtureLocales";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -116,14 +116,30 @@ if (params.get("hidden")) {
   );
 }
 
+/*
+ * English, the fallback, is in the bundle; German and Japanese are each a
+ * chunk of its own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
+ * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  ja: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    ja: { translation: JA },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

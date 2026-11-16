@@ -9,6 +9,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A device's SNMP Walk page (issue #5184), end to end in a browser, against
@@ -1431,4 +1432,18 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await expectNoSidewaysScroll(page);
     await shoot(page, "more-390-de");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Japanese whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja"],
+  address: (language: string): string => {
+    return language === "en" ? "/" : `/?lang=${language}`;
+  },
 });
