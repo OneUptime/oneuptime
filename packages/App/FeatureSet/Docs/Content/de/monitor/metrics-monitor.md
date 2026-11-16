@@ -97,7 +97,7 @@ Je länger das Fenster, desto breiter jedes Zeitintervall, sodass ein Datenpunkt
 ## Wie er ausgewertet wird
 
 - **Jede Minute.** Ein Metriken-Monitor wird nicht von Sonden geprüft, deshalb hat er kein Intervall zum Einstellen und keine Seite **Sonden & Intervall**.
-- **Erst die Abfragen, dann die Formeln.** Jede Abfrage liefert mit ihrem **Aggregieren nach** einen Datenpunkt pro Zeitintervall des Zeitbereichs. Formeln werden für jedes Intervall aus den Datenpunkten der Abfragen berechnet.
+- **Erst die Abfragen, dann die Formeln.** Jede Abfrage liefert mit ihrem **Aggregieren nach** einen Datenpunkt pro Zeitintervall des Zeitbereichs. Formeln werden für jedes Intervall aus den Datenpunkten der Abfragen berechnet. Eine Abfrage, die zählt, was geschah, die Summe oder die Anzahl eines Zählers oder eines Histogramms, zählt in einem Intervall ohne Datenpunkt 0, sobald das Intervall seit einer Minute vorbei ist, sodass ein Fehleranteil 0% beträgt, wo nichts fehlschlug. Ein Messwert, ein Durchschnitt oder ein Perzentil ohne Datenpunkt ist unbekannt, und die Formel lässt dieses Intervall aus.
 - **Dann das Maß der Regel.** Die Regel reduziert die Datenpunkte ihrer Metrik auf das, was sie mit ihrem Wert vergleicht, wie **Gemessen als** sagt:
 
 | Gemessen als | In den eigenen Kriterien | Die Bedingung wird geprüft gegen … |

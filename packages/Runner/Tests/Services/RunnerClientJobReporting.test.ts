@@ -50,8 +50,10 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 import AgentClient, {
   ClaimedJob,
+  JOB_STOP_WITHOUT_REASON,
   RunnerIngestUnavailableError,
   isRetryableIngestStatus,
+  readJobStopReason,
 } from "../../Services/RunnerClient";
 import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
 import RunnerIdentity from "../../Utils/RunnerIdentity";
@@ -292,6 +294,151 @@ describe("AgentClient.jobHeartbeat", () => {
     await AgentClient.jobHeartbeat("job-1");
 
     expect(postedConfig(0)).toBeUndefined();
+  });
+
+  /*
+   * Enable AI turned off after this Runner claimed an AI command: the
+   * renewal says to stop. It is still a renewal (true), and onStop is told
+   * why first, so the executor knows before it starts the step.
+   */
+  describe("a renewal that says to stop", () => {
+    const REASON: string =
+      "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.";
+
+    test("renews the lease, and tells onStop why before it resolves", async () => {
+      post.mockResolvedValue({
+        status: 200,
+        data: { status: "ok", stop: true, reason: REASON },
+      });
+      const onStop: jest.Mock = jest.fn();
+      let toldBeforeResolving: boolean = false;
+
+      const answer: boolean = await AgentClient.jobHeartbeat("job-1", {
+        onStop: (reason: string): void => {
+          onStop(reason);
+        },
+      }).then((isStillOurs: boolean): boolean => {
+        toldBeforeResolving = onStop.mock.calls.length === 1;
+        return isStillOurs;
+      });
+
+      expect(answer).toBe(true);
+      expect(onStop).toHaveBeenCalledTimes(1);
+      expect(onStop).toHaveBeenCalledWith(REASON);
+      expect(toldBeforeResolving).toBe(true);
+    });
+
+    test("carries the pre-spawn timeout as before", async () => {
+      post.mockResolvedValue({
+        status: 200,
+        data: { status: "ok", stop: true, reason: REASON },
+      });
+
+      await AgentClient.jobHeartbeat("job-1", {
+        timeoutInMs: 5_000,
+        onStop: (): void => {
+          return undefined;
+        },
+      });
+
+      expect(postedConfig(0)).toEqual({ timeout: 5_000 });
+      // The stop is the server's word: nothing about it is sent.
+      expect(Object.keys(postedBody(0)).sort()).toEqual([
+        "agentId",
+        "agentKey",
+      ]);
+    });
+
+    test("without onStop, still a renewal", async () => {
+      post.mockResolvedValue({
+        status: 200,
+        data: { status: "ok", stop: true, reason: REASON },
+      });
+
+      await expect(AgentClient.jobHeartbeat("job-1")).resolves.toBe(true);
+    });
+
+    test.each([
+      [
+        "no stop at all (a server before the stop, or Enable AI on)",
+        { status: "ok" },
+      ],
+      ["stop as a string", { status: "ok", stop: "true", reason: REASON }],
+      ["stop as a number", { status: "ok", stop: 1, reason: REASON }],
+      ["stop: false", { status: "ok", stop: false, reason: REASON }],
+      ["no body", undefined],
+    ])("%s: onStop is never called", async (_label: string, data: unknown) => {
+      post.mockResolvedValue({ status: 200, data });
+      const onStop: jest.Mock = jest.fn();
+
+      await expect(AgentClient.jobHeartbeat("job-1", { onStop })).resolves.toBe(
+        true,
+      );
+      expect(onStop).not.toHaveBeenCalled();
+    });
+
+    test("a stop in an answer that did not renew the lease is not one", async () => {
+      const onStop: jest.Mock = jest.fn();
+
+      post.mockResolvedValue({
+        status: 404,
+        data: { stop: true, reason: REASON },
+      });
+      await expect(AgentClient.jobHeartbeat("job-1", { onStop })).resolves.toBe(
+        false,
+      );
+
+      post.mockResolvedValue({
+        status: 503,
+        data: { stop: true, reason: REASON },
+      });
+      await expect(
+        AgentClient.jobHeartbeat("job-1", { onStop }),
+      ).rejects.toMatchObject({ name: "RunnerIngestUnavailableError" });
+
+      expect(onStop).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe("readJobStopReason", () => {
+  test("the server's reason, trimmed", () => {
+    expect(
+      readJobStopReason({
+        status: "ok",
+        stop: true,
+        reason: "  Enable AI was turned off.  ",
+      }),
+    ).toBe("Enable AI was turned off.");
+  });
+
+  test("a stop without a reason of its own is still a stop", () => {
+    for (const reason of [undefined, "", "   ", 42, { text: "x" }]) {
+      expect(readJobStopReason({ status: "ok", stop: true, reason })).toBe(
+        JOB_STOP_WITHOUT_REASON,
+      );
+    }
+  });
+
+  test("a long reason is kept short: it becomes the step's error", () => {
+    expect(
+      readJobStopReason({ stop: true, reason: "x".repeat(900) }),
+    ).toHaveLength(500);
+  });
+
+  test("only a literal true stops", () => {
+    for (const body of [
+      { status: "ok" },
+      { stop: "true" },
+      { stop: 1 },
+      { stop: false },
+      null,
+      undefined,
+      "stop",
+      [true],
+    ]) {
+      expect(readJobStopReason(body)).toBeNull();
+    }
   });
 });
 

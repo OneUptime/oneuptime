@@ -3,12 +3,14 @@ import FileService, { FileFacts } from "../../../Server/Services/FileService";
 import File from "../../../Models/DatabaseModels/File";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
+import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import CreatePermission from "../../../Server/Types/Database/Permissions/CreatePermission";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
 /*
  * The project a file was uploaded in (File.projectId), and what a caller
@@ -122,6 +124,34 @@ describe("File.projectId: the project a file was uploaded in", () => {
     }
   });
 
+  /*
+   * A client sends a project ID with every create, as every other model
+   * takes one: an upload that sends one is not refused for it. The value is
+   * dropped before the create's hooks run (ComputedColumnsReplacedOnCreate),
+   * and the stamp writes the request's project in its place.
+   */
+  test("a project ID an upload sends is dropped before the hooks run, never refused", async () => {
+    const createBy: CreateBy<File> = upload({
+      props: {
+        userId: new ObjectID("5d7f3c0a-4c55-4d3e-9a3e-2d4a7d1c9f03"),
+        tenantId: PROJECT_ID,
+        ...PROJECT_ACCESS,
+      },
+      projectId: OTHER_PROJECT_ID,
+    });
+
+    expect(
+      ColumnPermissions.checkComputedColumnsSentOnCreate(
+        File,
+        createBy.data,
+        createBy.props,
+      ),
+    ).toEqual([]);
+    expect(createBy.data.projectId).toBeUndefined();
+
+    expect(String(await stampedProject(createBy))).toBe(PROJECT_ID.toString());
+  });
+
   test("none for a file uploaded with no project, whatever the body says", async () => {
     expect(
       await stampedProject(upload({ props: { isRoot: true } })),
@@ -135,8 +165,10 @@ describe("File.projectId: the project a file was uploaded in", () => {
 
   /*
    * The stamp is written before the create's permission check reads the
-   * columns it was given, so the column must be one every uploader may
-   * create - or every upload would be refused.
+   * columns it was given, so the check must take it as the create's own -
+   * or every upload would be refused. A project ID the upload itself sends
+   * is dropped before the hooks run, and replaced by the stamp
+   * (ComputedColumnsReplacedOnCreate).
    */
   test("does not cost a member's or an API key's upload its permission to create", async () => {
     const tenantPermissions: Array<UserPermission> = [
@@ -197,11 +229,17 @@ describe("File.projectId: the project a file was uploaded in", () => {
       expect(String(result.createBy.data.projectId)).toBe(
         PROJECT_ID.toString(),
       );
+      /*
+       * The stamp, the token and the private switch are the hook's: the
+       * check of the record as written takes them as the create's own
+       * (columnsSetByServer, which DatabaseService hands over).
+       */
       expect(() => {
         return CreatePermission.checkCreatePermissions(
           File,
           result.createBy.data,
           props,
+          columnsTheCreateWrote(result.createBy.data),
         );
       }).not.toThrow();
     }

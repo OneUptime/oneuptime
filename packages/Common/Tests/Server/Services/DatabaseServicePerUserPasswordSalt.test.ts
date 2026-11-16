@@ -32,7 +32,8 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *
  *   - a salt column that forgets `computed: true` breaks every non-root
  *     create of a row carrying a password, because the create permission
- *     check runs AFTER hashing and would reject a column nobody may write;
+ *     check runs AFTER hashing and would reject a column nobody may write
+ *     (a computed one the create's own steps wrote it takes as theirs);
  *   - a hashed column with no declared salt column (session refresh tokens)
  *     must keep hashing exactly as it always did;
  *   - an update that does not touch the password must not touch the salt,
@@ -97,9 +98,10 @@ describe("Model metadata — the password columns declare their salt", () => {
     /*
      * Load bearing. On create, hash() mints the salt BEFORE
      * checkCreatePermissions runs, and checkDataColumnPermissions only lets
-     * an unpermitted column through on create when it is computed. Drop the
-     * flag and every public signup starts failing with "User is not allowed
-     * to create on passwordSalt column".
+     * an unpermitted column through on create when it is computed and the
+     * create's own steps wrote it. Drop the flag and every public signup
+     * starts failing with "User is not allowed to create on passwordSalt
+     * column".
      */
     expect(new User().getTableColumnMetadata("passwordSalt").computed).toBe(
       true,
@@ -242,7 +244,8 @@ describe("Create path — hash() mints a per-record salt", () => {
     /*
      * This is the ordering trap. Signup is not a root write, and
      * checkCreatePermissions runs after hash() has already put passwordSalt
-     * on the payload.
+     * on the payload. The salt is one the create's own steps wrote, and
+     * DatabaseService says so (columnsSetByServer).
      */
     const user: User = new User();
     user.email = new Email("signup@example.com");
@@ -255,8 +258,37 @@ describe("Create path — hash() mints a per-record salt", () => {
         user,
         {} as DatabaseCommonInteractionProps,
         DatabaseRequestType.Create,
+        ["passwordSalt"],
       );
     }).not.toThrow();
+  });
+
+  test("a caller still cannot smuggle a salt in on a create", () => {
+    /*
+     * A salt a signup sends is the caller's, not the hashing's: refused
+     * before the create's hooks run, and by the check of the record as
+     * written when the create's own steps did not write it (#6541).
+     */
+    const user: User = new User();
+    user.email = new Email("signup@example.com");
+    user.passwordSalt = PasswordHash.generateSalt();
+
+    expect(() => {
+      ColumnPermissions.checkComputedColumnsSentOnCreate(
+        User,
+        user,
+        {} as DatabaseCommonInteractionProps,
+      );
+    }).toThrow("not allowed to create on passwordSalt");
+
+    expect(() => {
+      ColumnPermissions.checkDataColumnPermissions(
+        User,
+        user,
+        {} as DatabaseCommonInteractionProps,
+        DatabaseRequestType.Create,
+      );
+    }).toThrow("not allowed to create on passwordSalt");
   });
 
   test("a caller still cannot smuggle a salt in on an update", () => {

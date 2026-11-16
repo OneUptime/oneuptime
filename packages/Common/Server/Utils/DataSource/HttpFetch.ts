@@ -19,6 +19,10 @@ import { DataSourceConnectionSettings } from "./Types";
  *    validated addresses into the socket lookup — the address that was
  *    checked is the address that gets dialed, closing the DNS-rebind
  *    window while TLS still verifies against the original hostname;
+ *  - goes through the outbound proxy the operator configured (HTTPS_PROXY,
+ *    HTTP_PROXY, ALL_PROXY), as every other request of the server does,
+ *    whether it is named by address or by host name; a host in NO_PROXY is
+ *    dialled directly, at the address that was checked;
  *  - refuses redirects (maxRedirects: 0) — a 3xx from the target could
  *    otherwise bounce the request to an unvalidated host;
  *  - caps response size and wall-clock time;
@@ -160,6 +164,12 @@ export default class DataSourceHttpFetch {
     }
 
     const axiosOptions: AxiosRequestConfig = {
+      /*
+       * The pinned agents are what make the checked address the dialled
+       * one, and only Node's http adapter uses agents: named, so the pin
+       * never rests on axios picking it from the environment.
+       */
+      adapter: "http",
       method: request.method,
       url: url.toString(),
       headers: headers,

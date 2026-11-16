@@ -545,10 +545,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -603,10 +600,7 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
   })
@@ -3049,6 +3043,44 @@ export default class Project extends TenantModel {
     default: DEFAULT_KEEP_INCIDENTS_WITH_COMPLETED_POSTMORTEM,
   })
   public keepIncidentsWithCompletedPostmortem?: boolean = undefined;
+
+  /*
+   * Which postmortem statuses keep an incident while
+   * keepIncidentsWithCompletedPostmortem is on (issue #6945): their ids,
+   * or empty - where every project starts - for the project's Completed
+   * status, as before. A Project Owner or Admin adds the project's own
+   * statuses (a "Published" below Completed) on Incidents -> Settings ->
+   * Data Retention. Chosen, not worked out from where a status sits: the
+   * statuses at and below Completed all count as done, and "Not Needed" is
+   * one of them (Types/Retention/ResolvedRecordRetention says why).
+   * ProjectService refuses an empty list, and any id that is not one of
+   * the project's postmortem statuses.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Postmortem Statuses That Keep an Incident",
+    description:
+      "The ids of the postmortem statuses whose incidents the incident retention never deletes while Keep Incidents With a Completed Postmortem is on. Empty (the default) is the project's Completed status.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public keepIncidentsInPostmortemStatusIds?: Array<string> = undefined;
 
   /*
    * How long a resolved alert stays (issue #6903), as
@@ -5621,49 +5653,4 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public productSettings?: JSONObject = undefined;
-
-  /*
-   * A sample project (issue #6808): "Sample: Acme Shop", made in one click
-   * for a person to look around in, filled with made-up monitors,
-   * incidents, an on-call policy, a status page and telemetry
-   * (SampleProjectService). It can never notify anyone, be seen by the
-   * public or be billed: every reader that keeps it so asks
-   * ProjectService.isSampleProject, and SampleProjectReadersGuard lists
-   * them, so a new channel cannot forget it.
-   *
-   * Set once, by the server, when the sample is made, and never changed:
-   * nobody writes it through the API, and a project never becomes or
-   * stops being a sample. Every member reads it, with the project
-   * (ProjectAPI's list-user-projects), so every page says what it is.
-   */
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.Boolean,
-    isDefaultValueColumn: true,
-    defaultValue: false,
-    title: "Is Sample Project",
-    description:
-      "A sample project made for looking around: nothing in it is real, it notifies nobody, its status page is never public and it is never billed. Set by OneUptime when the sample is made.",
-    example: "false",
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    unique: false,
-    default: false,
-  })
-  public isSampleProject?: boolean = undefined;
 }

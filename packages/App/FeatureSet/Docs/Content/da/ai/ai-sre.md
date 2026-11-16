@@ -401,7 +401,7 @@ En undersøgelse, der mislykkes, udløber eller bliver forældet, frigiver stadi
 
 Mens afhjælpningen venter, siger trinnet **Afhjælpning** det (**Venter**), og viser, hvad der skete, når undersøgelsen er afsluttet.
 
-Automatisk afhjælpning afhænger af to kontakter. **Ret nye hændelser automatisk** (eller advarsler), slået fra, indtil projektet slår den til: når den er slået fra, rettes ingen ny hændelse (eller advarsel). Og **Aktivér AI** (**Projektindstillinger → AI → AI-funktioner**), projektets hovedkontakt for AI: når den er slået fra, kører ingen AI-regel (heller ikke en, der starter en runbook uden AI), og intet cluster eller nogen ressource bliver rettet.
+Automatisk afhjælpning afhænger af to kontakter. **Ret nye hændelser automatisk** (eller advarsler), slået fra, indtil projektet slår den til: når den er slået fra, rettes ingen ny hændelse (eller advarsel). Og **Aktivér AI** (**Projektindstillinger → AI → AI-funktioner**), projektets hovedkontakt for AI: når den er slået fra, kører ingen AI-regel (heller ikke en, der starter en runbook uden AI), og intet cluster eller nogen ressource bliver rettet. En Runner eller en AI-agent, der allerede har en kommando, når **Aktivér AI** slås fra, får besked på at stoppe ved sit næste heartbeat: En kommando, der endnu ikke er startet, starter ikke.
 
 ## Hvad den automatiske afhjælpning gjorde
 

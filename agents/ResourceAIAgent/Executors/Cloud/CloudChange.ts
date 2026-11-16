@@ -14,6 +14,7 @@ import {
 } from "./CloudSettings";
 import {
   CLOUD_CATALOG_PROVIDER_NAMES,
+  CloudWritePath,
   CloudCatalogProvider,
   CloudResourceKindSpec,
   ParsedCloudCommand,
@@ -184,6 +185,12 @@ export function kindName(
 export class CloudCommandRun {
   // The value the change replaces, set right before the change call.
   public replaced: Record<string, string> | null = null;
+  /*
+   * Whether a change can run as the agent is set up, as `cloud whoami`
+   * found its write role, identity or account (the cloud's whoami sets it):
+   * the line its output starts with (formatCloudWritePath).
+   */
+  public writePath: CloudWritePath | null = null;
   public changeStarted: boolean = false;
   public readonly startedAtMs: number;
   public readonly deadlineMs: number;

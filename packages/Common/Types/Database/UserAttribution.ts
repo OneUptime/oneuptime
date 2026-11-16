@@ -140,9 +140,13 @@ export default class UserAttribution {
 
   /*
    * A column's metadata, as it applies: a column OneUptime decides is
-   * computed - OneUptime fills it in - so the create's column check skips
-   * it, and the API reference and the Terraform provider offer it for
-   * reading only. Other columns are returned as they are.
+   * computed - OneUptime fills it in - so the API reference and the
+   * Terraform provider offer it for reading only. A create's column check
+   * holds a value a caller gives a computed column to its create list
+   * (ColumnPermission.checkComputedColumnsSentOnCreate), and these lists are
+   * empty, but DatabaseService takes the value out of a write made in a
+   * project before that check, so a client that sends one keeps working.
+   * Other columns are returned as they are.
    */
   public static getColumnMetadata<T extends { computed?: boolean | undefined }>(
     columnName: string | symbol | undefined,

@@ -572,6 +572,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Эта форма не может создать инцидент, потому что у неё не задана серьёзность. Сообщите об этом команде, которая поделилась формой.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Сейчас ответы не принимаются. Повторите попытку через несколько минут.",
   "This form is receiving too many files right now. Please try again later.": "Сейчас эта форма получает слишком много файлов. Повторите попытку позже.",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Сейчас файлы невозможно проверить на вирусы, поэтому они не приняты. Повторите попытку через несколько минут.",
   "A response can carry at most 10 files.": "В одном ответе может быть не больше 10 файлов.",
   "The files of a response can be at most 20 MB together.": "Файлы одного ответа вместе могут занимать не больше 20 МБ.",
   "Your response could not be submitted. Please try again in a few minutes.": "Не удалось отправить ваш ответ. Повторите попытку через несколько минут.",

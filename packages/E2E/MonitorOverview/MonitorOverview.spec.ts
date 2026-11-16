@@ -1357,6 +1357,13 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-explanation")).toHaveText(
       "3 probes check this every 5 minutes. The first result usually arrives within a few minutes.",
     );
+    /*
+     * Nothing has been checked, so no status was recorded: Operational is
+     * only the status it was created in (#7464).
+     */
+    await expect(page.getByTestId("monitor-overview-last-known")).toHaveCount(
+      0,
+    );
     // Bars for a monitor that never reported would all say "No data".
     await expect(statBar(page)).toHaveCount(0);
     await expect(card(page, "Uptime history")).toHaveCount(0);

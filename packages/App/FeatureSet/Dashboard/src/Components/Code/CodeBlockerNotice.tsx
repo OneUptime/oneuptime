@@ -185,6 +185,7 @@ export const getBlockerFixAccess: (
     case CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes:
     case CodeTaskBlockerType.RunnerTakesNoCodeFixes:
     case CodeTaskBlockerType.RepositoryNeedsOwnRunner:
+    case CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner:
       return toAccess(
         PermissionGate.check(new CodeRepository(), ModelAction.Update),
       );

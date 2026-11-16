@@ -326,10 +326,7 @@ export default class IncidentSeverity extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    // Lazy: User imports Project, which imports this model (see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -404,10 +401,7 @@ export default class IncidentSeverity extends BaseModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    // Lazy: User imports Project, which imports this model (see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
   })
@@ -653,10 +647,7 @@ export default class IncidentSeverity extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "archivedByUserId",
     type: TableColumnType.Entity,
-    // Lazy: User imports Project, which imports this model (see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     title: "Archived by User",
     description:
       "Relation to User who archived this object (if this object was archived by a User)",

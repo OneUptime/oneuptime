@@ -93,11 +93,12 @@ describe("POST /ai-agent-task/update-task-status with a message longer than the 
 
     projectId = ObjectID.generate();
     runId = ObjectID.generate();
+    const workerId: ObjectID = ObjectID.generate();
     written = [];
 
     jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
       credentialCheckProving({
-        id: ObjectID.generate(),
+        id: workerId,
         projectId: projectId,
         source: CodeFixAgentSource.Runner,
       }),
@@ -109,6 +110,8 @@ describe("POST /ai-agent-task/update-task-status with a message longer than the 
         const run: AIRun = new AIRun();
         run.id = runId;
         run.projectId = projectId;
+        // The worker's own run: it claimed it.
+        run.aiAgentId = workerId;
         run.status = AIRunStatus.Running;
         return run;
       });

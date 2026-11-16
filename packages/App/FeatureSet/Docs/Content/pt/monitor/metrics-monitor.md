@@ -97,7 +97,7 @@ Quanto maior a janela, mais largo é cada intervalo de agrupamento, então um po
 ## Como ele é avaliado
 
 - **A cada minuto.** Um monitor de métricas não é verificado por sondas, por isso não tem intervalo para configurar nem página **Sondas e intervalo**.
-- **Primeiro as consultas, depois as fórmulas.** Cada consulta retorna um ponto de dados por intervalo de agrupamento do intervalo de tempo, de acordo com o seu **Agregar por**. As fórmulas são calculadas para cada intervalo a partir dos pontos de dados das consultas.
+- **Primeiro as consultas, depois as fórmulas.** Cada consulta retorna um ponto de dados por intervalo de agrupamento do intervalo de tempo, de acordo com o seu **Agregar por**. As fórmulas são calculadas para cada intervalo a partir dos pontos de dados das consultas. Uma consulta que conta o que aconteceu, a soma ou a contagem de um contador ou de um histograma, conta 0 em um intervalo em que não tem nenhum ponto de dados, depois que o intervalo terminou há um minuto, então uma parcela de falhas é 0% onde nada falhou. Um medidor, uma média ou um percentil sem ponto de dados é desconhecido, e a fórmula deixa esse intervalo de fora.
 - **Depois, a medida da regra.** A regra reduz os pontos de dados da sua métrica ao que compara com o seu valor, como diz **Medido como**:
 
 | Medido como | Nos critérios personalizados | A condição é verificada contra… |

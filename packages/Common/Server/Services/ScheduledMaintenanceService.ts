@@ -1919,8 +1919,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
   /*
    * The next scheduled maintenance number of this project, with the
    * project's prefix for it: the one way an event is numbered. A create
-   * takes it in onBeforeCreate; the sample project, which writes its event
-   * without hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   * takes it in onBeforeCreate (RecordNumbersTakenInOnePlaceGuard).
    */
   @CaptureSpan()
   public async takeNextScheduledMaintenanceNumber(

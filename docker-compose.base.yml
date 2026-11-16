@@ -64,6 +64,10 @@ x-common-variables: &common-variables
   # included in a frontend env.js response.
   OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
   OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+  # cumulative or delta (see config.example.env), read by the OTLP metric
+  # exporter itself. Empty leaves its default, cumulative, and a config.env
+  # without the key starts as it did.
+  OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: ${OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY:-}
   # Record OneUptime AI's prompts and answers in that telemetry (see
   # config.example.env). Defaulted off so a config.env without the key keeps
   # them out.
@@ -355,6 +359,11 @@ x-common-runtime-variables: &common-runtime-variables
   ENABLE_QUEUE_DASHBOARD: ${ENABLE_QUEUE_DASHBOARD}
   QUEUE_DASHBOARD_SECRET: ${QUEUE_DASHBOARD_SECRET}
 
+  # Malware scanning of the files people send OneUptime, with ClamAV: the
+  # scanner's address, empty for none (see config.example.env).
+  CLAMAV_HOST: ${CLAMAV_HOST:-}
+  CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+
 services:
   # Valkey is the BSD-licensed fork of Redis 7.2 that most of the original Redis
   # contributors moved to after Redis 7.4 left the BSD licence, and it speaks the
@@ -380,6 +389,25 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1000m"
+
+  # ClamAV, for the malware scanning of the files people send OneUptime. Off
+  # unless config.env asks for it: COMPOSE_PROFILES=clamav starts it, and
+  # CLAMAV_HOST=clamav points OneUptime at it (see config.example.env). It
+  # downloads its signatures when it starts, into its own volume, and keeps
+  # them up to date; until it answers, uploads are refused.
+  clamav:
+    image: clamav/clamav:1.4
+    profiles:
+      - clamav
+    restart: always
+    networks:
+      - oneuptime
+    volumes:
+      - clamav:/var/lib/clamav
     logging:
       driver: "json-file"
       options:
@@ -620,6 +648,7 @@ services:
       ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_PROBE}
       OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
       OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: ${OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY:-}
     logging:
       driver: "json-file"
       options:
@@ -680,6 +709,7 @@ services:
       ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_PROBE}
       OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
       OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: ${OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY:-}
     logging:
       driver: "json-file"
       options:
@@ -713,6 +743,7 @@ services:
       NODE_ENV: ${ENVIRONMENT}
       OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
       OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: ${OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY:-}
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_RUNNER}
       ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_RUNNER}
       PORT: ${GLOBAL_RUNNER_PORT:-3877}
@@ -814,6 +845,7 @@ services:
 volumes:
   postgres:
   clickhouse:
+  clamav:
 
 networks:
   oneuptime:

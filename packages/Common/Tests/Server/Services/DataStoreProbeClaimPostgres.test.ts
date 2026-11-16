@@ -285,18 +285,16 @@ describePostgres("Data store probe claims against Postgres", () => {
     subscriptionStatus?: SubscriptionStatus | null;
     deleted?: boolean;
     blocked?: boolean;
-    sample?: boolean;
   }): Promise<void> {
     await database.query(
-      `INSERT INTO "${schema}"."Project" ("_id", "name", "paymentProviderSubscriptionStatus", "paymentProviderMeteredSubscriptionStatus", "deletedAt", "isBlocked", "isSampleProject")
-       VALUES ($1, $2, $3, NULL, $4, $5, $6)`,
+      `INSERT INTO "${schema}"."Project" ("_id", "name", "paymentProviderSubscriptionStatus", "paymentProviderMeteredSubscriptionStatus", "deletedAt", "isBlocked")
+       VALUES ($1, $2, $3, NULL, $4, $5)`,
       [
         data.id.toString(),
         `Project ${data.id.toString()}`,
         data.subscriptionStatus ?? null,
         data.deleted ? new Date() : null,
         Boolean(data.blocked),
-        Boolean(data.sample),
       ],
     );
   }
@@ -326,7 +324,6 @@ describePostgres("Data store probe claims against Postgres", () => {
       subscriptionStatus?: SubscriptionStatus | null;
       deleted?: boolean;
       blocked?: boolean;
-      sample?: boolean;
     } = {},
   ): Promise<{ project: ObjectID; probe: ObjectID }> {
     const project: ObjectID = ObjectID.generate();
@@ -806,11 +803,10 @@ describePostgres("Data store probe claims against Postgres", () => {
       expect(await mayKeep(store, owner.probe)).toBe(true);
     });
 
-    test("the project suspended, blocked, deleted or made a sample while its probe scanned: no; past due: still yes", async () => {
+    test("the project suspended, blocked or deleted while its probe scanned: no; past due: still yes", async () => {
       const cases: Array<[string, string, boolean]> = [
         ["blocked", `"isBlocked" = true`, false],
         ["deleted", `"deletedAt" = now()`, false],
-        ["a sample", `"isSampleProject" = true`, false],
         [
           "canceled",
           `"paymentProviderSubscriptionStatus" = '${SubscriptionStatus.Canceled}'`,
@@ -1147,13 +1143,12 @@ describePostgres("Data store probe claims against Postgres", () => {
       expect(await mayScan(on, scansContent)).toBe(true);
     });
 
-    test("a project that is deleted, blocked, a sample, or whose subscription ended has none of its stores read; one past due still has", async () => {
+    test("a project that is deleted, blocked, or whose subscription ended has none of its stores read; one past due still has", async () => {
       const refused: Array<{ project: ObjectID; store: ObjectID }> = [];
 
       for (const data of [
         { deleted: true },
         { blocked: true },
-        { sample: true },
         { subscriptionStatus: SubscriptionStatus.Canceled },
         { subscriptionStatus: SubscriptionStatus.Unpaid },
       ]) {
@@ -1519,11 +1514,10 @@ describePostgres("Data store probe claims against Postgres", () => {
       expect(await isProjectTelemetryScannable(settingDeleted)).toBe(true);
     });
 
-    test("a project that is deleted, blocked, a sample, or whose subscription ended is not read; one past due is; one that does not exist is not", async () => {
+    test("a project that is deleted, blocked, or whose subscription ended is not read; one past due is; one that does not exist is not", async () => {
       for (const data of [
         { deleted: true },
         { blocked: true },
-        { sample: true },
         { subscriptionStatus: SubscriptionStatus.Canceled },
       ]) {
         const project: ObjectID = ObjectID.generate();

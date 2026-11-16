@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中設定它們，然後執行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 預設為 `true`，此時不會傳送任何內容。
 :::
 
-OneUptime 需要同時設定端點和標頭：沒有標頭時它什麼都不傳送。每個標頭寫成 `name=value`，多個標頭之間以 `;` 分隔，也可以像 `OTEL_EXPORTER_OTLP_HEADERS` 那樣以 `,` 分隔。值中可以包含 `=`。沒有 `;` 時，值會依該標準的寫法讀取，空格寫作 `%20`：若要依原樣傳送值，請在設定結尾加上 `;`。OneUptime 會自行在端點後加上 `/v1/metrics`，同樣的設定也會傳送它自己的追蹤和日誌。每個指標會在 OneUptime 第一次記錄它時出現：`notification.send.count` 會在傳送第一則訊息時出現。
+OneUptime 需要同時設定端點和標頭：沒有標頭時它什麼都不傳送。每個標頭寫成 `name=value`，多個標頭之間以 `;` 分隔，也可以像 `OTEL_EXPORTER_OTLP_HEADERS` 那樣以 `,` 分隔。值中可以包含 `=`。沒有 `;` 時，值會依該標準的寫法讀取，空格寫作 `%20`：若要依原樣傳送值，請在設定結尾加上 `;`。直接設定在 `OTEL_EXPORTER_OTLP_HEADERS` 中的標頭，或僅針對指標設定在 `OTEL_EXPORTER_OTLP_METRICS_HEADERS` 中的標頭，同樣有效：匯出器也會傳送它們，同名時以 OneUptime 本身的標頭為準。OneUptime 會自行在端點後加上 `/v1/metrics`，同樣的設定也會傳送它自己的追蹤和日誌。每個指標會在 OneUptime 第一次記錄它時出現：`notification.send.count` 會在傳送第一則訊息時出現。
 
 ### 向 OneUptime 專案傳送差量
 
@@ -57,19 +57,15 @@ OneUptime 依 OpenTelemetry 的預設方式傳送計數器和直方圖：每個�
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-服務自己的清單會取代整個 Chart 的清單：如果您設定了 `app.extraEnv` 或 `worker.extraEnv`，也要在那裡加上它。
+Chart 會把這個值以 `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` 的形式傳給每個傳送 OneUptime 本身遙測資料的服務。
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-在 `docker-compose.yml` 旁邊建立該檔案，或將這些內容加到您已有的檔案中，然後執行 `npm start`。
+在 `config.env` 中設定它，然後執行 `npm start`。
 :::
 
 這適用於 OneUptime 傳送的關於自身的每個指標。像 Prometheus 這樣自行讀取累計總數的後端不需要任何變更。
@@ -210,7 +206,7 @@ services:
 | `a` | `notification.send.count` | **總和** | `notification.channel = sms`、`notification.on_call_page = true`、`notification.provider.config = global`、`outcome != not_sent` |
 | `b` | `notification.send.count` | **總和** | 相同條件，再加上 `outcome = failure` |
 
-公式 `$b / $a * 100` 是失敗的比例，只要它維持在 1 或以下，目標就算達成。沒有失敗的步長不會繪製資料點，因為 `b` 沒有資料點。`outcome != not_sent` 排除了被專案本身設定擋下的內容，`global` 排除了專案自己的 Twilio 帳戶。在透過自己的簡訊與電話閘道傳送簡訊的安裝中，同樣的查詢衡量的是該閘道。若是其他管道，請把 `sms` 改為 `call`、`push` 或 `email`。
+公式 `$b / $a * 100` 是失敗的比例，只要它維持在 1 或以下，目標就算達成。沒有失敗的步長會繪製 0，因為 `b` 在其中沒有計到任何次數。`outcome != not_sent` 排除了被專案本身設定擋下的內容，`global` 排除了專案自己的 Twilio 帳戶。在透過自己的簡訊與電話閘道傳送簡訊的安裝中，同樣的查詢衡量的是該閘道。若是其他管道，請把 `sms` 改為 `call`、`push` 或 `email`。
 
 ### 呼叫在 30 秒內發出
 

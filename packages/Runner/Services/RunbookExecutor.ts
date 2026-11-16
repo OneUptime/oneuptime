@@ -1,10 +1,12 @@
-import { JOB_HEARTBEAT_INTERVAL_MS } from "../Config";
+import { JOB_HEARTBEAT_INTERVAL_MS, MAX_OUTPUT_BYTES } from "../Config";
 import AgentClient, { ClaimedJob } from "./RunnerClient";
 import SSHExecutor from "./SSHExecutor";
 import KubernetesExecutor from "./KubernetesExecutor";
 import KubectlExecutor from "./KubectlExecutor";
 import KubectlScriptExecutor from "./KubectlScriptExecutor";
-import { runBash, truncateOutput } from "../Utils/RunBash";
+import { runBash } from "../Utils/RunBash";
+import JavaScriptSandbox from "../Utils/JavaScriptSandbox/SandboxProcess";
+import { getJavaScriptStepOutcome } from "../Utils/JavaScriptSandbox/JavaScriptStepResult";
 import { redactSecretValues } from "Common/Types/Runbook/SecretOutputRedaction";
 import { KUBECONFIG_CREDENTIAL_TYPE } from "Common/Types/Runbook/RunnerFeatures";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
@@ -30,8 +32,6 @@ interface ExecResult {
   exitCode?: number | undefined;
   errorMessage?: string | undefined;
 }
-
-const truncate: (s: string) => string = truncateOutput;
 
 /*
  * The environment a Bash step runs with: the Runner's own, plus the run's
@@ -170,6 +170,10 @@ export function getJavaScriptSandboxPolicy(): {
  * with this host's own network access. Run agents where you would run any
  * other operator-authored automation - the trust boundary is the Runbook
  * author, not the isolate.
+ *
+ * In this Runner's own process: what a project's own Runner does, whose
+ * JavaScript steps are its project's own, as its Bash steps are. A global
+ * Runner runs each in a process of its own (runJavaScriptInOwnProcess).
  */
 async function runJavaScriptLocally(data: {
   script: string;
@@ -187,26 +191,7 @@ async function runJavaScriptLocally(data: {
       },
     });
 
-    const lines: string[] = [...(result.logMessages || [])];
-    if (result.returnValue !== undefined) {
-      lines.push(
-        `Return: ${
-          typeof result.returnValue === "string"
-            ? result.returnValue
-            : JSON.stringify(result.returnValue, null, 2)
-        }`,
-      );
-    }
-    const output: string = truncate(lines.join("\n"));
-
-    if (result.scriptError) {
-      return {
-        success: false,
-        output,
-        errorMessage: result.scriptError.message,
-      };
-    }
-    return { success: true, output };
+    return getJavaScriptStepOutcome(result, MAX_OUTPUT_BYTES);
   } catch (err) {
     return {
       success: false,
@@ -214,6 +199,28 @@ async function runJavaScriptLocally(data: {
       errorMessage: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+/*
+ * A global Runner's JavaScript step: the same isolate, with the same limits
+ * and the same egress policy, in a process started for this step alone - as
+ * a user of its own where the container allows it, with none of this
+ * Runner's environment or files - and ended with it (JavaScriptSandbox).
+ * The Runner's key and a code fix's token and workspace are then out of the
+ * step's reach even if its code got out of the isolate.
+ */
+function runJavaScriptInOwnProcess(data: {
+  script: string;
+  timeoutInMs: number;
+  args?: JSONObject | undefined;
+}): Promise<ExecResult> {
+  return JavaScriptSandbox.runStep({
+    script: data.script,
+    args: data.args || {},
+    timeoutInMs: data.timeoutInMs,
+    maxOutputBytes: MAX_OUTPUT_BYTES,
+    policy: getJavaScriptSandboxPolicy(),
+  });
 }
 
 /*
@@ -361,21 +368,29 @@ function prepareStep(job: ClaimedJob): PreparedStep {
   }
 
   if (job.stepType === RunbookStepType.JavaScript) {
+    const step: {
+      script: string;
+      timeoutInMs: number;
+      args?: JSONObject | undefined;
+    } = {
+      script: job.script,
+      timeoutInMs: job.timeoutInMs,
+      ...(job.inputs !== undefined
+        ? {
+            args: getRunbookInputArgs({
+              inputs: job.inputs,
+              trigger: job.trigger,
+            }),
+          }
+        : {}),
+    };
+
     return {
       isRefused: false,
       run: (): Promise<ExecResult> => {
-        return runJavaScriptLocally({
-          script: job.script,
-          timeoutInMs: job.timeoutInMs,
-          ...(job.inputs !== undefined
-            ? {
-                args: getRunbookInputArgs({
-                  inputs: job.inputs,
-                  trigger: job.trigger,
-                }),
-              }
-            : {}),
-        });
+        return GlobalRunnerMode.isActive()
+          ? runJavaScriptInOwnProcess(step)
+          : runJavaScriptLocally(step);
       },
     };
   }
@@ -516,6 +531,15 @@ export const RESULT_RETRY_MAX_DELAY_MS: number = 8_000;
 export const NOT_RUN_LEASE_LOST_MESSAGE: string =
   "The Runner did not run this step: when it was about to start it, the server answered that the job is no longer this Runner's (its lease lapsed and it was timed out, or it already ended).";
 
+/*
+ * Reported, followed by the server's reason, instead of running the step
+ * when a heartbeat of the job said to stop before the step started:
+ * OneUptime AI was turned off for the project (Enable AI) after this Runner
+ * claimed the AI command. No exit code and no output: it did not run.
+ */
+export const NOT_RUN_STOPPED_MESSAGE: string =
+  "The Runner did not run this step: when it was about to start it, OneUptime said to stop";
+
 export function getResultRetryDelayMs(retryNumber: number): number {
   return Math.min(
     RESULT_RETRY_BASE_DELAY_MS * Math.pow(2, Math.max(0, retryNumber - 1)),
@@ -540,6 +564,14 @@ interface JobLease {
   isLost: boolean;
   // The job is done here; a heartbeat answered after this is ignored.
   isFinished: boolean;
+  /*
+   * Why the server said to stop the job (a heartbeat that renewed the lease
+   * answered stop: true), or null. Kept from the first heartbeat that says
+   * it. A step it reaches before it starts never starts.
+   */
+  stopReason: string | null;
+  // The step was started: a stop from now on leaves it to finish.
+  hasStarted: boolean;
 }
 
 function describeError(err: unknown): string {
@@ -572,10 +604,37 @@ function markLeaseLost(data: { job: ClaimedJob; lease: JobLease }): void {
 }
 
 /*
+ * A heartbeat that renewed the lease and said to stop (RunnerClient
+ * .jobHeartbeat's onStop): OneUptime AI was turned off for the project
+ * since this Runner claimed the AI command. The first reason is kept, and
+ * runStep starts no step that has one. A step already running is left to
+ * finish, and its result reported: one command, which stopping halfway
+ * could leave worse off than finishing it, as a resource AI agent leaves a
+ * command it started. The log says so, since nothing else will.
+ */
+function noteStop(
+  data: { job: ClaimedJob; lease: JobLease },
+  reason: string,
+): void {
+  if (data.lease.isFinished || data.lease.stopReason) {
+    return;
+  }
+
+  data.lease.stopReason = reason;
+
+  if (data.lease.hasStarted) {
+    logger.warn(
+      `The server said to stop job ${data.job.jobId} (${reason}). Its step had already started, so it is left to finish and its result is reported.`,
+    );
+  }
+}
+
+/*
  * The heartbeat that keeps a running step's lease alive. It also moves the
  * Runner's view of the lease: a renewal extends it, and "no longer yours"
  * ends it, so the result is not retried against a job the server has let go.
- * A heartbeat that gets no answer changes nothing.
+ * A renewal that says to stop is still a renewal (noteStop). A heartbeat
+ * that gets no answer changes nothing.
  */
 function renewLeaseInBackground(data: {
   job: ClaimedJob;
@@ -587,7 +646,11 @@ function renewLeaseInBackground(data: {
 
   const sentAtMs: number = Date.now();
 
-  AgentClient.jobHeartbeat(data.job.jobId)
+  AgentClient.jobHeartbeat(data.job.jobId, {
+    onStop: (reason: string): void => {
+      noteStop(data, reason);
+    },
+  })
     .then((isStillOurs: boolean) => {
       if (data.lease.isFinished) {
         return;
@@ -618,7 +681,9 @@ function renewLeaseInBackground(data: {
  * the step runs anyway. Only an answer that the job is no longer this
  * Runner's stops it (returns false): the server has already given up on the
  * job, possibly recorded it as never started, and may have moved on, so
- * running it now would act on the cluster behind the platform's back.
+ * running it now would act on the cluster behind the platform's back. An
+ * answer that renews the lease may also say to stop (noteStop): runStep
+ * then does not start the step.
  */
 async function markStepStarting(data: {
   job: ClaimedJob;
@@ -629,7 +694,12 @@ async function markStepStarting(data: {
   try {
     const isStillOurs: boolean = await AgentClient.jobHeartbeat(
       data.job.jobId,
-      { timeoutInMs: PRE_SPAWN_HEARTBEAT_TIMEOUT_MS },
+      {
+        timeoutInMs: PRE_SPAWN_HEARTBEAT_TIMEOUT_MS,
+        onStop: (reason: string): void => {
+          noteStop(data, reason);
+        },
+      },
     );
 
     if (isStillOurs) {
@@ -678,6 +748,25 @@ async function runStep(data: {
         errorMessage: NOT_RUN_LEASE_LOST_MESSAGE,
       };
     }
+
+    /*
+     * Told to stop before the step started - by that heartbeat, or one
+     * before it: OneUptime AI was turned off for the project since the
+     * claim. The step does not run; the result says why, with no exit code.
+     */
+    if (data.lease.stopReason) {
+      logger.warn(
+        `The server said to stop job ${data.job.jobId} before its step started (${data.lease.stopReason}); it was not run.`,
+      );
+
+      return {
+        success: false,
+        output: "",
+        errorMessage: `${NOT_RUN_STOPPED_MESSAGE}: ${data.lease.stopReason}`,
+      };
+    }
+
+    data.lease.hasStarted = true;
 
     return await prepared.run();
   } catch (err) {
@@ -787,6 +876,8 @@ export default class Executor {
       confirmedUntilMs: Date.now() + JOB_LEASE_MS,
       isLost: false,
       isFinished: false,
+      stopReason: null,
+      hasStarted: false,
     };
 
     /*

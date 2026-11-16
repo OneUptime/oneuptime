@@ -302,7 +302,7 @@ export default class AIAgentTaskAPI {
 
           /*
            * A project-scoped identity may only report on its own project's
-           * runs, and a global Runner only on a run it claimed
+           * runs, and every worker only on a run it claimed
            * (deniesAccessToRun). Denial answers exactly like a missing run so
            * a probing key cannot tell "other tenant's run" from "no such
            * run".

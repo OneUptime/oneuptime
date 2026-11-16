@@ -558,15 +558,20 @@ export default class StatusPageDomain extends BaseModel {
   })
   public isCnameVerified?: boolean = undefined;
 
+  /*
+   * Whether OneUptime has ordered the domain's free certificate, and whether
+   * the domain serves it yet (isSslProvisioned below): OneUptime's record of
+   * the certificate, which the sweeps and Check now keep, as on a form's
+   * domain. Nobody may give a new domain either (#8907): one added
+   * "provisioned" was taken as serving https from the start - subscribers'
+   * links went to it (StatusPageService.getUsableCustomDomain) before its
+   * CNAME record was even checked - and one added "ordered" was left out of
+   * the sweep that orders first certificates. A new domain starts with
+   * neither, whatever the request said
+   * (StatusPageDomainService.onBeforeCreate).
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageDomain,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -597,14 +602,7 @@ export default class StatusPageDomain extends BaseModel {
   public isSslOrdered?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageDomain,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -701,16 +699,14 @@ export default class StatusPageDomain extends BaseModel {
       Permission.StatusPageMember,
       Permission.CreateStatusPageDomain,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageDomain,
-    ],
+    /*
+     * Write-only: nobody reads the key back through the API - not a Viewer,
+     * not the people who may change it. It is written with the certificate
+     * and kept encrypted at rest; nginx reads it as OneUptime to serve the
+     * domain (Nginx/Jobs/WriteCustomCertsToDisk), and the edit form leaves
+     * it blank, keeping the stored one (ModelForm's write-only fields).
+     */
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -722,9 +718,10 @@ export default class StatusPageDomain extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
     type: TableColumnType.VeryLongText,
     description:
-      "The private key of your certificate, in PEM. Used when Is Custom Certificate is on.",
+      "The private key of your certificate, in PEM, without a passphrase. Used when Is Custom Certificate is on. Write-only: kept encrypted and never returned by the API.",
   })
   @Column({
     type: ColumnType.VeryLongText,

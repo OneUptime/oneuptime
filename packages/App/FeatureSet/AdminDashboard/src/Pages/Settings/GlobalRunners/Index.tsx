@@ -20,7 +20,9 @@ import RunnerCodeFixesOffSetting from "Common/UI/Components/Runner/RunnerCodeFix
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
@@ -41,16 +43,38 @@ export const GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID: string =
  * Why a global Runner takes no AI code fixes, said as what makes it take
  * them, in whole sentences the locale files hold (English keys, as
  * Health's visitor addresses have them): the setting its host turned them
- * off with is the {{setting}} value, drawn as code.
+ * off with is the {{setting}} value, drawn as code. One turned off here
+ * (Runs AI Code Fixes, the row's own switch) says so plainly: that is a
+ * choice, not a fault.
  */
 export const GLOBAL_RUNNER_CODE_FIXES_COPY: {
   olderRelease: string;
   turnedOff: string;
+  turnedOffHere: string;
 } = {
   olderRelease: "Takes no AI code fixes: update it to this server's version.",
   turnedOff:
     "Takes no AI code fixes: remove {{setting}} from its host and restart it.",
+  turnedOffHere: "Takes no AI code fixes: they are turned off for this Runner.",
 };
+
+/*
+ * The switch a master admin keeps a global Runner off AI code fixes with
+ * (Runner.canRunCodeFixes): on by default, folded under More fields, as a
+ * project Runner's Runs Runbooks is. Off, the server grants it no code
+ * fixes and hands it no repository token, so it runs JavaScript steps only.
+ */
+export const GLOBAL_RUNNER_CODE_FIXES_SWITCH: {
+  title: string;
+  description: string;
+} = {
+  title: "Runs AI Code Fixes",
+  description:
+    "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.",
+};
+
+const MORE_FIELDS: FormFieldCollapsibleSection<Runner> =
+  getAdvancedFormSection<Runner>();
 
 /*
  * The Status column wraps (Column.wrapContent): its line is a sentence, and
@@ -78,7 +102,11 @@ export const GLOBAL_RUNNER_STATUS_COLUMN_MAX_WIDTH_CLASS_NAME: string =
  * fixes - one of a release from before global Runners took them, or one
  * whose host turned them off - says so under its status, with what to do:
  * the repositories on the Global Runner say no global Runner online takes
- * them, and this is where the admin finds which one, and why.
+ * them, and this is where the admin finds which one, and why. Runs AI Code
+ * Fixes, under More fields, keeps one off them altogether, enforced by the
+ * server (its key then proves no code-fix identity): a multi-tenant install
+ * keeps repository tokens off the hosts that run every project's
+ * JavaScript with it.
  */
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -132,6 +160,7 @@ const Settings: FunctionComponent = (): ReactElement => {
   ): ReactElement => {
     const refusal: RunnerCodeFixRefusal | null = getRunnerCodeFixRefusal({
       isGlobalRunner: true,
+      canRunCodeFixes: item.canRunCodeFixes,
       takesCodeFixes: item.takesCodeFixes,
       agentVersion: item.agentVersion,
       lastAlive: item.lastAlive,
@@ -139,6 +168,23 @@ const Settings: FunctionComponent = (): ReactElement => {
 
     if (!refusal) {
       return renderLiveStatus(item);
+    }
+
+    // Turned off here on purpose: said in grey, as a fact, not a fault.
+    if (refusal === RunnerCodeFixRefusal.TurnedOffInOneUptime) {
+      return (
+        <div>
+          {renderLiveStatus(item)}
+          <p
+            className="mt-1 break-words text-xs leading-5 text-gray-500"
+            data-testid={GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
+          >
+            {translator.translateText(
+              GLOBAL_RUNNER_CODE_FIXES_COPY.turnedOffHere,
+            )}
+          </p>
+        </div>
+      );
     }
 
     return (
@@ -245,11 +291,27 @@ const Settings: FunctionComponent = (): ReactElement => {
             // The column only said "Optional description for this agent".
             hideColumnDescription: true,
           },
+          {
+            field: {
+              canRunCodeFixes: true,
+            },
+            title: GLOBAL_RUNNER_CODE_FIXES_SWITCH.title,
+            description: GLOBAL_RUNNER_CODE_FIXES_SWITCH.description,
+            collapsibleSection: MORE_FIELDS,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            // As the column: every global Runner takes them until turned off.
+            defaultValue: true,
+          },
         ]}
         selectMoreFields={{
           key: true,
           lastAlive: true,
-          // Whether it takes AI code fixes: what it said, or its release.
+          /*
+           * Whether it takes AI code fixes: turned off here, what it said,
+           * or its release.
+           */
+          canRunCodeFixes: true,
           takesCodeFixes: true,
           agentVersion: true,
         }}

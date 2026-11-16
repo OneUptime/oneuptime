@@ -577,16 +577,6 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Runbook/RunbookVariablesMove.ts": {
     "(module) Runbook": Why.Migration,
   },
-  /*
-   * A sample project's records (#6808), filled by OneUptime as it makes the
-   * project and before it is handed to the person who asked: the sample
-   * service's description, and the creation times that make its history
-   * read as history.
-   */
-  "packages/Common/Server/Utils/SampleProject/SampleProjectSeeder.ts": {
-    "SampleProjectSeeder.backdate *": Why.Setup,
-    "SampleProjectSeeder.createServiceAndTelemetry Service": Why.Setup,
-  },
   "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarRefresher.ts":
     {
       "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar":

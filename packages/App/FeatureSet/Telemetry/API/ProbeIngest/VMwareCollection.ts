@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import { ProbeExpressRequest } from "../../Types/Request";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
@@ -6,6 +7,7 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import VMwareVCenterConnectionTestService from "Common/Server/Services/VMwareVCenterConnectionTestService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -20,6 +22,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 import VMwareCollectionStatus from "Common/Types/VMware/VMwareCollectionStatus";
 import {
   VMWARE_PROBE_COLLECTION_CONCURRENCY,
@@ -122,6 +125,21 @@ export function getCollectionClaimLimit(runningCount: number): number {
 router.post(
   "/probe/vmware/work",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  /*
+   * Under the probe scheduling limit (issue #8051); a refused request claims
+   * nothing and is answered busy (ProbeSchedulingMiddleware): the vCenters
+   * and tests stay due for the probe's next tick. The collections it is
+   * running carry on; their reports are not held to the limit.
+   */
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendJsonObjectResponse(req, res, {
+        collections: [],
+        tests: [],
+      });
+    },
+    { retriesWhenBusy: ProbeCapability.RetryAllWorkWhenBusy },
+  ),
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,

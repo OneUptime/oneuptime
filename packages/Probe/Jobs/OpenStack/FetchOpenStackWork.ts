@@ -4,6 +4,7 @@ import {
   PROBE_INGEST_URL,
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import OpenStackCollector from "../../Utils/OpenStack/OpenStackCollector";
 import { splitOpenStackReport } from "../../Utils/OpenStack/OpenStackReportParts";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -46,6 +47,9 @@ import zlib from "zlib";
 
 // How long one report upload may take: megabytes over a slow site link.
 export const REPORT_UPLOAD_TIMEOUT_IN_MS: number = 5 * 60 * 1000;
+
+// The work the work request hands out, as a busy answer names it (ServerBusy).
+const OPENSTACK_WORK: string = "OpenStack collections";
 
 const gzip: (body: Buffer) => Promise<Buffer> = promisify<Buffer, Buffer>(
   zlib.gzip,
@@ -111,6 +115,11 @@ export async function fetchOpenStackWork(): Promise<OpenStackProbeWorkResponse> 
 
   const empty: OpenStackProbeWorkResponse = { collections: [], tests: [] };
 
+  // The server asked this probe to wait (ServerBusy): it asks later.
+  if (ServerBusy.isBackingOff(OPENSTACK_WORK)) {
+    return empty;
+  }
+
   try {
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.fetch<JSONObject>({
@@ -123,6 +132,16 @@ export async function fetchOpenStackWork(): Promise<OpenStackProbeWorkResponse> 
         headers: {},
         options: ProbeAPIRequest.getDefaultRequestOptions(url),
       });
+
+    /*
+     * Too busy to hand out work now (issue #8051): nothing was claimed, the clouds and tests
+     * stay due, and this probe asks again once the server's Retry-After has passed. The
+     * collections running carry on.
+     */
+    if (ServerBusy.isBusyAnswer(result)) {
+      ServerBusy.note(OPENSTACK_WORK, result);
+      return empty;
+    }
 
     if (result instanceof HTTPErrorResponse) {
       logger.warn(

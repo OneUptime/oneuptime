@@ -45,6 +45,8 @@ import {
   OAuth2TokenStatus,
 } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import { TRUNCATED_TEXT_NOTE } from "Common/Utils/MessageFit";
+import ResponseTooLarge from "Common/Utils/ResponseTooLarge";
+import { API_COMPONENT_MAX_RESPONSE_BYTES } from "Common/Server/Types/Workflow/Components/API/Utils";
 import {
   describeRowsKeptByDelete,
   KEPT_STATUS_HISTORY_DAYS,
@@ -882,6 +884,23 @@ describe("the components page", () => {
     expect(headers?.isSensitive).toBe(true);
     expect(tableRow(api, "**Request Headers**")[1]).toBe(
       "Headers to send, such as an API key. Under **More fields**. Their values are hidden in the run's log.",
+    );
+  });
+
+  // #8875: an API block reads a bounded answer, and the page says how much.
+  it("says how much of an answer an API block reads, and what a larger one does", () => {
+    const api: string = section(COMPONENTS, "## API");
+
+    expect(API_COMPONENT_MAX_RESPONSE_BYTES).toBe(10 * 1024 * 1024);
+    expect(api).toContain(
+      "A block reads at most 10 MB of an answer. A larger answer is not read: the block takes **Error**, with the reason.",
+    );
+    // The reason the block's Error holds names the same limit.
+    expect(ResponseTooLarge.getMessage(API_COMPONENT_MAX_RESPONSE_BYTES)).toBe(
+      "The answer was larger than 10 MB, so it was not read.",
+    );
+    expect(outputTitles(component(ComponentID.ApiGet)).includes("Error")).toBe(
+      true,
     );
   });
 

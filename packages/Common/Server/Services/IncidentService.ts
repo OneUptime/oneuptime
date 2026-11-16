@@ -1968,9 +1968,10 @@ export class Service extends ProjectReferencesService<Model> {
    * the two columns that follow from them.
    *
    * isScopedToStatusPages is derived from the list, whatever the caller sent
-   * for it: the column is computed, which exempts it from the column check on
-   * create, so a client value would otherwise be stored as is - and a scoped
-   * flag with no pages hides the incident from every status page.
+   * for it. Nobody may create the column, so a person's value is dropped
+   * before the hooks run (#8907), but OneUptime's own creates and a server
+   * admin's are not asked - and a scoped flag with no pages hides the
+   * incident from every status page.
    *
    * statusPagesNotifiedOnCreation is the created-notification job's record of
    * the pages it told. A client must not be able to seed it and so keep pages
@@ -2795,8 +2796,7 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * The next incident number of this project, with the project's prefix
    * for it: the one way an incident is numbered. A create takes it in
-   * onBeforeCreate; the sample project, which writes its incidents without
-   * hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   * onBeforeCreate (RecordNumbersTakenInOnePlaceGuard).
    */
   @CaptureSpan()
   public async takeNextIncidentNumber(

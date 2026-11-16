@@ -187,6 +187,10 @@ Each variable also reads its old name, with `INCIDENT_FORM_` in front instead of
 
 When your OneUptime instance has hCaptcha turned on, the form shows a captcha, and a submission that has not passed it is refused. There is no per-form setting. A self-hosted installation turns captcha on with `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` and `CAPTCHA_SECRET_KEY` — the same settings that protect sign-up. Without it, the rate limits and the IP allowlist carry the load.
 
+### Malware scanning
+
+A self-hosted installation can have every file people send scanned for malware with ClamAV before it is stored: a form's files, and the files people upload while signed in or with an API key. Set `CLAMAV_HOST` (and `CLAMAV_PORT`, `3310` by default) to a ClamAV daemon. With Docker Compose, `COMPOSE_PROFILES=clamav` and `CLAMAV_HOST=clamav` in `config.env` start the ClamAV bundled with OneUptime; with Helm, set `clamav.enabled`. A file ClamAV flags is refused, saying which, and nothing of the submission is stored. While ClamAV does not answer, every file is refused with "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes." (503), so no file is stored unchecked. Without `CLAMAV_HOST`, files are not scanned, as before.
+
 ## Troubleshooting
 
 :::details The link says the form is not available

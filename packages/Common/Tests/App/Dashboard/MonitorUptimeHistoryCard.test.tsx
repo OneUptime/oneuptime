@@ -168,7 +168,11 @@ import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltip
 import ObjectID from "../../../Types/ObjectID";
 import { UptimeDayBucket } from "../../../Types/StatusPage/UptimeDailyAggregate";
 import Navigation from "../../../UI/Utils/Navigation";
-import { MAINTENANCE_BAR_CLASS_NAME } from "../../../Utils/StatusPage/HistoryChartBarColors";
+import {
+  MAINTENANCE_BAR_CLASS_NAME,
+  MONITORING_OFF_BAR_CLASS_NAME,
+  MONITORING_OFF_BAR_COLOR,
+} from "../../../Utils/StatusPage/HistoryChartBarColors";
 import { ScheduledMaintenancePhaseOfState } from "../../../Utils/ScheduledMaintenanceStart";
 import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 
@@ -949,7 +953,7 @@ describe("MonitorUptimeHistoryCard", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data.",
+        "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.",
       ),
     ).toBeInTheDocument();
   });
@@ -1107,5 +1111,120 @@ describe("MonitorUptimeHistoryCard - scheduled maintenance", () => {
 
     expect(modalProps["maintenanceEvents"]).toEqual([MAINTENANCE]);
     expect(typeof modalProps["onMaintenanceClick"]).toBe("function");
+  });
+});
+
+/*
+ * A day the monitor's monitoring was off (issue #7112): the strip draws it
+ * in the monitoring-off grey, so the legend names it, in the word the
+ * Status Timeline on the same page uses; and the day's dialog is handed how
+ * long monitoring was off, as the tooltip is.
+ */
+describe("MonitorUptimeHistoryCard - days with monitoring off", () => {
+  const OFF_DAY: UptimeDayBucket = {
+    bucketStart: new Date("2026-09-19T00:00:00.000Z"),
+    bucketEnd: new Date("2026-09-20T00:00:00.000Z"),
+    daySeconds: 86400,
+    coveredSeconds: 0,
+    statusDurations: [],
+    monitoringOffSeconds: 86400,
+  };
+
+  beforeEach(() => {
+    mockGraphProps.length = 0;
+    mockModalProps.length = 0;
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("names monitoring off in the legend, beside no data, when a day was off", () => {
+    renderCard({
+      summary: loaded(summaryOf({ buckets: [OFF_DAY, ...BUCKETS] })),
+    });
+
+    const legendItem: HTMLElement = screen.getByTestId(
+      "monitor-uptime-legend-monitoring-off",
+    );
+
+    expect(legendItem).toHaveTextContent("Monitoring off");
+    // Its swatch is drawn by the strip's own class, over the strip's own grey.
+    const swatch: HTMLElement = legendItem.querySelector(
+      `.${MONITORING_OFF_BAR_CLASS_NAME}`,
+    ) as HTMLElement;
+
+    expect(swatch).not.toBeNull();
+    expect(swatch).toHaveStyle({
+      backgroundColor: MONITORING_OFF_BAR_COLOR.toString(),
+    });
+    expect(screen.getByRole("list", { name: "Legend" })).toHaveTextContent(
+      "No data",
+    );
+  });
+
+  test("says nothing of monitoring off when no day was off, or only part of one", () => {
+    renderCard({
+      summary: loaded(
+        summaryOf({
+          buckets: [
+            {
+              ...BUCKETS[0]!,
+              coveredSeconds: 64800,
+              statusDurations: [
+                { monitorStatusId: OPERATIONAL_ID, seconds: 64800 },
+              ],
+              monitoringOffSeconds: 21600,
+            },
+          ],
+        }),
+      ),
+    });
+
+    expect(
+      screen.queryByTestId("monitor-uptime-legend-monitoring-off"),
+    ).toBeNull();
+  });
+
+  test("hands the strip each day's time with monitoring off", () => {
+    renderCard({
+      summary: loaded(summaryOf({ buckets: [OFF_DAY, ...BUCKETS] })),
+    });
+
+    const buckets: Array<UptimeDayBucket> = lastGraphProps()[
+      "uptimeBuckets"
+    ] as Array<UptimeDayBucket>;
+
+    expect(buckets[0]!.monitoringOffSeconds).toBe(86400);
+  });
+
+  test("hands the day dialog how long monitoring was off", () => {
+    renderCard({});
+
+    const onBarClick: (
+      date: Date,
+      incidents: Array<UptimeBarTooltipIncident>,
+      summary: Record<string, unknown>,
+    ) => void = lastGraphProps()["onBarClick"] as (
+      date: Date,
+      incidents: Array<UptimeBarTooltipIncident>,
+      summary: Record<string, unknown>,
+    ) => void;
+
+    act(() => {
+      onBarClick(new Date("2026-09-19T00:00:00.000Z"), [], {
+        date: new Date("2026-09-19T00:00:00.000Z"),
+        uptimePercent: 0,
+        hasEvents: false,
+        statusDurations: [],
+        incidents: [],
+        maintenanceEvents: [],
+        monitoringOffSeconds: 86400,
+      });
+    });
+
+    expect(
+      mockModalProps[mockModalProps.length - 1]!["monitoringOffSeconds"],
+    ).toBe(86400);
   });
 });

@@ -67,6 +67,8 @@ Haz una solicitud HTTP a cualquier URL. Hay un bloque por método: **Llamada a A
 
 En ambos casos, el bloque devuelve **Estado de la respuesta**, **Encabezados de respuesta** y **Cuerpo de la respuesta**, además de **Error** con el motivo cuando falló. Lee un campo de una respuesta JSON añadiendo su nombre a la referencia, como en `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Un bloque lee como mucho 10 MB de una respuesta. Una respuesta mayor no se lee: el bloque toma **Error**, con el motivo.
+
 Las redirecciones no se siguen, así que apunta el bloque a la dirección que responde. Las solicitudes salen de OneUptime: una URL que se resuelve a una dirección de red privada se rechaza a menos que un administrador autoalojado la permita, y la ejecución se detiene con el motivo. Consulta [Acceso de red saliente](/docs/workflows/configuration#acceso-de-red-saliente).
 
 **Llamada a API GET por ID (JSON)** lee un elemento por un ID que llegó de otra parte, como la clave de incidencia que envió un webhook. Pon `{id}` en su **URL** donde va el ID, como en `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, y el ID en **ID**. El bloque solo coloca el ID cuando es un ID simple, de como mucho 200 letras, dígitos, guiones y guiones bajos, y aun así lo codifica con porcentajes: cualquier otra cosa, como `x/../users`, toma **Error** antes de enviar ninguna solicitud, de modo que un texto de fuera no puede llevar la solicitud a otro sitio. Por lo demás funciona como **Llamada a API GET (JSON)** y devuelve los mismos valores.
@@ -242,7 +244,7 @@ Un bloque añadido a un flujo de trabajo que empieza con un incidente o una aler
 
 **Éxito** se ejecuta en cuanto se avisa al menos a una persona, o se ha iniciado una política. **Error** se ejecuta cuando no se avisó a nadie, y el valor **Error** del bloque dice por qué, por ejemplo que no hay nadie de guardia en la programación. **Resumen** dice en una frase a quién se avisó y a quién se dejó fuera, lista para publicarla en un canal, y **Usuarios avisados** enumera a las personas avisadas.
 
-A quien está ausente no se le avisa: se avisa en su lugar a quien su sustitución de usuario nombra para cubrirle. Un aviso nombra como máximo 100 personas, equipos y programaciones. Consulta [Cómo se localiza a cada persona](/docs/on-call/escalation-rules#cómo-se-localiza-a-cada-persona).
+A quien está ausente no se le avisa: se avisa en su lugar a quien su sustitución de usuario nombra para cubrirle. A quien una política de guardia u otro aviso ya está avisando por lo mismo no se le vuelve a avisar, y sigue figurando en **Usuarios avisados**: si ese aviso termina sin su respuesta, el aviso del bloque le avisa por su cuenta. Un aviso nombra como máximo 100 personas, equipos y programaciones. Consulta [Cómo se localiza a cada persona](/docs/on-call/escalation-rules#cómo-se-localiza-a-cada-persona).
 
 Un aviso sin política de guardia detrás aparece junto a las ejecuciones de las políticas como **Aviso directo**: en los registros de guardia del incidente o de la alerta, en su feed y su canal de Slack o Microsoft Teams, y en los registros de cada persona avisada. Sigue abierto 30 minutos, y después mientras sigan saliendo avisos. Si para entonces nadie lo ha reconocido, termina sin avisar a nadie más.
 

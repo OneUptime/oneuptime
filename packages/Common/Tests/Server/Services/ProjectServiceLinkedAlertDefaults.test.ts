@@ -13,6 +13,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { getJestSpyOn } from "../../Spy";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
 /*
  * A new project's linked alert switches come from the database default.
@@ -182,6 +183,8 @@ describe("a new project's linked alert switches", () => {
         created,
         userProps(),
         DatabaseRequestType.Create,
+        // Who created it is the hook's stamp: the create's own write.
+        columnsTheCreateWrote(created),
       );
     }).not.toThrow();
   });

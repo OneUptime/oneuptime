@@ -22,7 +22,6 @@ import { subscribeToModelSwitchSaved } from "Common/UI/Components/ModelSwitch/Mo
 import FormRefusals from "Common/UI/Utils/FormRefusals";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
-import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import Analytics from "Common/Utils/Analytics";
 import React, {
@@ -209,8 +208,6 @@ const DashboardRecording: FunctionComponent<ComponentProps> = (
       decision: decision,
       config: config,
       page: getFeedbackPageFor(location.pathname),
-      isSampleProject:
-        ProjectUtil.getCurrentProject()?.isSampleProject === true,
     });
   }, [decision, location.pathname]);
 

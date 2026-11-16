@@ -165,7 +165,12 @@ describe("IncidentCustomField.variableKey", () => {
     });
   });
 
-  test("is computed, so a create carrying one passes the column check (the service replaces it)", () => {
+  /*
+   * Computed: the service writes the key from the name on every create, and
+   * the check of the record as written takes it as the create's own
+   * (columnsSetByServer, which DatabaseService hands over).
+   */
+  test("is computed, so the key the service writes on a create passes the column check", () => {
     expect(metadata("variableKey").computed).toBe(true);
     expect(metadata("variableKey").type).toBe(TableColumnType.ShortText);
 
@@ -179,8 +184,31 @@ describe("IncidentCustomField.variableKey", () => {
         data,
         props([Permission.ProjectAdmin]),
         DatabaseRequestType.Create,
+        ["variableKey"],
       );
     }).not.toThrow();
+  });
+
+  /*
+   * A key the create sends is the caller's, and nobody may choose one
+   * (#6541): a creator who may read it - a field read and sent back whole
+   * carries it - has it dropped before the service's hooks run, and the
+   * service writes the key from the name.
+   */
+  test("is dropped on create when the caller sends it, before the service's hooks run", () => {
+    const data: IncidentCustomField = new IncidentCustomField();
+    data.name = "Impact";
+    data.variableKey = "impact";
+
+    expect(
+      ColumnPermissions.checkComputedColumnsSentOnCreate(
+        IncidentCustomField,
+        data,
+        props([Permission.ProjectAdmin]),
+      ),
+    ).toEqual([]);
+    expect(data.variableKey).toBeUndefined();
+    expect(data.name).toBe("Impact");
   });
 
   test("is refused on update by the column check, behind the service dropping it", () => {

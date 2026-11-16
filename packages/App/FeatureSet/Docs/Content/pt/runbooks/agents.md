@@ -66,7 +66,7 @@ Runners globais são os Runners que o OneUptime executa para todos os projetos. 
 
 Um Runner global executa as etapas de muitos projetos, então cada etapa fica separada de todas as outras:
 
-- Cada etapa roda em um sandbox `isolated-vm` próprio, criado para essa etapa e descartado depois dela: sem arquivos, sem processos, sem variáveis de ambiente e nada guardado de uma etapa para a seguinte.
+- Cada etapa roda em um sandbox `isolated-vm` próprio, criado para essa etapa e descartado depois dela: sem arquivos, sem processos, sem variáveis de ambiente e nada guardado de uma etapa para a seguinte. O próprio sandbox roda em um processo iniciado só para essa etapa, como um usuário próprio: o processo não tem nada da chave, das configurações ou dos arquivos do Runner e termina junto com a etapa.
 - As requisições HTTP dela alcançam apenas endereços públicos da internet, nunca um endereço privado, de loopback ou link-local nem um endpoint de metadados de nuvem, então um Runner global nunca alcança a sua rede.
 - Ele só recebe uma variável secreta quando o interruptor **Runners globais podem usá-lo** dela está ligado, e só para uma etapa do próprio projeto da variável.
 - Um projeto roda no máximo três etapas por vez nos Runners globais, então nenhum projeto fica com eles só para si.
@@ -75,13 +75,15 @@ Um Runner global também cuida das correções de código da OneUptime AI, em to
 
 Um Runner global anterior a 14.0.94, ou iniciado com `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, não assume correções de código, e o OneUptime não o conta para elas. Um repositório em **Runner global** diz então que nenhum Runner global online assume correções de código por IA, e a página **Runners globais** do Painel de administração diz por quê sob o status desse Runner.
 
+Um administrador principal pode manter um Runner global totalmente afastado das correções de código: o seu interruptor **Executa correções de código por IA**, em **Mais campos** na página **Runners globais** do Painel de administração, vem ativado por padrão. Desativado, o OneUptime não concede a esse Runner nenhuma correção de código nem lhe entrega o token de nenhum repositório, por isso ele executa apenas etapas em JavaScript. No OneUptime Cloud, os Runners globais trabalham apenas em repositórios do GitHub: um repositório do GitLab, Forgejo, Gitea ou Git é alcançado com o token da própria conexão, por isso as suas correções de código rodam num dos seus próprios Runners.
+
 Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a rodar no Runner padrão do projeto ou, se não houver um, a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma. Um repositório de código que não escolhe nenhum Runner nas configurações dele em Código também trabalha no Runner padrão do projeto ou, se não houver um, em um Runner global, e precisa de um dos seus enquanto a opção estiver desligada; consulte [Código](/docs/ai/ai-agent#escolha-o-runner-do-repositório).
 
 ### De onde vêm os Runners globais
 
 No OneUptime Cloud, o OneUptime os executa. Uma instalação auto-hospedada executa um próprio por padrão, assim como executa as próprias sondas globais: o serviço `global-runner` no Docker Compose e o deployment `globalRunner` no chart Helm. Ele tem a própria chave, `GLOBAL_RUNNER_KEY`, e nada mais do servidor.
 
-Um administrador principal pode adicionar mais, para rodar etapas e correções de código a partir de outros hosts: no Painel de administração, abra **Configurações**, depois **Runners globais**, crie um e rode o comando que o **Mostrar ID e chave** dele fornece em um host que alcance a internet.
+Um administrador principal pode adicionar mais, para rodar etapas e correções de código a partir de outros hosts: no Painel de administração, abra **Configurações**, depois **Runners globais**, crie um e rode o comando que o **Mostrar ID e chave** dele fornece em um host que alcance a internet. Mantenha os padrões desse contêiner: um contêiner iniciado com `no-new-privileges`, ou sem as capacidades `SETUID` e `SETGID`, não consegue rodar cada etapa como um usuário próprio, então as etapas rodam como o próprio usuário do Runner, ainda cada uma em um processo próprio, e o log dele avisa isso.
 
 Para desligar o incluído, defina `GLOBAL_RUNNER_REPLICAS=0` no `config.env` do Docker Compose, ou `globalRunner.enabled` como `false` no chart Helm. Sem nenhum Runner global, **Runbooks → Agentes de runbook** lista apenas os seus próprios Runners, e toda etapa JavaScript e todo repositório de código escolhe um deles.
 

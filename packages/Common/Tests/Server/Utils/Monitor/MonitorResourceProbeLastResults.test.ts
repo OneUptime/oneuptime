@@ -253,7 +253,6 @@ describe("MonitorResourceUtil.monitorResource and the monitor's probe rows", () 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-    jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
     (Semaphore.lock as jest.Mock).mockResolvedValue({} as never);
 
     probeRows = new MonitorProbeRowsInMemory();

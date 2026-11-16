@@ -1388,6 +1388,7 @@ export class Service extends ProjectReferencesService<Model> {
               _id: true,
               runnerId: true,
               isGlobalRunnerPicked: true,
+              repositoryHostedAt: true,
             },
             props: {
               isRoot: true,
@@ -1429,6 +1430,7 @@ export class Service extends ProjectReferencesService<Model> {
               projectId,
               runnerId: resolvedRepository.runnerId,
               isGlobalRunnerPicked: resolvedRepository.isGlobalRunnerPicked,
+              repositoryHostedAt: resolvedRepository.repositoryHostedAt,
             }
           : undefined,
       });

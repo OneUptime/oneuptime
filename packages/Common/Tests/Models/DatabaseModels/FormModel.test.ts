@@ -677,7 +677,39 @@ describe("Form.shareKey: the key in the form's link", () => {
     expect(control.update).toEqual(model.getUpdatePermissions());
   });
 
-  test("a key in a create request passes the permission check, to be replaced by the service", () => {
+  /*
+   * A key a create sends is dropped before the create's hooks run, never
+   * refused (ComputedColumnsReplacedOnCreate): FormService mints the one the
+   * form starts with, and the check of the record as written takes the
+   * minted key as the create's own (columnsSetByServer).
+   */
+  test("a key in a create request is dropped, not refused, to be replaced by the service", () => {
+    const form: Form = formPayload();
+    form.shareKey = ObjectID.generate();
+
+    expect(
+      ModelPermission.checkComputedColumnsSentOnCreate(
+        Form,
+        form,
+        propsWith(Permission.CreateForm),
+      ),
+    ).toEqual([]);
+    expect(form.shareKey).toBeUndefined();
+
+    // The key the service mints passes the check of the record as written.
+    form.shareKey = ObjectID.generate();
+
+    expect(() => {
+      ModelPermission.checkCreatePermissions(
+        Form,
+        form,
+        propsWith(Permission.CreateForm),
+        ["shareKey"],
+      );
+    }).not.toThrow();
+  });
+
+  test("a key the create itself carries is no key the check of the record takes as the service's", () => {
     const form: Form = formPayload();
     form.shareKey = ObjectID.generate();
 
@@ -687,7 +719,7 @@ describe("Form.shareKey: the key in the form's link", () => {
         form,
         propsWith(Permission.CreateForm),
       );
-    }).not.toThrow();
+    }).toThrow(/shareKey/);
   });
 
   test.each([Permission.EditForm, Permission.ProjectAdmin])(
