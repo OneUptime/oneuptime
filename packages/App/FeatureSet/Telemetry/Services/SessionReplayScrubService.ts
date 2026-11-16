@@ -1,6 +1,6 @@
 import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
@@ -8,6 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import crypto from "crypto";
 import LogScrubRuleService from "./LogScrubRuleService";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
+import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
 
 /*
  * Server-side second net over a decoded rrweb event tree.
@@ -76,8 +77,15 @@ const MAX_DEPTH: number = 512;
  */
 const MAX_NODES: number = 250_000;
 
-/* Yield roughly every 2,000 nodes visited. */
-const YIELD_EVERY_NODES: number = 2000;
+/*
+ * The event loop is handed back by the time the walk's work took, not
+ * every 2,000 nodes: a node's work grows with its text - up to
+ * MAX_SCANNED_STRING_LENGTH read by every rule of the project - so 2,000
+ * nodes of inlined text held the loop for seconds. One budget for each
+ * walk, asked before each node (Common/Server/Utils/EventLoop.ts, #8925).
+ */
+const walkBudgets: WeakMap<SessionReplayScrubResult, EventLoopBudget> =
+  new WeakMap<SessionReplayScrubResult, EventLoopBudget>();
 
 /*
  * Strings longer than this are not regex-scanned. A 2MB inlined stylesheet
@@ -274,6 +282,8 @@ export default class SessionReplayScrubService {
       return state;
     }
 
+    walkBudgets.set(state, new EventLoopBudget());
+
     await this.walkArray(events, compiledRules, 0, state, {
       isAttributeMap: false,
     });
@@ -422,8 +432,9 @@ export default class SessionReplayScrubService {
   }
 
   /*
-   * Count a visited node, yielding to the event loop periodically and
-   * signalling the caller to stop once the node cap is hit.
+   * Count a visited node, handing the event loop back once the walk's work
+   * since the last time took its budget, and signalling the caller to stop
+   * once the node cap is hit.
    */
   private static async visitNode(
     state: SessionReplayScrubResult,
@@ -435,8 +446,10 @@ export default class SessionReplayScrubService {
       return false;
     }
 
-    if (state.nodesVisited % YIELD_EVERY_NODES === 0) {
-      await EventLoop.yieldToEventLoop();
+    const eventLoopBudget: EventLoopBudget | undefined = walkBudgets.get(state);
+
+    if (eventLoopBudget !== undefined && eventLoopBudget.isSpent()) {
+      await eventLoopBudget.handBack();
     }
 
     return true;
@@ -606,17 +619,9 @@ export default class SessionReplayScrubService {
       case LogScrubPatternType.IPAddress:
         return "***.***.***.***";
 
-      default: {
-        if (value.length <= 2) {
-          return "***";
-        }
-
-        return (
-          value[0] +
-          "*".repeat(Math.max(value.length - 2, 3)) +
-          value[value.length - 1]!
-        );
-      }
+      default:
+        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
+        return maskKeepingEnds(value);
     }
   }
 }

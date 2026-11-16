@@ -199,7 +199,7 @@ oneuptime whoami --check
 :::
 
 :::details 消息“API error (400): Invalid API Key”
-该密钥不是 OneUptime 的 API 密钥，或已过期，或已被重置。从 **项目设置 → 高级 → API 密钥** 中该密钥的页面重新复制它（它的 **过期** 日期也在那里），并用同一上下文名称重新登录。命令以退出码 `2` 结束。
+该密钥不是 OneUptime 的 API 密钥，或已过期，或已被重置。在 **项目设置 → 高级 → API 密钥** 中按密钥的结尾字符找到它，并查看它的 **过期** 日期。你已不再持有的密钥无法再次显示：请在它的页面上重置它，然后用新密钥以同一上下文名称重新登录。命令以退出码 `2` 结束。
 :::
 
 :::details 消息“API error (402): API keys need the Growth plan”

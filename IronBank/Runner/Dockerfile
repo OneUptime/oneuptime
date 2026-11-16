@@ -44,11 +44,15 @@ COPY --from=release /usr/local/bin/kubectl /usr/local/bin/kubectl
 
 # A global Runner's JavaScript sandbox, as the release builds it: the launcher
 # that starts each step's process as a user of its own (setuid root, run by
-# the node group alone) and the bundle that process runs. Its owner and mode
-# are set again here, as the release's last stage sets them.
+# the node group alone), the no-network filter that keeps that process off
+# every socket (root's, runnable by all, never setuid) and the bundle that
+# process runs. Their owners and modes are set again here, as the release's
+# last stage sets them.
 COPY --from=release /usr/lib/oneuptime-runner /usr/lib/oneuptime-runner
 RUN chown 0:1000 /usr/lib/oneuptime-runner/javascript-sandbox \
-    && chmod 4750 /usr/lib/oneuptime-runner/javascript-sandbox
+    && chmod 4750 /usr/lib/oneuptime-runner/javascript-sandbox \
+    && chown 0:0 /usr/lib/oneuptime-runner/javascript-sandbox-no-network \
+    && chmod 0755 /usr/lib/oneuptime-runner/javascript-sandbox-no-network
 
 # The release's Debian packages: what runbook steps run with (bash, curl, git,
 # wget, ssh, archive tools) and tini, the entrypoint. Iron Bank's pipeline

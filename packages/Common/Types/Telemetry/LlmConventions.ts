@@ -32,7 +32,7 @@ import { LogEventNameAttributeKey } from "../Log/LogEventName";
  * called `team.id`; they produce one called `resource.team.id`.
  *
  * OtelTracesIngestService already learned this the hard way for session
- * replay (see its `sessionIdAttributeKeys`, which lists both spellings and
+ * replay (see SESSION_ID_ATTRIBUTE_KEYS in Utils/Telemetry/CorrelationIdAttributes, which lists both spellings and
  * whose comment notes that reading only the bare key "would look correct in a
  * unit test and fail in production"). Identity is the same trap, one tier
  * worse: identity is precisely the kind of value a fleet stamps ONCE on the

@@ -24,8 +24,15 @@ import Pill, { PillSize } from "../Pill/Pill";
 import {
   addRuleCriteriaToSelect,
   applyRuleCriteriaLegacySafetyShadow,
-  replaceLegacyRuleCriteriaFields,
-} from "../RuleCriteria/RuleCriteriaModelForm";
+  shouldUseRuleCriteriaBuilder,
+} from "../RuleCriteria/RuleCriteriaLegacyFields";
+import ruleCriteriaModelForm, {
+  loadRuleCriteriaModelForm,
+  RuleCriteriaModelFormLibrary,
+} from "../RuleCriteria/LazyRuleCriteriaModelForm";
+import ChunkLoadRecovery, {
+  ChunkLoadRecoveryVariant,
+} from "../NewVersion/ChunkLoadRecovery";
 import { FormErrors, FormProps, FormSummaryConfig } from "./BasicForm";
 import BasicModelForm from "./BasicModelForm";
 import Field from "./Types/Field";
@@ -248,6 +255,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
   const [fields, setFields] = useState<Fields<TBaseModel>>([]);
   const [isLoading, setLoading] = useState<boolean>(false);
   const [isFetching, setIsFetching] = useState<boolean>(false);
+  /*
+   * A rule's form, while the condition builder's file is on its way
+   * (LazyRuleCriteriaModelForm), and why it did not arrive if it did not.
+   */
+  const [isLoadingRuleCriteriaForm, setIsLoadingRuleCriteriaForm] =
+    useState<boolean>(false);
+  const [ruleCriteriaFormLoadError, setRuleCriteriaFormLoadError] =
+    useState<Error | null>(null);
   const [isFetchingDropdownOptions, setIsFetchingDropdownOptions] =
     useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -298,6 +313,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
   const pickedColorDefaults: MutableRefObject<Dictionary<string>> = useRef<
     Dictionary<string>
   >({});
+
+  /*
+   * What the record holds, as the edit read it (fetchItem), for a field
+   * whose drawing follows it: a Field.hasNothingStoredWhenEditing that is a
+   * function is handed these. Null until the record is read.
+   */
+  const storedValues: MutableRefObject<FormValues<TBaseModel> | null> =
+    useRef<FormValues<TBaseModel> | null>(null);
 
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
@@ -586,6 +609,36 @@ const ModelForm: <TBaseModel extends BaseModel>(
   };
 
   /*
+   * Whether a write-only field has nothing stored to keep on this edit, so
+   * it is asked for as on a new record (Field.hasNothingStoredWhenEditing):
+   * said by the field, or worked out from what the record holds - as the
+   * edit read it, else the values the form was handed.
+   */
+  const hasNothingStoredWhenEditing: (field: Field<TBaseModel>) => boolean = (
+    field: Field<TBaseModel>,
+  ): boolean => {
+    const rule: Field<TBaseModel>["hasNothingStoredWhenEditing"] =
+      field.hasNothingStoredWhenEditing;
+
+    if (typeof rule === "function") {
+      return rule(
+        storedValues.current ||
+          props.initialValues ||
+          ({} as FormValues<TBaseModel>),
+      );
+    }
+
+    return Boolean(rule);
+  };
+
+  // Whether a field's drawing follows what the record holds (see above).
+  const isAnyFieldDrawnByStoredValues: () => boolean = (): boolean => {
+    return props.fields.some((field: ModelField<TBaseModel>): boolean => {
+      return typeof field.hasNothingStoredWhenEditing === "function";
+    });
+  };
+
+  /*
    * A write-only field is offered only where leaving it blank can keep what
    * is stored. A switch or a checkbox has no blank - drawn off, it would save
    * off over a stored on - so one the user may set but not read is left off
@@ -644,6 +697,24 @@ const ModelForm: <TBaseModel extends BaseModel>(
   const setFormFields: PromiseVoidFunction = async (): Promise<void> => {
     fieldsRunGeneration.current = fieldsRunGeneration.current + 1;
     const generation: number = fieldsRunGeneration.current;
+
+    /*
+     * A rule's form draws its match fields as one condition builder, a file
+     * of its own that only a rule's form loads (LazyRuleCriteriaModelForm).
+     * Asked for now, it arrives while the dropdowns' options are fetched.
+     */
+    const isRuleForm: boolean = shouldUseRuleCriteriaBuilder(
+      model,
+      props.fields,
+    );
+    const ruleCriteriaFormLoading: Promise<RuleCriteriaModelFormLibrary> | null =
+      isRuleForm ? loadRuleCriteriaModelForm() : null;
+
+    // Its failure is handled where it is awaited, below.
+    ruleCriteriaFormLoading?.catch((): void => {});
+    setIsLoadingRuleCriteriaForm(
+      isRuleForm && ruleCriteriaModelForm.getLoaded() === null,
+    );
 
     let fieldsToSet: Fields<TBaseModel> = [];
 
@@ -782,7 +853,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             props.formType !== FormType.Create
               ? { required: false }
               : {}),
-            ...(isWriteOnlyField(key) && !field.hasNothingStoredWhenEditing
+            ...(isWriteOnlyField(key) && !hasNothingStoredWhenEditing(field)
               ? getWriteOnlyFieldProps(field)
               : {}),
             field: {
@@ -800,9 +871,42 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return;
     }
 
-    fieldsToSet = replaceLegacyRuleCriteriaFields(model, fieldsToSet, {
-      subject: props.ruleCriteriaSubject,
-    });
+    if (ruleCriteriaFormLoading) {
+      let ruleCriteriaForm: RuleCriteriaModelFormLibrary;
+
+      try {
+        ruleCriteriaForm = await ruleCriteriaFormLoading;
+      } catch (loadError: unknown) {
+        /*
+         * Its file did not arrive - usually a new version deployed while the
+         * tab was open. The form says so in its place, as a part of a page
+         * whose code will not download does (ChunkLoadRecovery), rather than
+         * draw the match fields the builder stands for.
+         */
+        if (generation === fieldsRunGeneration.current) {
+          setRuleCriteriaFormLoadError(
+            loadError instanceof Error ? loadError : new Error(`${loadError}`),
+          );
+          setIsLoadingRuleCriteriaForm(false);
+        }
+
+        return;
+      }
+
+      if (generation !== fieldsRunGeneration.current) {
+        return;
+      }
+
+      fieldsToSet = ruleCriteriaForm.replaceLegacyRuleCriteriaFields(
+        model,
+        fieldsToSet,
+        {
+          subject: props.ruleCriteriaSubject,
+        },
+      );
+      setRuleCriteriaFormLoadError(null);
+      setIsLoadingRuleCriteriaForm(false);
+    }
 
     // if there are no fields to set, then show permission error. This is useful when there are no fields to show.
     if (fieldsToSet.length === 0 && props.fields.length > 0) {
@@ -838,6 +942,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     setFields(fieldsToSet);
   };
+
+  /*
+   * The fields as this draw works them out, for a run started elsewhere -
+   * the fetch below - that must use the page's latest fields, not those of
+   * the draw it started in.
+   */
+  const latestSetFormFields: MutableRefObject<PromiseVoidFunction> =
+    useRef<PromiseVoidFunction>(setFormFields);
+  latestSetFormFields.current = setFormFields;
 
   useAsyncEffect(async () => {
     // set fields.
@@ -936,6 +1049,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
     if (item && props.onItemFetched) {
       item = await props.onItemFetched(item as TBaseModel);
     }
+
+    storedValues.current = item
+      ? (item as unknown as FormValues<TBaseModel>)
+      : null;
 
     setItemToEdit(item as TBaseModel);
   };
@@ -1372,6 +1489,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
     setError("");
     try {
       await fetchItem();
+
+      /*
+       * A field drawn by what the record holds - a custom domain's private
+       * key, asked for only while none is stored - is drawn again now the
+       * record is read, while the form still shows its loader: it never
+       * opens drawn for a record it is not.
+       */
+      if (isAnyFieldDrawnByStoredValues()) {
+        await latestSetFormFields.current();
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
       props.onError?.(API.getFriendlyMessage(err));
@@ -1694,7 +1821,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
    */
   const hasFieldsToRender: boolean = fields.length > 0;
 
-  if (isFetching || (isFetchingDropdownOptions && !hasFieldsToRender)) {
+  if (ruleCriteriaFormLoadError && !hasFieldsToRender) {
+    return (
+      <ChunkLoadRecovery
+        error={ruleCriteriaFormLoadError}
+        variant={ChunkLoadRecoveryVariant.Part}
+      />
+    );
+  }
+
+  if (
+    isFetching ||
+    ((isFetchingDropdownOptions || isLoadingRuleCriteriaForm) &&
+      !hasFieldsToRender)
+  ) {
     return (
       <div className="row flex justify-center mt-20 mb-20">
         <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />

@@ -144,7 +144,7 @@ Under **Tilgang** velger du **Leser** for en agent som bare leser, eller **Prosj
 
 ### Kopier nøkkelen
 
-Klikk **Opprett API-nøkkel**: nøkkelens side åpnes. Kopier nøkkelen derfra.
+Klikk **Opprett API-nøkkel**. OneUptime viser nøkkelen én gang, i dialogen **Kopier API-nøkkelen din**: kopier den før du trykker på **Ferdig**.
 :::
 
 API-nøkler hører til ett prosjekt: MCP-serveren tar prosjektet fra nøkkelen, så opprettingsverktøy trenger aldri et `projectId`-argument.

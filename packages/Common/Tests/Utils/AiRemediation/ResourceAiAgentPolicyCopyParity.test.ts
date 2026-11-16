@@ -14,7 +14,9 @@ import ts from "typescript";
  * every file of Types/ResourceAiAgent and Utils/AiRemediation/Resource
  * (whole directories, so a tool module a kit adds is copied without anyone
  * touching the list), plus Types/AutoRemediation/
- * AiRemediationCommandPolicyVerdict.ts and Types/Runbook/RunnerJobOrigin.ts.
+ * AiRemediationCommandPolicyVerdict.ts and Types/Runbook/RunnerJobOrigin.ts
+ * - and Utils/RetryAfter.ts, the Retry-After reader every OneUptime client
+ * shares (issue #8928), so the agent waits as the server asked.
  * If a copy drifts, the two sides of the trust boundary disagree about a
  * command: the server approves what the agent refuses (every fix fails on
  * the resource), or the agent runs what the server would now refuse.
@@ -274,16 +276,20 @@ function getAgentEntryPoints(): Array<string> {
 }
 
 describe("Resource AI agent: copies of the resource command policy closure", () => {
-  test("the list copies both policy directories whole, and the three leaf files", () => {
+  test("the list copies both policy directories whole, and the four leaf files", () => {
     expect(copyList.commonPolicyDirectories).toEqual([
       "Types/ResourceAiAgent",
       "Utils/AiRemediation/Resource",
     ]);
-    // AgentAiSettings: what AI may do, which ResourceAiAccess reads.
+    /*
+     * AgentAiSettings: what AI may do, which ResourceAiAccess reads.
+     * RetryAfter: how long a refusal asked the agent to wait (issue #8928).
+     */
     expect(copyList.commonPolicyFiles).toEqual([
       "Types/AI/AgentAiSettings.ts",
       "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
       "Types/Runbook/RunnerJobOrigin.ts",
+      "Utils/RetryAfter.ts",
     ]);
     expect(copyList.otherCopies).toEqual([]);
   });

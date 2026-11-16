@@ -120,11 +120,12 @@ describe("ServerBusy", () => {
         new HTTPErrorResponse(429, {}, { "retry-after": "25" }),
       ),
     ).toBe(25_000);
+    // "0" waits a second: never at once.
     expect(
       ServerBusy.backOffMs(
         new HTTPErrorResponse(429, {}, { "retry-after": "0" }),
       ),
-    ).toBe(0);
+    ).toBe(1_000);
     // Not every client lower-cases a header.
     expect(
       ServerBusy.backOffMs(
@@ -140,7 +141,7 @@ describe("ServerBusy", () => {
         ),
       ),
     ).toBe(7_000);
-    // A date gone by means now.
+    // A date gone by - a server clock behind this one - waits a second.
     expect(
       ServerBusy.backOffMs(
         new HTTPErrorResponse(
@@ -149,7 +150,31 @@ describe("ServerBusy", () => {
           { "retry-after": new Date(1_000_000 - 60_000).toUTCString() },
         ),
       ),
-    ).toBe(0);
+    ).toBe(1_000);
+  });
+
+  test("the obsolete RFC 850 and asctime dates are read too, asctime as UTC (issue #8928)", () => {
+    // Thu, 01 Jan 1970 00:16:40 GMT.
+    jest.spyOn(Date, "now").mockReturnValue(1_000_000);
+
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(
+          429,
+          {},
+          { "retry-after": "Thursday, 01-Jan-70 00:17:00 GMT" },
+        ),
+      ),
+    ).toBe(20_000);
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(
+          429,
+          {},
+          { "retry-after": "Thu Jan  1 00:16:52 1970" },
+        ),
+      ),
+    ).toBe(12_000);
   });
 
   test("no Retry-After, or one that cannot be read, waits the server's ten seconds; none waits more than a minute", () => {

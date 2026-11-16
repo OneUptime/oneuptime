@@ -18,6 +18,7 @@ const fs = require("fs");
 const path = require("path");
 
 const LAUNCHER = "/usr/lib/oneuptime-runner/javascript-sandbox";
+const NO_NETWORK = "/usr/lib/oneuptime-runner/javascript-sandbox-no-network";
 const STEP = path.join(__dirname, "EscapedStep.js");
 const UID = 61007;
 
@@ -56,10 +57,12 @@ function prepareRunnerSecrets() {
   return { directory, file };
 }
 
+// As the Runner runs a step: the launcher switches to the step's user, then
+// the no-network filter keeps it off every socket, then node runs the step.
 function runStep(args) {
   return childProcess.spawnSync(
     LAUNCHER,
-    ["run", String(UID), process.execPath, STEP, ...args],
+    ["run", String(UID), NO_NETWORK, process.execPath, STEP, ...args],
     {
       env: {
         PATH: process.env.PATH,

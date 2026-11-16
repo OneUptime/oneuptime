@@ -142,6 +142,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Lists and nested values are read too.",
     "A value too large to read item by item is read as text.",
     "Exceptions come from the scrubbed record.",
+    // Why a record's session id is not hidden (issue #8924).
+    "A record's session id is kept.",
     "Session replays are scrubbed too.",
     "Rules run in the order of the list.",
     "A custom pattern takes time in line with the record.",

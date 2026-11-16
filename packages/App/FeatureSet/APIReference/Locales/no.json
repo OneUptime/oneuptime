@@ -100,7 +100,7 @@
       "title": "Autentisering",
       "intro": "Du må autentisere forespørslene dine for å få tilgang til noen av endepunktene i OneUptime API-et. I denne veiledningen ser vi på hvordan autentisering fungerer. OneUptime tilbyr én måte å autentisere API-forespørslene dine på - ved å bruke en API-nøkkel.",
       "generateApiKey": "Generer en API-nøkkel",
-      "generateApiKeyBody": "Gå til <strong>Prosjektinnstillinger</strong> > <strong>Avansert</strong> > <strong>API-nøkler</strong>. Opprett en ny API-nøkkel. Vær oppmerksom: Nye API-nøkler har ingen tillatelser tildelt, så du må tildele en tillatelse før du kan bruke den.",
+      "generateApiKeyBody": "Gå til <strong>Prosjektinnstillinger</strong> > <strong>Avansert</strong> > <strong>API-nøkler</strong>, og opprett en API-nøkkel. OneUptime viser nøkkelen én gang, når den opprettes: kopier den da, for ingen side viser den igjen. En nøkkel kan bare gjøre det tillatelsene dens tillater: velg tilgangen når du oppretter den, eller legg til tillatelser på siden dens.",
       "readMorePermissions": "Les mer om tillatelser",
       "projectId": "Prosjekt-ID",
       "projectIdBody": "Gå til <strong>Prosjektinnstillinger</strong> > <strong>Prosjekt</strong>. Du skal se prosjekt-ID-en din der.",

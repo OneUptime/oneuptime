@@ -94,8 +94,9 @@ import { QueryRunner } from "typeorm";
  *
  * The rest of the generated migration (the new column, say) stays an ordinary
  * one, registered before it. SchemaMigrationsOnlineDdl.test.ts fails a new
- * migration that builds an index or validates a foreign key on an existing
- * table any other way.
+ * migration that builds an index, validates a foreign key or drops an index
+ * on an existing table any other way, and one whose up() calls this without
+ * `transaction = false` (where dropIndex falls back to a plain DROP INDEX).
  */
 
 export interface OnlineDdlLimits {

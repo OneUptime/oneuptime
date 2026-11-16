@@ -280,7 +280,7 @@ API-Schlüssel erhalten Berechtigungen direkt am Schlüssel oder über die benut
 :::steps
 1. Öffnen Sie **Projekteinstellungen > Erweitert > API-Schlüssel** und klicken Sie auf **API-Schlüssel erstellen**. In OneUptime Cloud brauchen API-Schlüssel den Growth-Tarif.
 2. Geben Sie den **Name** des Schlüssels ein und wählen Sie seinen **Zugriff**. Die Beschreibung und das Ablaufdatum liegen unter **Weitere Felder**; ein Schlüssel läuft ein Jahr nach dem Tag seiner Erstellung ab, sofern Sie kein anderes Datum wählen, und der eingeklappte Bereich sagt das.
-3. Legen Sie den Schlüssel an. Er öffnet sich auf seiner Seite, wo Sie ihn kopieren.
+3. Legen Sie den Schlüssel an. OneUptime zeigt ihn einmal an, in einem Dialog: Kopieren Sie ihn dort. Danach öffnet sich seine Seite.
 :::
 
 Die gewählte Rolle wird zur ersten Berechtigung des Schlüssels, sobald der Schlüssel existiert — genau so, als hätten Sie sie auf der Seite des Schlüssels hinzugefügt. Angeboten werden nur die Rollen, die Sie selbst haben — ein Schlüssel kann nie mehr bekommen, als die Person hat, die ihn vergibt —, und wer Schlüssel anlegen, aber nicht ändern darf, was sie tun dürfen, wird gar nicht gefragt.

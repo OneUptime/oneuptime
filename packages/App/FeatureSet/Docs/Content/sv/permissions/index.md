@@ -280,7 +280,7 @@ API-nycklar får behörigheter direkt, på själva nyckeln, eller genom de anpas
 :::steps
 1. Öppna **Projektinställningar > Avancerad > API-nycklar** och klicka på **Skapa API-nyckel**. På OneUptime Cloud kräver API-nycklar Growth-planen.
 2. Skriv in nyckelns **Namn** och välj dess **Åtkomst**. Beskrivningen och utgångsdatumet finns under **Fler fält**; en nyckel går ut ett år efter dagen den skapas, om du inte väljer ett annat datum, och det hopfällda avsnittet säger det.
-3. Skapa nyckeln. Den öppnas på sin sida, där du kopierar den.
+3. Skapa nyckeln. OneUptime visar den en gång, i en dialogruta: kopiera den där. Sedan öppnas dess sida.
 :::
 
 Rollen du väljer blir nyckelns första behörighet så snart nyckeln finns, precis som om du hade lagt till den på nyckelns sida. Du erbjuds bara de roller du själv har — en nyckel kan aldrig få mer än personen som ger den har — och den som får skapa nycklar men inte ändra vad de får göra tillfrågas inte.

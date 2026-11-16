@@ -32,7 +32,7 @@ flowchart TB
 
 Åbn **Projektindstillinger → Avanceret → API-nøgler** i OneUptime-dashboardet, og klik på **Opret API-nøgle**. Giv den et **Navn**, såsom `terraform`, og vælg **Projektadministrator** under **Adgang**: Terraform opretter, læser, ændrer og sletter alle slags poster, den administrerer, og **Projektadministrator** må gøre alt det. Til en mere begrænset nøgle vælger du **Vælg tilladelser senere** og tilføjer kun de tilladelser, du har brug for, på nøglens side.
 
-Nøglen udløber om et år. For at vælge en anden dato åbner du **Flere felter**, før du opretter den, eller ændrer datoen senere på nøglens side. Når nøglen er oprettet, åbner dens side: kopiér **API-nøgle** fra kortet **API-nøgledetaljer**.
+Nøglen udløber om et år. For at vælge en anden dato åbner du **Flere felter**, før du opretter den, eller ændrer datoen senere på nøglens side. Når nøglen er oprettet, viser OneUptime den én gang, i dialogen **Kopiér din API-nøgle**: kopiér den, før du trykker på **Færdig**.
 
 ### Gør nøglen tilgængelig for Terraform
 
@@ -218,7 +218,7 @@ Provideren fandt ingen API-nøgle. Eksportér `ONEUPTIME_API_KEY` i den shell, d
 :::
 
 :::details Meddelelsen “the OneUptime API returned status 400: Invalid API Key”
-Nøglen er tastet forkert, udløbet eller slettet, eller den hører til en anden OneUptime end den, `oneuptime_url` peger på. Kopiér nøglen igen fra dens side, eller opret en ny.
+Nøglen er tastet forkert, udløbet eller slettet, eller den hører til en anden OneUptime end den, `oneuptime_url` peger på. Tjek den mod, hvordan nøglen ender på dens side, eller nulstil den dér for at få en ny.
 :::
 
 :::details Meddelelsen “the OneUptime API returned status 402: API keys need the Growth plan”

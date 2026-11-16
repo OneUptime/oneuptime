@@ -61,6 +61,7 @@ const {
   stepCommandFromRoot,
   stepWorkingDirectory,
 } = require("./Utils/WorkflowStep");
+const { playJob, stepIdsReadBy } = require("./Utils/WorkflowExpression");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const EE_DIR = path.join(REPO_ROOT, "ee");
@@ -1315,6 +1316,200 @@ describe("the Enterprise Edition's own CI", () => {
 
     test('ee/package.json has no "type" field (the root is ESM; ee must stay CommonJS)', () => {
       expect(JSON.parse(read("ee/package.json"))).not.toHaveProperty("type");
+    });
+  });
+});
+
+/*
+ * Enterprise Edition Test's `test` job runs a dozen guards with ee/ present,
+ * then ee's own tests. Every step used to have the default `if`, success(),
+ * so a red guard skipped every step after it, ee's tests included: from
+ * 2026-11-09 no run on main reached them while App's ShortDescriptionsGuard
+ * was red (#6572). Each step now runs when what it needs succeeded. These
+ * tests play the job's real `if`s (Utils/WorkflowExpression.js) through each
+ * step's failure, one at a time.
+ */
+describe("test.ee.yaml's test job: a failed step skips only the steps that need it", () => {
+  const steps = readYaml(".github/workflows/test.ee.yaml").jobs.test.steps;
+  const label = (step) => {
+    return step.name || step.uses;
+  };
+  const indexOf = (predicate) => {
+    return steps.findIndex(predicate);
+  };
+  const installIn = (directory) => {
+    return indexOf((step) => {
+      return (
+        stepWorkingDirectory(step) === directory &&
+        /^npm (install|ci)\b/.test(stepCommand(step))
+      );
+    });
+  };
+
+  const setupNode = indexOf((step) => {
+    return /^actions\/setup-node@/.test(step.uses || "");
+  });
+  const testSetup = indexOf((step) => {
+    return (
+      stepWorkingDirectory(step) === "packages/Common" &&
+      stepCommand(step).trim() === "bash test-setup.sh"
+    );
+  });
+  const installCommon = installIn("packages/Common");
+  const installApp = installIn("packages/App");
+  const installEe = installIn("ee");
+  const eeTests = indexOf((step) => {
+    return (
+      stepWorkingDirectory(step) === "ee" &&
+      stepCommand(step).trim() === "npm test"
+    );
+  });
+  // Everything between the installs of App and ee: the guards.
+  const guards = steps
+    .map((_step, index) => {
+      return index;
+    })
+    .filter((index) => {
+      return index > installApp && index < installEe;
+    });
+
+  // Each step's outcome when `failing` (an index) fails and the rest pass.
+  const playWith = (failing) => {
+    return playJob(steps, {
+      outcomeOf: (_step, index) => {
+        return index === failing ? "failure" : "success";
+      },
+    });
+  };
+  const byStep = (outcomes) => {
+    return Object.fromEntries(
+      outcomes.map((outcome, index) => {
+        return [`${index}: ${label(steps[index])}`, outcome];
+      }),
+    );
+  };
+  const expectOutcomes = (failing, expected) => {
+    const played = playWith(failing);
+    expect(byStep(played.outcomes)).toEqual(
+      byStep(
+        steps.map((_step, index) => {
+          return index === failing ? "failure" : expected(index);
+        }),
+      ),
+    );
+    // A failure anywhere still fails the job.
+    expect(played.result).toBe("failure");
+  };
+
+  test("runs a dozen or so guards between installing App and installing ee, then ee's tests", () => {
+    for (const index of [
+      setupNode,
+      testSetup,
+      installCommon,
+      installApp,
+      installEe,
+      eeTests,
+    ]) {
+      expect(index).toBeGreaterThan(-1);
+    }
+    expect(guards.length).toBeGreaterThanOrEqual(10);
+    for (const index of guards) {
+      expect({
+        step: label(steps[index]),
+        command: stepCommand(steps[index]),
+      }).toEqual({
+        step: label(steps[index]),
+        command: expect.stringMatching(/^node node_modules\/\.bin\/jest /),
+      });
+    }
+    expect(setupNode).toBeLessThan(testSetup);
+    expect(testSetup).toBeLessThan(installCommon);
+    expect(installCommon).toBeLessThan(installApp);
+    expect(installEe).toBeLessThan(eeTests);
+    expect(eeTests).toBe(steps.length - 1);
+  });
+
+  test("every step id an if reads is the id of a step before it", () => {
+    /*
+     * A misspelt id reads as null on GitHub: its step would never run, and
+     * nothing would say so.
+     */
+    steps.forEach((step, index) => {
+      const earlierIds = steps.slice(0, index).map((earlier) => {
+        return earlier.id;
+      });
+      for (const id of stepIdsReadBy(step.if)) {
+        expect({ step: label(step), reads: id, isEarlier: true }).toEqual({
+          step: label(step),
+          reads: id,
+          isEarlier: earlierIds.includes(id),
+        });
+      }
+    });
+  });
+
+  test("no step continues on error: a failed one fails the job", () => {
+    expect(
+      steps.filter((step) => {
+        return step["continue-on-error"] !== undefined;
+      }),
+    ).toEqual([]);
+  });
+
+  test("with nothing failing, every step runs and the job passes", () => {
+    const played = playJob(steps);
+
+    expect(byStep(played.outcomes)).toEqual(
+      byStep(
+        steps.map(() => {
+          return "success";
+        }),
+      ),
+    );
+    expect(played.result).toBe("success");
+  });
+
+  test("when a guard fails, every other guard and ee's own tests still run, and the job fails", () => {
+    for (const guard of guards) {
+      expectOutcomes(guard, () => {
+        return "success";
+      });
+    }
+  });
+
+  test("when test-setup.sh fails, the installs and the guards still run; ee's tests, which need its config.env and services, do not", () => {
+    expectOutcomes(testSetup, (index) => {
+      return index === eeTests ? "skipped" : "success";
+    });
+  });
+
+  test("when installing Common fails, nothing after it runs: the log shows one cause", () => {
+    expectOutcomes(installCommon, (index) => {
+      return index < installCommon ? "success" : "skipped";
+    });
+  });
+
+  test("when installing App fails, no guard runs, and neither do ee's install and tests", () => {
+    expectOutcomes(installApp, (index) => {
+      return index < installApp ? "success" : "skipped";
+    });
+  });
+
+  test("when installing ee fails, the guards have run and ee's tests are skipped", () => {
+    expectOutcomes(installEe, (index) => {
+      return index === eeTests ? "skipped" : "success";
+    });
+  });
+
+  test("when Node cannot be set up, nothing after it runs", () => {
+    expectOutcomes(setupNode, (index) => {
+      return index < setupNode ? "success" : "skipped";
+    });
+  });
+
+  test("when ee's tests fail, the job fails", () => {
+    expectOutcomes(eeTests, () => {
+      return "success";
     });
   });
 });

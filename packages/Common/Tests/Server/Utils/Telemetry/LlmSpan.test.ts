@@ -1113,7 +1113,7 @@ describe("LlmSpanUtil.extract — employee identity", () => {
  * cursor.team.id as RESOURCE attributes.
  *
  * OtelTracesIngestService already hit this trap once with session replay and
- * fixed it the same way — see its `sessionIdAttributeKeys`, whose comment
+ * fixed it the same way — see SESSION_ID_ATTRIBUTE_KEYS (Utils/Telemetry/CorrelationIdAttributes), whose comment
  * notes that reading only the bare key "would look correct in a unit test and
  * fail in production". These tests are the unit tests that would not have
  * looked correct.

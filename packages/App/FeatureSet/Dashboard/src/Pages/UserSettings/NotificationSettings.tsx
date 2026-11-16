@@ -1,4 +1,3 @@
-import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -12,28 +11,14 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
   useState,
 } from "react";
-import useTableBoxWidth, {
-  TableBoxWidth,
-} from "Common/UI/Components/Table/useTableBoxWidth";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import Color from "Common/Types/Color";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import API from "Common/UI/Utils/API/API";
-import useTranslateValue from "Common/UI/Utils/Translation";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { JSONObject } from "Common/Types/JSON";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ObjectID from "Common/Types/ObjectID";
 import {
   Blue500,
@@ -53,11 +38,7 @@ import {
   useCustomNotificationChannels,
 } from "../../Utils/CustomNotificationChannels";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  translatableTerm,
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
@@ -69,45 +50,75 @@ import {
   readSecurityCaseNotificationMinimum,
 } from "Common/Utils/SecurityCase/SecurityCaseNotificationPriority";
 import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
+import NotificationMatrix, {
+  NotificationMatrixEvent,
+} from "../../Components/NotificationSettings/NotificationMatrix";
+import {
+  ChannelReadinessFacts,
+  NotificationChannelDefinition,
+  NotificationChannelKey,
+  getChannelReach,
+  useNotificationChannelReadiness,
+} from "../../Components/NotificationSettings/NotificationChannelReadiness";
+import {
+  NotificationSettingsWords,
+  OfferedChannel,
+} from "../../Components/NotificationSettings/NotificationSettingsWords";
+import useNotificationSettingRows, {
+  NotificationSettingRows,
+} from "../../Components/NotificationSettings/useNotificationSettingRows";
+import ChannelsNotSetUp from "../../Components/NotificationSettings/ChannelsNotSetUp";
+import NotificationTabSummary from "../../Components/NotificationSettings/NotificationTabSummary";
+import UserSettingsPageIntro, {
+  USER_SETTINGS_PAGE_LINK_CLASS_NAME,
+} from "../../Components/UserSettings/UserSettingsPageIntro";
 
-export type ChannelKey =
-  | "alertByEmail"
-  | "alertBySMS"
-  | "alertByCall"
-  | "alertByPush"
-  | "alertByWhatsApp"
-  | "alertByTelegram"
-  | "alertBySlack"
-  | "alertByMicrosoftTeams"
-  | "alertByMattermost"
-  | "alertByWebhook"
-  | "alertByCustomChannel";
+export {
+  doesNotificationMatrixTableFit,
+  NOTIFICATION_MATRIX_CHANNEL_COLUMN_WIDTH_PX,
+  NOTIFICATION_MATRIX_EVENT_COLUMN_MIN_WIDTH_PX,
+} from "../../Components/NotificationSettings/NotificationMatrix";
 
-interface ChannelDef {
-  key: ChannelKey;
-  label: string;
-  icon: IconProp;
-  color: Color;
-  /*
-   * Set on the chat workspaces: their column is shown only when the project
-   * has connected that workspace, since nothing can reach anybody through a
-   * workspace the project never connected.
-   */
-  workspaceType?: WorkspaceType | undefined;
-  /*
-   * Set on the custom channels' column: shown only while the server has a
-   * custom channel on, since nothing goes through one it does not have.
-   */
-  isCustomChannels?: boolean | undefined;
-}
+/*
+ * User Settings > Notification Settings: which updates reach the person -
+ * about the records they own, and about their own on-call shifts - and on
+ * which channels. One switch per event and channel, saved as it is flipped.
+ *
+ * The page opens on what it is for, and where the two pages it is mistaken
+ * for are: on-call pages follow How to Reach Me, and how much email the
+ * updates add up to is Email Preferences' (#8887). Then the channels that
+ * cannot reach the person yet, each a link to set it up (ChannelsNotSetUp),
+ * and a tab per area, each opening on what it adds up to
+ * (NotificationTabSummary) and holding a card per kind of record
+ * (NotificationMatrix).
+ *
+ * The events, their cards and the channels are listed here; how a card is
+ * drawn, read and saved is in Components/NotificationSettings.
+ */
+
+export type ChannelKey = NotificationChannelKey;
+
+type ChannelDef = NotificationChannelDefinition;
 
 const CHANNELS: ReadonlyArray<ChannelDef> = [
   { key: "alertByEmail", label: "Email", icon: IconProp.Email, color: Blue500 },
   { key: "alertBySMS", label: "SMS", icon: IconProp.SMS, color: Purple500 },
-  { key: "alertByCall", label: "Call", icon: IconProp.Call, color: Orange500 },
+  /*
+   * Call and Push are drawn by keys that name their meaning (#7178): the
+   * bare "Call" is a function call in Chinese (调用), and "Push" a payment
+   * in Arabic (الدفع). English reads them as the label.
+   */
+  {
+    key: "alertByCall",
+    label: "Call",
+    word: translationKey("Call (phone call)"),
+    icon: IconProp.Call,
+    color: Orange500,
+  },
   {
     key: "alertByPush",
     label: "Push",
+    word: translationKey("Push (push notification)"),
     icon: IconProp.Notification,
     color: Sky500,
   },
@@ -172,9 +183,10 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
 ];
 
 /*
- * The columns a matrix shows: every channel, except a chat workspace the
+ * The columns a matrix offers: every channel, except a chat workspace the
  * project has not connected. A hidden column's switches keep their saved
- * value; they are only not offered.
+ * value; they are only not offered. Which of these can reach the person is
+ * NotificationChannelReadiness's to say.
  */
 export function getShownChannelKeys(
   offeredWorkspaces: ReadonlyArray<WorkspaceType>,
@@ -194,7 +206,31 @@ export function getShownChannelKeys(
   });
 }
 
-interface EventDef {
+/*
+ * The channels the cards offer, each with whether it can reach the person,
+ * in the columns' order.
+ */
+export function getOfferedChannels(data: {
+  offeredWorkspaces: ReadonlyArray<WorkspaceType>;
+  hasCustomChannels: boolean;
+  readiness: ChannelReadinessFacts;
+}): Array<OfferedChannel> {
+  const shownKeys: Array<ChannelKey> = getShownChannelKeys(
+    data.offeredWorkspaces,
+    data.hasCustomChannels,
+  );
+
+  return CHANNELS.filter((channel: ChannelDef): boolean => {
+    return shownKeys.includes(channel.key);
+  }).map((channel: ChannelDef): OfferedChannel => {
+    return {
+      definition: channel,
+      reach: getChannelReach(channel.key, data.readiness),
+    };
+  });
+}
+
+interface EventDef extends NotificationMatrixEvent {
   type: NotificationSettingEventType;
   label: string;
   description: string;
@@ -573,120 +609,6 @@ const buildSection: SectionFactory = (
   };
 };
 
-/*
- * WHERE THE MATRIX FITS.
- *
- * The table gives each channel a column of its own (a 36px switch with 12px
- * either side) and the event's name and description what is left. On a
- * phone, or beside the side menu on a tablet, that left the event's column
- * a word a line wide beside eight channels. Below the width the table needs
- * - the event's column at least 13rem, and each channel 60px - each event
- * is drawn on its own instead: its name and description across the card,
- * and its channels under them as switches that say their names.
- */
-export const NOTIFICATION_MATRIX_EVENT_COLUMN_MIN_WIDTH_PX: number = 208;
-export const NOTIFICATION_MATRIX_CHANNEL_COLUMN_WIDTH_PX: number = 60;
-
-export const doesNotificationMatrixTableFit: (data: {
-  // The matrix's box, in pixels.
-  width: number;
-  // How many channels it shows.
-  channelCount: number;
-}) => boolean = (data: { width: number; channelCount: number }): boolean => {
-  return (
-    data.width >=
-    NOTIFICATION_MATRIX_EVENT_COLUMN_MIN_WIDTH_PX +
-      data.channelCount * NOTIFICATION_MATRIX_CHANNEL_COLUMN_WIDTH_PX
-  );
-};
-
-interface ChannelCellProps {
-  channel: ChannelDef;
-  enabled: boolean;
-  onChange: (next: boolean) => Promise<void>;
-  /*
-   * "chip": the narrow layout's switch, which names its channel beside its
-   * state (Email ✓), where no column header says what it switches.
-   */
-  variant?: "cell" | "chip" | undefined;
-}
-
-const ChannelCell: FunctionComponent<ChannelCellProps> = (
-  props: ChannelCellProps,
-): ReactElement => {
-  const translator: Translator = useTranslator();
-  const [isBusy, setIsBusy] = useState<boolean>(false);
-
-  const handleClick: () => Promise<void> = async (): Promise<void> => {
-    if (isBusy) {
-      return;
-    }
-    setIsBusy(true);
-    try {
-      await props.onChange(!props.enabled);
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
-  const isChip: boolean = props.variant === "chip";
-
-  const stateClasses: string = props.enabled
-    ? "border-emerald-500/70 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-    : isChip
-      ? "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300"
-      : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50 hover:border-gray-300";
-
-  // A chip is as tall as a cell's switch, and as wide as its channel's name.
-  const shapeClasses: string = isChip
-    ? "h-9 max-w-full gap-1.5 px-3 text-xs font-medium"
-    : "h-9 w-9 justify-center";
-
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={props.enabled}
-      aria-label={
-        props.enabled
-          ? translator.translateTemplate("{{channel}}: On. Click to disable.", {
-              channel: translatableTerm(props.channel.label),
-            })
-          : translator.translateTemplate("{{channel}}: Off. Click to enable.", {
-              channel: translatableTerm(props.channel.label),
-            })
-      }
-      data-testid={isChip ? "notification-channel-chip" : undefined}
-      onClick={handleClick}
-      disabled={isBusy}
-      className={`inline-flex items-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${shapeClasses} ${getHandDrawnLookClassName(
-        {
-          // While it saves it is busy: as it is, with no hover.
-          className: stateClasses,
-          isBusy: isBusy,
-        },
-      )}`}
-    >
-      {props.enabled ? (
-        <Icon
-          icon={IconProp.Check}
-          className="h-4 w-4 flex-shrink-0"
-          size={SizeProp.Small}
-        />
-      ) : (
-        <span className="block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-300" />
-      )}
-      {isChip ? (
-        <span className="min-w-0 truncate">
-          {translator.translateText(props.channel.label)}
-        </span>
-      ) : (
-        <></>
-      )}
-    </button>
-  );
-};
-
 interface PriorityChoiceProps {
   // The project's case priorities; null until they are read.
   priorities: Array<SecurityCasePriority> | null;
@@ -734,6 +656,8 @@ const PriorityChoice: FunctionComponent<PriorityChoiceProps> = (
           setIsBusy(true);
           try {
             await props.onChange(event.target.value);
+          } catch {
+            // The card says why, over the matrix.
           } finally {
             setIsBusy(false);
           }
@@ -748,483 +672,6 @@ const PriorityChoice: FunctionComponent<PriorityChoiceProps> = (
         })}
       </select>
     </label>
-  );
-};
-
-interface NotificationMatrixProps {
-  section: SectionDef;
-}
-
-const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
-  props: NotificationMatrixProps,
-): ReactElement => {
-  const { translateString } = useTranslateValue();
-  const translator: Translator = useTranslator();
-  // The project's case priorities, which the New Security Case row picks from.
-  const { values: caseValues } = useSecurityCaseValues();
-  const eventTypes: Array<NotificationSettingEventType> = useMemo(() => {
-    return props.section.events.map((event: EventDef) => {
-      return event.type;
-    });
-  }, [props.section]);
-
-  /*
-   * Null on a first visit until the project's workspaces are known: the
-   * matrix keeps its loader until then rather than drawing every workspace's
-   * column and dropping the ones the project has not connected.
-   */
-  const offeredWorkspaces: ReadonlyArray<WorkspaceType> | null =
-    getOfferedWorkspaces(useWorkspaceConnections());
-  // Waited for like the workspaces: the server's custom channels that are on.
-  const customChannels: CustomNotificationChannelsState =
-    useCustomNotificationChannels();
-  const shownChannelKeys: Array<ChannelKey> =
-    offeredWorkspaces && customChannels.channels
-      ? getShownChannelKeys(
-          offeredWorkspaces,
-          customChannels.channels.length > 0,
-        )
-      : [];
-  const shownChannels: Array<ChannelDef> = CHANNELS.filter(
-    (channel: ChannelDef): boolean => {
-      return shownChannelKeys.includes(channel.key);
-    },
-  );
-
-  const [rowsByEvent, setRowsByEvent] = useState<
-    Map<NotificationSettingEventType, UserNotificationSetting>
-  >(new Map());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-
-  /*
-   * The matrix's box, always drawn so its width is read from the first
-   * paint - the window's where nothing is laid out (a test).
-   */
-  const matrixBoxRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
-  const matrixBoxWidth: TableBoxWidth = useTableBoxWidth(matrixBoxRef);
-  const isTableShown: boolean = doesNotificationMatrixTableFit({
-    width: matrixBoxWidth.boxWidth ?? matrixBoxWidth.windowWidth,
-    channelCount: shownChannels.length,
-  });
-
-  const fetchSettings: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
-      setIsLoading(true);
-      try {
-        const result: ListResult<UserNotificationSetting> =
-          await ModelAPI.getList<UserNotificationSetting>({
-            modelType: UserNotificationSetting,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              userId: User.getUserId(),
-              eventType: new Includes(eventTypes),
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              _id: true,
-              eventType: true,
-              alertByEmail: true,
-              alertBySMS: true,
-              alertByCall: true,
-              alertByPush: true,
-              alertByWhatsApp: true,
-              alertByTelegram: true,
-              alertBySlack: true,
-              alertByMicrosoftTeams: true,
-              alertByMattermost: true,
-              alertByWebhook: true,
-              alertByCustomChannel: true,
-              minimumSecurityCasePriorityId: true,
-            },
-            sort: {},
-          });
-
-        const nextMap: Map<
-          NotificationSettingEventType,
-          UserNotificationSetting
-        > = new Map();
-        for (const setting of result.data) {
-          if (setting.eventType) {
-            nextMap.set(setting.eventType, setting);
-          }
-        }
-        setRowsByEvent(nextMap);
-        setError("");
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
-      }
-    }, [eventTypes]);
-
-  useEffect(() => {
-    fetchSettings().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, [fetchSettings]);
-
-  const persistToggle: (
-    eventType: NotificationSettingEventType,
-    channelKey: ChannelKey,
-    next: boolean,
-  ) => Promise<void> = async (
-    eventType: NotificationSettingEventType,
-    channelKey: ChannelKey,
-    next: boolean,
-  ): Promise<void> => {
-    const previous: UserNotificationSetting | undefined =
-      rowsByEvent.get(eventType);
-
-    const optimistic: UserNotificationSetting = new UserNotificationSetting();
-    if (previous) {
-      for (const channel of CHANNELS) {
-        (optimistic as unknown as Record<string, boolean | undefined>)[
-          channel.key
-        ] = Boolean(
-          (previous as unknown as Record<string, boolean | undefined>)[
-            channel.key
-          ],
-        );
-      }
-      if (previous._id) {
-        optimistic._id = previous._id;
-      }
-    }
-    optimistic.projectId = ProjectUtil.getCurrentProjectId()!;
-    optimistic.userId = User.getUserId();
-    optimistic.eventType = eventType;
-    (optimistic as unknown as Record<string, boolean>)[channelKey] = next;
-
-    const optimisticMap: Map<
-      NotificationSettingEventType,
-      UserNotificationSetting
-    > = new Map(rowsByEvent);
-    optimisticMap.set(eventType, optimistic);
-    setRowsByEvent(optimisticMap);
-
-    try {
-      if (previous && previous.id) {
-        await ModelAPI.updateById<UserNotificationSetting>({
-          modelType: UserNotificationSetting,
-          id: previous.id as ObjectID,
-          data: { [channelKey]: next } as JSONObject,
-        });
-      } else {
-        const newModel: UserNotificationSetting = new UserNotificationSetting();
-        newModel.projectId = ProjectUtil.getCurrentProjectId()!;
-        newModel.userId = User.getUserId();
-        newModel.eventType = eventType;
-        for (const channel of CHANNELS) {
-          (newModel as unknown as Record<string, boolean>)[channel.key] =
-            channel.key === channelKey ? next : false;
-        }
-        await ModelAPI.create<UserNotificationSetting>({
-          model: newModel,
-          modelType: UserNotificationSetting,
-        });
-        await fetchSettings();
-      }
-    } catch (err) {
-      const reverted: Map<
-        NotificationSettingEventType,
-        UserNotificationSetting
-      > = new Map(rowsByEvent);
-      if (previous) {
-        reverted.set(eventType, previous);
-      } else {
-        reverted.delete(eventType);
-      }
-      setRowsByEvent(reverted);
-      setError(API.getFriendlyMessage(err));
-    }
-  };
-
-  /*
-   * The New Security Case row's priority, shown at once and put back if it
-   * cannot be saved. Without a row yet, one is made as the server would have
-   * seeded it - email and push on - with the choice.
-   */
-  const persistPriority: (
-    eventType: NotificationSettingEventType,
-    next: string,
-  ) => Promise<void> = async (
-    eventType: NotificationSettingEventType,
-    next: string,
-  ): Promise<void> => {
-    const previous: UserNotificationSetting | undefined =
-      rowsByEvent.get(eventType);
-
-    try {
-      if (previous && previous.id) {
-        const optimistic: UserNotificationSetting =
-          new UserNotificationSetting();
-        for (const channel of CHANNELS) {
-          (optimistic as unknown as Record<string, boolean | undefined>)[
-            channel.key
-          ] = Boolean(
-            (previous as unknown as Record<string, boolean | undefined>)[
-              channel.key
-            ],
-          );
-        }
-        if (previous._id) {
-          optimistic._id = previous._id;
-        }
-        optimistic.projectId = ProjectUtil.getCurrentProjectId()!;
-        optimistic.userId = User.getUserId();
-        optimistic.eventType = eventType;
-        optimistic.minimumSecurityCasePriorityId = new ObjectID(next);
-
-        const optimisticMap: Map<
-          NotificationSettingEventType,
-          UserNotificationSetting
-        > = new Map(rowsByEvent);
-        optimisticMap.set(eventType, optimistic);
-        setRowsByEvent(optimisticMap);
-
-        await ModelAPI.updateById<UserNotificationSetting>({
-          modelType: UserNotificationSetting,
-          id: previous.id as ObjectID,
-          data: { minimumSecurityCasePriorityId: next } as JSONObject,
-        });
-      } else {
-        const newModel: UserNotificationSetting = new UserNotificationSetting();
-        newModel.projectId = ProjectUtil.getCurrentProjectId()!;
-        newModel.userId = User.getUserId();
-        newModel.eventType = eventType;
-        for (const channel of CHANNELS) {
-          (newModel as unknown as Record<string, boolean>)[channel.key] =
-            channel.key === "alertByEmail" || channel.key === "alertByPush";
-        }
-        newModel.minimumSecurityCasePriorityId = new ObjectID(next);
-        await ModelAPI.create<UserNotificationSetting>({
-          model: newModel,
-          modelType: UserNotificationSetting,
-        });
-        await fetchSettings();
-      }
-      setError("");
-    } catch (err) {
-      const reverted: Map<
-        NotificationSettingEventType,
-        UserNotificationSetting
-      > = new Map(rowsByEvent);
-      if (previous) {
-        reverted.set(eventType, previous);
-      } else {
-        reverted.delete(eventType);
-      }
-      setRowsByEvent(reverted);
-      setError(API.getFriendlyMessage(err));
-    }
-  };
-
-  /*
-   * The narrow layout: each event across the card, its channels under it as
-   * switches that name their channel, wrapping as the card allows.
-   */
-  const eventList: ReactElement = (
-    <ul
-      className="divide-y divide-gray-100"
-      data-testid="notification-matrix-list"
-    >
-      {props.section.events.map((event: EventDef) => {
-        const row: UserNotificationSetting | undefined = rowsByEvent.get(
-          event.type,
-        );
-        const eventName: string = translateString(event.label) || event.label;
-
-        return (
-          <li
-            key={event.type}
-            className="py-4 first:pt-0 last:pb-0"
-            data-testid="notification-matrix-event"
-          >
-            <div className="text-sm font-medium text-gray-900">{eventName}</div>
-            <div className="mt-0.5 text-xs text-gray-500">
-              {translateString(event.description)}
-            </div>
-            {event.hasPriorityChoice ? (
-              <PriorityChoice
-                priorities={caseValues ? caseValues.priorities : null}
-                chosenId={row?.minimumSecurityCasePriorityId}
-                onChange={async (next: string): Promise<void> => {
-                  await persistPriority(event.type, next);
-                }}
-              />
-            ) : null}
-            <div
-              role="group"
-              aria-label={eventName}
-              className="mt-3 flex flex-wrap gap-2"
-            >
-              {shownChannels.map((channel: ChannelDef) => {
-                const enabled: boolean = Boolean(
-                  row &&
-                    (row as unknown as Record<string, boolean>)[channel.key],
-                );
-
-                return (
-                  <ChannelCell
-                    key={channel.key}
-                    variant="chip"
-                    channel={channel}
-                    enabled={enabled}
-                    onChange={async (nextValue: boolean): Promise<void> => {
-                      await persistToggle(event.type, channel.key, nextValue);
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </li>
-        );
-      })}
-    </ul>
-  );
-
-  return (
-    <Card
-      title={props.section.title}
-      description={props.section.description}
-      bodyClassName="mt-5"
-    >
-      <div ref={matrixBoxRef} data-testid="notification-matrix">
-        {isLoading || !offeredWorkspaces || !customChannels.channels ? (
-          <ComponentLoader />
-        ) : (
-          <Fragment>
-            {error ? (
-              <div className="mb-4">
-                <ErrorMessage
-                  message={error}
-                  onRefreshClick={() => {
-                    fetchSettings().catch((err: Error) => {
-                      setError(API.getFriendlyMessage(err));
-                    });
-                  }}
-                />
-              </div>
-            ) : null}
-            {isTableShown ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th
-                        scope="col"
-                        className="sticky left-0 z-0 bg-white py-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500"
-                      >
-                        {translateString("Event")}
-                      </th>
-                      {shownChannels.map((channel: ChannelDef) => {
-                        /*
-                         * Top-aligned, so the icons stay in one row when a
-                         * label takes two lines ("Microsoft Teams" in a narrow
-                         * column, or a long translation such as "Correo
-                         * electronico"); the Event header, centred, then sits
-                         * level with the labels' first line.
-                         */
-                        return (
-                          <th
-                            key={channel.key}
-                            scope="col"
-                            className="px-3 py-3 text-center align-top"
-                          >
-                            <div className="flex flex-col items-center gap-1">
-                              <Icon
-                                icon={channel.icon}
-                                className="h-4 w-4 text-gray-500"
-                                size={SizeProp.Regular}
-                              />
-                              <span className="text-[11px] font-medium text-gray-600">
-                                {translateString(channel.label)}
-                              </span>
-                            </div>
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {props.section.events.map((event: EventDef) => {
-                      const row: UserNotificationSetting | undefined =
-                        rowsByEvent.get(event.type);
-                      return (
-                        <tr
-                          key={event.type}
-                          className="group hover:bg-gray-50/60 transition-colors"
-                        >
-                          <td className="sticky left-0 z-0 bg-white py-4 pr-4 align-top group-hover:bg-gray-50/60 transition-colors">
-                            <div className="text-sm font-medium text-gray-900">
-                              {translateString(event.label)}
-                            </div>
-                            <div className="mt-0.5 text-xs text-gray-500 max-w-md">
-                              {translateString(event.description)}
-                            </div>
-                            {event.hasPriorityChoice ? (
-                              <PriorityChoice
-                                priorities={
-                                  caseValues ? caseValues.priorities : null
-                                }
-                                chosenId={row?.minimumSecurityCasePriorityId}
-                                onChange={async (
-                                  next: string,
-                                ): Promise<void> => {
-                                  await persistPriority(event.type, next);
-                                }}
-                              />
-                            ) : null}
-                          </td>
-                          {shownChannels.map((channel: ChannelDef) => {
-                            const enabled: boolean = Boolean(
-                              row &&
-                                (row as unknown as Record<string, boolean>)[
-                                  channel.key
-                                ],
-                            );
-                            return (
-                              <td
-                                key={channel.key}
-                                className="px-3 py-4 text-center align-middle"
-                              >
-                                <ChannelCell
-                                  channel={channel}
-                                  enabled={enabled}
-                                  onChange={async (
-                                    nextValue: boolean,
-                                  ): Promise<void> => {
-                                    await persistToggle(
-                                      event.type,
-                                      channel.key,
-                                      nextValue,
-                                    );
-                                  }}
-                                />
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              eventList
-            )}
-            <p className="mt-4 text-xs text-gray-500">
-              {translator.translateText(
-                "Click any channel to switch it on or off. Changes save automatically.",
-              )}
-            </p>
-          </Fragment>
-        )}
-      </div>
-    </Card>
   );
 };
 
@@ -1409,53 +856,218 @@ const security: Array<SectionDef> = [
   ),
 ];
 
-const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const { translateString } = useTranslateValue();
-  const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
+// Every event the page lists, read in one go.
+const ALL_EVENT_TYPES: Array<NotificationSettingEventType> = [
+  ...incidents,
+  ...alerts,
+  ...monitoring,
+  ...statusPages,
+  ...scheduledMaintenance,
+  ...onCall,
+  ...security,
+].flatMap((section: SectionDef): Array<NotificationSettingEventType> => {
+  return section.events.map((event: EventDef): NotificationSettingEventType => {
+    return event.type;
+  });
+});
 
+export const NOTIFICATION_SETTINGS_INTRO_TEST_ID: string =
+  "notification-settings-intro";
+
+/*
+ * THE PAGE'S FIRST LINE.
+ *
+ * What the page is for, and where the two pages it is mistaken for are. It
+ * used to open on a grey box that said what the switches do NOT do ("not
+ * how much email they add up to") - the pointer that keeps the email-volume
+ * controls findable since they moved to Email Preferences, and the place a
+ * rollup digest sent before the move still lands, because those emails
+ * carry a link here. The pointer is kept, as one of the two links, after a
+ * sentence that says what the page does.
+ */
+const NotificationSettingsIntro: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const howToReachMeRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
+  );
   const emailPreferencesRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.USER_SETTINGS_EMAIL_PREFERENCES] as Route,
   );
 
+  return (
+    <UserSettingsPageIntro
+      docsPath="/docs/notifications/notification-settings"
+      dataTestId={NOTIFICATION_SETTINGS_INTRO_TEST_ID}
+    >
+      {translator.translateText(NotificationSettingsWords.intro)}{" "}
+      <TranslatedSentence
+        template={NotificationSettingsWords.introSiblings}
+        slots={{
+          howToReachMe: (
+            <Link
+              to={howToReachMeRoute}
+              className={USER_SETTINGS_PAGE_LINK_CLASS_NAME}
+            >
+              {translator.translateText("How to Reach Me")}
+            </Link>
+          ),
+          emailPreferences: (
+            <Link
+              to={emailPreferencesRoute}
+              className={USER_SETTINGS_PAGE_LINK_CLASS_NAME}
+            >
+              {translator.translateText("Email Preferences")}
+            </Link>
+          ),
+        }}
+      />
+    </UserSettingsPageIntro>
+  );
+};
+
+/*
+ * Everything the cards need before they can be drawn: the rows, which
+ * workspaces the project has connected, the server's custom channels, and
+ * what can reach the person. A card keeps its loader until all are in, so
+ * no column appears or goes under the reader.
+ */
+const NotificationSettingsBody: FunctionComponent = (): ReactElement => {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const userId: ObjectID | null = User.getUserId();
+
+  const settings: NotificationSettingRows = useNotificationSettingRows({
+    projectId: projectId,
+    userId: userId,
+    eventTypes: ALL_EVENT_TYPES,
+  });
+
+  /*
+   * Null on a first visit until the project's workspaces are known: the
+   * cards keep their loaders until then rather than drawing every
+   * workspace's column and dropping the ones the project has not connected.
+   */
+  const offeredWorkspaces: ReadonlyArray<WorkspaceType> | null =
+    getOfferedWorkspaces(useWorkspaceConnections());
+  // Waited for like the workspaces: the server's custom channels that are on.
+  const customChannels: CustomNotificationChannelsState =
+    useCustomNotificationChannels();
+  // Waited for too: which channels can reach the person.
+  const readiness: ChannelReadinessFacts | null =
+    useNotificationChannelReadiness({ projectId: projectId, userId: userId });
+  // The project's case priorities, which the New Security Case row picks from.
+  const { values: caseValues } = useSecurityCaseValues();
+
+  const isReady: boolean = Boolean(
+    !settings.isLoading &&
+      offeredWorkspaces &&
+      customChannels.channels &&
+      readiness,
+  );
+
+  const channels: Array<OfferedChannel> =
+    isReady && offeredWorkspaces && customChannels.channels && readiness
+      ? getOfferedChannels({
+          offeredWorkspaces: offeredWorkspaces,
+          hasCustomChannels: customChannels.channels.length > 0,
+          readiness: readiness,
+        })
+      : [];
+
+  const renderSection: (section: SectionDef) => ReactElement = (
+    section: SectionDef,
+  ): ReactElement => {
+    if (!isReady || settings.loadError) {
+      return (
+        <Card
+          key={section.title}
+          title={section.title}
+          description={section.description}
+          bodyClassName="mt-5"
+        >
+          {settings.loadError && !settings.isLoading ? (
+            <ErrorMessage
+              message={settings.loadError}
+              onRefreshClick={() => {
+                settings.reload().catch(() => {
+                  // reload() reports its own failure.
+                });
+              }}
+            />
+          ) : (
+            <ComponentLoader />
+          )}
+        </Card>
+      );
+    }
+
+    return (
+      <NotificationMatrix
+        key={section.title}
+        section={section}
+        channels={channels}
+        rowsByEvent={settings.rowsByEvent}
+        setChannel={settings.setChannel}
+        renderEventDetail={(
+          event: NotificationMatrixEvent,
+          row: UserNotificationSetting | undefined,
+          onSaving: <T>(save: Promise<T>) => Promise<T>,
+        ): ReactElement | null => {
+          if (!(event as EventDef).hasPriorityChoice) {
+            return null;
+          }
+
+          return (
+            <PriorityChoice
+              priorities={caseValues ? caseValues.priorities : null}
+              chosenId={row?.minimumSecurityCasePriorityId}
+              onChange={async (next: string): Promise<void> => {
+                await onSaving(settings.setPriority(event.type, next));
+              }}
+            />
+          );
+        }}
+      />
+    );
+  };
+
   const renderSections: (sections: Array<SectionDef>) => ReactElement = (
     sections: Array<SectionDef>,
   ): ReactElement => {
+    const eventTypes: Array<NotificationSettingEventType> = sections.flatMap(
+      (section: SectionDef): Array<NotificationSettingEventType> => {
+        return section.events.map(
+          (event: EventDef): NotificationSettingEventType => {
+            return event.type;
+          },
+        );
+      },
+    );
+
     return (
       <div className="space-y-4">
-        {sections.map((section: SectionDef) => {
-          return <NotificationMatrix key={section.title} section={section} />;
-        })}
+        {isReady && !settings.loadError ? (
+          <NotificationTabSummary
+            eventTypes={eventTypes}
+            rowsByEvent={settings.rowsByEvent}
+            channels={channels}
+          />
+        ) : (
+          <></>
+        )}
+        {sections.map(renderSection)}
       </div>
     );
   };
 
   return (
-    <Fragment key={projectId}>
-      {/*
-       * THE POINTER THAT KEEPS EMAIL VOLUME DISCOVERABLE.
-       *
-       * The two controls that change how much email this project sends -
-       * the routine-email switch and email rollup - are not per-event, so
-       * they are not rows in the matrix below and they live on their own
-       * page. Without this line the matrix reads as the whole story, and a
-       * reader drowning in mail would conclude that switching individual
-       * events off one at a time is the only remedy OneUptime offers. It is
-       * also where a rollup digest sent before the move still lands, because
-       * those emails carry a link to this page.
-       */}
-      <div className="mb-4 rounded-md border border-gray-200 bg-white px-6 py-4 text-sm text-gray-600">
-        {translateString(
-          "These switches decide which notifications reach you, not how much email they add up to.",
-        )}{" "}
-        <Link
-          to={emailPreferencesRoute}
-          className="text-indigo-600 hover:underline"
-        >
-          {translateString(
-            "Reduce routine emails or change email rollup in Email Preferences",
-          )}
-        </Link>
-      </div>
+    <Fragment>
+      <NotificationSettingsIntro />
+      {isReady && !settings.loadError ? (
+        <ChannelsNotSetUp channels={channels} />
+      ) : (
+        <></>
+      )}
       <Tabs
         tabs={[
           {
@@ -1498,6 +1110,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
     </Fragment>
   );
+};
+
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  /*
+   * Keyed by project, so switching projects reads every row, method and
+   * channel again rather than showing the previous project's.
+   */
+  const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
+
+  return <NotificationSettingsBody key={projectId} />;
 };
 
 export default Settings;

@@ -496,6 +496,43 @@ describe("when Teams refuses, the admin is told plainly", () => {
     );
   });
 
+  // Issue #8928: Retry-After is read as RFC 9110 writes it.
+  test("Graph's Retry-After as a date is waited for, and a huge one an hour at most", async () => {
+    jest.spyOn(Date, "now").mockReturnValue(Date.parse(START));
+    world.graph.rateLimitOnce = true;
+    world.graph.rateLimitRetryAfter = new Date(
+      Date.parse(START) + 10 * 60 * 1000,
+    ).toUTCString();
+    const row: WorldGroupRow = groupFor([primary]);
+
+    await world.sync(row);
+
+    expect(world.groups.get(row.id.toString())!.nextSyncAt).toEqual(
+      new Date(Date.parse(START) + 10 * 60 * 1000),
+    );
+
+    world.graph.rateLimitOnce = true;
+    world.graph.rateLimitRetryAfter = "99999";
+
+    await world.sync(row);
+
+    expect(world.groups.get(row.id.toString())!.nextSyncAt).toEqual(
+      new Date(Date.parse(START) + 60 * 60 * 1000),
+    );
+  });
+
+  test("a Retry-After that is no number of seconds and no date is tried again two minutes later", async () => {
+    world.graph.rateLimitOnce = true;
+    world.graph.rateLimitRetryAfter = "-5";
+    const row: WorldGroupRow = groupFor([primary]);
+
+    await world.sync(row);
+
+    expect(world.groups.get(row.id.toString())!.nextSyncAt).toEqual(
+      new Date(Date.parse(START) + 2 * 60 * 1000),
+    );
+  });
+
   test("the project is not connected to Microsoft Teams: Graph is not asked", async () => {
     world.isTeamsConnected = false;
     const row: WorldGroupRow = groupFor([primary]);

@@ -70,6 +70,15 @@ export interface ScrubRegExp {
   test(text: string): boolean;
   // Every match replaced by what `replacer` returns for it.
   replace(text: string, replacer: (matchedText: string) => string): string;
+  /*
+   * Where every match is, as replace finds them: [start, end) pairs, left
+   * to right. Where replace scrubs the whole value - the work allowance is
+   * spent - this answers one match over the whole text; a pattern that
+   * cannot run matches nothing. For a text a rule must replace inside of
+   * with care: the JSON text of a list or a map
+   * (Utils/Telemetry/ScrubJsonText.ts).
+   */
+  matchRanges(text: string): Array<[number, number]>;
 }
 
 /*
@@ -158,6 +167,39 @@ class CustomScrubRegExp implements ScrubRegExp {
       throw error;
     }
   }
+
+  // As replace finds them, and failing as it does: see ScrubRegExp.
+  public matchRanges(text: string): Array<[number, number]> {
+    // What replace scrubs whole, this answers as one match over it.
+    const wholeText: Array<[number, number]> = [[0, text.length]];
+
+    if (patternWorkRefusesQuestions(text)) {
+      return wholeText;
+    }
+
+    let pattern: LinearRegExp;
+
+    try {
+      pattern = this.handle.get();
+    } catch (error: unknown) {
+      if (error instanceof PatternWorkLimitError) {
+        return wholeText;
+      }
+
+      // Not a pattern that can run: it matches nothing, as replace says.
+      return [];
+    }
+
+    try {
+      return pattern.matchRanges(text);
+    } catch (error: unknown) {
+      if (error instanceof PatternWorkLimitError) {
+        return wholeText;
+      }
+
+      throw error;
+    }
+  }
 }
 
 class BuiltInScrubRegExp implements ScrubRegExp {
@@ -187,6 +229,36 @@ class BuiltInScrubRegExp implements ScrubRegExp {
     return text.replace(this.regex, (matchedText: string): string => {
       return replacer(matchedText);
     });
+  }
+
+  /*
+   * As String.prototype.replace finds them: every match of a global
+   * pattern, one code unit on after an empty one, or the first match of
+   * one that is not global.
+   */
+  public matchRanges(text: string): Array<[number, number]> {
+    const ranges: Array<[number, number]> = [];
+
+    this.regex.lastIndex = 0;
+
+    for (
+      let match: RegExpExecArray | null = this.regex.exec(text);
+      match !== null;
+      match = this.regex.global ? this.regex.exec(text) : null
+    ) {
+      const start: number = match.index;
+      const end: number = start + match[0].length;
+
+      ranges.push([start, end]);
+
+      if (end === start) {
+        this.regex.lastIndex = end + 1;
+      }
+    }
+
+    this.regex.lastIndex = 0;
+
+    return ranges;
   }
 }
 

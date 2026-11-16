@@ -229,11 +229,15 @@ describe("source hygiene", (): void => {
   /*
    * Common/UI/Config.ts reads window.process.env, and Common/package.json
    * pulls express, typeorm and stripe. Only the deliberately
-   * dependency-free Rum modules may be reached, and the esbuild plugin fails
-   * the build on anything else - this test just catches it sooner.
+   * dependency-free Rum modules may be reached, and the few single files
+   * esbuild.config.js lists in ALLOWED_COMMON_FILES (Common/Utils/RetryAfter,
+   * the Retry-After reader every OneUptime client shares: issue #8928). The
+   * esbuild plugin fails the build on anything else - this test just catches
+   * it sooner.
    */
   it("imports nothing from Common except the pure Rum modules", (): void => {
     const allowed: RegExp = /^Common\/(Utils|Types)\/Rum\//;
+    const allowedFiles: Array<string> = ["Common/Utils/RetryAfter"];
     const offenders: Array<string> = [];
 
     for (const source of sources) {
@@ -243,7 +247,7 @@ describe("source hygiene", (): void => {
       for (const match of matches) {
         const specifier: string = match.replace(/^from\s+["']|["']$/g, "");
 
-        if (!allowed.test(specifier)) {
+        if (!allowed.test(specifier) && !allowedFiles.includes(specifier)) {
           offenders.push(`${source.name}: ${specifier}`);
         }
       }
