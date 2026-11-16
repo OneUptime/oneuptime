@@ -1,5 +1,6 @@
 import LeaveGuard from "../../../Utils/LeaveGuard";
 import Navigation from "../../../Utils/Navigation";
+import MatchedText from "../../CommandPalette/MatchedText";
 import Icon from "../../Icon/Icon";
 import Route from "../../../../Types/API/Route";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -28,6 +29,11 @@ export interface ComponentProps {
   // The row is drawn as the one the keyboard is on.
   showsActive?: boolean | undefined;
   onPointerOver?: (() => void) | undefined;
+  /*
+   * What is typed in the list's search box: the part of the name it
+   * matched is marked, as Search (Cmd/Ctrl+K) marks a match (MatchedText).
+   */
+  searchText?: string | undefined;
 }
 
 /*
@@ -56,7 +62,7 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const title: string = props.project.name!;
+  const title: string = props.project.name || "";
 
   return (
     <li
@@ -81,7 +87,7 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
           className="h-5 w-5 flex-shrink-0 text-gray-400"
         />
         <span className="text-sm font-medium text-gray-700 truncate" dir="auto">
-          {title}
+          <MatchedText text={title} search={props.searchText || ""} />
         </span>
         {/*
          * A master admin blocked it: still listed, so it is not a project

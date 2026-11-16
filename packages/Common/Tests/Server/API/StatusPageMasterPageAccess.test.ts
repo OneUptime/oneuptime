@@ -21,6 +21,7 @@ import {
   StatusPageAccessState,
 } from "../../../Types/StatusPage/StatusPageAccess";
 import { mockRouter } from "./Helpers";
+import { statusPageReadOf } from "../TestingUtils/StatusPageReads";
 import {
   afterEach,
   beforeAll,
@@ -198,8 +199,10 @@ describe("StatusPageAPI master-page: whether the page asks for the master passwo
       Response.sendJsonObjectResponse as jest.Mock
     ).mock.calls[0] as Array<unknown>;
 
-    const findCall: Array<unknown> = findOneById.mock
-      .calls[0] as Array<unknown>;
+    // The page's own read, after the lookup of its project.
+    const findCall: Array<unknown> = statusPageReadOf(
+      findOneById,
+    ) as Array<unknown>;
 
     return {
       payload: responseCall[2] as JSONObject,

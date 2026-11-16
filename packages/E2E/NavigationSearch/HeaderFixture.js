@@ -25,6 +25,7 @@ import EventName from "../../App/FeatureSet/Dashboard/src/Utils/EventName";
  * active alerts. The page's reading language is ?lang= (en, de or ar: the
  * Arabic page reads right to left) and ?theme=dark draws it dark, with the
  * Dashboard's own fonts, tailwind.config and Theme.css (server.js).
+ * ?projects=many lists six more projects in the picker (MORE_PROJECTS).
  *
  * The header's reads are answered here, with nothing sent: the counts, the
  * current on-call lookup, the global config and the live updates. What its
@@ -48,10 +49,26 @@ export const headerLanguage =
     ? query.get("lang")
     : "en";
 
-function makeProject() {
+/*
+ * ?projects=many: the list of someone with several projects, for the
+ * project list's search (ProjectPickerSearch.spec.ts) - the names of a real
+ * list, two of them the same - after the project the page is in.
+ */
+export const MORE_PROJECTS = [
+  { id: "00000000-0000-4000-8000-000000000011", name: "OneUptime Kubernetes" },
+  { id: "00000000-0000-4000-8000-000000000012", name: "Project test" },
+  { id: "00000000-0000-4000-8000-000000000013", name: "Free demo" },
+  { id: "00000000-0000-4000-8000-000000000014", name: "Sample: Acme Shop" },
+  { id: "00000000-0000-4000-8000-000000000015", name: "Test Project\\" },
+  { id: "00000000-0000-4000-8000-000000000016", name: "Test Project\\" },
+];
+
+const listsMoreProjects = isHeaderMode && query.get("projects") === "many";
+
+function makeProject(id = PROJECT_ID, name = PROJECT_NAME) {
   const project = new Project();
-  project.id = new ObjectID(PROJECT_ID);
-  project.name = PROJECT_NAME;
+  project.id = new ObjectID(id);
+  project.name = name;
   return project;
 }
 
@@ -138,7 +155,24 @@ export function installHeaderFixture() {
 }
 
 export function HeaderFixture(props) {
-  const [project, setProject] = useState(makeProject);
+  const [project, setProject] = useState(() => {
+    return makeProject();
+  });
+
+  /*
+   * ?projects=many: the page's project and the others, one list for as
+   * long as the page is open, as App.tsx keeps the list it read.
+   */
+  const [moreProjects] = useState(() => {
+    return listsMoreProjects
+      ? [
+          project,
+          ...MORE_PROJECTS.map((more) => {
+            return makeProject(more.id, more.name);
+          }),
+        ]
+      : null;
+  });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -146,7 +180,7 @@ export function HeaderFixture(props) {
         <TopSection
           header={
             <DashboardHeader
-              projects={[project]}
+              projects={moreProjects || [project]}
               onProjectSelected={setProject}
               showProjectModal={false}
               onProjectModalClose={() => {}}

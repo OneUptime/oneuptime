@@ -83,6 +83,20 @@ const savedEnvironment: Record<string, string | undefined> = {};
 // The page's theme as its row holds it: its owner changes it between requests.
 let storedTheme: string = "System";
 
+/*
+ * The owner turning the page's theme, as the dashboard does: a write of the
+ * page, which the status page API's copies of the page (StatusPageReadCache)
+ * hear of at once, as DatabaseService tells them after every update.
+ */
+let ownerChangesTheme: (theme: string) => Promise<void> = async (
+  theme: string,
+): Promise<void> => {
+  storedTheme = theme;
+};
+
+// Forgets everything the status page API kept of the page, between tests.
+let forgetWhatThePageKept: () => void = (): void => {};
+
 // The paths the App's API was asked for, at its internal address.
 const apiRequests: Array<string> = [];
 
@@ -165,6 +179,23 @@ const buildAppApi: () => Promise<http.RequestListener> =
     const ObjectID: typeof import("Common/Types/ObjectID").default = (
       await import("Common/Types/ObjectID")
     ).default;
+    const StatusPageOverviewCache: typeof import("Common/Server/Utils/StatusPage/StatusPageOverviewCache").default =
+      (await import("Common/Server/Utils/StatusPage/StatusPageOverviewCache"))
+        .default;
+
+    ownerChangesTheme = async (theme: string): Promise<void> => {
+      storedTheme = theme;
+
+      await StatusPageOverviewCache.afterUpdate({
+        tableName: "StatusPage",
+        rows: [{ projectId: PROJECT_ID }],
+        written: { theme: theme },
+      });
+    };
+
+    forgetWhatThePageKept = (): void => {
+      StatusPageAPI.clearOverviewResponseCache();
+    };
 
     jest.spyOn(StatusPageService, "findOneBy").mockImplementation((async () => {
       const statusPage: InstanceType<typeof StatusPage> = new StatusPage();
@@ -291,6 +322,7 @@ afterAll(async () => {
 beforeEach(() => {
   storedTheme = "System";
   apiRequests.length = 0;
+  forgetWhatThePageKept();
 });
 
 // What the page server handed index.ejs.
@@ -338,7 +370,7 @@ describe("a status page's HTML, where the App cannot reach its public address", 
   it("is sent dark on the next request once its owner turns it Dark: nothing on the way keeps the old theme", async () => {
     await servers.combined.statusPage(onItsOwnUrl());
 
-    storedTheme = "Dark";
+    await ownerChangesTheme("Dark");
 
     const html: string = htmlOf(
       await servers.combined.statusPage(onItsOwnUrl()),

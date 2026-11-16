@@ -149,6 +149,28 @@ export default class KubernetesCpuUtils {
     startDate: Date;
     endDate: Date;
   }): Promise<NodeAllocatableCpu> {
+    return KubernetesCpuUtils.buildAllocatable(
+      await KubernetesCpuUtils.fetchNodeAllocatablePerNode({
+        ...options,
+        metricName: NODE_ALLOCATABLE_CPU_METRIC,
+      }),
+    );
+  }
+
+  /**
+   * The latest value of one of the k8s_cluster receiver's
+   * `k8s.node.allocatable_*` gauges for each node of a cluster:
+   * nodeName -> allocatable amount (cores for `k8s.node.allocatable_cpu`,
+   * bytes for `k8s.node.allocatable_memory`). Empty on failure or when
+   * the metric isn't flowing — callers divide by it, so they must guard
+   * divide-by-zero.
+   */
+  public static async fetchNodeAllocatablePerNode(options: {
+    clusterIdentifier: string;
+    startDate: Date;
+    endDate: Date;
+    metricName: string;
+  }): Promise<Map<string, number>> {
     const perNode: Map<string, number> = new Map();
 
     try {
@@ -158,14 +180,14 @@ export default class KubernetesCpuUtils {
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
             time: new InBetween(options.startDate, options.endDate),
-            name: NODE_ALLOCATABLE_CPU_METRIC,
+            name: options.metricName,
             attributes: {
               "resource.k8s.cluster.name": options.clusterIdentifier,
             } as Dictionary<string | number | boolean>,
           },
           /*
            * Allocatable is effectively constant over the window; Max
-           * collapses each node's samples to its allocatable cores.
+           * collapses each node's samples to its allocatable amount.
            */
           aggregationType: MetricsAggregationType.Max,
           aggregateColumnName: "value",
@@ -188,13 +210,13 @@ export default class KubernetesCpuUtils {
         if (!nodeName) {
           continue;
         }
-        const cores: number = Number(dataPoint["value"]);
-        if (!Number.isFinite(cores) || cores <= 0) {
+        const amount: number = Number(dataPoint["value"]);
+        if (!Number.isFinite(amount) || amount <= 0) {
           continue;
         }
         const existing: number | undefined = perNode.get(nodeName);
-        if (existing === undefined || cores > existing) {
-          perNode.set(nodeName, cores);
+        if (existing === undefined || amount > existing) {
+          perNode.set(nodeName, amount);
         }
       }
     } catch {
@@ -205,7 +227,7 @@ export default class KubernetesCpuUtils {
        */
     }
 
-    return KubernetesCpuUtils.buildAllocatable(perNode);
+    return perNode;
   }
 
   /**

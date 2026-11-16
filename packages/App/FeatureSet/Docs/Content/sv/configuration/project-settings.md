@@ -64,7 +64,7 @@ En dold produkt är inte avstängd. Den flyttas till **Fler produkter**, den sis
 
 På en självhostad server kan en huvudadministratör också stänga av en produkt för alla projekt, under **Inställningar → Produkter** i Admin Dashboard (se [Kör bara det du behöver](/docs/installation/docker-compose#kör-bara-det-du-behöver)). En sådan produkt har ingen brytare här: den visar **Avstängd på den här servern** och vem som kan slå på den.
 
-Ett nytt projekt börjar med det som ägaren sade på Hem att det ska användas till: det grundläggande, inställningarna och det som de målen behöver visas, och resten döljs. Ett projekt som hoppade över frågan, eller som skapades före den, visar alla produkter. Så snart någon ändrar listan här ändrar målen den inte längre.
+Varje produkt visas tills någon döljer den här. Ingen produkt döljs av sig själv: det som ägaren sade på Hem att projektet ska användas till ställer bara in de första stegen där, och en produkt som inte är konfigurerad ännu stannar på sin plats i menyn.
 
 Varje produkt säger vad den är för det här projektet: **Används**, **Inte konfigurerad** eller, i OneUptime Cloud, den plan den behöver. När en dold produkt börjar ta emot data säger Hem det till Projektägare och Projektadministratörer och erbjuder **Visa den** eller **Behåll dold**.
 
