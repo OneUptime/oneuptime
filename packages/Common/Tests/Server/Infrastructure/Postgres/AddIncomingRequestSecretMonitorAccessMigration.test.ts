@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddIncomingRequestSecretMonitorAccess1809181400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181400000-AddIncomingRequestSecretMonitorAccess";
+import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181830000-AddIncomingRequestSecretMonitorAccess";
 import { AddIncomingRequestSecretActivity1809179500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809179500000-AddIncomingRequestSecretActivity";
 import IncomingRequestSecret from "../../../../Models/DatabaseModels/IncomingRequestSecret";
 import { INCOMING_REQUEST_SECRET_DEFAULT_ACCESS } from "../../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
@@ -26,7 +26,7 @@ import MonitorSecretAccess from "../../../../Types/Monitor/MonitorSecretAccess";
  */
 
 const MIGRATION_FILE_NAME: string =
-  "1809181400000-AddIncomingRequestSecretMonitorAccess.ts";
+  "1809181830000-AddIncomingRequestSecretMonitorAccess.ts";
 
 const SOURCE: string = fs.readFileSync(
   path.join(
@@ -149,7 +149,7 @@ describe("AddIncomingRequestSecretMonitorAccess migration", () => {
     );
 
     const index: number = names.indexOf(
-      AddIncomingRequestSecretMonitorAccess1809181400000.name,
+      AddIncomingRequestSecretMonitorAccess1809181830000.name,
     );
 
     expect(index).toBeGreaterThan(
@@ -157,13 +157,13 @@ describe("AddIncomingRequestSecretMonitorAccess migration", () => {
     );
     expect(
       names.filter((name: string): boolean => {
-        return name === AddIncomingRequestSecretMonitorAccess1809181400000.name;
+        return name === AddIncomingRequestSecretMonitorAccess1809181830000.name;
       }),
     ).toHaveLength(1);
 
-    expect(new AddIncomingRequestSecretMonitorAccess1809181400000().name).toBe(
-      "AddIncomingRequestSecretMonitorAccess1809181400000",
+    expect(new AddIncomingRequestSecretMonitorAccess1809181830000().name).toBe(
+      "AddIncomingRequestSecretMonitorAccess1809181830000",
     );
-    expect(MIGRATION_FILE_NAME.startsWith("1809181400000-")).toBe(true);
+    expect(MIGRATION_FILE_NAME.startsWith("1809181830000-")).toBe(true);
   });
 });

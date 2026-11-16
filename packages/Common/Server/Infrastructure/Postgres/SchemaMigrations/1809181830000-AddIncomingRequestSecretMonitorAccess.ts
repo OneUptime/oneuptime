@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * on empty tables: instant, and holding "Monitor" and "Label" only for the
  * moment each foreign key is added.
  */
-export class AddIncomingRequestSecretMonitorAccess1809181400000
+export class AddIncomingRequestSecretMonitorAccess1809181830000
   implements MigrationInterface
 {
-  public name: string = "AddIncomingRequestSecretMonitorAccess1809181400000";
+  public name: string = "AddIncomingRequestSecretMonitorAccess1809181830000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

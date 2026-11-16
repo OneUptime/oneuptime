@@ -1,3 +1,4 @@
+import ProjectService from "../../../../Server/Services/ProjectService";
 import RemediationCommandToolkit, {
   RemediationCommandNeedingApproval,
   RemediationCommandToolkitOptions,
@@ -160,6 +161,14 @@ let liveStatus: jest.SpyInstance;
 let inventory: jest.SpyInstance;
 
 beforeEach(() => {
+  /*
+   * The project does not ask two people to approve a riskier fix: what
+   * this suite pins runs as it always has (RemediationCommandToolsTwoApprovals
+   * pins the rule turned on).
+   */
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockResolvedValue({ requireTwoApprovalsForRiskierFixes: false } as never);
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });

@@ -1410,6 +1410,8 @@ const IncidentView: FunctionComponent<
               notifyStatusPageSubscribersByDefault
             }
             isPrivate={isPrivate}
+            // Execute On-Call Policy follows where the incident stands.
+            standing={standing}
           />
         </div>
 

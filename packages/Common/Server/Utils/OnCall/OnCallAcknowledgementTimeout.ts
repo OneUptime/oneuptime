@@ -13,8 +13,8 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import {
-  getOnCallAcknowledgementTimeoutDueAt,
   getOnCallAcknowledgementTimeoutInMinutes,
+  getOnCallPageAgainDueAt,
   hasOnCallPagesAgainLeft,
   isOnCallAcknowledgementTimeoutDue,
   isOnCallPageAgainRun,
@@ -466,6 +466,11 @@ export const CLOCK_RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
     _id: true,
     isArchived: true,
     acknowledgementTimeoutInMinutes: true,
+    /*
+     * When the policy was last changed: a page again whose timeout was cut
+     * past its moment is timed from the change (getOnCallPageAgainDueAt).
+     */
+    updatedAt: true,
   },
 };
 
@@ -1013,6 +1018,20 @@ export default class OnCallAcknowledgementTimeout {
     const pageAgainNumber: number = pagesAgainSoFar + 1;
 
     /*
+     * When the page again was due, for its time to send (OnCallPageTiming,
+     * issue #6708): when its clock ran out - the moment this worker decided
+     * it is due by (isOnCallAcknowledgementTimeoutDue), however late the
+     * worker got to it - or, for a timeout cut past that moment, when the
+     * policy was changed (issue #6847). Read once, for the page again and
+     * for a later tick that starts it in its place.
+     */
+    const pageAgainDueAt: Date = getOnCallPageAgainDueAt({
+      startedAt: startedAt,
+      minutes: minutes,
+      policyChangedAt: run.onCallDutyPolicy.updatedAt,
+    });
+
+    /*
      * The page again, kept in flight from just before its clock stop until
      * its start is kept (OnCallPageAgainClaimsInFlight, issue #8549): a
      * process that stops in between - before its run is written, or just
@@ -1026,10 +1045,7 @@ export default class OnCallAcknowledgementTimeout {
       startAtRuleId: run.lastExecutedEscalationRuleId?.toString() || null,
       acknowledgedByUserId: null,
       minutes: minutes,
-      dueAt: getOnCallAcknowledgementTimeoutDueAt({
-        startedAt: startedAt,
-        minutes: minutes,
-      }),
+      dueAt: pageAgainDueAt,
       pageAgainRunId: null,
     };
 
@@ -1093,14 +1109,11 @@ export default class OnCallAcknowledgementTimeout {
           startAtRuleId: run.lastExecutedEscalationRuleId || undefined,
           acknowledgedByUserId: acknowledgedByUserId || undefined,
           /*
-           * Its page is timed from when the clock ran out - the moment this
-           * worker decided it is due by (isOnCallAcknowledgementTimeoutDue),
-           * however late the worker got to it (OnCallPageTiming, issue #6708).
+           * Its page is timed from when it was due (pageAgainDueAt, above):
+           * when the clock ran out, however late the worker got to it, or
+           * when a timeout cut past that moment was changed.
            */
-          dueAt: getOnCallAcknowledgementTimeoutDueAt({
-            startedAt: startedAt,
-            minutes: minutes,
-          }),
+          dueAt: pageAgainDueAt,
           onRunCreated: async (
             pageAgainRunIdCreated: ObjectID,
           ): Promise<void> => {
