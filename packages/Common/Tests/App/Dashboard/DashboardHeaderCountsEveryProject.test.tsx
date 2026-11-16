@@ -22,12 +22,12 @@ import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import DashboardHeader, {
   HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Header";
+import { HEADER_COUNT_EVENT_TYPES } from "../../../../App/FeatureSet/Dashboard/src/Components/Header/HeaderLiveCounts";
 import {
-  HEADER_COUNT_EVENT_TYPES,
-  HEADER_COUNT_MAX_PROJECTS,
-  getHeaderCountProjectIds,
-  getHeaderCountSubscriptionKey,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Header/HeaderLiveCounts";
+  MAX_LIVE_PROJECTS,
+  getLiveProjectIds,
+  getLiveProjectsKey,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/LiveProjects";
 
 /*
  * THE HEADER'S COUNTS HEAR EVERY PROJECT THEY COUNT (issue #6917).
@@ -592,10 +592,10 @@ describe("the episode counts are the pages they open", () => {
   });
 });
 
-describe("the projects heard (HeaderLiveCounts)", () => {
+describe("the projects heard (Utils/LiveProjects)", () => {
   test("the open project first, then the list's, each once and in lower case", () => {
     expect(
-      getHeaderCountProjectIds({
+      getLiveProjectIds({
         projects: [
           project(PROJECT_B),
           project(PROJECT_A.toUpperCase()),
@@ -608,20 +608,20 @@ describe("the projects heard (HeaderLiveCounts)", () => {
   });
 
   test("no project and no open project: nothing to hear", () => {
+    expect(getLiveProjectIds({ projects: [], currentProjectId: null })).toEqual(
+      [],
+    );
     expect(
-      getHeaderCountProjectIds({ projects: [], currentProjectId: null }),
-    ).toEqual([]);
-    expect(
-      getHeaderCountProjectIds({
+      getLiveProjectIds({
         projects: [new Project()],
         currentProjectId: undefined,
       }),
     ).toEqual([]);
   });
 
-  test(`at most ${HEADER_COUNT_MAX_PROJECTS} projects, the open one always among them`, () => {
+  test(`at most ${MAX_LIVE_PROJECTS} projects, the open one always among them`, () => {
     const many: Array<Project> = Array.from(
-      { length: HEADER_COUNT_MAX_PROJECTS + 10 },
+      { length: MAX_LIVE_PROJECTS + 10 },
       (_value: unknown, index: number): Project => {
         return project(
           `${index.toString(16).padStart(8, "0")}-0000-4000-8000-000000000000`,
@@ -631,22 +631,22 @@ describe("the projects heard (HeaderLiveCounts)", () => {
 
     const open: string = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 
-    const heard: Array<string> = getHeaderCountProjectIds({
+    const heard: Array<string> = getLiveProjectIds({
       projects: many,
       currentProjectId: new ObjectID(open),
     });
 
-    expect(HEADER_COUNT_MAX_PROJECTS).toBe(50);
-    expect(heard).toHaveLength(HEADER_COUNT_MAX_PROJECTS);
+    expect(MAX_LIVE_PROJECTS).toBe(50);
+    expect(heard).toHaveLength(MAX_LIVE_PROJECTS);
     expect(heard[0]).toBe(open);
   });
 
   test("the same projects in any order are the same subscriptions", () => {
-    expect(getHeaderCountSubscriptionKey([PROJECT_B, PROJECT_A])).toBe(
-      getHeaderCountSubscriptionKey([PROJECT_A, PROJECT_B]),
+    expect(getLiveProjectsKey([PROJECT_B, PROJECT_A])).toBe(
+      getLiveProjectsKey([PROJECT_A, PROJECT_B]),
     );
-    expect(getHeaderCountSubscriptionKey([PROJECT_A])).not.toBe(
-      getHeaderCountSubscriptionKey([PROJECT_A, PROJECT_B]),
+    expect(getLiveProjectsKey([PROJECT_A])).not.toBe(
+      getLiveProjectsKey([PROJECT_A, PROJECT_B]),
     );
   });
 

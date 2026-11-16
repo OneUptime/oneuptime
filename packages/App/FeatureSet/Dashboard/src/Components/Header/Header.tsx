@@ -1,3 +1,7 @@
+import {
+  getLiveProjectIds,
+  getLiveProjectsKey,
+} from "../../Utils/LiveProjects";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 /*
@@ -11,11 +15,7 @@ import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
 import UserProfile from "./UserProfile";
-import {
-  getHeaderCountProjectIds,
-  getHeaderCountSubscriptionKey,
-  listenToHeaderCountChanges,
-} from "./HeaderLiveCounts";
+import { listenToHeaderCountChanges } from "./HeaderLiveCounts";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -302,18 +302,17 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
   /*
    * The projects whose changes the counts hear: every project the person
-   * belongs to, the open one first (HeaderLiveCounts). Read on every
+   * belongs to, the open one first (Utils/LiveProjects). Read on every
    * render, so the projects loading after the header - the first page of a
    * session - and the project opened without a reload are heard; the rooms
    * are joined again only when the projects themselves change.
    */
-  const countProjectIds: Array<string> = getHeaderCountProjectIds({
+  const countProjectIds: Array<string> = getLiveProjectIds({
     projects: props.projects,
     currentProjectId: ProjectUtil.getCurrentProjectId(),
   });
 
-  const countSubscriptionKey: string =
-    getHeaderCountSubscriptionKey(countProjectIds);
+  const countSubscriptionKey: string = getLiveProjectsKey(countProjectIds);
 
   useEffect(() => {
     if (countProjectIds.length === 0) {
