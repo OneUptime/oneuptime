@@ -4,7 +4,7 @@ import FeedbackWhereItGoes from "./FeedbackWhereItGoes";
 import { getFeedbackGitHubIssueUrl } from "./FeedbackPage";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
-  GENERAL_FEEDBACK_TOPIC,
+  GiveFeedbackCategory,
   PRODUCT_FEEDBACK_DETAILS_MAX_LENGTH,
   ProductFeedbackKind,
   toFeedbackTopic,
@@ -67,7 +67,7 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const labelId: string = useId();
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [from, setFrom] = useState<string>(GENERAL_FEEDBACK_TOPIC);
+  const [from, setFrom] = useState<string>(GiveFeedbackCategory.Other);
   const [details, setDetails] = useState<string>("");
   const [sentDetails, setSentDetails] = useState<string | null>(null);
   const [isSending, setIsSending] = useState<boolean>(false);
@@ -83,7 +83,7 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
       setFrom(
         typeof openedFrom === "string"
           ? toFeedbackTopic(openedFrom)
-          : GENERAL_FEEDBACK_TOPIC,
+          : GiveFeedbackCategory.Other,
       );
       setPage(ProductFeedback.getPage());
       setDetails("");

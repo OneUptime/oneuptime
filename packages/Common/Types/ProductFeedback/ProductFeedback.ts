@@ -10,7 +10,9 @@ import { JSONObject, JSONValue } from "../JSON";
  *                  (GuidedSetupFrame), one click on 1 to 5, then an optional
  *                  "What got in the way?". The setup's key is the topic.
  *   - general      "Give feedback" in Help, on every page: what the person
- *                  was trying to do and what happened.
+ *                  wants to tell the team. What it is about - something
+ *                  broken, confusing, an idea - is the topic
+ *                  (GiveFeedbackCategory).
  *   - explanation  "Was this clear?" under How OneUptime works and a term's
  *                  definition: thumbs up or down. The explanation is the
  *                  topic (`how_oneuptime_works`, `term.criteria`).
@@ -27,12 +29,23 @@ import { JSONObject, JSONValue } from "../JSON";
  *   Dashboard also sends `feedback/given` (Types/Analytics/ProductEvent):
  *   the kind, topic, score and page, never the words.
  *
+ *   Give feedback is a message, not an answer: the person writes to
+ *   someone and wants a reply (issue #8893). So it is also emailed
+ *   (GiveFeedbackDestination) - on OneUptime Cloud to the OneUptime team at
+ *   support@oneuptime.com, on a self-hosted server to its admins at its
+ *   Admin Notification Email, never to OneUptime - with the person's name
+ *   and email address and the project, copying the person, and a reply
+ *   goes to them. A self-hosted server with no Admin Notification Email
+ *   emails nothing. The dialog says which before anything is sent.
+ *
  * WHAT AN ANSWER CARRIES
  *
  *   The answer itself, the page as a route pattern with no ids
  *   (`/dashboard/:projectId/monitors/:id`) and the product version - nothing
  *   else: no person, no project, no address. readProductFeedbackSubmission
  *   takes only those fields from what is posted, and scrubs the page again.
+ *   The row kept names nobody, Give feedback's too: its email, sent by the
+ *   server from who is signed in, is what names the person.
  *
  * WHEN ONEUPTIME ASKS (decideFeedbackQuestion)
  *
@@ -107,9 +120,155 @@ export const CHECK_IN_LAST_DAY: number = 30;
 // Details can be added to an answer this long after it was given.
 export const PRODUCT_FEEDBACK_DETAILS_WINDOW_MINUTES: number = 60;
 
-// The topic of the first-week check-in and of Give feedback.
+// The topic of the first-week check-in.
 export const CHECK_IN_TOPIC: string = "first_week";
-export const GENERAL_FEEDBACK_TOPIC: string = "help";
+
+/*
+ * WHAT GIVE FEEDBACK IS ABOUT (issue #8893): the person picks one as they
+ * write, and it is the answer's topic. The dialog asks with it ("What
+ * happened?" for something broken), the team reads it first (the email's
+ * subject), and the Admin Dashboard counts Give feedback by it.
+ */
+export enum GiveFeedbackCategory {
+  Broken = "broken",
+  Confusing = "confusing",
+  Idea = "idea",
+  Other = "other",
+}
+
+// In the order the dialog offers them.
+export const GIVE_FEEDBACK_CATEGORIES: ReadonlyArray<GiveFeedbackCategory> = [
+  GiveFeedbackCategory.Broken,
+  GiveFeedbackCategory.Confusing,
+  GiveFeedbackCategory.Idea,
+  GiveFeedbackCategory.Other,
+];
+
+/*
+ * Picked when the dialog opens: what most people reach for Give feedback
+ * about. Its question ("What happened?") reads right for most of the rest,
+ * and one click picks another.
+ */
+export const DEFAULT_GIVE_FEEDBACK_CATEGORY: GiveFeedbackCategory =
+  GiveFeedbackCategory.Broken;
+
+/*
+ * Each one's name, as the dialog offers it and the team reads it. English:
+ * the Dashboard and the Admin Dashboard translate what they show, and the
+ * email to the team is English.
+ */
+export const GIVE_FEEDBACK_CATEGORY_TITLES: Readonly<
+  Record<GiveFeedbackCategory, string>
+> = {
+  [GiveFeedbackCategory.Broken]: "Something's broken",
+  [GiveFeedbackCategory.Confusing]: "Confusing",
+  [GiveFeedbackCategory.Idea]: "Idea",
+  [GiveFeedbackCategory.Other]: "Other",
+};
+
+export const isGiveFeedbackCategory: (
+  value: unknown,
+) => value is GiveFeedbackCategory = (
+  value: unknown,
+): value is GiveFeedbackCategory => {
+  return (
+    typeof value === "string" &&
+    (GIVE_FEEDBACK_CATEGORIES as ReadonlyArray<string>).includes(value)
+  );
+};
+
+/*
+ * A topic Give feedback was posted with, as a category: anything else -
+ * nothing, or where an older Dashboard said it was opened from ("help") -
+ * is Other.
+ */
+export const toGiveFeedbackCategory: (
+  value: unknown,
+) => GiveFeedbackCategory = (value: unknown): GiveFeedbackCategory => {
+  const topic: string = typeof value === "string" ? toFeedbackTopic(value) : "";
+
+  return isGiveFeedbackCategory(topic) ? topic : GiveFeedbackCategory.Other;
+};
+
+/*
+ * WHERE GIVE FEEDBACK GOES (issue #8893). The server decides, and tells the
+ * Dashboard with its settings, so the dialog says it before anything is
+ * sent - and only what is true there:
+ */
+export enum GiveFeedbackDestination {
+  /*
+   * OneUptime Cloud: emailed to the OneUptime team (ONEUPTIME_SUPPORT_EMAIL)
+   * with the person's name and email address and their project, copying
+   * the person, and a reply goes to them.
+   */
+  OneUptimeTeam = "oneuptime_team",
+  /*
+   * A self-hosted server with an Admin Notification Email (Admin Dashboard
+   * > Settings > Email): emailed to its admins there, in the same way,
+   * through the server's own mail settings. Nothing goes to OneUptime: a
+   * self-hosted server's people, projects and words are its own.
+   */
+  ServerAdminsByEmail = "server_admins_by_email",
+  /*
+   * A self-hosted server with none: kept for its admins (Admin Dashboard >
+   * Feedback), with no name and no address, and nothing leaves the server.
+   */
+  ServerAdmins = "server_admins",
+}
+
+export const ONEUPTIME_SUPPORT_EMAIL: string = "support@oneuptime.com";
+
+export const getGiveFeedbackDestination: (data: {
+  isOneUptimeCloud: boolean;
+  adminNotificationEmail: string | null | undefined;
+}) => GiveFeedbackDestination = (data: {
+  isOneUptimeCloud: boolean;
+  adminNotificationEmail: string | null | undefined;
+}): GiveFeedbackDestination => {
+  if (data.isOneUptimeCloud) {
+    return GiveFeedbackDestination.OneUptimeTeam;
+  }
+
+  return (data.adminNotificationEmail || "").trim()
+    ? GiveFeedbackDestination.ServerAdminsByEmail
+    : GiveFeedbackDestination.ServerAdmins;
+};
+
+export const isGiveFeedbackEmailed: (
+  destination: GiveFeedbackDestination,
+) => boolean = (destination: GiveFeedbackDestination): boolean => {
+  return destination !== GiveFeedbackDestination.ServerAdmins;
+};
+
+/*
+ * What POST /product-feedback answers for Give feedback besides the
+ * answer's id: whether it is being emailed, and where a copy of it is on
+ * its way - the person's own address - or null where none is.
+ */
+export interface GiveFeedbackReceipt {
+  isEmailed: boolean;
+  copyTo: string | null;
+}
+
+export const readGiveFeedbackReceipt: (
+  value: unknown,
+) => GiveFeedbackReceipt = (value: unknown): GiveFeedbackReceipt => {
+  const data: Record<string, unknown> =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+
+  const isEmailed: boolean = data["isEmailed"] === true;
+  const copyTo: unknown = data["copyTo"];
+
+  return {
+    isEmailed: isEmailed,
+    copyTo:
+      isEmailed && typeof copyTo === "string" && copyTo.includes("@")
+        ? copyTo
+        : null,
+  };
+};
 
 // The pre-filled GitHub issue a self-hosted form offers (NewGitHubIssue).
 export const PRODUCT_FEEDBACK_GITHUB_LABEL: string = "feedback";
@@ -272,7 +431,8 @@ const isWholeScore: (value: unknown) => value is number = (
  * it asks and nothing more:
  *
  *   - setup_flow   a topic and a score of 1 to 5; details optional;
- *   - general      details (what the person was trying to do); no score;
+ *   - general      details (what the person wrote) and what it is about
+ *                  as its topic (GiveFeedbackCategory); no score;
  *   - explanation  a topic and thumbs up or down;
  *   - check_in     yes or not yet; details optional.
  */
@@ -320,12 +480,13 @@ export const readProductFeedbackSubmission: (
 
   if (kind === ProductFeedbackKind.General) {
     if (!details) {
-      return "Write what you were trying to do and what happened, then send it again.";
+      return "Write what you want to tell us, then send it again.";
     }
 
     return {
       ...base,
-      topic: topic || GENERAL_FEEDBACK_TOPIC,
+      // What it is about (GiveFeedbackCategory): Other for anything else.
+      topic: toGiveFeedbackCategory(topic),
       score: null,
       isPositive: null,
     };
@@ -549,12 +710,18 @@ export const isCheckInDue: (data: {
 
 /*
  * GET /product-feedback/settings: whether this server asks (the master
- * admins' switch) and whether it asks this person (their own).
+ * admins' switch), whether it asks this person (their own), and where Give
+ * feedback goes (GiveFeedbackDestination), for the dialog to say.
  */
 export interface ProductFeedbackSettings {
   isOn: boolean;
   isAskingMe: boolean;
+  giveFeedbackGoesTo?: GiveFeedbackDestination | undefined;
 }
+
+const GIVE_FEEDBACK_DESTINATIONS: ReadonlyArray<string> = Object.values(
+  GiveFeedbackDestination,
+);
 
 export const readProductFeedbackSettings: (
   value: unknown,
@@ -574,7 +741,16 @@ export const readProductFeedbackSettings: (
     return null;
   }
 
-  return { isOn: data["isOn"], isAskingMe: data["isAskingMe"] };
+  const giveFeedbackGoesTo: unknown = data["giveFeedbackGoesTo"];
+
+  return {
+    isOn: data["isOn"],
+    isAskingMe: data["isAskingMe"],
+    ...(typeof giveFeedbackGoesTo === "string" &&
+    GIVE_FEEDBACK_DESTINATIONS.includes(giveFeedbackGoesTo)
+      ? { giveFeedbackGoesTo: giveFeedbackGoesTo as GiveFeedbackDestination }
+      : {}),
+  };
 };
 
 /*
@@ -771,8 +947,8 @@ export const summarizeProductFeedback: (
 /*
  * WHAT AN ANSWER WAS ABOUT, IN WORDS (the Admin Dashboard's Feedback page):
  * a guided setup by its name, How OneUptime works, a term of the Glossary,
- * the check-in, and where Give feedback was opened. English: the page
- * translates what it shows.
+ * the check-in, and what Give feedback was about (GiveFeedbackCategory).
+ * English: the page translates what it shows.
  */
 export const GUIDED_SETUP_TITLES: Readonly<Record<string, string>> = {
   website_down: "Know when my website or API is down",
@@ -812,6 +988,14 @@ export const getProductFeedbackTopicTitle: (data: {
 
   if (data.kind === ProductFeedbackKind.CheckIn) {
     return "Is OneUptime set up the way you wanted?";
+  }
+
+  /*
+   * Give feedback: what it was about. An answer kept before #8893 holds
+   * where Give feedback was opened instead ("help"), shown as it was kept.
+   */
+  if (isGiveFeedbackCategory(data.topic)) {
+    return GIVE_FEEDBACK_CATEGORY_TITLES[data.topic];
   }
 
   return data.topic;
