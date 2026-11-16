@@ -92,7 +92,10 @@ import { getMaxLengthFromTableColumnType } from "../../Types/Database/ColumnLeng
 import Columns from "../../Types/Database/Columns";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
-import { TableColumnMetadata } from "../../Types/Database/TableColumn";
+import {
+  TableColumnMetadata,
+  getTableColumns,
+} from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import { getUniqueColumnsBy } from "../../Types/Database/UniqueColumnBy";
 import UserAttribution, {
@@ -144,6 +147,7 @@ import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 import { ObjectLiteral } from "typeorm/common/ObjectLiteral";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
+import RealtimeMetrics from "../Utils/Realtime/RealtimeMetrics";
 import {
   NO_READER_ACCESS,
   RealtimeReadAccess,
@@ -472,6 +476,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private modelName!: string;
   private userAttributionColumns: Array<string> | null = null;
   private realtimeReadAccess: RealtimeReadAccess | null = null;
+
+  /*
+   * The columns some read of this table may be narrowed by, whoever reads
+   * it: worked out on first use (getColumnsAnyReadMayNarrowBy). Undefined
+   * until then; null when it cannot be told.
+   */
+  private columnsAnyReadMayNarrowBy: ReadonlySet<string> | null | undefined =
+    undefined;
 
   /*
    * The relations of this model whose records carry encrypted columns, and
@@ -5537,9 +5549,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return false;
     }
 
+    /*
+     * A condition the service's own read hooks put on one column may read
+     * others too (an AI run's, on its run type, reads who started it): a
+     * reader narrowed by those hooks is narrowed by every column they read.
+     */
+    const hookColumns: Array<string> = this.getColumnsReadHooksNarrowBy() || [];
+    const narrowing: Array<string> = narrowedBy.some(
+      (column: string): boolean => {
+        return hookColumns.includes(column);
+      },
+    )
+      ? [...narrowedBy, ...hookColumns]
+      : narrowedBy;
+
     if (
       columns.some((column: string): boolean => {
-        return column !== "_id" && narrowedBy.includes(column);
+        return column !== "_id" && narrowing.includes(column);
       })
     ) {
       return true;
@@ -5562,21 +5588,176 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * WHO MAY READ A ROW OF THIS TABLE CHANGES ONLY WITH THESE COLUMNS
+   * (#8964): every column the conditions of someone's read may name
+   * (getColumnsNarrowingReadOf, for anyone at all), with the links and keys
+   * writeMayChangeWhetherTheyRead weighs when a read is narrowed by the
+   * row's id. Worked out once, from the model and the service - the rules
+   * that narrow a read, and where each puts its condition:
+   *
+   *   - a grant limited to labels: the labels (the access-control column);
+   *   - a block with labels, a grant limited to labels on a label-less
+   *     model, an Owned grant on a resource with owners of its own: the
+   *     row's id, which reaches its links (every many-to-many column, its
+   *     labels among them) and the keys naming labelled records
+   *     (ReadPermission.getLabelledKeyColumns);
+   *   - the record the rows are read through (@CanAccessIfCanReadOn): the
+   *     relation itself and its key - the parent's labels, its blocks and
+   *     its owners;
+   *   - a resource that takes its owners from another (@OwnedThrough, an
+   *     owner table): the key naming it;
+   *   - a read granted only by CurrentUser: the user column;
+   *   - the service's own read hooks (getColumnsReadHooksNarrowBy): a
+   *     private incident's switch, a person's own AI conversations.
+   *
+   * The project's own column is not one: no read is told apart by it here
+   * (getColumnsNarrowingReadOf leaves it out). Empty for a table no read of
+   * which can be told apart before it is made (readsEveryRecordInProject):
+   * every listener's read is taken to be as it was. Null when it cannot be
+   * told: a service whose read hooks do not say what they narrow by.
+   */
+  public getColumnsAnyReadMayNarrowBy(): ReadonlySet<string> | null {
+    if (this.columnsAnyReadMayNarrowBy === undefined) {
+      this.columnsAnyReadMayNarrowBy = this.workOutColumnsAnyReadMayNarrowBy();
+    }
+
+    return this.columnsAnyReadMayNarrowBy;
+  }
+
+  private workOutColumnsAnyReadMayNarrowBy(): ReadonlySet<string> | null {
+    const model: TBaseModel = this.getModel();
+
+    // No read of the table is told apart: nobody's read is narrowed here.
+    if (!model.getTenantColumn() || !this.narrowsReadsOnlyBeforeQuerying()) {
+      return new Set<string>();
+    }
+
+    const hookColumns: Array<string> | null =
+      this.getColumnsReadHooksNarrowBy();
+
+    if (!hookColumns) {
+      return null;
+    }
+
+    const columns: Set<string> = new Set<string>(hookColumns);
+
+    const accessControlColumn: string | null = model.getAccessControlColumn();
+
+    if (accessControlColumn) {
+      columns.add(accessControlColumn);
+    }
+
+    for (const [columnName, metadata] of Object.entries(
+      getTableColumns(model),
+    )) {
+      if (metadata.type === TableColumnType.EntityArray) {
+        columns.add(columnName);
+      }
+    }
+
+    for (const column of ReadPermission.getLabelledKeyColumns(this.modelType)) {
+      columns.add(column);
+    }
+
+    if (model.canAccessIfCanReadOn) {
+      columns.add(model.canAccessIfCanReadOn);
+
+      const parentKey: string | undefined = model.getTableColumnMetadata(
+        model.canAccessIfCanReadOn,
+      )?.manyToOneRelationColumn;
+
+      if (parentKey) {
+        columns.add(parentKey);
+      }
+    }
+
+    const ownedThrough: string | undefined =
+      OwnedScopePermission.getOwnedThrough(this.modelType)?.fkColumn;
+
+    if (ownedThrough) {
+      columns.add(ownedThrough);
+    }
+
+    const userColumn: string | null = model.getUserColumn();
+
+    if (userColumn) {
+      columns.add(userColumn);
+    }
+
+    columns.delete("_id");
+    columns.delete(model.getTenantColumn() as string);
+
+    return columns;
+  }
+
+  /*
+   * The columns this service's own read hooks (onBeforeFind) put conditions
+   * on, or read in them, for anyone: none for a service that keeps the base
+   * hook. A service whose hook narrows a read says which columns
+   * (IncidentService: the private switch), or every column is taken to
+   * narrow it (null) and every update asks, before it is written, who could
+   * read its rows (getRealtimeAccessBeforeUpdate). The
+   * ColumnsAnyReadMayNarrowBy test holds every service whose model announces
+   * its changes to what its hook and its reads do.
+   */
+  public getColumnsReadHooksNarrowBy(): Array<string> | null {
+    const service: Record<string, unknown> = this as unknown as Record<
+      string,
+      unknown
+    >;
+    const base: Record<string, unknown> =
+      DatabaseService.prototype as unknown as Record<string, unknown>;
+
+    return service["onBeforeFind"] === base["onBeforeFind"] ? [] : null;
+  }
+
+  /*
+   * Whether writing `columns` may change whether anyone at all reads a row
+   * of this table: one of them is a column some read may be narrowed by
+   * (getColumnsAnyReadMayNarrowBy). When none is, no listener's read can be
+   * narrowed by the write (writeMayChangeWhetherTheyRead says no for each of
+   * them), so there is nobody to ask - and no need to look anyone up, here
+   * or on the other App servers. True when it cannot be told.
+   */
+  private writeMayChangeAnyonesRead(columns: Array<string>): boolean {
+    const narrowing: ReadonlySet<string> | null =
+      this.getColumnsAnyReadMayNarrowBy();
+
+    if (!narrowing) {
+      return true;
+    }
+
+    return columns.some((column: string): boolean => {
+      return column !== "_id" && narrowing.has(column);
+    });
+  }
+
+  /*
    * The columns a write names, each relation with the column that holds its
-   * id - a read's conditions name the id column, a write may name either.
+   * id, and each such column with its relation - a read's conditions name
+   * either (a read through an incident narrows the relation itself, a
+   * block the key), and a write may name either.
    */
   private getColumnsWrittenBy(dataKeys: Array<string>): Array<string> {
     const columns: Set<string> = new Set<string>(dataKeys);
+    const written: Set<string> = new Set<string>(dataKeys);
 
-    for (const key of dataKeys) {
-      const metadata: TableColumnMetadata | undefined =
-        this.getModel().getTableColumnMetadata(key);
-
+    for (const [columnName, metadata] of Object.entries(
+      getTableColumns(this.getModel()),
+    )) {
       if (
-        metadata?.type === TableColumnType.Entity &&
-        metadata.manyToOneRelationColumn
+        metadata.type !== TableColumnType.Entity ||
+        !metadata.manyToOneRelationColumn
       ) {
+        continue;
+      }
+
+      if (written.has(columnName)) {
         columns.add(metadata.manyToOneRelationColumn);
+      }
+
+      if (written.has(metadata.manyToOneRelationColumn)) {
+        columns.add(columnName);
       }
     }
 
@@ -5717,8 +5898,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * whose read the written columns may change (writeMayChangeWhetherTheyRead:
    * a row made private, a label taken off). Their open pages hear about it
    * and drop what they may no longer read; nobody else is told anything
-   * they could not read. A project left out sends its update events with
-   * the service's own access, as usual. Never throws.
+   * they could not read. A write that names no column any read is narrowed
+   * by asks nobody at all (writeMayChangeAnyonesRead). A project left out
+   * sends its update events with the service's own access, as usual. Never
+   * throws.
    */
   private async getRealtimeAccessBeforeUpdate(
     items: Array<TBaseModel>,
@@ -5776,8 +5959,31 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       const columns: Array<string> = this.getColumnsWrittenBy(dataKeys);
 
+      const idsByProject: Map<
+        string,
+        Array<ObjectID>
+      > = this.getRealtimeIdsByProject(changing, props);
+
+      /*
+       * A write that names no column any read is narrowed by - a monitor's
+       * status, an incident's state, a title - cannot take a row away from
+       * anyone: who reads it after is who read it before. So nobody is
+       * looked up, here or on the other App servers, and the write does not
+       * wait for them (#8964). Its events carry the service's own access,
+       * as an update nobody could read before does.
+       */
+      if (!this.writeMayChangeAnyonesRead(columns)) {
+        RealtimeMetrics.recordBeforeWriteDecisionsSkipped({
+          tableName: this.model.tableName || "",
+          eventType: ModelEventType.Update,
+          decisions: idsByProject.size,
+        });
+
+        return accessByProject;
+      }
+
       await Promise.all(
-        Array.from(this.getRealtimeIdsByProject(changing, props).entries()).map(
+        Array.from(idsByProject.entries()).map(
           async ([tenantId, modelIds]: [string, Array<ObjectID>]) => {
             const before: RealtimeReadAccess =
               await Realtime.snapshotReadAccess({

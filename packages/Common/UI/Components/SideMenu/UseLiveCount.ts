@@ -1,19 +1,11 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
-import ModelEventType from "../../../Types/Realtime/ModelEventType";
-import CoalescedRefresh from "../../Utils/CoalescedRefresh";
-import { getOpenLiveConnection } from "../../Utils/LiveConnection";
 /*
- * Type-only on purpose: the count joins the connection the app opened
- * (LiveConnection), so a page that draws a side menu and opens none - a
+ * The count joins the connection the app opened (LiveConnection, through
+ * UseLiveRefresh), so a page that draws a side menu and opens none - a
  * status page - does not load Realtime and socket.io with it.
  */
-import type Realtime from "../../Utils/Realtime";
-import {
-  LIVE_ROWS_MIN_INTERVAL_IN_MS,
-  getLiveRowEventTypes,
-} from "../ModelTable/LiveRows";
-import { MutableRefObject, useEffect, useMemo, useRef } from "react";
+import useLiveRefresh from "../../Utils/UseLiveRefresh";
 
 /*
  * A SIDE-MENU COUNT THAT KEEPS ITSELF CURRENT.
@@ -64,130 +56,24 @@ export interface UseLiveCountOptions {
   minIntervalInMs?: number | undefined;
 }
 
-const isPageHidden: () => boolean = (): boolean => {
-  return (
-    typeof document !== "undefined" && document.visibilityState === "hidden"
-  );
-};
+// No kind: nothing is heard. One list, so a count without one is no new list.
+const NO_MODEL_TYPES: ReadonlyArray<{ new (): BaseModel }> = [];
 
-interface AnnouncedTable {
-  tableName: string;
-  eventTypes: Array<ModelEventType>;
-}
-
+/*
+ * The count hears its one kind the way any part of a page hears what it
+ * shows (UseLiveRefresh): one coalesced recount for every change, nothing
+ * while the tab is hidden, nothing without the app's live connection.
+ */
 const useLiveCount: (options: UseLiveCountOptions) => void = (
   options: UseLiveCountOptions,
 ): void => {
-  // The count of the moment: a change heard later counts what is asked then.
-  const recountRef: MutableRefObject<() => Promise<void>> = useRef<
-    () => Promise<void>
-  >(options.recount);
-  recountRef.current = options.recount;
-
-  // The app's live connection, once it has opened one.
-  const realtime: typeof Realtime | null = options.isEnabled
-    ? getOpenLiveConnection()
-    : null;
-
-  const modelType: { new (): BaseModel } | undefined = realtime
-    ? options.modelType
-    : undefined;
-
-  // What the server announces for the table: read once per kind.
-  const announced: AnnouncedTable | null = useMemo(() => {
-    if (!modelType) {
-      return null;
-    }
-
-    const model: BaseModel = new modelType();
-    const eventTypes: Array<ModelEventType> = getLiveRowEventTypes(model);
-
-    return eventTypes.length > 0
-      ? { tableName: model.tableName || "", eventTypes: eventTypes }
-      : null;
-  }, [modelType]);
-
-  const tenantId: string = announced
-    ? options.getTenantId()?.toString() || ""
-    : "";
-
-  // What the subscription is for: it starts over only when this changes.
-  const subscriptionKey: string =
-    announced && tenantId
-      ? `${announced.tableName}|${tenantId}|${announced.eventTypes.join(",")}`
-      : "";
-
-  const minIntervalInMs: number =
-    options.minIntervalInMs ?? LIVE_ROWS_MIN_INTERVAL_IN_MS;
-
-  useEffect(() => {
-    if (!subscriptionKey || !modelType || !announced || !realtime) {
-      return undefined;
-    }
-
-    let isStopped: boolean = false;
-    // A change was heard while the tab was hidden.
-    let isPending: boolean = false;
-
-    const refresh: CoalescedRefresh = new CoalescedRefresh({
-      refresh: (): Promise<void> => {
-        return recountRef.current();
-      },
-      minIntervalInMs: minIntervalInMs,
-    });
-
-    const onChange: () => void = (): void => {
-      if (isStopped) {
-        return;
-      }
-
-      if (isPageHidden()) {
-        isPending = true;
-        return;
-      }
-
-      isPending = false;
-      refresh.request();
-    };
-
-    const onVisibilityChange: () => void = (): void => {
-      if (isPending && !isPageHidden()) {
-        onChange();
-      }
-    };
-
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", onVisibilityChange);
-    }
-
-    const stopListening: Array<() => void> = announced.eventTypes.map(
-      (eventType: ModelEventType): (() => void) => {
-        return realtime.listenToModelEvent<BaseModel>(
-          {
-            modelType: modelType,
-            eventType: eventType,
-            tenantId: new ObjectID(tenantId),
-          },
-          (): void => {
-            onChange();
-          },
-        );
-      },
-    );
-
-    return (): void => {
-      isStopped = true;
-      refresh.stop();
-
-      if (typeof document !== "undefined") {
-        document.removeEventListener("visibilitychange", onVisibilityChange);
-      }
-
-      for (const stop of stopListening) {
-        stop();
-      }
-    };
-  }, [subscriptionKey, minIntervalInMs]);
+  useLiveRefresh({
+    modelTypes: options.modelType ? [options.modelType] : NO_MODEL_TYPES,
+    isEnabled: options.isEnabled,
+    getTenantId: options.getTenantId,
+    refresh: options.recount,
+    minIntervalInMs: options.minIntervalInMs,
+  });
 };
 
 export default useLiveCount;
