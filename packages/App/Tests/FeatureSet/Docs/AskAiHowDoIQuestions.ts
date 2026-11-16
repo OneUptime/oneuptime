@@ -793,7 +793,7 @@ export const ASK_AI_QUESTIONS_BY_LANGUAGE: ReadonlyArray<AskAiHowDoIQuestionTran
     ["no", "Hvordan skriver jeg et runbook?", ["runbooks/authoring"]],
     ["no", "Hvordan lager jeg et dashbord?", ["dashboards/authoring"]],
     ["no", "Hvordan skriver jeg en etteranalyse?", ["incidents/postmortems"]],
-    // The account page says "totrinnsbekreftelse" (a synonym).
+    // Said as the Norwegian Dashboard and docs say it (#8701).
     [
       "no",
       "Hvordan slår jeg på tofaktorautentisering?",

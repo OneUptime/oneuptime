@@ -2,7 +2,7 @@
   /*
    * A part of tsconfig.tests.json that `npm run compile-tests`
    * (Scripts/compile-tests.js) type-checks on its own: every Tests/App test
-   * outside Tests/App/Dashboard, whose tests are in the eight
+   * outside Tests/App/Dashboard, whose tests are in the eleven
    * tsconfig.tests.app-dashboard-*.json parts by the first letter of their
    * names, and the frontend sources they import. Its "include" is
    * tsconfig.tests.app.json's, so a new App test outside Tests/App/Dashboard

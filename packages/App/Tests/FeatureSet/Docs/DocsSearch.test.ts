@@ -1000,6 +1000,190 @@ describe("a question (#8334)", () => {
   });
 });
 
+/*
+ * A question answered by a section of a page named for something else
+ * (#8698): two-factor authentication is a step of Your Account, "Slå på
+ * tofaktorautentisering", and "Hvordan slår jeg på
+ * tofaktorautentisering?" asks it with "slår" (present), which the
+ * heading's "slå" is not. Where no page is named for the question, a
+ * section whose own heading holds half its words or more goes beside the
+ * results that hold all of them.
+ */
+const NORWEGIAN_ACCOUNT_PAGES: Array<MadePage> = [
+  {
+    page: "introduction/your-account",
+    title: "Kontoen din",
+    summary: "Profilen din, og hvordan du logger inn trygt.",
+    sections: [
+      {
+        title: "Slå på tofaktorautentisering",
+        text: "Legg først til et andre steg, og slå det deretter på.",
+      },
+      {
+        title: "Endre passordet ditt",
+        text: "Velg et nytt passord for kontoen.",
+      },
+    ],
+  },
+  {
+    page: "mobile-desktop-apps/android-installation",
+    title: "Installasjon på Android",
+    summary: "Last ned appen og logg inn.",
+    sections: [
+      {
+        title: "Logg inn i appen",
+        text: "Slår du på tofaktorautentisering, ber appen om en kode.",
+      },
+    ],
+  },
+  {
+    page: "self-hosted/enterprise",
+    title: "Enterprise",
+    summary:
+      "En administrator som slår den på, kan kreve tofaktorautentisering.",
+  },
+];
+
+const ACCOUNT_STEP: string = "/docs/no/introduction/your-account#";
+
+describe("a question answered by a section (#8698)", () => {
+  const norwegian: AIDocsLanguageIndex = makeDocsIndex(
+    NORWEGIAN_ACCOUNT_PAGES,
+    "no",
+  );
+
+  it("finds the section whose heading names what it asks, on a page named for something else", () => {
+    const found: Array<string> = urls(
+      DocsSearch.rank(norwegian, "Hvordan slår jeg på tofaktorautentisering?"),
+    );
+
+    expect(
+      found.filter((url: string): boolean => {
+        return url.startsWith(ACCOUNT_STEP);
+      }),
+    ).toEqual([`${ACCOUNT_STEP}slå-på-tofaktorautentisering`]);
+    // Beside the results that hold every word.
+    expect(found).toEqual(
+      expect.arrayContaining([
+        "/docs/no/self-hosted/enterprise",
+        "/docs/no/mobile-desktop-apps/android-installation#logg-inn-i-appen",
+      ]),
+    );
+  });
+
+  it("leaves it out of keywords, which still need every word", () => {
+    expect(
+      urls(DocsSearch.rank(norwegian, "slår tofaktorautentisering ")).filter(
+        (url: string): boolean => {
+          return url.startsWith(ACCOUNT_STEP);
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  it("leaves it out where a page is named for the question: the page answers it", () => {
+    const withPage: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        ...NORWEGIAN_ACCOUNT_PAGES,
+        {
+          page: "security/two-factor",
+          title: "Tofaktorautentisering",
+          summary: "Et andre steg når du logger inn.",
+        },
+      ],
+      "no",
+    );
+    const found: Array<string> = urls(
+      DocsSearch.rank(withPage, "Hvordan slår jeg på tofaktorautentisering?"),
+    );
+
+    expect(found).toContain("/docs/no/security/two-factor");
+    expect(
+      found.filter((url: string): boolean => {
+        return url.startsWith(ACCOUNT_STEP);
+      }),
+    ).toEqual([]);
+  });
+
+  it("leaves out a section whose heading holds fewer than half the question's words", () => {
+    // "appen" (the app) is a third word, which the heading does not hold: one in three.
+    const found: Array<string> = urls(
+      DocsSearch.rank(
+        norwegian,
+        "Hvordan slår jeg på tofaktorautentisering i appen?",
+      ),
+    );
+
+    expect(
+      found.filter((url: string): boolean => {
+        return url.startsWith(ACCOUNT_STEP);
+      }),
+    ).toEqual([]);
+    expect(found[0]).toBe(
+      "/docs/no/mobile-desktop-apps/android-installation#logg-inn-i-appen",
+    );
+  });
+});
+
+/*
+ * A Dutch verb's first part, written after it ("Hoe zet ik ... aan?"), is
+ * read joined to the verb and never alone (#8698): as a word of its own,
+ * "aan" made the step "Tweestapsverificatie inschakelen" hold one of the
+ * question's three words.
+ */
+describe("a Dutch verb written in two parts", () => {
+  const dutch: AIDocsLanguageIndex = makeDocsIndex(
+    [
+      {
+        page: "introduction/your-account",
+        title: "Uw account",
+        summary: "Uw profiel en hoe u veilig inlogt.",
+        sections: [
+          {
+            title: "Tweestapsverificatie inschakelen",
+            text: "Voeg eerst een tweede stap toe en zet hem daarna aan.",
+          },
+        ],
+      },
+      {
+        page: "permissions/inviting-people",
+        title: "Mensen uitnodigen",
+        summary: "Nodig een collega uit voor je project.",
+      },
+    ],
+    "nl",
+  );
+
+  it("does not look for the part alone, and reads it joined where the docs hold the verb", () => {
+    expect(typedWords(dutch, "Hoe zet ik tweestapsverificatie aan?")).toEqual([
+      "zet",
+      "tweestapsverificatie",
+    ]);
+    // "nodig" holds "uitnodig" (uitnodigen) as a way of being found.
+    const words: Array<DocsQueryWord> = DocsSearch.readQuery(
+      dutch,
+      "Hoe nodig ik een collega uit? ",
+    );
+
+    expect(
+      words.map((word: DocsQueryWord): string => {
+        return word.typed;
+      }),
+    ).toEqual(["nodig", "collega"]);
+    expect(alternativeTerms(words[0]!)).toContain("uitnodig");
+    // Typed alone, it is a word.
+    expect(typedWords(dutch, "uit")).toEqual(["uit"]);
+  });
+
+  it("finds the step a question asks with the verb's other part written apart", () => {
+    expect(
+      urls(DocsSearch.rank(dutch, "Hoe zet ik tweestapsverificatie aan?")),
+    ).toContain(
+      "/docs/nl/introduction/your-account#tweestapsverificatie-inschakelen",
+    );
+  });
+});
+
 describe("a result", () => {
   it("says where it is and opens the page in the reader's language, at the section", () => {
     const section: DocsSearchResult = DocsSearch.rank(INDEX, "ssl ")

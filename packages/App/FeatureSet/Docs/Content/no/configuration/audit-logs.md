@@ -116,7 +116,7 @@ Hver gang et medlem av prosjektet logger på OneUptime, registrerer revisjonslog
 | `Sign In` | Noen logger på: med passord eller en innloggingslenke, en passnøkkel, Google, Microsoft, Vercel eller enkel pålogging. |
 | `Sign Out` | Personen logger ut. |
 | `Session Timeout` | OneUptime avslutter økten fordi tiden er ute: inaktivitetsperioden eller øktlengden en serveradministrator har angitt, eller 30 dager uten bruk. |
-| `Session Revoked` | OneUptime avslutter økten fordi passordet ble endret, kontoen ble blokkert, eller en serveradministrator tilbakestilte eller krevde totrinnsbekreftelse. |
+| `Session Revoked` | OneUptime avslutter økten fordi passordet ble endret, kontoen ble blokkert, eller en serveradministrator tilbakestilte eller krevde tofaktorautentisering. |
 
 For en slik oppføring er **Ressurs** økten, navngitt etter enheten den logget på fra, for eksempel `Chrome 130 on macOS`. **Aktør** er personen økten tilhører, så filtrering etter **Bruker-e-post** finner alle påloggingene og øktene deres. Detaljene sier hvordan de logget på og med hvilken andre faktor, IP-adressen og stedet, og for en økt som er avsluttet, når den logget på, når den sist ble brukt og når den utløp. Et prosjekts egen SSO-leverandør nevnes bare i revisjonsloggen til det prosjektet.
 

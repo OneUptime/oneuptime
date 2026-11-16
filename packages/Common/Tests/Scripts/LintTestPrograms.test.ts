@@ -36,17 +36,20 @@ const MAX_FILES_PER_PROGRAM: number = 6000;
  * Each lint project, and the compile parts it is the program of. Mostly one
  * part each; Tests/App is one directory, so one lint project (its
  * tsconfig.json extends tsconfig.tests.app.json), while compile-tests checks
- * it in nine parts: Tests/App/Dashboard in eight divided by name, and the
- * rest.
+ * it in twelve parts: Tests/App/Dashboard in eleven divided by name, and
+ * the rest.
  */
 const PARTS_OF_LINT_PROJECT: Record<string, Array<string>> = {
   "Tests/App/tsconfig.json": [
     "tsconfig.tests.app-dashboard-a.json",
     "tsconfig.tests.app-dashboard-b-c.json",
     "tsconfig.tests.app-dashboard-d.json",
-    "tsconfig.tests.app-dashboard-e-l.json",
-    "tsconfig.tests.app-dashboard-m-o.json",
-    "tsconfig.tests.app-dashboard-p-r.json",
+    "tsconfig.tests.app-dashboard-e-h.json",
+    "tsconfig.tests.app-dashboard-i-l.json",
+    "tsconfig.tests.app-dashboard-m.json",
+    "tsconfig.tests.app-dashboard-n-o.json",
+    "tsconfig.tests.app-dashboard-p.json",
+    "tsconfig.tests.app-dashboard-q-r.json",
     "tsconfig.tests.app-dashboard-s.json",
     "tsconfig.tests.app-dashboard-t-z.json",
     "tsconfig.tests.app-rest.json",
