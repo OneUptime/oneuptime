@@ -30,48 +30,33 @@ import { OnCallRuleRecord } from "../../../Components/OnCallRule/WorkingHoursTex
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 const alertOnCallDocumentation: string = `
-### How Alert On-Call Rules Work
+An on-call rule pages on-call policies for every new alert it matches, so nobody has to remember to add the right policy by hand.
 
-An on-call rule pages on-call policies for every new alert it matches, so nobody has to remember to add the policy by hand.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[New Alert Created] --> B{Match Against On-Call Rules}
-    B -->|Rule Matches| C[Add the Rule's On-Call Policies]
-    B -->|No Match| D[Only the Policies Added by Hand]
-    C --> E[Each Policy Pages Its People]
-    D --> E
-\`\`\`
+- When a rule matches, each of its on-call policies pages its people for the alert. A policy already on the alert does not run twice.
+- Every rule that matches runs: there is no order and no first match. Their policies join any added by hand, and each policy runs once.
 
-### Match Criteria
+## Match Criteria
 
-The conditions a new alert must meet.
+The conditions a new alert must meet, such as its monitor, severity, labels or title.
 
-### What It Does
+## Rules That Belong to Teams
 
-When a rule matches, each of its on-call policies pages its people for the alert. A policy already on the alert is not run twice.
-
-### Several Matching Rules
-
-Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand, and each policy runs once.
-
-### Rules That Belong to Teams
-
-Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and Project Admins can edit or delete it. Everyone else who can see rules still sees it, read-only. A rule with no owning teams can be changed by everyone who can edit rules.
+Under **More fields**, **Owning Teams** limits who can change a rule: only members of the teams you pick, with those teams' permissions, and Project Admins. Everyone else who can see rules sees it, read-only. A rule with no owning teams can be changed by anyone who can edit rules.
 `;
 
 const alertEpisodeOnCallDocumentation: string = `
-### How Alert Episode On-Call Rules Work
+An episode on-call rule pages on-call policies for every new alert episode it matches, so the right people hear about a group of alerts once.
 
-An episode on-call rule pages on-call policies for every new alert episode it matches.
+## How It Works
 
-### Match Criteria
+- When a rule matches, each of its on-call policies pages its people for the episode.
+- Every rule that matches runs, and each policy runs once.
 
-The conditions a new episode must meet.
+## Match Criteria
 
-### What It Does
-
-When a rule matches, each of its on-call policies pages its people for the episode. Every rule that matches runs, and each policy runs once.
+The conditions a new episode must meet, such as its severity, labels or title.
 `;
 
 const AlertRulesTable: FunctionComponent = (): ReactElement => {

@@ -86,74 +86,51 @@ import TableEmptyValue, {
 } from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
-### How SLOs and Error Budgets Work
+An SLO is a reliability target, such as 99.9% uptime over 30 days. OneUptime measures it every 5 minutes, tracks the error budget the target leaves you, and alerts you before that budget runs out.
 
-A **Service Level Objective (SLO)** is a reliability target — for example "99.9% uptime over a rolling 30 days", or "99% of checkout requests served in under 300 ms". OneUptime measures the **Service Level Indicator (SLI)** from the status timelines of the monitors the SLO measures, or from the traces of the services whose requests it measures, and compares it to your target.
+## Set Up an SLO
 
-- **Error budget** is the amount of downtime your target allows. At 99.9% over 30 days that is about 43 minutes. Every minute of downtime spends budget; when the budget runs out, the SLO is breached.
-- **Burn rate** tells you how fast the budget is being spent. A burn rate of 1 spends the budget exactly over the window; a burn rate of 14 exhausts it in about 2 days on a 30-day window.
+1. Create an SLO and choose what it measures:
+   - **Monitor uptime**: the share of time its monitors are up.
+   - **Request success**: the share of its services' requests that do not fail, from their traces.
+   - **Request latency**: the share of its services' requests served within a threshold you set, such as 300 ms.
+   - **Metric**: the share of good events in a counter or a histogram your services send.
+2. Keep the suggested target of 99.9%, or set your own. It is measured over a rolling 30 days unless you change it.
+3. For a Monitor uptime SLO, attach monitors on its **Monitors** page, or let its **Monitor Rules** attach them by label, type, name or description. Until it has a monitor, it shows **Misconfigured**.
 
-The tiles above the list count your SLOs by status. Click one to filter the list to exactly those SLOs, and click it again to clear the filter.
+Every new SLO starts with three burn rate rules (**Fast burn**, **Slow burn** and **Slow leak**) that alert you when its budget is being spent too fast.
 
----
+## Error Budget and Burn Rate
 
-### Choosing What an SLO Measures
+- The **error budget** is the downtime the target allows. At 99.9% over 30 days, that is about 43 minutes. An SLO that counts requests or events counts its budget in them too: at 99.9%, one bad request in every 1,000.
+- The **burn rate** is how fast the budget is being spent. At 1, it lasts exactly the period; at 14, a 30-day budget is gone in about 2 days.
 
-The create form asks what the SLO measures first:
+## Alerts and Incidents
 
-- **Monitor uptime** — the share of time its monitors are up. After you create the SLO, open it to choose its monitors. An SLO with no monitors shows **Misconfigured** until it has at least one.
-- **Request success** — the share of its services' requests that do not fail, counted from their traces.
-- **Request latency** — the share of its services' requests served within a latency threshold you set, such as 300 ms.
+An SLO's **Burn Rate Rules** page decides what happens when its budget burns too fast: whether each rule opens an alert, declares an incident or both, and who is paged. The alerts and incidents list the SLO as an affected resource.
 
-A request SLO's error budget is counted in requests: at 99.9%, one bad request in every 1,000 is allowed. Change what an SLO measures on its **Settings** page.
+To give older SLOs the rules a new one starts with, select them in this list and choose **Add recommended rules** in **Bulk Actions**. Before anything is added, it says which SLOs get which rules.
 
-For a Monitor uptime SLO:
+## Statuses
 
-- **Monitors** — attach monitors by hand from the SLO's **Monitors** page.
-- **Monitor Rules** — attach monitors automatically by label, name or description from the SLO's **Monitor Rules** page. Monitors that match are attached when they are created or changed, and detached when they stop matching. While any rule is enabled, the rules manage the SLO's monitors, so monitors cannot be added by hand.
+| Status | What it means |
+|--------|---------------|
+| **Healthy** | On target, with enough error budget left |
+| **At Risk** | Less error budget is left than the SLO's at-risk threshold (20% unless you change it) |
+| **Budget Exhausted** | The error budget is spent: the SLO is breached |
+| **Misconfigured** | It cannot be measured: no monitors, no data yet, or a target out of range |
+| **Paused** | Every monitor it measures is paused or disabled |
+| **Disabled** | It is turned off in its Settings, and is not evaluated |
+| **Unknown** | It has not been evaluated yet |
 
----
+The tiles above the list count your SLOs by status. Select one to show only those SLOs, and select it again to show them all.
 
-### SLO Settings
+## Settings, Archiving and History
 
-Open an SLO's **Settings** page to change how it is measured:
-
-- **Objective** — the target percentage and the at-risk threshold.
-- **Period** — a rolling window of days, or the calendar month in a time zone.
-- **Downtime** — which monitor statuses count as downtime (every non-operational status by default), and how downtime on several monitors combines: any monitor down, or the average across monitors.
-- **Enabled** — a disabled SLO is not evaluated, and its open burn-rate alerts and incidents are resolved.
-
----
-
-### Alerts, Incidents and History
-
-Every new SLO starts with a **fast burn**, a **slow burn** and a **slow leak** rule, scaled to its compliance window. An older SLO missing one of them offers **Add recommended rules** on its **Burn Rate Rules** page. To add them to many SLOs at once, select them in this list and choose **Add recommended rules** in **Bulk Actions**: the confirmation says how many of them get which rules before anything is added. On the SLO's **Burn Rate Rules** page, choose whether each rule raises an alert, declares an incident, or both, and who is paged. Alerts and incidents a rule creates list the SLO as an affected resource.
-
-The SLO's **Metrics** page charts its SLI, error budget and burn rate over time, and its **Feed** records what changed and when.
-
----
-
-### Archiving
-
-Archive an SLO you no longer need but want to keep: from its **Settings** page, or select SLOs in this list and choose **Archive**. Archived SLOs are hidden from this list and are not evaluated, and their open burn-rate alerts and incidents are resolved. Find them on the **Archived** page, under **Advanced** in the side menu, where you can unarchive them to resume measuring.
-
-Archiving and disabling are separate: unarchiving an SLO that was disabled leaves it disabled.
-
----
-
-### SLO Status Values
-
-| Status | Description |
-|--------|-------------|
-| **Healthy** | The SLI is at or above target and enough error budget remains |
-| **At Risk** | Remaining error budget dropped below the at-risk threshold |
-| **Budget Exhausted** | The error budget is fully spent — the SLO is breached |
-| **Misconfigured** | The SLO cannot be measured — no monitors attached, no monitor data yet, or an out-of-range target |
-| **Paused** | Every monitor the SLO measures is paused or disabled |
-| **Disabled** | The SLO is turned off in its Settings and is not evaluated |
-| **Unknown** | The SLO has not been evaluated yet |
-
-SLOs are evaluated automatically every few minutes.
+- An SLO's **Settings** page changes what it measures, its target, its at-risk threshold, its period (a rolling number of days, or a calendar month in a time zone), which monitor statuses count as downtime, and how downtime on several monitors adds up.
+- Turning an SLO off stops it being evaluated, and resolves its open burn rate alerts and incidents.
+- Archive an SLO you no longer need but want to keep, from its **Settings** page or by selecting it here and choosing **Archive**. It leaves this list, is no longer evaluated, and its open burn rate alerts and incidents are resolved. Archived SLOs are on the **Archived** page, under **Advanced** in the side menu, where you can unarchive them. Unarchiving does not turn a disabled SLO back on.
+- An SLO's **Metrics** page charts its SLI, error budget and burn rate over time, and its **Feed** records what changed and when.
 `;
 
 type FormatPercentFunction = (value: number | undefined | null) => string;
@@ -625,8 +602,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         noItemsMessage="No SLOs yet. Create one and attach monitors to turn uptime into a target with an error budget."
         helpContent={{
           title: "How SLOs Work",
-          description:
-            "Understanding SLOs, error budgets, monitors, settings, archiving and statuses",
+          description: "Set a reliability target, and know before you miss it.",
           markdown: documentationMarkdown,
         }}
         documentationLink={new Route("/docs/slo/introduction")}

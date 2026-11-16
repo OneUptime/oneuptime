@@ -26,27 +26,26 @@ import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
-### How Trace Drop Filters Work
+A drop filter throws away spans you do not need, or keeps only a sample of them, before they are stored. Fewer noisy spans cost less and are easier to search.
 
-Drop filters let you **discard or sample spans before they are stored**, reducing storage costs and noise. They run **before** scrubbing or pipeline processing.
+## How It Works
 
-### Actions
+- Drop filters run first, before scrub rules and pipelines: a dropped span is never stored or processed.
+- Filters are checked from the top of the list down. Drag a filter to change its place. The first **Drop** filter a span matches drops it.
+- A **Sample** filter keeps the share of matching spans you set, such as 10%, and drops the rest.
+- The **Dropped** column counts what each filter has dropped, so you can see what it does.
+- A filter changes the spans that arrive after you save it, within about a minute.
 
-| Action | Description |
-|--------|-------------|
-| **Drop** | Permanently discard all matching spans |
-| **Sample** | Keep only a percentage of matching spans |
+## Filter Queries
 
-### Filter Query Syntax
+A filter is written as a pipeline's is, with \`=\`, \`!=\`, \`IN\`, \`LIKE\`, \`AND\` and \`OR\`, on these fields: \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\` and \`attributes.<key>\`.
 
-**Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\`, \`attributes.<key>\`
+A span's status code is \`0\` for Unset, \`1\` for Ok and \`2\` for Error. Most instrumentation leaves a successful span **Unset** (the OpenTelemetry default) and sets **Error** only on a failure, so match "not an error" with \`statusCode != 2\`, not \`statusCode = 1\`.
 
-### Examples
+## Examples
 
-- **Drop healthcheck spans:** \`name LIKE 'healthcheck'\` (action: Drop)
-- **Sample successful CRUD:** \`kind = 'SPAN_KIND_CLIENT' AND statusCode != 2\` (action: Sample, 10%)
-
-Status codes: \`0\` Unset, \`1\` Ok, \`2\` Error. Most instrumentation leaves successful spans **Unset** (the OpenTelemetry default) and sets **Error** only on failure, so match "not an error" with \`statusCode != 2\` rather than \`statusCode = 1\`.
+- **Drop health checks**: \`name LIKE 'healthcheck'\`, with **Drop**.
+- **Keep a tenth of successful client calls**: \`kind = 'SPAN_KIND_CLIENT' AND statusCode != 2\`, with **Sample** at 10%.
 `;
 
 const TraceDropFilters: FunctionComponent<
@@ -114,7 +113,7 @@ const TraceDropFilters: FunctionComponent<
       helpContent={{
         title: "How Trace Drop Filters Work",
         description:
-          "Understanding drop vs sample actions, filter queries, and how spans are discarded at ingest time",
+          "Drop or sample the spans you do not need, before they are stored.",
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No drop filters found."}

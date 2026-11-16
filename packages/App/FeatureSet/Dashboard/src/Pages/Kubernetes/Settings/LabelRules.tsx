@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const kubernetesClusterLabelDocumentation: string = `
-### How Kubernetes Cluster Label Rules Work
-
-Kubernetes Cluster Label Rules attach labels to a Kubernetes cluster automatically when it matches your criteria — so you don't have to remember to tag new Kubernetes clusters.
-
-### Match Criteria
-
-A rule matches a Kubernetes cluster only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Kubernetes Cluster Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the Kubernetes cluster. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const kubernetesClusterLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "Kubernetes cluster", plural: "Kubernetes clusters" },
+});
 
 const KubernetesClusterLabelRulesPage: FunctionComponent<
   RuleSettingsPageProps

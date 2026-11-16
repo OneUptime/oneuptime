@@ -27,110 +27,62 @@ import React, {
 } from "react";
 
 const processorsDocMarkdown: string = `
-### How Processors Work
+Processors are the steps this pipeline runs on every log it matches, in order, each on what the one before it left. Drag a processor to change its place, and turn one off to skip it without deleting it.
 
-Processors are transformation steps that modify logs matched by this pipeline. They run **in order** — drag rows to reorder them.
+## Grok Parser
 
-\`\`\`mermaid
-flowchart LR
-    A[Matched Log] --> B[Processor 1]
-    B --> C[Processor 2]
-    C --> D[Processor 3]
-    D --> E[Transformed Log]
-\`\`\`
+Pulls fields out of a plain text line, such as an nginx access log or a syslog line, into attributes you can search and filter on.
 
----
-
-### Processor Types
-
-#### Grok Parser
-Pulls structured fields out of an unstructured log line and stores them as log attributes.
-
-**When to use:** Your logs arrive as plain text lines (nginx access logs, syslog, a legacy app that prints its own format) and you want to search and filter on the pieces inside them.
-
-**How it works:**
-1. Reads the **Source Field** — usually the log \`body\`, but any attribute key works
-2. Runs your **grok pattern** against it. A grok pattern is regex with names: \`%{IPV4:client_ip}\` means "match an IPv4 address and store it as \`client_ip\`"
-3. Every named capture becomes a log attribute, optionally namespaced under a **Target Prefix**
-4. A line that does not match is left untouched — grok never drops or blanks a log
-
-Add \`:int\` or \`:float\` to a capture to store it as a number, e.g. \`%{NUMBER:status:int}\`.
+1. It reads the **Source Field**: usually the log's \`body\`, or any attribute.
+2. It runs your **grok pattern** on it. A grok pattern is a regular expression with names: \`%{IPV4:client_ip}\` matches an IPv4 address and stores it as \`client_ip\`. Add \`:int\` or \`:float\` to store a number, such as \`%{NUMBER:status:int}\`.
+3. Every named part becomes an attribute, under a **Target Prefix** if you set one. A line the pattern does not match is left as it is.
 
 | Log body | Pattern | Attributes added |
 |----------|---------|------------------|
 | \`10.0.1.5 - GET /health 200\` | \`%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}\` | client_ip, method, path, status |
 
-The processor form has a **pattern tester**: paste a real log line and it shows the exact attributes the processor would add, before you save it.
+The form's **pattern tester** shows the attributes a real log line would get, before you save.
 
----
+## Key=Value Parser
 
-#### Key=Value Parser
-Splits a line of \`key=value\` pairs into log attributes, whatever order the fields arrive in.
+Splits a line of \`key=value\` pairs into attributes, whatever order its fields come in: firewalls such as Sophos XGS and Fortinet, logfmt and many network appliances. A grok pattern needs the fields in a fixed order; this does not.
 
-**When to use:** Your logs are lines of key=value pairs whose fields change from event to event — Sophos XGS and Fortinet firewalls, logfmt, many network appliances. A grok pattern needs the fields in a fixed order; this processor does not.
-
-**How it works:**
-1. Reads the **Source Field** — usually the log \`body\`, but any attribute key works
-2. Every \`key=value\` pair becomes an attribute, optionally namespaced under a **Target Prefix**. Quoted values keep their spaces; text that is not a pair, such as a syslog header, is skipped
-3. Pairs are split on whitespace by default — set a **Pair Delimiter** (\`,\` \`;\` \`|\`) or a **Key-Value Delimiter** (\`:\`) for other formats
-4. Values are stored as text, the first value of a repeated key wins, and an attribute the log already has is only replaced when **Override on Conflict** is on
+- It reads the **Source Field**, usually the \`body\`, and makes each pair an attribute, under a **Target Prefix** if you set one. Quoted values keep their spaces; text that is not a pair, such as a syslog header, is skipped.
+- Pairs are split on spaces. Set a **Pair Delimiter** (\`,\` \`;\` \`|\`) or a **Key-Value Delimiter** (\`:\`) for other formats.
+- Values are stored as text, and the first value of a repeated key wins. An attribute the log already has is replaced only with **Override on Conflict** on.
 
 | Log body | Target prefix | Attributes added |
 |----------|---------------|------------------|
 | \`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"\` | \`sophos\` | sophos.log_component, sophos.con_name, sophos.status |
 
----
+## Severity Remapper
 
-#### Severity Remapper
-Maps a log field to a standard OpenTelemetry severity level.
+Sets a log's severity from a field, for an app that writes its own words for it, such as \`warn\` or \`fatal\`.
 
-**When to use:** Your application logs severity as custom text (e.g., "warn", "fatal", "verbose") instead of standard levels like WARNING or FATAL.
+It reads the attribute named in **Source Key**, such as \`level\`, finds its value in your **Mappings** (in any case: \`WARN\` matches \`warn\`), and sets the log's severity to the one you mapped it to: Trace, Debug, Information, Warning, Error or Fatal. A value with no mapping leaves the log as it is.
 
-**How it works:**
-1. Reads the value from the **Source Key** (e.g., \`level\`)
-2. Looks up the value in your **Mappings** table
-3. If found, sets \`severityText\` and \`severityNumber\` on the log
+| Value in the log | Severity |
+|------------------|----------|
+| trace | Trace |
+| debug | Debug |
+| info | Information |
+| warn | Warning |
+| error | Error |
+| fatal | Fatal |
 
-| Match Value | Severity Text | Severity Number |
-|-------------|--------------|-----------------|
-| trace | TRACE | 1 |
-| debug | DEBUG | 5 |
-| info | INFO | 9 |
-| warn | WARNING | 13 |
-| error | ERROR | 17 |
-| fatal | FATAL | 21 |
+## Attribute Remapper
 
----
+Renames or copies an attribute, so different services' names for one thing become one, such as \`client_ip\` and \`source_address\`.
 
-#### Attribute Remapper
-Renames or copies a log attribute from one key to another.
+It writes the **Source Key**'s value to the **Target Key**. Turn **Preserve Source** off to remove the source key, and **Override on Conflict** on to overwrite a target that is already set.
 
-**When to use:** Different services use different attribute names for the same concept (e.g., \`client_ip\` vs \`source_address\`).
+## Category Processor
 
-**How it works:**
-1. Reads the value from the **Source Key**
-2. Writes it to the **Target Key**
-3. Optionally removes the source key (**Preserve Source** = off)
-4. Optionally overwrites if target already exists (**Override on Conflict** = on)
+Writes a category to the **Target Key**, such as "Payment Error" or "Rate Limit". Its categories are checked in order, and the first one whose filter a log matches is written. A category's filter is written as a pipeline's filter is.
 
----
+## Order Matters
 
-#### Category Processor
-Tags logs with a category label based on filter conditions.
-
-**When to use:** You want to add business-level labels to logs (e.g., "Payment Error", "Auth Failure", "Rate Limit").
-
-**How it works:**
-1. Evaluates each **Category** rule in order
-2. The first matching rule sets the **Target Key** to that category name
-3. Uses the same filter syntax as pipeline filters
-
----
-
-### Tips
-- **Order matters** — processors run sequentially, so a grok or key=value parser should run before a severity remapper that reads a field it extracted
-- **Disable without deleting** — toggle a processor off to temporarily skip it
-- **Test incrementally** — add one processor at a time and verify in the Logs view
+A processor reads what the ones before it left. Put a grok or key=value parser before a severity remapper that reads a field it pulls out, and add one processor at a time, checking the result on the Logs page.
 `;
 
 const LogPipelineView: FunctionComponent<PageComponentProps> = (
@@ -268,7 +220,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         helpContent={{
           title: "How Log Processors Work",
           description:
-            "Understanding Grok Parser, Key=Value Parser, Severity Remapper, Attribute Remapper, and Category Processor",
+            "The steps this pipeline runs on every log it matches, in order.",
           markdown: processorsDocMarkdown,
         }}
         showRefreshButton={true}

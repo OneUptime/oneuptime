@@ -32,30 +32,32 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 const documentationMarkdown: string = `
-### How Log Recording Rules Work
+A log recording rule turns logs into a metric: a count of matching logs, or the sum, average or percentile of a number they carry, one point a minute. Chart it, put it on a dashboard, or alert on it with a Metrics monitor, like any other metric.
 
-A Log Recording Rule turns logs into a metric. Every minute, the worker takes the logs that match the rule's filter in each **1-minute bucket** and writes one point per bucket - per series, with a group by - into the metric store under the rule's **Output Metric Name**. Chart it in the Metric Explorer or on a dashboard, or alert on it with a Metrics monitor, like any other metric. The output metric name is made from the rule's name - "SD-WAN gateway latency" writes \`sd_wan_gateway_latency\` - unless you choose **Edit** next to it and type your own (e.g. \`sdwan.gateway.latency.ms\`).
+## Set Up a Rule
 
-### Definition
+- **Which Logs**: telemetry services, severities, text the body contains and attribute filters. All are optional, and they must all match.
+- **Aggregation**: \`Count of logs\`, or the \`Sum\`, \`Average\`, \`Minimum\`, \`Maximum\` or a percentile (\`p50\` to \`p99\`) of a **numeric attribute**. Its value must be a number (\`latency=11\`); a log where it is missing or is not a number is skipped, never counted as 0.
+- **Group By**: up to ${LOG_RECORDING_RULE_MAX_GROUP_BY_ATTRIBUTES} attribute keys. One series is written per combination of their values, with those attributes, so charts and Metrics monitors can group by them. At most ${LOG_RECORDING_RULE_MAX_SERIES_PER_MINUTE} series are written a minute: the ones with the most logs.
+- **Unit**: the metric's unit, such as \`ms\`.
 
-- **Which Logs** - telemetry services, severities, text the body contains and attribute equality filters. All optional; they AND together.
-- **Aggregation** - \`Count of logs\`, or the \`Sum\`, \`Average\`, \`Minimum\`, \`Maximum\` or a percentile (\`p50\` ... \`p99\`) of a **numeric attribute**. The attribute's value must be a number (\`latency=11\`); logs where it is missing or not a number are skipped - never counted as 0.
-- **Group By** - up to ${LOG_RECORDING_RULE_MAX_GROUP_BY_ATTRIBUTES} attribute keys. One series per distinct combination of their values, written with those attributes so charts and Metrics monitors can group by them. At most ${LOG_RECORDING_RULE_MAX_SERIES_PER_MINUTE} series are written per minute: the ones with the most logs.
-- **Unit** - the output metric's unit, e.g. \`ms\`.
+The metric's name is made from the rule's name ("SD-WAN gateway latency" writes \`sd_wan_gateway_latency\`), unless you select **Edit** beside it and type your own, such as \`sdwan.gateway.latency.ms\`.
 
-Attribute filter keys match whatever their case; the numeric attribute and group-by keys must be written exactly as the logs carry them - pick them from the suggestions.
+Attribute filter keys match in any case. The numeric attribute and group-by keys must be written exactly as the logs carry them: pick them from the suggestions.
 
-### When points are written
+## When Points Are Written
 
-A bucket is computed ${LOG_RECORDING_RULE_EVALUATION_LAG_IN_SECONDS}${NO_BREAK_SPACE}seconds after it ends, so late logs still land in it. Each rule remembers the last minute it wrote: after a worker restart or other downtime it catches up on the minutes it missed, up to ${LOG_RECORDING_RULE_MAX_CATCH_UP_IN_MINUTES}${NO_BREAK_SPACE}minutes back, and never writes a minute twice. A count with no group by writes 0 for a minute with no matching logs; other rules write nothing for a minute with nothing to aggregate.
+Each 1-minute bucket is worked out ${LOG_RECORDING_RULE_EVALUATION_LAG_IN_SECONDS}${NO_BREAK_SPACE}seconds after it ends, so late logs still land in it. A rule remembers the last minute it wrote: after a restart or other downtime it catches up on the minutes it missed, up to ${LOG_RECORDING_RULE_MAX_CATCH_UP_IN_MINUTES}${NO_BREAK_SPACE}minutes back, and never writes a minute twice.
 
-### Example: SD-WAN gateway latency
+A count with no group by writes 0 for a minute with no matching logs. Other rules write nothing for a minute with nothing to aggregate.
 
-A firewall's syslog SLA summaries, parsed by a log pipeline into attributes (\`gw_name\`, \`profile_name\`, \`latency\` ...): filter on \`log_component\` = \`SLA\`, aggregate **Average** of \`latency\`, group by \`gw_name\` and \`profile_name\`, unit \`ms\`. Then create a **Metrics** monitor on the output metric with **Group By** \`gw_name\` to get one alert per gateway whose latency stays high.
+## Example: SD-WAN Gateway Latency
 
-### Output labeling
+A firewall's SLA summaries, parsed by a log pipeline into attributes (\`gw_name\`, \`profile_name\`, \`latency\` and more): filter on \`log_component\` = \`SLA\`, aggregate the **Average** of \`latency\`, group by \`gw_name\` and \`profile_name\`, with the unit \`ms\`. Then create a **Metrics** monitor on the metric, grouped by \`gw_name\`, to get one alert per gateway whose latency stays high.
 
-Every point carries \`${LOG_RECORDING_RULE_ID_ATTRIBUTE}\` with the rule's ID, plus its group-by values.
+## How Points Are Labelled
+
+Every point carries \`${LOG_RECORDING_RULE_ID_ATTRIBUTE}\` with the rule's ID, and its group-by values.
 `;
 
 /*

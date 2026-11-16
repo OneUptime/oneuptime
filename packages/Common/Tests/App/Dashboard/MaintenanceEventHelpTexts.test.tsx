@@ -97,7 +97,7 @@ describe("a maintenance event's rule pages name the record in their help", () =>
     );
 
     expect(words.markdown).toContain(
-      "Runbook rules attach runbooks to maintenance events automatically when they are created",
+      "A runbook rule starts runbooks for every new maintenance event it matches",
     );
     expect(words.markdown).toContain(
       "**Monitors** — the maintenance event affects one of the selected monitors.",
@@ -114,7 +114,7 @@ describe("a maintenance event's rule pages name the record in their help", () =>
     );
 
     expect(words.markdown).toContain(
-      "Scheduled Maintenance Label Rules attach labels to a maintenance event automatically when it matches your criteria",
+      "A label rule labels every new maintenance event it matches",
     );
     expect(words.description).toBe(
       "Auto-attach labels to new maintenance events that match, including labels from their monitors and infrastructure.",
@@ -128,7 +128,7 @@ describe("a maintenance event's rule pages name the record in their help", () =>
     );
 
     expect(words.markdown).toContain(
-      "Scheduled Maintenance Owner Rules add owner users and teams to a maintenance event automatically when it matches your criteria",
+      "An owner rule makes people and teams owners of every new maintenance event it matches",
     );
     expect(words.description).toBe(
       "Auto-assign owner users and teams when matching maintenance events are created.",

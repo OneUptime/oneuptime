@@ -72,7 +72,8 @@ describe("the SLA reminder variables", () => {
   test("the SLA rules page's help lists the same variables", () => {
     const source: string = fs.readFileSync(SLA_RULES_PAGE, "utf8");
     const documented: Array<string> = Array.from(
-      source.matchAll(/^- \\`\{\{(\w+)\}\}\\` - /gm),
+      // A row of the help's table of variables: | `{{name}}` | ... |
+      source.matchAll(/^\| \\`\{\{(\w+)\}\}\\` \| /gm),
       (match: RegExpMatchArray): string => {
         return match[1]!;
       },

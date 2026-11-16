@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const statusPageLabelDocumentation: string = `
-### How Status Page Label Rules Work
-
-Status Page Label Rules attach labels to a status page automatically when it matches your criteria — so you don't have to remember to tag new status pages.
-
-### Match Criteria
-
-A rule matches a status page only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Status Page Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the status page. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const statusPageLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "status page", plural: "status pages" },
+});
 
 const StatusPageLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

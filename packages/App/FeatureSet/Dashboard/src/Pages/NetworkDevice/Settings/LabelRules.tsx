@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,26 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const networkDeviceLabelDocumentation: string = `
-### How Network Device Label Rules Work
-
-Network Device Label Rules attach labels to a network device automatically when it matches your criteria — so you don't have to remember to tag new network devices.
-
-### Match Criteria
-
-A rule matches a network device only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Network Device Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex, or a \`*\` wildcard pattern like \`*0664*\` (the same syntax Network Site assignment rules use). Whichever you write, the pattern has to match for the rule to fire.
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the network device. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-
-### Applying a Rule to Devices You Already Have
-
-Rules fire when a network device is created, so a rule written after your devices were discovered does not reach them. **Run Now** on a rule evaluates it against every network device in the project and attaches its labels to the ones it matches. Labels are only ever added, so running it more than once is safe. A disabled rule will not run.
-`;
+const networkDeviceLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "network device", plural: "network devices" },
+});
 
 const NetworkDeviceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

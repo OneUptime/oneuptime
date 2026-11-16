@@ -61,6 +61,10 @@ import {
   guideToMarkdown,
   markdownTable,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
+import readHelpDocument, {
+  HelpDocument,
+  HelpSection,
+} from "../../../UI/Components/Help/HelpDocument";
 import SigmaRuleParser from "../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import SigmaRuleSetParser, {
   sigmaRulesOf,
@@ -473,19 +477,35 @@ describe("guideToMarkdown", () => {
     let lastIndex: number = -1;
 
     for (const section of DetectionRulesGuide.sections) {
-      const headingIndex: number = markdown.indexOf(`### ${section.title}\n`);
+      const headingIndex: number = markdown.indexOf(`\n## ${section.title}\n`);
       expect(headingIndex).toBeGreaterThan(lastIndex);
       expect(markdown).toContain(section.markdown.trim());
       lastIndex = headingIndex;
     }
   });
 
-  test("separates sections with a rule", () => {
-    const markdown: string = guideToMarkdown(ThreatIntelGuide);
+  /*
+   * The help dialog reads the document as what it says in short and its
+   * topics (HelpDocument): the guide's summary, then one topic per
+   * section, and no rule drawn between them - the dialog draws its own.
+   */
+  test("reads in the help dialog as the guide's summary, then one topic per section", () => {
+    for (const guide of [DetectionRulesGuide, ThreatIntelGuide]) {
+      const document: HelpDocument = readHelpDocument(guideToMarkdown(guide));
 
-    expect(markdown.split("\n\n---\n\n")).toHaveLength(
-      ThreatIntelGuide.sections.length,
-    );
+      expect(document.summary).toBe(guide.summary);
+      expect(
+        document.sections.map((section: HelpSection): string => {
+          return section.title;
+        }),
+      ).toEqual(
+        guide.sections.map((section: SecurityEventsGuideSection): string => {
+          return section.title;
+        }),
+      );
+      // No rule drawn before a topic: a YAML sample's "---" is code.
+      expect(guideToMarkdown(guide)).not.toMatch(/\n---\n+## /);
+    }
   });
 });
 

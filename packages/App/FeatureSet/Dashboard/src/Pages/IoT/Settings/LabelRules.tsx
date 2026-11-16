@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const iotFleetLabelDocumentation: string = `
-### How IoT Fleet Label Rules Work
-
-IoT Fleet Label Rules attach labels to an IoT fleet automatically when it matches your criteria — so you don't have to remember to tag new IoT fleets.
-
-### Match Criteria
-
-A rule matches an IoT fleet only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **IoT Fleet Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the IoT fleet. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const iotFleetLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "IoT fleet", plural: "IoT fleets" },
+});
 
 const IoTFleetLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

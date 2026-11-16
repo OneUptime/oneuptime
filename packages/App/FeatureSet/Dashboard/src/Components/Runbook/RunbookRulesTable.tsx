@@ -148,25 +148,25 @@ export function getRunbookRuleDocumentation(data: {
       : `\n- **${subject} Severities** — the ${entityLabel}'s severity is one of the selected severities.`;
 
   return `
-### How Runbook Rules Work
+A runbook rule starts runbooks for every new ${entityLabel} it matches, so nobody has to remember to kick them off.
 
-Runbook rules attach runbooks to ${entityLabel}s automatically when they are created — no one has to remember to kick them off.
+## How It Works
 
-### What Conditions Can Check
+- Rules run as each ${entityLabel} is created. Every rule that matches starts its runbooks, and each runbook starts an execution of its own, attached to the ${entityLabel}.
+- Find the runs on the ${entityLabel}'s page, and under **Runbooks > Executions**.
+- A disabled rule does not run.
+
+## Match Criteria
+
+Add conditions to choose which ${entityLabel}s start the runbooks. A rule with no conditions starts them for every ${entityLabel}.
+
+## What Conditions Can Check
 
 - **Monitors** — ${getMonitorsLine(data)}${severityLine}
 - **${subject} Labels** — the ${entityLabel} carries one of the selected labels.
 - **Monitor Labels** — one of the ${entityLabel}'s monitors carries one of the selected labels. Label monitors \`production\` or \`staging\` to run a runbook for one environment only.
 - **${subject} Title**, **${subject} Description** — the text of the ${entityLabel}.
 - **Monitor Name**, **Monitor Description** — the name or description of one of the ${entityLabel}'s monitors. Monitor conditions are checked one monitor at a time: with Match all, a single monitor has to meet all of them.
-
-### Match Criteria
-
-Add conditions to choose which ${entityLabel}s start the runbooks. A rule with no conditions starts them for every ${entityLabel}.
-
-### Action
-
-When a rule matches, every selected runbook starts its own execution attached to the ${entityLabel}. You'll find the runs on the ${entityLabel}'s page and under **Runbooks → Executions**. Multiple matching rules all fire — the union of their runbooks starts.
 `;
 }
 

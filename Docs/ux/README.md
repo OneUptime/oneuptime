@@ -471,6 +471,26 @@ work out, starts from a default for everything else, and folds what most people 
   [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx) and
   [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx).
 
+### Help dialogs
+
+A list's help (?) and a product's "how it works" guide open one dialog, `HelpModal`
+(`Common/UI/Components/Help`): what the thing is in short, then its topics, each opened on its own,
+with its documentation one click away and "Was this clear?" under it (#8889). "How SLOs Work" was a
+page of markdown as wide as the screen, six headings and a rule between each, with nothing to say
+what was further down.
+
+- **A help document says what the thing is first, then its topics.** Its lead, one to three
+  sentences, is what everybody reads, and the dialog shows it as "In short"; each `##` heading is a
+  topic the dialog lists, and the one a person needs to act comes first. No heading repeats the
+  dialog's title, and nothing draws a line between the topics: the dialog sets them apart itself.
+  Write it in `HelpContent`'s shape, on the page or with a shared builder (`Utils/Help/ResourceRuleHelp`
+  writes every resource's label and owner rule help). Enforced by
+  [HelpDialogsGuard](../../packages/Common/Tests/App/Dashboard/HelpDialogsGuard.test.ts).
+- **Help says what the product does, checked against the code.** When a rule runs, what it changes,
+  what it never does, and the words the form shows ("Which Incidents", "More fields"): the help that
+  listed three log processors of five, or a severity no filter can match, sent people the wrong way.
+  Not enforced: use judgement.
+
 ## Cards and the look of a page
 
 - **No card inside a card.** A section inside a card is a divider and a heading. Enforced by

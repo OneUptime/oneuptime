@@ -61,143 +61,47 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 const documentationMarkdown: string = `
-### How Incident Grouping Works
+A grouping rule puts related incidents into one **episode**, so your team works on one problem instead of a flood of incidents. When a database goes down and 20 monitors open incidents, all 20 can share one episode that is acknowledged and resolved together.
 
-Incident grouping automatically combines related incidents into logical containers called **Episodes**. This reduces incident fatigue by showing one episode with 50 incidents instead of 50 individual notifications.
+## Set Up a Rule
 
-\`\`\`mermaid
-flowchart TD
-    A[New Incident Created] --> B{Match Against Rules}
-    B -->|Rule Matches| C{Find Existing Episode}
-    B -->|No Match| D[Incident Stays Ungrouped]
-    C -->|Episode Found| E[Add Incident to Episode]
-    C -->|No Episode| W{Enough Incidents Ongoing?}
-    W -->|Yes| F[Create New Episode]
-    W -->|Not Yet| X[Incident Waits on Its Own]
-    X -.->|More Incidents Arrive| F
-    E --> G[Update Episode Count]
-    F --> H[Execute On-Call Policy]
-\`\`\`
+1. Start from a template, or create a custom rule.
+2. Under **Group incidents by**, choose what incidents must share to go into one episode: their **Monitor**, **Severity** or **Title**, their **Connected Services**, nothing at all (**Everything Together**), or a **Custom** mix.
+3. Under **Which Incidents**, narrow the rule down to the incidents it should take: its match criteria. Left as it is, the rule takes every new incident.
 
-A rule waits for nothing unless **Wait for more incidents** is on, under **More fields**: then a new episode opens only once that many matching incidents are ongoing, and it opens with all of them.
+Rules are checked from the top of the list down, and the first one that matches an incident takes it. Drag a rule to change its place.
 
----
+## How Episodes Open and Close
 
-### Match Criteria vs Group By
+- An incident joins the open episode its rule groups it into, or opens a new one, which pages the rule's on-call policies. An incident no rule takes stays on its own.
+- **Only group incidents that arrive close together** keeps an episode to incidents a few minutes apart. Off, matching incidents keep joining the open episode until it is resolved.
+- **Wait for more incidents** opens an episode only once several matching incidents are ongoing, and puts them all in it. Until then, each incident stays on its own and pages only its own on-call policies.
+- **Reopen recently resolved episodes** reopens an episode when a matching incident arrives soon after it was resolved, instead of starting a new one.
+- **Wait before resolving an episode** waits, once every incident in it is resolved, in case one comes back. **Resolve quiet episodes** resolves an episode no new incident has joined for a while.
 
-These two concepts work together but serve different purposes:
+## Match Criteria
 
-| Aspect | Match Criteria | Group By |
-|--------|---------------|----------|
-| **Purpose** | Filter which incidents this rule applies to | Partition matching incidents into separate episodes |
-| **Question** | "Does this incident qualify for this rule?" | "Which episode does this incident go into?" |
-| **Example** | Only Critical incidents from production monitors | Separate episode per monitor |
+Add conditions on the incident, such as its monitors, severity, labels or title, and choose whether all of them or any one must match.
 
-#### Match Criteria (Filtering)
+## A Custom Mix
 
-Match criteria acts as a **filter** that determines which incidents are eligible for this grouping rule. An incident must pass ALL specified criteria to be processed by the rule.
+With **Custom**, choose each thing incidents must share to go into one episode. Incidents that differ in any of them go into separate episodes:
 
-- **Monitors**: Only incidents from these specific monitors
-- **Severities**: Only incidents with these severity levels
-- **Labels**: Only incidents with at least one of these labels
-- **Title/Description Patterns**: Regex patterns to match incident content
+| Option | Incidents share an episode when they have the same |
+|--------|----------------------------------------------------|
+| **Monitor** | Monitor |
+| **Severity** | Severity |
+| **Incident Title** | Title |
+| **Incident Labels** | Set of labels |
+| **Monitor Labels** | Set of monitor labels |
+| **Connected Services** | Services, or services that call each other on the Service Map. An incident on no service is grouped by its monitor. |
 
-#### Group By (Partitioning)
+## Examples
 
-Group By determines **how matching incidents are subdivided** into separate episodes. This creates the "grouping key" that identifies which episode an incident belongs to.
-
-\`\`\`mermaid
-flowchart LR
-    subgraph "Match Criteria: Severity = Critical"
-        A1[Incident: CPU High<br/>Monitor A]
-        A2[Incident: Memory Low<br/>Monitor A]
-        A3[Incident: CPU High<br/>Monitor B]
-        A4[Incident: Disk Full<br/>Monitor B]
-    end
-
-    subgraph "Group By: Monitor"
-        E1[Episode 1<br/>Monitor A<br/>2 incidents]
-        E2[Episode 2<br/>Monitor B<br/>2 incidents]
-    end
-
-    A1 --> E1
-    A2 --> E1
-    A3 --> E2
-    A4 --> E2
-\`\`\`
-
----
-
-### Group By Options Explained
-
-| Option | When Enabled | When Disabled |
-|--------|-------------|---------------|
-| **Group By Monitor** | Incidents from different monitors → separate episodes | Incidents from any monitor can be grouped together |
-| **Group By Severity** | Incidents with different severities → separate episodes | Incidents of any severity can be grouped together |
-| **Group By Incident Title** | Incidents with different titles → separate episodes | Incidents with any title can be grouped together |
-| **Group By Incident Labels** | Incidents with different sets of labels → separate episodes (exact set match) | Incident labels are ignored for grouping |
-| **Group By Monitor Labels** | Incidents whose monitors have different sets of labels → separate episodes (exact set match) | Monitor labels are ignored for grouping |
-| **Group By Connected Services** | Incidents on services that call each other on the Service Map → the same episode; on unconnected services → separate episodes. Incidents on no service are grouped by monitor | The Service Map is ignored for grouping |
-
-#### Default Behavior
-
-**If NO Group By options are enabled**, all matching incidents go into **ONE single episode**. This is useful when you want to group all related incidents regardless of their source.
-
-\`\`\`mermaid
-flowchart TD
-    subgraph "No Group By Enabled"
-        direction TB
-        A1[Incident 1] --> E[Single Episode<br/>All Matching Incidents]
-        A2[Incident 2] --> E
-        A3[Incident 3] --> E
-        A4[Incident 4] --> E
-    end
-\`\`\`
-
----
-
-### Examples
-
-#### Example 1: Group all Critical incidents by Monitor
-
-**Configuration:**
-- Match Criteria: Severity = Critical
-- Group By: Monitor
-
-**Result:** Each monitor gets its own episode for critical incidents.
-
-#### Example 2: Single episode for all database incidents
-
-**Configuration:**
-- Match Criteria: Monitor Labels = "database"
-- Group By: (none enabled)
-
-**Result:** ALL database incidents go into one episode, regardless of which specific database monitor they come from.
-
-#### Example 3: Fine-grained grouping
-
-**Configuration:**
-- Match Criteria: (none - matches all incidents)
-- Group By: Monitor, Severity, Incident Title
-
-**Result:** Very specific episodes - one per unique combination of monitor + severity + title.
-
-#### Example 4: One episode only for a broader outage
-
-**Configuration:**
-- Match Criteria: (none - matches all incidents)
-- Group By: (none enabled) - **Everything Together**
-- More fields: **Wait for more incidents**, 3
-
-**Result:** A lone incident stays on its own. Once 3 matching incidents are ongoing - arriving within the time window of each other while it is on - one episode opens with all 3, and the incidents after them join it.
-
-#### Example 5: One episode for a failure that spreads
-
-**Configuration:**
-- Match Criteria: (none - matches all incidents)
-- Group By: **Connected Services**
-
-**Result:** The orders service slows down and raises an incident. Checkout and payments, which call orders on the Service Map, start failing too and raise one each. All three share one episode instead of paging three times. Incidents on a service that calls nothing and is called by nothing on the map get an episode of their own. An incident joins an episode when one of its services - its own, or its monitor's - is, calls or is called by a service already in it.
+- **One episode per monitor for critical incidents**: group by **Monitor**, for incidents whose severity is Critical.
+- **One episode for every database incident**: **Everything Together**, for incidents whose monitor is labelled \`database\`.
+- **An episode only for a wider outage**: **Everything Together**, with **Wait for more incidents** set to 3. A lone incident stays on its own; once 3 are ongoing, one episode opens with all of them, and the next ones join it.
+- **One episode for a failure that spreads**: group by **Connected Services**. The orders service slows down and opens an incident; checkout and payments, which call orders, start failing too. All three share one episode instead of paging three times.
 `;
 
 const KIND: GroupingRuleKind = GroupingRuleKind.Incident;
@@ -263,7 +167,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
         helpContent={{
           title: "How Incident Grouping Rules Work",
           description:
-            "Understanding Match Criteria, Group By, and how incidents are organized into episodes",
+            "Put related incidents into one episode, so one problem pages people once.",
           markdown: documentationMarkdown,
         }}
         noItemsMessage={extras.noItemsMessage}
