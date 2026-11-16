@@ -23,6 +23,7 @@ import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import HashedApiKey, {
   API_KEY_HINT_PATTERN,
 } from "../Utils/APIKey/HashedApiKey";
+import { TranslatedPostgresException } from "../Utils/Database/PostgresErrorTranslator";
 import logger from "../Utils/Logger";
 
 /*
@@ -57,6 +58,37 @@ export const API_KEY_WRITTEN_HERE_MESSAGE: string =
 
 // The columns a key is written in: its hash and its hint, always together.
 const KEY_COLUMNS: ReadonlyArray<keyof Model> = ["apiKey", "apiKeyHint"];
+
+// Postgres's refusal of a value it cannot read as a uuid (invalid_text_representation).
+const INVALID_TEXT_REPRESENTATION: string = "22P02";
+
+/*
+ * Whether a lookup failed because the key column is still a uuid, which no
+ * hash is: Postgres refuses the hash (22P02), as PostgresErrorTranslator
+ * tags it, or the driver's own error says.
+ */
+const isRefusedAsNoUuid: (error: unknown) => boolean = (
+  error: unknown,
+): boolean => {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record: {
+    postgresErrorCode?: unknown;
+    code?: unknown;
+    driverError?: { code?: unknown };
+  } = error as TranslatedPostgresException & {
+    code?: unknown;
+    driverError?: { code?: unknown };
+  };
+
+  return [
+    record.postgresErrorCode,
+    record.code,
+    record.driverError?.code,
+  ].includes(INVALID_TEXT_REPRESENTATION);
+};
 
 interface CachedApiKey {
   id: string;
@@ -385,7 +417,7 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
-    let row: Model | null = await this.findLiveKeyStoredAs(keyHash);
+    let row: Model | null = await this.findLiveKeyByHash(keyHash);
 
     if (!row && (await this.mayHoldKeysStoredAsWritten())) {
       row = await this.findLiveKeyStoredAs(normalizedKey);
@@ -415,6 +447,25 @@ export class Service extends DatabaseService<Model> {
       projectId: row.projectId,
       ...(name ? { name } : {}),
     };
+  }
+
+  /*
+   * The live key with this hash. A server that started before the schema
+   * migration ApiKeyHashedColumn ran - one told not to wait for it
+   * (DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0) - still finds the key column a
+   * uuid, which no hash is: Postgres refuses the hash, and no key is found
+   * by it, so the key is looked up as written, as it is stored there.
+   */
+  private async findLiveKeyByHash(keyHash: string): Promise<Model | null> {
+    try {
+      return await this.findLiveKeyStoredAs(keyHash);
+    } catch (err) {
+      if (isRefusedAsNoUuid(err)) {
+        return null;
+      }
+
+      throw err;
+    }
   }
 
   // The live key stored as this value - a key's hash, or a key as written.

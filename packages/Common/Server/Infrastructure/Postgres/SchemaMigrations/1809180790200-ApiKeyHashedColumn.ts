@@ -25,7 +25,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * is no uuid, and the key cannot be worked out from its hash, so down()
  * gives each hashed key a new random one, as a reset would: the release
  * before shows it on the key's page, and what used the key before needs
- * the new one. A key the data migration has not hashed yet is kept.
+ * the new one. A key the data migration has not hashed yet is kept. The
+ * random key comes from Postgres's own gen_random_uuid (core since
+ * Postgres 13), which needs no extension on the search path.
  */
 export class ApiKeyHashedColumn1809180790200 implements MigrationInterface {
   public name: string = "ApiKeyHashedColumn1809180790200";
@@ -42,7 +44,7 @@ export class ApiKeyHashedColumn1809180790200 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "ApiKey" DROP COLUMN "apiKeyHint"`);
     await queryRunner.query(
-      `ALTER TABLE "ApiKey" ALTER COLUMN "apiKey" TYPE uuid USING (CASE WHEN "apiKey" ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN "apiKey"::uuid ELSE uuid_generate_v4() END)`,
+      `ALTER TABLE "ApiKey" ALTER COLUMN "apiKey" TYPE uuid USING (CASE WHEN "apiKey" ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN "apiKey"::uuid ELSE gen_random_uuid() END)`,
     );
   }
 }
