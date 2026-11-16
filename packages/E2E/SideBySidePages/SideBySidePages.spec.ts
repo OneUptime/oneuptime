@@ -195,6 +195,24 @@ const logoOf: (page: Page, statusPage: FixturePage) => Locator = (
   return page.locator("#status-page-logo").getByAltText(statusPage.title);
 };
 
+/*
+ * What the Email subscribe page says once its form has done its job:
+ * "Check your email", and to open the link in it, which the sign-up waits
+ * on (SubscribeConfirmation, #9027).
+ */
+const expectToAskToOpenTheEmail: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  const confirmation: Locator = page.getByTestId("subscribe-confirmation");
+
+  await expect(
+    confirmation.getByRole("heading", { name: "Check your email" }),
+  ).toBeVisible();
+  await expect(confirmation).toContainText(
+    "Open the link in it to confirm your subscription.",
+  );
+};
+
 // The status page a tab is drawing, by its logo and its resource.
 const expectToShowStatusPage: (
   page: Page,
@@ -306,7 +324,7 @@ test.describe("Status pages open side by side", () => {
     await first.getByLabel("Your Email").fill("visitor@example.com");
     await first.getByRole("button", { name: "Subscribe", exact: true }).click();
 
-    await expect(first.getByText("An email with the link")).toBeVisible();
+    await expectToAskToOpenTheEmail(first);
     await snapshot(first, "status-page-first-tab-subscribed");
 
     const subscriptions: Array<FixtureRequest> = await requestsTo(
@@ -340,7 +358,7 @@ test.describe("Status pages open side by side", () => {
     await second
       .getByRole("button", { name: "Subscribe", exact: true })
       .click();
-    await expect(second.getByText("An email with the link")).toBeVisible();
+    await expectToAskToOpenTheEmail(second);
 
     const secondSubscriptions: Array<FixtureRequest> = await requestsTo(
       second,
