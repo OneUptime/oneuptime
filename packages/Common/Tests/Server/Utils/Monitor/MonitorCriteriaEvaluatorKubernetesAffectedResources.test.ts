@@ -540,7 +540,7 @@ function describedMetric(metricName: string): string {
 
 const PERCENT_ENTRY: RegExp = / — \*\*\d+\.\d{2}%\*\*$/;
 const LONG_RAW_NUMBER: RegExp = /\b\d{10,}\b/;
-const BOLD_BYTES: RegExp = /\*\*[\d.]+ (B|KB|MB|GB|TB|PB)\*\*/;
+const BOLD_BYTES: RegExp = /\*\*[\d.]+[ \u00A0](B|KB|MB|GB|TB|PB)\*\*/;
 
 /*
  * ---------------------------------------------------------------------------
@@ -863,7 +863,7 @@ for (const testCase of RATIO_TEMPLATE_CASES) {
       // No raw operand anywhere — bytes, cores, replica counts.
       expect(rootCause).not.toMatch(LONG_RAW_NUMBER);
       expect(rootCause).not.toMatch(BOLD_BYTES);
-      expect(rootCause).not.toContain(" cores**");
+      expect(rootCause).not.toMatch(/[ \u00A0]cores\*\*/);
       expect(section).not.toContain("overflow");
       expect(section).not.toContain("more affected resources");
     });
@@ -1245,7 +1245,7 @@ describe("Kubernetes grouped monitor: a node-level sum of container rows", () =>
     const section: string = affectedResourcesSection(rootCause);
 
     expect(section).toBe(
-      "**Affected Resources** (1 total)\n\n1. **Node** `gke-node-7` — **3.9 cores**",
+      "**Affected Resources** (1 total)\n\n1. **Node** `gke-node-7` — **3.9\u00A0cores**",
     );
 
     expect(rootCause).not.toContain("Namespace:");
@@ -1265,7 +1265,7 @@ describe("Kubernetes grouped monitor: a node-level sum of container rows", () =>
       `- Metric: ${describedMetric("k8s.container.cpu_request")}`,
     );
     expect(rootCause).toContain(
-      "Most affected node: `gke-node-7` (**3.9 cores**)",
+      "Most affected node: `gke-node-7` (**3.9\u00A0cores**)",
     );
     expect(rootCause).not.toContain("Most affected pod");
   });
@@ -1490,7 +1490,7 @@ describe("Kubernetes grouped monitor: a series that matched with no data", () =>
       [
         "**Affected Resources** (2 total)",
         "",
-        "1. **Node** `node-full` — **13 GB**",
+        "1. **Node** `node-full` — **13\u00A0GB**",
         "2. **Node** `node-silent` — **no data**",
       ].join("\n"),
     );
