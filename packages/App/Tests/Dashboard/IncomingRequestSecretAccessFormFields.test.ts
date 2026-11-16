@@ -3,7 +3,11 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecretAccess from "Common/Types/Monitor/MonitorSecretAccess";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
+import {
+  CardSelectOption,
+  CardSelectOptionGroup,
+  isCardSelectOptionGroup,
+} from "Common/UI/Components/CardSelect/CardSelect";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -57,6 +61,19 @@ function fieldFor(column: string): ModelField<IncomingRequestSecret> {
   return field;
 }
 
+// A field's cards, out of any groups they are in.
+function optionsOf(
+  field: ModelField<IncomingRequestSecret>,
+): Array<CardSelectOption> {
+  return (field.cardSelectOptions || []).flatMap(
+    (
+      option: CardSelectOption | CardSelectOptionGroup,
+    ): Array<CardSelectOption> => {
+      return isCardSelectOptionGroup(option) ? option.options : [option];
+    },
+  );
+}
+
 function valuesFor(access: MonitorSecretAccess | undefined): Values {
   return { monitorAccess: access } as Values;
 }
@@ -107,8 +124,9 @@ describe("which monitors accept an incoming request secret, as its form asks", (
   });
 
   test("offers the three modes monitor secrets offer, in their words", () => {
-    const options: Array<CardSelectOption> =
-      fieldFor("monitorAccess").cardSelectOptions || [];
+    const options: Array<CardSelectOption> = optionsOf(
+      fieldFor("monitorAccess"),
+    );
 
     expect(
       options.map((option: CardSelectOption): string => {
@@ -180,7 +198,7 @@ describe("which monitors accept an incoming request secret, as its form asks", (
         words.push(field.placeholder);
       }
 
-      for (const option of field.cardSelectOptions || []) {
+      for (const option of optionsOf(field)) {
         words.push(option.title, option.description || "");
       }
     }
