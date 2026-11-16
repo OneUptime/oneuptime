@@ -822,31 +822,22 @@ const readDefinition: (
  */
 interface LevelLines {
   /*
-   * Four numbers for each piece, in one array (PIECE_FIELDS), not four
-   * arrays of numbers:
-   *
-   *   - PIECE_START: where the piece starts in the level's text - the
-   *     line's start, or right after a separator that marked changes what
-   *     follows.
-   *   - PIECE_WHOLE_LINE_START: where the line of the whole text it comes
-   *     from starts, markers and all.
-   *   - PIECE_SOLID_START, PIECE_WHOLE_SOLID_START: from where the piece is
-   *     the whole text's, in the level's text and in the whole text: its
-   *     line's first character that is neither a space nor a tab (its end,
-   *     when it has none), or a later piece's start.
+   * Where each piece of a line starts in the level's text: the line's start,
+   * and after each separator that marked changes what follows.
    */
-  pieces: Array<number>;
-  // How many pieces `pieces` holds.
-  count: number;
+  starts: Array<number>;
+  // Where the line of the whole text it comes from starts, markers and all.
+  wholeLineStarts: Array<number>;
+  /*
+   * From where the piece is the whole text's, in the level's text and in the
+   * whole text: its line's first character that is neither a space nor a
+   * tab (its end, when it has none), or a later piece's start.
+   */
+  solidStarts: Array<number>;
+  wholeSolidStarts: Array<number>;
   // The piece asked of last: positions are asked of in order, mostly.
   cursor: number;
 }
-
-const PIECE_FIELDS: number = 4;
-const PIECE_START: number = 0;
-const PIECE_WHOLE_LINE_START: number = 1;
-const PIECE_SOLID_START: number = 2;
-const PIECE_WHOLE_SOLID_START: number = 3;
 
 interface BlockLevel {
   text: string;
@@ -943,18 +934,16 @@ const getLevelLine: (lines: LevelLines, position: number) => number = (
   lines: LevelLines,
   position: number,
 ): number => {
-  const pieces: Array<number> = lines.pieces;
-  const count: number = lines.count;
+  const starts: Array<number> = lines.starts;
 
   for (
     let line: number = lines.cursor;
-    line < Math.min(lines.cursor + 2, count);
+    line < Math.min(lines.cursor + 2, starts.length);
     line++
   ) {
     if (
-      pieces[line * PIECE_FIELDS + PIECE_START]! <= position &&
-      (line + 1 >= count ||
-        pieces[(line + 1) * PIECE_FIELDS + PIECE_START]! > position)
+      starts[line]! <= position &&
+      (line + 1 >= starts.length || starts[line + 1]! > position)
     ) {
       lines.cursor = line;
       return line;
@@ -963,12 +952,12 @@ const getLevelLine: (lines: LevelLines, position: number) => number = (
 
   // By halves, when it is further on or back.
   let low: number = 0;
-  let high: number = count - 1;
+  let high: number = starts.length - 1;
 
   while (low < high) {
     const middle: number = Math.ceil((low + high) / 2);
 
-    if (pieces[middle * PIECE_FIELDS + PIECE_START]! <= position) {
+    if (starts[middle]! <= position) {
       low = middle;
     } else {
       high = middle - 1;
@@ -996,12 +985,9 @@ const toWhole: (level: BlockLevel, position: number) => number = (
       : position;
   }
 
-  const at: number = getLevelLine(lines, position) * PIECE_FIELDS;
+  const line: number = getLevelLine(lines, position);
 
-  return (
-    lines.pieces[at + PIECE_WHOLE_SOLID_START]! +
-    (position - lines.pieces[at + PIECE_SOLID_START]!)
-  );
+  return lines.wholeSolidStarts[line]! + (position - lines.solidStarts[line]!);
 };
 
 // Where the line of the whole text that `position` is on starts.
@@ -1017,9 +1003,7 @@ const getWholeLineStart: (level: BlockLevel, position: number) => number = (
       : level.text.lastIndexOf("\n", position - 1) + 1;
   }
 
-  return lines.pieces[
-    getLevelLine(lines, position) * PIECE_FIELDS + PIECE_WHOLE_LINE_START
-  ]!;
+  return lines.wholeLineStarts[getLevelLine(lines, position)]!;
 };
 
 /*
@@ -1071,9 +1055,10 @@ const addPiece: (
   solid: number,
   sourceSolid: number,
 ): void => {
-  // In the order of PIECE_START to PIECE_WHOLE_SOLID_START.
-  made.pieces.push(start, wholeLineStart, solid, toWhole(source, sourceSolid));
-  made.count++;
+  made.starts.push(start);
+  made.wholeLineStarts.push(wholeLineStart);
+  made.solidStarts.push(solid);
+  made.wholeSolidStarts.push(toWhole(source, sourceSolid));
 };
 
 /*
@@ -1186,7 +1171,13 @@ const makeLevel: (
     return makeLineLevel(source, lines[0]!, depth);
   }
 
-  const made: LevelLines = { pieces: [], count: 0, cursor: 0 };
+  const made: LevelLines = {
+    starts: [],
+    wholeLineStarts: [],
+    solidStarts: [],
+    wholeSolidStarts: [],
+    cursor: 0,
+  };
   const pieces: Array<string> = [];
   let length: number = 0;
 
