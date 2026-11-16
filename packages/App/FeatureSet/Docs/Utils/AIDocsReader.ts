@@ -305,7 +305,51 @@ const takeEndingOff: (word: string, forms: DocsWordEndings) => string | null = (
   return null;
 };
 
+/*
+ * The stems already read, by language. A word's stem depends only on the
+ * word and its language, and reading one takes several passes over the
+ * language's forms and endings (#8335), while a language's docs write
+ * about a million words of some 15,000 to 52,000 different ones: an index
+ * build read every word each time it was written, three times over a
+ * page's body, and took most of a docs search's first answer in a
+ * language. Each word is read once now. What is typed joins the words
+ * read, so past STEM_MEMO_LIMIT, about twice the largest docs
+ * vocabulary, a language's are read afresh.
+ */
+const STEM_MEMO_LIMIT: number = 100000;
+const stemMemo: Map<string, Map<string, string>> = new Map();
+
 export const stemDocsWord: (
+  word: string,
+  language?: string | undefined,
+) => string = (word: string, language?: string | undefined): string => {
+  const memoKey: string = language || "";
+  let memo: Map<string, string> | undefined = stemMemo.get(memoKey);
+
+  if (!memo) {
+    memo = new Map<string, string>();
+    stemMemo.set(memoKey, memo);
+  }
+
+  const known: string | undefined = memo.get(word);
+
+  if (known !== undefined) {
+    return known;
+  }
+
+  const stem: string = readDocsWordStem(word, language);
+
+  if (memo.size >= STEM_MEMO_LIMIT) {
+    memo.clear();
+  }
+
+  memo.set(word, stem);
+
+  return stem;
+};
+
+// stemDocsWord's reading of a word it has not read before.
+const readDocsWordStem: (
   word: string,
   language?: string | undefined,
 ) => string = (word: string, language?: string | undefined): string => {
@@ -609,17 +653,24 @@ export const tokenizeForDocs: (
   return terms;
 };
 
-const countTerms: (text: string, language: string) => Map<string, number> = (
-  text: string,
-  language: string,
+// How many times each of `terms` is written.
+const countEach: (terms: Array<string>) => Map<string, number> = (
+  terms: Array<string>,
 ): Map<string, number> => {
   const counts: Map<string, number> = new Map();
 
-  for (const term of tokenizeForDocs(text, language)) {
+  for (const term of terms) {
     counts.set(term, (counts.get(term) || 0) + 1);
   }
 
   return counts;
+};
+
+const countTerms: (text: string, language: string) => Map<string, number> = (
+  text: string,
+  language: string,
+): Map<string, number> => {
+  return countEach(tokenizeForDocs(text, language));
 };
 
 const termSet: (text: string, language: string) => Set<string> = (
@@ -921,6 +972,8 @@ export default class DocsAIReader implements AIDocsReader {
       const group: string = t(`navGroups.${navPage.group.title}`);
       const summary: DocsPageSummary = summarizeDocsPage(copy.markdown);
       const body: string = copy.markdown.split("\n").slice(1).join("\n");
+      // The body's words, read once for how often each is written and how many there are.
+      const bodyWords: Array<string> = tokenizeForDocs(body, language);
 
       const sections: Array<AIDocsIndexedSection> = splitDocsSections(body).map(
         (section: {
@@ -964,8 +1017,8 @@ export default class DocsAIReader implements AIDocsReader {
             .join(" "),
           language,
         ),
-        bodyTerms: countTerms(body, language),
-        bodyLength: tokenizeForDocs(body, language).length,
+        bodyTerms: countEach(bodyWords),
+        bodyLength: bodyWords.length,
         sections,
         isGuide: navPage.link.isGuide === true,
       };
