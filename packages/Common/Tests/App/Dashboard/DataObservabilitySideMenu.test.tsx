@@ -71,6 +71,7 @@ describe("the sections and their pages", () => {
       { title: "Reconciliations", href: `${DO}/reconciliations` },
     ]);
     expect(linksIn("Usage")).toEqual([
+      { title: "Lineage Map", href: `${DO}/lineage` },
       { title: "Data Products", href: `${DO}/data-products` },
       { title: "BI Dashboards", href: `${DO}/bi-dashboards` },
       { title: "Warehouse Spend", href: `${DO}/spend` },
@@ -121,7 +122,7 @@ describe("the sections and their pages", () => {
 });
 
 describe("the menu as data", () => {
-  test("seventeen pages, each once - every page the menu had before", () => {
+  test("eighteen pages, each once - every page the menu had before, and the Lineage Map (#9114)", () => {
     const pages: Array<PageMap> = getDataObservabilityMenuItems().map(
       (item: DataObservabilityMenuItem): PageMap => {
         return item.page;
@@ -139,6 +140,7 @@ describe("the menu as data", () => {
         PageMap.DATA_OBSERVABILITY_PIPELINES,
         PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS,
         PageMap.DATA_OBSERVABILITY_SPEND,
+        PageMap.DATA_OBSERVABILITY_LINEAGE_MAP,
         PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
         PageMap.DATA_OBSERVABILITY_STORES,
         PageMap.DATA_OBSERVABILITY_STORAGE_PATHS,
@@ -172,6 +174,10 @@ describe("the menu as data", () => {
     ).toBe("Quality");
     expect(
       getDataObservabilityMenuSectionFor(PageMap.DATA_OBSERVABILITY_SPEND)
+        ?.title,
+    ).toBe("Usage");
+    expect(
+      getDataObservabilityMenuSectionFor(PageMap.DATA_OBSERVABILITY_LINEAGE_MAP)
         ?.title,
     ).toBe("Usage");
     expect(

@@ -130,7 +130,11 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
           return {
             functionName: item.functionName || "",
             fileName: item.fileName || "",
-            category: ProfileUtil.getModuleCategory(item.fileName || ""),
+            category: ProfileUtil.getModuleCategory(
+              item.fileName || "",
+              item.functionName || "",
+              item.frameType || "",
+            ),
             selfValue: Number(item.selfValue || 0),
             totalValue: Number(item.totalValue || 0),
             sampleCount: Number(item.sampleCount || 0),

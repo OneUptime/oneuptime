@@ -679,6 +679,81 @@ test.describe("a service's own Profiles tab", () => {
   });
 });
 
+test.describe("a flame graph a newcomer can read", () => {
+  const SEARCH: string = "60000000-0000-4000-8000-0000000000a2";
+
+  test("code without symbols is one frame with its share, and names read short", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openLoaded(page, `?serviceId=${SEARCH}`);
+
+    const frames: Locator = page.getByTestId("flamegraph-frames");
+
+    // The stripped library's four addresses are one frame, named for what it is.
+    await expect(frames.getByText("No symbols", { exact: true })).toHaveCount(
+      1,
+    );
+    await expect(frames).not.toContainText("0x7f3a");
+    await expect(page.getByTestId("profiles-flame")).toContainText(
+      "No symbols",
+    );
+    await expect(page.getByTestId("flamegraph-unnamed-note")).toContainText(
+      "of this graph is code without symbols",
+    );
+
+    // The caller's Go import path is left to its tooltip.
+    await expect(
+      frames.getByText("index.(*Segment).Lookup", { exact: true }),
+    ).toBeVisible();
+    await expect(frames).not.toContainText("github.com/acme");
+
+    // How a search shows its matches waits for a search.
+    await expect(page.getByTestId("flamegraph-search-mode")).toHaveCount(0);
+
+    if (!isPhone(testInfo)) {
+      await frames.getByText("No symbols", { exact: true }).hover();
+      await expect(page.getByTestId("flamegraph-tooltip")).toContainText(
+        "Code built without symbols",
+      );
+    }
+
+    await screenshot(page, testInfo, "flame-no-symbols");
+  });
+
+  test("every service first, each with where its own time goes; how to read the graph one click away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openLoaded(page);
+
+    // The services come before the merged answer.
+    const services: Locator = page.getByTestId("profiles-services");
+    const servicesBox: { y: number } | null = await services.boundingBox();
+    const headlineBox: { y: number } | null = await page
+      .getByTestId("profiles-headline-text")
+      .boundingBox();
+    expect(servicesBox!.y).toBeLessThan(headlineBox!.y);
+
+    await expect(
+      page.getByTestId("profiles-service-row").first(),
+    ).toContainText("Your code: parseOrder");
+
+    await page.getByTestId("profiles-flame-help").click();
+    const help: Locator = page.getByTestId("help-modal");
+    await expect(
+      page.getByText("How to read a flame graph", { exact: true }),
+    ).toBeVisible();
+    await expect(help).toContainText("Find what to fix first");
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+    await screenshot(page, testInfo, "flame-help");
+  });
+});
+
 test.describe("the functions, ranked", () => {
   test("ranked by Total, Total is the bold figure with its value; Self steps back", async ({
     page,

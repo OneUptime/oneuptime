@@ -39,6 +39,7 @@ AI 에이전트는 데이터를 쓰기 전에 그 데이터가 최신인지, 테
 | `POST /api/data-observability/pipelines/lineage` | 파이프라인이 읽는 테이블과 쓰는 테이블을 각 테이블의 지금 상태와 함께 돌려줍니다. 파이프라인 페이지가 그리는 것과 같습니다. `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` 로 요청합니다 | API 키 |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | 데이터 경고의 계보를, 그 경고를 일으킨 경고와 그 경고가 일으킨 경고로 가는 경로와 함께 돌려줍니다. 경고 페이지가 그리는 것과 같습니다. 열 하나에 대한 검사에서 생긴 경고라면 그 `column` 과 각 화살표가 전달하는 열도 돌려줍니다 | API 키 |
 | `POST /api/data-observability/lineage/expand` | 계보 다이어그램의 카드가 그리지 않은 다음 테이블을, 그 개수를 선택했을 때처럼 돌려줍니다. 카드는 `nodeId` 와 그 `side` 로, 그려진 것은 `focusNodeId`, `tables`, `dataDashboardIds` 로 보냅니다 | API 키 |
+| `POST /api/data-observability/lineage/map` | **계보 지도** 페이지가 그리는 그대로의 프로젝트 계보 지도. 데이터를 쓰고 읽는 서비스, 테이블, 파이프라인, 대시보드와 그 사이의 화살표를 가장 최근에 확인된 것부터 반환합니다 | API 키 |
 | `POST /api/data-observability/checks/apply` | `oneuptime data-checks apply` 처럼 프로젝트의 검사를 파일과 일치시킵니다. `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` 로 요청합니다 | API 키 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 데이터 제품의 "data as of" 배지 | 배지 자체의 토큰 |
 

@@ -2996,6 +2996,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Usage",
         pages: [
           {
+            page: PageMap.DATA_OBSERVABILITY_LINEAGE_MAP,
+            title: "Lineage Map",
+            icon: IconProp.FlowDiagram,
+            keywords: ["data lineage", "data flow", "who reads this table"],
+          },
+          {
             page: PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
             title: "Data Products",
             icon: IconProp.Layers,

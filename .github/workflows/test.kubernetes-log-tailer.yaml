@@ -6,10 +6,21 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  # Only the pull requests that change the tailer, or the chart its tests read
+  # (Tests/Severity.test.js reads the kubernetes-agent chart's
+  # configmap-daemonset.yaml): nothing else reaches it. Main runs it nightly,
+  # whatever changed.
   pull_request:
-  push:
-    branches:
-      - main
+    paths:
+      - "agents/KubernetesLogTailer/**"
+      - "HelmChart/Public/kubernetes-agent/**"
+      - ".github/workflows/test.kubernetes-log-tailer.yaml"
+  # Not on every push to main: each pull request was tested on its merge
+  # with main, and main runs this nightly and on demand instead
+  # (Tests/Ops/PullRequestChecksNotOnPush.test.js says why).
+  schedule:
+    - cron: "19 1 * * *"
+  workflow_dispatch:
 
 # Read-only: these jobs check out and test the code, nothing more.
 permissions:

@@ -4144,5 +4144,16 @@
   "Complete:": "رعایت شده:",
   "Incomplete:": "رعایت نشده:",
   "Special character included (optional)": "نویسهٔ ویژه دارد (اختیاری)",
-  "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید."
+  "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید.",
+  "Changes saved": "تغییرات ذخیره شد",
+  "{{itemName}} added": "{{itemName}} افزوده شد",
+  "{{itemName}} attached": "{{itemName}} پیوست شد",
+  "{{itemName}} connected": "{{itemName}} متصل شد",
+  "{{itemName}} created": "{{itemName}} ایجاد شد",
+  "{{itemName}} declared": "{{itemName}} اعلام شد",
+  "{{itemName}} deleted": "{{itemName}} حذف شد",
+  "{{itemName}} invited": "{{itemName}} دعوت شد",
+  "{{itemName}} linked": "{{itemName}} پیوند داده شد",
+  "{{itemName}} removed": "{{itemName}} برداشته شد",
+  "{{itemName}} started": "{{itemName}} آغاز شد"
 }

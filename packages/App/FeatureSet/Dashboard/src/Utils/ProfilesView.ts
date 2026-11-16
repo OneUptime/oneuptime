@@ -649,3 +649,90 @@ export function buildProfileMonitorRoute(data: {
 
   return new Route(`${base.toString()}?${search.toString()}`);
 }
+
+// Below this share (0-100) a row of a function's panel is folded away.
+export const PROFILE_MINOR_ROW_SHARE: number = 1;
+// However small, this many rows are always shown.
+export const PROFILE_MINOR_ROWS_KEPT: number = 3;
+
+/*
+ * The rows a panel lists first, and how many it folds: rows under 1% of the
+ * window fold away, but never the first three, and never one row alone - a
+ * "Show 1 more" button takes the room the row would. Rows arrive heaviest
+ * first, so what is kept stays in order. Pure.
+ */
+export function splitMinorProfileRows<T>(
+  rows: ReadonlyArray<T>,
+  shareOf: (row: T) => number,
+): { shown: Array<T>; folded: number } {
+  const shown: Array<T> = rows.filter((row: T, index: number): boolean => {
+    return (
+      index < PROFILE_MINOR_ROWS_KEPT || shareOf(row) >= PROFILE_MINOR_ROW_SHARE
+    );
+  });
+  const folded: number = rows.length - shown.length;
+
+  if (folded <= 1) {
+    return { shown: [...rows], folded: 0 };
+  }
+
+  return { shown, folded };
+}
+
+/*
+ * Where one service's time goes, in a line under its name on the services
+ * card (#9118): its own code that takes the most - the busiest function
+ * when that is its own, else its own function with the most own-code time,
+ * with the library and runtime code it calls - and, when none of its own
+ * code ran, the busiest function of all. The facts the headline says for
+ * the service, so the card and the service's page never disagree.
+ */
+export interface ProfileServiceHotSpot {
+  functionName: string;
+  fileName: string;
+  // 0-100: its share of the service's window.
+  share: number;
+  isOwnCode: boolean;
+}
+
+export function getProfileServiceHotSpot(
+  functions: ReadonlyArray<ProfileFunctionRow>,
+  windowTotal: number,
+): ProfileServiceHotSpot | null {
+  const facts: ProfileHeadlineFacts = getProfileHeadlineFacts(
+    functions,
+    windowTotal,
+  );
+
+  if (
+    facts.leader &&
+    getProfileOrigin(facts.leader) === ProfileFrameOrigin.Own
+  ) {
+    return {
+      functionName: facts.leader.functionName,
+      fileName: facts.leader.fileName,
+      share: facts.leaderShare,
+      isOwnCode: true,
+    };
+  }
+
+  if (facts.topOwn) {
+    return {
+      functionName: facts.topOwn.functionName,
+      fileName: facts.topOwn.fileName,
+      share: facts.topOwnShare,
+      isOwnCode: true,
+    };
+  }
+
+  if (facts.leader) {
+    return {
+      functionName: facts.leader.functionName,
+      fileName: facts.leader.fileName,
+      share: facts.leaderShare,
+      isOwnCode: false,
+    };
+  }
+
+  return null;
+}

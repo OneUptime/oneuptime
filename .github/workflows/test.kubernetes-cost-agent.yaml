@@ -6,10 +6,19 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  # Only the pull requests that change the agent: it imports nothing from
+  # outside its directory, and its tests read nothing outside it. Main runs it
+  # nightly, whatever changed.
   pull_request:
-  push:
-    branches:
-      - main
+    paths:
+      - "agents/KubernetesCostAgent/**"
+      - ".github/workflows/test.kubernetes-cost-agent.yaml"
+  # Not on every push to main: each pull request was tested on its merge
+  # with main, and main runs this nightly and on demand instead
+  # (Tests/Ops/PullRequestChecksNotOnPush.test.js says why).
+  schedule:
+    - cron: "19 1 * * *"
+  workflow_dispatch:
 
 # Read-only: these jobs check out and test the code, nothing more.
 permissions:

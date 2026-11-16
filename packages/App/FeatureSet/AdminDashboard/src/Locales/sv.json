@@ -4144,5 +4144,16 @@
   "Complete:": "Uppfyllt:",
   "Incomplete:": "Inte uppfyllt:",
   "Special character included (optional)": "Specialtecken inkluderat (valfritt)",
-  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $."
+  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $.",
+  "Changes saved": "Ändringar sparade",
+  "{{itemName}} added": "{{itemName}} har lagts till",
+  "{{itemName}} attached": "{{itemName}} har bifogats",
+  "{{itemName}} connected": "{{itemName}} har anslutits",
+  "{{itemName}} created": "{{itemName}} har skapats",
+  "{{itemName}} declared": "{{itemName}} har deklarerats",
+  "{{itemName}} deleted": "{{itemName}} har tagits bort",
+  "{{itemName}} invited": "{{itemName}} har bjudits in",
+  "{{itemName}} linked": "{{itemName}} har länkats",
+  "{{itemName}} removed": "{{itemName}} har tagits bort från listan",
+  "{{itemName}} started": "{{itemName}} har startats"
 }

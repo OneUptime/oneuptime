@@ -7,9 +7,12 @@ concurrency:
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
+  # Not on every push to main: each pull request was tested on its merge
+  # with main, and main runs this nightly and on demand instead
+  # (Tests/Ops/PullRequestChecksNotOnPush.test.js says why).
+  schedule:
+    - cron: "19 1 * * *"
+  workflow_dispatch:
 
 # Read-only: these jobs check out and test the code, nothing more.
 permissions:

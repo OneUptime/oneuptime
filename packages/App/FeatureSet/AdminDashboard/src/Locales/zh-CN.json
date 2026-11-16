@@ -4144,5 +4144,16 @@
   "Complete:": "已满足：",
   "Incomplete:": "未满足：",
   "Special character included (optional)": "已包含特殊字符（可选）",
-  "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。"
+  "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。",
+  "Changes saved": "更改已保存",
+  "{{itemName}} added": "已添加{{itemName}}",
+  "{{itemName}} attached": "已附加{{itemName}}",
+  "{{itemName}} connected": "已连接{{itemName}}",
+  "{{itemName}} created": "已创建{{itemName}}",
+  "{{itemName}} declared": "已宣告{{itemName}}",
+  "{{itemName}} deleted": "已删除{{itemName}}",
+  "{{itemName}} invited": "已邀请{{itemName}}",
+  "{{itemName}} linked": "已关联{{itemName}}",
+  "{{itemName}} removed": "已移除{{itemName}}",
+  "{{itemName}} started": "已开始{{itemName}}"
 }

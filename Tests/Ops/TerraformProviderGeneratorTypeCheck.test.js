@@ -11,7 +11,8 @@
  * The Terraform Provider Generation workflow runs it now. This pins that it
  * keeps doing so, where it can work:
  *
- *   - on every pull request and every push to main;
+ *   - on every pull request, and on main nightly (not on every push to
+ *     main, which PullRequestChecksNotOnPush.test.js explains);
  *   - after installing, in the same job, Common (the Common files it checks
  *     resolve their packages from packages/Common/node_modules), Scripts
  *     (GenerateSpec.ts's @readme/openapi-parser) and the generator itself
@@ -135,15 +136,14 @@ describe(`${WORKFLOW} type-checks the generator`, () => {
     expect(stepsRunning(TYPE_CHECK)).toHaveLength(1);
   });
 
-  test("on every pull request and every push to main", () => {
+  test("on every pull request, and on main nightly", () => {
     const events = triggers(workflow);
 
     // pull_request with no filter: every pull request, whatever it touches.
     expect(Object.keys(events)).toContain("pull_request");
     expect(events.pull_request).toBeNull();
-    expect((events.push || {}).branches).toContain("main");
-    expect(events.push).not.toHaveProperty("paths");
-    expect(events.push).not.toHaveProperty("paths-ignore");
+    // Main's run is the nightly one, of whatever main holds by then.
+    expect(events.schedule).toHaveLength(1);
   });
 
   test.each(INSTALLS_THE_TYPE_CHECK_NEEDS)(

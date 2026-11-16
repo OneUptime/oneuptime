@@ -4144,5 +4144,16 @@
   "Complete:": "Выполнено:",
   "Incomplete:": "Не выполнено:",
   "Special character included (optional)": "Специальный символ добавлен (необязательно)",
-  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $."
+  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $.",
+  "Changes saved": "Изменения сохранены",
+  "{{itemName}} added": "Добавлено: {{itemName}}",
+  "{{itemName}} attached": "Прикреплено: {{itemName}}",
+  "{{itemName}} connected": "Подключено: {{itemName}}",
+  "{{itemName}} created": "Создано: {{itemName}}",
+  "{{itemName}} declared": "Объявлено: {{itemName}}",
+  "{{itemName}} deleted": "Удалено: {{itemName}}",
+  "{{itemName}} invited": "Приглашено: {{itemName}}",
+  "{{itemName}} linked": "Связано: {{itemName}}",
+  "{{itemName}} removed": "Убрано: {{itemName}}",
+  "{{itemName}} started": "Запущено: {{itemName}}"
 }
