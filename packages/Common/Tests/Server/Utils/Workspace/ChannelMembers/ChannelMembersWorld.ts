@@ -26,7 +26,7 @@ import WorkspaceNotificationLogService from "../../../../../Server/Services/Work
 import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../../Server/Services/WorkspaceUserAuthTokenService";
 import logger from "../../../../../Server/Utils/Logger";
-import SSRFProtection from "../../../../../Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "../../../TestingUtils/WebhookAddressCheck";
 import ProjectMembership from "../../../../../Server/Utils/TeamMember/ProjectMembership";
 import MattermostConnection from "../../../../../Server/Utils/Workspace/Mattermost/MattermostConnection";
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -1125,12 +1125,8 @@ export default class ChannelMembersWorld {
       return undefined;
     }) as never);
 
-    // The address a Mattermost server was connected with: never a real call.
-    jest
-      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-      .mockImplementation((async (): Promise<void> => {
-        return undefined;
-      }) as never);
+    // The address a Mattermost server was connected with: never a real call (WebhookAddressCheck).
+    approveEveryWebhookAddress();
 
     // A Mattermost server's GET calls.
     jest.spyOn(API, "get").mockImplementation((async (data: {

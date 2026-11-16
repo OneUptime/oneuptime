@@ -6,7 +6,7 @@ import MattermostUtil, {
 } from "../../../../../Server/Utils/Workspace/Mattermost/Mattermost";
 import MattermostConnection from "../../../../../Server/Utils/Workspace/Mattermost/MattermostConnection";
 import MattermostActionContext from "../../../../../Server/Utils/Workspace/Mattermost/MattermostActionContext";
-import SSRFProtection from "../../../../../Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "../../../TestingUtils/WebhookAddressCheck";
 import {
   WorkspaceSendMessageResponse,
   WorkspaceChannel,
@@ -185,9 +185,8 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
     jest.spyOn(API, "put").mockImplementation(answer("PUT") as never);
     jest.spyOn(API, "delete").mockImplementation(answer("DELETE") as never);
 
-    ssrfSpy = jest
-      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-      .mockResolvedValue(undefined);
+    // The check every call runs, approving each URL (WebhookAddressCheck).
+    ssrfSpy = approveEveryWebhookAddress();
   });
 
   afterEach(() => {
@@ -225,10 +224,14 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
         accessToken: ACCESS_TOKEN,
       });
 
-      expect(ssrfSpy).toHaveBeenCalledWith(SERVER, {
+      // The URL that is called, checked as it is sent: the server and the path.
+      expect(ssrfSpy).toHaveBeenCalledWith(`${SERVER}/api/v4/users/me`, {
         allowPrivateNetworkTargets: true,
         targetLabel: "Mattermost server address",
       });
+      expect(ssrfSpy.mock.calls[0]![1]).toBe(
+        MattermostUtil.SERVER_TARGET_VALIDATION,
+      );
     });
 
     test("is not made when the server is not one OneUptime may reach", async () => {
@@ -1010,7 +1013,7 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
         });
 
         expect(ssrfSpy).toHaveBeenCalledWith(
-          SERVER,
+          expect.stringMatching(/^https:\/\/chat\.example\.com\/api\/v4\//),
           expect.objectContaining({ allowPrivateNetworkTargets: true }),
         );
       });
