@@ -90,6 +90,15 @@
  *   - ../tsconfig.tests.app-dashboard-d.json (11,498 files): 4.93 GiB;
  *   - ../tsconfig.tests.app-dashboard-s.json (11,958 files): 5.25 GiB;
  *   - ../tsconfig.tests.app-dashboard-t-z.json (12,207 files): 5.14 GiB.
+ * The next day (#8776) the other three followed: E to L used 5.68 GiB
+ * (71%), M to O 5.87 GiB (73%) and P to R 6.39 GiB (80%). Now:
+ *   - ../tsconfig.tests.app-dashboard-e-h.json (11,512 files): 5.10 GiB;
+ *   - ../tsconfig.tests.app-dashboard-i-l.json (12,196 files): 4.95 GiB;
+ *   - ../tsconfig.tests.app-dashboard-m.json (11,672 files): 4.80 GiB;
+ *   - ../tsconfig.tests.app-dashboard-n-o.json (11,358 files): 5.16 GiB;
+ *   - ../tsconfig.tests.app-dashboard-p.json (11,115 files): 5.50 GiB, the
+ *     most of any Dashboard part for its 130 tests: the next to split;
+ *   - ../tsconfig.tests.app-dashboard-q-r.json (11,382 files): 4.94 GiB.
  *
  * Nothing goes unchecked:
  *   - every part extends tsconfig.tests.json and changes only which files it
@@ -141,9 +150,12 @@ const PARTS = [
   "tsconfig.tests.app-dashboard-a.json",
   "tsconfig.tests.app-dashboard-b-c.json",
   "tsconfig.tests.app-dashboard-d.json",
-  "tsconfig.tests.app-dashboard-e-l.json",
-  "tsconfig.tests.app-dashboard-m-o.json",
-  "tsconfig.tests.app-dashboard-p-r.json",
+  "tsconfig.tests.app-dashboard-e-h.json",
+  "tsconfig.tests.app-dashboard-i-l.json",
+  "tsconfig.tests.app-dashboard-m.json",
+  "tsconfig.tests.app-dashboard-n-o.json",
+  "tsconfig.tests.app-dashboard-p.json",
+  "tsconfig.tests.app-dashboard-q-r.json",
   "tsconfig.tests.app-dashboard-s.json",
   "tsconfig.tests.app-dashboard-t-z.json",
   "tsconfig.tests.app-rest.json",
