@@ -11,6 +11,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
 } from "Common/Utils/Monitor/MonitorPauseState";
+import MonitorFirstCheck from "Common/Utils/Monitor/MonitorFirstCheck";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -589,6 +590,9 @@ async function measureMonitorSlo(data: {
     select: {
       _id: true,
       ...MONITOR_PAUSE_FLAGS_SELECT,
+      // Whether something has checked it yet, for the no-data guard's reason.
+      monitorType: true,
+      firstMeasuredAt: true,
     },
     skip: 0,
     limit: LIMIT_PER_PROJECT,
@@ -701,6 +705,11 @@ async function measureMonitorSlo(data: {
    * Benign edge: for a CalendarMonth window evaluated in the very first second
    * of a new month the elapsed window is 0 seconds long, so an SLO WITH data can
    * read as zero-data for a single tick and flip back on the next one.
+   *
+   * A monitor nothing has checked yet has no time either (issue #9031): its
+   * status is only the operational one every monitor is created in, which
+   * the timelines leave out until its first check (fetchPerMonitorTimelines).
+   * An SLO of such monitors says it waits for their first check.
    */
   if (sli.totalSeconds === 0) {
     logger.debug(
@@ -718,8 +727,7 @@ async function measureMonitorSlo(data: {
       status: SloStatus.Misconfigured,
       now: now,
       isSloStillEvaluated: checkSloStillEvaluated,
-      reason:
-        "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.",
+      reason: getNoTimelineDataReason(monitors),
     });
     return null;
   }
@@ -2336,6 +2344,36 @@ async function setSloStatusIfChanged(
     now: transition?.now || OneUptimeDate.getCurrentDate(),
     reason: transition?.reason,
   });
+}
+
+/*
+ * Why a Monitor Uptime SLO measured no time in its window, for the feed: its
+ * monitors nothing has checked yet (issue #9031) - every one of them that is
+ * not paused - or monitors that recorded no status in it at all.
+ */
+const SLO_MONITORS_NOT_CHECKED_YET_REASON: string =
+  "Nothing has checked the monitors attached to this SLO yet, so it has no time to measure. It is measured automatically from their first check.";
+
+const SLO_NO_TIMELINE_DATA_REASON: string =
+  "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.";
+
+function getNoTimelineDataReason(monitors: Array<Monitor>): string {
+  const monitorsNotPaused: Array<Monitor> = monitors.filter(
+    (monitor: Monitor): boolean => {
+      return !MonitorPauseState.isPaused(monitor);
+    },
+  );
+
+  if (
+    monitorsNotPaused.length > 0 &&
+    monitorsNotPaused.every((monitor: Monitor): boolean => {
+      return MonitorFirstCheck.isNeverMeasured(monitor);
+    })
+  ) {
+    return SLO_MONITORS_NOT_CHECKED_YET_REASON;
+  }
+
+  return SLO_NO_TIMELINE_DATA_REASON;
 }
 
 /*
