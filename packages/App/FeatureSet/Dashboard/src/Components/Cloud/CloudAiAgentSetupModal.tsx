@@ -117,6 +117,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import {
   FOLDED_SECTION_ON,
@@ -282,6 +283,8 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // The protected resources' error line, which their box names.
+  const protectedTargetsErrorId: string = `${CLOUD_AI_AGENT_SETUP_TEST_ID}-protected-error-${useId()}`;
   const [choices, setChoices] = useState<CloudAiAgentSetupChoices>(() => {
     return getDefaultCloudAiAgentSetupChoices({
       provider: props.provider,
@@ -556,21 +559,32 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
       accountId: props.accountId,
       text: choices.protectedTargetsText,
     });
+  /*
+   * What is wrong with the protected resources, in the reader's language:
+   * said under their box, where it can be fixed, as well as in step 1,
+   * whose command and variables it holds back. The box sits under More
+   * fields, so step 1 alone left a reader who opened the fold to type
+   * there without a word of why the command went away.
+   */
+  const protectedTargetsError: string | null =
+    protectedProblem?.kind === "unreadable"
+      ? translator.translateTemplate(
+          "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.",
+          { pattern: protectedProblem.pattern },
+        )
+      : protectedProblem?.kind === "too-many"
+        ? translator.translateTemplate(
+            "List at most {{most}} protected resources, with * patterns to cover several.",
+            { most: String(protectedProblem.most) },
+          )
+        : null;
   let problem: string | null = null;
 
   if (!agentKey) {
     // Said where the command goes: making it, or why there is no key.
     problem = keyError || null;
-  } else if (protectedProblem?.kind === "unreadable") {
-    problem = translator.translateTemplate(
-      "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.",
-      { pattern: protectedProblem.pattern },
-    );
-  } else if (protectedProblem?.kind === "too-many") {
-    problem = translator.translateTemplate(
-      "List at most {{most}} protected resources, with * patterns to cover several.",
-      { most: String(protectedProblem.most) },
-    );
+  } else if (protectedTargetsError) {
+    problem = protectedTargetsError;
   } else {
     problem = describeCloudAiAgentSetupProblem(options);
   }
@@ -1324,7 +1338,11 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               <textarea
                 id={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-protected`}
                 rows={3}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className={`block w-full rounded-md border px-3 py-2 font-mono text-xs focus:outline-none focus:ring-1 ${
+                  protectedTargetsError
+                    ? "border-red-300 text-red-900 focus:border-red-500 focus:ring-red-500"
+                    : "border-gray-300 text-gray-900 focus:border-indigo-500 focus:ring-indigo-500"
+                }`}
                 placeholder={translator.translateText(
                   translationKey(
                     "One name or id pattern per line, such as *prod-db*",
@@ -1332,10 +1350,30 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                 )}
                 value={choices.protectedTargetsText}
                 data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-protected`}
+                aria-invalid={protectedTargetsError ? "true" : undefined}
+                aria-describedby={
+                  protectedTargetsError ? protectedTargetsErrorId : undefined
+                }
                 onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
                   update({ protectedTargetsText: event.target.value });
                 }}
               />
+              {/*
+               * Why the command and the variables went away, under the box
+               * that holds the reason: said as it is typed, politely, so a
+               * screen reader finishes the line it is reading first.
+               */}
+              {protectedTargetsError ? (
+                <FieldError
+                  message={protectedTargetsError}
+                  id={protectedTargetsErrorId}
+                  className="mt-1 text-xs"
+                  announce="polite"
+                  dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-protected-error`}
+                />
+              ) : (
+                <></>
+              )}
             </div>
 
             <CheckRow
