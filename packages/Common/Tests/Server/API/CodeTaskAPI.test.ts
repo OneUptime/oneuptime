@@ -49,6 +49,7 @@ import CodeTaskRuns, {
 import CodeTaskStats from "../../../Server/Utils/AI/CodeTask/CodeTaskStats";
 import CodeTaskListQuery from "../../../Server/Utils/AI/CodeTask/CodeTaskListQuery";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import { AI_RUN_ABOUT_KEYS } from "../../../Server/Utils/AI/AIRunOutputReadFilter";
 import GitHubInstallationBinding from "../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import {
   ExpressRequest,
@@ -99,6 +100,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * The Code API, route by route, as a person reaches it: who may read a
@@ -2468,5 +2470,125 @@ describe("asking for a review of a pull request by its number", () => {
 
     expect(refusal(next)).toBeInstanceOf(BadDataException);
     expect(CodeRepositoryService.findOneBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A task about a private incident or alert (#9165) is read only by those
+ * who see the record: each of the API's own reads of tasks, which read as
+ * OneUptime, asks the reader's rule on what a task is about - its record,
+ * its fix and the task a reply belongs to (AIRunOutputReadFilter) - beside
+ * its own filter. Who sees every private record is asked nothing. What the
+ * rule then keeps is the SQL's, read on migrated Postgres
+ * (CodeFixRunReadPostgres).
+ */
+describe("a task about a private incident or alert, read by the API", () => {
+  const PROJECT_ADMIN: DatabaseCommonInteractionProps = caller([
+    Permission.ProjectAdmin,
+  ]);
+
+  function keptToTheRule(query: Record<string, unknown>): Array<string> {
+    return AI_RUN_ABOUT_KEYS.filter((key: string): boolean => {
+      return query[key] instanceof FindOperator;
+    });
+  }
+
+  function queriesOf(spy: unknown): Array<Record<string, unknown>> {
+    return (spy as jest.Mock).mock.calls.map((args: Array<unknown>) => {
+      return (args[0] as { query: Record<string, unknown> }).query;
+    });
+  }
+
+  beforeEach(() => {
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([task()]);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest.spyOn(CodeTaskPresenter, "summarize").mockResolvedValue([]);
+    jest
+      .spyOn(CodeTaskPresenter, "getConversation")
+      .mockImplementation(async () => {
+        return {
+          task: { id: TASK_ID.toString(), state: CodeTaskState.Done } as never,
+          turns: [],
+        };
+      });
+  });
+
+  test("a task's page reads the task with the reader's rule, and one it hides is not found", async () => {
+    await call("/code-task/get/:taskId", {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    const taskRead: Record<string, unknown> | undefined = queriesOf(
+      AIRunService.findOneBy,
+    ).find((query: Record<string, unknown>): boolean => {
+      return Boolean(query["_id"]);
+    });
+
+    expect(keptToTheRule(taskRead!)).toEqual([...AI_RUN_ABOUT_KEYS]);
+
+    // The rule hides it: the task is answered as one that does not exist.
+    world.task = null;
+
+    const { next } = await call("/code-task/get/:taskId", {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(refusal(next).message).toBe(CODE_TASK_NOT_FOUND_MESSAGE);
+  });
+
+  test("a repository's list and its count read its tasks with the reader's rule", async () => {
+    await call("/code-task/list", {
+      body: { repositoryId: REPOSITORY_ID.toString() },
+    });
+
+    const [page] = queriesOf(AIRunService.findBy);
+    const [count] = queriesOf(AIRunService.countBy);
+
+    expect(keptToTheRule(page!)).toEqual([...AI_RUN_ABOUT_KEYS]);
+    expect(keptToTheRule(count!)).toEqual([...AI_RUN_ABOUT_KEYS]);
+    // Its own filter stays beside the rule.
+    expect((page!["codeRepositoryId"] as ObjectID).toString()).toBe(
+      REPOSITORY_ID.toString(),
+    );
+  });
+
+  test("several tasks at a glance are read with the reader's rule", async () => {
+    await call("/code-task/summaries", {
+      body: { taskIds: [TASK_ID.toString()] },
+    });
+
+    const [read] = queriesOf(AIRunService.findBy);
+
+    expect(keptToTheRule(read!)).toEqual([...AI_RUN_ABOUT_KEYS]);
+  });
+
+  test("a Project Admin, who sees every private record, is asked nothing of what a task is about", async () => {
+    world.props = PROJECT_ADMIN;
+
+    await call("/code-task/get/:taskId", {
+      params: { taskId: TASK_ID.toString() },
+    });
+    await call("/code-task/list", {
+      body: { repositoryId: REPOSITORY_ID.toString() },
+    });
+    await call("/code-task/summaries", {
+      body: { taskIds: [TASK_ID.toString()] },
+    });
+
+    const reads: Array<Record<string, unknown>> = [
+      ...queriesOf(AIRunService.findOneBy),
+      ...queriesOf(AIRunService.findBy),
+      ...queriesOf(AIRunService.countBy),
+    ];
+
+    expect(reads.length).toBeGreaterThanOrEqual(4);
+
+    for (const query of reads) {
+      expect(query["triggeredByIncidentId"]).toBeUndefined();
+      expect(query["triggeredByAlertId"]).toBeUndefined();
+      expect(query["triggeredByAutoRemediationSuggestionId"]).toBeUndefined();
+    }
   });
 });
