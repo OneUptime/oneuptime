@@ -18,6 +18,15 @@ import DataSourceEgressGuard from "../Utils/DataSource/EgressGuard";
  */
 export const DOMAIN_VERIFICATION_TIMEOUT_IN_MS: number = 10000;
 
+/*
+ * The most of an answer a verification request reads. Its callers read only
+ * the status, and the proof OneUptime answers with is a few bytes; a domain
+ * pointed at a server that streams a body must not fill the worker's
+ * memory while the certificate run waits on it. A larger answer is not
+ * OneUptime's, and fails unread.
+ */
+export const DOMAIN_VERIFICATION_MAX_RESPONSE_BYTES: number = 1024 * 1024;
+
 export default class Domain extends DomainCommon {
   /*
    * GET a domain-verification URL built from a tenant-supplied domain.
@@ -42,26 +51,41 @@ export default class Domain extends DomainCommon {
    * status page domain in turn, so each such domain would burn that timeout out
    * of the run's budget and push the domains behind it into the next run - the
    * renewals that matter get starved by the domains that will never answer.
+   *
+   * Behind an outbound proxy (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY) the
+   * request goes through it, as every other request of the server does,
+   * whether the proxy is named by address or by host name; a domain in
+   * NO_PROXY is dialled directly, at the address the guard checked.
    */
   @CaptureSpan()
   public static async getForDomainVerification(data: {
     url: string;
     targetLabel: string;
   }): Promise<HTTPErrorResponse | HTTPResponse<JSONObject>> {
-    const { httpAgent, httpsAgent } =
+    const { url, httpAgent, httpsAgent } =
       await DataSourceEgressGuard.assertUrlAllowedAndPin(data.url, {
         targetLabel: data.targetLabel,
       });
 
-    return API.get<JSONObject>({
-      url: URL.fromString(data.url),
-      options: {
-        doNotFollowRedirects: true,
-        timeout: DOMAIN_VERIFICATION_TIMEOUT_IN_MS,
-        httpAgent,
-        httpsAgent,
-      },
-    });
+    try {
+      return await API.get<JSONObject>({
+        url: URL.fromString(data.url),
+        options: {
+          doNotFollowRedirects: true,
+          timeout: DOMAIN_VERIFICATION_TIMEOUT_IN_MS,
+          maxContentLength: DOMAIN_VERIFICATION_MAX_RESPONSE_BYTES,
+          // Only Node's http adapter uses the pinned agents.
+          useNodeHttpAdapter: true,
+          httpAgent,
+          httpsAgent,
+          // The URL the guard checked, whose host the agents dial.
+          dispatchUrl: url.href,
+        },
+      });
+    } finally {
+      httpAgent.destroy();
+      httpsAgent.destroy();
+    }
   }
 
   @CaptureSpan()
