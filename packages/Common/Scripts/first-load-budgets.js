@@ -71,7 +71,8 @@ const PAGES = [
     // 2026-11-04: 883,196 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 786,737 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
     // 2026-11-11: 773,606 bytes, hashing with crypto-js's SHA-256 alone, and loading the rules that set code apart in Arabic and Persian sentences only for those languages.
-    ceiling: 770 * KIB,
+    // 2026-11-16: 727,932 bytes (783,588 on main that day, 4.8 KiB under 770 KiB), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
+    ceiling: 725 * KIB,
   },
   {
     frontend: "Accounts",
@@ -83,7 +84,8 @@ const PAGES = [
     // 2026-11-04: 887,494 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 791,036 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
     // 2026-11-11: 775,116 bytes, hashing with crypto-js's SHA-256 alone, and loading the rules that set code apart in Arabic and Persian sentences only for those languages.
-    ceiling: 770 * KIB,
+    // 2026-11-16: 725,918 bytes (787,368 on main that day, 1.1 KiB under 770 KiB), reading JSON without every monitor type (#8821), loading a rule's condition builder only for a rule's form, and reading billing and the daily check-in from the page's configuration rather than the server's (#7615).
+    ceiling: 725 * KIB,
   },
   {
     frontend: "StatusPage",
@@ -94,7 +96,8 @@ const PAGES = [
     // 2026-11-03: 1,101,030 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 1,059,516 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 967,395 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
-    ceiling: 960 * KIB,
+    // 2026-11-16: 927,460 bytes (982,809 on main that day, 0.2 KiB under 960 KiB), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
+    ceiling: 925 * KIB,
   },
   {
     frontend: "PublicDashboard",
@@ -106,7 +109,8 @@ const PAGES = [
     // 2026-11-04: 1,720,563 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
     // 2026-11-10: 1,535,455 bytes, loading the investigation drawer only when a chart opens it - a public dashboard never does - and the people picker only for a form that has one.
     // 2026-11-15: 1,497,302 bytes, loading a widget's settings only when they open - a public dashboard, which has no edit mode, never does - and the API client and a form's default names without the probe's and the lists' code.
-    ceiling: 1490 * KIB,
+    // 2026-11-16: 1,455,800 bytes (1,503,403 on main that day), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
+    ceiling: 1450 * KIB,
   },
 ];
 
