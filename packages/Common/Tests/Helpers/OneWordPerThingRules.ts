@@ -443,4 +443,41 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /بروکر/,
     dropped: /کارگزار/,
   },
+  /*
+   * The docs suites hold a page's bold labels to its Dashboard's words, but
+   * the same names still read otherwise in headings and prose (#8812).
+   * Persian names the control plane صفحه کنترل, as its Dashboard's Control
+   * Plane and Control plane do: the Kubernetes and OpenStack pages and
+   * cards, and the control plane they read. (Code such as
+   * control-plane-targets.py and OpenStackControlPlane is no word.)
+   */
+  {
+    language: "fa",
+    thing: "Control Plane",
+    english: /\bcontrol[ -]plane/i,
+    word: /صفحه کنترل/,
+    dropped: /\bcontrol[ -]plane/i,
+  },
+  /*
+   * A database's engine metrics: Danish calls an engine Motor, so they are
+   * motormetrikker, not engine-metrikker; Dutch keeps Engine and says
+   * Metrieken, so engine-metrieken, not enginemetrics, enginemetrieken or
+   * engine-metrics. A monitor template's name, Engine Metrics Stopped,
+   * reads as every language writes it, in bold, which the docs suites hold
+   * to the template (#8812).
+   */
+  {
+    language: "da",
+    thing: "Engine metrics",
+    english: /\bengine metrics?\b/i,
+    word: /motormetrik/i,
+    dropped: /\bengine[ -]?metri/i,
+  },
+  {
+    language: "nl",
+    thing: "Engine metrics",
+    english: /\bengine metrics?\b/i,
+    word: /engine-metrie[kc]/i,
+    dropped: /\bengine ?metri|\bengine-metrics/i,
+  },
 ];

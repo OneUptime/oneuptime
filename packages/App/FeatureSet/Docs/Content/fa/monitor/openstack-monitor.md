@@ -543,7 +543,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | `openstack_cloudkitty_rated` | | Max | CloudKitty برای یک پروژه در یک ماه چه امتیازی داده، ساعتی یک بار، بر اساس پروژه و ماه. یک عدد، به هر واحدی که نرخ‌هایش هستند. فقط پراب این را می‌فرستد. |
 | `openstack_container_infra_total_clusters` | `count` | Max | Magnum برای این credential چند cluster فهرست کرد. |
 | `openstack_container_infra_cluster_status` | | Max | یک سری برای هر cluster، با `uuid`، `name`، `stack_id`، `status`، `node_count`، `master_count` و `project_id`. مقدارش یک کد است، پس label مربوط به `status` آن را بخوانید. `project_id` از exporter خالی می‌آید. |
-| `openstack_container_infra_cluster_masters` | `count` | Max | از هر cluster چند node مربوط به control plane خواسته شده است. |
+| `openstack_container_infra_cluster_masters` | `count` | Max | از هر cluster چند node مربوط به صفحه کنترل خواسته شده است. |
 | `openstack_container_infra_cluster_nodes` | `count` | Max | از هر cluster چند node مربوط به worker خواسته شده است. |
 | `openstack_container_infra_agent_state` | | Min | اینکه Magnum هر `magnum-conductor` را up فهرست می‌کند. فقط پراب این را می‌فرستد. |
 
