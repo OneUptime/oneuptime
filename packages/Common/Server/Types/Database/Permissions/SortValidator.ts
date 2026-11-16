@@ -194,9 +194,11 @@ export default class SortValidator {
    *     related model holds credentials - as a filter through the relation
    *     is (QueryPermission.checkRelationFilterPermission);
    *   - through a relation to a private incident, alert or episode, or to a
-   *     part of one, no column but its id, unless the caller sees every
-   *     private record (#9102): an order cannot leave out the records they
-   *     do not see (PrivateRecordReadFilter.checkRelationSort).
+   *     part of one, no column but its id a level deeper, unless the caller
+   *     sees every private record (#9102): an order cannot leave out the
+   *     records they do not see (PrivateRecordReadFilter.checkRelationSort).
+   *     A sort by the related record's own columns is checked against the
+   *     rows as the read runs (checkRelationSortOfRows).
    *
    * A column kept to its owners is refused by OwnedScopePermission
    * .checkSortOnColumnsKeptToOwners, before this. Asked of every read by

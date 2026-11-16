@@ -39,7 +39,7 @@ import { getJestSpyOn } from "../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
-import { FindOperator } from "typeorm";
+import { FindOperator, Repository } from "typeorm";
 
 /*
  * A RELATION TO A PRIVATE RECORD SHOWS IT ONLY TO THOSE WHO SEE IT (#9102).
@@ -411,6 +411,26 @@ describe("the read path asks the rule", () => {
 
     expect(body).toContain("PrivateRecordReadFilter.checkRelationSort(");
   });
+
+  test("every read of rows checks a sort through a relation against the rows it matches, by who asked, before it queries", () => {
+    const body: string = methodBody(
+      read("Services/DatabaseService.ts"),
+      "private async _findBy(",
+    );
+
+    const check: number = body.indexOf(
+      "PrivateRecordReadFilter.checkRelationSortOfRows(",
+    );
+
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(body.indexOf("PagedFind.find("));
+
+    const call: string = body.slice(check, body.indexOf("});", check));
+
+    expect(call).toContain("sort: onBeforeFind.sort");
+    expect(call).toContain("where: onBeforeFind.query");
+    expect(call).toContain("props: narrowed.asker");
+  });
 });
 
 describe("which relations are held", () => {
@@ -677,16 +697,23 @@ describe("a filter through a relation", () => {
   );
 });
 
+/*
+ * A SORT THROUGH A RELATION by the related record's fields says where each
+ * row's record falls in that order. Before the read, a sort a level deeper
+ * is refused to whoever does not see every private record; a sort by the
+ * related record's own columns waits for the rows (checkRelationSortOfRows,
+ * below; on a migrated Postgres in PrivateRecordActionsPostgres).
+ */
 describe("a sort through a relation", () => {
   test.each(SEE_ONLY_THEIR_OWN)(
-    "%s may not sort by a related private record's fields",
+    "%s may not sort a level deeper by a related private record's fields",
     (_who: string, props: DatabaseCommonInteractionProps) => {
       let refusal: unknown = null;
 
       try {
         PrivateRecordReadFilter.checkRelationSort({
-          modelType: DataSecurityIssue,
-          sort: { incident: { title: "ASC" } },
+          modelType: IncidentInternalNote,
+          sort: { incident: { incidentEpisode: { title: "ASC" } } },
           props: props,
         });
       } catch (error) {
@@ -695,32 +722,54 @@ describe("a sort through a relation", () => {
 
       expect(refusal).toBeInstanceOf(NotAuthorizedException);
       expect((refusal as Error).message).toBe(
-        "You do not have permissions to sort on - title of Incident through incident. An incident can be private, and only its owners, Project Owners and Project Admins may read a private one. So only Project Owners and Project Admins sort a list by its fields.",
+        "You do not have permissions to sort on - title of Incident Episode through incident.incidentEpisode. An incident episode can be private, and only its owners, Project Owners and Project Admins may read a private one. Only Project Owners and Project Admins sort a list by its fields through more than one relation.",
       );
     },
   );
 
-  test("nor by a part's fields, nor a level deeper", () => {
+  test("nor through a held relation by the related record's own relation", () => {
     expect(() => {
       PrivateRecordReadFilter.checkRelationSort({
-        modelType: RunnerJob,
-        sort: { runbookExecution: { createdAt: "DESC" } },
-        props: member,
-      });
-    }).toThrow(
-      "You do not have permissions to sort on - createdAt of Runbook Execution through runbookExecution. A runbook execution can be about a private incident, alert or episode",
-    );
-
-    expect(() => {
-      PrivateRecordReadFilter.checkRelationSort({
-        modelType: IncidentInternalNote,
+        modelType: DataSecurityIssue,
         sort: { incident: { incidentEpisode: { title: "ASC" } } },
         props: member,
       });
     }).toThrow(
-      "You do not have permissions to sort on - title of Incident Episode through incident.incidentEpisode.",
+      "You do not have permissions to sort on - incidentEpisode of Incident through incident. An incident can be private",
     );
+
+    expect(() => {
+      PrivateRecordReadFilter.checkRelationSort({
+        modelType: DataSecurityIssue,
+        sort: { incident: { title: "ASC", incidentSeverity: { name: "ASC" } } },
+        props: member,
+      });
+    }).toThrow(NotAuthorizedException);
   });
+
+  test.each(SEE_ONLY_THEIR_OWN)(
+    "%s is not refused before the read a sort by a related record's own columns: the rows decide",
+    (_who: string, props: DatabaseCommonInteractionProps) => {
+      for (const [modelType, sort] of [
+        [DataSecurityIssue, { incident: { title: "ASC" } }],
+        [SecurityCase, { incident: { title: "DESC" } }],
+        // A list's column sorted descending, empty ones last (ColumnSort).
+        [
+          SecurityCase,
+          { incident: { title: { direction: "DESC", nulls: "LAST" } } },
+        ],
+        [RunnerJob, { runbookExecution: { createdAt: "DESC" } }],
+      ] as Array<[{ new (): BaseModel }, Record<string, unknown>]>) {
+        expect(() => {
+          PrivateRecordReadFilter.checkRelationSort({
+            modelType: modelType,
+            sort: sort,
+            props: props,
+          });
+        }).not.toThrow();
+      }
+    },
+  );
 
   test("by the related record's id, by the model's own fields, and through a relation its read keeps, as before", () => {
     for (const [modelType, sort] of [
@@ -748,7 +797,207 @@ describe("a sort through a relation", () => {
           sort: { incident: { title: "ASC" } },
           props: props,
         });
+        PrivateRecordReadFilter.checkRelationSort({
+          modelType: IncidentInternalNote,
+          sort: { incident: { incidentEpisode: { title: "ASC" } } },
+          props: props,
+        });
       }).not.toThrow();
+    },
+  );
+});
+
+/*
+ * A SORT BY A RELATED RECORD'S OWN COLUMNS, AGAINST THE ROWS: the read about
+ * to run is asked for one row naming a related record the caller does not
+ * see - beside every condition it has - and the sort is refused when there
+ * is one. Against a repository whose answer the test gives.
+ */
+describe("a sort checked against the rows", () => {
+  interface Asked {
+    repository: Repository<BaseModel>;
+    wheres: Array<unknown>;
+  }
+
+  function repositoryAnswering(row: BaseModel | null): Asked {
+    const asked: Asked = {
+      repository: Object.create(Repository.prototype) as Repository<BaseModel>,
+      wheres: [],
+    };
+
+    (asked.repository as unknown as { findOne: unknown }).findOne = jest.fn(
+      async (options: { where: unknown }): Promise<BaseModel | null> => {
+        asked.wheres.push(options.where);
+        return row;
+      },
+    );
+
+    return asked;
+  }
+
+  async function refusalOf(data: {
+    modelType: { new (): BaseModel };
+    sort: Record<string, unknown>;
+    where: unknown;
+    props: DatabaseCommonInteractionProps;
+    repository: unknown;
+  }): Promise<Error | null> {
+    try {
+      await PrivateRecordReadFilter.checkRelationSortOfRows({
+        ...data,
+        withDeleted: false,
+      });
+    } catch (error) {
+      return error as Error;
+    }
+
+    return null;
+  }
+
+  test.each(SEE_ONLY_THEIR_OWN)(
+    "%s: refused where a row names a related record they do not see, sorted where none does",
+    async (_who: string, props: DatabaseCommonInteractionProps) => {
+      const naming: Asked = repositoryAnswering(new DataSecurityIssue());
+
+      const refusal: Error | null = await refusalOf({
+        modelType: DataSecurityIssue,
+        sort: { incident: { title: "ASC" }, _id: "ASC" },
+        where: { projectId: PROJECT_ID.toString() },
+        props: props,
+        repository: naming.repository,
+      });
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect(refusal!.message).toBe(
+        "You do not have permissions to sort on - title of Incident through incident. Some of these records name a private incident you may not read, and where they fall in the order would say what it holds. Only its owners, Project Owners and Project Admins sort them by its fields.",
+      );
+
+      // The read's own conditions, and the key naming a record that is gone or unseen.
+      const where: Record<string, unknown> = (
+        naming.wheres[0] as Array<Record<string, unknown>>
+      )[0]!;
+
+      expect(where["projectId"]).toBe(PROJECT_ID.toString());
+      expect(sqlOf(where["incidentId"])).toMatch(
+        /^\(COLUMN IS NOT NULL AND NOT \(COLUMN IN \(SELECT "record\w+"\."_id" FROM "Incident" "record\w+" WHERE /,
+      );
+      expect(sqlOf(where["incidentId"])).toContain(`FROM "Incident" pr`);
+
+      const none: Asked = repositoryAnswering(null);
+
+      expect(
+        await refusalOf({
+          modelType: DataSecurityIssue,
+          sort: { incident: { title: "ASC" } },
+          where: { projectId: PROJECT_ID.toString() },
+          props: props,
+          repository: none.repository,
+        }),
+      ).toBeNull();
+      expect(none.wheres).toHaveLength(1);
+    },
+  );
+
+  test("a part's rows the same way, said of the part", async () => {
+    const naming: Asked = repositoryAnswering(new RunnerJob());
+
+    const refusal: Error | null = await refusalOf({
+      modelType: RunnerJob,
+      sort: { runbookExecution: { createdAt: "DESC" } },
+      where: {},
+      props: member,
+      repository: naming.repository,
+    });
+
+    expect(refusal!.message).toBe(
+      "You do not have permissions to sort on - createdAt of Runbook Execution through runbookExecution. Some of these records name a runbook execution about a private incident, alert or episode you may not read, and where they fall in the order would say what it holds. Only those who may read it, Project Owners and Project Admins sort them by its fields.",
+    );
+
+    const run: string = sqlOf(
+      (naming.wheres[0] as Array<Record<string, unknown>>)[0]![
+        "runbookExecutionId"
+      ],
+    );
+
+    expect(run).toContain(`FROM "RunbookExecution" "record`);
+    expect(run).toContain(`FROM "Incident" pr`);
+    expect(run).toContain(`FROM "Alert" pr`);
+  });
+
+  test("the caller's own filter on the key stays beside it, in each branch of a read across projects", async () => {
+    const naming: Asked = repositoryAnswering(null);
+    const incidentId: string = ObjectID.generate().toString();
+
+    await refusalOf({
+      modelType: DataSecurityIssue,
+      sort: { incident: { title: "ASC" } },
+      where: [{ projectId: "a", incidentId: incidentId }, { projectId: "b" }],
+      props: member,
+      repository: naming.repository,
+    });
+
+    const branches: Array<Record<string, unknown>> = naming.wheres[0] as Array<
+      Record<string, unknown>
+    >;
+
+    expect(branches).toHaveLength(2);
+    expect(branches[0]!["projectId"]).toBe("a");
+    expect((branches[0]!["incidentId"] as FindOperator<unknown>).type).toBe(
+      "and",
+    );
+    expect(branches[1]!["projectId"]).toBe("b");
+    expect(sqlOf(branches[1]!["incidentId"])).toContain("IS NOT NULL AND NOT");
+  });
+
+  test("a repository that cannot be asked: refused, as a row naming one would be", async () => {
+    expect(
+      await refusalOf({
+        modelType: DataSecurityIssue,
+        sort: { incident: { title: "ASC" } },
+        where: {},
+        props: member,
+        repository: { findOne: jest.fn() },
+      }),
+    ).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  test("by the related record's id, by the model's own fields, or through a relation its read keeps: nothing is asked", async () => {
+    for (const [modelType, sort] of [
+      [DataSecurityIssue, { incident: { _id: "ASC" } }],
+      [DataSecurityIssue, { createdAt: "DESC", incidentId: "ASC" }],
+      [EmailLog, { incident: { title: "ASC" } }],
+      [IncidentInternalNote, { incident: { title: "ASC" } }],
+    ] as Array<[{ new (): BaseModel }, Record<string, unknown>]>) {
+      const naming: Asked = repositoryAnswering(new DataSecurityIssue());
+
+      expect(
+        await refusalOf({
+          modelType: modelType,
+          sort: sort,
+          where: {},
+          props: member,
+          repository: naming.repository,
+        }),
+      ).toBeNull();
+      expect(naming.wheres).toEqual([]);
+    }
+  });
+
+  test.each(SEE_EVERY_PRIVATE_RECORD)(
+    "%s: nothing is asked",
+    async (_who: string, props: DatabaseCommonInteractionProps) => {
+      const naming: Asked = repositoryAnswering(new DataSecurityIssue());
+
+      expect(
+        await refusalOf({
+          modelType: DataSecurityIssue,
+          sort: { incident: { title: "ASC" } },
+          where: {},
+          props: props,
+          repository: naming.repository,
+        }),
+      ).toBeNull();
+      expect(naming.wheres).toEqual([]);
     },
   );
 });

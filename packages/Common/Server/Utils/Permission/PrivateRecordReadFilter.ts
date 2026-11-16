@@ -17,7 +17,7 @@ import {
   combineWithPrivacyClause,
   shouldBypassRecordPrivacy,
 } from "../PrivacyFilterUtil";
-import { DataSource, Raw } from "typeorm";
+import { DataSource, Raw, Repository } from "typeorm";
 
 /*
  * WHAT IS DONE ABOUT A PRIVATE RECORD IS READ ONLY BY THOSE WHO SEE IT.
@@ -256,56 +256,75 @@ export default class PrivateRecordReadFilter {
     >;
 
     for (const key of keys) {
-      const seen: Array<{
-        column: string;
-        condition: FindWhereProperty<any>;
-      }> =
-        PrivateRecordReadFilter.getSeenConditions({
-          relatedModelType: key.partModelType,
-          props: props,
-        }) || [];
-
-      const records: FindWhereProperty<any> = QueryHelper.inRecordsWhere({
-        tableName: new key.partModelType().tableName as string,
-        condition:
-          seen.length > 0
-            ? QueryHelper.allOfConditions(
-                seen.map(
-                  (each: {
-                    column: string;
-                    condition: FindWhereProperty<any>;
-                  }) => {
-                    return {
-                      columnName:
-                        each.column === "_id" ? undefined : each.column,
-                      condition: each.condition,
-                    };
-                  },
-                ),
-              )
-            : undefined,
-      });
-
-      const getSql: (alias: string) => string = (
-        records as unknown as { getSql: (alias: string) => string }
-      ).getSql;
-
       filtered[key.column] = combineWithPrivacyClause(
         filtered[key.column],
-        Raw(
-          (alias: string): string => {
-            return `(${alias} IS NULL OR ${getSql(alias)})`;
+        PrivateRecordReadFilter.getKeyCondition({
+          relatedModelType: key.partModelType,
+          props: props,
+          writeSql: (alias: string, seenRecords: string): string => {
+            return `(${alias} IS NULL OR ${seenRecords})`;
           },
-          (
-            records as unknown as {
-              objectLiteralParameters?: Record<string, unknown>;
-            }
-          ).objectLiteralParameters || {},
-        ),
+        }),
       );
     }
 
     return filtered as T;
+  }
+
+  /*
+   * A condition on a key naming records of `relatedModelType`, written by
+   * `writeSql` from the key's alias and the SQL of "the key names a record
+   * that exists and the caller sees" (getSeenConditions) - `(alias IN
+   * (SELECT ...))`.
+   */
+  private static getKeyCondition(data: {
+    relatedModelType: { new (): BaseModel };
+    props: DatabaseCommonInteractionProps;
+    writeSql: (alias: string, seenRecords: string) => string;
+  }): FindWhereProperty<any> {
+    const seen: Array<{
+      column: string;
+      condition: FindWhereProperty<any>;
+    }> =
+      PrivateRecordReadFilter.getSeenConditions({
+        relatedModelType: data.relatedModelType,
+        props: data.props,
+      }) || [];
+
+    const records: FindWhereProperty<any> = QueryHelper.inRecordsWhere({
+      tableName: new data.relatedModelType().tableName as string,
+      condition:
+        seen.length > 0
+          ? QueryHelper.allOfConditions(
+              seen.map(
+                (each: {
+                  column: string;
+                  condition: FindWhereProperty<any>;
+                }) => {
+                  return {
+                    columnName: each.column === "_id" ? undefined : each.column,
+                    condition: each.condition,
+                  };
+                },
+              ),
+            )
+          : undefined,
+    });
+
+    const getSql: (alias: string) => string = (
+      records as unknown as { getSql: (alias: string) => string }
+    ).getSql;
+
+    return Raw(
+      (alias: string): string => {
+        return data.writeSql(alias, getSql(alias));
+      },
+      (
+        records as unknown as {
+          objectLiteralParameters?: Record<string, unknown>;
+        }
+      ).objectLiteralParameters || {},
+    );
   }
 
   /*
@@ -629,13 +648,21 @@ export default class PrivateRecordReadFilter {
   }
 
   /*
-   * Refuses, for a caller who does not see every private record, a sort
-   * through a relation the rule holds by a column of the related record
-   * other than its id: `{ incident: { title: "ASC" } }` on a Data Security
-   * issue. A sort through the related record's own relation, a level
-   * deeper, the same way. Where each record falls in the order would say
-   * what its private record holds, one guess at a time - and an order
-   * leaves no record out.
+   * A SORT THROUGH A RELATION THE RULE HOLDS, by a column of the related
+   * record other than its id - `{ incident: { title: "ASC" } }` on a Data
+   * Security issue - says where each row's related record falls in that
+   * order: one guess at a time, what a private record holds. An order
+   * leaves no row out. For a caller who does not see every private record
+   * it is held in two steps:
+   *
+   *  - before the read, here: refused a level deeper - through the related
+   *    record's own relation, or through a relation the rule holds under
+   *    one it does not - which nothing can check against the rows;
+   *  - as the read runs (checkRelationSortOfRows): a sort by the related
+   *    record's own columns, through a relation of the listed model, is
+   *    refused only where a row the read matches names a related record
+   *    the caller does not see. A list naming none sorts as asked: the
+   *    order then says nothing the caller could not read.
    */
   public static checkRelationSort(data: {
     modelType: { new (): BaseModel };
@@ -694,19 +721,33 @@ export default class PrivateRecordReadFilter {
       );
 
       if (isHeld) {
-        const ordered: string | undefined = Object.keys(
+        const ordered: Array<string> = PrivateRecordReadFilter.getOrderedFields(
           value as Record<string, unknown>,
-        ).find((relatedField: string): boolean => {
-          return (
-            relatedField !== "_id" &&
-            (value as Record<string, unknown>)[relatedField] !== undefined
-          );
-        });
+        );
 
-        if (ordered) {
+        /*
+         * Through the listed model's own relation, by the related record's
+         * own columns - `{ title: "ASC" }`, or `{ title: { direction:
+         * "DESC", nulls: "LAST" } }` - checked against the rows.
+         */
+        const relatedModel: BaseModel = new relatedModelType();
+        const isCheckedAgainstRows: boolean =
+          data.path.length === 0 &&
+          ordered.every((relatedField: string): boolean => {
+            const relatedMetadata: TableColumnMetadata | undefined =
+              relatedModel.getTableColumnMetadata(relatedField);
+
+            return !(
+              relatedMetadata?.modelType &&
+              (relatedMetadata.type === TableColumnType.Entity ||
+                relatedMetadata.type === TableColumnType.EntityArray)
+            );
+          });
+
+        if (ordered.length > 0 && !isCheckedAgainstRows) {
           throw new NotAuthorizedException(
             PrivateRecordReadFilter.getRelationSortRefusal({
-              field: ordered,
+              field: ordered[0]!,
               relatedModelType: relatedModelType,
               relationPath: path.join("."),
             }),
@@ -724,28 +765,150 @@ export default class PrivateRecordReadFilter {
   }
 
   /*
+   * Refuses, for a caller who does not see every private record, a sort
+   * through a relation the rule holds by the related record's own columns
+   * (left here by checkRelationSort) when a row `where` matches - the read
+   * about to run, every condition of it - names a related record the
+   * caller does not see: where that row fell in the order would say what
+   * the record holds. One query per such relation, for the first such row.
+   * A sort through a relation of many records, or one the rows cannot be
+   * asked about, is refused as one naming such a record would be.
+   */
+  public static async checkRelationSortOfRows(data: {
+    modelType: { new (): BaseModel };
+    sort: unknown;
+    where: unknown;
+    props: DatabaseCommonInteractionProps;
+    repository: unknown;
+    withDeleted: boolean;
+  }): Promise<void> {
+    if (
+      !PrivateRecordReadFilter.isPlainObject(data.sort) ||
+      shouldBypassRecordPrivacy(data.props)
+    ) {
+      return;
+    }
+
+    const model: BaseModel = new data.modelType();
+    const sort: Record<string, unknown> = data.sort as Record<string, unknown>;
+
+    for (const held of PrivateRecordReadFilter.getRelations(data.modelType, {
+      evenWhereItsReadKeepsThem: Boolean(data.props.ignoreHooks),
+    })) {
+      const value: unknown = sort[held.relation];
+
+      if (!PrivateRecordReadFilter.isPlainObject(value)) {
+        continue;
+      }
+
+      const ordered: Array<string> = PrivateRecordReadFilter.getOrderedFields(
+        value as Record<string, unknown>,
+      );
+
+      if (ordered.length === 0) {
+        continue;
+      }
+
+      const refusal: NotAuthorizedException = new NotAuthorizedException(
+        PrivateRecordReadFilter.getRelationSortRefusal({
+          field: ordered[0]!,
+          relatedModelType: held.relatedModelType,
+          relationPath: held.relation,
+          isAboutTheRows: true,
+        }),
+      );
+
+      const keyColumn: string | undefined = held.isList
+        ? undefined
+        : (model.getTableColumnMetadata(held.relation)
+            ?.manyToOneRelationColumn as string | undefined);
+
+      if (!keyColumn || !(data.repository instanceof Repository)) {
+        throw refusal;
+      }
+
+      // The key names a record that is gone, or one the caller does not see.
+      const unseen: FindWhereProperty<any> =
+        PrivateRecordReadFilter.getKeyCondition({
+          relatedModelType: held.relatedModelType,
+          props: data.props,
+          writeSql: (alias: string, seenRecords: string): string => {
+            return `(${alias} IS NOT NULL AND NOT ${seenRecords})`;
+          },
+        });
+
+      const branches: Array<Record<string, unknown>> = (
+        Array.isArray(data.where) ? data.where : [data.where || {}]
+      ) as Array<Record<string, unknown>>;
+
+      const naming: BaseModel | null = await (
+        data.repository as Repository<BaseModel>
+      ).findOne({
+        where: branches.map(
+          (branch: Record<string, unknown>): Record<string, unknown> => {
+            return {
+              ...branch,
+              [keyColumn]: combineWithPrivacyClause(branch[keyColumn], unseen),
+            };
+          },
+        ) as never,
+        select: { _id: true } as never,
+        withDeleted: data.withDeleted,
+      });
+
+      if (naming) {
+        throw refusal;
+      }
+    }
+  }
+
+  // The fields a sort of a related record orders by, its id aside.
+  private static getOrderedFields(
+    relatedSort: Record<string, unknown>,
+  ): Array<string> {
+    return Object.keys(relatedSort).filter((field: string): boolean => {
+      return field !== "_id" && relatedSort[field] !== undefined;
+    });
+  }
+
+  /*
    * Why a sort through a relation the rule holds is refused, after the
-   * words every sort refusal starts with (ColumnRefusalMessage).
+   * words every sort refusal starts with (ColumnRefusalMessage): through a
+   * relation a level deeper, to everyone who does not see every private
+   * record; `isAboutTheRows`, because a row of the list names a related
+   * record the caller does not see.
    */
   public static getRelationSortRefusal(data: {
     field: string;
     relatedModelType: { new (): BaseModel };
     relationPath: string;
+    isAboutTheRows?: boolean | undefined;
   }): string {
     const related: BaseModel = new data.relatedModelType();
     const name: string = related.singularName || related.tableName || "record";
     const noun: string = name.toLowerCase();
     const article: string = ["a", "e", "i", "o", "u"].includes(noun.charAt(0))
-      ? "An"
-      : "A";
-
-    const why: string = PrivateRecordPermission.isPrivateRecordModel(
+      ? "an"
+      : "a";
+    const isRecord: boolean = PrivateRecordPermission.isPrivateRecordModel(
       data.relatedModelType,
-    )
-      ? `${article} ${noun} can be private, and only its owners, Project Owners and Project Admins may read a private one.`
-      : `${article} ${noun} can be about a private incident, alert or episode, which only its owners, Project Owners and Project Admins may read.`;
+    );
+    const refused: string = `You do not have permissions to sort on - ${data.field} of ${name} through ${data.relationPath}.`;
 
-    return `You do not have permissions to sort on - ${data.field} of ${name} through ${data.relationPath}. ${why} So only Project Owners and Project Admins sort a list by its fields.`;
+    if (data.isAboutTheRows) {
+      return isRecord
+        ? `${refused} Some of these records name a private ${noun} you may not read, and where they fall in the order would say what it holds. Only its owners, Project Owners and Project Admins sort them by its fields.`
+        : `${refused} Some of these records name ${article} ${noun} about a private incident, alert or episode you may not read, and where they fall in the order would say what it holds. Only those who may read it, Project Owners and Project Admins sort them by its fields.`;
+    }
+
+    const capitalized: string =
+      article.charAt(0).toUpperCase() + article.slice(1);
+
+    const why: string = isRecord
+      ? `${capitalized} ${noun} can be private, and only its owners, Project Owners and Project Admins may read a private one.`
+      : `${capitalized} ${noun} can be about a private incident, alert or episode, which only its owners, Project Owners and Project Admins may read.`;
+
+    return `${refused} ${why} Only Project Owners and Project Admins sort a list by its fields through more than one relation.`;
   }
 
   /*

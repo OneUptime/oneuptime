@@ -360,7 +360,7 @@ Når en privat post slettes, slettes alt dette sammen med den, uansett hvordan d
 
 Kommandoene en Runner kjørte for en runbook-kjøring eller en rettelse, med det de skrev ut, leses bare av dem som får lese kjøringen eller rettelsen. De slettes sammen med kjøringen. Kommandoene til en slettet rettelse beholdes som en oversikt over hva som ble kjørt på infrastrukturen din, og bare Prosjekteiere og Prosjektadministratorer leser dem.
 
-En post som nevner en privat post uten å være en del av den, for eksempel et Data Security-problem, en sikkerhetssak, en skjemainnsending, et øktopptak eller et offentlig varsel eller en offentlig hendelse i en privat episode, leses som før. Bare de som får lese den private posten, ser tittelen og de andre feltene der: for alle andre finner et filter på dem den ikke, og bare Prosjekteiere og Prosjektadministratorer sorterer en liste etter dem.
+En post som nevner en privat post uten å være en del av den, for eksempel et Data Security-problem, en sikkerhetssak, en skjemainnsending, et øktopptak eller et offentlig varsel eller en offentlig hendelse i en privat episode, leses som før. Bare de som får lese den private posten, ser tittelen og de andre feltene der: for alle andre finner et filter på dem den ikke, og en liste som nevner den, kan ikke sorteres etter dem.
 
 Arbeidsflyter handler ikke på private poster. Trinnene i en arbeidsflyt handler som Prosjektadministrator, men får aldri låne dens innsyn i private hendelser, varsler og episoder: de finner ingen, endrer ingen og legger ikke til noe i en, og en arbeidsflyt starter ikke på en slik post eller på noe som hører til den. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).
 

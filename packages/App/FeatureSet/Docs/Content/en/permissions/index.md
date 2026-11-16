@@ -360,7 +360,7 @@ Deleting a private record deletes all of this with it, however it is deleted: on
 
 The commands a Runner ran for a runbook run or a fix, with what they printed, are read only by those who may read the run or the fix. They are deleted with the run. The commands of a deleted fix stay, as a record of what ran on your infrastructure, and only Project Owners and Project Admins read them.
 
-A record that names a private one without being part of it, such as a Data Security issue, a security case, a form submission, a session replay, or a public alert or incident in a private episode, is read as before. Only those who may read the private record see its title and other fields there: for anyone else, a filter by them doesn't find it, and only Project Owners and Project Admins sort a list by them.
+A record that names a private one without being part of it, such as a Data Security issue, a security case, a form submission, a session replay, or a public alert or incident in a private episode, is read as before. Only those who may read the private record see its title and other fields there: for anyone else, a filter by them doesn't find it, and a list naming it can't be sorted by them.
 
 Workflows don't act on private records. A workflow's steps act as a Project Admin but are never lent its sight of private incidents, alerts and episodes: they find none, change none and add nothing to one, and a workflow doesn't start on one or on anything that belongs to one. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 

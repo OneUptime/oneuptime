@@ -360,7 +360,7 @@ När en privat post tas bort tas allt detta bort med den, hur den än tas bort: 
 
 De kommandon som en Runner körde för en runbook-körning eller en rättning, med det de skrev ut, läses bara av dem som får läsa körningen eller rättningen. De tas bort med körningen. Kommandona för en borttagen rättning finns kvar, som en uppgift om vad som kördes på din infrastruktur, och bara Projektägare och Projektadministratörer läser dem.
 
-En post som nämner en privat post utan att vara en del av den, till exempel ett Data Security-problem, ett säkerhetsärende, en formulärinsändning, en sessionsinspelning eller ett offentligt larm eller en offentlig incident i en privat episod, läses som tidigare. Bara de som får läsa den privata posten ser dess titel och övriga fält där: för alla andra hittar ett filter på dem den inte, och bara Projektägare och Projektadministratörer sorterar en lista efter dem.
+En post som nämner en privat post utan att vara en del av den, till exempel ett Data Security-problem, ett säkerhetsärende, en formulärinsändning, en sessionsinspelning eller ett offentligt larm eller en offentlig incident i en privat episod, läses som tidigare. Bara de som får läsa den privata posten ser dess titel och övriga fält där: för alla andra hittar ett filter på dem den inte, och en lista som nämner den kan inte sorteras efter dem.
 
 Arbetsflöden agerar inte på privata poster. Stegen i ett arbetsflöde agerar som Projektadministratör, men får aldrig låna dess insyn i privata incidenter, larm och episoder: de hittar inga, ändrar inga och lägger inte till något till en, och ett arbetsflöde startar inte på en sådan post eller på något som hör till den. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
 

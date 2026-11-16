@@ -1618,48 +1618,82 @@ describePostgres(
           }
         });
 
-        test("a sort by its title is refused to everyone who does not see every private record", async () => {
-          await seedBoth();
+        test("a sort by its title is refused only where a row names one the reader does not see; otherwise it sorts", async () => {
+          const ids: { toPrivate: string; toPublic: string } = await seedBoth();
 
-          const sort: (
+          // The rows in title order - the product's descending sort too - or the refusal.
+          const sorted: (
             props: DatabaseCommonInteractionProps,
-          ) => Promise<void> = async (
+            query: Record<string, unknown>,
+            order: unknown,
+          ) => Promise<Array<string> | "refused"> = async (
             props: DatabaseCommonInteractionProps,
-          ): Promise<void> => {
-            await through.service.findBy({
-              query: {},
-              select: { _id: true },
-              sort: {
-                [through.relation]: { title: SortOrder.Ascending },
-              } as never,
-              skip: 0,
-              limit: 10,
-              props: props,
-            });
+            query: Record<string, unknown>,
+            order: unknown,
+          ): Promise<Array<string> | "refused"> => {
+            try {
+              const rows: Array<BaseModel> = await through.service.findBy({
+                query: query as never,
+                select: { _id: true },
+                sort: { [through.relation]: { title: order } } as never,
+                skip: 0,
+                limit: 10,
+                props: props,
+              });
+
+              return rows.map((row: BaseModel): string => {
+                return row._id!.toString() === ids.toPrivate
+                  ? "private"
+                  : "public";
+              });
+            } catch (error) {
+              if (error instanceof NotAuthorizedException) {
+                return "refused";
+              }
+
+              throw error;
+            }
           };
 
-          for (const [who, props] of serviceOthers()) {
-            let refusal: unknown = null;
+          const both: Record<string, unknown> = {
+            _id: QueryHelper.any([ids.toPrivate, ids.toPublic]),
+          };
+          const descending: unknown = {
+            direction: SortOrder.Descending,
+            nulls: "LAST",
+          };
 
-            try {
-              await sort(props);
-            } catch (error) {
-              refusal = error;
-            }
-
+          // Those who see it: "Public: ..." sorts before "Secret: ...".
+          for (const [who, props] of serviceSeers()) {
             expect({
               who,
-              refused: refusal instanceof NotAuthorizedException,
-            }).toEqual({ who, refused: true });
+              ascending: await sorted(props, both, SortOrder.Ascending),
+              descending: await sorted(props, both, descending),
+            }).toEqual({
+              who,
+              ascending: ["public", "private"],
+              descending: ["private", "public"],
+            });
           }
 
-          // The owning team's member, who sees this one, may not see every one.
-          await expect(sort(reader(memberId))).rejects.toBeInstanceOf(
-            NotAuthorizedException,
-          );
-
-          await sort(propsOf([grant(Permission.ProjectAdmin)], adminId));
-          await sort(propsOf([grant(Permission.ProjectOwner)], adminId));
+          for (const [who, props] of serviceOthers()) {
+            expect({
+              who,
+              ascending: await sorted(props, both, SortOrder.Ascending),
+              descending: await sorted(props, both, descending),
+              // Kept to the rows naming none they do not see, the list sorts.
+              ofThePublicOne: await sorted(
+                props,
+                { _id: ids.toPublic },
+                SortOrder.Ascending,
+              ),
+            }).toEqual({
+              who,
+              ascending: "refused",
+              descending: "refused",
+              ofThePublicOne: ["public"],
+            });
+          }
         });
       });
 

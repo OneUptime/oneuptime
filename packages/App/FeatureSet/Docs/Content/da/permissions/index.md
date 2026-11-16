@@ -360,7 +360,7 @@ Når en privat post slettes, slettes alt dette med den, uanset hvordan den slett
 
 De kommandoer, en Runner har kørt for en runbook-kørsel eller en rettelse, med det, de udskrev, læses kun af dem, der må læse kørslen eller rettelsen. De slettes med kørslen. Kommandoerne fra en slettet rettelse bevares som en registrering af, hvad der blev kørt på din infrastruktur, og kun Projektejere og Projektadministratorer læser dem.
 
-En post, der nævner en privat post uden at være en del af den, såsom et Data Security-problem, en sikkerhedssag, en formularindsendelse, en sessionsoptagelse eller en offentlig advarsel eller hændelse i en privat episode, læses som før. Kun de, der må læse den private post, ser dens titel og øvrige felter der: for alle andre finder et filter på dem den ikke, og kun Projektejere og Projektadministratorer sorterer en liste efter dem.
+En post, der nævner en privat post uden at være en del af den, såsom et Data Security-problem, en sikkerhedssag, en formularindsendelse, en sessionsoptagelse eller en offentlig advarsel eller hændelse i en privat episode, læses som før. Kun de, der må læse den private post, ser dens titel og øvrige felter der: for alle andre finder et filter på dem den ikke, og en liste, der nævner den, kan ikke sorteres efter dem.
 
 Arbejdsgange handler ikke på private poster. Trinene i en arbejdsgang handler som Projektadministrator, men låner aldrig dens adgang til at se private hændelser, advarsler og episoder: de finder ingen, ændrer ingen og føjer intet til en, og en arbejdsgang starter ikke på en eller på noget, der hører til en. Se [Hvad arbejdsgangstrin må gøre](/docs/workflows/configuration#hvad-arbejdsgangstrin-må-gøre).
 

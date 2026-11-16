@@ -10130,6 +10130,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       /*
+       * An order by a private incident's, alert's or episode's fields - or
+       * a part's - through a relation, only where no row this read matches
+       * names one the caller does not see, by who asked (#9102). See
+       * PrivateRecordReadFilter.checkRelationSortOfRows.
+       */
+      await PrivateRecordReadFilter.checkRelationSortOfRows({
+        modelType: this.modelType,
+        sort: onBeforeFind.sort,
+        where: onBeforeFind.query,
+        props: narrowed.asker,
+        repository: this.getRepository(),
+        withDeleted: withDeleted || false,
+      });
+
+      /*
        * repository.find, with a page of a joined read taken in one query
        * where one query gives the same page (PagedFind).
        */
