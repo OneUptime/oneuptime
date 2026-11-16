@@ -271,6 +271,8 @@ describe("HashMasterApiKey", () => {
 
     expect(updates(sql)).toHaveLength(0);
     expect(rows[0]!["masterApiKey"]).toBe(madeSince);
+    // Known for a hash, and passed by: not tried as a key, and no failure logged.
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   test("run twice: the second run changes nothing", async () => {
@@ -292,6 +294,7 @@ describe("HashMasterApiKey", () => {
     expect(second.writes).toHaveLength(0);
     expect(rows[0]).toEqual(afterFirst);
     expectKeyWorks(rows[0]!);
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   test("a key made between its read and its write is kept: the write compares the key read", async () => {
