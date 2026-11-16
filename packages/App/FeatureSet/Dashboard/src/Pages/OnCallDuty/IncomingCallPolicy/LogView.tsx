@@ -72,7 +72,7 @@ const IncomingCallPolicyLogViewPage: FunctionComponent<
           description:
             "View the timeline of dial attempts for this incoming call.",
         }}
-        noItemsMessage={"No dial attempts found for this call."}
+        noItemsMessage={"No dial attempts for this call."}
         showRefreshButton={true}
         selectMoreFields={{
           statusMessage: true,

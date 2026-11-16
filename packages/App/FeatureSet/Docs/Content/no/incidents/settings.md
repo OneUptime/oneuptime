@@ -65,7 +65,7 @@ Noen raske regler:
 - Listen over maler viser bare **Navn** og **Beskrivelse**. Rader kan ikke redigeres eller slettes fra listen — åpne en mal (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) for å endre den.
 - Alle som kan redigere en mal, kan endre detaljene og de berørte ressursene, **Innledende hendelsestilstand** og **Endre monitorstatus til** inkludert: Prosjekteiere, Prosjektadministratorer og Prosjektmedlemmer, Hendelsesadministratorer og Hendelsesmedlemmer, og en rolle med **Edit Incident Template**.
 - Maler støtter import og eksport i JSON, så du kan flytte en mellom prosjekter.
-- Uten maler sier listen **Ingen hendelsesmaler funnet** med **Opprett Hendelsesmal** rett under.
+- Uten maler sier listen **Ingen hendelsesmaler ennå** med **Opprett Hendelsesmal** rett under.
 - Også uten maler åpner **Opprett fra mal** i listen over hendelser en dialog **Ingen hendelsesmaler** som sier hvor maler lages, og knappen **Create Template** åpner **Hendelser → Innstillinger → Hendelsesmaler**.
 
 ### Slik brukes en mal

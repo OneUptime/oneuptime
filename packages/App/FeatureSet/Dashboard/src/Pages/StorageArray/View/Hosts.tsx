@@ -32,7 +32,7 @@ const StorageArrayHosts: FunctionComponent<
       pluralName="Hosts"
       title="Hosts"
       description="The hosts defined on this FlashArray: whether the array sees them on all their paths, the volumes connected to them and the performance they get."
-      noItemsMessage="No hosts found in the inventory yet. Hosts appear here a few minutes after the Storage Array Agent starts scraping the array."
+      noItemsMessage="No hosts in the inventory yet. Hosts appear here a few minutes after the Storage Array Agent starts scraping the array."
       getDetailRoute={(item: StorageArrayResource): Route => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL] as Route,

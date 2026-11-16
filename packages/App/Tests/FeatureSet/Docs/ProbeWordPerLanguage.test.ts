@@ -400,7 +400,7 @@ describe("the Dashboard's word for a probe", () => {
     ["da", "Custom Probes", "Brugerdefinerede sonder"],
     ["da", "Global Probes", "Globale sonder"],
     ["da", "Probe Key", "Sondenøgle"],
-    ["da", "No probes found.", "Ingen sonder fundet."],
+    ["da", "No custom probes yet.", "Ingen brugerdefinerede sonder endnu."],
     ["nl", "Custom Probes", "Aangepaste sondes"],
     ["nl", "Probe Key", "Sondesleutel"],
     ["zh-CN", "Custom Probes", "自定义探测器"],

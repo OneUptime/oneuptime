@@ -65,7 +65,7 @@ Et par hurtige regler:
 - Listen over skabeloner viser kun **Navn** og **Beskrivelse**. Rækker kan ikke redigeres eller slettes fra listen — åbn en skabelon (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) for at ændre den.
 - Alle, der kan redigere en skabelon, kan ændre dens detaljer og dens berørte ressourcer, **Indledende hændelsestilstand** og **Skift monitorstatus til** inklusive: Projektejere, Projektadministratorer og Projektmedlemmer, Hændelsesadministratorer og Hændelsesmedlemmer og en rolle med **Edit Incident Template**.
 - Skabeloner understøtter import og eksport i JSON, så du kan flytte en mellem projekter.
-- Uden skabeloner siger listen **Ingen hændelsesskabeloner fundet** med **Opret Hændelsesskabelon** lige nedenunder.
+- Uden skabeloner siger listen **Ingen hændelsesskabeloner endnu** med **Opret Hændelsesskabelon** lige nedenunder.
 - Heller ikke uden skabeloner åbner **Opret fra skabelon** i listen over hændelser en dialog **Ingen hændelsesskabeloner**, der siger, hvor skabeloner laves, og dens knap **Create Template** åbner **Hændelser → Indstillinger → Hændelsesskabeloner**.
 
 ### Sådan anvendes en skabelon

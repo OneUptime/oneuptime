@@ -621,7 +621,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
           description:
             "Ready-made maintenance events for work you do often, with the title, monitors, status pages and notifications filled in. Use one with Create from Template, or make it recurring to schedule events automatically.",
         }}
-        noItemsMessage={"No Scheduled Maintenance templates found."}
+        noItemsMessage={"No scheduled maintenance templates yet."}
         topContent={filterBar}
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}

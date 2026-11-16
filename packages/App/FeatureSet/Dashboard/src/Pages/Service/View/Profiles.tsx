@@ -39,7 +39,7 @@ const ServiceProfiles: FunctionComponent<
       {hasProfiles ? (
         <ProfileTable
           modelId={modelId}
-          noItemsMessage="No profiles found for this service."
+          noItemsMessage="No profiles for this service yet."
         />
       ) : (
         <></>

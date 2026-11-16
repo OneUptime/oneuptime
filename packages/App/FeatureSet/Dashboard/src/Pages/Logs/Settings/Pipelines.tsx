@@ -143,7 +143,7 @@ const LogPipelines: FunctionComponent<
           "Parse, fix and tag logs as they arrive, before they are stored.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No log pipelines found."}
+      noItemsMessage={"No log pipelines yet."}
       viewPageRoute={Navigation.getCurrentRoute()}
       formFields={[
         {

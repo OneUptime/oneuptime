@@ -47,7 +47,7 @@ const LlmPricingPage: FunctionComponent<PageComponentProps> = (
           "Your own per-million-token prices, for negotiated rates or models the built-in catalog does not know. The longest matching model prefix wins, and your entry beats the built-in one on ties.",
       }}
       noItemsMessage={
-        "No custom LLM prices found. Spans are priced with the built-in list-price catalog."
+        "No custom LLM prices yet. Spans are priced with the built-in list-price catalog."
       }
       formSteps={[
         { title: "Model", id: "model" },

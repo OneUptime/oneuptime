@@ -158,7 +158,7 @@ På OneUptime Cloud kräver det planen **Growth** att lägga till eller ändra n
 
 Som standard nås en statussida på förhandsgransknings-URL:en på dess skärm **Översikt**. För att lägga den på ditt eget värdnamn går du till **Statussidor → din sida → Varumärke → Anpassade domäner** (`{id}/domains`).
 
-Kortet **Anpassade domäner** säger vad du ska göra: peka varje domäns CNAME-post mot din installations CNAME-post för statussidor, så utfärdar OneUptime domänens SSL-certifikat och förnyar det åt dig. Utan något konfigurerat säger tabellen **Inga anpassade domäner hittades**, med **Lägg till anpassad domän** nedanför. Tabellen har två kolumner, **Domän** och **Status**, och filter för **Domän**, **CNAME giltig** och **SSL provisionerat**.
+Kortet **Anpassade domäner** säger vad du ska göra: peka varje domäns CNAME-post mot din installations CNAME-post för statussidor, så utfärdar OneUptime domänens SSL-certifikat och förnyar det åt dig. Utan något konfigurerat säger tabellen **Inga anpassade domäner ännu**, med **Lägg till anpassad domän** nedanför. Tabellen har två kolumner, **Domän** och **Status**, och filter för **Domän**, **CNAME giltig** och **SSL provisionerat**.
 
 Att lägga sidan på din domän tar tre steg, alla på den här sidan, och bara de två första är dina:
 

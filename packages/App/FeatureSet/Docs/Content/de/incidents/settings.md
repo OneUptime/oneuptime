@@ -65,7 +65,7 @@ Ein paar knappe Regeln:
 - Die Vorlagenliste zeigt nur **Name** und **Beschreibung**. Zeilen lassen sich aus der Liste heraus weder bearbeiten noch löschen – öffnen Sie eine Vorlage (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`), um sie zu ändern.
 - Jeder, der eine Vorlage bearbeiten kann, kann ihre Details und ihre betroffenen Ressourcen ändern, **Anfänglicher Vorfallstatus** und **Monitor-Status ändern in** eingeschlossen: Projektinhaber, Projektadministratoren und Projektmitglieder, Vorfall-Administratoren und Vorfall-Mitglieder sowie eine Rolle mit **Edit Incident Template**.
 - Vorlagen unterstützen JSON-Import und -Export, Sie können eine also zwischen Projekten verschieben.
-- Gibt es keine Vorlagen, sagt die Liste **Keine Vorfallvorlagen gefunden**, mit **Vorfallsvorlage erstellen** direkt darunter.
+- Gibt es keine Vorlagen, sagt die Liste **Noch keine Vorfallvorlagen**, mit **Vorfallsvorlage erstellen** direkt darunter.
 - Gibt es ebenfalls keine, öffnet **Aus Vorlage erstellen** in der Vorfallliste einen Dialog **Keine Vorfallvorlagen**, der sagt, wo Vorlagen angelegt werden, und seine Schaltfläche **Vorlage erstellen** öffnet **Vorfälle → Einstellungen → Vorfall-Vorlagen**.
 
 ### Wie eine Vorlage angewendet wird

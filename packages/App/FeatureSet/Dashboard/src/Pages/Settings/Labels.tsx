@@ -89,7 +89,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Group resources with labels. A team's permission can be limited to the resources with certain labels.",
           titleGlossaryTerm: GlossaryTerm.Label,
         }}
-        noItemsMessage={"No labels found."}
+        noItemsMessage={"No labels yet."}
         viewPageRoute={Navigation.getCurrentRoute()}
         formFields={[
           {

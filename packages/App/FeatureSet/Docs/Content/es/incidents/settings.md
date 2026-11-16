@@ -65,7 +65,7 @@ Algunas reglas rápidas:
 - La lista de plantillas muestra solo **Nombre** y **Descripción**. Las filas no se pueden editar ni eliminar desde la lista: abre una plantilla (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) para cambiarla.
 - Cualquiera que pueda editar una plantilla puede cambiar sus detalles y sus recursos afectados, **Estado inicial del incidente** y **Cambiar el estado del monitor a** incluidos: los Propietarios del proyecto, Administradores del proyecto y Miembros del proyecto, los Administradores de incidentes y Miembros de incidentes, y un rol con **Edit Incident Template**.
 - Las plantillas admiten importación y exportación JSON, así que puedes mover una de un proyecto a otro.
-- Sin plantillas, la lista dice **No se encontraron plantillas de incidente** con **Crear Plantilla de incidente** justo debajo.
+- Sin plantillas, la lista dice **Todavía no hay plantillas de incidente** con **Crear Plantilla de incidente** justo debajo.
 - Tampoco sin plantillas, **Crear desde plantilla** de la lista de incidentes abre un diálogo **No hay plantillas de incidente** que dice dónde se crean las plantillas, y su botón **Crear plantilla** abre **Incidentes → Ajustes → Plantillas de incidente**.
 
 ### Cómo se aplica una plantilla

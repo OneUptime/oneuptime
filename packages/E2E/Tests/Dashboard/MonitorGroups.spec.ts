@@ -84,9 +84,7 @@ test.describe("Monitor Groups", () => {
           .getByTestId("card-details-heading")
           .filter({ hasText: "Monitor Groups" }),
       ).toBeVisible();
-      await expect(page.getByText("No monitor groups found")).toBeVisible(
-        SERVER,
-      );
+      await expect(page.getByText("No monitor groups yet")).toBeVisible(SERVER);
 
       // ---- Create ----
       await createButton.click();
@@ -101,7 +99,7 @@ test.describe("Monitor Groups", () => {
       await expect(modal).toBeHidden(SERVER);
 
       await expect(row).toBeVisible(SERVER);
-      await expect(page.getByText("No monitor groups found")).toHaveCount(0);
+      await expect(page.getByText("No monitor groups yet")).toHaveCount(0);
 
       await expect
         .poll(async (): Promise<number> => {
@@ -176,9 +174,7 @@ test.describe("Monitor Groups", () => {
         new RegExp(`/dashboard/${projectId}/monitor-groups/?$`),
         SERVER,
       );
-      await expect(page.getByText("No monitor groups found")).toBeVisible(
-        SERVER,
-      );
+      await expect(page.getByText("No monitor groups yet")).toBeVisible(SERVER);
       await expect(row).toHaveCount(0);
       await expect
         .poll(async (): Promise<number> => {

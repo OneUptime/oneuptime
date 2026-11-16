@@ -32,7 +32,7 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
           description:
             "Ready-made text for alert updates. Pick one when writing a private note on an alert or an episode, or when acknowledging or resolving one, and edit it before posting.",
         }}
-        noItemsMessage={"No note templates found."}
+        noItemsMessage={"No note templates yet."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

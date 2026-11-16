@@ -1057,7 +1057,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         noItemsMessage={
           hasActiveFilters
             ? "No resources match the current filters."
-            : props.emptyMessage || "No resources found."
+            : props.emptyMessage || "No resources yet."
         }
       />
     </Card>

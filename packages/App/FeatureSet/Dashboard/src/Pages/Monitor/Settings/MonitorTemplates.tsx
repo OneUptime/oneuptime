@@ -103,7 +103,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             },
           },
         ]}
-        noItemsMessage={"No monitor templates found."}
+        noItemsMessage={"No monitor templates yet."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

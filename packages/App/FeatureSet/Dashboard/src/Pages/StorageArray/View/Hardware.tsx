@@ -100,7 +100,7 @@ const StorageArrayHardware: FunctionComponent<
         pluralName="Hardware Components"
         title="Hardware Components"
         description="Blades, fabric modules, power supplies, fans and the other parts of this FlashBlade, with the health the FlashBlade reports for each."
-        noItemsMessage="No hardware components found in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the FlashBlade."
+        noItemsMessage="No hardware components in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the FlashBlade."
         columns={[
           StorageArrayResourceColumns.getTextColumn({
             field: "componentType",
@@ -143,7 +143,7 @@ const StorageArrayHardware: FunctionComponent<
         pluralName="Hardware Components"
         title="Hardware Components"
         description="The chassis, controller and drive bays, power supplies, fans, temperature sensors and ports of this FlashArray, with the status Purity reports for each."
-        noItemsMessage="No hardware components found in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the array."
+        noItemsMessage="No hardware components in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the array."
         columns={[
           StorageArrayResourceColumns.getTextColumn({
             field: "componentType",
@@ -188,7 +188,7 @@ const StorageArrayHardware: FunctionComponent<
         pluralName="Drives"
         title="Drives"
         description="The flash modules, SSDs and NVRAM modules in this FlashArray, with their raw capacity and the status Purity reports for each."
-        noItemsMessage="No drives found in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the array."
+        noItemsMessage="No drives in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the array."
         columns={[
           StorageArrayResourceColumns.getTextColumn({
             field: "componentType",
@@ -230,7 +230,7 @@ const StorageArrayHardware: FunctionComponent<
         pluralName="Controllers"
         title="Controllers"
         description="The controllers of this FlashArray: which one is primary, their model, the Purity version they run and their status."
-        noItemsMessage="No controllers found in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the array."
+        noItemsMessage="No controllers in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the array."
         columns={[
           {
             field: {
@@ -277,7 +277,7 @@ const StorageArrayHardware: FunctionComponent<
         pluralName="Network Interfaces"
         title="Network Interfaces"
         description="The Ethernet and Fibre Channel ports of this FlashArray: whether each is enabled, its speed, the traffic it carries and the errors it sees."
-        noItemsMessage="No network interfaces found in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the array."
+        noItemsMessage="No network interfaces in the inventory yet. They appear here a few minutes after the Storage Array Agent starts scraping the array."
         columns={[
           StorageArrayResourceColumns.getTextColumn({
             field: "componentType",

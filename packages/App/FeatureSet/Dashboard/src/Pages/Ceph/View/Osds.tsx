@@ -229,7 +229,7 @@ const CephClusterOsds: FunctionComponent<
           },
         },
       ]}
-      emptyMessage="No OSDs found in the inventory yet. OSDs appear here a few minutes after the Ceph agent starts sending metrics."
+      emptyMessage="No OSDs in the inventory yet. OSDs appear here a few minutes after the Ceph agent starts sending metrics."
       getViewRoute={(resource: InfrastructureResource): Route => {
         return routes.getPartRoute("Osd", resource.name);
       }}
