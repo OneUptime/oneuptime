@@ -1,3 +1,4 @@
+import { getShortProfileFunctionName } from "Common/Utils/Profiles/ProfileFunctionNames";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -510,7 +511,9 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
               },
             )}
           >
-            {widthFraction > 0.03 ? node.functionName : ""}
+            {widthFraction > 0.03
+              ? getShortProfileFunctionName(node.functionName)
+              : ""}
           </div>
           {node.children.map((child: DiffFlamegraphNode) => {
             const childMax: number = Math.max(
