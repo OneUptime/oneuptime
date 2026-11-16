@@ -281,15 +281,17 @@ const BEYOND_ASCII = /[^\u0000-\u007f]/;
 
 /*
  * An IPv6 address by the rule the app reads HOST's brackets by as it starts
- * (isIPv6 in packages/Common/Types/IP/IP.ts, which Hostname asks). Node's
- * net.isIPv6, which this used, takes more: an IPv4 address after six groups
- * or after groups and "::" (1:2:3:4:5:6:1.2.3.4, 1::2:192.0.2.1), which the
- * app refuses, so such a HOST got past npm start and every service stopped
- * as it started (#8877). ::ffff:192.0.2.1 and 64:ff9b::192.0.2.1 it takes.
- * Tests/Ops/HelmHost.test.js holds this copy to the app's and the chart's.
+ * (isIPv6 in packages/Common/Types/IP/IP.ts, which Hostname asks): every
+ * text form of RFC 4291, an IPv4 address at the end included
+ * (::ffff:192.0.2.1, 64:ff9b::192.0.2.1, 1:2:3:4:5:6:192.0.2.1,
+ * 2001:db8::1:192.0.2.1), the forms Node's net.isIPv6 takes. The app's rule
+ * once took an IPv4 address only after "::", "::ffff:" or up to four groups
+ * and "::", and this copy held HOST to it (#8877) until the app took them
+ * all (#8927). Tests/Ops/HelmHost.test.js holds this copy to the app's and
+ * the chart's.
  */
 const IPV6_ADDRESS =
-  /^(?:([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/i;
+  /^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|(?:(?:[0-9a-fA-F]{1,4}:){6}|::(?:[0-9a-fA-F]{1,4}:){0,5}|[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:){0,4}|(?:[0-9a-fA-F]{1,4}:){2}:(?:[0-9a-fA-F]{1,4}:){0,3}|(?:[0-9a-fA-F]{1,4}:){3}:(?:[0-9a-fA-F]{1,4}:){0,2}|(?:[0-9a-fA-F]{1,4}:){4}:(?:[0-9a-fA-F]{1,4}:)?|(?:[0-9a-fA-F]{1,4}:){5}:)(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))$/i;
 
 // An IPv6 address, written as a web address can hold one: hex digits, colons and dots, no zone.
 const isIpv6Address = (text) => {

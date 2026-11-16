@@ -50,10 +50,13 @@ jest.mock("../../../../Server/Utils/Logger");
  * as every other request of the server does; a host in NO_PROXY is dialled
  * directly, at the address the guard approved.
  *
- * The callers that never go through a proxy are held to that too: external
- * calendars and MCP servers are read with Node's own HTTP client, which
- * reads no proxy setting, and a Git server is reached with the proxy off on
- * purpose. Each is dialled directly, at the approved address, whatever the
+ * External calendars and MCP servers are read with Node's own HTTP client,
+ * which reads no proxy setting, so they never went through one either
+ * (#8932). Their agents now go through the proxy as axios decides
+ * (DataSourceEgressGuard.createPinnedAgentsForNodeHttp), and they are held
+ * to the same four answers here. The one caller that never goes through a
+ * proxy is held to that too: a Git server is reached with the proxy off on
+ * purpose, dialled directly, at the approved address, whatever the
  * environment says. self-hosted/private-network-access says which is which.
  *
  * The proxy and the servers run on this machine (OutboundProxyFixture):
@@ -189,6 +192,36 @@ const PROXIED_CALLERS: Array<ProxiedCaller> = [
       });
     },
   },
+  {
+    name: "an external calendar (Node's own HTTP client)",
+    host: "calendar.example.test",
+    path: "/basic.ics",
+    send: async (origin: string): Promise<ExternalCalendarFetchResult> => {
+      return await ExternalCalendarFetch.fetch(`${origin}/basic.ics`, {
+        timeoutInMs: 5000,
+      });
+    },
+  },
+  {
+    name: "an MCP server (Node's own HTTP client)",
+    host: "mcp.example.test",
+    path: "/mcp",
+    send: async (origin: string): Promise<unknown> => {
+      const response: McpHttpResponse =
+        await new GuardedMcpHttpTransport().send({
+          method: "POST",
+          url: `${origin}/mcp`,
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+          signal: new AbortController().signal,
+          maxResponseBytes: 1024 * 1024,
+        });
+
+      response.close();
+
+      return response;
+    },
+  },
 ];
 
 function targetAddress(): string {
@@ -274,36 +307,6 @@ interface DirectCaller {
 }
 
 const DIRECT_CALLERS: Array<DirectCaller> = [
-  {
-    name: "an external calendar (Node's HTTP client reads no proxy setting)",
-    host: "calendar.example.test",
-    path: "/basic.ics",
-    send: async (origin: string): Promise<ExternalCalendarFetchResult> => {
-      return await ExternalCalendarFetch.fetch(`${origin}/basic.ics`, {
-        timeoutInMs: 5000,
-      });
-    },
-  },
-  {
-    name: "an MCP server (Node's HTTP client reads no proxy setting)",
-    host: "mcp.example.test",
-    path: "/mcp",
-    send: async (origin: string): Promise<unknown> => {
-      const response: McpHttpResponse =
-        await new GuardedMcpHttpTransport().send({
-          method: "POST",
-          url: `${origin}/mcp`,
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-          signal: new AbortController().signal,
-          maxResponseBytes: 1024 * 1024,
-        });
-
-      response.close();
-
-      return response;
-    },
-  },
   {
     name: "a Git server (the proxy is off on purpose)",
     host: "git.example.test",

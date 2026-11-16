@@ -7,6 +7,7 @@ import { Issuer, Client, custom, generators, TokenSet } from "openid-client";
 import DataSourceEgressGuard, {
   AddressVerdict,
   EgressLookupFunction,
+  GuardedNodeHttpAgents,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import net, { LookupFunction } from "net";
@@ -37,6 +38,15 @@ const OIDC_EGRESS_LABEL: string = "OIDC provider";
  *    sail straight past a lookup-only guard. custom.http_options runs per
  *    request with the parsed URL in hand, which is where those are caught.
  *
+ * The same hook hands each request the agent it goes out on
+ * (createGuardedAgentsForNodeHttp), so discovery, token, userinfo and JWKS
+ * requests go through the outbound proxy the environment names
+ * (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY, apart from NO_PROXY's hosts), as
+ * every axios request of the server does: Node's own client, which
+ * openid-client sends with, reads none of them (#8932). Through a proxy,
+ * the host is checked before the proxy is asked for it; without one, the
+ * agent's lookup is the guarded one below.
+ *
  * Private ranges stay reachable on self-hosted installs, where the identity
  * provider is often on the same private network; loopback, link-local and the
  * rest are refused everywhere.
@@ -50,6 +60,11 @@ custom.setHttpOptionsDefaults({
   lookup: egressGuardedLookup as unknown as LookupFunction,
 });
 
+const oidcAgents: GuardedNodeHttpAgents =
+  DataSourceEgressGuard.createGuardedAgentsForNodeHttp({
+    targetLabel: OIDC_EGRESS_LABEL,
+  });
+
 type HttpOptionsHook = (
   url: globalThis.URL,
   options: Record<string, unknown>,
@@ -61,20 +76,18 @@ const guardLiteralHost: HttpOptionsHook = (
 ): Record<string, unknown> => {
   const host: string = url.hostname.replace(/^\[|\]$/g, "");
 
-  // A name — `lookup` validates it, with DNS, when the socket opens.
-  if (net.isIP(host) === 0) {
-    return options;
+  // A name is checked, with DNS, when the agent opens its socket.
+  if (net.isIP(host) !== 0) {
+    const verdict: AddressVerdict = DataSourceEgressGuard.checkAddress(host);
+
+    if (verdict.blocked) {
+      throw new BadDataException(
+        `${OIDC_EGRESS_LABEL} host ${host} is not allowed: ${verdict.reason}.`,
+      );
+    }
   }
 
-  const verdict: AddressVerdict = DataSourceEgressGuard.checkAddress(host);
-
-  if (verdict.blocked) {
-    throw new BadDataException(
-      `${OIDC_EGRESS_LABEL} host ${host} is not allowed: ${verdict.reason}.`,
-    );
-  }
-
-  return options;
+  return { ...options, agent: oidcAgents.agentFor(url) };
 };
 
 /*
