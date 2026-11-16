@@ -179,13 +179,11 @@ async function wordsBrokenAcrossLines(
 const PAGES: Array<{ lang: string; address: string }> = [
   // Règles de taux de consommation: the maintainer's French Burn Rate Rules.
   { lang: "fr", address: `${SLO_PATH}/burn-rate-rules` },
-  // Abonnés au webhook, Paramètres des abonnés, Journaux de notification.
-  { lang: "fr", address: `${STATUS_PAGE_PATH}/microsoft-teams-subscribers` },
-  // Microsoft Teams-Abonnenten, Abonnenten-Einstellungen.
-  { lang: "de", address: `${STATUS_PAGE_PATH}/microsoft-teams-subscribers` },
-  // Benachrichtigungsprotokolle, as a heading and as an entry.
+  // Paramètres des abonnés, Journaux de notification.
+  { lang: "fr", address: `${STATUS_PAGE_PATH}/subscriber-settings` },
+  // Abonnenten-Einstellungen, and Benachrichtigungsprotokolle as an entry.
   { lang: "de", address: `${STATUS_PAGE_PATH}/notification-logs` },
-  { lang: "en", address: `${STATUS_PAGE_PATH}/microsoft-teams-subscribers` },
+  { lang: "en", address: `${STATUS_PAGE_PATH}/subscribers` },
 ];
 
 test.describe("where a side menu's words break", () => {
@@ -246,12 +244,15 @@ test.describe("where a side menu's words break", () => {
         },
       );
 
-    // Benachrichtigungsprotokolle, as the section's heading and its entry.
+    /*
+     * Benachrichtigungsprotokolle, as its entry under Abonnenten: it had a
+     * section of its own, with the same heading, until #9125.
+     */
     const long: Array<{ text: string; hyphens: string; lang: string }> =
       hyphens.filter((title: { text: string }): boolean => {
         return title.text === "Benachrichtigungsprotokolle";
       });
-    expect(long).toHaveLength(2);
+    expect(long).toHaveLength(1);
     for (const title of long) {
       expect(title).toEqual({
         text: "Benachrichtigungsprotokolle",

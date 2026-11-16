@@ -65,7 +65,7 @@ Een paar korte regels:
 - De sjablonenlijst toont alleen **Naam** en **Beschrijving**. Rijen kunnen vanuit de lijst niet worden bewerkt of verwijderd — open een sjabloon (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) om het te wijzigen.
 - Iedereen die een sjabloon kan bewerken, kan de details en de getroffen middelen ervan wijzigen, **Initiële incidentstatus** en **Monitorstatus wijzigen naar** inbegrepen: Projecteigenaars, Projectbeheerders en Projectleden, Incidentbeheerders en Incidentleden, en een rol met **Edit Incident Template**.
 - Sjablonen ondersteunen import en export in JSON, zodat je er een van het ene project naar het andere kunt verplaatsen.
-- Zonder sjablonen zegt de lijst **Geen incidentsjablonen gevonden** met **Incidentsjabloon aanmaken** er direct onder.
+- Zonder sjablonen zegt de lijst **Nog geen incidentsjablonen** met **Incidentsjabloon aanmaken** er direct onder.
 - Ook zonder sjablonen opent **Maken op basis van sjabloon** in de incidentenlijst een dialoogvenster **Geen incidentsjablonen** dat zegt waar sjablonen worden gemaakt, en de knop **Create Template** ervan opent **Incidenten → Instellingen → Incident-sjablonen**.
 
 ### Hoe een sjabloon wordt toegepast

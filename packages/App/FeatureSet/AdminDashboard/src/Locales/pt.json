@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "ID da assinatura por uso",
       "noTrial": "Sem período de teste",
       "changePlanTitle": "Alterar plano",
-      "changePlanDescription": "Mova este projeto para outro plano. Um período de teste em andamento continua; caso contrário, o novo plano é cobrado a partir de agora, proporcionalmente na próxima fatura. O cliente não precisa ter um método de pagamento cadastrado: o que ele deve fica pendente até que adicione um.",
+      "changePlanDescription": "Mova este projeto para outro plano, proporcionalmente na próxima fatura. Um período de teste em andamento continua. Não é preciso um método de pagamento: as cobranças aguardam até que um seja adicionado.",
       "changePlanSubmitButton": "Alterar plano",
       "changePlanSuccess": "Plano alterado para {{plan}}.",
       "changePlanFailure": "O plano não foi alterado. Tente novamente.",
@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "Convidado: {{itemName}}",
   "{{itemName}} linked": "Vinculado: {{itemName}}",
   "{{itemName}} removed": "Removido: {{itemName}}",
-  "{{itemName}} started": "Iniciado: {{itemName}}"
+  "{{itemName}} started": "Iniciado: {{itemName}}",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Excluir um incidente também exclui suas notas, sua linha do tempo de estado, suas execuções de runbook e as correções que a OneUptime AI propôs para ele, e o remove das páginas de status. Os alertas vinculados permanecem.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Excluir um alerta também exclui suas notas, sua linha do tempo de estado, suas execuções de runbook e as correções que a OneUptime AI propôs para ele. Os incidentes vinculados permanecem.",
+  "In short": "Em resumo",
+  "Full documentation": "Documentação completa",
+  "Expand all": "Expandir tudo",
+  "Collapse all": "Recolher tudo",
+  "Limited to deleted records": "Limitada a registros excluídos",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}} (exclusão em {{date}}).",
+  "OneUptime switched this rule off when they were deleted.": "O OneUptime desativou esta regra quando eles foram excluídos.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Ativada como está, a regra não seria mais limitada por estas listas. Edite-a para escolher a que ela se aplica e depois ative-a.",
+  "{{names}} and {{count}} more": "{{names}} e mais {{count}}",
+  "{{names}} and {{count}} more_one": "{{names}} e mais {{count}}"
 }

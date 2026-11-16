@@ -385,7 +385,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         <EmptyState
           paddingClassName="py-12 sm:py-16"
           id="announcement-empty-state"
-          title={t("announcements.none")}
+          title={t("announcements.notFoundTitle")}
           description={t("announcements.notFound")}
           icon={IconProp.Announcement}
         />

@@ -6,7 +6,7 @@ Upgrade a self-hosted OneUptime — Docker Compose, or Kubernetes with Helm — 
 - [How to upgrade](#how-to-upgrade): The procedure, for Docker Compose and Kubernetes.
 - [Notes for each version](#find-the-notes-for-your-version): What each major version asks of you, at a glance.
 - [Community and Enterprise Edition images](#community-and-enterprise-edition-images): Which image to run from 14 on.
-- [Upgrading from OneUptime 13 → 14](#upgrading-from-oneuptime-13-14): The newest major version.
+- [Upgrading from OneUptime 14 → 15](#upgrading-from-oneuptime-14-15): The newest major version.
 :::
 
 ## How to upgrade
@@ -80,6 +80,7 @@ Then check your version again, as in the first step. If you have not reached you
 
 | Upgrade | What you must do |
 | --- | --- |
+| [14 → 15](#upgrading-from-oneuptime-14-15) | Copy the master API key first if you read it from the Admin Dashboard. Upgrade the Terraform provider with the server, and take the credentials 15 no longer gives out of API reads. Behind a proxy, let it reach your identity provider, calendars, MCP servers and backup storage. Check Incoming Request monitors that receive plain text. |
 | [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. AI code fixes move to the global Runner: keep it on, and on Helm move `runner.keda` to `globalRunner.keda`. |
 | [12 → 13](#upgrading-from-oneuptime-12-13) | Usually nothing: Redis becomes Valkey, and the old setting names keep working. Running Docker Compose by hand? Add `--remove-orphans`. Using a cache of your own? Read [If you run your own cache](#if-you-run-your-own-cache). |
 | [11 → 12](#upgrading-from-oneuptime-11-12) | Redeploy Runbook Agents as Runners. On Docker Compose, set `ONEUPTIME_RUNNER_KEY`. On Helm, rename `aiAgent:` to `runner:`. Re-grant Runner permissions that API keys held directly. |
@@ -180,6 +181,136 @@ settings that used to show an upgrade prompt.
 - The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs,
   and the global SSO endpoints) keep their exact paths and are served by both
   editions in every license state.
+
+## Upgrading from OneUptime 14 → 15
+
+OneUptime 15 keeps the secrets it stores useless to whoever reads a database
+dump or a backup, and keeps private incidents, alerts and episodes to the
+people who own them. The master API key and a project's API keys are stored
+hashed and shown only when they are made, and the credentials a project saves
+for mail, chat apps, webhooks and custom domains are encrypted and can no
+longer be read back. Paging, runbooks and fixes about a private record take
+their permission from its owners, and workflows no longer act on private
+records. Upgrade from 14 — if you are still on 13, do 13 → 14 first.
+
+The upgrade hashes the keys and encrypts the credentials you have, so the
+scripts, integrations and chat apps that use them keep working, with no
+change.
+
+### What you need to do for 15
+
+1. **If you read the master API key from the Admin Dashboard, copy it before
+   you upgrade.** From 15 on, the page no longer shows the key, and making a
+   new one stops the old one. A key you keep in a secret manager needs
+   nothing.
+2. **If Terraform or OpenTofu manages OneUptime, upgrade the provider with the
+   server** (`terraform init -upgrade`: the provider's versions follow
+   OneUptime's). A provider of 14 asks 15 for credentials it no longer gives
+   out, so `terraform plan` fails on every `oneuptime_smtp_config` and on
+   status page, dashboard and form domains, and the provider loses the
+   `api_key` of the API keys it created at its next refresh.
+3. **Take the credentials 15 no longer gives out of your API scripts' reads.**
+   A read whose `select` names a project SMTP config's `password`,
+   `clientSecret`, `amazonSesSecretAccessKey`, `sendgridApiKey`,
+   `mailgunApiKey`, `postmarkServerToken` or `resendApiKey`, or a custom
+   domain's `customCertificateKey`, is refused. An API key is shown only by
+   the request that creates or resets it.
+4. **If the server reaches the internet through a proxy, let the proxy reach
+   your identity provider, calendars, MCP servers and backup storage.** OIDC
+   single sign-on, external calendars, MCP servers and backups now use the
+   proxy set in `HTTPS_PROXY`, `HTTP_PROXY` or `ALL_PROXY`, as the server's
+   other connections over HTTP do. List the hosts the proxy cannot reach, such
+   as a Keycloak, an Exchange server or a MinIO on your own network, in
+   `NO_PROXY`. See
+   [Other outbound connections](/docs/self-hosted/private-network-access#other-outbound-connections).
+5. **Check the criteria of Incoming Request monitors whose senders post plain
+   text.** 15 reads a `text/plain` body that is not JSON as its text, where
+   14 read it as `{}`, so under the default criteria such a monitor goes
+   offline, and opens an incident, when the text contains `error`:
+   `backup failed: error 42`, but also `0 errors`. A workflow's request body
+   is the text now too. See
+   [Sending a request body](/docs/monitor/incoming-request-monitor#sending-a-request-body).
+6. **Give the teams that own private incidents, alerts and episodes the
+   permissions their members page and run runbooks with, and move workflows
+   off private records.** Paging about a private record, running a runbook on
+   it and acting on a fix OneUptime AI proposed for it now take their
+   permission from the teams that own it and the people named as its owners,
+   and workflow steps no longer see or change a private record. See
+   [Other changes in 15](#other-changes-in-15).
+
+### Other changes in 15
+
+These change how OneUptime behaves after the upgrade. Read them if you use the
+master API key, project API keys or Terraform, or private incidents, alerts
+and episodes.
+
+:::details Read the other changes in 15
+- **The master API key is stored hashed, and shown only when it is made.**
+  The key has root access to every project, and it was stored as it was
+  written, so a database dump or a backup held a working key. Now only its
+  hash is stored, and the upgrade hashes the key you have: the scripts and
+  integrations that use it keep working, with no change.
+  **Admin Dashboard > Settings > API Key** no longer shows the key: it says
+  whether one is set, and **Create Key** or **Reset Key** shows a new key
+  once, to copy then. If you read the key from that page rather than keep it
+  in a secret manager, copy it before you upgrade: afterwards **Reset Key**
+  makes a new one, and the old one stops working. A new key works at once,
+  and **Enabled** turns it off. The API no longer reads `masterApiKey` back,
+  and refuses a key written to it. Rolled back to an earlier release, the
+  page shows the key's hash, which is no key: generate a new key there.
+- **A project's API keys are stored hashed, and each is shown only when it is made.**
+  A key was stored as it was written, so a database dump or a backup held a
+  working key for every project. Now only its hash is stored, and the
+  upgrade hashes the keys you have: the scripts, integrations and Terraform
+  configurations that sign in with them keep working, with no change.
+  **Project Settings → Advanced → API Keys** shows a new key once, when it
+  is created or reset, to copy then, and says how each key ends in its
+  place. The API no longer reads a key back: the create answers it once,
+  and `POST /api-key/:id/reset-key` makes a new one. If Terraform or
+  OpenTofu manages your API keys, upgrade the provider with the server: it
+  keeps `api_key` in state from the create, where an earlier provider clears
+  it at its next refresh, and an imported key, like the `oneuptime_api_key`
+  data source, has none. A server of the earlier release still running
+  during the upgrade refuses the keys once they are hashed, until it is
+  replaced. Rolled back to an earlier release, each key is replaced by a
+  new one, shown on its page: give it to whatever used the old one.
+- **What is done about a private record follows its owners too, and workflows
+  don't act on private records.** Paging about a private incident, alert or
+  episode (**Execute On-Call Policy**, **Page now**, and paging from Slack,
+  Microsoft Teams, Mattermost or OneUptime AI), starting a runbook linked to
+  it or moving that run along, and approving, dry-running or dismissing a fix
+  OneUptime AI proposed for it now take their permission from the teams that
+  own it, the people named as its owners, or Project Owners and Project
+  Admins, as a change of it does. Anyone else is refused with the reason, and
+  on the record's page those buttons are locked saying why. Its on-call policy
+  runs, runbook runs and fixes, and the logs of the email, SMS, calls, push
+  notifications, WhatsApp, Telegram, Slack and Microsoft Teams messages,
+  webhooks and AI requests about it, are now read only by those who may read
+  it. Workflow steps no longer see or change a private record, nor anything of
+  one, and a workflow no longer starts on one. Give the teams that own private
+  records the paging and runbook permissions their members should act with,
+  and move what a workflow did with private records to a person, or to the
+  record's own on-call and notification rules. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Runbook runs and fixes go with their incident or alert, and other records
+  show a private one only to those who may read it.** Deleting an incident or
+  an alert now deletes its runbook runs and the fixes OneUptime AI proposed for
+  it, as it already deleted its notes, on-call policy runs and logs, however it
+  is deleted. The upgrade deletes the runbook runs and fixes that had already
+  outlived their incident or alert: each fix that names neither, the runs those
+  fixes started, and the runs a runbook rule or auto-remediation started that
+  name no incident, alert or maintenance event. A record that names a private
+  incident, alert or episode without being part of it, such as a Data Security
+  issue, a security case, a form submission or a session replay, now shows
+  that record's title and other fields only to those who may read it. The
+  commands a Runner ran for a runbook run or a fix about a private record,
+  with what they printed, are now read only by those who may read the record,
+  and those of a deleted fix only by Project Owners and Project Admins. The
+  commands OneUptime AI ran for a chat are now read only by the person who
+  asked, and those of an investigation about a private record only by those
+  who may read the record. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+:::
 
 ## Upgrading from OneUptime 13 → 14
 
@@ -796,35 +927,6 @@ working mail server.
   **Let people sign in with an emailed link** on
   **Admin Dashboard > Settings > Authentication**. See
   [Sign in with an emailed link](/docs/introduction/your-account#sign-in-with-an-emailed-link).
-- **The master API key is stored hashed, and shown only when it is made.**
-  The key has root access to every project, and it was stored as it was
-  written, so a database dump or a backup held a working key. Now only its
-  hash is stored, and the upgrade hashes the key you have: the scripts and
-  integrations that use it keep working, with no change.
-  **Admin Dashboard > Settings > API Key** no longer shows the key: it says
-  whether one is set, and **Create Key** or **Reset Key** shows a new key
-  once, to copy then. If you read the key from that page rather than keep it
-  in a secret manager, copy it before you upgrade: afterwards **Reset Key**
-  makes a new one, and the old one stops working. A new key works at once,
-  and **Enabled** turns it off. The API no longer reads `masterApiKey` back,
-  and refuses a key written to it. Rolled back to an earlier release, the
-  page shows the key's hash, which is no key: generate a new key there.
-- **A project's API keys are stored hashed, and each is shown only when it is made.**
-  A key was stored as it was written, so a database dump or a backup held a
-  working key for every project. Now only its hash is stored, and the
-  upgrade hashes the keys you have: the scripts, integrations and Terraform
-  configurations that sign in with them keep working, with no change.
-  **Project Settings → Advanced → API Keys** shows a new key once, when it
-  is created or reset, to copy then, and says how each key ends in its
-  place. The API no longer reads a key back: the create answers it once,
-  and `POST /api-key/:id/reset-key` makes a new one. If Terraform or
-  OpenTofu manages your API keys, upgrade the provider with the server: it
-  keeps `api_key` in state from the create, where an earlier provider clears
-  it at its next refresh, and an imported key, like the `oneuptime_api_key`
-  data source, has none. A server of the earlier release still running
-  during the upgrade refuses the keys once they are hashed, until it is
-  replaced. Rolled back to an earlier release, each key is replaced by a
-  new one, shown on its page: give it to whatever used the old one.
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
@@ -1740,52 +1842,19 @@ working mail server.
   that own it.** Someone on a team that may change incidents and on another
   team that owns a private incident and may only view it could change that
   incident through the first team: edit it, change its state, add notes,
-  owners and roles, and delete it, from the dashboard, the API, bulk actions,
-  Slack, Microsoft Teams and OneUptime AI. Now a private record is changed
-  only with the permissions of the teams that own it, each with its own scope
-  and labels, and of the people named as its owners, and the same goes for its
-  notes, owners, state history, roles, links, episode members and calls. Its
-  state history, public notes, roles, SLA and measurements are now read, like
-  its other parts, only by those who may read it. Project Owners and Project
-  Admins change every private record as before; workflow steps no longer see
-  or change one (see the next note). A team that owns private records but
-  holds no permissions lets its members see them and change none of them, and
-  a pending invitation no longer shows a team's private records. Give the
+  owners and roles, and delete it, from the dashboard, the API, bulk
+  actions, Slack, Microsoft Teams and OneUptime AI. Now a private record is
+  changed only with the permissions of the teams that own it, each with its
+  own scope and labels, and of the people named as its owners, and the same
+  goes for its notes, owners, state history, roles, links, episode members
+  and calls. Its state history, public notes, roles, SLA and measurements
+  are now read, like its other parts, only by those who may read it.
+  Project Owners and Project Admins, and workflow steps, change every private
+  record as before. A team that owns private records but holds no
+  permissions lets its members see them and change none of them, and a
+  pending invitation no longer shows a team's private records. Give the
   teams that own private records the permissions their members should act
   with, or make those members owners. See
-  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
-- **What is done about a private record follows its owners too, and workflows
-  don't act on private records.** Paging about a private incident, alert or
-  episode (**Execute On-Call Policy**, **Page now**, and paging from Slack,
-  Microsoft Teams, Mattermost or OneUptime AI), starting a runbook linked to
-  it or moving that run along, and approving, dry-running or dismissing a fix
-  OneUptime AI proposed for it now take their permission from the teams that
-  own it, the people named as its owners, or Project Owners and Project
-  Admins, as a change of it does. Anyone else is refused with the reason, and
-  on the record's page those buttons are locked saying why. Its on-call policy
-  runs, runbook runs and fixes, and the logs of the email, SMS, calls, push
-  notifications, WhatsApp, Telegram, Slack and Microsoft Teams messages,
-  webhooks and AI requests about it, are now read only by those who may read
-  it. Workflow steps no longer see or change a private record, nor anything of
-  one, and a workflow no longer starts on one. Give the teams that own private
-  records the paging and runbook permissions their members should act with,
-  and move what a workflow did with private records to a person, or to the
-  record's own on-call and notification rules. See
-  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
-- **Runbook runs and fixes go with their incident or alert, and other records
-  show a private one only to those who may read it.** Deleting an incident or
-  an alert now deletes its runbook runs and the fixes OneUptime AI proposed for
-  it, as it already deleted its notes, on-call policy runs and logs, however it
-  is deleted. The upgrade deletes the runbook runs and fixes that had already
-  outlived their incident or alert: each fix that names neither, the runs those
-  fixes started, and the runs a runbook rule or auto-remediation started that
-  name no incident, alert or maintenance event. A record that names a private
-  incident, alert or episode without being part of it, such as a Data Security
-  issue, a security case, a form submission or a session replay, now shows
-  that record's title and other fields only to those who may read it. The
-  commands a Runner ran for a runbook run or a fix about a private record,
-  with what they printed, are now read only by those who may read the record,
-  and those of a deleted fix only by Project Owners and Project Admins. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
@@ -1804,7 +1873,6 @@ What changes for an existing workflow:
 - A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Pick the template under the step's **Incident Template** setting instead, and take `createdIncidentTemplateId` out of its **JSON Object**. The step then declares the incident from the template the way the dashboard does — everything the step sets wins, a state included — adds the template's owners, and records the template. The run log of a step still sending the column points to the setting. See [Declaring an incident from a template](/docs/workflows/components#declaring-an-incident-from-a-template).
 - A step that selects who created a probe or an AI agent is refused.
 - A step that names an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key or a runbook credential is refused - one that sets a status page's SMTP server, say, or grants an API key a permission. A step is never lent the read of settings that hold credentials: a person who may read them has to make that change. A step that keeps the one a record names already, or clears it, is not refused.
-- A step no longer finds, changes or adds anything to a private incident, alert or episode, and a workflow no longer starts on one, or on anything that belongs to one, such as its notes, a page about it or a runbook run linked to it. A step is never lent the sight of private records: whoever builds a workflow decides where what its steps read goes. Move what such a workflow did to a person, or to the record's own on-call and notification rules. See [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
 - An Update step no longer writes the project: a record stays in its project, as before.
 

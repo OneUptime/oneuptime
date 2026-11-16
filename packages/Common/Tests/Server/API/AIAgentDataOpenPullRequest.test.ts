@@ -79,6 +79,20 @@ jest.mock("../../../Server/Utils/Response", () => {
 jest.mock("../../../Server/Utils/Logger");
 
 const OPEN_ROUTE: string = "/ai-agent-data/open-pull-request";
+
+/*
+ * The route's refusals, each a sentence that says what to send (the
+ * ErrorMessagesGuard rule). A missing run, another worker's and one in
+ * another state read alike, so a probing key cannot tell them apart.
+ */
+const TASK_NOT_FOUND: string =
+  "OneUptime could not find this task. It may have finished, or belong to another worker.";
+const TASK_ID_MISSING: string =
+  "The request names no task. Send the taskId of the run this pull request is for.";
+const REPOSITORY_NOT_FOUND: string =
+  "OneUptime could not find this code repository in the task's project. Send the codeRepositoryId of one of its repositories.";
+const BRANCH_NAME_REFUSAL: string =
+  'The headRefName is not a branch name Git takes. Send one without spaces, ".." or the characters Git refuses.';
 const CONNECTION_TOKEN: string = "glpat-never-leaves-the-server-0001";
 const PULL_REQUEST_URL: string =
   "https://gitlab.example.com/acme/checkout/-/merge_requests/12";
@@ -378,7 +392,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       await callRoute();
 
       expectNothingOpened();
-      expect(thrownError()?.message).toBe("Task not found");
+      expect(thrownError()?.message).toBe(TASK_NOT_FOUND);
     });
 
     test("a global Runner's request for a run another worker claimed", async () => {
@@ -388,7 +402,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       await callRoute();
 
       expectNothingOpened();
-      expect(thrownError()?.message).toBe("Task not found");
+      expect(thrownError()?.message).toBe(TASK_NOT_FOUND);
     });
 
     test.each([
@@ -402,7 +416,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       await callRoute();
 
       expectNothingOpened();
-      expect(thrownError()?.message).toBe("Task not found");
+      expect(thrownError()?.message).toBe(TASK_NOT_FOUND);
     });
 
     test("a run of another project", async () => {
@@ -411,7 +425,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       await callRoute();
 
       expectNothingOpened();
-      expect(thrownError()?.message).toBe("Task not found");
+      expect(thrownError()?.message).toBe(TASK_NOT_FOUND);
     });
 
     test("a run that is not a code fix, or none at all", async () => {
@@ -420,7 +434,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       await callRoute();
 
       expectNothingOpened();
-      expect(thrownError()?.message).toBe("Task not found");
+      expect(thrownError()?.message).toBe(TASK_NOT_FOUND);
 
       jest.clearAllMocks();
       run = null;
@@ -428,7 +442,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       await callRoute();
 
       expectNothingOpened();
-      expect(thrownError()?.message).toBe("Task not found");
+      expect(thrownError()?.message).toBe(TASK_NOT_FOUND);
     });
 
     test("a request that names no run, or names something that is not one", async () => {
@@ -438,7 +452,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
         await callRoute(body({ taskId: taskId as never }));
 
         expectNothingOpened();
-        expect(thrownError()?.message).toBe("taskId is required");
+        expect(thrownError()?.message).toBe(TASK_ID_MISSING);
       }
     });
 
@@ -465,7 +479,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       await callRoute();
 
       expectNothingOpened();
-      expect(thrownError()?.message).toBe("Code repository not found");
+      expect(thrownError()?.message).toBe(REPOSITORY_NOT_FOUND);
     });
 
     test("one that is not there", async () => {
@@ -474,7 +488,7 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       await callRoute();
 
       expectNothingOpened();
-      expect(thrownError()?.message).toBe("Code repository not found");
+      expect(thrownError()?.message).toBe(REPOSITORY_NOT_FOUND);
     });
 
     test("a request from Code, in another repository than it was asked in", async () => {
@@ -515,24 +529,32 @@ describe("POST /ai-agent-data/open-pull-request", () => {
       [
         "a missing branch",
         { headRefName: undefined },
-        "headRefName is required",
+        "The request names no headRefName. Send the name of the branch.",
       ],
-      ["a missing base", { baseRefName: "" }, "baseRefName is required"],
+      [
+        "a missing base",
+        { baseRefName: "" },
+        "The request names no baseRefName. Send the name of the branch.",
+      ],
       [
         "a branch Git takes no name like",
         { headRefName: "../../etc/passwd" },
-        "headRefName is not a branch name Git takes",
+        BRANCH_NAME_REFUSAL,
       ],
       [
         "a branch with a space",
         { headRefName: "oneuptime fix" },
-        "headRefName is not a branch name Git takes",
+        BRANCH_NAME_REFUSAL,
       ],
-      ["a missing title", { title: "   " }, "title is required"],
+      [
+        "a missing title",
+        { title: "   " },
+        "The pull request has no title. Send one with the request.",
+      ],
       [
         "a repository that is not an id",
         { codeRepositoryId: "checkout" },
-        "codeRepositoryId is required",
+        "The request names no code repository. Send the codeRepositoryId of the repository to open the pull request in.",
       ],
     ])(
       "%s is refused before anything is read",

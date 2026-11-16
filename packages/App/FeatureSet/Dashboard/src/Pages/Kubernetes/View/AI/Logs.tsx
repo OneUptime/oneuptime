@@ -4,6 +4,11 @@ import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import { canReadKubectlJobs } from "../../Utils/KubernetesAiAccessPermissions";
 import { getCommandJobsNoAccessState } from "../../../../Components/ResourceAiAgent/CommandJobsNoAccess";
 import {
+  getCommandJobsEmptyMessage,
+  readHiddenCommandCount,
+} from "../../../../Components/ResourceAiAgent/CommandJobsHidden";
+import CommandJobsHiddenNote from "../../../../Components/ResourceAiAgent/CommandJobsHiddenNote";
+import {
   getResourceCommandStatusLook,
   getResourceCommandStatusOptions,
   ResourceAiStatusLook,
@@ -79,8 +84,11 @@ import {
  * which the server computes (summaries only, never command output) behind
  * the same read gate as the cluster's AI status. The command history is the
  * RunnerJob table the old AI page showed, moved here unchanged, with the
- * same permission fallback. No KPI tiles: on most clusters they would read
- * zero.
+ * same permission fallback. It lists the commands the reader may read -
+ * another person's AI chat's, or one about a private incident or alert they
+ * don't see, is left out - and says how many it leaves out, from the logs
+ * route's count (CommandJobsHidden, #9155). No KPI tiles: on most clusters
+ * they would read zero.
  */
 
 export const AI_LOGS_PAGE_TITLE: string = translationKey("AI Logs");
@@ -183,6 +191,12 @@ export interface KubernetesAiLogsFix {
 export interface KubernetesAiLogs {
   investigations: Array<KubernetesAiLogsInvestigation>;
   fixes: Array<KubernetesAiLogsFix>;
+  /*
+   * How many of the cluster's kubectl commands the reader may not read,
+   * which the commands card says it leaves out (CommandJobsHidden); 0 when
+   * none.
+   */
+  hiddenCommandCount: number;
 }
 
 function isObject(value: unknown): value is JSONObject {
@@ -320,6 +334,7 @@ export function parseKubernetesAiLogs(value: unknown): KubernetesAiLogs | null {
   return {
     investigations: parseList(value["investigations"], parseInvestigation),
     fixes: parseList(value["fixes"], parseFix),
+    hiddenCommandCount: readHiddenCommandCount(value["hiddenCommandCount"]),
   };
 }
 
@@ -785,6 +800,8 @@ const KubernetesClusterAILogs: FunctionComponent<
   const isEmpty: boolean = Boolean(
     logs && logs.investigations.length === 0 && logs.fixes.length === 0,
   );
+  // The commands the reader may not read, which the commands card leaves out.
+  const hiddenCommandCount: number = logs?.hiddenCommandCount || 0;
 
   let body: ReactElement;
 
@@ -944,7 +961,18 @@ const KubernetesClusterAILogs: FunctionComponent<
             exitCode: true,
             errorMessage: true,
           }}
-          noItemsMessage={KUBECTL_COMMANDS_EMPTY_MESSAGE}
+          noItemsMessage={getCommandJobsEmptyMessage({
+            hiddenCount: hiddenCommandCount,
+            emptyMessage: KUBECTL_COMMANDS_EMPTY_MESSAGE,
+          })}
+          topContent={
+            hiddenCommandCount > 0 ? (
+              <CommandJobsHiddenNote
+                count={hiddenCommandCount}
+                dataTestId="kubectl-jobs-hidden-note"
+              />
+            ) : undefined
+          }
           sortBy="createdAt"
           sortOrder={SortOrder.Descending}
           showRefreshButton={true}

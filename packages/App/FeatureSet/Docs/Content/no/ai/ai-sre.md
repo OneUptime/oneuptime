@@ -280,7 +280,7 @@ Alt på siden kommer fra det OneUptime allerede har registrert (hendelsene og va
 
 ### Alt KI-en har gjort på en klynge
 
-Klyngens side **AI-logger** (KI → Logger) er oversikten over alt OneUptime AI har gjort der, nyeste først: hver undersøkelse med hendelsen eller varselet og sammendraget, hver rettelse den foreslo eller kjørte, med status, og hver kubectl-kommando (for undersøkelse eller rettelse) med kommandoen, statusen og når den kjørte. Sammendraget til en undersøkelse er TL;DR-en eller, når ingen TL;DR kunne skrives, sammendraget rapporten starter med. Denne siden het tidligere AI Insights; et bokmerke til den gamle adressen åpner nå siden AI Insights, som lenker hit.
+Klyngens side **AI-logger** (KI → Logger) er oversikten over alt OneUptime AI har gjort der, nyeste først: hver undersøkelse med hendelsen eller varselet og sammendraget, hver rettelse den foreslo eller kjørte, med status, og hver kubectl-kommando (for undersøkelse eller rettelse) med kommandoen, statusen og når den kjørte. Sammendraget til en undersøkelse er TL;DR-en eller, når ingen TL;DR kunne skrives, sammendraget rapporten starter med. Denne siden het tidligere AI Insights; et bokmerke til den gamle adressen åpner nå siden AI Insights, som lenker hit. Den viser kubectl-kommandoene du får lese: de OneUptime AI kjørte for en annen persons AI-chat, eller om en privat hendelse eller et privat varsel du ikke får lese, utelates, og siden sier hvor mange det er.
 
 ### Gjennom den tidligere Runneren i klyngen
 

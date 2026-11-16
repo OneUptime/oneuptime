@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import * as fs from "fs";
 import * as path from "path";
@@ -123,7 +124,9 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-import Welcome from "../../../../App/FeatureSet/Dashboard/src/Pages/Onboarding/Welcome";
+import Welcome, {
+  WELCOME_PAGE_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Onboarding/Welcome";
 import Route from "../../../Types/API/Route";
 
 const EXPLANATION: string =
@@ -167,10 +170,10 @@ afterEach(() => {
 });
 
 describe("with no project and no invitation", () => {
-  test("it says what a project is, under No projects", async () => {
+  test("it says what a project is, under No projects yet", async () => {
     await renderWelcome();
 
-    expect(emptyState()).toHaveTextContent("No projects");
+    expect(emptyState()).toHaveTextContent("No projects yet");
     expect(emptyState()).toHaveTextContent(EXPLANATION);
   });
 
@@ -192,7 +195,7 @@ describe("with no project and no invitation", () => {
     expect(dialog).toContain(`description="${EXPLANATION}"`);
   });
 
-  test("Create New Project still opens the dialog", async () => {
+  test("Create Project still opens the dialog", async () => {
     await renderWelcome();
 
     fireEvent.click(screen.getByTestId("create-new-project-button"));
@@ -209,7 +212,8 @@ describe("with no project and no invitation", () => {
       "Ein Projekt enthält Ihre Monitore, Vorfälle, Statusseiten und Ihr Team.",
     );
     expect(emptyState()).toHaveTextContent(german);
-    expect(emptyState()).toHaveTextContent(String(DE["No projects"]));
+    expect(emptyState()).toHaveTextContent(String(DE["No projects yet"]));
+    expect(String(DE["No projects yet"])).toBe("Noch keine Projekte");
     expect(emptyState()).not.toHaveTextContent(EXPLANATION);
   });
 
@@ -235,6 +239,110 @@ describe("with no project and no invitation", () => {
         code,
         sameAsEnglish: false,
       });
+    }
+  });
+});
+
+/*
+ * #9121: the page opened with no heading and no trail (`title={""}`,
+ * `breadcrumbLinks={[]}`), on "No projects", which read as a failed load,
+ * and a new server's admin met the server setup checklist above it as a
+ * second next step. It now has a heading and a trail, says "No projects
+ * yet", and Create Project is the one primary button: Home draws the server
+ * setup card above the quickstart that Create Project leads to.
+ */
+describe("one welcoming page with one next step", () => {
+  function primaryButtons(): Array<HTMLElement> {
+    return screen.getAllByRole("button").filter((button: HTMLElement) => {
+      return button.className.includes("bg-indigo-600");
+    });
+  }
+
+  test("it has a heading and a trail", async () => {
+    await renderWelcome();
+
+    expect(WELCOME_PAGE_TITLE).toBe("Welcome to OneUptime");
+    expect(
+      screen.getByRole("heading", { level: 1, name: WELCOME_PAGE_TITLE }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("navigation")).getByText(WELCOME_PAGE_TITLE),
+    ).toBeInTheDocument();
+  });
+
+  test("in German, the heading is German", async () => {
+    activeLocale = DE;
+    await renderWelcome();
+
+    expect(DE[WELCOME_PAGE_TITLE]).toBe("Willkommen bei OneUptime");
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: String(DE[WELCOME_PAGE_TITLE]),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("Create Project is the only primary button", async () => {
+    await renderWelcome();
+
+    const primary: Array<HTMLElement> = primaryButtons();
+    expect(primary).toHaveLength(1);
+    expect(primary[0]).toHaveAttribute(
+      "data-testid",
+      "create-new-project-button",
+    );
+    expect(primary[0]).toHaveTextContent("Create Project");
+  });
+
+  test("with an invitation waiting, creating a project is not primary", async () => {
+    invitationsWaiting = 1;
+    await renderWelcome();
+
+    expect(primaryButtons()).toHaveLength(0);
+    expect(screen.getByTestId("create-new-project-button")).toHaveTextContent(
+      "Create Project",
+    );
+  });
+
+  test("the server setup checklist is not drawn here", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Pages/Onboarding/Welcome.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(source).not.toContain("ServerSetupCard");
+    expect(source).not.toMatch(/title=\{""\}/);
+  });
+
+  test("every language has its own words for the heading and the empty state", () => {
+    const codes: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    for (const code of codes) {
+      const locale: LocaleData = readLocale(code);
+      for (const key of [WELCOME_PAGE_TITLE, "No projects yet"]) {
+        const translated: unknown = locale[key];
+        expect({ code, key, isText: typeof translated === "string" }).toEqual({
+          code,
+          key,
+          isText: true,
+        });
+        expect({ code, key, sameAsEnglish: translated === key }).toEqual({
+          code,
+          key,
+          sameAsEnglish: false,
+        });
+      }
     }
   });
 });

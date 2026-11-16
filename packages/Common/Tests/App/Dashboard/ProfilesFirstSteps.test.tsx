@@ -290,11 +290,11 @@ describe("the All profiles list", () => {
 
   test("an embed keeps the sentence it passes, with no first steps", async () => {
     await renderTable({
-      noItemsMessage: "No profiles found for this service.",
+      noItemsMessage: "No profiles for this service yet.",
     });
 
     expect(capturedTableProps!.noItemsMessage).toBe(
-      "No profiles found for this service.",
+      "No profiles for this service yet.",
     );
     expect(capturedTableProps!.emptyState).toBeUndefined();
   });

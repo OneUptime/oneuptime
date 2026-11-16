@@ -101,4 +101,12 @@ export interface KubernetesClusterAiLogs {
     investigation: number;
     remediation: number;
   };
+  /*
+   * How many of the kubectl commands AI ran on the cluster the caller may
+   * not read, so the page's list of them says it leaves those out: another
+   * person's AI chat's, or one about a private incident or alert they don't
+   * see (RunnerJobService.countJobsHiddenFrom, #9155). Only the number.
+   * Absent for a caller who may not read Runner jobs at all.
+   */
+  hiddenCommandCount?: number | undefined;
 }

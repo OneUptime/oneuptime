@@ -320,7 +320,12 @@ describe("in every language the Dashboard speaks", () => {
 });
 
 describe("where it is drawn", () => {
-  test("on No projects (Welcome) and on Home", () => {
+  /*
+   * On Home, above the new project's quickstart. Not on Welcome: there it sat
+   * above "No projects yet" as a second next step on the first page after
+   * sign-up, and Create Project leads to Home, which draws it (#9121).
+   */
+  test("on Home, and not on Welcome", () => {
     const welcome: string = fs.readFileSync(
       path.join(DASHBOARD_SRC, "Pages/Onboarding/Welcome.tsx"),
       "utf8",
@@ -330,7 +335,7 @@ describe("where it is drawn", () => {
       "utf8",
     );
 
-    expect(welcome).toContain("<ServerSetupCard");
+    expect(welcome).not.toContain("ServerSetupCard");
     expect(home).toContain("<ServerSetupCard />");
     // On Home, before the project's own Getting Started.
     expect(home.indexOf("<ServerSetupCard />")).toBeLessThan(

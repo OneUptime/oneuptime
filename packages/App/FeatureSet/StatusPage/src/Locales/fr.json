@@ -49,8 +49,6 @@
     "noResourcesInGroup": "Aucune ressource ajoutée à ce groupe.",
     "activeIncidents": "Incidents actifs",
     "scheduledMaintenanceEvents": "Maintenance planifiée",
-    "allClearTitle": "Tout semble parfait",
-    "allClearDescription": "Aucune ressource n'a encore été ajoutée à cette page de statut. Veuillez ajouter des ressources depuis le tableau de bord.",
     "allResourcesAre": "Toutes les ressources sont {{status}}",
     "allMonitoredResourcesAre": "Toutes les ressources surveillées sont {{status}}",
     "someResourcesAre": "Certaines ressources sont {{status}}",
@@ -58,7 +56,10 @@
     "noResourcesAreMonitored": "Aucune ressource n'est surveillée pour le moment",
     "noResourcesAreMonitoredYet": "Aucune ressource n'est encore surveillée",
     "oneSubGroup": "1 groupe",
-    "subGroupCount": "{{total}} groupes"
+    "subGroupCount": "{{total}} groupes",
+    "noResourcesTitle": "Rien à afficher pour l'instant",
+    "noResourcesDescription": "Cette page n'affiche encore aucun service.",
+    "noResourcesPreviewDescription": "Les visiteurs voient ce message tant que vous n'avez pas ajouté de ressources. Ajoutez des moniteurs ou des groupes à cette page de statut sous Ressources, dans le tableau de bord."
   },
   "eventItem": {
     "affectedResources": "Ressources concernées",
@@ -115,30 +116,23 @@
     "title": "Incidents",
     "singular": "Incident",
     "active": "Incidents actifs",
-    "resolved": "Incidents résolus",
-    "none": "Aucun incident",
-    "noneDescription": "Aucun incident publié sur cette page de statut.",
+    "noneDescription": "Lorsqu'un incident touche les services de cette page, il est publié ici.",
     "postmortem": "Post-mortem de l'incident",
     "declaredAt": "Déclaré le ",
     "declaredAtTime": "Déclaré le {{time}}",
     "report": "Rapport d'incident",
-    "notFound": "Incident introuvable sur cette page de statut."
-  },
-  "episodes": {
-    "report": "Rapport d'épisode",
-    "none": "Aucun épisode",
-    "notFound": "Épisode introuvable sur cette page de statut."
+    "notFound": "Vérifiez le lien ou ouvrez l'onglet Incidents de cette page.",
+    "notFoundTitle": "Incident introuvable"
   },
   "announcements": {
     "title": "Annonces",
     "singular": "Annonce",
     "active": "Annonces actives",
-    "past": "Annonces passées",
-    "none": "Aucune annonce",
-    "noneDescription": "Aucune annonce publiée pour l'instant sur cette page.",
+    "noneDescription": "Lorsqu'il y a du nouveau sur les services de cette page, c'est publié ici.",
     "announcedAt": "Annoncé le ",
     "announcedAtTime": "Annoncé le {{time}}",
-    "notFound": "Annonce introuvable sur cette page de statut."
+    "notFound": "Vérifiez le lien ou ouvrez l'onglet Annonces de cette page.",
+    "notFoundTitle": "Annonce introuvable"
   },
   "scheduledEvents": {
     "title": "Maintenance planifiée",
@@ -146,9 +140,7 @@
     "scheduledMaintenance": "Maintenance planifiée",
     "ongoing": "Maintenance en cours",
     "upcoming": "Maintenance à venir",
-    "completed": "Maintenance terminée",
-    "none": "Aucune maintenance planifiée",
-    "noneDescription": "Aucune maintenance planifiée publiée pour cette page de statut.",
+    "none": "Aucune maintenance prévue",
     "scheduledAt": "Planifié pour ",
     "scheduledAtTime": "Planifié pour {{time}}",
     "report": "Rapport de l'événement de maintenance",
@@ -507,5 +499,17 @@
   "Incomplete:": "Non respecté :",
   "Special character included (optional)": "Caractère spécial inclus (facultatif)",
   "Special characters are optional. Try !, @, # or $.": "Les caractères spéciaux sont facultatifs. Essayez !, @, # ou $.",
-  "Dismiss": "Masquer"
+  "Dismiss": "Masquer",
+  "Resolved in the Last {{count}} Days": "Résolus au cours des {{count}} derniers jours",
+  "Resolved in the Last {{count}} Days_one": "Résolus au cours du dernier jour",
+  "No incidents in the last {{count}} days": "Aucun incident au cours des {{count}} derniers jours",
+  "No incidents in the last {{count}} days_one": "Aucun incident au cours du dernier jour",
+  "Ended in the Last {{count}} Days": "Terminées au cours des {{count}} derniers jours",
+  "Ended in the Last {{count}} Days_one": "Terminées au cours du dernier jour",
+  "No announcements in the last {{count}} days": "Aucune annonce au cours des {{count}} derniers jours",
+  "No announcements in the last {{count}} days_one": "Aucune annonce au cours du dernier jour",
+  "Completed in the Last {{count}} Days": "Achevées au cours des {{count}} derniers jours",
+  "Completed in the Last {{count}} Days_one": "Achevées au cours du dernier jour",
+  "None is planned, and none took place in the last {{count}} days.": "Aucune n'est prévue, et aucune n'a eu lieu au cours des {{count}} derniers jours.",
+  "None is planned, and none took place in the last {{count}} days._one": "Aucune n'est prévue, et aucune n'a eu lieu au cours du dernier jour."
 }

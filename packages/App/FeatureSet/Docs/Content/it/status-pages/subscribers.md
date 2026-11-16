@@ -43,7 +43,7 @@ Gli interruttori decidono come i visitatori possono iscriversi da soli, e la pag
 
 Su OneUptime Cloud, un interruttore che il vostro piano non include mostra accanto il nome del piano: **Growth** per **SMS** e **Mostra pagina iscritti**, **Scale** per **Slack**, **Microsoft Teams** e **Webhook**. Disattivare un canale funziona su tutti i piani, quindi un canale attivato durante una prova si può sempre disattivare di nuovo; l'interruttore lo dice sotto.
 
-Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams** e **Iscritti webhook**. È lì che guardate chi è iscritto, aggiungete qualcuno a mano con **Aggiungi iscritto** o vi lasciate una **Nota interna** (`internalNote`) su un determinato iscritto, che l'iscritto non vede mai. Finché un canale è disattivato, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così potete attivarlo senza lasciare l'elenco.
+Gli iscritti di tutti i canali sono in un'unica pagina, **Iscritti**, nella sezione **Iscritti** del menu laterale della pagina di stato. Ha una scheda per ogni canale (**E-mail**, **SMS**, **Slack**, **Microsoft Teams** e **Webhook**), e ogni scheda mostra quanti iscritti ha il canale. Ogni scheda è l'elenco di quel canale (**Iscritti email**, **Iscritti SMS** e così via). È lì che guardate chi è iscritto, aggiungete qualcuno a mano con **Aggiungi iscritto** o vi lasciate una **Nota interna** (`internalNote`) su un determinato iscritto, che l'iscritto non vede mai. Finché un canale è disattivato, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così potete attivarlo senza lasciare l'elenco. La scheda aperta è nell'indirizzo della pagina (`{id}/subscribers?channel=sms`), e gli indirizzi delle vecchie pagine per canale, come `{id}/email-subscribers`, aprono la scheda del loro canale.
 
 **Un interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è attivo. Se attivate **E-mail** ma lasciate disattivato **Mostra pagina iscritti**, i visitatori non hanno modo di raggiungere il modulo.
 
@@ -281,7 +281,7 @@ I campi personalizzati degli incidenti con **Includi nelle notifiche agli iscrit
 
 La voce **Notifica agli iscritti inviata** nel feed dell'incidente elenca, sotto **Custom fields sent**, i valori che ogni invio ha messo in un messaggio. Gli iscritti di solito sono esterni al vostro team, quindi attivate l'impostazione solo per campi che si possono condividere con loro senza problemi.
 
-La sezione **Log di notifica** nel menu laterale della pagina di stato (`{id}/notification-logs`) è dove andate quando dovete vedere che cosa ha effettivamente inviato la pagina.
+**Log di notifica**, nella sezione **Iscritti** del menu laterale della pagina di stato (`{id}/notification-logs`), è dove andate quando dovete vedere che cosa ha effettivamente inviato la pagina.
 
 ### Episodi degli incidenti
 
@@ -483,7 +483,7 @@ Il passo di revisione mostra la stessa riga. **Crea da modello** compila il modu
 
 La pagina dell'annuncio lo modifica negli stessi due passi. **Notifica gli iscritti di questo aggiornamento** si trova sotto la descrizione (vedete [Avvisare gli iscritti di una modifica](#avvisare-gli-iscritti-di-una-modifica)), e **Pianificazione** contiene l'inizio e la fine. Impostare una fine già passata è il modo per ritirare un annuncio.
 
-I visitatori leggono gli annunci su `/announcements`, divisi in **Annunci attivi** e **Annunci passati**, ciascuno con l'indicazione **Annunciato il**. Gli annunci attualmente attivi sono anche fissati in cima alla pagina di panoramica. Quando non c'è nulla da mostrare, la pagina dice *Nessun annuncio* con la nota che finora non ne è stato pubblicato nessuno.
+I visitatori leggono gli annunci su `/announcements`, divisi in **Annunci attivi** e quelli terminati entro la cronologia degli annunci della pagina, sotto un titolo che dice quanti giorni copre, ciascuno con l'indicazione **Annunciato il**. Gli annunci attualmente attivi sono anche fissati in cima alla pagina di panoramica. Quando non c'è nulla da mostrare, la pagina dice che non ci sono stati annunci in quei giorni (14, a meno che tu non lo cambi).
 
 Gli allegati sono serviti da `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, dietro lo stesso controllo di lettura della pagina di stato stessa, quindi un allegato su una pagina privata resta privato.
 
@@ -499,7 +499,7 @@ Due conseguenze di cui tenere conto:
 - **Un annuncio senza data di fine non scade mai.** Lasciate vuoto **Termina la visualizzazione dell'annuncio il** e resta fissato alla pagina di panoramica a tempo indeterminato. Impostate una data di fine per tutto ciò che ha una durata.
 - **Un annuncio vecchio ma ancora attivo può sparire dall'elenco.** Se è iniziato più di `showAnnouncementHistoryInDays` giorni fa, esce da `/announcements` pur restando nella panoramica. Allargate la finestra di cronologia se mantenete avvisi di lunga durata.
 
-**Le immagini seguono l'annuncio.** Un'immagine nella descrizione di un annuncio si apre per tutti da **Inizia a mostrare l'annuncio alle** in poi, non prima. Finché un annuncio è programmato per più avanti, le sue immagini si aprono solo per i membri del vostro progetto, così come l'annuncio stesso si vede solo nella dashboard. Appena inizia a essere mostrato, le sue immagini si aprono per tutti, sulla pagina di stato e nelle email che ricevono gli iscritti. Restano così anche dopo la fine, perché le sue pagine di stato lo elencano ancora in **Annunci passati** e il suo link continua a funzionare. Spostate un annuncio a un orario successivo e le sue immagini tornano private fino ad allora.
+**Le immagini seguono l'annuncio.** Un'immagine nella descrizione di un annuncio si apre per tutti da **Inizia a mostrare l'annuncio alle** in poi, non prima. Finché un annuncio è programmato per più avanti, le sue immagini si aprono solo per i membri del vostro progetto, così come l'annuncio stesso si vede solo nella dashboard. Appena inizia a essere mostrato, le sue immagini si aprono per tutti, sulla pagina di stato e nelle email che ricevono gli iscritti. Restano così anche dopo la fine, perché il suo link continua a funzionare e le sue pagine di stato lo elencano tra gli annunci terminati fin dove arriva la loro cronologia. Spostate un annuncio a un orario successivo e le sue immagini tornano private fino ad allora.
 
 Se gli annunci compaiono o no si imposta nella scheda **Cosa mostra la tua pagina di stato** di **Impostazioni avanzate**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, vero per impostazione predefinita) e, sotto, **Mostra … giorni di cronologia** (`showAnnouncementHistoryInDays`, 14 per impostazione predefinita). Con **Mostra annunci** disattivato, l'endpoint degli annunci rifiuta la richiesta senza mezzi termini.
 

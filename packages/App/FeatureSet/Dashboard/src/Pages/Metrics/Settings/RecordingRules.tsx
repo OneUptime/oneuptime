@@ -94,7 +94,7 @@ const MetricRecordingRules: FunctionComponent<
           "Define a new metric as an expression over other metrics, evaluated every minute.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No recording rules found."}
+      noItemsMessage={"No recording rules yet."}
       formFields={[
         {
           field: { name: true },

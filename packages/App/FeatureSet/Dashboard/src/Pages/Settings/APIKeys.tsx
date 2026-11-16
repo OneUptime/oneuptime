@@ -281,7 +281,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.",
         }}
-        noItemsMessage={"No API Keys found."}
+        noItemsMessage={"No API keys yet."}
         formFields={createFormFields}
         onBeforeCreate={async (
           item: ApiKey,

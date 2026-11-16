@@ -596,7 +596,6 @@ describe("other resource pages that fold a section of their own", () => {
       { title: "Resources", expanded: true },
       { title: "Rules", expanded: false },
       { title: "Subscribers", expanded: false },
-      { title: "Notification Logs", expanded: false },
       { title: "Branding", expanded: false },
       { title: "Security", expanded: false },
       { title: "AI", expanded: false },
@@ -606,12 +605,20 @@ describe("other resource pages that fold a section of their own", () => {
   });
 
   test("a status page's subscriber list opens Subscribers", async () => {
-    goTo(viewRoute(PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS));
+    goTo(viewRoute(PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS));
     await renderMenu(<StatusPageSideMenu modelId={new ObjectID(MODEL_ID)} />);
 
     expect(isExpanded("Subscribers")).toBe(true);
-    expect(activeLinkTitles()).toEqual(["Email Subscribers"]);
+    expect(activeLinkTitles()).toEqual(["Subscribers"]);
     expect(isExpanded("Branding")).toBe(false);
+  });
+
+  test("a status page's notification logs open Subscribers, where they sit", async () => {
+    goTo(viewRoute(PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS));
+    await renderMenu(<StatusPageSideMenu modelId={new ObjectID(MODEL_ID)} />);
+
+    expect(isExpanded("Subscribers")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Notification Logs"]);
   });
 
   /*

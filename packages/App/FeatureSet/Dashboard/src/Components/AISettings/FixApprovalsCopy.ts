@@ -65,7 +65,7 @@ export const FixApprovalsCopy: {
    * message, with or without the switch.
    */
   switchDescription: translationKey(
-    "A fix with a riskier change, such as stopping something or scaling it to zero, and any fix through MCP servers run only once two different people approve them. OneUptime AI never makes such a change without asking.",
+    "Riskier fixes, such as stopping something or scaling it to zero, and every fix through an MCP server run only once two different people approve them.",
   ),
   foldedValue: translationKey("Two people"),
 };

@@ -16,6 +16,7 @@ import {
   within,
 } from "@testing-library/react";
 import React, { act } from "react";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import {
   MemoryRouter,
   Outlet,
@@ -852,6 +853,7 @@ beforeEach((): void => {
 afterEach(async (): Promise<void> => {
   cleanup();
   ConnectedWorkspaces.reset();
+  Toast.dismissAll();
 
   for (
     let attempt: number = 0;
@@ -2126,8 +2128,11 @@ describe("a write the server refuses", () => {
 
     await waitForSettled();
 
-    expect(document.body.textContent).toContain("Code sent");
-    expect(document.body.textContent).toContain(
+    // In the corner, not a dialog to click away (#9120).
+    const sent: ToastItem | undefined = Toast.getToasts()[0];
+
+    expect(sent?.title).toBe("Code sent");
+    expect(String(sent?.description)).toContain(
       "needs to enter it in their own user settings",
     );
   });

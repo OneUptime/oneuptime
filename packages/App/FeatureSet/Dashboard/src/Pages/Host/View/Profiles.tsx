@@ -130,7 +130,7 @@ const HostProfiles: FunctionComponent<
       </div>
       <ProfileTable
         profileQuery={profileQuery}
-        noItemsMessage="No performance profiles found for this host."
+        noItemsMessage="No performance profiles for this host yet."
       />
     </Fragment>
   );

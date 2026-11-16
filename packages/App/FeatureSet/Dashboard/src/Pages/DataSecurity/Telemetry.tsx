@@ -368,7 +368,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
         noItemsMessage={
           scrubView === "notScrubbed"
             ? "Nothing unmasked. Every finding in your telemetry is scrubbed at ingest."
-            : "No sensitive data found in your telemetry."
+            : "No sensitive data in your telemetry."
         }
         emptyState={{ isAllClear: true }}
         showRefreshButton={true}

@@ -1,3 +1,4 @@
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import AdminModelAPI from "../../../Utils/ModelAPI";
 import { createMasterApiKey, fetchMasterApiKeyState } from "./MasterApiKeyApi";
 import {
@@ -222,7 +223,7 @@ const MasterApiKeyCard: FunctionComponent = (): ReactElement => {
                 <React.Fragment key={index}>
                   {index > 0 ? (
                     <span className="text-gray-400" aria-hidden="true">
-                      {" · "}
+                      <InlineSeparator />
                     </span>
                   ) : (
                     <></>

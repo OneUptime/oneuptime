@@ -437,7 +437,7 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
-        noItemsMessage={"No custom domains found."}
+        noItemsMessage={"No custom domains yet."}
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           subdomain: true,

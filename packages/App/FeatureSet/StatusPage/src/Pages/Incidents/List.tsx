@@ -5,6 +5,10 @@ import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
+import {
+  HISTORY_WINDOW_WORDS,
+  readHistoryInDays,
+} from "../../Utils/HistoryWindow";
 import PageComponentProps from "../PageComponentProps";
 import { getIncidentEventItem, getEpisodeEventItem } from "./Detail";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -44,6 +48,9 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { Translator } from "Common/Types/Translator";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { DEFAULT_STATUS_PAGE_HISTORY_IN_DAYS } from "Common/Utils/StatusPage/HistoryWindow";
 import useAsyncEffect from "use-async-effect";
 
 // Event item with date for sorting
@@ -57,6 +64,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const { t, i18n: i18nInstance } = useTranslation();
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [statusPageResources, setStatusPageResources] = useState<
@@ -94,6 +102,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
   );
 
   const [hasEvents, setHasEvents] = useState<boolean>(false);
+
+  // How many days of incidents the server sent: what the page names.
+  const [historyInDays, setHistoryInDays] = useState<number>(
+    DEFAULT_STATUS_PAGE_HISTORY_IN_DAYS,
+  );
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -151,6 +164,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       }
 
       const incidentsData: JSONObject = incidentsResponse.data;
+
+      setHistoryInDays(readHistoryInDays(incidentsData));
 
       // Parse incidents data
       const incidentPublicNotes: Array<IncidentPublicNote> =
@@ -437,7 +452,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {parsedResolvedEventsData?.items &&
       parsedResolvedEventsData?.items.length > 0 ? (
         <div>
-          <Section title={t("incidents.resolved")} />
+          <Section
+            title={translator.translatePlural(
+              HISTORY_WINDOW_WORDS.resolvedIncidents,
+              historyInDays,
+            )}
+          />
 
           <EventHistoryList items={parsedResolvedEventsData?.items || []} />
         </div>
@@ -448,9 +468,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         <EmptyState
           paddingClassName="py-12 sm:py-16"
           id={"incidents-empty-state"}
-          title={t("incidents.none")}
+          title={translator.translatePlural(
+            HISTORY_WINDOW_WORDS.noIncidents,
+            historyInDays,
+          )}
           description={t("incidents.noneDescription")}
-          icon={IconProp.Alert}
+          icon={IconProp.Calendar}
         />
       ) : (
         <></>

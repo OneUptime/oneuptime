@@ -342,7 +342,7 @@ const CephClusterDaemons: FunctionComponent<
           });
           setCurrentPage(1);
         }}
-        noItemsMessage="No daemons found in the inventory yet. Daemons appear here a few minutes after the Ceph agent starts sending metrics."
+        noItemsMessage="No daemons in the inventory yet. Daemons appear here a few minutes after the Ceph agent starts sending metrics."
       />
     </Card>
   );

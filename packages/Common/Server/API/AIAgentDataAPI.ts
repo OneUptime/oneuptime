@@ -2026,7 +2026,9 @@ export default class AIAgentDataAPI {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("taskId is required"),
+              new BadDataException(
+                "The request names no task. Send the taskId of the run this pull request is for.",
+              ),
             );
           }
 
@@ -2066,7 +2068,9 @@ export default class AIAgentDataAPI {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Task not found"),
+              new BadDataException(
+                "OneUptime could not find this task. It may have finished, or belong to another worker.",
+              ),
             );
           }
 
@@ -2103,7 +2107,9 @@ export default class AIAgentDataAPI {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Code repository not found"),
+              new BadDataException(
+                "OneUptime could not find this code repository in the task's project. Send the codeRepositoryId of one of its repositories.",
+              ),
             );
           }
 
@@ -2168,7 +2174,7 @@ export default class AIAgentDataAPI {
                 req,
                 res,
                 new BadDataException(
-                  `This task opened its pull request in this repository already: ${recorded.pullRequestUrl?.toString() || ""}`,
+                  `This task opened its pull request in this repository already, from another branch. ${recorded.pullRequestUrl?.toString() || ""}`,
                 ),
               );
             }

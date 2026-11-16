@@ -227,7 +227,7 @@ describe("the scheduled events page lists each event under its state's phase", (
   test("an event in a state of the project's own after Ended is completed", async () => {
     await renderList();
 
-    const completed: string = textOfSection("Completed Maintenance");
+    const completed: string = textOfSection("Completed in the Last 14 Days");
 
     expect(completed).toContain("Cache cluster resize");
     expect(completed).not.toContain("Database failover drill");

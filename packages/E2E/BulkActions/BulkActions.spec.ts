@@ -26,7 +26,7 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 const PROJECT: string = "/dashboard/10000000-0000-4000-8000-000000000001";
 const WORKFLOWS: string = `${PROJECT}/workflows`;
 const MONITORS: string = `${PROJECT}/monitors?page=monitors`;
-const SUBSCRIBERS: string = `${PROJECT}/status-pages/30000000-0000-4000-8000-000000000001/email-subscribers?page=subscribers`;
+const SUBSCRIBERS: string = `${PROJECT}/status-pages/30000000-0000-4000-8000-000000000001/subscribers?page=subscribers`;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,

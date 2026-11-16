@@ -991,9 +991,13 @@ const Detail: FunctionComponent<PageComponentProps> = (
     i18nInstance.resolvedLanguage,
   ]);
 
-  const pageTitle: string = isEpisode
-    ? t("episodes.report")
-    : t("incidents.report");
+  /*
+   * An episode is an incident to the people reading a status page: "Episode"
+   * is the team's word for incidents grouped together, never theirs. The
+   * page was titled "Episode Report", and a missing one read "No Episode"
+   * (#9122).
+   */
+  const pageTitle: string = t("incidents.report");
   const hasItem: boolean = isEpisode ? Boolean(episode) : Boolean(incident);
 
   type RenderPageFunction = (pageContent: ReactElement) => ReactElement;
@@ -1072,11 +1076,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
         <EmptyState
           paddingClassName="py-12 sm:py-16"
           id="item-empty-state"
-          title={isEpisode ? t("episodes.none") : t("incidents.none")}
-          description={
-            isEpisode ? t("episodes.notFound") : t("incidents.notFound")
-          }
-          icon={isEpisode ? IconProp.Layers : IconProp.Alert}
+          title={t("incidents.notFoundTitle")}
+          description={t("incidents.notFound")}
+          icon={IconProp.Alert}
         />
       ) : (
         <></>

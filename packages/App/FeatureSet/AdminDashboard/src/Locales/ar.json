@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "معرّف الاشتراك حسب الاستخدام",
       "noTrial": "ليس في فترة تجريبية",
       "changePlanTitle": "تغيير الخطة",
-      "changePlanDescription": "انقل هذا المشروع إلى خطة أخرى. تستمر الفترة التجريبية الجارية؛ وإلا فتُحتسب الخطة الجديدة من الآن، بالتناسب في الفاتورة التالية. لا يحتاج العميل إلى طريقة دفع مسجّلة: ما يستحق عليه ينتظر إلى أن يضيف واحدة.",
+      "changePlanDescription": "انقل هذا المشروع إلى خطة أخرى، بالتناسب في الفاتورة التالية. تستمر الفترة التجريبية الجارية. لا حاجة إلى طريقة دفع: تنتظر الرسوم إلى أن تُضاف واحدة.",
       "changePlanSubmitButton": "تغيير الخطة",
       "changePlanSuccess": "تم تغيير الخطة إلى {{plan}}.",
       "changePlanFailure": "لم تُغيَّر الخطة. يُرجى المحاولة مرة أخرى.",
@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "تمت دعوة {{itemName}}",
   "{{itemName}} linked": "تم ربط {{itemName}}",
   "{{itemName}} removed": "تمت إزالة {{itemName}}",
-  "{{itemName}} started": "تم بدء {{itemName}}"
+  "{{itemName}} started": "تم بدء {{itemName}}",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "يؤدي حذف حادثة إلى حذف ملاحظاتها والمخطط الزمني لحالتها وعمليات تنفيذ أدلة التشغيل الخاصة بها والإصلاحات التي اقترحها OneUptime AI لها أيضًا، وإزالتها من صفحات الحالة. تبقى التنبيهات المرتبطة بها.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "يؤدي حذف تنبيه إلى حذف ملاحظاته والمخطط الزمني لحالته وعمليات تنفيذ أدلة التشغيل الخاصة به والإصلاحات التي اقترحها OneUptime AI له أيضًا. تبقى الحوادث المرتبطة به.",
+  "In short": "باختصار",
+  "Full documentation": "التوثيق الكامل",
+  "Expand all": "توسيع الكل",
+  "Collapse all": "طي الكل",
+  "Limited to deleted records": "مقيّدة بسجلات محذوفة",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حُذفت في {{date}}.",
+  "OneUptime switched this rule off when they were deleted.": "عطّل OneUptime هذه القاعدة عند حذف تلك السجلات.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "لو فُعّلت كما هي، فلن تقيّدها هذه القوائم أبدًا. عدّلها لاختيار ما تنطبق عليه، ثم فعّلها.",
+  "{{names}} and {{count}} more": "{{names}} و{{count}} غيرها",
+  "{{names}} and {{count}} more_one": "{{names}} و{{count}} غيرها"
 }

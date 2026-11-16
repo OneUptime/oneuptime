@@ -181,7 +181,7 @@ const DataStoreInside: FunctionComponent<
           description:
             "The sensitive data found in this store and where, from samples of its content. Low confidence findings, and OneUptime AI's suggestions for fields no detector placed, count toward nothing until you confirm them.",
         }}
-        noItemsMessage="Nothing sensitive found in this store yet. Findings appear once its content is scanned."
+        noItemsMessage="No findings in this store yet. Findings appear once its content is scanned."
         searchableFields={["dataTypeName", "location"]}
         selectMoreFields={{
           dataTypeId: true,

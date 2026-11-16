@@ -69,6 +69,7 @@ const SIGN_UP_API: string =
   "packages/App/FeatureSet/Identity/API/Authentication.ts";
 const REGISTER_PAGE: string =
   "packages/App/FeatureSet/Accounts/src/Pages/Register.tsx";
+const UI_CONFIG: string = "packages/Common/UI/Config.ts";
 const RELEASE_WORKFLOW: string = ".github/workflows/release.yml";
 const BUILD_IMAGES: string = "Scripts/GHA/build_docker_images.sh";
 
@@ -362,9 +363,13 @@ describe("step 1: mirror the images", () => {
   });
 
   test("what the step says to mirror later is off in a stock install, so the values above move every image it runs", () => {
-    // PgBouncer, vLLM and the database operators: each off until turned on.
+    // PgBouncer, vLLM, ClamAV and the database operators: each off until turned on.
     expectFileToSay(CHART_VALUES, "pgbouncer:\n  enabled: false\n");
     expectFileToSay(CHART_VALUES, "vllm:\n  enabled: false\n");
+    expectFileToSay(
+      CHART_VALUES,
+      "clamav:\n  # Run ClamAV in the cluster (a Deployment and a Service) and scan with it.\n  enabled: false\n",
+    );
     expectFileToSay(CHART_VALUES, "keda:\n  enabled: false\n");
     expectFileToSay(
       CHART_VALUES,
@@ -377,7 +382,7 @@ describe("step 1: mirror the images", () => {
     // Once one is on, its image is named like any other: image.overrides.
     expectFileToSay(
       CHART_VALUES,
-      "## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. Each is either a full",
+      "## clickhouseKeeper, valkey, pgbouncer, vllm, clamav, kubectl. Each is either a full",
     );
     expect(AirGappedSteps[0]!.description).toContain(
       "Anything you turn on later, such as PgBouncer or a database operator, needs its images mirrored too.",
@@ -889,10 +894,30 @@ describe("what reaches out, and how it is stopped", () => {
     );
     expectFileToSay(
       REGISTER_PAGE,
-      "if (!IsBillingEnabled && !DisableInstanceCheckIn) {",
+      "if (!BILLING_ENABLED && !DISABLE_INSTANCE_CHECK_IN) {",
     );
-    // The form reads it in the browser, so the server hands it to the frontends.
-    expectFileToSay(ENVIRONMENT_CONFIG, '  "DISABLE_INSTANCE_CHECK_IN",\n];');
+    /*
+     * The form reads it in the browser, from the page's own configuration,
+     * so the server hands it to the frontends.
+     */
+    expectFileToSay(
+      UI_CONFIG,
+      'export const DISABLE_INSTANCE_CHECK_IN: boolean =\n  env("DISABLE_INSTANCE_CHECK_IN") === "true";',
+    );
+    const environmentConfig: string = repoFile(ENVIRONMENT_CONFIG);
+    const listStart: number = environmentConfig.indexOf(
+      "const FRONTEND_ENV_ALLOW_LIST: Array<string> = [",
+    );
+
+    expect(listStart).toBeGreaterThanOrEqual(0);
+    expectTextToSay(
+      "the frontends' allow list",
+      environmentConfig.slice(
+        listStart,
+        environmentConfig.indexOf("\n];", listStart),
+      ),
+      '\n  "DISABLE_INSTANCE_CHECK_IN",\n',
+    );
     expect(connection("release-emails").inside).toContain(
       "Set `instanceCheckIn.disabled: true`, and the form no longer offers it and nothing is sent.",
     );

@@ -49,8 +49,6 @@
     "noResourcesInGroup": "此群組中未新增任何資源。",
     "activeIncidents": "進行中事件",
     "scheduledMaintenanceEvents": "排定維護",
-    "allClearTitle": "一切正常",
-    "allClearDescription": "此狀態頁尚未新增任何資源。請從控制台新增一些資源。",
     "allResourcesAre": "所有資源{{status}}",
     "allMonitoredResourcesAre": "所有受監控的資源{{status}}",
     "someResourcesAre": "部分資源{{status}}",
@@ -58,7 +56,10 @@
     "noResourcesAreMonitored": "目前沒有受監控的資源",
     "noResourcesAreMonitoredYet": "尚無受監控的資源",
     "oneSubGroup": "1 個群組",
-    "subGroupCount": "{{total}} 個群組"
+    "subGroupCount": "{{total}} 個群組",
+    "noResourcesTitle": "尚無可顯示的內容",
+    "noResourcesDescription": "此頁面尚未顯示任何服務。",
+    "noResourcesPreviewDescription": "在你新增資源之前，訪客看到的就是這則提示。請在儀表板的「資源」中為此狀態頁新增監測器或群組。"
   },
   "eventItem": {
     "affectedResources": "受影響的資源",
@@ -115,30 +116,23 @@
     "title": "事件",
     "singular": "事件",
     "active": "進行中事件",
-    "resolved": "已解決事件",
-    "none": "無事件",
-    "noneDescription": "此狀態頁未發佈任何事件。",
+    "noneDescription": "當事件影響此頁面上的服務時，會在這裡發布。",
     "postmortem": "事件事後分析",
     "declaredAt": "宣告於 ",
     "declaredAtTime": "宣告於 {{time}}",
     "report": "事件報告",
-    "notFound": "在此狀態頁上找不到此事件。"
-  },
-  "episodes": {
-    "report": "事件片段報告",
-    "none": "無事件片段",
-    "notFound": "在此狀態頁上找不到事件片段。"
+    "notFound": "請檢查連結，或開啟此頁面的「事件」分頁。",
+    "notFoundTitle": "找不到事件"
   },
   "announcements": {
     "title": "公告",
     "singular": "公告",
     "active": "進行中公告",
-    "past": "過往公告",
-    "none": "無公告",
-    "noneDescription": "此頁面尚未發佈任何公告。",
+    "noneDescription": "當此頁面上的服務有新消息時，會在這裡發布。",
     "announcedAt": "公告於 ",
     "announcedAtTime": "公告於 {{time}}",
-    "notFound": "在此狀態頁上找不到此公告。"
+    "notFound": "請檢查連結，或開啟此頁面的「公告」分頁。",
+    "notFoundTitle": "找不到公告"
   },
   "scheduledEvents": {
     "title": "排定維護",
@@ -146,9 +140,7 @@
     "scheduledMaintenance": "排定維護",
     "ongoing": "進行中的維護",
     "upcoming": "即將進行的維護",
-    "completed": "已完成的維護",
-    "none": "沒有排定維護",
-    "noneDescription": "此狀態頁尚未發布排定維護。",
+    "none": "沒有排定的維護",
     "scheduledAt": "排定於 ",
     "scheduledAtTime": "排定於 {{time}}",
     "report": "維護事件報告",
@@ -507,5 +499,17 @@
   "Incomplete:": "未符合：",
   "Special character included (optional)": "已包含特殊字元（選填）",
   "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。",
-  "Dismiss": "隱藏"
+  "Dismiss": "隱藏",
+  "Resolved in the Last {{count}} Days": "最近 {{count}} 天內已解決",
+  "Resolved in the Last {{count}} Days_one": "最近 1 天內已解決",
+  "No incidents in the last {{count}} days": "最近 {{count}} 天內沒有事件",
+  "No incidents in the last {{count}} days_one": "最近 1 天內沒有事件",
+  "Ended in the Last {{count}} Days": "最近 {{count}} 天內已結束",
+  "Ended in the Last {{count}} Days_one": "最近 1 天內已結束",
+  "No announcements in the last {{count}} days": "最近 {{count}} 天內沒有公告",
+  "No announcements in the last {{count}} days_one": "最近 1 天內沒有公告",
+  "Completed in the Last {{count}} Days": "最近 {{count}} 天內已完成",
+  "Completed in the Last {{count}} Days_one": "最近 1 天內已完成",
+  "None is planned, and none took place in the last {{count}} days.": "沒有排定的維護，最近 {{count}} 天內也沒有進行過維護。",
+  "None is planned, and none took place in the last {{count}} days._one": "沒有排定的維護，最近 1 天內也沒有進行過維護。"
 }

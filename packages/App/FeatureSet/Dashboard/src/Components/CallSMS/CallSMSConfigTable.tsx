@@ -16,7 +16,7 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Toast from "Common/UI/Utils/Toast";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -298,12 +298,8 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
   };
 
   const [showCallTestModal, setShowCallTestModal] = useState<boolean>(false);
-  const [showCallSuccessModal, setCallShowSuccessModal] =
-    useState<boolean>(false);
 
   const [showSMSTestModal, setShowSMSTestModal] = useState<boolean>(false);
-  const [showSMSSuccessModal, setSMSShowSuccessModal] =
-    useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
 
@@ -318,31 +314,38 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
   const [isCallSMSTestLoading, setIsCallSMSTestLoading] =
     useState<boolean>(false);
 
-  /*
-   * The number the last test went out from, as the Notification service
-   * answered it: the dialog that says it went out names it.
-   */
-  const [testSentFromPhoneNumber, setTestSentFromPhoneNumber] =
-    useState<string>("");
-
   const translator: Translator = useTranslator();
 
   /*
-   * What the dialog after a test says went out, and from which number - a
-   * number that reads +447700900123 in a Persian or Arabic sentence too
-   * (phoneNumberInLine).
+   * A test that went out says so in the corner, with what went out and from
+   * which number, as the Notification service answered it - a number that
+   * reads +447700900123 in a Persian or Arabic sentence too
+   * (phoneNumberInLine). It was a dialog to click away (#9120).
    */
-  const getTestSentDescription: (kind: TwilioTestSendKind) => string = (
+  const sayTestSent: (
     kind: TwilioTestSendKind,
-  ): string => {
+    fromPhoneNumber: string,
+  ) => void = (kind: TwilioTestSendKind, fromPhoneNumber: string): void => {
     const message: TwilioTestSentMessage = getTestSentMessage({
       kind: kind,
-      fromPhoneNumber: testSentFromPhoneNumber,
+      fromPhoneNumber: fromPhoneNumber,
     });
 
-    return translator.translateTemplate(message.template, {
-      phoneNumber: phoneNumberInLine(message.phoneNumber, translator.language),
-    });
+    Toast.success(
+      translator.translateText(
+        kind === TwilioTestSendKind.SMS
+          ? TwilioTestSendCopy.smsSentTitle
+          : TwilioTestSendCopy.callPlacedTitle,
+      ) || "",
+      {
+        description: translator.translateTemplate(message.template, {
+          phoneNumber: phoneNumberInLine(
+            message.phoneNumber,
+            translator.language,
+          ),
+        }),
+      },
+    );
   };
 
   useEffect(() => {
@@ -503,7 +506,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
           },
         ]}
         name="Settings > Custom CallSMS Config"
-        noItemsMessage={"No Twilio config found."}
+        noItemsMessage={"No Twilio configs yet."}
         selectMoreFields={{
           /*
            * The numbers the Phone Numbers column shows and counts beside
@@ -984,7 +987,6 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             try {
               setIsCallSMSTestLoading(true);
               setError("");
-              setTestSentFromPhoneNumber("");
 
               // test CallSMS config
               const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -1014,32 +1016,17 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
                 throw response;
               }
 
-              // The number it went out from, which the next dialog names.
-              setTestSentFromPhoneNumber(
-                getTestSendFromPhoneNumber(response.data),
-              );
               setIsCallSMSTestLoading(false);
               setShowSMSTestModal(false);
-              setSMSShowSuccessModal(true);
+              // With the number it went out from.
+              sayTestSent(
+                TwilioTestSendKind.SMS,
+                getTestSendFromPhoneNumber(response.data),
+              );
             } catch (err) {
               setError(API.getFriendlyMessage(err));
               setIsCallSMSTestLoading(false);
             }
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {showSMSSuccessModal ? (
-        <ConfirmModal
-          title={TwilioTestSendCopy.smsSentTitle}
-          description={getTestSentDescription(TwilioTestSendKind.SMS)}
-          submitButtonType={ButtonStyleType.NORMAL}
-          submitButtonText={"Close"}
-          onSubmit={async () => {
-            setSMSShowSuccessModal(false);
-            setError("");
           }}
         />
       ) : (
@@ -1076,7 +1063,6 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             try {
               setIsCallSMSTestLoading(true);
               setError("");
-              setTestSentFromPhoneNumber("");
 
               // test CallSMS config
               const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -1106,32 +1092,17 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
                 throw response;
               }
 
-              // The number it is calling from, which the next dialog names.
-              setTestSentFromPhoneNumber(
-                getTestSendFromPhoneNumber(response.data),
-              );
               setIsCallSMSTestLoading(false);
               setShowCallTestModal(false);
-              setCallShowSuccessModal(true);
+              // With the number it is calling from.
+              sayTestSent(
+                TwilioTestSendKind.Call,
+                getTestSendFromPhoneNumber(response.data),
+              );
             } catch (err) {
               setError(API.getFriendlyMessage(err));
               setIsCallSMSTestLoading(false);
             }
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {showCallSuccessModal ? (
-        <ConfirmModal
-          title={TwilioTestSendCopy.callPlacedTitle}
-          description={getTestSentDescription(TwilioTestSendKind.Call)}
-          submitButtonType={ButtonStyleType.NORMAL}
-          submitButtonText={"Close"}
-          onSubmit={async () => {
-            setCallShowSuccessModal(false);
-            setError("");
           }}
         />
       ) : (

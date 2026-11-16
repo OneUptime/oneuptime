@@ -669,7 +669,7 @@ test.describe("a service's own Profiles tab", () => {
       0,
     );
     await expect(
-      page.getByText("No profiles found for this service."),
+      page.getByText("No profiles for this service yet."),
     ).toHaveCount(0);
 
     if (isPhone(testInfo)) {
@@ -731,10 +731,10 @@ test.describe("a flame graph a newcomer can read", () => {
 
     // The services come before the merged answer.
     const services: Locator = page.getByTestId("profiles-services");
-    const servicesBox: { y: number } | null = await services.boundingBox();
-    const headlineBox: { y: number } | null = await page
-      .getByTestId("profiles-headline-text")
-      .boundingBox();
+    const [servicesBox, headlineBox] = await boxesInOneFrame([
+      services,
+      page.getByTestId("profiles-headline-text"),
+    ]);
     expect(servicesBox!.y).toBeLessThan(headlineBox!.y);
 
     await expect(

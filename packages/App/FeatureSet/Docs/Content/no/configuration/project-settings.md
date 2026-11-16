@@ -64,7 +64,7 @@ Et skjult produkt er ikke slått av. Det flyttes til **Flere produkter**, den si
 
 På en selv-hostet server kan en hovedadministrator også slå av et produkt for alle prosjekter, under **Innstillinger → Produkter** i Admin Dashboard (se [Kjør bare det du trenger](/docs/installation/docker-compose#kjør-bare-det-du-trenger)). Et slikt produkt har ingen bryter her: Det viser **Slått av på denne serveren**, sammen med hvem som kan slå det på.
 
-Hvert produkt vises til noen skjuler det her. Ingen produkter skjules av seg selv: det eieren sa på Hjem at prosjektet skal brukes til, setter bare opp de første stegene der, og et produkt som ikke er satt opp ennå, blir værende på sin plass i menyen.
+Hvert produkt vises til noen skjuler det her. Ingen produkter skjules av seg selv: det en Prosjekteier eller Prosjektadministrator sa på Hjem at prosjektet skal brukes til, setter bare opp de første stegene der, og et produkt som ikke er satt opp ennå, blir værende på sin plass i menyen.
 
 Hvert produkt sier hva det er for dette prosjektet: **I bruk**, **Ikke satt opp** eller, i OneUptime Cloud, abonnementet det trenger. Når et skjult produkt begynner å motta data, sier Hjem fra til Prosjekteiere og Prosjektadministratorer og tilbyr **Vis det** eller **Hold skjult**.
 

@@ -15,6 +15,7 @@ import {
   test,
 } from "@jest/globals";
 import React, { act, FunctionComponent, ReactElement } from "react";
+import Toast from "../../../UI/Utils/Toast";
 import {
   BrowserRouter,
   Route as RouterRoute,
@@ -419,6 +420,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  Toast.dismissAll();
   cleanup();
   LeaveGuard.reset();
   UnsavedChanges.reset();
@@ -710,7 +712,13 @@ describe("after Save Steps", () => {
 
     expect(saves).toHaveLength(1);
     expect(saves[0]![0]!.title).toBe("Check the graphs");
-    expect(screen.getByRole("dialog", { name: "Saved" })).toBeInTheDocument();
+    // Said in the corner: "Saved" was a dialog to click away (#9120).
+    expect(
+      Toast.getToasts().map((toast: { title: string }) => {
+        return toast.title;
+      }),
+    ).toContain("Changes saved");
+    expect(screen.queryByRole("dialog", { name: "Saved" })).toBeNull();
     expect(showsUnsaved()).toBe(false);
     expect(saveStepsButton()).toBeDisabled();
     expect(browserAsksBeforeUnload()).toBe(false);

@@ -65,7 +65,7 @@ A few quick rules:
 - The template list shows only **Name** and **Description**. Rows are not editable or deletable from the list — open a template (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) to change it.
 - Everyone who can edit a template can change its details and its affected resources, **Initial Incident State** and **Change Monitor Status to** included: Project Owners, Project Admins and Project Members, Incident Admins and Incident Members, and a role with **Edit Incident Template**.
 - Templates support JSON import and export, so you can move one between projects.
-- With no templates, the list says **No incident templates found** with **Create Incident Template** right under it.
+- With no templates, the list says **No incident templates yet** with **Create Incident Template** right under it.
 - With no templates either, **Create from Template** on the incidents list opens a **No Incident Templates** dialog that says where templates are made, and its **Create Template** button opens **Incidents → Settings → Incident Templates**.
 
 ### How a template gets applied

@@ -280,7 +280,7 @@ Tudo na página vem do que o OneUptime já registrou (os incidentes e alertas, a
 
 ### Tudo o que a IA fez em um cluster
 
-A página **Registros de IA** do cluster (IA → Registros) é o registro de tudo o que a OneUptime AI fez ali, do mais recente para o mais antigo: cada investigação com o incidente ou alerta e o resumo dela, cada correção que ela propôs ou executou com o status, e cada comando kubectl (de investigação ou de correção) com o comando, o status e quando foi executado. O resumo de uma investigação é o TL;DR dela ou, quando não foi possível escrever um TL;DR, o resumo com que o relatório dela começa. Esta página se chamava antes AI Insights; um favorito do endereço antigo dela agora abre a página AI Insights, que traz um link para cá.
+A página **Registros de IA** do cluster (IA → Registros) é o registro de tudo o que a OneUptime AI fez ali, do mais recente para o mais antigo: cada investigação com o incidente ou alerta e o resumo dela, cada correção que ela propôs ou executou com o status, e cada comando kubectl (de investigação ou de correção) com o comando, o status e quando foi executado. O resumo de uma investigação é o TL;DR dela ou, quando não foi possível escrever um TL;DR, o resumo com que o relatório dela começa. Esta página se chamava antes AI Insights; um favorito do endereço antigo dela agora abre a página AI Insights, que traz um link para cá. Ela lista os comandos kubectl que você pode ler: os que a OneUptime AI executou para o chat de IA de outra pessoa, ou sobre um incidente ou alerta privado que você não pode ler, ficam de fora, e a página diz quantos são.
 
 ### Pelo Runner anterior dentro do cluster
 

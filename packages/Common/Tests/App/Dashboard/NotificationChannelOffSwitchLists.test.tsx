@@ -159,8 +159,8 @@ interface MethodList {
   codeActionTitle?: string | undefined;
   // Whether the server refuses that action while the channel is off.
   isCodeActionRefusedWhileOff: boolean;
-  // The empty list's heading while the channel is on.
-  usualEmptyTitle: string;
+  // What the empty list asks of the reader while the channel is on.
+  usualEmptyAsk: string;
 }
 
 const METHOD_LISTS: Array<MethodList> = [
@@ -171,7 +171,7 @@ const METHOD_LISTS: Array<MethodList> = [
     modelType: UserSMS,
     columns: { phone: new Phone("+15551230100") as never },
     isCodeActionRefusedWhileOff: true,
-    usualEmptyTitle: "No phone numbers found",
+    usualEmptyAsk: "Add one to receive notifications.",
   },
   {
     name: "Call",
@@ -180,7 +180,7 @@ const METHOD_LISTS: Array<MethodList> = [
     modelType: UserCall,
     columns: { phone: new Phone("+15551230199") as never },
     isCodeActionRefusedWhileOff: true,
-    usualEmptyTitle: "No phone numbers found",
+    usualEmptyAsk: "Add one to receive notifications.",
   },
   {
     name: "WhatsApp",
@@ -189,7 +189,7 @@ const METHOD_LISTS: Array<MethodList> = [
     modelType: UserWhatsApp,
     columns: { phone: new Phone("+15551230123") as never },
     isCodeActionRefusedWhileOff: false,
-    usualEmptyTitle: "No WhatsApp numbers found",
+    usualEmptyAsk: "Add one to receive notifications.",
   },
   {
     name: "Telegram",
@@ -199,7 +199,7 @@ const METHOD_LISTS: Array<MethodList> = [
     columns: { telegramUserHandle: "@alexchen" },
     codeActionTitle: "Rotate Code",
     isCodeActionRefusedWhileOff: false,
-    usualEmptyTitle: "No Telegram accounts linked",
+    usualEmptyAsk: "Add one and scan the QR",
   },
   {
     name: "Incoming call numbers",
@@ -208,7 +208,7 @@ const METHOD_LISTS: Array<MethodList> = [
     modelType: UserIncomingCallNumber,
     columns: { phone: new Phone("+15551230177") as never },
     isCodeActionRefusedWhileOff: true,
-    usualEmptyTitle: "No phone numbers found",
+    usualEmptyAsk: "Add one to receive routed incoming calls.",
   },
 ];
 
@@ -470,7 +470,7 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     expect(
       screen.getByText(definition().noItemsWhileOff.replace(/\.$/, "")),
     ).toBeInTheDocument();
-    expect(screen.queryByText(list.usualEmptyTitle)).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toContain(list.usualEmptyAsk);
     expect(document.body.textContent).not.toContain("Please add one");
   });
 
@@ -509,7 +509,7 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     expect(
       screen.queryByTestId(NOTIFICATION_CHANNEL_OFF_PANEL_TEST_ID),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(list.usualEmptyTitle)).toBeInTheDocument();
+    expect(document.body.textContent).toContain(list.usualEmptyAsk);
   });
 
   test("while the answer is on its way it offers neither Add nor the panel", async () => {

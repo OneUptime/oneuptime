@@ -26,7 +26,7 @@ In OneUptime staat alles in een project: uw monitoren, incidenten, bereikbaarhei
 :::steps
 ### Een nieuw project beginnen
 
-De eerste keer dat u inlogt, toont OneUptime **Geen projecten**. Klik op **Nieuw project aanmaken**. Heeft iemand u al voor een project uitgenodigd, accepteer de uitnodiging dan op dezelfde pagina.
+De eerste keer dat u inlogt, toont OneUptime **Nog geen projecten**. Klik op **Project maken**. Heeft iemand u al voor een project uitgenodigd, accepteer de uitnodiging dan op dezelfde pagina.
 
 ### Een naam geven
 

@@ -1160,7 +1160,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 description:
                   "Invoices are charged automatically to the default payment method. A payment method you add becomes the default. Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
               }}
-              noItemsMessage={"No payment methods found."}
+              noItemsMessage={"No payment methods yet."}
               query={{
                 projectId: ProjectUtil.getCurrentProjectId()!,
               }}

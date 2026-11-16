@@ -125,7 +125,7 @@ const Email: () => JSX.Element = (): ReactElement => {
           "/docs/notifications/notification-methods",
         )}
         noItemsMessage={
-          "No emails found. Please add one to receive notifications."
+          "No email addresses yet. Add one to receive notifications."
         }
         formFields={[
           {

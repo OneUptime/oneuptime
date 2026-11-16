@@ -195,7 +195,7 @@ const TraceRecordingRules: FunctionComponent<
           "Define a new metric as an expression over span aggregations, evaluated every minute.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No recording rules found."}
+      noItemsMessage={"No recording rules yet."}
       createInitialValues={{
         isEnabled: true,
         definition:

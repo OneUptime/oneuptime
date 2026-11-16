@@ -30,7 +30,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
           description:
             "Ready-made text for maintenance updates. Pick one when writing a public or private note on a maintenance event, or when changing its state, and edit it before posting.",
         }}
-        noItemsMessage={"No note templates found."}
+        noItemsMessage={"No note templates yet."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

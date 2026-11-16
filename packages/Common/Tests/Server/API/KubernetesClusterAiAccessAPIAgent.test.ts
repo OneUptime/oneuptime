@@ -919,10 +919,31 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         expect(spy.mock.calls.every(isCallerProps)).toBe(true);
       }
 
-      for (const spy of [jobFind, suggestionFind, jobCount]) {
+      for (const spy of [jobFind, suggestionFind]) {
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls.every(isRootProps)).toBe(true);
       }
+
+      /*
+       * Every count as root, but the one count of the commands the page
+       * lists made as the caller too: how many they may not read.
+       */
+      const asCaller: Array<Array<unknown>> =
+        jobCount.mock.calls.filter(isCallerProps);
+
+      expect(asCaller).toHaveLength(1);
+      expect(
+        jobCount.mock.calls.every((call: Array<unknown>): boolean => {
+          return isRootProps(call) || isCallerProps(call);
+        }),
+      ).toBe(true);
+      expect(
+        (asCaller[0]![0] as { query: Record<string, unknown> }).query,
+      ).toEqual({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        stepType: RunbookStepType.Kubectl,
+      });
     });
 
     test("an empty cluster: empty lists and zero counts, and no AI run read", async () => {
@@ -933,8 +954,59 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         investigations: [],
         fixes: [],
         commandCounts: { investigation: 0, remediation: 0 },
+        hiddenCommandCount: 0,
       });
       expect(runFind).not.toHaveBeenCalled();
+    });
+
+    test("says how many of the cluster's kubectl commands the caller may not read, and nothing more of them", async () => {
+      jobCount.mockImplementation(async (args: unknown) => {
+        const call: {
+          query: Record<string, unknown>;
+          props: DatabaseCommonInteractionProps;
+        } = args as {
+          query: Record<string, unknown>;
+          props: DatabaseCommonInteractionProps;
+        };
+
+        // The commands the page lists: 7 in all, 4 of them the caller's to read.
+        if (!call.query["createdAt"]) {
+          return new PositiveNumber(call.props.isRoot ? 7 : 4);
+        }
+
+        return new PositiveNumber(0);
+      });
+
+      await callRoute(LOGS_ROUTE);
+
+      expect(lastResponse()["hiddenCommandCount"]).toBe(3);
+      // Only the number: no job is read for it.
+      expect(
+        jobFind.mock.calls.every((call: Array<unknown>): boolean => {
+          return isRootProps(call);
+        }),
+      ).toBe(true);
+    });
+
+    test("leaves the count out for a caller who may not read Runner jobs at all", async () => {
+      jobCount.mockImplementation(async (args: unknown) => {
+        if (!(args as { props: DatabaseCommonInteractionProps }).props.isRoot) {
+          throw new NotAuthorizedException(
+            "You do not have permissions to read Runner Jobs.",
+          );
+        }
+
+        return new PositiveNumber(5);
+      });
+
+      const result: RouteCallResult = await callRoute(LOGS_ROUTE);
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(lastResponse()).not.toHaveProperty("hiddenCommandCount");
+      expect(lastResponse()["commandCounts"]).toEqual({
+        investigation: 5,
+        remediation: 5,
+      });
     });
 
     test("investigations: runs that ran kubectl here UNION runs of linked incidents and alerts, deduplicated, newest first", async () => {
