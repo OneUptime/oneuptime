@@ -6,6 +6,7 @@ import InlineImageRefusal from "./InlineImageRefusal";
 import MailProvider, { MailProviderSendOptions } from "./MailProvider";
 import MimeMessage from "./MimeMessage";
 import EmailMessage from "Common/Types/Email/EmailMessage";
+import { getCcAddresses } from "Common/Types/Email/EmailRecipients";
 import EmailServer from "Common/Types/Email/EmailServer";
 import { isMailgunDomain } from "Common/Types/Email/MailgunDomain";
 import MailgunRegion, {
@@ -22,10 +23,11 @@ import logger from "Common/Server/Utils/Logger";
  * https://api.eu.mailgun.net for EU ones
  * (https://documentation.mailgun.com/docs/mailgun/api-reference/send/mailgun/messages/post-v3--domain-name--messages-mime).
  *
- * The request is a multipart form of two fields: `to`, the recipient, and
- * `message`, the whole email as MIME - the message nodemailer writes for an
- * SMTP server (MimeMessage), so its inline images are parts with the
- * Content-IDs the HTML points at, exactly as over SMTP. (Mailgun's other
+ * The request is a multipart form of two fields: `to`, the recipients (the
+ * To and any Cc), and `message`, the whole email as MIME - the message
+ * nodemailer writes for an SMTP server (MimeMessage), so its inline images
+ * are parts with the Content-IDs the HTML points at, exactly as over
+ * SMTP. (Mailgun's other
  * endpoint, /messages, names an inline image by its file name, which no
  * Content-ID of OneUptime's is.) Signed in with HTTP Basic, user "api" and
  * the API key - a domain's sending key works too, for that domain.
@@ -93,7 +95,15 @@ export default class MailgunMailProvider implements MailProvider {
           attempt: async (requestTimeoutMs: number): Promise<void> => {
             // A fresh form each try: a sent body cannot be read again.
             const form: FormData = new FormData();
-            form.append("to", mail.toEmail.toString());
+            /*
+             * Every mailbox the message goes to: messages.mime delivers to
+             * these, whatever the MIME's headers say, so a copied address
+             * (Cc, #8893) goes here too, comma separated as Mailgun reads it.
+             */
+            form.append(
+              "to",
+              [mail.toEmail.toString(), ...getCcAddresses(mail)].join(","),
+            );
             form.append(
               "message",
               new Blob([new Uint8Array(mime)], { type: "message/rfc822" }),

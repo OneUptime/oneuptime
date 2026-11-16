@@ -29,4 +29,18 @@ export interface EmailEnvelope {
 
 export default interface EmailMessage extends EmailEnvelope {
   toEmail: Email;
+  /*
+   * Who else is sent the email, openly (Cc): the person who wrote Give
+   * Feedback, copied on what they sent (#8893). Each is one mailbox, sent
+   * once, never the To again (EmailRecipients.getCcAddresses). Left out,
+   * the email goes to toEmail alone, as every email always has.
+   */
+  ccEmails?: Array<Email> | undefined;
+  /*
+   * Where a reply goes when it should not go to the sender: the person who
+   * wrote Give Feedback, so the team's answer reaches them rather than the
+   * server's no-reply address (EmailRecipients.getReplyToAddress). Left
+   * out, a reply goes to the sender.
+   */
+  replyToEmail?: Email | undefined;
 }
