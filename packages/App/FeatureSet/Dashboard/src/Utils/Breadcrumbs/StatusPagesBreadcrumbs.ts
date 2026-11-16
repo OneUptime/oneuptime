@@ -271,22 +271,22 @@ export function getStatusPagesBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES, [
       "Project",
       "Status Pages",
-      "Settings",
+      "Rules",
       "Owner Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGES_SETTINGS_OWNER_RULE_VIEW,
-      ["Project", "Status Pages", "Settings", "Owner Rules", "View Rule"],
+      ["Project", "Status Pages", "Rules", "Owner Rules", "View Rule"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES, [
       "Project",
       "Status Pages",
-      "Settings",
+      "Rules",
       "Label Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGES_SETTINGS_LABEL_RULE_VIEW,
-      ["Project", "Status Pages", "Settings", "Label Rules", "View Rule"],
+      ["Project", "Status Pages", "Rules", "Label Rules", "View Rule"],
     ),
   };
   return breadcrumpLinksMap[path];

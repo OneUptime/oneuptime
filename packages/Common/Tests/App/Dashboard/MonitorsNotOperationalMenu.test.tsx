@@ -159,7 +159,8 @@ describe("Monitors menu", () => {
     );
   });
 
-  test("the rest of Attention Required is untouched", async () => {
+  // Disabled left for the Monitors section (#9126, MonitorsSideMenu.test.tsx).
+  test("the rest of Attention Required is what no probe checks", async () => {
     await renderMonitorsMenu();
 
     expect(linksIn("Attention Required")).toEqual([
@@ -167,13 +168,12 @@ describe("Monitors menu", () => {
         title: "Not Operational",
         href: routeFor(PageMap.MONITORS_INOPERATIONAL),
       },
-      { title: "Disabled", href: routeFor(PageMap.MONITORS_DISABLED) },
       {
-        title: "Probe Disconnected",
+        title: "Probes Disconnected",
         href: routeFor(PageMap.MONITORS_PROBE_DISCONNECTED),
       },
       {
-        title: "Probe Disabled",
+        title: "No Probe Enabled",
         href: routeFor(PageMap.MONITORS_PROBE_DISABLED),
       },
     ]);

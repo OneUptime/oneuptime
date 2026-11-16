@@ -337,7 +337,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         sortBy="time"
         sortOrder={SortOrder.Descending}
         cardProps={{
-          title: "Monitor Logs",
+          title: "Monitoring Logs",
           description:
             "The result of every check of this monitor, newest first. View a summary to see what was checked and how the criteria judged it.",
         }}

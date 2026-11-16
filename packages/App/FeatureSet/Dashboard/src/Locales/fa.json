@@ -56453,5 +56453,9 @@
   "The first check runs within {{count}} hours.": "نخستین بررسی ظرف {{count}} ساعت انجام می‌شود.",
   "The first check runs within {{count}} hours._one": "نخستین بررسی ظرف {{count}} ساعت انجام می‌شود.",
   "The first check runs within {{count}} minutes.": "نخستین بررسی ظرف {{count}} دقیقه انجام می‌شود.",
-  "The first check runs within {{count}} minutes._one": "نخستین بررسی ظرف {{count}} دقیقه انجام می‌شود."
+  "The first check runs within {{count}} minutes._one": "نخستین بررسی ظرف {{count}} دقیقه انجام می‌شود.",
+  "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "مانیتورهایی که هیچ پراب فعالی بررسی‌شان نمی‌کند: پراب‌هایشان همه غیرفعال‌اند، یا هیچ پرابی ندارند. برای ازسرگیری بررسی‌ها، پرابی را روی مانیتور فعال کنید یا یکی اضافه کنید.",
+  "Monitors with No Probe Enabled": "مانیتورهای بدون پراب فعال",
+  "No Probe Enabled": "هیچ پرابی فعال نیست",
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "هیچ مانیتوری بدون پراب فعال نیست. هر مانیتوری که پراب‌ها بررسی‌اش می‌کنند، دست‌کم یک پراب فعال دارد."
 }

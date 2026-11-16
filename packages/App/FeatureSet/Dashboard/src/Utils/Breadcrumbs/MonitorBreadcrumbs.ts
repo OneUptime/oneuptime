@@ -138,12 +138,12 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_PROBE_DISCONNECTED, [
       "Project",
       "Monitors",
-      "Probe Disconnected",
+      "Probes Disconnected",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_PROBE_DISABLED, [
       "Project",
       "Monitors",
-      "Probe Disabled",
+      "No Probe Enabled",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_ALERTS, [
       "Project",
@@ -181,26 +181,26 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_OWNER_RULES, [
       "Project",
       "Monitors",
-      "Settings",
+      "Rules",
       "Owner Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_OWNER_RULE_VIEW, [
       "Project",
       "Monitors",
-      "Settings",
+      "Rules",
       "Owner Rules",
       "View Rule",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_LABEL_RULES, [
       "Project",
       "Monitors",
-      "Settings",
+      "Rules",
       "Label Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "Monitors",
-      "Settings",
+      "Rules",
       "Label Rules",
       "View Rule",
     ]),

@@ -59,6 +59,29 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               },
             ]
           : []),
+        /*
+         * Monitors someone disabled on purpose. A choice, not a fault, so it
+         * sits with the monitors rather than under Attention Required, and
+         * its count is grey with the pause icon the monitor's own banner
+         * shows (DisabledWarning). A red count that never goes away taught
+         * people to ignore red (#9126).
+         */
+        {
+          link: {
+            title: "Disabled",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_DISABLED] as Route,
+            ),
+          },
+          icon: IconProp.Pause,
+          badgeType: BadgeType.NEUTRAL,
+          modelType: Monitor,
+          countQuery: {
+            projectId: props.project?._id,
+            isArchived: false,
+            disableActiveMonitoring: true,
+          },
+        },
       ],
     },
     {
@@ -82,23 +105,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Disabled",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITORS_DISABLED] as Route,
-            ),
-          },
-          icon: IconProp.Error,
-          badgeType: BadgeType.DANGER,
-          modelType: Monitor,
-          countQuery: {
-            projectId: props.project?._id,
-            isArchived: false,
-            disableActiveMonitoring: true,
-          },
-        },
-        {
-          link: {
-            title: "Probe Disconnected",
+            title: "Probes Disconnected",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route,
             ),
@@ -112,9 +119,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             isAllProbesDisconnectedFromThisMonitor: true,
           },
         },
+        /*
+         * Monitors no enabled probe checks: every probe of theirs is
+         * disabled, or they have none. It was "Probe Disabled", which read
+         * as one probe being switched off (#9126). The same words as the
+         * monitor's own badge (MonitorRowStatus).
+         */
         {
           link: {
-            title: "Probe Disabled",
+            title: "No Probe Enabled",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_PROBE_DISABLED] as Route,
             ),
@@ -131,6 +144,36 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
     ...(workspaceSection ? [workspaceSection] : []),
+    /*
+     * Rules run by themselves once written, so they fold away under a
+     * section of their own, as Incidents, Alerts and Maintenance file
+     * theirs. Their addresses did not move (settings/owner-rules), as
+     * Incidents' did not, so bookmarks keep working.
+     */
+    {
+      title: "Rules",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS_OWNER_RULES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
+      ],
+    },
     {
       title: "Settings",
       defaultCollapsed: true,
@@ -181,24 +224,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Template,
-        },
-        {
-          link: {
-            title: "Owner Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITORS_SETTINGS_OWNER_RULES] as Route,
-            ),
-          },
-          icon: IconProp.User,
-        },
-        {
-          link: {
-            title: "Label Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Tag,
         },
         {
           link: {

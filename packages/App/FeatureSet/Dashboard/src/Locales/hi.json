@@ -56453,5 +56453,9 @@
   "The first check runs within {{count}} hours.": "पहली जाँच {{count}} घंटों के भीतर होगी।",
   "The first check runs within {{count}} hours._one": "पहली जाँच {{count}} घंटे के भीतर होगी।",
   "The first check runs within {{count}} minutes.": "पहली जाँच {{count}} मिनट के भीतर होगी।",
-  "The first check runs within {{count}} minutes._one": "पहली जाँच {{count}} मिनट के भीतर होगी।"
+  "The first check runs within {{count}} minutes._one": "पहली जाँच {{count}} मिनट के भीतर होगी।",
+  "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "वे मॉनिटर जिनकी जाँच कोई सक्षम प्रोब नहीं करता: उनके सभी प्रोब अक्षम हैं, या उनके पास कोई प्रोब नहीं है। जाँच फिर से शुरू करने के लिए मॉनिटर पर कोई प्रोब सक्षम करें, या एक जोड़ें।",
+  "Monitors with No Probe Enabled": "बिना सक्षम प्रोब वाले मॉनिटर",
+  "No Probe Enabled": "कोई प्रोब सक्षम नहीं",
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "बिना सक्षम प्रोब वाला कोई मॉनिटर नहीं है। प्रोब जिन मॉनिटरों की जाँच करते हैं, उनमें से हर एक में कम से कम एक प्रोब सक्षम है।"
 }

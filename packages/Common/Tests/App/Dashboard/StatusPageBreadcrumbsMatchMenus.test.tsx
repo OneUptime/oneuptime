@@ -205,7 +205,7 @@ describe("the Status Pages menu and its breadcrumbs", () => {
     expect(mismatches(links)).toEqual([]);
   });
 
-  test("an announcement and the settings pages sit under the names the menu gives them", () => {
+  test("an announcement, the settings pages and the rules sit under the names the menu gives them", () => {
     expect(trailOf(PageMap.STATUS_PAGE_ANNOUNCEMENTS)).toEqual([
       "Project",
       "Status Pages",
@@ -223,14 +223,14 @@ describe("the Status Pages menu and its breadcrumbs", () => {
     expect(trailOf(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULE_VIEW)).toEqual([
       "Project",
       "Status Pages",
-      "Settings",
+      "Rules",
       "Owner Rules",
       "View Rule",
     ]);
     expect(trailOf(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULE_VIEW)).toEqual([
       "Project",
       "Status Pages",
-      "Settings",
+      "Rules",
       "Label Rules",
       "View Rule",
     ]);
