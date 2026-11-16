@@ -230,6 +230,85 @@ export default class PrivateRecordReadFilter {
   }
 
   /*
+   * A ROW READ THROUGH A PART OF A PRIVATE RECORD: a Runner job of a
+   * runbook run, or of a fix OneUptime AI proposed, carries what the run's
+   * step ran and printed - the run's own output. It is read only by those
+   * who see every private record the run or the fix names: `query`, kept to
+   * the rows whose key of each of `keys` names no row of its part, or one
+   * that exists and is seen (getSeenConditions). A key naming a part that
+   * is gone - a fix deleted with its incident, which its jobs name by a
+   * plain id - is read only by those who see every private record. The
+   * caller's own filter on each key stays as sent. As it is for a caller
+   * who sees every private record.
+   */
+  public static applyToPartKeys<T>(
+    query: T,
+    props: DatabaseCommonInteractionProps,
+    keys: Array<{ column: string; partModelType: { new (): BaseModel } }>,
+  ): T {
+    if (shouldBypassRecordPrivacy(props)) {
+      return query;
+    }
+
+    const filtered: Record<string, unknown> = (query || {}) as Record<
+      string,
+      unknown
+    >;
+
+    for (const key of keys) {
+      const seen: Array<{
+        column: string;
+        condition: FindWhereProperty<any>;
+      }> =
+        PrivateRecordReadFilter.getSeenConditions({
+          relatedModelType: key.partModelType,
+          props: props,
+        }) || [];
+
+      const records: FindWhereProperty<any> = QueryHelper.inRecordsWhere({
+        tableName: new key.partModelType().tableName as string,
+        condition:
+          seen.length > 0
+            ? QueryHelper.allOfConditions(
+                seen.map(
+                  (each: {
+                    column: string;
+                    condition: FindWhereProperty<any>;
+                  }) => {
+                    return {
+                      columnName:
+                        each.column === "_id" ? undefined : each.column,
+                      condition: each.condition,
+                    };
+                  },
+                ),
+              )
+            : undefined,
+      });
+
+      const getSql: (alias: string) => string = (
+        records as unknown as { getSql: (alias: string) => string }
+      ).getSql;
+
+      filtered[key.column] = combineWithPrivacyClause(
+        filtered[key.column],
+        Raw(
+          (alias: string): string => {
+            return `(${alias} IS NULL OR ${getSql(alias)})`;
+          },
+          (
+            records as unknown as {
+              objectLiteralParameters?: Record<string, unknown>;
+            }
+          ).objectLiteralParameters || {},
+        ),
+      );
+    }
+
+    return filtered as T;
+  }
+
+  /*
    * A RELATION TO A PRIVATE RECORD SHOWS IT ONLY TO THOSE WHO SEE IT (#9102).
    *
    * A Data Security issue, a security case, a form submission, a session

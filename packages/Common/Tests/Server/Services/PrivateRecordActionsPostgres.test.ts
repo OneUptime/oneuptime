@@ -26,6 +26,7 @@ import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCall
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import RunbookExecutionService from "../../../Server/Services/RunbookExecutionService";
+import RunnerJobService from "../../../Server/Services/RunnerJobService";
 import SmsLogService from "../../../Server/Services/SmsLogService";
 import TelegramLogService from "../../../Server/Services/TelegramLogService";
 import WebhookLogService from "../../../Server/Services/WebhookLogService";
@@ -94,6 +95,9 @@ import { DataSource, Logger } from "typeorm";
  *   - a page, a run or a fix about a private incident is started only
  *     through the teams that own it and the people named as its owners
  *     (PrivateRecordWriteCheck.reaches, RunbookPrivateRecordAccess);
+ *   - a Runner job of a run or a fix about a private record - what its step
+ *     ran and printed - is read only by those who see the record, and one
+ *     of a fix that is gone only by those who see every private record;
  *   - through every relation the rule holds (#9102: a Data Security
  *     issue's incident, a security case's, a form submission's, a session
  *     replay's, a public alert's private episode, a runner job's run...), a
@@ -316,6 +320,8 @@ describePostgres(
           }),
           // What OneUptime AI's read of a security case reads beside it.
           "SecurityDetection",
+          // What a Runner job is read through beside its run: the fix it runs a command of.
+          "AutoRemediationSuggestion",
         ]),
       );
 
@@ -925,6 +931,208 @@ describePostgres(
             ),
           }),
         ).toBe(true);
+      });
+    });
+
+    /*
+     * A RUNNER JOB carries what a runbook run's step, or a command of a fix
+     * OneUptime AI proposed, ran and printed: the run's or the fix's own
+     * output. It is read through the run and the fix it names
+     * (RunnerJobService.applyPrivacyFilters) - only by those who see every
+     * private record they are about. A job naming a fix that is gone, which
+     * it names by a plain id, only by those who see every private record.
+     */
+    describe("a Runner job, with what a run's step or a fix's command printed", () => {
+      const runnerJobs: Part = {
+        name: "a Runner job",
+        service: asService(RunnerJobService),
+      };
+
+      async function seedRow(table: string, values: SqlRow): Promise<string> {
+        const id: string = ObjectID.generate().toString();
+
+        await insert(table, {
+          _id: id,
+          projectId: projectId.toString(),
+          ...values,
+        });
+
+        return id;
+      }
+
+      async function runAbout(values: SqlRow): Promise<string> {
+        return await seedRow("RunbookExecution", {
+          incidentId: null,
+          alertId: null,
+          ...values,
+        });
+      }
+
+      async function fixAbout(values: SqlRow): Promise<string> {
+        return await seedRow("AutoRemediationSuggestion", {
+          incidentId: null,
+          alertId: null,
+          ...values,
+        });
+      }
+
+      async function jobOf(values: SqlRow): Promise<string> {
+        return await seedRow("RunnerJob", {
+          runbookExecutionId: null,
+          autoRemediationSuggestionId: null,
+          aiRunId: null,
+          ...values,
+        });
+      }
+
+      function kindOf(tableName: string): PrivateRecordKind {
+        return PrivateRecordPermission.getKind(tableName)!;
+      }
+
+      test("one of a run or a fix about a private record is read only by those who see the record", async () => {
+        const privateIncident: string = await seedRecord(
+          kindOf("Incident"),
+          true,
+        );
+        const publicIncident: string = await seedRecord(
+          kindOf("Incident"),
+          false,
+        );
+        const privateAlert: string = await seedRecord(kindOf("Alert"), true);
+
+        const notPrivate: Array<string> = [
+          // A Kubernetes or resource agent's job: no run, no fix.
+          await jobOf({}),
+          await jobOf({
+            runbookExecutionId: await runAbout({ incidentId: publicIncident }),
+          }),
+          // A run started by hand, about nothing.
+          await jobOf({ runbookExecutionId: await runAbout({}) }),
+          await jobOf({
+            autoRemediationSuggestionId: await fixAbout({
+              incidentId: publicIncident,
+            }),
+          }),
+        ];
+
+        const aboutPrivate: Array<string> = [
+          await jobOf({
+            runbookExecutionId: await runAbout({ incidentId: privateIncident }),
+          }),
+          await jobOf({
+            runbookExecutionId: await runAbout({ alertId: privateAlert }),
+          }),
+          await jobOf({
+            autoRemediationSuggestionId: await fixAbout({
+              incidentId: privateIncident,
+            }),
+          }),
+          await jobOf({
+            autoRemediationSuggestionId: await fixAbout({
+              alertId: privateAlert,
+            }),
+          }),
+          // A fix's command, run as a step of a public run: the fix decides.
+          await jobOf({
+            runbookExecutionId: await runAbout({ incidentId: publicIncident }),
+            autoRemediationSuggestionId: await fixAbout({
+              alertId: privateAlert,
+            }),
+          }),
+        ];
+
+        // Its fix deleted with the incident it was about.
+        const ofAGoneFix: string = await jobOf({
+          autoRemediationSuggestionId: ObjectID.generate().toString(),
+        });
+
+        const owned: Read = sorted([...notPrivate, ...aboutPrivate]);
+        const everything: Read = sorted([
+          ...notPrivate,
+          ...aboutPrivate,
+          ofAGoneFix,
+        ]);
+
+        // Those who see the private records.
+        expect(await read(runnerJobs, viewer(memberId))).toEqual(owned);
+        expect(await read(runnerJobs, viewer(namedOwnerId))).toEqual(owned);
+
+        // Those who see every private record.
+        expect(
+          await read(
+            runnerJobs,
+            propsOf([grant(Permission.ProjectAdmin)], adminId),
+          ),
+        ).toEqual(everything);
+        expect(
+          await read(
+            runnerJobs,
+            propsOf([grant(Permission.ProjectOwner)], adminId),
+          ),
+        ).toEqual(everything);
+
+        // Those who do not.
+        for (const props of [
+          viewer(otherId),
+          viewer(invitedId),
+          propsOf([grant(Permission.RunbookViewer)], otherId),
+          propsOf([grant(Permission.Viewer)], null, UserType.API),
+          workflowStep(),
+        ]) {
+          expect(await read(runnerJobs, props)).toEqual(sorted(notPrivate));
+        }
+      });
+
+      test("the caller's own filter on the run it names is kept", async () => {
+        const publicRun: string = await runAbout({
+          incidentId: await seedRecord(kindOf("Incident"), false),
+        });
+        const privateRun: string = await runAbout({
+          incidentId: await seedRecord(kindOf("Incident"), true),
+        });
+
+        const ofPublicRun: string = await jobOf({
+          runbookExecutionId: publicRun,
+        });
+        const ofPrivateRun: string = await jobOf({
+          runbookExecutionId: privateRun,
+        });
+        await jobOf({});
+
+        const found: (
+          runId: string,
+          props: DatabaseCommonInteractionProps,
+        ) => Promise<Array<string>> = async (
+          runId: string,
+          props: DatabaseCommonInteractionProps,
+        ): Promise<Array<string>> => {
+          return (
+            await RunnerJobService.findBy({
+              query: { runbookExecutionId: new ObjectID(runId) },
+              select: { _id: true },
+              skip: 0,
+              limit: 100,
+              props: props,
+            })
+          ).map((job: BaseModel): string => {
+            return job._id!.toString();
+          });
+        };
+
+        for (const props of [
+          viewer(memberId),
+          viewer(otherId),
+          propsOf([grant(Permission.ProjectAdmin)], adminId),
+        ]) {
+          expect(await found(publicRun, props)).toEqual([ofPublicRun]);
+        }
+
+        expect(await found(privateRun, viewer(memberId))).toEqual([
+          ofPrivateRun,
+        ]);
+
+        // Asked for the private run by name, someone who does not see it reads nothing.
+        expect(await found(privateRun, viewer(otherId))).toEqual([]);
       });
     });
 

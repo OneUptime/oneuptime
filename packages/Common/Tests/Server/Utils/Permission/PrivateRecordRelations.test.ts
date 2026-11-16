@@ -3,7 +3,13 @@ import PrivateRecordReadFilter, {
   PrivateRecordRelation,
 } from "../../../../Server/Utils/Permission/PrivateRecordReadFilter";
 import PrivateRecordPermission from "../../../../Server/Types/Database/Permissions/PrivateRecordPermission";
+import DatabaseService from "../../../../Server/Services/DatabaseService";
+import RunnerJobService, {
+  RUNNER_JOB_READ_THROUGH,
+  Service as RunnerJobServiceClass,
+} from "../../../../Server/Services/RunnerJobService";
 import WorkflowPrincipal from "../../../../Server/Utils/Workflow/WorkflowPrincipal";
+import PositiveNumber from "../../../../Types/PositiveNumber";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../../Models/DatabaseModels/AlertEpisode";
@@ -195,18 +201,20 @@ const HELD_RELATIONS: Record<string, Array<string>> = {
  * name, though the rule's metadata does not say so - they are no part of a
  * record (PrivateRecordParts NAMES_BUT_IS_NO_PART) - so the rule cannot
  * hold a relation to them. No model may link to one: it would read the
- * private record's AI decision or data alert through the link.
+ * private record's AI decision, data alert or Runner job through the link.
  */
 const KEPT_PRIVATE_BY_THEIR_SERVICE_ONLY: Record<string, string> = {
   AutoRemediationDecision:
     "OneUptime AI's decision about an incident or alert, read through both privacy filters by its service",
   DataAlert:
     "what a data monitor's alert is about, read through its alerts' privacy filters by its service",
+  RunnerJob:
+    "a step of a runbook run or a command of a fix, with what it printed, read through the run's and the fix's records by its service",
 };
 
-// A service reads its model through a private record's privacy filter.
+// A service reads its model through a private record's privacy filter, or through a part of one.
 const PRIVATE_RECORD_FILTER: RegExp =
-  /apply(Optional)?(Incident|Alert|IncidentEpisode|AlertEpisode)(Self|RelatedRecord)PrivacyFilter|PrivateRecordReadFilter\.apply\(|get(Optional)?(Incident|Alert|IncidentEpisode|AlertEpisode)RelatedRecordPrivacyRaw/;
+  /apply(Optional)?(Incident|Alert|IncidentEpisode|AlertEpisode)(Self|RelatedRecord)PrivacyFilter|PrivateRecordReadFilter\.apply\(|PrivateRecordReadFilter\.applyToPartKeys\(|get(Optional)?(Incident|Alert|IncidentEpisode|AlertEpisode)RelatedRecordPrivacyRaw/;
 
 function relationColumnsOf(modelType: {
   new (): BaseModel;
@@ -743,6 +751,107 @@ describe("a sort through a relation", () => {
       }).not.toThrow();
     },
   );
+});
+
+/*
+ * A RUNNER JOB carries what a runbook run's step, or a fix's command, ran and
+ * printed: it is read only where its reader sees every private record the
+ * run or the fix names - and a job of a fix that is gone, which it names by
+ * a plain id, only by those who see every private record.
+ */
+describe("a Runner job", () => {
+  test("is read through the run and the fix it names", () => {
+    expect(
+      RUNNER_JOB_READ_THROUGH.map(
+        (key: { column: string; partModelType: unknown }) => {
+          return `${key.column} -> ${modelName(key.partModelType as { new (): BaseModel })}`;
+        },
+      ),
+    ).toEqual([
+      "runbookExecutionId -> RunbookExecution",
+      "autoRemediationSuggestionId -> AutoRemediationSuggestion",
+    ]);
+    expect(RunnerJobService.getColumnsReadHooksNarrowBy()).toEqual([
+      "runbookExecutionId",
+      "autoRemediationSuggestionId",
+    ]);
+  });
+
+  test.each(SEE_ONLY_THEIR_OWN)(
+    "%s reads one naming no run or fix, or one they see",
+    (_who: string, props: DatabaseCommonInteractionProps) => {
+      const query: Record<string, unknown> =
+        RunnerJobServiceClass.applyPrivacyFilters({}, props);
+
+      const run: string = sqlOf(query["runbookExecutionId"]);
+      const fix: string = sqlOf(query["autoRemediationSuggestionId"]);
+
+      expect(run).toMatch(
+        /^\(COLUMN IS NULL OR \(COLUMN IN \(SELECT "record\w+"\."_id" FROM "RunbookExecution" "record\w+" WHERE /,
+      );
+      expect(run).toContain(
+        `."incidentId" IS NULL OR NOT EXISTS (SELECT 1 FROM "Incident" pr`,
+      );
+      expect(run).toContain(
+        `."alertId" IS NULL OR NOT EXISTS (SELECT 1 FROM "Alert" pr`,
+      );
+      expect(fix).toContain(`FROM "AutoRemediationSuggestion" "record`);
+      expect(fix).toContain(`FROM "Incident" pr`);
+    },
+  );
+
+  test("the caller's own filter on the run stays beside the rule", () => {
+    const runId: string = ObjectID.generate().toString();
+
+    const query: Record<string, unknown> =
+      RunnerJobServiceClass.applyPrivacyFilters(
+        { runbookExecutionId: runId },
+        member,
+      );
+
+    expect((query["runbookExecutionId"] as FindOperator<unknown>).type).toBe(
+      "and",
+    );
+  });
+
+  test.each(SEE_EVERY_PRIVATE_RECORD)(
+    "%s reads every job, unnarrowed",
+    (_who: string, props: DatabaseCommonInteractionProps) => {
+      expect(
+        RunnerJobServiceClass.applyPrivacyFilters({ status: "Running" }, props),
+      ).toEqual({
+        status: "Running",
+      });
+    },
+  );
+
+  test("its every read and count are narrowed", async () => {
+    const find: { findBy: { query: Record<string, unknown> } } = await (
+      RunnerJobService as unknown as {
+        onBeforeFind: (findBy: unknown) => Promise<{
+          findBy: { query: Record<string, unknown> };
+        }>;
+      }
+    ).onBeforeFind({ query: {}, props: member, skip: 0, limit: 10 });
+
+    expect(Object.keys(find.findBy.query).sort()).toEqual([
+      "autoRemediationSuggestionId",
+      "runbookExecutionId",
+    ]);
+
+    const counted: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      DatabaseService.prototype,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(0) as never);
+
+    await RunnerJobService.countBy({ query: {}, props: member });
+
+    expect(
+      Object.keys(
+        (counted.mock.calls[0]![0] as { query: Record<string, unknown> }).query,
+      ).sort(),
+    ).toEqual(["autoRemediationSuggestionId", "runbookExecutionId"]);
+  });
 });
 
 describe("a select through a relation", () => {
