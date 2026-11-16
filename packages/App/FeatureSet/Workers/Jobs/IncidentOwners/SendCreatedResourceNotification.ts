@@ -1,5 +1,6 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -70,7 +71,7 @@ const INCIDENT_SELECT: Select<Incident> = {
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8199) - told first, exactly
@@ -109,6 +110,15 @@ RunCron(
       });
 
     for (const incident of incidents) {
+      /*
+       * The run's deadline passed - its time limit, or its lease lost,
+       * when another run may hold the lock: the incidents not reached are
+       * still due, and the next run reads them (issue #8862).
+       */
+      if (deadline.hasPassed()) {
+        break;
+      }
+
       /*
        * Whom it is to tell, written before the take: a worker stopped from
        * here on leaves them to be told by a later run, and one stopped

@@ -15,6 +15,9 @@
  *     neither does a result that is refused;
  *   - a monitor already stamped is not written again;
  *   - a stamp that fails does not fail the result;
+ *   - a stamp that took is announced, once, in the monitor's project, so a
+ *     Monitors list left open stops saying Waiting for data (#8974); a
+ *     stamp skipped or not needed announces nothing;
  *   - an incoming request's arrival is kept by its monitor on every request,
  *     for the monitor's page - never for the sweep's own look.
  */
@@ -39,6 +42,7 @@ jest.mock("../../../../Server/Services/MonitorService", () => {
       findOneById: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
       updateColumnsByIdIfUnlockedWithoutHooks: jest.fn(),
+      onTriggerRealtime: jest.fn(),
     },
   };
 });
@@ -143,6 +147,7 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import LogMonitorResponse from "../../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import ObjectID from "../../../../Types/ObjectID";
+import ModelEventType from "../../../../Types/Realtime/ModelEventType";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import {
@@ -166,6 +171,8 @@ const updateColumns: jest.Mock =
   MonitorService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
 const stampWrite: jest.Mock =
   MonitorService.updateColumnsByIdIfUnlockedWithoutHooks as unknown as jest.Mock;
+const announce: jest.Mock =
+  MonitorService.onTriggerRealtime as unknown as jest.Mock;
 const lastTimelineRow: jest.Mock =
   MonitorStatusTimelineService.findOneBy as unknown as jest.Mock;
 const createTimelineRow: jest.Mock =
@@ -353,6 +360,7 @@ beforeEach(() => {
   lock.mockResolvedValue(MUTEX as never);
   updateColumns.mockResolvedValue(undefined as never);
   stampWrite.mockResolvedValue(true as never);
+  announce.mockResolvedValue(undefined as never);
   statusName.mockResolvedValue({ name: "Operational" } as never);
   lastTimelineRow.mockResolvedValue(null as never);
   createTimelineRow.mockImplementation(((args: { data: unknown }) => {
@@ -649,6 +657,199 @@ describe("a stamp never stands in the way of the result", () => {
 
     expect(stamps()).toHaveLength(2);
     expect(processMonitorStep).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * The stamp is written without hooks, so on its own it announced nothing: a
+ * first result that left the monitor's status as it was left a Monitors list
+ * open on Waiting for data (#8974). A stamp that took is announced now, as a
+ * change made through the service would be.
+ */
+describe("a stamp that took is announced, so a list left open follows it (#8974)", () => {
+  function announcements(): Array<{
+    monitorId: string;
+    projectId: string;
+    eventType: unknown;
+  }> {
+    return announce.mock.calls.map((call: Array<unknown>) => {
+      return {
+        monitorId: String(call[0]),
+        projectId: String(call[1]),
+        eventType: call[2],
+      };
+    });
+  }
+
+  test("once, as the monitor changed, in its project", async () => {
+    const monitor: Monitor = makeMonitor(MonitorType.Server);
+    findOneById.mockResolvedValue(monitor as never);
+
+    await MonitorResourceUtil.monitorResource(serverReport(monitor));
+
+    expect(stamps()).toHaveLength(1);
+    expect(announcements()).toEqual([
+      {
+        monitorId: monitor.id!.toString(),
+        projectId: monitor.projectId!.toString(),
+        eventType: ModelEventType.Update,
+      },
+    ]);
+  });
+
+  test("after the stamp is written, never before it", async () => {
+    const order: Array<string> = [];
+    const monitor: Monitor = makeMonitor(MonitorType.IncomingRequest);
+    findOneById.mockResolvedValue(monitor as never);
+    stampWrite.mockImplementation((async () => {
+      order.push("stamp");
+      return true;
+    }) as any);
+    announce.mockImplementation((async () => {
+      order.push("announce");
+    }) as any);
+
+    await MonitorResourceUtil.monitorResource(incomingRequest(monitor));
+
+    expect(order).toEqual(["stamp", "announce"]);
+  });
+
+  test("a stamp another writer's lock skipped announces nothing, and the next result's stamp is announced", async () => {
+    const monitor: Monitor = makeMonitor(MonitorType.Server);
+    findOneById.mockResolvedValue(monitor as never);
+    stampWrite.mockResolvedValueOnce(false as never);
+
+    await MonitorResourceUtil.monitorResource(serverReport(monitor));
+    expect(announcements()).toHaveLength(0);
+
+    await MonitorResourceUtil.monitorResource(serverReport(monitor));
+    expect(announcements()).toHaveLength(1);
+  });
+
+  test("a second first result, read before the first one's stamp landed, finds the column taken and announces nothing", async () => {
+    const monitor: Monitor = makeMonitor(MonitorType.Server);
+    findOneById.mockResolvedValue(monitor as never);
+    // The guard (firstMeasuredAt still empty) holds once.
+    stampWrite.mockResolvedValueOnce(true as never);
+    stampWrite.mockResolvedValueOnce(false as never);
+
+    await MonitorResourceUtil.monitorResource(serverReport(monitor));
+    await MonitorResourceUtil.monitorResource(serverReport(monitor));
+
+    expect(stamps()).toHaveLength(2);
+    expect(announcements()).toHaveLength(1);
+  });
+
+  test("a monitor measured already is neither written nor announced", async () => {
+    const monitor: Monitor = makeMonitor(MonitorType.Server, {
+      firstMeasuredAt: new Date("2026-11-01T00:00:00.000Z"),
+    });
+    findOneById.mockResolvedValue(monitor as never);
+
+    await MonitorResourceUtil.monitorResource(serverReport(monitor));
+
+    expect(stamps()).toHaveLength(0);
+    expect(announcements()).toHaveLength(0);
+  });
+
+  test.each([
+    [
+      "the server sweep's",
+      MonitorType.Server,
+      { onlyCheckRequestReceivedAt: true },
+    ],
+    [
+      "the incoming request sweep's",
+      MonitorType.IncomingRequest,
+      { onlyCheckForIncomingRequestReceivedAt: true },
+    ],
+    [
+      "the email sweep's",
+      MonitorType.IncomingEmail,
+      { onlyCheckForIncomingEmailReceivedAt: true },
+    ],
+  ] as Array<[string, MonitorType, Record<string, unknown>]>)(
+    "%s look at what has not arrived announces nothing",
+    async (
+      _sweep: string,
+      monitorType: MonitorType,
+      values: Record<string, unknown>,
+    ) => {
+      const monitor: Monitor = makeMonitor(monitorType);
+      findOneById.mockResolvedValue(monitor as never);
+
+      const result: Record<string, unknown> =
+        monitorType === MonitorType.Server
+          ? (serverReport(monitor, values) as unknown as Record<
+              string,
+              unknown
+            >)
+          : monitorType === MonitorType.IncomingRequest
+            ? (incomingRequest(monitor, values) as unknown as Record<
+                string,
+                unknown
+              >)
+            : (incomingEmail(monitor, values) as unknown as Record<
+                string,
+                unknown
+              >);
+
+      await MonitorResourceUtil.monitorResource(result as never);
+
+      expect(announcements()).toHaveLength(0);
+    },
+  );
+
+  test("an announcement that fails is logged, and the result is judged all the same", async () => {
+    const monitor: Monitor = makeMonitor(MonitorType.Server);
+    findOneById.mockResolvedValue(monitor as never);
+    announce.mockRejectedValue(new Error("Realtime is restarting") as never);
+
+    await expect(
+      MonitorResourceUtil.monitorResource(serverReport(monitor)),
+    ).resolves.toBeDefined();
+
+    expect(stamps()).toHaveLength(1);
+    expect(processMonitorStep).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("a stamp that fails is not announced", async () => {
+    const monitor: Monitor = makeMonitor(MonitorType.Server);
+    findOneById.mockResolvedValue(monitor as never);
+    stampWrite.mockRejectedValue(new Error("Postgres is busy") as never);
+
+    await MonitorResourceUtil.monitorResource(serverReport(monitor));
+
+    expect(announcements()).toHaveLength(0);
+  });
+
+  test("a monitor handed over without its project is stamped, and announced nowhere", async () => {
+    expect(
+      await MonitorFirstMeasured.stampIfFirst({
+        monitor: {
+          id: new ObjectID("cdcdcdcd-0000-4000-8000-000000000031"),
+          firstMeasuredAt: undefined,
+        } as unknown as Monitor,
+        dataToProcess: {} as unknown as ProbeMonitorResponse,
+      }),
+    ).toBe(true);
+
+    expect(stamps()).toHaveLength(1);
+    expect(announce).not.toHaveBeenCalled();
+  });
+
+  test("a manual monitor's stamp on create is not announced: the create that follows is", async () => {
+    expect(
+      await MonitorFirstMeasured.stampManualMonitorOnCreate({
+        monitorId: new ObjectID("cdcdcdcd-0000-4000-8000-000000000032"),
+        monitorType: MonitorType.Manual,
+        createdAt: new Date(),
+      }),
+    ).toBe(true);
+
+    expect(updateColumns).toHaveBeenCalledTimes(1);
+    expect(announce).not.toHaveBeenCalled();
   });
 });
 

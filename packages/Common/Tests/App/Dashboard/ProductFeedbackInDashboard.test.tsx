@@ -40,6 +40,7 @@ const captureMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
 let billingEnabled: boolean = false;
+let serverVersion: string = "14.3.0";
 
 /*
  * The reader's language: English, each word as written, unless a test hands
@@ -130,6 +131,13 @@ jest.mock("../../../UI/Config", () => {
     },
   });
 
+  // The version env.js hands the page (UI/Config's VERSION, #8893).
+  Object.defineProperty(mockedConfig, "VERSION", {
+    get: (): string => {
+      return serverVersion;
+    },
+  });
+
   return mockedConfig;
 });
 
@@ -167,6 +175,9 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { Translator } from "../../../Types/Translator";
 import {
+  GIVE_FEEDBACK_CATEGORIES,
+  GiveFeedbackCategory,
+  GiveFeedbackDestination,
   PRODUCT_FEEDBACK_ASK_ROUTE,
   PRODUCT_FEEDBACK_DETAILS_ROUTE,
   PRODUCT_FEEDBACK_ROUTE,
@@ -200,6 +211,8 @@ import {
 import { SETUP_FEEDBACK_STUCK_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Feedback/SetupFeedback";
 import GiveFeedbackDialog, {
   GIVE_FEEDBACK_ATTACHED_TEST_ID,
+  GIVE_FEEDBACK_CATEGORY_QUESTIONS,
+  GIVE_FEEDBACK_CATEGORY_TEST_ID,
   GIVE_FEEDBACK_DETAILS_TEST_ID,
   GIVE_FEEDBACK_DIALOG_TEST_ID,
   GIVE_FEEDBACK_GITHUB_TEST_ID,
@@ -207,6 +220,10 @@ import GiveFeedbackDialog, {
   GiveFeedbackOpenedFrom,
   openGiveFeedback,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Feedback/GiveFeedbackDialog";
+import { publishPageTrail } from "../../../UI/Utils/PageTrail";
+import Route from "../../../Types/API/Route";
+import Email from "../../../Types/Email";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import SetupCheckInCard, {
   SETUP_CHECK_IN_CLOSE_TEST_ID,
   SETUP_CHECK_IN_DETAILS_TEST_ID,
@@ -268,6 +285,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   billingEnabled = false;
+  serverVersion = "14.3.0";
   readerLanguage = "en";
   readerWords = {};
   wordsTranslateTextAnswersNothingFor = new Set<string>();
@@ -595,14 +613,74 @@ describe("before the end of a setup: Stuck?", () => {
 });
 
 describe("Give feedback, from any page", () => {
-  const openDialog: () => void = (): void => {
+  const PERSON_EMAIL: string = "jane@acme.test";
+
+  const openDialog: (from?: GiveFeedbackOpenedFrom) => void = (
+    from?: GiveFeedbackOpenedFrom,
+  ): void => {
     render(<GiveFeedbackDialog />);
     act(() => {
-      openGiveFeedback(GiveFeedbackOpenedFrom.Help);
+      openGiveFeedback(from || GiveFeedbackOpenedFrom.Help);
     });
   };
 
-  test("says what it is sent with - the page as a route and the version - before anything is sent", () => {
+  const write: (words: string) => void = (words: string): void => {
+    fireEvent.change(
+      screen
+        .getByTestId(GIVE_FEEDBACK_DETAILS_TEST_ID)
+        .querySelector("textarea") ||
+        screen.getByTestId(GIVE_FEEDBACK_DETAILS_TEST_ID),
+      { target: { value: words } },
+    );
+  };
+
+  const box: () => HTMLTextAreaElement = (): HTMLTextAreaElement => {
+    return (screen
+      .getByTestId(GIVE_FEEDBACK_DETAILS_TEST_ID)
+      .querySelector("textarea") ||
+      screen.getByTestId(GIVE_FEEDBACK_DETAILS_TEST_ID)) as HTMLTextAreaElement;
+  };
+
+  const pick: (category: GiveFeedbackCategory) => void = (
+    category: GiveFeedbackCategory,
+  ): void => {
+    fireEvent.click(
+      screen.getByTestId(`${GIVE_FEEDBACK_CATEGORY_TEST_ID}-${category}`),
+    );
+  };
+
+  const send: () => Promise<HTMLElement> = async (): Promise<HTMLElement> => {
+    fireEvent.click(screen.getByRole("button", { name: "Send Feedback" }));
+
+    return await screen.findByTestId(GIVE_FEEDBACK_SENT_TEST_ID);
+  };
+
+  // The server keeps the answer, and says what it did with it.
+  const serverAnswers: (receipt: JSONObject) => void = (
+    receipt: JSONObject,
+  ): void => {
+    postMock.mockImplementation(async (...args: Array<unknown>) => {
+      const path: string = new URL(
+        (args[0] as { url: { toString: () => string } }).url.toString(),
+      ).pathname;
+
+      if (path.endsWith(PRODUCT_FEEDBACK_ROUTE)) {
+        return ok({ answerId: ANSWER_ID, ...receipt });
+      }
+
+      return ok({});
+    });
+  };
+
+  beforeEach(() => {
+    jest.spyOn(UserUtil, "getEmail").mockReturnValue(new Email(PERSON_EMAIL));
+  });
+
+  afterEach(() => {
+    publishPageTrail(undefined);
+  });
+
+  test("says, before anything is sent, what is sent and that it stays on the server: self-hosted with no admin email", () => {
     openDialog();
 
     expect(
@@ -610,64 +688,302 @@ describe("Give feedback, from any page", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
-    ).toHaveTextContent("/dashboard/:projectId/monitors/setup");
+    ).toHaveTextContent(
+      "Kept for this server's admins with this page (/dashboard/:projectId/monitors/setup) and the version (14.3.0), without your name. Nothing leaves this server.",
+    );
+    expect(
+      screen.getByText(
+        "Tell this server's admins what's broken, confusing or missing.",
+      ),
+    ).toBeInTheDocument();
+    // No name or address is said to be sent: none is.
     expect(
       screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
-    ).toHaveTextContent(ProductFeedback.getVersion());
-    expect(screen.getByTestId(GIVE_FEEDBACK_DIALOG_TEST_ID)).toHaveTextContent(
-      "this server's admins",
+    ).not.toHaveTextContent(PERSON_EMAIL);
+  });
+
+  test("the version said is the server's, never the 1.0.0 every page said (#8893)", () => {
+    openDialog();
+
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).toHaveTextContent("the version (14.3.0)");
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).not.toHaveTextContent("1.0.0");
+    cleanup();
+
+    // A development build knows no version, and says none.
+    serverVersion = "";
+    openDialog();
+
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).toHaveTextContent(`the version (${EMPTY_VALUE_MARK})`);
+  });
+
+  test("names the page as its breadcrumbs do, while the route is what is sent", async () => {
+    publishPageTrail([
+      { title: "Project", to: new Route("/dashboard/p") },
+      { title: "Monitors", to: new Route("/dashboard/p/monitors") },
+      {
+        title: "Guided Setup",
+        to: new Route("/dashboard/p/monitors/setup"),
+      },
+    ]);
+    openDialog();
+
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).toHaveTextContent("this page (Monitors › Guided Setup)");
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).not.toHaveTextContent(":projectId");
+
+    write("The test page never arrived.");
+    await send();
+
+    expect(postsTo(PRODUCT_FEEDBACK_ROUTE)[0]!["page"]).toBe(
+      "/dashboard/:projectId/monitors/setup",
     );
   });
 
-  test("sends the words with the page and the version, and where it was opened from", async () => {
+  test("starts on Something's broken, and each kind asks its own question", () => {
     openDialog();
 
-    fireEvent.change(
-      screen
-        .getByTestId(GIVE_FEEDBACK_DETAILS_TEST_ID)
-        .querySelector("textarea") ||
-        screen.getByTestId(GIVE_FEEDBACK_DETAILS_TEST_ID),
-      { target: { value: "I wanted to page Grace and could not find how." } },
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Send Feedback" }));
+    const broken: HTMLInputElement = screen.getByTestId(
+      `${GIVE_FEEDBACK_CATEGORY_TEST_ID}-broken`,
+    ) as HTMLInputElement;
 
-    await screen.findByTestId(GIVE_FEEDBACK_SENT_TEST_ID);
+    expect(broken.checked).toBe(true);
+    expect(screen.getByText("What happened?")).toBeInTheDocument();
+    expect(box()).toHaveAttribute(
+      "placeholder",
+      "What did you do, what did you expect, and what happened instead?",
+    );
+    expect(
+      screen.getByRole("radiogroup", { name: "What is it about?" }),
+    ).toBeInTheDocument();
+
+    const asked: Record<GiveFeedbackCategory, string> = {
+      [GiveFeedbackCategory.Broken]: "What happened?",
+      [GiveFeedbackCategory.Confusing]: "What was confusing?",
+      [GiveFeedbackCategory.Idea]: "What's your idea?",
+      [GiveFeedbackCategory.Other]: "What would you like to tell us?",
+    };
+
+    for (const category of GIVE_FEEDBACK_CATEGORIES) {
+      pick(category);
+
+      expect(
+        (
+          screen.getByTestId(
+            `${GIVE_FEEDBACK_CATEGORY_TEST_ID}-${category}`,
+          ) as HTMLInputElement
+        ).checked,
+      ).toBe(true);
+      expect(screen.getByText(asked[category])).toBeInTheDocument();
+      expect(box()).toHaveAttribute(
+        "placeholder",
+        GIVE_FEEDBACK_CATEGORY_QUESTIONS[category].placeholder,
+      );
+    }
+
+    /*
+     * The picked kind, and only it, is drawn picked - in plain utilities the
+     * dark theme repaints, never a peer-checked: one it would not.
+     */
+    const chipOf: (category: GiveFeedbackCategory) => HTMLElement = (
+      category: GiveFeedbackCategory,
+    ): HTMLElement => {
+      return screen.getByTestId(`${GIVE_FEEDBACK_CATEGORY_TEST_ID}-${category}`)
+        .nextElementSibling as HTMLElement;
+    };
+
+    expect(chipOf(GiveFeedbackCategory.Other).className).toContain(
+      "bg-indigo-50",
+    );
+    expect(chipOf(GiveFeedbackCategory.Broken).className).not.toContain(
+      "bg-indigo-50",
+    );
+    expect(chipOf(GiveFeedbackCategory.Broken).className).not.toContain(
+      "peer-checked:",
+    );
+
+    // Each kind is a choice of one, by its name.
+    expect(screen.getAllByRole("radio")).toHaveLength(4);
+    expect(
+      screen.getByRole("radio", { name: "Something's broken" }),
+    ).toBeInTheDocument();
+  });
+
+  test("sends the words with what they are about, the page and the version - and nothing else", async () => {
+    openDialog();
+    pick(GiveFeedbackCategory.Idea);
+    write("  Let me copy an SLO.  ");
+    await send();
+
     expect(postsTo(PRODUCT_FEEDBACK_ROUTE)).toEqual([
       {
         kind: "general",
-        topic: "help",
+        topic: "idea",
         score: null,
         isPositive: null,
-        details: "I wanted to page Grace and could not find how.",
+        details: "Let me copy an SLO.",
         page: "/dashboard/:projectId/monitors/setup",
-        version: ProductFeedback.getVersion(),
+        version: "14.3.0",
       },
     ]);
-    // Self-hosted: nothing left the server; GitHub is the person's choice.
+  });
+
+  test("opened from the first-week check-in, it starts on Idea: what is missing", () => {
+    openDialog(GiveFeedbackOpenedFrom.CheckIn);
+
+    expect(
+      (
+        screen.getByTestId(
+          `${GIVE_FEEDBACK_CATEGORY_TEST_ID}-idea`,
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    expect(screen.getByText("What's your idea?")).toBeInTheDocument();
+  });
+
+  test("opened again, it starts afresh: no words, broken picked", () => {
+    openDialog();
+    pick(GiveFeedbackCategory.Other);
+    write("Half a thought.");
+
+    act(() => {
+      openGiveFeedback(GiveFeedbackOpenedFrom.CommandPalette);
+    });
+
+    expect(box().value).toBe("");
+    expect(
+      (
+        screen.getByTestId(
+          `${GIVE_FEEDBACK_CATEGORY_TEST_ID}-broken`,
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+  });
+
+  /*
+   * A Modal starts on the first control in its body. Once the kinds came
+   * above the box, that was the first kind, "Something's broken" - even
+   * opened from the check-in, with Idea picked - and the box's own
+   * autoFocus lost to it. The kind comes answered; the box is what the
+   * dialog is for.
+   */
+  test("starts in the message box: from Help, from the check-in, and opened again", () => {
+    openDialog();
+
+    expect(box()).toHaveFocus();
+
+    // Moved to a kind, then opened again from the check-in: in the box again.
+    act(() => {
+      screen.getByTestId(`${GIVE_FEEDBACK_CATEGORY_TEST_ID}-other`).focus();
+    });
+    expect(box()).not.toHaveFocus();
+
+    act(() => {
+      openGiveFeedback(GiveFeedbackOpenedFrom.CheckIn);
+    });
+
+    expect(
+      (
+        screen.getByTestId(
+          `${GIVE_FEEDBACK_CATEGORY_TEST_ID}-idea`,
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    expect(box()).toHaveFocus();
+  });
+
+  test("self-hosted, kept for the admins: once sent, says where to read it and offers GitHub, and promises no copy", async () => {
+    serverAnswers({ isEmailed: false, copyTo: null });
+    openDialog();
+    write("I wanted to page Grace and could not find how.");
+
+    const sent: HTMLElement = await send();
+
+    expect(sent).toHaveTextContent(
+      "This server's admins can read it in the Admin Dashboard, under Feedback.",
+    );
+    expect(sent).not.toHaveTextContent("A copy is on its way");
+    // Self-hosted: nothing went to OneUptime; GitHub is the person's choice.
     expect(screen.getByTestId(GIVE_FEEDBACK_GITHUB_TEST_ID)).toHaveAttribute(
       "href",
       expect.stringContaining("github.com/OneUptime/oneuptime/issues/new"),
     );
   });
 
-  test("on OneUptime Cloud it goes to the team, and offers no GitHub link", async () => {
-    billingEnabled = true;
+  test("self-hosted with an Admin Notification Email: says it goes to this server's admins with your name and email, and nothing to OneUptime", async () => {
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdminsByEmail,
+    });
+    serverAnswers({ isEmailed: true, copyTo: PERSON_EMAIL });
     openDialog();
 
-    expect(screen.getByTestId(GIVE_FEEDBACK_DIALOG_TEST_ID)).toHaveTextContent(
-      "OneUptime team",
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).toHaveTextContent(
+      `Sent to this server's admins with your name and email (${PERSON_EMAIL}), your project, this page (/dashboard/:projectId/monitors/setup) and the version (14.3.0). Nothing is sent to OneUptime.`,
     );
-    fireEvent.change(
-      screen
-        .getByTestId(GIVE_FEEDBACK_DETAILS_TEST_ID)
-        .querySelector("textarea") ||
-        screen.getByTestId(GIVE_FEEDBACK_DETAILS_TEST_ID),
-      { target: { value: "Words." } },
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Send Feedback" }));
 
-    await screen.findByTestId(GIVE_FEEDBACK_SENT_TEST_ID);
+    write("The SLO page shows no budget.");
+
+    const sent: HTMLElement = await send();
+
+    expect(sent).toHaveTextContent("Sent to this server's admins.");
+    expect(sent).toHaveTextContent(
+      `A copy is on its way to ${PERSON_EMAIL}, and any reply will come there too.`,
+    );
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_GITHUB_TEST_ID),
+    ).toBeInTheDocument();
+  });
+
+  test("on OneUptime Cloud: to the OneUptime team with your name and email; once sent, where the copy is, and no GitHub link", async () => {
+    billingEnabled = true;
+    serverAnswers({ isEmailed: true, copyTo: PERSON_EMAIL });
+    openDialog();
+
+    expect(
+      screen.getByText(
+        "Tell the OneUptime team what's broken, confusing or missing. We read every message.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).toHaveTextContent(
+      `Sent to the OneUptime team with your name and email (${PERSON_EMAIL}), your project, this page (/dashboard/:projectId/monitors/setup) and the version (14.3.0).`,
+    );
+
+    write("Words.");
+
+    const sent: HTMLElement = await send();
+
+    expect(sent).toHaveTextContent("Sent to the OneUptime team.");
+    expect(sent).toHaveTextContent(`A copy is on its way to ${PERSON_EMAIL}`);
     expect(screen.queryByTestId(GIVE_FEEDBACK_GITHUB_TEST_ID)).toBeNull();
+  });
+
+  test("a copy is promised only where the server says one is on its way", async () => {
+    billingEnabled = true;
+    // Kept, and not emailed: the hour's emails were used.
+    serverAnswers({ isEmailed: false, copyTo: null });
+    openDialog();
+    write("Again.");
+
+    const sent: HTMLElement = await send();
+
+    // On OneUptime Cloud the answer reaches the team whether or not it was emailed.
+    expect(sent).toHaveTextContent("Sent to the OneUptime team.");
+    expect(sent).not.toHaveTextContent("A copy is on its way");
+    expect(sent).not.toHaveTextContent(PERSON_EMAIL);
   });
 
   test("nothing written is not sent, and the dialog says what to write", async () => {
@@ -676,11 +992,48 @@ describe("Give feedback, from any page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send Feedback" }));
 
     expect(
-      await screen.findByText(
-        "Write what you were trying to do and what happened, then send it.",
-      ),
+      await screen.findByText("Write what you want to tell us, then send it."),
     ).toBeInTheDocument();
     expect(postsTo(PRODUCT_FEEDBACK_ROUTE)).toEqual([]);
+  });
+
+  test("a send that fails says so, and keeps the words to send again", async () => {
+    postMock.mockImplementation(async () => {
+      throw new Error("offline");
+    });
+    openDialog();
+    write("Kept for a second try.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Send Feedback" }));
+
+    expect(
+      await screen.findByText(
+        "Your feedback could not be sent. Check your connection, then try again.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(GIVE_FEEDBACK_SENT_TEST_ID)).toBeNull();
+    expect(box().value).toBe("Kept for a second try.");
+  });
+
+  test("in German, every word of it reads German", () => {
+    readerLanguage = "de";
+    readerWords = germanLocale as unknown as Record<string, string>;
+    openDialog();
+
+    const dialog: HTMLElement = screen.getByTestId(
+      GIVE_FEEDBACK_DIALOG_TEST_ID,
+    );
+
+    expect(dialog).toHaveTextContent("Worum geht es?");
+    expect(dialog).toHaveTextContent("Etwas funktioniert nicht");
+    expect(dialog).toHaveTextContent("Unklar");
+    expect(dialog).toHaveTextContent("Idee");
+    expect(dialog).toHaveTextContent("Was ist passiert?");
+    expect(dialog).toHaveTextContent(
+      "Wird für die Admins dieses Servers aufbewahrt",
+    );
+    expect(dialog).not.toHaveTextContent("Something's broken");
+    expect(dialog).not.toHaveTextContent("What happened?");
   });
 
   test("Help offers it where the server takes feedback, and opens the dialog", async () => {

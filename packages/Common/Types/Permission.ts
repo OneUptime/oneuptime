@@ -1580,6 +1580,19 @@ enum Permission {
   DeleteMonitorSecret = "DeleteMonitorSecret",
   ReadMonitorSecret = "ReadMonitorSecret",
 
+  /*
+   * Incoming Request Secret Permissions (issue #8502): the secrets a
+   * project's Incoming Request monitors can require on every request, and
+   * the switch that requires them (IncomingRequestSecret,
+   * Project.requireIncomingRequestSecret). Owners and admins hold all four;
+   * a custom role is given them to manage the secrets without being an
+   * admin. No built-in role below the admins holds them.
+   */
+  CreateIncomingRequestSecret = "CreateIncomingRequestSecret",
+  EditIncomingRequestSecret = "EditIncomingRequestSecret",
+  DeleteIncomingRequestSecret = "DeleteIncomingRequestSecret",
+  ReadIncomingRequestSecret = "ReadIncomingRequestSecret",
+
   CreateProjectOnCallDutyPolicyEscalationRuleTeam = "CreateProjectOnCallDutyPolicyEscalationRuleTeam",
   EditProjectOnCallDutyPolicyEscalationRuleTeam = "EditProjectOnCallDutyPolicyEscalationRuleTeam",
   DeleteProjectOnCallDutyPolicyEscalationRuleTeam = "DeleteProjectOnCallDutyPolicyEscalationRuleTeam",
@@ -7376,6 +7389,47 @@ export class PermissionHelper {
         permission: Permission.ReadMonitorSecret,
         title: "Read Monitor Secret",
         description: "This permission can read monitor secret.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+
+      {
+        permission: Permission.CreateIncomingRequestSecret,
+        title: "Create Incoming Request Secret",
+        description:
+          "This permission can create incoming request secrets, which senders send to the project's Incoming Request monitors.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteIncomingRequestSecret,
+        title: "Delete Incoming Request Secret",
+        description:
+          "This permission can delete incoming request secrets. While the project requires a secret, senders that still send a deleted one are refused.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditIncomingRequestSecret,
+        title: "Edit Incoming Request Secret",
+        description:
+          "This permission can rename incoming request secrets, change which monitors can use them, and turn Require a secret on every request on or off.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadIncomingRequestSecret,
+        title: "Read Incoming Request Secret",
+        description:
+          "This permission can read incoming request secrets, their values included, to set up senders.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

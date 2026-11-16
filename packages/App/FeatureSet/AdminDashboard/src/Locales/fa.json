@@ -4116,5 +4116,20 @@
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "نشست‌هایشان همین حالا در همهٔ دستگاه‌ها پایان می‌یابد و دوباره با SSO وارد می‌شوند. مدیران ارشد وارد می‌مانند.",
   "Made by {{name}} on {{date}}": "ساخته‌شده توسط {{name}} در {{date}}",
   "Made on {{date}}": "ساخته‌شده در {{date}}",
-  "Ends in {{hint}}": "به {{hint}} ختم می‌شود"
+  "Ends in {{hint}}": "به {{hint}} ختم می‌شود",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "پاسخ‌ها روی همین سرور نگه داشته می‌شوند و مدیران اصلی آن همین‌جا آن‌ها را می‌خوانند. «ارسال بازخورد» به support@oneuptime.com هم ایمیل می‌شود و امتیازها، و هرگز متن، به تحلیل محصول فرستاده می‌شوند.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "پاسخ‌ها روی همین سرور نگه داشته می‌شوند و مدیران اصلی آن همین‌جا آن‌ها را می‌خوانند. اگر ایمیل اعلان مدیریت تنظیم شده باشد، «ارسال بازخورد» به آن هم ایمیل می‌شود. چیزی برای OneUptime فرستاده نمی‌شود.",
+  "Know when my website or API is down": "بدانم وب‌سایت یا API من کی از کار افتاده است",
+  "Page the right person when something breaks": "وقتی چیزی خراب می‌شود، فرد درست را خبر کنم",
+  "Publish a status page": "یک صفحهٔ وضعیت منتشر کنید",
+  "Send logs, metrics and traces, then get alerted": "لاگ‌ها، متریک‌ها و ترِیس‌ها را بفرستید و هشدار بگیرید",
+  "Guided setup": "راه‌اندازی گام‌به‌گام",
+  "Give feedback": "ارسال بازخورد",
+  "First-week check-in": "بررسی هفتهٔ اول",
+  "How OneUptime works": "OneUptime چگونه کار می‌کند",
+  "Is OneUptime set up the way you wanted?": "آیا OneUptime همان‌طور که می‌خواستید راه‌اندازی شده است؟",
+  "Something's broken": "چیزی کار نمی‌کند",
+  "Confusing": "گیج‌کننده",
+  "Idea": "ایده",
+  "Other": "سایر"
 }

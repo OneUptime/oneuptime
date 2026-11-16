@@ -23,6 +23,14 @@ export class Service extends DatabaseService<Model> {
     return { findBy, carryForward: null };
   }
 
+  /*
+   * The read hook keeps a conversation's message to the person it belongs to, by its
+   * user (AIChatPrivacyFilter). See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return ["userId"];
+  }
+
   @CaptureSpan()
   public override async countBy(
     countBy: CountBy<Model>,

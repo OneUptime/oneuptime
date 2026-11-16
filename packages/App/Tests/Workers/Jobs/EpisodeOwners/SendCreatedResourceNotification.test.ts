@@ -83,9 +83,9 @@ function mockEpisodeService(): unknown {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
-      updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
       findOwners: jest.fn(),
       getEpisodeLinkInDashboard: jest.fn(),
     },
@@ -179,9 +179,9 @@ import "../../../../FeatureSet/Workers/Jobs/AlertEpisodeOwners/SendCreatedResour
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeOwners/SendCreatedResourceNotification";
 
 interface EpisodeServiceMock {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   findOneById: jest.Mock;
-  updateOneById: jest.Mock;
+  compareAndSetColumnsByIdWithoutHooks: jest.Mock;
   findOwners: jest.Mock;
   getEpisodeLinkInDashboard: jest.Mock;
 }
@@ -376,24 +376,35 @@ describe.each(CASES)(
       });
 
       for (const each of CASES) {
-        each.episodeService.findAllBy.mockResolvedValue([]);
+        each.episodeService.findBy.mockResolvedValue([]);
         each.episodeService.findOneById.mockResolvedValue(null);
         each.episodeService.findOwners.mockResolvedValue([]);
         each.createFeedItem.mockResolvedValue(undefined);
       }
 
-      // The episode is due until the job marks it notified.
-      entry.episodeService.findAllBy.mockImplementation(async () => {
+      /*
+       * The episode is due until the job takes it: read a page at a time,
+       * and taken by one hook-free compare-and-set (OwnerNotificationBacklog,
+       * #8862) that only one run wins.
+       */
+      entry.episodeService.findBy.mockImplementation(async () => {
         return isMarked ? [] : [entry.episode()];
       });
       entry.episodeService.findOneById.mockImplementation(async () => {
         return entry.episode();
       });
-      entry.episodeService.updateOneById.mockImplementation(
-        async (data: { data: JSONObject }) => {
-          if (data.data["isOwnerNotifiedOfEpisodeCreation"] === true) {
-            isMarked = true;
+      entry.episodeService.compareAndSetColumnsByIdWithoutHooks.mockImplementation(
+        async (data: { data: JSONObject; expectedData: JSONObject }) => {
+          if (
+            isMarked ||
+            data.data["isOwnerNotifiedOfEpisodeCreation"] !== true ||
+            data.expectedData["isOwnerNotifiedOfEpisodeCreation"] !== false
+          ) {
+            return false;
           }
+
+          isMarked = true;
+          return true;
         },
       );
       entry.episodeService.getEpisodeLinkInDashboard.mockResolvedValue(
@@ -427,10 +438,14 @@ describe.each(CASES)(
       ).emailEnvelope;
 
       expect(envelope.subject).toBe(entry.subject);
-      expect(entry.episodeService.updateOneById).toHaveBeenCalledWith(
+      // Taken by one hook-free compare-and-set (#8862).
+      expect(
+        entry.episodeService.compareAndSetColumnsByIdWithoutHooks,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           id: EPISODE_ID,
           data: { isOwnerNotifiedOfEpisodeCreation: true },
+          expectedData: { isOwnerNotifiedOfEpisodeCreation: false },
         }),
       );
       expect(feedItems()).toEqual([
@@ -608,7 +623,8 @@ describe.each(CASES)(
         ).mock.invocationCallOrder[0]!,
       );
       expect(read).toBeLessThan(
-        entry.episodeService.updateOneById.mock.invocationCallOrder[0]!,
+        entry.episodeService.compareAndSetColumnsByIdWithoutHooks.mock
+          .invocationCallOrder[0]!,
       );
     });
 

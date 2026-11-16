@@ -2,6 +2,10 @@ import MailService from "../Services/MailService";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
+import {
+  readEmailAddress,
+  readEmailAddresses,
+} from "Common/Types/Email/EmailRecipients";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -36,6 +40,12 @@ router.post(
           typeof body["language"] === "string"
             ? (body["language"] as string)
             : undefined,
+        /*
+         * Who is copied, and where a reply goes (Give Feedback, #8893):
+         * only addresses that are one mailbox each (EmailRecipients).
+         */
+        ccEmails: readEmailAddresses(body["ccEmails"]),
+        replyToEmail: readEmailAddress(body["replyToEmail"]),
       };
 
       let mailServer: EmailServer | undefined = undefined;

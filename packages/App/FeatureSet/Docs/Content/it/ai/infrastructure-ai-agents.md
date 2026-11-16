@@ -325,7 +325,7 @@ Le correzioni hanno le stesse quattro modalità di un cluster Kubernetes; `ONEUP
 - **Disattivato**: l'IA si limita a indagare.
 - **Chiedi l'approvazione**: dopo l'analisi della causa principale, OneUptime AI fa una diagnosi con comandi di lettura e compone il più piccolo piano che affronta la causa, per esempio `docker restart web`. Il piano compare sull'incidente o sull'avviso con la sua motivazione, l'effetto previsto e il rollback; una persona lo approva con un clic, e OneUptime esegue esattamente quei comandi.
 - **Automatico**: le modifiche sicure (**SafeWrite**) vengono eseguite da sole; una modifica più rischiosa (**RiskyWrite**) viene proposta per l'approvazione, a meno che l'elenco dei comandi consentiti della risorsa non ne indichi la forma esatta.
-- **Salta l'approvazione**: ogni modifica che la policy consente, comprese quelle più rischiose, viene eseguita da sola. Ciò che richiede sempre una persona continua ad attenderne una.
+- **Salta l'approvazione**: ogni modifica che la policy consente, comprese quelle più rischiose, viene eseguita da sola. Ciò che richiede sempre una persona continua ad attenderne una. Se il progetto chiede che due persone approvino una correzione più rischiosa, una modifica più rischiosa viene invece proposta alla loro approvazione.
 
 Dopo l'esecuzione di una correzione, OneUptime osserva i monitor dell'incidente o dell'avviso. Se non si riprendono, viene eseguito il rollback del piano e OneUptime AI compone un altro piano, con il tentativo fallito davanti: al massimo due giri per incidente o avviso. In modalità **Automatico** quel secondo giro chiede l'approvazione; con **Salta l'approvazione** viene eseguito anch'esso da solo. Le correzioni non presidiate hanno un interruttore di sicurezza a tre per risorsa all'ora: oltre quel limite, o mentre un altro giro non presidiato di OneUptime AI sta ancora modificando o verificando la stessa risorsa, un giro propone il suo piano per l'approvazione invece di eseguirlo.
 
@@ -342,7 +342,7 @@ Un incidente o un avviso ha una sola corsia di correzione IA. Quando è collegat
 
 Alcune modifiche più rischiose **richiedono sempre una persona** in ogni modalità, Salta l'approvazione compresa, e nessuna voce dell'elenco dei consentiti cambia questo: sono indicate come tali nelle tabelle qui sotto.
 
-Un progetto può anche chiedere che due persone approvino una correzione che contiene una modifica più rischiosa: vedi [Due persone approvano una correzione più rischiosa](/docs/ai/ai-sre#due-persone-approvano-una-correzione-più-rischiosa).
+Un progetto può anche chiedere che due persone approvino una correzione che contiene una modifica più rischiosa; allora nessuna modifica più rischiosa viene eseguita da sola, nemmeno con l'elenco dei consentiti o Salta l'approvazione: vedi [Due persone approvano una correzione più rischiosa](/docs/ai/ai-sre#due-persone-approvano-una-correzione-più-rischiosa).
 
 ### Correzioni sugli host Docker e Podman
 
