@@ -49,7 +49,7 @@ Elke uitvoering, door een regel gestart of niet, ziet u onder **Runbooks → Uit
 :::steps
 ### Runbook-regels openen
 
-Open in **Incidenten**, **Waarschuwingen** of **Gepland onderhoud** de pagina **Regels → Runbook-regels** en klik op **Runbook Rule aanmaken**.
+Open in **Incidenten**, **Waarschuwingen** of **Gepland onderhoud** de pagina **Regels → Runbook-regels** en klik op **Runbookregel aanmaken**.
 
 ### Voorwaarden toevoegen
 
@@ -57,7 +57,7 @@ Onder **Overeenkomst** begint **Geldt voor** bij elk nieuw evenement van deze so
 
 ### De runbooks kiezen
 
-Kies onder **Runbooks** een of meer **Te starten runbooks**. De **Naam** van de regel volgt ze, zoals "Database failover starten", totdat je zelf een naam typt, en een **Beschrijving** wacht onder **Meer velden**. Klik op **Runbook Rule aanmaken**. De regel is actief zodra hij is gemaakt en verschijnt in de lijst met de status **Ingeschakeld**.
+Kies onder **Runbooks** een of meer **Te starten runbooks**. De **Naam** van de regel volgt ze, zoals "Database failover starten", totdat je zelf een naam typt, en een **Beschrijving** wacht onder **Meer velden**. Klik op **Runbookregel aanmaken**. De regel is actief zodra hij is gemaakt en verschijnt in de lijst met de status **Ingeschakeld**.
 :::
 
 ## Opbouw van een regel

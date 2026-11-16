@@ -80,7 +80,7 @@ Com duas ou mais condições, escolha **Corresponder a todas**, em que todas pre
 :::steps
 ### Escolher os alertas
 
-Clique em **Criar: Alert On-Call Rule**. Em **Corresponder**, **Todos os alertas**, onde uma regra nova começa, corresponde a todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
+Clique em **Criar: Regra de plantão de alertas**. Em **Corresponder**, **Todos os alertas**, onde uma regra nova começa, corresponde a todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
 
 ### Escolher as políticas
 

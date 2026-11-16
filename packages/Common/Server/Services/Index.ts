@@ -22,9 +22,6 @@ import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import FileService from "./FileService";
-import GreenlockCertificateService from "./GreenlockCertificateService";
-// Greenlock
-import GreenlockChallengeService from "./GreenlockChallengeService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
 import IncidentOnCallRuleOwningTeamService from "./IncidentOnCallRuleOwningTeamService";
@@ -661,9 +658,6 @@ const services: Array<BaseService> = [
   EmailVerificationTokenService,
 
   FileService,
-
-  GreenlockCertificateService,
-  GreenlockChallengeService,
 
   IncidentCustomFieldService,
   IncidentOnCallRuleService,

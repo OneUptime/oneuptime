@@ -1,4 +1,9 @@
 import PageMap from "../../Utils/PageMap";
+import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../../Components/UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
@@ -484,6 +489,13 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }: SloBulkActionsResult = useSloBulkActions();
 
   /*
+   * A row's Delete and the bulk Delete say what still uses the SLOs first
+   * (#7435); their Archive says it too (useSloBulkActions).
+   */
+  const usedBy: UsedByListActions<ServiceLevelObjective> =
+    getUsedByListActions<ServiceLevelObjective>(UsedByRecordKind.Slo);
+
+  /*
    * The owners cell, plus the facet bar: an Owner chip (the table shows the
    * owners it filters on) and the Status and Enabled chips the summary tiles
    * move. Tiles drill in through the bar rather than through a second filter
@@ -566,6 +578,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
           hasFetchedTableRef.current = true;
         }}
         isDeleteable={true}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
@@ -604,6 +617,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ...recommendedRulesBulkActions,
             ...archiveBulkActions,
           ],
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
         /*
          * Status and Enabled are chips on the facet bar, not popup filters:

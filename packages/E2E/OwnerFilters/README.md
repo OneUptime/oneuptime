@@ -45,6 +45,15 @@ owns, never its members', a person's the ones they own, "is not" the rest
   screen - every chip's popover, Labels right of Owner too, 16px from the
   screen's edge), dark mode, and German.
 
+`ScheduleUsedBy.spec.ts` checks a schedule's own Overview
+(`/on-call-duty/schedules/<id>`, the production
+`Pages/OnCallDuty/OnCallDutySchedule`) and its **Used by** card (#7438): with
+`?usedBy=used`, the on-call policies that page Payments Primary, each a link
+with the escalation rules of it that page the schedule under its name, and one
+more the member may not see counted and never named; without it, that nobody on
+the schedule is paged and where to add it - at 1280 and 390 pixels, light and
+dark, in German and in Persian right to left.
+
 `Fixture/Fixture.js` records every list read on `window.__fixture.listRequests`
 and every read of a table it does not model on `window.__fixture.unhandled` (the
 suite fails on any).
@@ -68,4 +77,7 @@ node OwnerFilters/Fixture/server.js
 
 Then open
 `http://127.0.0.1:4481/dashboard/10000000-0000-4000-8000-0000000000f1/on-call-duty/schedules`,
-adding `?lang=de`, `?theme=dark`, `?delay=1500` or `?fail=people`.
+adding `?lang=de`, `?theme=dark`, `?delay=1500` or `?fail=people`; or a
+schedule's Overview,
+`http://127.0.0.1:4481/dashboard/10000000-0000-4000-8000-0000000000f1/on-call-duty/schedules/60000000-0000-4000-8000-000000000001`,
+adding `?usedBy=used`, `?lang=de|fa` or `?theme=dark`.

@@ -196,6 +196,8 @@ La **Vue d'ensemble** répond à « sommes-nous dans le budget ? », de haut en 
 
 Quand le SLO est dans un palier de sa politique de budget d'erreur, la **Vue d'ensemble** affiche aussi ce palier et ce que l'équipe s'est engagée à y faire : voir [Politique de budget d'erreur](/docs/slo/error-budget-policy).
 
+La carte **Utilisé par** liste les règles de taux de consommation et les paliers de la politique de budget d'erreur qui agissent sur le SLO, et les tableaux de bord qui l'affichent. Archiver ou supprimer le SLO les dit d'abord : ses règles et paliers partent avec lui.
+
 ### Paramètres
 
 La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun :

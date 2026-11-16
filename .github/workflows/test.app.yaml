@@ -696,6 +696,8 @@ jobs:
           # most room in DashboardOfflineUiMinutes (19.2): about 20.6.
           # Storage Array Pages (1.4) moved here from group 17 on 2026-11-11,
           # the group with the most room, when Home Overview grew there: 22.0.
+          # Owner Filters (1.2 with a schedule's Used by, #7438) moved to group
+          # 18 on 2026-11-16: about 21.0.
           - group: 5
             suites: >-
               test-incoming-call-policies-ui
@@ -708,7 +710,6 @@ jobs:
               test-owners-on-create-ui
               test-first-on-call-policy-ui
               test-side-by-side-pages-ui
-              test-owner-filters-ui
               test-security-cases-detections-ui
               test-database-pages-ui
               test-storage-array-pages-ui
@@ -1346,6 +1347,10 @@ jobs:
           # past 22: 19.8. Public Addresses (1.2, Chromium only) moved here
           # from group 8 on 2026-11-06, when Cloud Connect's streamed resource
           # Logs took that group past 22: 21.0.
+          # Public Addresses gained a status page Overview's Showing now card
+          # on 2026-11-16 (#7438: open incidents by number and maintenance
+          # coming up, at 1280 and 390 pixels, light and dark, German and
+          # Persian - 3 tests, about 12 seconds locally): 1.8, about 21.6.
           - group: 12
             suites: >-
               test-code-ui
@@ -1668,6 +1673,11 @@ jobs:
           # Persian; 9 tests, 26 seconds locally with its bundle, planned as
           # 0.5, Chromium only) joined it on 2026-11-16, the group with the
           # most room: about 18.2.
+          # Owner Filters (1.2, Chromium only) came from group 5 the same day,
+          # when a schedule's own Overview and its Used by card (#7438: the
+          # policies that page it and their escalation rules, at 1280 and 390
+          # pixels, light and dark, German and Persian - 4 tests, about 10
+          # seconds locally) took group 5 past its 22: about 19.4.
           - group: 18
             suites: >-
               test-diagrams-ui
@@ -1676,6 +1686,7 @@ jobs:
               test-dashboard-table-thresholds-ui
               test-value-picker-ui
               test-give-feedback-ui
+              test-owner-filters-ui
           # Added on 2026-11-04 for an OpenStack cloud's pages: its Overview, its
           # lists and the pages of its parts, on what real clouds' exporters
           # answered, read through the real snapshot scan, at 1280, 1024, 768 and

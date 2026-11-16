@@ -456,7 +456,17 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
  */
 export interface DeleteConfirmation {
   title?: string | undefined;
-  description: string | ReactElement;
+  /*
+   * The dialog's words in place of the table's own question ("Are you
+   * sure you want to delete ...?" and what goes with it), which is said
+   * when this is left out.
+   */
+  description?: string | ReactElement | undefined;
+  /*
+   * Drawn under the question, whichever it is: what still uses the row,
+   * read before the dialog opens (a list's Used by, #7435).
+   */
+  details?: ReactElement | undefined;
   submitButtonText?: string | undefined;
   /*
    * A gentler way to the same end, offered in the dialog: "Archive instead"
@@ -6452,21 +6462,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 dataTestId="delete-confirmation-loading"
               />
             ) : (
-              deleteConfirmation?.description || (
-                <DeleteConfirmationMessage
-                  kind="question"
-                  name={getItemLabel(currentDeleteableItem)}
-                  typeLabel={getDeleteLabel(
-                    props.singularName,
-                    model.singularName,
-                  )}
-                  /*
-                   * What goes with it, as the bulk Delete and the record's
-                   * own Delete page say it.
-                   */
-                  warning={getDeleteWarning(props.deleteConfirmationWarning)}
-                />
-              )
+              <>
+                {deleteConfirmation?.description || (
+                  <DeleteConfirmationMessage
+                    kind="question"
+                    name={getItemLabel(currentDeleteableItem)}
+                    typeLabel={getDeleteLabel(
+                      props.singularName,
+                      model.singularName,
+                    )}
+                    /*
+                     * What goes with it, as the bulk Delete and the record's
+                     * own Delete page say it.
+                     */
+                    warning={getDeleteWarning(props.deleteConfirmationWarning)}
+                  />
+                )}
+                {deleteConfirmation?.details ? (
+                  <div
+                    className="mt-3"
+                    data-testid="delete-confirmation-details"
+                  >
+                    {deleteConfirmation.details}
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </>
             )
           }
           disableSubmitButton={isDeleteConfirmationLoading}

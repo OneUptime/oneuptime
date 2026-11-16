@@ -49,7 +49,7 @@ Du kan se alle kørsler, startet af en regel eller ej, under **Runbooks → Udf�
 :::steps
 ### Åbn Runbook-regler
 
-I **Hændelser**, **Advarsler** eller **Planlagt vedligeholdelse** åbner du **Regler → Runbook-regler** og klikker på **Opret Runbook Rule**.
+I **Hændelser**, **Advarsler** eller **Planlagt vedligeholdelse** åbner du **Regler → Runbook-regler** og klikker på **Opret Runbook-regel**.
 
 ### Tilføj betingelser
 
@@ -57,7 +57,7 @@ Under **Match** starter **Gælder for** på hver ny begivenhed af denne slags, f
 
 ### Vælg runbooks
 
-Under **Runbooks** vælger du et eller flere **Driftsmanualer til at starte**. Reglens **Navn** følger dem, for eksempel "Kør Database failover", indtil du skriver dit eget, og en **Beskrivelse** venter under **Flere felter**. Klik på **Opret Runbook Rule**. Reglen er aktiv, så snart den er oprettet, og vises på listen med status **Aktiveret**.
+Under **Runbooks** vælger du et eller flere **Driftsmanualer til at starte**. Reglens **Navn** følger dem, for eksempel "Kør Database failover", indtil du skriver dit eget, og en **Beskrivelse** venter under **Flere felter**. Klik på **Opret Runbook-regel**. Reglen er aktiv, så snart den er oprettet, og vises på listen med status **Aktiveret**.
 :::
 
 ## En regels opbygning

@@ -101,6 +101,8 @@ Time away added this way applies to every on-call policy, so it takes the overri
 
 With the API, a user override (`/api/on-call-duty-policy-user-override`) created without `routeAlertsToUserId` skips the person in `overrideUserId` from `startsAt` to `endsAt`.
 
+A schedule's **Overview** has a **Used by** card: the on-call policies whose escalation rules page whoever is on call, with the rules that do. When none does, it says so and links to the on-call policies. Deleting the schedule, on its page or from the list, says first which policies page it. Policies you may not open are counted, not named.
+
 ## Creating schedules with the API or Terraform
 
 On-call schedules are the `/api/on-call-duty-policy-schedule` resource; their layers and the people in them are the `/api/on-call-duty-schedule-layer` and `/api/on-call-duty-schedule-layer-user` resources.

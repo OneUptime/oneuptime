@@ -1,11 +1,18 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
+import {
+  CustomDomainCopy,
+  DNS_SETUP_TEST_IDS,
+} from "../../Components/CustomDomain/CustomDomainCopy";
+import CustomDomainRecords, {
+  CustomDomainRecord,
+} from "../../Components/CustomDomain/CustomDomainRecords";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -16,7 +23,6 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useEffect,
   useState,
 } from "react";
 import OneUptimeDate from "Common/Types/Date";
@@ -30,17 +36,32 @@ import { APP_API_URL } from "Common/UI/Config";
 import CustomDomainDnsCheckResultJSON, {
   CustomDomainDnsCheckResult,
 } from "Common/Types/CustomDomain/CustomDomainDnsCheckResult";
-import { DnsRecordCheck } from "Common/Types/CustomDomain/DnsRecordCheck";
 import {
-  DnsRecordCheckDescription,
-  DnsRecordCheckSentence,
-  describeDnsRecordCheck,
-} from "Common/Types/CustomDomain/DnsRecordCheckWords";
+  DnsRecordCheck,
+  DnsRecordType,
+} from "Common/Types/CustomDomain/DnsRecordCheck";
+
+/*
+ * Project Settings -> Domains: the domains the project owns, each verified
+ * once with a TXT record before a status page, dashboard or form can be put
+ * on an address on it.
+ *
+ * Verify Domain draws the TXT record exactly as a custom domain's DNS Setup
+ * draws it (CustomDomainRecords): its type, name and value with a copy
+ * button each, what it is for, and - once Verify Domain has looked it up -
+ * its status beside it and, under it, what was looked up, what came back
+ * and what to change. It used to list the record as bold labels and say
+ * what the lookup found as the dialog's error, above the record it was
+ * about (#7025). A refusal, or a lookup that failed, is still the dialog's
+ * error: it is about the request, not the record.
+ *
+ * Nothing checks a project domain's TXT record on its own, so the dialog
+ * stays open until Verify Domain finds it; then it closes and the row reads
+ * Verified.
+ */
 
 const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [showVerificationModal, setShowVerificationModal] =
-    useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [currentVerificationDomain, setCurrentVerificationDomain] =
     useState<Domain | null>(null);
@@ -50,9 +71,92 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isVerificationLoading, setIsVerificationLoading] =
     useState<boolean>(false);
 
-  useEffect(() => {
+  // What the last Verify Domain found for the open dialog's record.
+  const [txtCheck, setTxtCheck] = useState<DnsRecordCheck | undefined>(
+    undefined,
+  );
+
+  const openVerification: (domain: Domain) => void = (domain: Domain): void => {
     setError("");
-  }, [showVerificationModal]);
+    setTxtCheck(undefined);
+    setCurrentVerificationDomain(domain);
+  };
+
+  const closeVerification: () => void = (): void => {
+    setCurrentVerificationDomain(null);
+    setError("");
+    setTxtCheck(undefined);
+  };
+
+  const domainName: string =
+    currentVerificationDomain?.["domain"]?.toString() || "";
+
+  const verify: () => Promise<void> = async (): Promise<void> => {
+    if (!currentVerificationDomain) {
+      return;
+    }
+
+    try {
+      setIsVerificationLoading(true);
+      setError("");
+
+      /*
+       * check-txt verifies the domain when its record is found, and
+       * otherwise says what it looked up and what came back - the check
+       * a status page's DNS Setup draws under the same record (#6835).
+       */
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/domain/check-txt/${new ObjectID(
+              currentVerificationDomain["_id"]
+                ? currentVerificationDomain["_id"].toString()
+                : "",
+            ).toString()}`,
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response.isFailure()) {
+        throw response;
+      }
+
+      const result: CustomDomainDnsCheckResult =
+        CustomDomainDnsCheckResultJSON.fromJSON(response.data as JSONObject);
+
+      if (!result.isVerified) {
+        setTxtCheck(result.records[0]);
+        setIsVerificationLoading(false);
+        return;
+      }
+
+      setIsVerificationLoading(false);
+      closeVerification();
+      setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+      setIsVerificationLoading(false);
+    }
+  };
+
+  const txtRecord: CustomDomainRecord = {
+    type: DnsRecordType.TXT,
+    name: domainName,
+    value:
+      (currentVerificationDomain?.["domainVerificationText"] as string) || "",
+    purpose: CustomDomainCopy.dnsSetupTxtPurpose,
+    purposeDomain: domainName,
+    check: txtCheck,
+    testIds: {
+      record: DNS_SETUP_TEST_IDS.txtRecord,
+      type: DNS_SETUP_TEST_IDS.txtRecordType,
+      name: DNS_SETUP_TEST_IDS.txtRecordName,
+      value: DNS_SETUP_TEST_IDS.txtRecordValue,
+      status: DNS_SETUP_TEST_IDS.txtStatus,
+      lookedUp: DNS_SETUP_TEST_IDS.txtLookedUp,
+    },
+  };
 
   return (
     <Fragment>
@@ -98,8 +202,7 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
               onError: ErrorFunction,
             ) => {
               try {
-                setCurrentVerificationDomain(item);
-                setShowVerificationModal(true);
+                openVerification(item);
 
                 onCompleteAction();
               } catch (err) {
@@ -164,121 +267,28 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
-      {showVerificationModal && currentVerificationDomain ? (
-        <ConfirmModal
+      {currentVerificationDomain ? (
+        <Modal
           title={translator.translateTemplate("Verify {{domain}}", {
-            domain: currentVerificationDomain["domain"]?.toString() || "",
+            domain: domainName,
           })}
           isTitleTranslated={true}
-          error={error}
-          description={
-            <div>
-              <span>
-                {translator.translateText(
-                  "Please add TXT record to your domain. Details of the TXT records are:",
-                )}
-              </span>
-              <br />
-              <br />
-              <span>
-                <b>{translator.translateText("Record Type:")} </b> TXT
-              </span>
-              <br />
-              <span>
-                <b>{translator.translateText("Name:")} </b>
-                {translator.translateTemplate("@ or {{domain}}", {
-                  domain: currentVerificationDomain["domain"]?.toString() || "",
-                })}
-              </span>
-              <br />
-              <span>
-                <b>{translator.translateText("Content:")} </b>
-                {(currentVerificationDomain[
-                  "domainVerificationText"
-                ] as string) || ""}
-              </span>
-              <br />
-              <br />
-              <span>
-                {translator.translateText(
-                  "Please note: Some domain changes might take 72 hours to propagate.",
-                )}
-              </span>
-            </div>
-          }
+          onClose={closeVerification}
           submitButtonText={"Verify Domain"}
-          onClose={() => {
-            setShowVerificationModal(false);
-            setError("");
+          onSubmit={() => {
+            void verify();
           }}
           isLoading={isVerificationLoading}
-          onSubmit={async () => {
-            try {
-              setIsVerificationLoading(true);
-              setError("");
+          error={error}
+        >
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-gray-600">
+              {translator.translateText(CustomDomainCopy.verifyDomainIntro)}
+            </p>
 
-              /*
-               * check-txt verifies the domain when its record is found,
-               * and otherwise says what it looked up and what came back -
-               * the words a status page's DNS Setup uses (#6835).
-               */
-              const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                await API.get<JSONObject>({
-                  url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    `/domain/check-txt/${new ObjectID(
-                      currentVerificationDomain["_id"]
-                        ? currentVerificationDomain["_id"].toString()
-                        : "",
-                    ).toString()}`,
-                  ),
-                  data: {},
-                  headers: ModelAPI.getCommonHeaders(),
-                });
-
-              if (response.isFailure()) {
-                throw response;
-              }
-
-              const result: CustomDomainDnsCheckResult =
-                CustomDomainDnsCheckResultJSON.fromJSON(
-                  response.data as JSONObject,
-                );
-
-              if (!result.isVerified) {
-                const check: DnsRecordCheck | undefined = result.records[0];
-                const description: DnsRecordCheckDescription | undefined = check
-                  ? describeDnsRecordCheck(check)
-                  : undefined;
-                const parts: Array<DnsRecordCheckSentence> = description
-                  ? [
-                      description.lookedUp,
-                      ...(description.whatToDo ? [description.whatToDo] : []),
-                    ]
-                  : [];
-
-                setError(
-                  parts
-                    .map((part: DnsRecordCheckSentence): string => {
-                      return translator.translateTemplate(
-                        part.template,
-                        part.values,
-                      );
-                    })
-                    .join(" "),
-                );
-                setIsVerificationLoading(false);
-                return;
-              }
-
-              setIsVerificationLoading(false);
-              setShowVerificationModal(false);
-              setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
-            } catch (err) {
-              setError(API.getFriendlyMessage(err));
-              setIsVerificationLoading(false);
-            }
-          }}
-        />
+            <CustomDomainRecords records={[txtRecord]} />
+          </div>
+        </Modal>
       ) : (
         <></>
       )}

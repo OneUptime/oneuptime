@@ -117,6 +117,18 @@ export enum ProductEventName {
 
   // "Used by" (#6813): the full list of what refers to a record was opened.
   UsedByListOpened = "used_by/list_opened",
+
+  /*
+   * Putting a status page, a dashboard or a form on its own domain (#7024):
+   * Add Custom Domain opened, the domain added to the project, each DNS
+   * record Check now looked up, the domain verified, and a self-hosted
+   * server that is not ready for custom domains yet. Never a domain's name.
+   */
+  CustomDomainAddStarted = "custom_domain/add_started",
+  CustomDomainProjectDomainAdded = "custom_domain/project_domain_added",
+  CustomDomainRecordChecked = "custom_domain/record_checked",
+  CustomDomainVerified = "custom_domain/verified",
+  CustomDomainServerNotReady = "custom_domain/server_not_ready",
 }
 
 // The words of a search that found nothing, at most this long (Cloud only).
@@ -447,6 +459,54 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       'The full list of what refers to a record was opened: a relation\'s "See all" on a record\'s Used by card (relation), or a label\'s Used by (relation "all").',
     properties: [token("record_kind"), token("relation")],
+  },
+  {
+    name: ProductEventName.CustomDomainAddStarted,
+    description:
+      "Add Custom Domain was opened, for a status page, a dashboard or a form (kind).",
+    properties: [token("kind")],
+  },
+  {
+    name: ProductEventName.CustomDomainProjectDomainAdded,
+    description:
+      "Add Custom Domain added the address's domain to the project, which did not have it yet: its TXT record comes next.",
+    properties: [token("kind")],
+  },
+  {
+    name: ProductEventName.CustomDomainRecordChecked,
+    description:
+      "Check now looked up one of a custom domain's DNS records in DNS Setup: which record (txt, cname), what it found (outcome), and which Check now of the dialog it was. For a CNAME, whether a proxy hides it, whether a request reached OneUptime, and the HTTP status of one that did not.",
+    properties: [
+      token("kind"),
+      token("record"),
+      token("outcome"),
+      { name: "check_number" },
+      { name: "is_proxied" },
+      { name: "reached_one_uptime" },
+      { name: "http_status" },
+    ],
+  },
+  {
+    name: ProductEventName.CustomDomainVerified,
+    description:
+      "Check now verified a custom domain in DNS Setup: what happens to its certificate next, how many records it took (record_count) and at which Check now of the dialog.",
+    properties: [
+      token("kind"),
+      token("certificate_status"),
+      { name: "record_count" },
+      { name: "check_number" },
+    ],
+  },
+  {
+    name: ProductEventName.CustomDomainServerNotReady,
+    description:
+      "A self-hosted server said it is not ready for custom domains yet, in Add Custom Domain or DNS Setup (source), and which of its checks failed. Sent only where the server's own admin set up product analytics: OneUptime Cloud checks nothing of the kind.",
+    properties: [
+      token("kind"),
+      token("source"),
+      token("failed_checks"),
+      { name: "failed_count" },
+    ],
   },
 ];
 

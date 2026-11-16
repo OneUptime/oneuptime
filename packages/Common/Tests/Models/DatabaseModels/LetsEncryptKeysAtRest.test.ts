@@ -1,6 +1,5 @@
 import AcmeCertificate from "../../../Models/DatabaseModels/AcmeCertificate";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import GreenlockCertificate from "../../../Models/DatabaseModels/GreenlockCertificate";
 import QueryPermission from "../../../Server/Types/Database/Permissions/QueryPermission";
 import SelectPermission from "../../../Server/Types/Database/Permissions/SelectPermission";
 import { getAuditLogRedactedColumns } from "../../../Types/AuditLog/AuditLogRedaction";
@@ -22,13 +21,17 @@ import { describe, expect, test } from "@jest/globals";
  *
  * AcmeCertificate.certificateKey holds the private key of every free
  * certificate OneUptime orders - for each custom domain, and for the
- * server's own host - and GreenlockCertificate.blob the ACME account and
- * certificate keys the store before it kept. Whoever holds one can serve
- * the domain as its owner. They were stored as plaintext while the keys
- * customers upload were encrypted (#8933). Now both are encrypted at rest,
- * and, as before, neither table has an endpoint, a column anybody may read
- * or write, or an audit log entry that carries a key. These read the
- * models and run the server's own column checks.
+ * server's own host. Whoever holds one can serve the domain as its owner.
+ * It was stored as plaintext while the keys customers upload were encrypted
+ * (#8933). Now it is encrypted at rest, and, as before, its table has no
+ * endpoint, no column anybody may read or write, and no audit log entry
+ * that carries a key. These read the model and run the server's own column
+ * checks.
+ *
+ * GreenlockCertificate.blob, the ACME account and certificate keys of the
+ * store ACME certificates replaced, was held to the same until its table
+ * was dropped (#8990): no model, no table, no key left
+ * (DropGreenlockTablesMigration).
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -38,7 +41,6 @@ type ModelType = { new (): DatabaseBaseModel };
 
 const KEYS: Array<[string, ModelType, string]> = [
   ["AcmeCertificate.certificateKey", AcmeCertificate, "certificateKey"],
-  ["GreenlockCertificate.blob", GreenlockCertificate, "blob"],
 ];
 
 // Every role there is: none of them may read a key.
