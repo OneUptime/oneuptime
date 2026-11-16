@@ -43,15 +43,18 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const CONFIG_ID: string = "20000000-0000-4000-8000-000000000002";
 const REPOSITORY_ID: string = "30000000-0000-4000-8000-000000000003";
 
-type RecordUpdate = typeof AuditLogService.recordUpdate;
+// What an update hands the audit log, as far as these read it.
+interface RecordedUpdate {
+  includeColumns?: Array<string> | undefined;
+}
 
-let recordUpdate: jest.SpiedFunction<RecordUpdate>;
+let recordUpdate: jest.Mock;
 
 // What the audit log was handed by each update: the columns it names.
 function namedColumns(): Array<Array<string> | undefined> {
-  return recordUpdate.mock.calls.map(
-    (call: Parameters<RecordUpdate>): Array<string> | undefined => {
-      return call[0].includeColumns;
+  return (recordUpdate.mock.calls as Array<Array<unknown>>).map(
+    (call: Array<unknown>): Array<string> | undefined => {
+      return (call[0] as RecordedUpdate).includeColumns;
     },
   );
 }
@@ -59,7 +62,7 @@ function namedColumns(): Array<Array<string> | undefined> {
 beforeEach(() => {
   recordUpdate = jest
     .spyOn(AuditLogService, "recordUpdate")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(undefined as never) as unknown as jest.Mock;
   jest
     .spyOn(ProjectSmtpConfigService, "onTriggerRealtime")
     .mockResolvedValue(undefined as never);

@@ -74,20 +74,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Last line of defence for the installation-to-project binding.
-   *
-   * gitHubAppInstallationId is already closed to API callers at the column
-   * level, but that only stops requests that go through permission checks —
-   * every write here is made with `props: { isRoot: true }`, which skips them
-   * entirely. This hook runs regardless of isRoot, so any route (including one
-   * added later) that writes a row carrying another tenant's installation ID
-   * is refused at the service boundary rather than at the token endpoint.
-   *
-   * The legitimate writer is importReposFromInstallation, which the install
-   * callback and the installation webhooks only ever call for a project the
-   * installation is already bound to — so this check passes for them.
-   */
-  /*
    * A create hands back the row it saved, with the webhook secret on it as
    * it was stored: encrypted. BaseAPI serializes the row whole into the
    * answer of POST /code-repository, without a column read check, and a
@@ -107,6 +93,20 @@ export class Service extends ProjectReferencesService<Model> {
     return created;
   }
 
+  /*
+   * Last line of defence for the installation-to-project binding.
+   *
+   * gitHubAppInstallationId is already closed to API callers at the column
+   * level, but that only stops requests that go through permission checks —
+   * every write here is made with `props: { isRoot: true }`, which skips them
+   * entirely. This hook runs regardless of isRoot, so any route (including one
+   * added later) that writes a row carrying another tenant's installation ID
+   * is refused at the service boundary rather than at the token endpoint.
+   *
+   * The legitimate writer is importReposFromInstallation, which the install
+   * callback and the installation webhooks only ever call for a project the
+   * installation is already bound to — so this check passes for them.
+   */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

@@ -265,6 +265,7 @@ async function beforeAndAfter<T>(
 
   sendMail.mockClear();
   requestToken.mockClear();
+  jest.mocked(GlobalCache.getJSONObject).mockClear();
   jest.mocked(nodemailer.createTransport).mockClear();
   tokenRequests.length = 0;
   fetched.length = 0;
@@ -416,24 +417,42 @@ describe("a project's own mail server", () => {
   });
 
   test("signing in with OAuth: the token asked for with the client secret as written", async () => {
-    const asked: { before: Array<TokenRequest>; after: Array<TokenRequest> } =
-      await beforeAndAfter(
-        async (): Promise<void> => {
-          await sendThrough(SMTP_OAUTH_CONFIG_ID);
-        },
-        (): Array<TokenRequest> => {
-          return [...tokenRequests];
-        },
-      );
+    const asked: {
+      before: { requests: Array<TokenRequest>; cacheKeys: Array<unknown> };
+      after: { requests: Array<TokenRequest>; cacheKeys: Array<unknown> };
+    } = await beforeAndAfter(
+      async (): Promise<void> => {
+        await sendThrough(SMTP_OAUTH_CONFIG_ID);
+      },
+      () => {
+        return {
+          requests: [...tokenRequests],
+          // The token cache's key, which is made from the client secret.
+          cacheKeys: jest
+            .mocked(GlobalCache.getJSONObject)
+            .mock.calls.map((call: Array<unknown>): unknown => {
+              return call[1];
+            }),
+        };
+      },
+    );
 
-    for (const requests of [asked.before, asked.after]) {
-      expect(requests).toHaveLength(1);
-      expect(requests[0]!.form).toMatchObject({
+    for (const side of [asked.before, asked.after]) {
+      expect(side.requests).toHaveLength(1);
+      expect(side.requests[0]!.form).toMatchObject({
         grant_type: "client_credentials",
         client_id: SMTP_CLIENT_ID,
         client_secret: SMTP_CLIENT_SECRET,
       });
     }
+
+    /*
+     * The same key before and after: a token cached before the upgrade is
+     * still the one the next send takes, and a refresh asks for the token
+     * of the same secret.
+     */
+    expect(asked.before.cacheKeys).toHaveLength(1);
+    expect(asked.after.cacheKeys).toEqual(asked.before.cacheKeys);
 
     expect(transportOptions()[0]).toMatchObject({
       auth: {

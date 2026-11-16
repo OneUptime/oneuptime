@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
 import ProjectSmtpConfig from "../../../../Models/DatabaseModels/ProjectSmtpConfig";
 import MailTransportType from "../../../../Types/Email/MailTransportType";
 import SMTPAuthenticationType from "../../../../Types/Email/SMTPAuthenticationType";
@@ -136,9 +137,11 @@ describe("the fields the rule is on", () => {
 
   test("none of the instance's own form, which a master admin reads whole", () => {
     expect(
-      getGlobalSmtpConfigFormFields().filter((field: Field<unknown>) => {
-        return field.hasNothingStoredWhenEditing !== undefined;
-      }),
+      getGlobalSmtpConfigFormFields().filter(
+        (field: Field<GlobalConfig>): boolean => {
+          return field.hasNothingStoredWhenEditing !== undefined;
+        },
+      ),
     ).toEqual([]);
   });
 
