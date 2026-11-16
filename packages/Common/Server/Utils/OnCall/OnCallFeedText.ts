@@ -1,6 +1,7 @@
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
+  ON_CALL_PAGE_MERGE_UNKNOWN_PAGE,
   ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
   OnCallPageCoverKind,
   OnCallPageCoverName,
@@ -546,14 +547,19 @@ const isSaidInItsOwnWords: (input: OnCallStepFeedTextInput) => boolean = (
  * What a merged page's line says is paging them already (OnCallPageMerge):
  * "on-call policy **Payments**", or - merged into a direct page (#8859) -
  * "**Jane Doe**", who paged them from a chat, or "workflow **Nightly
- * Checks**". A line that names no policy, or cannot be read, says "another
- * on-call policy", unbolded: it is no name.
+ * Checks**". A line that names no policy says "another on-call policy",
+ * unbolded: it is no name. One that cannot be read says "another page": the
+ * page it stands on may be a policy's or one sent directly.
  */
 const getAlreadyPagedBy: (statusMessage: string | undefined) => MarkdownText = (
   statusMessage: string | undefined,
 ): MarkdownText => {
   const by: OnCallPageCoverName | null =
     readOnCallPageMergedLine(statusMessage);
+
+  if (!by) {
+    return mdText`${ON_CALL_PAGE_MERGE_UNKNOWN_PAGE}`;
+  }
 
   if (by?.name && by.kind === OnCallPageCoverKind.PersonPage) {
     return mdText`**${by.name}**`;

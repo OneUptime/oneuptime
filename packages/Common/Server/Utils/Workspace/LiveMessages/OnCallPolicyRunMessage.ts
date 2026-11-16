@@ -69,7 +69,6 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import {
-  OnCallPageCoverKind,
   OnCallPageCoverName,
   readOnCallPageMergedLine,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
@@ -1329,18 +1328,24 @@ export default class OnCallPolicyRunMessage {
           /*
            * Another run's page of them stands for this run's
            * (OnCallPageMerge): the line says which policy - or who, or
-           * which workflow, paged them directly (#8859) - once each.
+           * which workflow, paged them directly (#8859) - once each. A
+           * line that cannot be read is null: another page, of whichever
+           * kind.
            */
-          const by: OnCallPageCoverName = readOnCallPageMergedLine(
+          const by: OnCallPageCoverName | null = readOnCallPageMergedLine(
             step.statusMessage,
-          ) || { kind: OnCallPageCoverKind.Policy, name: null };
-          const alreadyPagedBy: Array<OnCallPageCoverName> =
+          );
+          const alreadyPagedBy: Array<OnCallPageCoverName | null> =
             person.alreadyPagedBy || [];
 
           if (
-            !alreadyPagedBy.some((known: OnCallPageCoverName): boolean => {
-              return known.kind === by.kind && known.name === by.name;
-            })
+            !alreadyPagedBy.some(
+              (known: OnCallPageCoverName | null): boolean => {
+                return known && by
+                  ? known.kind === by.kind && known.name === by.name
+                  : known === by;
+              },
+            )
           ) {
             alreadyPagedBy.push(by);
           }

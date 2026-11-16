@@ -192,6 +192,56 @@ describe("somebody another policy is paging already", () => {
     expect(markdown).not.toContain("**another on-call policy**");
   });
 
+  /*
+   * Since #8859 the page it stands on may be one sent directly: a line that
+   * cannot be read says only that another page is, and is told apart from a
+   * policy with no name.
+   */
+  test("a line that cannot be read says another page, never another on-call policy", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      build([
+        step({
+          status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+          userId: ANA,
+          userName: "Ana Lopez",
+          statusMessage: "Something else.",
+        }),
+      ]),
+    );
+
+    expect(markdown).toContain("**Ana Lopez**: already paged by another page");
+    expect(markdown).not.toContain("another on-call policy");
+  });
+
+  test("an unreadable line and a policy with no name are each said once, apart", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      build([
+        step({
+          status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+          userId: ANA,
+          userName: "Ana Lopez",
+          statusMessage: "Something else.",
+        }),
+        step({
+          status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+          userId: ANA,
+          userName: "Ana Lopez",
+          statusMessage: "Something else again.",
+        }),
+        step({
+          status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+          userId: ANA,
+          userName: "Ana Lopez",
+          statusMessage: getOnCallPageMergedMessage({ policyName: null }),
+        }),
+      ]),
+    );
+
+    expect(markdown).toContain(
+      "**Ana Lopez**: already paged by another page, another on-call policy",
+    );
+  });
+
   test("merged into a page Jane sent from a chat: already paged by Jane (#8859)", () => {
     const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
       build([

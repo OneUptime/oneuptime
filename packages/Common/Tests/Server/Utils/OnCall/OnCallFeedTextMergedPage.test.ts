@@ -90,16 +90,23 @@ describe("a person not paged again, as another policy is paging them", () => {
     expect(markdown).not.toContain("on-call policy **another on-call policy**");
   });
 
-  test("a line that cannot be read says another on-call policy too", () => {
-    expect(
-      OnCallFeedText.getStepMarkdown({
-        status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
-        policyLink: BILLING,
-        ruleName: "Level 1",
-        recipient: ANA,
-        statusMessage: "Something else.",
-      }),
-    ).toContain(": another on-call policy is paging them about this already.");
+  /*
+   * Since #8859 the page it stands on may be one sent directly: a line that
+   * cannot be read says only that another page is, never which kind.
+   */
+  test("a line that cannot be read says another page, never another on-call policy", () => {
+    const markdown: string = OnCallFeedText.getStepMarkdown({
+      status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+      policyLink: BILLING,
+      ruleName: "Level 1",
+      recipient: ANA,
+      statusMessage: "Something else.",
+    });
+
+    expect(markdown).toBe(
+      `On-call policy ${BILLING_MD} did not page ${ANA_MD} again at escalation rule **Level 1**: another page is paging them about this already.`,
+    );
+    expect(markdown).not.toContain("another on-call policy");
   });
 
   test("merged into a page Jane sent from a chat: names Jane, as the feed names who sent a direct page (#8859)", () => {
@@ -178,6 +185,19 @@ describe("a workflow's direct page that did not page somebody again", () => {
       }),
     ).toBe(
       `Workflow **Nightly Checks** did not page ${ANA_MD} again, as a member of **Platform**: **Jane Doe** is paging them about this already.`,
+    );
+  });
+
+  test("a line that cannot be read says another page, and names no policy: a direct page has none", () => {
+    expect(
+      OnCallFeedText.getDirectPageStepMarkdown({
+        status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+        pager: { workflowName: "Nightly Checks" },
+        recipient: ANA,
+        statusMessage: "Something else.",
+      }),
+    ).toBe(
+      `Workflow **Nightly Checks** did not page ${ANA_MD} again: another page is paging them about this already.`,
     );
   });
 

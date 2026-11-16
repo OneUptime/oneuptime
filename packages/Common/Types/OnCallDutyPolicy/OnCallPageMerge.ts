@@ -172,6 +172,13 @@ export function getOnCallPageCoverKind(
 export const ON_CALL_PAGE_MERGE_UNNAMED_POLICY: string =
   "another on-call policy";
 
+/*
+ * The other page, when a merged page's line cannot be read: since #8859 the
+ * page it stands on may be a policy's or one sent directly, so only that it
+ * is another page is sure.
+ */
+export const ON_CALL_PAGE_MERGE_UNKNOWN_PAGE: string = "another page";
+
 const MERGED_MESSAGE_START: string = "Already paged about this by ";
 const MERGED_MESSAGE_END: string = ", so not paged again.";
 
