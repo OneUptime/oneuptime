@@ -3705,6 +3705,30 @@ jobs:
           Tests/Workers/DataMigrations/HashProjectApiKeysPostgres.test.ts
           --forceExit
 
+      # A project's credentials through the upgrade that encrypts them
+      # (#8989): on the tables as they were (the SMTP password a varchar(500),
+      # the webhook signing secret a varchar(100)), with every credential
+      # stored as written, the schema migration widens the two in place and
+      # EncryptProjectCredentials leaves only ciphertext; every credential
+      # reads as written through the services before, between and after (a
+      # status page's SMTP config through its relation included); a second
+      # run changes nothing, two at once encrypt each value once, and a save
+      # afterwards is stored encrypted. Clones the migrated ProjectSMTPConfig,
+      # StatusPage, WorkspaceProjectAuthToken, WorkspaceUserAuthToken,
+      # UserWebhook and CodeRepository tables into an isolated schema.
+      - name: Test project credentials' upgrade to encrypted on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROJECT_CREDENTIALS_TESTS: "true"
+          PROJECT_CREDENTIALS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_CREDENTIALS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_CREDENTIALS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/EncryptProjectCredentialsPostgres.test.ts
+          --forceExit
+
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve
       # reopens it as Regressed, a late one from before does not, and one
