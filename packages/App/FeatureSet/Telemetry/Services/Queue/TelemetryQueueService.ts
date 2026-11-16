@@ -6,6 +6,7 @@ import logger from "Common/Server/Utils/Logger";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import WebhookVerificationProvider from "Common/Types/Monitor/IncomingMonitor/WebhookVerificationProvider";
+import { IncomingRequestSecretProblem } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import OtelPayloadDecoder, {
@@ -209,6 +210,14 @@ export interface IncomingRequestIngestJobData {
    * worker then reads what the headers carry.
    */
   presentedSecretHashes?: Array<string> | undefined;
+  /*
+   * Why a signature the request presented was not accepted (issue #8500),
+   * for a request the endpoint let through anyway: its project does not
+   * require a secret yet. The monitor's record then says a wrong or expired
+   * signature came, not that nothing did. A signature that was accepted is
+   * in presentedSecretHashes instead, as the secret that made it.
+   */
+  signatureProblem?: IncomingRequestSecretProblem | undefined;
   /*
    * The service whose verification handshake the endpoint answered this
    * request as (IncomingMonitorRequest.answeredVerification). Absent for any
@@ -1416,6 +1425,8 @@ export default class TelemetryQueueService {
     receivedAt?: Date | undefined;
     // See IncomingRequestIngestJobData.presentedSecretHashes.
     presentedSecretHashes?: Array<string> | undefined;
+    // See IncomingRequestIngestJobData.signatureProblem.
+    signatureProblem?: IncomingRequestSecretProblem | undefined;
     // See IncomingRequestIngestJobData.answeredVerification.
     answeredVerification?: WebhookVerificationProvider | undefined;
   }): Promise<void> {
@@ -1428,6 +1439,9 @@ export default class TelemetryQueueService {
         ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
         receivedViaProbeId: data.receivedViaProbeId,
         presentedSecretHashes: data.presentedSecretHashes,
+        ...(data.signatureProblem
+          ? { signatureProblem: data.signatureProblem }
+          : {}),
         ...(data.answeredVerification
           ? { answeredVerification: data.answeredVerification }
           : {}),
