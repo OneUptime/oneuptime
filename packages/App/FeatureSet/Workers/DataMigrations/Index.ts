@@ -177,6 +177,7 @@ import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
 import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusTimelines";
 import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
 import EncryptGlobalConfigCredentials from "./EncryptGlobalConfigCredentials";
+import HashMasterApiKey from "./HashMasterApiKey";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
@@ -1084,6 +1085,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new EncryptGlobalConfigCredentials(),
+  /*
+   * Hashes the server's master API key (GlobalConfig.masterApiKey, Admin
+   * Dashboard > Settings > API Key) that was stored as it was written,
+   * before the key was stored hashed (#7901), so every script that uses it
+   * keeps working. After the schema migration MasterApiKeyHashedColumn,
+   * which makes the column a varchar and keeps the key; idempotent; it
+   * writes only the server's settings row, so it sits above the runbook
+   * migrations that keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new HashMasterApiKey(),
   /*
    * NetworkEndpoint.coarseLastSeenAt (#8092): lastSeenAt copied in for the
    * live endpoints that were seen, so the age-out of discovered devices,
