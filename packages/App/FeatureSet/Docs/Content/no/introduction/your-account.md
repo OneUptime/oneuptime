@@ -70,11 +70,13 @@ Utvid **Sikkerhet** i sidemenyen til **Brukerprofil**. Delen har tre sider.
 
 :::steps
 1. Åpne **Sikkerhet → Passordadministrasjon**.
-2. Skriv inn det nye passordet i **Passord** og igjen i **Bekreft passord**. Det må være minst 6 tegn langt.
+2. Skriv inn det nye passordet i **Nytt passord** og igjen i **Bekreft passord**. Det må være minst 15 tegn langt og ikke forutsigbart, som et vanlig passord eller et gjentatt mønster: noen få ord som ikke har noe med hverandre å gjøre, fungerer godt. Sjekklisten under feltet krysser av hvert punkt mens du skriver.
 3. Klikk på **Oppdater passord**.
 :::
 
 Et nytt passord logger alle enheter ut av kontoen din, og enhver tilbakestillingslenke eller innloggingslenke som allerede er sendt, slutter å virke.
+
+Alle sider som angir et passord, krever det samme: registrering, tilbakestillingslenken fra **Glemt passord?**, denne siden og en serveradministrators **Angi passord**. Et passord du anga før denne regelen, fortsetter å virke til du endrer det.
 
 ### Legg til en passnøkkel
 
