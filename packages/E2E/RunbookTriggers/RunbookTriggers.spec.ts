@@ -2,7 +2,6 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
-import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
