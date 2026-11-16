@@ -16,6 +16,14 @@ import { PASS_ON_PAGE_TEXT } from "../PassOn/PassOnPage";
  * stored "Passed On" and reads "Escalated" (PassedOnStatus).
  */
 
+/*
+ * A page merged into the person's open page from another policy's run
+ * (Types/OnCallDutyPolicy/OnCallPageMerge): the person's page, and the run's
+ * line for them, are stored "Already Paged" and read so.
+ */
+export const ON_CALL_ALREADY_PAGED_STATUS_LABEL: string =
+  translationKey("Already Paged");
+
 // A policy run's status (OnCallDutyPolicyExecutionLog).
 export const ON_CALL_POLICY_RUN_STATUS_LABELS: Record<
   OnCallDutyPolicyStatus,
@@ -55,6 +63,9 @@ export const ON_CALL_TIMELINE_STATUS_LABELS: Record<
   [OnCallDutyExecutionLogTimelineStatus.Error]: translationKey("Error"),
   [OnCallDutyExecutionLogTimelineStatus.PassedOn]:
     PASS_ON_PAGE_TEXT.passedOnStatus,
+  // Another policy's page of them stands for this one (OnCallPageMerge).
+  [OnCallDutyExecutionLogTimelineStatus.AlreadyPaged]:
+    ON_CALL_ALREADY_PAGED_STATUS_LABEL,
 };
 
 export function getOnCallTimelineStatusFilterOptions(): Array<DropdownOption> {
@@ -76,6 +87,9 @@ export const USER_ON_CALL_LOG_STATUS_LABELS: Record<
   [UserNotificationExecutionStatus.Completed]: translationKey("Completed"),
   [UserNotificationExecutionStatus.Error]: translationKey("Error"),
   [UserNotificationExecutionStatus.PassedOn]: PASS_ON_PAGE_TEXT.passedOnStatus,
+  // Merged into your open page from another policy (OnCallPageMerge).
+  [UserNotificationExecutionStatus.AlreadyPaged]:
+    ON_CALL_ALREADY_PAGED_STATUS_LABEL,
 };
 
 export function getUserOnCallLogStatusFilterOptions(): Array<DropdownOption> {

@@ -1,7 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
+import { parseKeyPairsIntoRecord } from "@opentelemetry/core";
 import {
   describeUnreadableOtlpHeaders,
   NOTHING_EXPORTED_WITHOUT_A_HEADER,
+  OTEL_EXPORTER_OTLP_HEADERS_SETTING,
   OTLP_EXPORTER_HEADERS_HELM_VALUE,
   OTLP_EXPORTER_HEADERS_SETTING,
   OtlpExporterHeaders,
@@ -16,9 +18,11 @@ import { redactLogString } from "../../../../Server/Utils/LogRedaction";
  * '=', and a header was kept only when that gave two parts, so a Basic
  * Authorization value (base64 padding) or a token ending in '=' was dropped
  * without a word - and when it was the only header, Telemetry.init exported
- * nothing at all. These tests pin the reading: ';' between headers, the
- * FIRST '=' between a name and a value, and a report of what cannot be sent
- * that never repeats a name or a value from the setting.
+ * nothing at all. These tests pin the reading: ';' between headers, or ','
+ * as the standard OTEL_EXPORTER_OTLP_HEADERS writes them, with its
+ * percent-encoded values decoded (issue #7162); the FIRST '=' between a name
+ * and a value; and a report of what cannot be sent that never repeats a name
+ * or a value from the setting.
  */
 
 const BASIC_AUTHORIZATION: string = "Basic dXNlcjpwYXNzd29yZA==";
@@ -149,6 +153,271 @@ describe("readOtlpExporterHeaders: what is sent", () => {
     expect(read("")).toEqual(nothing);
     expect(read(";")).toEqual(nothing);
     expect(read("  ;  ")).toEqual(nothing);
+    expect(read(",")).toEqual(nothing);
+    expect(read(" , ,")).toEqual(nothing);
+  });
+});
+
+/*
+ * The standard form (issue #7162): OTEL_EXPORTER_OTLP_HEADERS separates
+ * headers with ',' and percent-encodes their values, and it is what a
+ * backend's setup guide gives an operator to copy. Read with ';' only,
+ * "x-a=1,x-b=2" was one header x-a whose value was "1,x-b=2".
+ */
+describe("readOtlpExporterHeaders: ',' between headers, as OTEL_EXPORTER_OTLP_HEADERS writes them", () => {
+  test("'a=1,b=2' gives two headers", () => {
+    expect(read("a=1,b=2")).toEqual({
+      headers: { a: "1", b: "2" },
+      written: 2,
+      unreadable: [],
+    });
+  });
+
+  test("the issue's own example is two headers, not one whose value holds the other", () => {
+    expect(read("x-a=1,x-b=2").headers).toEqual({ "x-a": "1", "x-b": "2" });
+  });
+
+  test("reads a OneUptime token and a second header, separated the standard way", () => {
+    expect(read("x-oneuptime-token=key,x-extra=1").headers).toEqual({
+      "x-oneuptime-token": "key",
+      "x-extra": "1",
+    });
+  });
+
+  test("decodes a percent-encoded space, as a backend's guide writes an Authorization value", () => {
+    expect(read("Authorization=Basic%20dXNlcjpwYXNzd29yZA==")).toEqual({
+      headers: { Authorization: BASIC_AUTHORIZATION },
+      written: 1,
+      unreadable: [],
+    });
+    expect(
+      read("Authorization=Bearer%20sk-live-123,X-Scope-OrgID=tenant-1").headers,
+    ).toEqual({
+      Authorization: "Bearer sk-live-123",
+      "X-Scope-OrgID": "tenant-1",
+    });
+  });
+
+  test("keeps a value that ends in '=', or holds '=', splitting each header at its first '='", () => {
+    expect(
+      read(`Authorization=${BASIC_AUTHORIZATION},x-scope=tenant=eu==`).headers,
+    ).toEqual({ Authorization: BASIC_AUTHORIZATION, "x-scope": "tenant=eu==" });
+    expect(read("x-a=b%3Dc,x-b=1").headers).toEqual({
+      "x-a": "b=c",
+      "x-b": "1",
+    });
+  });
+
+  test("decodes a ',' or a ';' a value holds, which the standard form can only hold encoded", () => {
+    expect(read("x-list=a%2Cb,x-other=1").headers).toEqual({
+      "x-list": "a,b",
+      "x-other": "1",
+    });
+    expect(read("x-a=1%3B2,x-b=3").headers).toEqual({
+      "x-a": "1;2",
+      "x-b": "3",
+    });
+  });
+
+  test("decodes octets as UTF-8, to a character Node sends", () => {
+    expect(read("x-note=caf%C3%A9,x-b=1").headers).toEqual({
+      "x-note": "café",
+      "x-b": "1",
+    });
+    expect(read("x-a=%7e%7E").headers).toEqual({ "x-a": "~~" });
+  });
+
+  test("keeps a '%' that does not start two hex digits as written", () => {
+    expect(read("x-note=100%,x-b=1").headers).toEqual({
+      "x-note": "100%",
+      "x-b": "1",
+    });
+    expect(read("x-a=50%2,x-b=%zz").headers).toEqual({
+      "x-a": "50%2",
+      "x-b": "%zz",
+    });
+    expect(read("x-a=50%25%").headers).toEqual({ "x-a": "50%%" });
+  });
+
+  test("leaves '+' as it is: percent-encoding, not a form's encoding", () => {
+    expect(read("x-a=a+b,x-b=1").headers).toEqual({ "x-a": "a+b", "x-b": "1" });
+  });
+
+  test("decodes only the value: a name is an HTTP token, and '%' is one of its characters", () => {
+    expect(read("x%2Dtoken=1,x-b=2").headers).toEqual({
+      "x%2Dtoken": "1",
+      "x-b": "2",
+    });
+  });
+
+  test("trims spaces around the commas, the names and the values", () => {
+    expect(read(" a = 1 , b=2 ")).toEqual({
+      headers: { a: "1", b: "2" },
+      written: 2,
+      unreadable: [],
+    });
+  });
+
+  test("skips empty parts and a trailing ',' without counting or reporting them", () => {
+    expect(read(",a=1,,b=2,")).toEqual({
+      headers: { a: "1", b: "2" },
+      written: 2,
+      unreadable: [],
+    });
+    // Read with ';' only, this token was sent as "key," and refused.
+    expect(read("x-oneuptime-token=key,").headers).toEqual({
+      "x-oneuptime-token": "key",
+    });
+  });
+
+  test("keeps the last value of a name written twice", () => {
+    expect(read("a=1,a=2").headers).toEqual({ a: "2" });
+  });
+
+  test("reports a header it cannot send by its place among the comma-separated ones", () => {
+    expect(read("a=1,b==,c=3")).toEqual({
+      headers: { a: "1", c: "3" },
+      written: 3,
+      unreadable: [
+        { position: 2, reason: UnreadableOtlpHeaderReason.OnlyEqualsSigns },
+      ],
+    });
+    expect(read("a=1,b=x\u0001,c=3").unreadable).toEqual([
+      { position: 2, reason: UnreadableOtlpHeaderReason.ValueNotAllowed },
+    ]);
+  });
+
+  test("leaves out a value whose decoding no header may hold: a line break, a character past Latin-1, octets that are not UTF-8", () => {
+    for (const encoded of [
+      "1%0A2",
+      "1%0d2",
+      "%00",
+      "%E2%9C%93",
+      "%FF",
+      "%C3",
+    ]) {
+      expect(read(`x-a=${encoded},x-b=1`)).toEqual({
+        headers: { "x-b": "1" },
+        written: 2,
+        unreadable: [
+          { position: 1, reason: UnreadableOtlpHeaderReason.ValueNotAllowed },
+        ],
+      });
+    }
+  });
+
+  /*
+   * The OpenTelemetry SDK's own reading of OTEL_EXPORTER_OTLP_HEADERS
+   * (@opentelemetry/core's parseKeyPairsIntoRecord, which the OTLP
+   * exporters OneUptime builds call): for a setting written the standard
+   * way, OneUptime sends what an exporter reading it from that variable
+   * would.
+   */
+  test.each([
+    "api-key=key,other-config-value=value",
+    "Authorization=Basic%20dXNlcjpwYXNzd29yZA==",
+    "Authorization=Bearer%20sk-live-123,X-Scope-OrgID=tenant-1",
+    "x-oneuptime-token=0f8fad5b-d9cb-469f-a165-70867728950e,x-extra=1",
+    "x-list=a%2Cb,x-semi=1%3B2,x-eq=b%3Dc",
+    " a = 1 , b=2 ",
+    "x-note=caf%C3%A9,a=1,a=2",
+    "x-scope=tenant=eu==,x-b=1",
+  ])(
+    "reads %p as the OpenTelemetry SDK reads OTEL_EXPORTER_OTLP_HEADERS",
+    (setting: string) => {
+      const sdk: Record<string, string> = parseKeyPairsIntoRecord(setting);
+
+      expect(Object.keys(sdk).length).toBeGreaterThan(0);
+      expect(read(setting)).toEqual({
+        headers: sdk,
+        written: setting.split(",").length,
+        unreadable: [],
+      });
+    },
+  );
+});
+
+describe("readOtlpExporterHeaders: ';' between headers, OneUptime's own form, reads as it always has", () => {
+  test("'a=1;b=2' is unchanged", () => {
+    expect(read("a=1;b=2")).toEqual({
+      headers: { a: "1", b: "2" },
+      written: 2,
+      unreadable: [],
+    });
+  });
+
+  test("a value is sent as written, its '%' included", () => {
+    expect(read("Authorization=Basic%20abc;x-b=1").headers).toEqual({
+      Authorization: "Basic%20abc",
+      "x-b": "1",
+    });
+  });
+
+  test("a ';' at the end keeps one header as written", () => {
+    expect(read("x-signature=abc%2Bdef%3D;").headers).toEqual({
+      "x-signature": "abc%2Bdef%3D",
+    });
+    expect(read("x-filter=a=1,b=2;").headers).toEqual({
+      "x-filter": "a=1,b=2",
+    });
+  });
+
+  test("a value may hold ',' between ';'-separated headers", () => {
+    expect(read("x-list=a,b;x-other=1").headers).toEqual({
+      "x-list": "a,b",
+      "x-other": "1",
+    });
+  });
+
+  test("';' and ',' together are read as ';'", () => {
+    expect(read("a=1,b=2;c=3")).toEqual({
+      headers: { a: "1,b=2", c: "3" },
+      written: 2,
+      unreadable: [],
+    });
+  });
+});
+
+/*
+ * A setting with no ';' is read the standard way only when every part
+ * between its commas is a header. Otherwise its commas are part of one
+ * header's value, as before: a setting that worked keeps working.
+ */
+describe("readOtlpExporterHeaders: one header whose value holds ',' stays one header", () => {
+  test("'x-list=a,b' stays one header: 'b' is not a header", () => {
+    expect(read("x-list=a,b")).toEqual({
+      headers: { "x-list": "a,b" },
+      written: 1,
+      unreadable: [],
+    });
+  });
+
+  test("'a=1,b' stays one header", () => {
+    expect(read("a=1,b").headers).toEqual({ a: "1,b" });
+  });
+
+  test("a value of JSON stays one header", () => {
+    expect(read('x-tenant={"region": "eu", "tier": 1}').headers).toEqual({
+      "x-tenant": '{"region": "eu", "tier": 1}',
+    });
+  });
+
+  test("so does one with a part that has no name, a name no header may have, or no value", () => {
+    expect(read("a=1,=b").headers).toEqual({ a: "1,=b" });
+    expect(read("a=1, b c=2").headers).toEqual({ a: "1, b c=2" });
+    expect(read("x-a=1,x-b=").headers).toEqual({ "x-a": "1,x-b=" });
+  });
+
+  test("and its value is sent as written, its '%' included", () => {
+    expect(read("x-list=a%20b,c").headers).toEqual({ "x-list": "a%20b,c" });
+  });
+
+  test("'Authorization=Basic x==' is unchanged", () => {
+    expect(read("Authorization=Basic x==")).toEqual({
+      headers: { Authorization: "Basic x==" },
+      written: 1,
+      unreadable: [],
+    });
   });
 });
 
@@ -282,7 +551,7 @@ describe("describeUnreadableOtlpHeaders", () => {
       "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
         "OneUptime cannot read header 2 of 3, so it does not send it. " +
         "Header 2 has no '=' between a name and a value. " +
-        "Write each header as name=value, and separate headers with ';'.",
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
     );
   });
 
@@ -295,7 +564,7 @@ describe("describeUnreadableOtlpHeaders", () => {
         "Header 1 has nothing before its first '='. " +
         "Header 2 has a name, before its first '=', with a character no header name may hold, such as a space or ':'. " +
         "Header 3 has nothing after its first '='. " +
-        "Write each header as name=value, and separate headers with ';'.",
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
     );
   });
 
@@ -303,6 +572,55 @@ describe("describeUnreadableOtlpHeaders", () => {
     expect(describeUnreadableOtlpHeaders(read("a;b"))).toContain(
       "OneUptime cannot read headers 1 and 2 of 2, so it does not send them.",
     );
+  });
+
+  test("counts places among the comma-separated headers of a setting written the standard way, and says ',' may separate them", () => {
+    expect(describeUnreadableOtlpHeaders(read("a=1,b==,c=%0A"))).toBe(
+      "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
+        "OneUptime cannot read headers 2 and 3 of 3, so it does not send them. " +
+        "Header 2 has only '=' after its first '=', as a value ending in '=' does when it is written without a name. " +
+        "Header 3 has a value with a character no header value may hold, such as a line break. " +
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
+    );
+  });
+
+  test("names the standard variable whose form it reads", () => {
+    expect(OTEL_EXPORTER_OTLP_HEADERS_SETTING).toBe(
+      "OTEL_EXPORTER_OTLP_HEADERS",
+    );
+    expect(describeUnreadableOtlpHeaders(read("a;b"))).toContain(
+      `(or ',' as in ${OTEL_EXPORTER_OTLP_HEADERS_SETTING})`,
+    );
+  });
+
+  test("never repeats a name, a value or a value's encoding from a setting written the standard way", () => {
+    const setting: string = [
+      "Authorization=Basic%20c2VjcmV0LXRva2Vu",
+      "x-tenant=tenant-42%0A",
+      "x-mark=%E2%9C%93sk-live-0123",
+      "x-oneuptime-token==",
+    ].join(",");
+
+    const line: string = describeUnreadableOtlpHeaders(read(setting)) as string;
+
+    expect(line).toContain(
+      "OneUptime cannot read headers 2, 3 and 4 of 4, so it does not send them.",
+    );
+
+    for (const secret of [
+      "c2VjcmV0LXRva2Vu",
+      "tenant-42",
+      "sk-live-0123",
+      "%0A",
+      "%E2%9C%93",
+      "✓",
+      "x-tenant",
+      "x-mark",
+      "x-oneuptime-token",
+      "Authorization",
+    ]) {
+      expect(line).not.toContain(secret);
+    }
   });
 
   test("says why a token written without its name is not sent", () => {

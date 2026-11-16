@@ -744,10 +744,16 @@ export default class TelemetryIngest {
       });
 
       /*
-       * The key is now in use. Stamped through the helper every ingest path
-       * shares - the OTLP gRPC server calls it too - fire and forget.
+       * The key is in use once the route has accepted what it sent, not
+       * yet: admitted here, the request can still be refused by its route
+       * (a body it cannot read, a 503 while the queue cannot take it).
+       * Stamped when the route answers with a success, which every ingest
+       * route does only once it has taken the data - the moment the OTLP
+       * gRPC server stamps at, the export already in the queue (issue
+       * #8021). Through the helper every ingest path shares, fire and
+       * forget.
        */
-      TelemetryIngestionKeyLastUsed.stamp(policy);
+      TelemetryIngestionKeyLastUsed.stampWhenAccepted(policy, res);
 
       next();
     } catch (err) {

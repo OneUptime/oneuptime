@@ -352,7 +352,7 @@
       "extendDescription": "Das Enddatum der Testphase dieses Projekts verschieben. Der Zahlungsanbieter erhält das neue Datum ebenfalls, sodass während der Testphase nichts in Rechnung gestellt wird.",
       "newTrialEndDate": "Neues Enddatum der Testphase",
       "newTrialEndDateDescription": "Das Datum, an dem die Testphase enden soll. Es muss in der Zukunft liegen und darf höchstens 730 Tage (zwei Jahre) entfernt sein.",
-      "notTrialingWarning": "Dieses Projekt befindet sich derzeit nicht in der Testphase. Durch die Verlängerung wird der aktuelle nutzungsbasierte Abrechnungszeitraum abgeschlossen, sodass dem Kunden die in diesem Zeitraum bereits angefallene Nutzung sofort in Rechnung gestellt wird. Die verlängerte Testphase selbst ist kostenlos.",
+      "notTrialingUsageWaived": "Dieses Projekt befindet sich derzeit nicht in der Testphase. Durch die Verlängerung wird dem Kunden die im aktuellen Abrechnungszeitraum bereits angefallene Nutzung erlassen, sodass sie ihm nicht in Rechnung gestellt wird. Die verlängerte Testphase selbst ist kostenlos.",
       "extendSubmitButton": "Testphase verlängern",
       "extendSuccess": "Testphase bis zum {{date}} verlängert. Der Zahlungsanbieter wurde aktualisiert.",
       "extendFailure": "Die Testphase konnte nicht verlängert werden.",

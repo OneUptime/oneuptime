@@ -66,7 +66,13 @@ const ingestMetricsMiddleware: (
 
       const elapsedNs: bigint = process.hrtime.bigint() - startNs;
       const durationMs: number = Number(elapsedNs) / 1e6;
-      const statusCode: number = res.statusCode || 0;
+      /*
+       * The status the route answered with. A request whose client left
+       * before any answer was sent reaches here on "close" with Node's
+       * default of 200, which is not an answer: it is counted as an error,
+       * not as accepted - its sender saw no success, and will retry it.
+       */
+      const statusCode: number = res.headersSent ? res.statusCode || 0 : 0;
       const outcome: string =
         statusCode >= 200 && statusCode < 300
           ? "accepted"

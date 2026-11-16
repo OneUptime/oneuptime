@@ -1,0 +1,265 @@
+# host is the address people open OneUptime at, and every pod reads it as HOST:
+# the app builds every link from it, and nginx names its primary server by it
+# without the port (envsubst-on-templates.sh).
+#
+# It is a domain name or an IPv4 address, with or without :port, or an IPv6
+# address in brackets, with or without :port after them: [2001:db8::1],
+# [2001:db8::1]:8080, as a web address writes it and a browser names it in
+# every request. Without brackets an IPv6 host never worked (#8022): nginx
+# answers 400 to a Host of 2001:db8::1 and never takes a request for a server
+# of that name, and every link read http://2001:db8::1/..., which no browser
+# opens. The chart does not put the brackets in, since 2001:db8::1:8080 is an
+# address of its own and also 2001:db8::1 on port 8080: it refuses the host
+# with the value to set instead, as npm start does under Docker Compose
+# (Scripts/Install/Preflight.js).
+suite: host
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # -------------------------------------------------------------------------
+  # Every shape that works reaches the pods as it was written
+  # -------------------------------------------------------------------------
+  - it: reaches the app as HOST, a domain name
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: oneuptime.example.com
+    asserts: &hostIsSet
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: oneuptime.example.com
+
+  - it: reaches the app as HOST, a domain name with a port
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: oneuptime.example.com:8080
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: oneuptime.example.com:8080
+
+  - it: reaches the app as HOST, an IPv4 address
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: 203.0.113.5
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: 203.0.113.5
+
+  - it: reaches the app as HOST, an IPv4 address with a port
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: 203.0.113.5:8080
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: 203.0.113.5:8080
+
+  - it: reaches the app as HOST, an IPv6 address in brackets
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: "[2001:db8::1]"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: "[2001:db8::1]"
+
+  - it: reaches the app as HOST, an IPv6 address in brackets with a port
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: "[2001:db8::1]:8080"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: "[2001:db8::1]:8080"
+
+  - it: reaches nginx as HOST, an IPv6 address in brackets with a port, which names its primary server
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: "[2001:db8::1]:8080"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: "[2001:db8::1]:8080"
+
+  - it: says where to open an IPv6 host, in brackets and with its port
+    templates:
+      - templates/NOTES.txt
+    set:
+      host: "[2001:db8::1]:8080"
+      httpProtocol: https
+    asserts:
+      - matchRegexRaw:
+          pattern: 'Then open https://\[2001:db8::1\]:8080 and sign up\.'
+      - notMatchRegexRaw:
+          pattern: 'only this computer can open OneUptime'
+
+  - it: "[::1] is this computer, as localhost is"
+    templates:
+      - templates/NOTES.txt
+    set:
+      host: "[::1]"
+    asserts:
+      - matchRegexRaw:
+          pattern: 'host is \[::1\], so only this computer can open OneUptime\.'
+
+  # -------------------------------------------------------------------------
+  # An IPv6 address without brackets is refused, with the value to set
+  #
+  # Every workload refuses it, as every one reads HOST (oneuptime.env.common).
+  # helm renders the templates one after another and stops at the first that
+  # fails, and helm-unittest names only that one: with the chart's defaults it
+  # is nginx's. So each test of another template turns off those rendered
+  # before it (worker, then nginx, then the migrate Job, then the app; the
+  # notes last of all).
+  # -------------------------------------------------------------------------
+  - it: refuses an IPv6 address without brackets, in nginx, which would never take a request for it
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: "2001:db8::1"
+    asserts: &refusesUnbracketed
+      - failedTemplate:
+          errorMessage: 'host is 2001:db8::1, an IPv6 address without brackets, so no browser can open OneUptime at it. Write it in brackets, with any port after them, such as [2001:db8::1]:8080: --set host=[2001:db8::1], or in a values file, in quotes so YAML reads it as text, host: "[2001:db8::1]".'
+
+  - it: refuses it in the migrate Job
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      host: "2001:db8::1"
+      nginx:
+        enabled: false
+    asserts: *refusesUnbracketed
+
+  - it: refuses it in the app
+    templates:
+      - templates/app.yaml
+    set:
+      host: "2001:db8::1"
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts: *refusesUnbracketed
+
+  - it: refuses it in the worker
+    templates:
+      - templates/worker.yaml
+    set:
+      host: "2001:db8::1"
+      worker:
+        enabled: true
+    asserts: *refusesUnbracketed
+
+  # helm-unittest keeps the error of a template that is not YAML as its raw
+  # text, which only a pattern matches.
+  - it: refuses it in the notes, which print no address for it, with every workload turned off
+    templates:
+      - templates/NOTES.txt
+    set:
+      host: "2001:db8::1"
+      deployment:
+        disableDeployments: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'host is 2001:db8::1, an IPv6 address without brackets, so no browser can open OneUptime at it\.'
+
+  - it: refuses it written with spaces around it, which the pods never see
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: " 2001:db8::1 "
+    asserts: *refusesUnbracketed
+
+  # A host whose last group could be a port, such as 2001:db8::1:8080, is
+  # refused the same way. helm-unittest cannot hold it: it reads "1:8080" in
+  # the error as a template's file:line:column, and then finds no failed
+  # template. Tests/Ops/HelmHost.test.js renders it with helm itself.
+  - it: refuses one whose last group is no number, putting all of it in brackets
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: "2001:db8::1:abcd"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is 2001:db8::1:abcd, an IPv6 address without brackets, so no browser can open OneUptime at it. Write it in brackets, with any port after them, such as [2001:db8::1]:8080: --set host=[2001:db8::1:abcd], or in a values file, in quotes so YAML reads it as text, host: "[2001:db8::1:abcd]".'
+
+  - it: refuses ::1, this computer's IPv6 address, without brackets
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: "::1"
+    asserts:
+      - failedTemplate:
+          errorPattern: 'host is ::1, an IPv6 address without brackets'
+
+  # -------------------------------------------------------------------------
+  # Nothing else is refused
+  # -------------------------------------------------------------------------
+  - it: renders the chart's own default, localhost
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notFailedTemplate: {}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: localhost
+
+  - it: renders an empty host as it always did
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: ""
+    asserts:
+      - notFailedTemplate: {}
