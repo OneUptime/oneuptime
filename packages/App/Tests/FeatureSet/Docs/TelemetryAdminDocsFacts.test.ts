@@ -2569,7 +2569,12 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         events: [],
         links: [],
       },
-      [traceScrubRule(TraceScrubPatternType.SensitiveKeys)] as never,
+      [
+        traceScrubRule(
+          TraceScrubPatternType.SensitiveKeys,
+          TraceScrubField.All,
+        ),
+      ] as never,
     );
 
     expect((span["attributes"] as JSONObject)["langfuse.session.id"]).toBe(
