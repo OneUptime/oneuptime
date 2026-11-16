@@ -352,7 +352,7 @@
       "extendDescription": "Flytta slutdatumet för projektets provperiod. Betalningsleverantören får också det nya datumet, så inget faktureras under provperioden.",
       "newTrialEndDate": "Nytt slutdatum för provperioden",
       "newTrialEndDateDescription": "Datumet då provperioden ska sluta. Måste ligga i framtiden och högst 730 dagar (två år) framåt i tiden.",
-      "notTrialingWarning": "Det här projektet har för närvarande ingen provperiod. Att förlänga provperioden avslutar den nuvarande förbrukningsbaserade faktureringsperioden, så kunden faktureras omedelbart för den förbrukning som redan har uppstått under perioden. Själva den förlängda provperioden är kostnadsfri.",
+      "notTrialingUsageWaived": "Det här projektet har för närvarande ingen provperiod. När provperioden förlängs efterskänks avgiften för den förbrukning som kunden redan har haft under den nuvarande faktureringsperioden, så kunden faktureras inte för den. Själva den förlängda provperioden är kostnadsfri.",
       "extendSubmitButton": "Förläng provperiod",
       "extendSuccess": "Provperioden har förlängts till {{date}}. Betalningsleverantören har uppdaterats.",
       "extendFailure": "Det gick inte att förlänga provperioden.",

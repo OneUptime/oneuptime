@@ -352,7 +352,7 @@
       "extendDescription": "Move this project's trial end date. The payment provider gets the new date too, so nothing is invoiced during the trial.",
       "newTrialEndDate": "New Trial End Date",
       "newTrialEndDateDescription": "The date the trial should end. Must be in the future and no more than 730 days (two years) away.",
-      "notTrialingWarning": "This project is not currently on trial. Extending the trial closes the current usage billing period, so the customer will be invoiced straight away for the usage they have already accrued this period. The extended trial itself is free.",
+      "notTrialingUsageWaived": "This project is not currently on trial. Extending the trial waives the usage the customer has accrued this billing period, so they are not invoiced for it. The extended trial itself is free.",
       "extendSubmitButton": "Extend Trial",
       "extendSuccess": "Trial extended to {{date}}. The payment provider has been updated.",
       "extendFailure": "Failed to extend the trial.",

@@ -352,7 +352,7 @@
       "extendDescription": "Sposta la data di fine della prova di questo progetto. Anche il fornitore dei pagamenti riceve la nuova data, quindi durante la prova non viene fatturato nulla.",
       "newTrialEndDate": "Nuova data di fine del periodo di prova",
       "newTrialEndDateDescription": "La data in cui deve terminare il periodo di prova. Deve essere futura e non oltre 730 giorni (due anni) da oggi.",
-      "notTrialingWarning": "Questo progetto non è attualmente in prova. Il prolungamento chiude l'attuale periodo di fatturazione a consumo, quindi al cliente verrà fatturato subito il consumo già maturato in questo periodo. Il periodo di prova prolungato è invece gratuito.",
+      "notTrialingUsageWaived": "Questo progetto non è attualmente in prova. Con il prolungamento, il consumo già maturato dal cliente nell'attuale periodo di fatturazione non gli verrà fatturato. Anche il periodo di prova prolungato è gratuito.",
       "extendSubmitButton": "Estendi periodo di prova",
       "extendSuccess": "Periodo di prova esteso al {{date}}. Il fornitore di pagamento è stato aggiornato.",
       "extendFailure": "Impossibile prolungare il periodo di prova.",

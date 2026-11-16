@@ -352,7 +352,7 @@
       "extendDescription": "Mover a data de término do teste deste projeto. O provedor de pagamento também recebe a nova data, então nada é cobrado durante o teste.",
       "newTrialEndDate": "Nova data de término do período de teste",
       "newTrialEndDateDescription": "A data em que o período de teste deve terminar. Deve estar no futuro e a no máximo 730 dias (dois anos) de distância.",
-      "notTrialingWarning": "Este projeto não está atualmente em teste. Estender o teste encerra o período de faturação por utilização atual, pelo que o cliente será faturado de imediato pela utilização já acumulada neste período. O teste estendido em si é gratuito.",
+      "notTrialingUsageWaived": "Este projeto não está atualmente em teste. Estender o teste perdoa a utilização que o cliente já acumulou no período de faturação atual, pelo que não lhe será faturada. O teste estendido em si é gratuito.",
       "extendSubmitButton": "Estender período de teste",
       "extendSuccess": "Período de teste estendido até {{date}}. O provedor de pagamento foi atualizado.",
       "extendFailure": "Falha ao estender o teste.",

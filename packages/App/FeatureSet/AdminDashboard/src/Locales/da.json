@@ -352,7 +352,7 @@
       "extendDescription": "Flyt projektets slutdato for prøveperioden. Betalingsudbyderen får også den nye dato, så intet faktureres i prøveperioden.",
       "newTrialEndDate": "Ny slutdato for prøveperiode",
       "newTrialEndDateDescription": "Datoen, hvor prøveperioden skal slutte. Skal ligge i fremtiden og højst 730 dage (to år) frem i tiden.",
-      "notTrialingWarning": "Dette projekt er i øjeblikket ikke på prøve. Når prøveperioden forlænges, lukkes den nuværende forbrugsbaserede faktureringsperiode, så kunden straks faktureres for det forbrug, der allerede er optjent i denne periode. Selve den forlængede prøveperiode er gratis.",
+      "notTrialingUsageWaived": "Dette projekt er i øjeblikket ikke på prøve. Når prøveperioden forlænges, frafaldes betalingen for det forbrug, kunden har haft i den nuværende faktureringsperiode, så kunden ikke faktureres for det. Selve den forlængede prøveperiode er gratis.",
       "extendSubmitButton": "Forlæng prøveperiode",
       "extendSuccess": "Prøveperioden er forlænget til {{date}}. Betalingsudbyderen er blevet opdateret.",
       "extendFailure": "Prøveperioden kunne ikke forlænges.",
