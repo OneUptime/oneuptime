@@ -38,6 +38,7 @@ import RelationListPermission, {
 import UpdatePermission from "../Types/Database/Permissions/UpdatePermission";
 import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePermission";
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import SortValidator from "../Types/Database/Permissions/SortValidator";
 import RuleOwningTeams from "../Utils/Rules/RuleOwningTeams";
 import TeamOwnedRulePermission, {
   TeamOwnedRuleColumn,
@@ -9218,6 +9219,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       findBy.props,
     );
 
+    /*
+     * The order the caller asked for, and who asked: checked against the
+     * model once the read is permitted (SortValidator, below) - as they
+     * wrote it, before the service reads it its own way (getReadSort), and
+     * as who they are, before a hook can stand in for them (ProjectService
+     * reads as root for someone with no project).
+     */
+    const askedSort: Sort<TBaseModel> | undefined = findBy.sort;
+    const asker: DatabaseCommonInteractionProps = { ...findBy.props };
+
     findBy.sort = this.getReadSort(findBy.sort);
 
     const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
@@ -9261,6 +9272,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     onBeforeFind.query = result.query;
     onBeforeFind.select = result.select || undefined;
+
+    /*
+     * A sort the database could not order the list by as written - a field
+     * the model does not have, a relation given only a direction, a
+     * relation of many records - is refused as bad data, saying what to
+     * send, rather than failing in TypeORM as a server fault (#8141). Every
+     * sort TypeORM reads as written passes untouched. After the permission
+     * checks, so a caller who may not read the list is told that first.
+     */
+    SortValidator.checkSort({
+      modelType: this.modelType,
+      sort: askedSort,
+      props: asker,
+    });
 
     return {
       findBy: onBeforeFind,
